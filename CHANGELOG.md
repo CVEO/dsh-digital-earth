@@ -13,7 +13,7 @@
 
 ## 1.0.0
 
-首个公开版本（包名 `dsh-digital-earth`，面板名「数字地球 / Digital Earth」）。
+首个公开版本（npm 包名 `@cveo/dsh-digital-earth`，面板名「数字地球 / Digital Earth」）。
 
 - 3D Tiles 浏览：b3dm / glb（3D Tiles 1.0 / 1.1）与 3DGS（`KHR_gaussian_splatting`，含 SPZ 压缩）。
 - 数据加载：本地目录递归扫描 `tileset.json`；在线 `http(s)` 地址（跨域失败自动走 Host 代理）；本机绝对路径。

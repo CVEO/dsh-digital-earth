@@ -1,0 +1,65 @@
+name: Publish
+
+# 发布策略：
+#   - push 到 main（合并 develop 的正式版）→ 若 package.json 的版本还没上 npm，就自动发布；
+#   - 打 v* tag → 同上；
+#   - 手动触发 → 同上。
+# 版本已存在时跳过而不是失败，所以「改代码但没升版本」的合并不会把 CI 变红。
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  id-token: write # npm Trusted Publishing (OIDC) 必需
+  contents: read
+
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          registry-url: 'https://registry.npmjs.org'
+          package-manager-cache: false
+
+      - name: Upgrade npm (Trusted Publishing needs >= 11.5.1)
+        run: npm install -g npm@latest
+
+      - name: Syntax check
+        run: node --check index.js && node --check client.js
+
+      - name: Structural tests
+        run: node --test
+
+      - name: Package manifest
+        run: npm pack --dry-run
+
+      - name: Check whether this version is already on npm
+        id: probe
+        run: |
+          NAME=$(node -p "require('./package.json').name")
+          VERSION=$(node -p "require('./package.json').version")
+          echo "package=$NAME version=$VERSION"
+          if npm view "$NAME@$VERSION" version >/dev/null 2>&1; then
+            echo "published=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "published=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Publish to npm
+        if: steps.probe.outputs.published == 'false'
+        run: npm publish
+
+      - name: Skip notice
+        if: steps.probe.outputs.published == 'true'
+        run: echo "::notice::$(node -p "require('./package.json').name")@$(node -p "require('./package.json').version") 已存在于 npm，跳过发布。"

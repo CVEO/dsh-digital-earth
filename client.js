@@ -7,7 +7,7 @@
  * so the panel is fully offline-capable and never depends on a CDN.
  */
 window.__ModuleLoader__.load({
-  id: 'dsh-digital-earth',
+  id: '@cveo/dsh-digital-earth',
   factory(require) {
     const React = require('react')
     const h = React.createElement
