@@ -1,8 +1,9 @@
 {
-  "name": "dsh-digital-earth",
+  "name": "@cveo/dsh-digital-earth",
   "version": "1.0.0",
   "type": "module",
   "description": "数字地球：在 CesiumJS 地球上叠加 3D Tiles / 3DGS 图层，支持双语、浅深主题、自管影像与地形数据源、坐标 HUD 与量测",
+  "icon": "./icon.svg",
   "license": "MIT",
   "engines": {
     "dsh": ">=0.2.1-rc.1 <0.3.0-0"
@@ -37,6 +38,14 @@
     "NOTICE",
     "vendor/cesium"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "test": "node --test",
+    "check": "node --check index.js && node --check client.js && node --test",
+    "prepublishOnly": "npm run check"
+  },
   "dsh": {
     "bundle": {
       "patch": "./cordis.patch.yml"
@@ -57,7 +66,7 @@
   "homepage": "https://github.com/CVEO/dsh-digital-earth",
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@github.com/CVEO/dsh-digital-earth.git"
+    "url": "git+https://github.com/CVEO/dsh-digital-earth.git"
   },
   "bugs": {
     "url": "https://github.com/CVEO/dsh-digital-earth/issues"

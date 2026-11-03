@@ -45,11 +45,11 @@ Search for “Digital Earth” in the plugin market, or use the CLI:
 
 ```bash
 # from the npm registry
-dsh plugin --profile <profile> add dsh-digital-earth
+dsh plugin --profile <profile> add @cveo/dsh-digital-earth
 
 # from a local folder or tarball
 dsh plugin --profile <profile> add "<path-to-plugin>"
-dsh plugin --profile <profile> add "./dsh-digital-earth-1.0.0.tgz"
+dsh plugin --profile <profile> add "./cveo-dsh-digital-earth-1.0.0.tgz"
 ```
 
 Fully quit and reopen DSH after installing or updating: client bundles are registered when the host starts, so reloading the page alone is not enough. The “Digital Earth” entry then appears in the sidebar.
