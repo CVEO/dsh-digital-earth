@@ -1,8 +1,8 @@
 {
   "name": "dsh-digital-earth",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "type": "module",
-  "description": "数字地球：在 CesiumJS 地球上叠加 3D Tiles / 3DGS 图层，支持双语、浅深主题、自管影像与地形数据源、坐标 HUD 与量测",
+  "description": "数字地球：在 CesiumJS 地球上叠加 3D Tiles / 3DGS 图层，可与对话同屏并由 Agent 读写场景（earth_scene / earth_capture），支持双语、浅深主题、自管影像与地形数据源、坐标 HUD 与量测",
   "license": "MIT",
   "engines": {
     "dsh": ">=0.2.1-rc.1 <0.3.0-0"

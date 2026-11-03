@@ -1,6 +1,6 @@
 {
   "meta": {
     "title": "数字地球",
-    "description": "在 CesiumJS 地球上叠加 3D Tiles / 3DGS 图层，内置双语界面、浅深主题、影像与地形数据源管理、坐标 HUD 与量测工具。"
+    "description": "在 CesiumJS 地球上叠加 3D Tiles / 3DGS 图层，可与对话同屏并由 Agent 用自然语言读取、操控场景；内置双语界面、浅深主题、影像与地形数据源管理、坐标 HUD 与量测工具。"
   }
 }
