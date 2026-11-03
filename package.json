@@ -1,0 +1,65 @@
+{
+  "name": "dsh-digital-earth",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "数字地球：在 CesiumJS 地球上叠加 3D Tiles / 3DGS 图层，支持双语、浅深主题、自管影像与地形数据源、坐标 HUD 与量测",
+  "license": "MIT",
+  "engines": {
+    "dsh": ">=0.2.1-rc.1 <0.3.0-0"
+  },
+  "keywords": [
+    "dsh-plugin",
+    "deepseek-harness",
+    "digital-earth",
+    "globe",
+    "3d-tiles",
+    "3dgs",
+    "gaussian-splatting",
+    "cesium",
+    "webgis"
+  ],
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg"
+  },
+  "files": [
+    "index.js",
+    "client.js",
+    "cordis.patch.yml",
+    "locale/*.json",
+    "icon.svg",
+    "README.md",
+    "README.en.md",
+    "preview.png",
+    "CHANGELOG.md",
+    "NOTICE",
+    "vendor/cesium"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-layout",
+        "@deepseek-ai/dsh-client-ui-sidebar",
+        "@deepseek-ai/dsh-client-ui-workspace",
+        "@deepseek-ai/dsh-client-ui-theme",
+        "@deepseek-ai/dsh-client-locale"
+      ]
+    }
+  },
+  "author": "CVEO Research Group, Wuhan University (https://www.whu-cveo.com/)",
+  "homepage": "https://github.com/CVEO/dsh-digital-earth",
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/CVEO/dsh-digital-earth.git"
+  },
+  "bugs": {
+    "url": "https://github.com/CVEO/dsh-digital-earth/issues"
+  }
+}

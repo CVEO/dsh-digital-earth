@@ -1,0 +1,13 @@
+dsh-digital-earth
+================
+
+This product bundles CesiumJS 1.147.0 (vendor/cesium), which is distributed
+under the Apache License, Version 2.0. A copy of that license is included at
+vendor/cesium/LICENSE.md; Cesium's own third-party notices are under
+vendor/cesium/ThirdParty.
+
+Cesium® is a registered trademark of Cesium GS, Inc. This plugin is not
+affiliated with or endorsed by Cesium GS, Inc.
+
+Imagery and elevation are streamed at runtime from public ArcGIS services and
+remain subject to Esri's terms of use.

@@ -1,0 +1,2297 @@
+/**
+ * Client half of the Digital Earth plugin: a full-page globe panel that renders
+ * imagery basemaps, terrain and any number of local/online 3D Tiles layers on
+ * top of CesiumJS.
+ *
+ * The CesiumJS build is vendored in the package and served by the Host half,
+ * so the panel is fully offline-capable and never depends on a CDN.
+ */
+window.__ModuleLoader__.load({
+  id: 'dsh-digital-earth',
+  factory(require) {
+    const React = require('react')
+    const h = React.createElement
+
+    let appCtx = null
+    let metaPromise = null
+    let cesiumPromise = null
+    let cesiumStylePromise = null
+    let saveChain = Promise.resolve()
+
+    /** Read a Cordis client service without breaking when it is not mounted. */
+    const service = (key) => {
+      try {
+        return appCtx?.get?.(key) ?? undefined
+      } catch {
+        return undefined
+      }
+    }
+
+    //#region localization -----------------------------------------------------
+
+    const MESSAGES = {
+      zh: {
+        'panel.title': '数字地球',
+        'panel.status.loading': '正在加载三维引擎…',
+        'panel.status.ready': '就绪',
+        'panel.status.layers.one': '1 个图层',
+        'panel.status.layers.other': '{n} 个图层',
+        'panel.empty.title': '在地球上叠加你的数据',
+        'panel.empty.body':
+          '打开本地目录或在线地址，把 3D Tiles（b3dm / glb / 3DGS）叠加到 CesiumJS 地球上；底图、地形与量测工具已就绪。',
+        'panel.empty.local': '打开本地目录',
+        'panel.empty.url': '加载在线地址',
+        'btn.data': '数据',
+        'btn.openLocal': '打开本地目录…',
+        'btn.openUrl': '加载在线地址…',
+        'btn.layers': '图层',
+        'btn.basemap': '底图',
+        'btn.terrain': '地形',
+        'btn.measure': '量测',
+        'btn.screenshot': '截图',
+        'btn.reset': '复位',
+        'btn.settings': '数据源与外观',
+        'btn.appearance': '外观',
+        'btn.close': '关闭',
+        'btn.cancel': '取消',
+        'btn.retry': '重试',
+        'btn.save': '保存',
+        'btn.add': '添加',
+        'btn.edit': '编辑',
+        'btn.delete': '删除',
+        'btn.restore': '恢复默认',
+        'btn.flyTo': '定位',
+        'btn.visible': '显示',
+        'btn.hidden': '隐藏',
+        'menu.none': '无底图',
+        'menu.terrainOff': '关闭地形',
+        'tool.distance': '测距',
+        'tool.area': '测面',
+        'tool.height': '测高',
+        'tool.pick': '拾取属性',
+        'tool.clear': '清除量测结果',
+        'hud.pointer': '光标',
+        'hud.camera': '相机高度',
+        'hud.heading': '朝向',
+        'hud.tiles': '瓦片',
+        'hud.pending': '待加载',
+        'hud.triangles': '三角面',
+        'hud.cache': '缓存',
+        'hud.elevation': '高程 {value}',
+        'hud.empty': '—',
+        'layers.title': '图层',
+        'layers.empty': '暂无图层',
+        'urlbar.placeholder': 'tileset.json 的 http(s) 地址，或本地绝对路径',
+        'urlbar.submit': '加载',
+        'toast.scanEmpty': '该目录下没有找到 tileset.json',
+        'toast.scanFailed': '打开目录失败：{message}',
+        'toast.dialogUnavailable': '目录选择服务不可用',
+        'toast.invalidPath': '本地路径无效',
+        'toast.invalidUrl': '请输入 http(s) 地址或本地 tileset.json 路径',
+        'toast.proxyFallback': '直连失败，已通过本地代理加载',
+        'toast.loadFailed': '加载失败：{message}',
+        'toast.loadingData': '正在加载数据…',
+        'toast.busyDirectory': '正在打开目录…',
+        'toast.terrainLoading': '正在加载地形…',
+        'toast.terrainOn': '已开启地形：{name}',
+        'toast.terrainOff': '已关闭地形，恢复椭球',
+        'toast.terrainFailed': '地形加载失败，继续使用椭球：{message}',
+        'toast.basemap': '已切换底图：{name}',
+        'toast.basemapNone': '已关闭影像底图',
+        'toast.basemapFailed': '底图加载失败：{message}',
+        'toast.screenshotSaved': '截图已保存',
+        'toast.screenshotFailed': '截图失败：{message}',
+        'toast.sourcesSaved': '数据源已保存',
+        'toast.saveFailed': '保存失败：{message}',
+        'toast.defaultsRestored': '已恢复默认数据源',
+        'toast.noSurface': '该位置没有可拾取的表面',
+        'toast.pickNone': '未拾取到对象',
+        'measure.start': '左键点击取点，双击结束',
+        'measure.distance': '总长 {value} · 双击结束',
+        'measure.area': '面积 {value} · 双击结束',
+        'measure.height': '高差 {value} · 水平距 {distance}',
+        'measure.total': '总长 {value}',
+        'measure.areaLabel': '面积 {value}',
+        'pick.title': '拾取对象',
+        'pick.type': '类型',
+        'pick.layer': '图层',
+        'pick.name': '名称',
+        'pick.entity': '实体',
+        'pick.scene': '场景对象',
+        'pick.tiles': '3D Tiles 模型',
+        'pick.noProperties': '说明',
+        'pick.noPropertiesValue': '该瓦片没有属性表',
+        'model.unnamed': '3D Tiles 模型',
+        'credit.imagery': '影像',
+        'settings.title': '数据源与外观',
+        'settings.team': '武汉大学 CVEO 课题组',
+        'settings.tab.imagery': '影像底图',
+        'settings.tab.terrain': '地形',
+        'settings.tab.appearance': '外观',
+        'settings.imageryHint': '此处维护「底图」菜单中的影像源；单选按钮切换当前底图。',
+        'settings.terrainHint': '此处维护可选的地形源；单选按钮用于开启或切换地形。',
+        'settings.empty': '还没有数据源，点击「添加」新建一个。',
+        'settings.current': '当前',
+        'settings.field.name': '名称',
+        'settings.field.type': '类型',
+        'settings.field.url': '地址',
+        'settings.field.credit': '版权署名',
+        'settings.field.maxLevel': '最大层级',
+        'settings.field.subdomains': '子域名（逗号分隔）',
+        'settings.field.tms': 'TMS（Y 轴南起）',
+        'settings.field.localTiles': '选择本地瓦片目录…',
+        'settings.field.layers': 'WMS 图层名',
+        'settings.field.tilingScheme': '投影方式',
+        'settings.field.normals': '请求顶点法线',
+        'settings.field.waterMask': '请求水面掩膜',
+        'settings.type.xyz': 'XYZ 瓦片模板',
+        'settings.type.arcgis': 'ArcGIS 服务',
+        'settings.type.wms': 'WMS',
+        'settings.type.cesium': 'Cesium 地形',
+        'settings.tiling.webMercator': 'Web 墨卡托',
+        'settings.tiling.geographic': '经纬度',
+        'settings.required': '请填写名称与地址',
+        'settings.deleteConfirm': '确定删除数据源「{name}」？',
+        'settings.restoreConfirm': '恢复默认数据源？当前配置将被覆盖。',
+        'theme.auto': '跟随系统',
+        'theme.light': '浅色',
+        'theme.dark': '深色',
+        'theme.appearanceHint': '默认跟随 DSH / 系统的浅深色；选择具体模式可覆盖本面板的外观。',
+        'unit.hectare': '公顷',
+      },
+      en: {
+        'panel.title': 'Digital Earth',
+        'panel.status.loading': 'Loading 3D engine…',
+        'panel.status.ready': 'Ready',
+        'panel.status.layers.one': '1 layer',
+        'panel.status.layers.other': '{n} layers',
+        'panel.empty.title': 'Lay your data over the globe',
+        'panel.empty.body':
+          'Open a local folder or an online URL to add 3D Tiles (b3dm / glb / 3DGS) to this CesiumJS globe. Imagery, terrain and measurement tools are ready.',
+        'panel.empty.local': 'Open local folder',
+        'panel.empty.url': 'Load from URL',
+        'btn.data': 'Data',
+        'btn.openLocal': 'Open local folder…',
+        'btn.openUrl': 'Load from URL…',
+        'btn.layers': 'Layers',
+        'btn.basemap': 'Basemap',
+        'btn.terrain': 'Terrain',
+        'btn.measure': 'Measure',
+        'btn.screenshot': 'Snapshot',
+        'btn.reset': 'Reset',
+        'btn.settings': 'Sources & appearance',
+        'btn.appearance': 'Appearance',
+        'btn.close': 'Close',
+        'btn.cancel': 'Cancel',
+        'btn.retry': 'Retry',
+        'btn.save': 'Save',
+        'btn.add': 'Add',
+        'btn.edit': 'Edit',
+        'btn.delete': 'Delete',
+        'btn.restore': 'Restore defaults',
+        'btn.flyTo': 'Fly to',
+        'btn.visible': 'Show',
+        'btn.hidden': 'Hide',
+        'menu.none': 'No basemap',
+        'menu.terrainOff': 'Terrain off',
+        'tool.distance': 'Distance',
+        'tool.area': 'Area',
+        'tool.height': 'Height',
+        'tool.pick': 'Pick properties',
+        'tool.clear': 'Clear measurements',
+        'hud.pointer': 'Cursor',
+        'hud.camera': 'Camera',
+        'hud.heading': 'Heading',
+        'hud.tiles': 'Tiles',
+        'hud.pending': 'Pending',
+        'hud.triangles': 'Triangles',
+        'hud.cache': 'Cache',
+        'hud.elevation': 'Elev {value}',
+        'hud.empty': '—',
+        'layers.title': 'Layers',
+        'layers.empty': 'No layers yet',
+        'urlbar.placeholder': 'http(s) URL of tileset.json, or an absolute local path',
+        'urlbar.submit': 'Load',
+        'toast.scanEmpty': 'No tileset.json found in that folder',
+        'toast.scanFailed': 'Failed to open folder: {message}',
+        'toast.dialogUnavailable': 'Directory picker is unavailable',
+        'toast.invalidPath': 'Invalid local path',
+        'toast.invalidUrl': 'Enter an http(s) URL or a local tileset.json path',
+        'toast.proxyFallback': 'Direct request failed; loaded through the local proxy',
+        'toast.loadFailed': 'Load failed: {message}',
+        'toast.loadingData': 'Loading dataset…',
+        'toast.busyDirectory': 'Opening folder…',
+        'toast.terrainLoading': 'Loading terrain…',
+        'toast.terrainOn': 'Terrain enabled: {name}',
+        'toast.terrainOff': 'Terrain off; ellipsoid restored',
+        'toast.terrainFailed': 'Terrain failed; keeping the ellipsoid: {message}',
+        'toast.basemap': 'Basemap: {name}',
+        'toast.basemapNone': 'Imagery basemap off',
+        'toast.basemapFailed': 'Basemap failed: {message}',
+        'toast.screenshotSaved': 'Snapshot saved',
+        'toast.screenshotFailed': 'Snapshot failed: {message}',
+        'toast.sourcesSaved': 'Sources saved',
+        'toast.saveFailed': 'Save failed: {message}',
+        'toast.defaultsRestored': 'Default sources restored',
+        'toast.noSurface': 'No pickable surface there',
+        'toast.pickNone': 'Nothing picked',
+        'measure.start': 'Left-click to add points, double-click to finish',
+        'measure.distance': 'Total {value} · double-click to finish',
+        'measure.area': 'Area {value} · double-click to finish',
+        'measure.height': 'Δh {value} · horizontal {distance}',
+        'measure.total': 'Total {value}',
+        'measure.areaLabel': 'Area {value}',
+        'pick.title': 'Picked object',
+        'pick.type': 'Type',
+        'pick.layer': 'Layer',
+        'pick.name': 'Name',
+        'pick.entity': 'Entity',
+        'pick.scene': 'Scene object',
+        'pick.tiles': '3D Tiles model',
+        'pick.noProperties': 'Info',
+        'pick.noPropertiesValue': 'This tile has no property table',
+        'model.unnamed': '3D Tiles model',
+        'credit.imagery': 'Imagery',
+        'settings.title': 'Sources & appearance',
+        'settings.team': 'Wuhan University CVEO Group',
+        'settings.tab.imagery': 'Imagery',
+        'settings.tab.terrain': 'Terrain',
+        'settings.tab.appearance': 'Appearance',
+        'settings.imageryHint': 'Manage the imagery sources offered in the Basemap menu; the radio button picks the active one.',
+        'settings.terrainHint': 'Manage the available terrain sources; the radio button enables or switches terrain.',
+        'settings.empty': 'No sources yet — click Add to create one.',
+        'settings.current': 'Current',
+        'settings.field.name': 'Name',
+        'settings.field.type': 'Type',
+        'settings.field.url': 'URL',
+        'settings.field.credit': 'Credit',
+        'settings.field.maxLevel': 'Max zoom level',
+        'settings.field.subdomains': 'Subdomains (comma separated)',
+        'settings.field.tms': 'TMS (south-origin Y)',
+        'settings.field.localTiles': 'Pick local tiles…',
+        'settings.field.layers': 'WMS layers',
+        'settings.field.tilingScheme': 'Projection',
+        'settings.field.normals': 'Request vertex normals',
+        'settings.field.waterMask': 'Request water mask',
+        'settings.type.xyz': 'XYZ tile template',
+        'settings.type.arcgis': 'ArcGIS service',
+        'settings.type.wms': 'WMS',
+        'settings.type.cesium': 'Cesium terrain',
+        'settings.tiling.webMercator': 'Web Mercator',
+        'settings.tiling.geographic': 'Geographic',
+        'settings.required': 'Name and URL are required',
+        'settings.deleteConfirm': 'Delete source "{name}"?',
+        'settings.restoreConfirm': 'Restore default sources? The current configuration is replaced.',
+        'theme.auto': 'Follow system',
+        'theme.light': 'Light',
+        'theme.dark': 'Dark',
+        'theme.appearanceHint': 'Follows the DSH / system light-dark theme by default; pick a mode to override this panel only.',
+        'unit.hectare': 'ha',
+      },
+    }
+
+    const localeId = () => {
+      const active = service('locale')?.getSnapshot?.()?.active
+      if (typeof active === 'string' && active !== '') return active
+      return typeof navigator !== 'undefined' && navigator.language ? navigator.language : 'en'
+    }
+    const isChinese = () => localeId().toLowerCase().startsWith('zh')
+
+    /** Translate a copy key; `{name}` placeholders interpolate from `params`. */
+    const t = (key, params) => {
+      const table = isChinese() ? MESSAGES.zh : MESSAGES.en
+      let text = table[key] ?? MESSAGES.en[key] ?? key
+      if (params !== undefined) {
+        for (const [name, value] of Object.entries(params)) text = text.replaceAll(`{${name}}`, String(value))
+      }
+      return text
+    }
+
+    /** Re-render the panel when the DSH locale changes. */
+    function useTranslation() {
+      React.useSyncExternalStore(
+        React.useCallback((callback) => service('locale')?.subscribe?.(callback) ?? (() => {}), []),
+        localeId,
+      )
+      return t
+    }
+    //#endregion localization
+
+    //#region theme ------------------------------------------------------------
+
+    /** Whether DSH (or the OS, when DSH follows it) is currently dark. */
+    const darkFromEnvironment = () => {
+      const theme = service('theme')
+      const snapshot = theme?.getTheme?.()
+      const scheme = snapshot?.active?.colorScheme
+      if (scheme === 'dark') return true
+      if (scheme === 'light') return false
+      if (typeof document !== 'undefined' && document.body) {
+        if (document.body.hasAttribute('data-ds-dark-theme')) return true
+        const source = document.documentElement?.dataset?.dsThemeSource
+        if (source === 'dark') return true
+        if (source === 'light') return false
+      }
+      return typeof matchMedia === 'function' && matchMedia('(prefers-color-scheme: dark)').matches
+    }
+
+    /**
+     * Track the resolved DSH colour scheme. `theme/change` is the documented
+     * channel; the media query covers a host without the theme service.
+     */
+    function useEnvironmentDark() {
+      const subscribe = React.useCallback((callback) => {
+        const theme = service('theme')
+        const disposers = []
+        if (theme && typeof appCtx?.on === 'function') disposers.push(appCtx.on('theme/change', callback))
+        if (typeof matchMedia === 'function') {
+          const media = matchMedia('(prefers-color-scheme: dark)')
+          media.addEventListener('change', callback)
+          disposers.push(() => media.removeEventListener('change', callback))
+        }
+        return () => {
+          for (const dispose of disposers) dispose()
+        }
+      }, [])
+      return React.useSyncExternalStore(subscribe, darkFromEnvironment)
+    }
+    //#endregion theme
+
+    //#region helpers ----------------------------------------------------------
+
+    const message = (error) => (error instanceof Error ? error.message : String(error))
+    const b64url = (value) => {
+      const bytes = new TextEncoder().encode(value)
+      let binary = ''
+      for (const byte of bytes) binary += String.fromCharCode(byte)
+      return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+    }
+    const formatValue = (value) => {
+      const text = typeof value === 'string' ? value : JSON.stringify(value) ?? String(value)
+      return text.length > 200 ? `${text.slice(0, 200)}…` : text
+    }
+    const formatBytes = (value) => {
+      if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) return '–'
+      if (value >= 1 << 30) return `${(value / (1 << 30)).toFixed(2)} GB`
+      if (value >= 1 << 20) return `${(value / (1 << 20)).toFixed(1)} MB`
+      if (value >= 1 << 10) return `${(value / 1024).toFixed(0)} KB`
+      return `${value} B`
+    }
+    const formatCount = (value) => {
+      if (typeof value !== 'number' || !Number.isFinite(value)) return '–'
+      if (value >= 1e6) return `${(value / 1e6).toFixed(2)}M`
+      if (value >= 1e3) return `${(value / 1e3).toFixed(1)}k`
+      return String(value)
+    }
+    const formatDistance = (meters) =>
+      meters >= 1000 ? `${(meters / 1000).toFixed(3)} km` : `${meters.toFixed(2)} m`
+    const formatArea = (squareMeters) =>
+      squareMeters >= 1e6
+        ? `${(squareMeters / 1e6).toFixed(3)} km²`
+        : squareMeters >= 1e4
+          ? `${(squareMeters / 1e4).toFixed(2)} ${t('unit.hectare')}`
+          : `${squareMeters.toFixed(1)} m²`
+    const formatHeight = (meters) =>
+      Math.abs(meters) >= 1000 ? `${(meters / 1000).toFixed(2)} km` : `${meters.toFixed(1)} m`
+
+    function geodesicLength(Cesium, points) {
+      let total = 0
+      for (let index = 1; index < points.length; index += 1) {
+        const left = Cesium.Cartographic.fromCartesian(points[index - 1])
+        const right = Cesium.Cartographic.fromCartesian(points[index])
+        total += new Cesium.EllipsoidGeodesic(left, right).surfaceDistance
+      }
+      return total
+    }
+
+    function planarArea(Cesium, points) {
+      if (points.length < 3) return 0
+      const enu = Cesium.Transforms.eastNorthUpToFixedFrame(points[0])
+      const inverse = Cesium.Matrix4.inverseTransformation(enu, new Cesium.Matrix4())
+      const local = points.map((point) => Cesium.Matrix4.multiplyByPoint(inverse, point, new Cesium.Cartesian3()))
+      let sum = 0
+      for (let index = 0; index < local.length; index += 1) {
+        const current = local[index]
+        const next = local[(index + 1) % local.length]
+        sum += current.x * next.y - next.x * current.y
+      }
+      return Math.abs(sum) / 2
+    }
+
+    const clone = (value) => JSON.parse(JSON.stringify(value))
+    //#endregion helpers
+
+    //#region data access ------------------------------------------------------
+
+    const loadMeta = () => {
+      metaPromise ??= fetch('/api/3dviewer/meta', { credentials: 'same-origin' }).then((response) => {
+        if (!response.ok) throw new Error(`HTTP ${response.status}`)
+        return response.json()
+      })
+      return metaPromise
+    }
+
+    const loadCesium = () => {
+      cesiumPromise ??= (async () => {
+        const meta = await loadMeta()
+        window.CESIUM_BASE_URL = meta.cesiumBase
+        return import(meta.cesiumBase + 'index.js')
+      })()
+      return cesiumPromise
+    }
+
+    const loadCesiumStyle = () => {
+      cesiumStylePromise ??= (async () => {
+        if (document.getElementById('mv-cesium-style')) return
+        const meta = await loadMeta()
+        await new Promise((resolve) => {
+          const link = document.createElement('link')
+          link.id = 'mv-cesium-style'
+          link.rel = 'stylesheet'
+          link.href = meta.cesiumBase + 'Widgets/widgets.css'
+          link.onload = resolve
+          link.onerror = resolve
+          document.head.appendChild(link)
+        })
+      })()
+      return cesiumStylePromise
+    }
+
+    /** Read the persisted source catalog (falls back to the built-in catalog). */
+    const loadSources = async (meta) => {
+      try {
+        const response = await fetch(meta.sourcesUrl, { credentials: 'same-origin' })
+        if (!response.ok) throw new Error(`HTTP ${response.status}`)
+        return await response.json()
+      } catch {
+        const config = {
+          imagery: [
+            {
+              id: 'esri-world-imagery',
+              name: 'Esri World Imagery',
+              type: 'xyz',
+              url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+              maximumLevel: 19,
+              credit: 'Esri, Maxar, Earthstar Geographics, and the GIS User Community',
+            },
+          ],
+          terrain: [
+            {
+              id: 'arcgis-world-elevation',
+              name: 'ArcGIS WorldElevation3D',
+              type: 'arcgis',
+              url: 'https://elevation3d.arcgis.com/arcgis/rest/services/WorldElevation3D/Terrain3D/ImageServer',
+              credit: 'Esri, CGIAR, USGS',
+            },
+          ],
+          settings: { theme: 'auto', imagery: 'esri-world-imagery', terrain: null },
+        }
+        return { config, defaults: clone(config) }
+      }
+    }
+
+    /** Persist the catalog; calls are serialised so concurrent edits cannot race. */
+    const persistSources = (meta, config) => {
+      saveChain = saveChain.then(async () => {
+        const response = await fetch(meta.sourcesUrl, {
+          method: 'PUT',
+          credentials: 'same-origin',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(config),
+        })
+        if (!response.ok) throw new Error(`HTTP ${response.status}`)
+        return (await response.json()).config
+      })
+      return saveChain
+    }
+
+    /** Map a stored imagery source onto a Cesium imagery provider. */
+    async function imageryProvider(Cesium, source) {
+      const options = {}
+      if (source.credit) options.credit = source.credit
+      if (source.type === 'arcgis') return Cesium.ArcGisMapServerImageryProvider.fromUrl(source.url, options)
+      if (source.type === 'wms') {
+        return new Cesium.WebMapServiceImageryProvider({
+          url: source.url,
+          layers: source.layers ?? '',
+          parameters: { service: 'WMS', version: '1.1.1', transparent: true, format: 'image/png' },
+          ...options,
+        })
+      }
+      if (source.maximumLevel !== undefined) options.maximumLevel = source.maximumLevel
+      if (source.subdomains) options.subdomains = source.subdomains
+      if (source.tilingScheme === 'geographic') options.tilingScheme = new Cesium.GeographicTilingScheme()
+      if (source.tilingScheme === 'web-mercator') options.tilingScheme = new Cesium.WebMercatorTilingScheme()
+      // Cesium reads south-origin tile rows from `{reverseY}`, so rewrite the template
+      // instead of asking users to remember which placeholder their tileset needs.
+      const template = source.reverseY ? source.url.replace(/\{y\}/g, '{reverseY}') : source.url
+      return new Cesium.UrlTemplateImageryProvider({ url: template, ...options })
+    }
+
+    /** Map a stored terrain source onto a Cesium terrain provider. */
+    async function terrainProvider(Cesium, source) {
+      const options = {}
+      if (source.credit) options.credit = source.credit
+      if (source.requestVertexNormals) options.requestVertexNormals = true
+      if (source.requestWaterMask) options.requestWaterMask = true
+      if (source.type === 'cesium') return Cesium.CesiumTerrainProvider.fromUrl(source.url, options)
+      return Cesium.ArcGISTiledElevationTerrainProvider.fromUrl(source.url, options)
+    }
+    //#endregion data access
+
+    //#region cursor sampling --------------------------------------------------
+
+    /** True when a pick result describes geometry above the globe (tiles, models). */
+    function isModelPick(Cesium, picked) {
+      if (!Cesium.defined(picked)) return false
+      if (picked instanceof Cesium.Cesium3DTileFeature) return true
+      const primitive = picked.primitive ?? picked
+      if (primitive instanceof Cesium.Cesium3DTileset) return true
+      if (primitive instanceof Cesium.Model) return true
+      return false
+    }
+
+    /**
+     * Sample the point under the pointer.
+     *
+     * The globe surface always has an answer (ray → ellipsoid), which keeps the
+     * readout alive on the bare globe with terrain disabled. When a 3D Tiles or
+     * glTF surface is under the cursor its depth is preferred, at any camera
+     * distance, so the reported elevation is the model surface instead of sea
+     * level. Terrain elevation is filled in from the globe when a terrain
+     * provider is attached and the depth buffer is too coarse to trust.
+     */
+    function sampleCursor(viewer, Cesium, position) {
+      const scene = viewer.scene
+      const ellipsoid = scene.globe.ellipsoid
+      const ray = viewer.camera.getPickRay(position)
+      const interval = ray ? Cesium.IntersectionTests.rayEllipsoid(ray, ellipsoid) : undefined
+      let carto = interval ? ellipsoid.cartesianToCartographic(Cesium.Ray.getPoint(ray, interval.start)) : null
+      if (!carto) return null
+      carto.height = 0
+
+      const picked = scene.pick(position)
+      const overModel = isModelPick(Cesium, picked)
+      let sampled = false
+      if (scene.pickPositionSupported && (overModel || viewer.camera.positionCartographic.height < 100000)) {
+        try {
+          const point = scene.pickPosition(position)
+          if (Cesium.defined(point)) {
+            const depthCarto = Cesium.Cartographic.fromCartesian(point)
+            if (depthCarto && Math.abs(depthCarto.height) < 30000) {
+              carto = depthCarto
+              sampled = true
+            }
+          }
+        } catch {
+          /* keep the ray hit */
+        }
+      }
+      if (!sampled) {
+        const provider = scene.globe.terrainProvider
+        const flat = provider instanceof Cesium.EllipsoidTerrainProvider
+        if (!flat && typeof scene.globe.getHeight === 'function') {
+          const terrainHeight = scene.globe.getHeight(carto)
+          if (typeof terrainHeight === 'number' && Number.isFinite(terrainHeight)) carto.height = terrainHeight
+        } else {
+          carto.height = 0
+        }
+      } else if (!overModel && scene.globe.terrainProvider instanceof Cesium.EllipsoidTerrainProvider) {
+        // The depth buffer biases the faceted ellipsoid by up to a few
+        // kilometres; report sea level instead of a fake elevation.
+        if (Math.abs(carto.height) < 100) carto.height = 0
+      }
+      return carto
+    }
+
+    const formatCursor = (Cesium, carto) => {
+      const lon = Cesium.Math.toDegrees(carto.longitude).toFixed(5)
+      const lat = Cesium.Math.toDegrees(carto.latitude).toFixed(5)
+      const height = Math.abs(carto.height) < 0.05 ? 0 : carto.height
+      return `${lon}, ${lat} · ${t('hud.elevation', { value: formatHeight(height) })}`
+    }
+    //#endregion cursor sampling
+
+    function ViewerIcon({ size = 18 }) {
+      return h(
+        'svg',
+        { viewBox: '0 0 64 64', width: size, height: size, 'aria-hidden': true, style: { display: 'block' } },
+        h('circle', { cx: 30, cy: 30, r: 20, fill: 'none', stroke: 'currentColor', strokeWidth: 3 }),
+        h('ellipse', { cx: 30, cy: 30, rx: 8.5, ry: 20, fill: 'none', stroke: 'currentColor', strokeWidth: 2.2, opacity: 0.85 }),
+        h('path', { d: 'M10.5 30h39M13.5 20.5h33M13.5 39.5h33', stroke: 'currentColor', strokeWidth: 2, opacity: 0.55 }),
+        h('path', { d: 'M48 34l9 5v10l-9 5-9-5V39z', fill: 'currentColor', opacity: 0.9 }),
+      )
+    }
+
+    const ThemeIcon = ({ mode, size = 16 }) =>
+      h(
+        'svg',
+        { viewBox: '0 0 24 24', width: size, height: size, 'aria-hidden': true, style: { display: 'block' } },
+        mode === 'dark'
+          ? h('path', { d: 'M20.5 14.4A8.6 8.6 0 0 1 9.6 3.5 8.6 8.6 0 1 0 20.5 14.4z', fill: 'currentColor' })
+          : mode === 'light'
+            ? h(
+                'g',
+                { stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round', fill: 'none' },
+                h('circle', { cx: 12, cy: 12, r: 4.1 }),
+                h('path', { d: 'M12 2.6v2.2M12 19.2v2.2M2.6 12h2.2M19.2 12h2.2M5.4 5.4l1.6 1.6M17 17l1.6 1.6M18.6 5.4L17 7M7 17l-1.6 1.6' }),
+              )
+            : h(
+                'g',
+                { stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round', fill: 'none' },
+                h('circle', { cx: 12, cy: 12, r: 8.4 }),
+                h('path', { d: 'M12 3.6a8.4 8.4 0 0 0 0 16.8z', fill: 'currentColor', stroke: 'none' }),
+              ),
+      )
+
+    /** Bottom-left HUD: FPS, pointer position/elevation, camera and per-layer statistics. */
+    function StatusHud({ fps, stats, viewerRef, cesiumRef, labels }) {
+      // The cursor readout is written straight into the DOM: it updates up to eight
+      // times a second, so keeping it out of React avoids re-renders while busy.
+      const cursorRef = React.useRef(null)
+
+      React.useEffect(() => {
+        const viewer = viewerRef.current
+        const Cesium = cesiumRef.current
+        if (!viewer || !Cesium) return undefined
+        const canvas = viewer.scene.canvas
+        const pointer = { x: 0, y: 0, inside: false, dirty: false }
+        const onMove = (event) => {
+          pointer.x = event.offsetX
+          pointer.y = event.offsetY
+          pointer.inside = true
+          pointer.dirty = true
+        }
+        const onLeave = () => {
+          pointer.inside = false
+          pointer.dirty = true
+        }
+        canvas.addEventListener('pointermove', onMove, { passive: true })
+        canvas.addEventListener('pointerleave', onLeave, { passive: true })
+        let shown = null
+        const paint = (value) => {
+          if (value === shown) return
+          shown = value
+          if (cursorRef.current) cursorRef.current.textContent = value ?? t('hud.empty')
+        }
+        // Pick at ~8 Hz and only while the pointer keeps moving: one depth read per
+        // update keeps this cheap even on multi-million-triangle tilesets.
+        const timer = setInterval(() => {
+          if (!pointer.dirty) return
+          pointer.dirty = false
+          let next = null
+          if (pointer.inside) {
+            const position = new Cesium.Cartesian2(pointer.x, pointer.y)
+            const carto = sampleCursor(viewer, Cesium, position)
+            if (carto) next = formatCursor(Cesium, carto)
+          }
+          paint(next)
+        }, 120)
+        return () => {
+          canvas.removeEventListener('pointermove', onMove)
+          canvas.removeEventListener('pointerleave', onLeave)
+          clearInterval(timer)
+        }
+      }, [])
+
+      return h(
+        'div',
+        { className: 'mv-hud mv-glass' },
+        h(
+          'div',
+          { className: 'row' },
+          h('span', null, 'FPS ', h('b', null, fps)),
+          h('span', null, `${labels.pointer} `, h('b', { ref: cursorRef }, t('hud.empty'))),
+          h('span', null, `${labels.camera} `, h('b', null, stats.height)),
+          h('span', null, `${labels.heading} `, h('b', null, `${stats.heading} / ${stats.pitch}`)),
+        ),
+        stats.layers.map((row) =>
+          h(
+            'div',
+            { key: row.id, className: 'row' },
+            h('b', null, row.name),
+            h('span', null, `${labels.tiles} `, h('b', null, formatCount(row.tiles))),
+            h('span', null, `${labels.pending} `, h('b', null, formatCount(row.pending))),
+            h('span', null, `${labels.triangles} `, h('b', null, formatCount(row.triangles))),
+            h('span', null, `${labels.cache} `, h('b', null, formatBytes(row.memory))),
+          ),
+        ),
+      )
+    }
+
+    function MenuItem({ onClick, children, active }) {
+      return h(
+        'button',
+        { type: 'button', className: `mv-menu-item${active ? ' on' : ''}`, onClick },
+        children,
+        active ? h('span', { className: 'check', 'aria-hidden': true }, '✓') : null,
+      )
+    }
+
+    const CSS = `
+.mv-root{position:relative;flex:1 1 0;min-height:0;overflow:hidden;background:var(--mv-bg);color:var(--mv-text);font:12px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;--mv-bg:var(--dsw-alias-bg-base,#fff);--mv-text:var(--dsw-alias-label-primary,#0f1115);--mv-dim:var(--dsw-alias-label-secondary,#5b6068);--mv-line:var(--dsw-alias-border-l2,#0000001a);--mv-accent:var(--dsw-alias-state-business-primary,#4176e6);--mv-lift:var(--dsw-alias-interactive-bg-hover,#2631480f);--mv-glass:color-mix(in srgb,var(--dsw-alias-bg-layer-1,#fff) 88%,transparent);--mv-glass-strong:var(--dsw-alias-bg-layer-1,#fff);--mv-input:var(--dsw-alias-interactive-bg-hover,#2631480f);--mv-shadow:0 8px 28px rgba(15,23,42,.18);--mv-attrib:rgba(255,255,255,.62);--mv-attrib-shadow:0 1px 2px rgba(0,0,0,.6);--mv-overlay:transparent;--mv-scrim:rgba(24,34,50,.28)}
+.mv-root[data-mv-scheme="dark"]{--mv-attrib:rgba(255,255,255,.62);--mv-attrib-shadow:0 1px 2px rgba(0,0,0,.6);--mv-overlay:transparent;--mv-scrim:rgba(3,7,13,.62)}
+.mv-root[data-mv-theme="dark"]{--mv-bg:#151517;--mv-text:#ebeef2;--mv-dim:#adb2b8;--mv-line:#ffffff1f;--mv-accent:#7aaaff;--mv-lift:#ffffff14;--mv-glass:rgba(21,21,23,.82);--mv-glass-strong:#232324;--mv-input:#ffffff14;--mv-shadow:0 8px 28px rgba(0,0,0,.34);color-scheme:dark}
+.mv-root[data-mv-theme="light"]{--mv-bg:#fff;--mv-text:#0f1115;--mv-dim:#5b6068;--mv-line:#0000001a;--mv-accent:#4176e6;--mv-lift:#2631480f;--mv-glass:rgba(255,255,255,.86);--mv-glass-strong:#fff;--mv-input:#2631480f;--mv-shadow:0 8px 28px rgba(15,23,42,.16);color-scheme:light}
+.mv-globe{position:absolute;inset:0;background:#05080f}
+.mv-globe .cesium-viewer,.mv-globe .cesium-widget,.mv-globe .cesium-widget canvas{width:100%;height:100%}
+.mv-attr{position:absolute;right:10px;bottom:18px;z-index:6;font-size:10px;line-height:1.4;color:var(--mv-attrib);pointer-events:none;text-shadow:var(--mv-attrib-shadow)}
+.mv-credits{position:absolute;right:10px;bottom:2px;max-width:46%;z-index:6;font-size:10px;color:var(--mv-attrib);text-align:right;line-height:1.4;text-shadow:var(--mv-attrib-shadow)}
+.mv-credits .cesium-credit-textContainer,.mv-credits .cesium-credit-logoContainer{display:inline-block}
+.mv-credits a{color:inherit}
+.mv-glass{background:var(--mv-glass);border:.5px solid var(--mv-line);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);box-shadow:var(--mv-shadow)}
+.mv-top{position:absolute;top:10px;left:10px;right:10px;display:flex;align-items:flex-start;justify-content:space-between;gap:10px;z-index:10;pointer-events:none}
+.mv-brand{display:flex;align-items:center;gap:8px;padding:7px 12px;border-radius:11px;pointer-events:auto}
+.mv-brand b{font-size:13px;font-weight:600;letter-spacing:.01em}
+.mv-brand span{font-size:11px;color:var(--mv-dim)}
+.mv-actions{display:flex;align-items:center;gap:2px;padding:4px;border-radius:11px;pointer-events:auto;flex-wrap:wrap;justify-content:flex-end}
+.mv-btn{appearance:none;border:0;background:transparent;color:var(--mv-dim);font:inherit;font-size:12px;line-height:1;padding:7px 9px;border-radius:7px;cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;gap:6px}
+.mv-btn:hover{background:color-mix(in srgb,var(--mv-lift) 72%,transparent);color:var(--mv-text)}
+.mv-btn.on{background:color-mix(in srgb,var(--mv-accent) 26%,transparent);color:var(--mv-text)}
+.mv-btn.icon{padding:7px 8px}
+.mv-sep{width:1px;height:17px;background:var(--mv-line);margin:0 3px}
+.mv-menu{position:relative;display:inline-flex}
+.mv-menu-panel{position:absolute;top:calc(100% + 6px);right:0;min-width:206px;padding:4px;border-radius:11px;z-index:20;display:flex;flex-direction:column;gap:1px}
+.mv-menu-item{appearance:none;border:0;background:transparent;color:var(--mv-text);font:inherit;font-size:12px;text-align:left;padding:8px 10px;border-radius:7px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px;white-space:nowrap}
+.mv-menu-item:hover{background:color-mix(in srgb,var(--mv-lift) 80%,transparent)}
+.mv-menu-item.on{color:var(--mv-accent)}
+.mv-menu-item .check{font-size:11px}
+.mv-urlbar{position:absolute;top:58px;left:50%;transform:translateX(-50%);display:flex;gap:6px;padding:6px;border-radius:11px;z-index:12;width:min(640px,82%)}
+.mv-urlbar input{flex:1;min-width:0;background:var(--mv-input);border:.5px solid var(--mv-line);color:var(--mv-text);border-radius:7px;padding:7px 9px;font:inherit;font-size:12px;outline:none}
+.mv-urlbar input:focus{border-color:var(--mv-accent)}
+.mv-urlbar button{appearance:none;border:.5px solid var(--mv-line);background:var(--mv-lift);color:var(--mv-text);font:inherit;font-size:12px;padding:7px 13px;border-radius:7px;cursor:pointer}
+.mv-urlbar button:hover{border-color:var(--mv-accent)}
+.mv-layers{position:absolute;top:60px;right:10px;width:284px;max-height:calc(100% - 214px);display:flex;flex-direction:column;border-radius:13px;z-index:9;overflow:hidden}
+.mv-layers>header{display:flex;align-items:center;justify-content:space-between;padding:9px 11px;font-size:11px;letter-spacing:.06em;color:var(--mv-dim);border-bottom:.5px solid var(--mv-line)}
+.mv-layer-list{overflow:auto;padding:4px}
+.mv-layer{display:flex;align-items:center;gap:2px;padding:5px 6px;border-radius:8px}
+.mv-layer:hover{background:color-mix(in srgb,var(--mv-lift) 64%,transparent)}
+.mv-layer .name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;cursor:pointer}
+.mv-layer.off .name{color:var(--mv-dim);text-decoration:line-through}
+.mv-icon-btn{appearance:none;border:0;background:transparent;color:var(--mv-dim);width:22px;height:22px;border-radius:6px;cursor:pointer;font:inherit;font-size:11px;line-height:1;display:inline-flex;align-items:center;justify-content:center;flex:none}
+.mv-icon-btn:hover{background:color-mix(in srgb,var(--mv-lift) 82%,transparent);color:var(--mv-text)}
+.mv-icon-btn.on{color:var(--mv-accent)}
+.mv-hud{position:absolute;left:10px;bottom:10px;z-index:9;padding:8px 11px;border-radius:11px;display:flex;flex-direction:column;gap:3px;font-size:11px;color:var(--mv-dim);max-width:calc(100% - 330px);pointer-events:none}
+.mv-hud .row{display:flex;gap:10px;flex-wrap:wrap}
+.mv-hud b{color:var(--mv-text);font-weight:600;font-variant-numeric:tabular-nums}
+.mv-pick{position:absolute;right:10px;bottom:10px;width:322px;max-height:44%;display:flex;flex-direction:column;z-index:13;border-radius:12px;overflow:hidden}
+.mv-pick>header{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;font-size:11px;color:var(--mv-dim);border-bottom:.5px solid var(--mv-line)}
+.mv-pick table{width:100%;border-collapse:collapse;font-size:11px;overflow:auto;display:block}
+.mv-pick td{padding:3px 9px;vertical-align:top;border-top:.5px solid var(--mv-line);word-break:break-all}
+.mv-pick td:first-child{color:var(--mv-dim);width:38%}
+.mv-measure{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);z-index:11;padding:6px 13px;border-radius:999px;font-size:11px;color:var(--mv-dim);white-space:nowrap;pointer-events:none}
+.mv-toast{position:absolute;left:50%;bottom:64px;transform:translateX(-50%);z-index:40;background:var(--mv-glass-strong);border:.5px solid var(--mv-line);color:var(--mv-text);padding:8px 14px;border-radius:9px;font-size:12px;max-width:72%;word-break:break-all;box-shadow:var(--mv-shadow)}
+.mv-overlay{position:absolute;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;padding:24px;background:var(--mv-overlay);pointer-events:none}
+.mv-overlay.dim{background:var(--mv-scrim)}
+.mv-empty{display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center;max-width:470px;pointer-events:auto;padding:24px 28px;border-radius:16px;background:var(--mv-glass-strong);border:.5px solid var(--mv-line);box-shadow:0 24px 64px var(--mv-shadow)}
+.mv-empty h2{margin:0;font-size:17px;font-weight:600;letter-spacing:.01em;color:var(--mv-text)}
+.mv-empty p{margin:0;color:var(--mv-dim);font-size:12px;line-height:1.75}
+.mv-empty .buttons{display:flex;gap:8px;margin-top:2px}
+.mv-cta{appearance:none;border:.5px solid var(--mv-line);background:var(--mv-lift);color:var(--mv-text);font:inherit;font-size:12px;padding:8px 16px;border-radius:9px;cursor:pointer;transition:background .15s ease,border-color .15s ease}
+.mv-cta.primary{background:color-mix(in srgb,var(--mv-accent) 20%,transparent);border-color:color-mix(in srgb,var(--mv-accent) 45%,transparent)}
+.mv-cta:hover{border-color:var(--mv-accent);background:color-mix(in srgb,var(--mv-accent) 26%,transparent)}
+.mv-spinner{width:24px;height:24px;border-radius:50%;border:2px solid rgba(120,160,255,.22);border-top-color:var(--mv-accent);animation:mv-spin .9s linear infinite}
+@keyframes mv-spin{to{transform:rotate(360deg)}}
+.mv-modal{position:absolute;inset:0;z-index:30;display:flex;align-items:center;justify-content:center;background:var(--mv-scrim);padding:20px}
+.mv-dialog{width:min(740px,94%);max-height:86%;display:flex;flex-direction:column;border-radius:14px;overflow:hidden;background:var(--mv-glass-strong);border:.5px solid var(--mv-line);box-shadow:0 24px 64px var(--mv-shadow)}
+.mv-dialog>header{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 14px;border-bottom:.5px solid var(--mv-line);font-size:13px;font-weight:600}
+.mv-tabs{display:flex;gap:4px;padding:8px 12px 0;border-bottom:.5px solid var(--mv-line)}
+.mv-tab{appearance:none;border:0;background:transparent;color:var(--mv-dim);font:inherit;font-size:12px;padding:8px 12px;border-radius:8px 8px 0 0;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
+.mv-tab:hover{color:var(--mv-text)}
+.mv-tab.on{color:var(--mv-text);border-bottom-color:var(--mv-accent)}
+.mv-dialog .body{padding:12px 14px;overflow:auto;display:flex;flex-direction:column;gap:8px}
+.mv-note{margin:0 0 2px;color:var(--mv-dim);font-size:11px;line-height:1.65}
+.mv-src{display:flex;align-items:center;gap:8px;padding:8px 10px;border:.5px solid var(--mv-line);border-radius:9px;background:color-mix(in srgb,var(--mv-bg) 55%,transparent)}
+.mv-src .radio{width:16px;height:16px;flex:none;border-radius:50%;border:1.5px solid var(--mv-line);cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
+.mv-src .radio.on{border-color:var(--mv-accent)}
+.mv-src .radio.on::after{content:"";width:8px;height:8px;border-radius:50%;background:var(--mv-accent)}
+.mv-src .meta{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.mv-src .meta b{font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mv-src .meta span{font-size:10.5px;color:var(--mv-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mv-src .badge{font-size:10px;padding:1px 6px;border-radius:999px;border:.5px solid var(--mv-line);color:var(--mv-dim);flex:none}
+.mv-form{border:.5px solid var(--mv-line);border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:8px;background:color-mix(in srgb,var(--mv-bg) 42%,transparent)}
+.mv-form .grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.mv-field{display:flex;flex-direction:column;gap:3px;min-width:0}
+.mv-field label{font-size:10.5px;color:var(--mv-dim)}
+.mv-field input,.mv-field select{background:var(--mv-input);border:.5px solid var(--mv-line);color:var(--mv-text);border-radius:6px;padding:6px 8px;font:inherit;font-size:12px;outline:none;min-width:0}
+.mv-field input:focus,.mv-field select:focus{border-color:var(--mv-accent)}
+.mv-field.check{flex-direction:row;align-items:center;gap:7px}
+.mv-field.check label{font-size:12px;color:var(--mv-text);cursor:pointer}
+.mv-field.check input{appearance:auto;width:13px;height:13px;padding:0;margin:0}
+.mv-dialog .footer{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 14px;border-top:.5px solid var(--mv-line)}
+.mv-dialog .footer .right{display:flex;gap:8px}
+.mv-team{margin-left:8px;color:var(--mv-dim);font-size:10.5px;letter-spacing:.2px;text-decoration:none;opacity:.72;transition:opacity .15s,color .15s}
+.mv-team:hover,.mv-team:focus-visible{opacity:1;color:var(--mv-accent)}
+.mv-seg{display:flex;gap:2px;padding:3px;border:.5px solid var(--mv-line);border-radius:9px;background:var(--mv-input)}
+.mv-seg button{appearance:none;border:0;background:transparent;color:var(--mv-dim);font:inherit;font-size:11.5px;padding:6px 12px;border-radius:6px;cursor:pointer;flex:1}
+.mv-seg button.on{background:color-mix(in srgb,var(--mv-accent) 22%,transparent);color:var(--mv-text)}
+`
+
+    //#region sources dialog ---------------------------------------------------
+
+    const SOURCE_TYPES = {
+      imagery: ['xyz', 'arcgis', 'wms'],
+      terrain: ['arcgis', 'cesium'],
+    }
+    const SOURCE_TYPE_KEY = {
+      xyz: 'settings.type.xyz',
+      arcgis: 'settings.type.arcgis',
+      wms: 'settings.type.wms',
+      cesium: 'settings.type.cesium',
+    }
+
+    const emptySource = (kind) => ({
+      id: `${kind}-${Date.now().toString(36)}`,
+      name: '',
+      type: SOURCE_TYPES[kind][0],
+      url: '',
+      credit: '',
+    })
+
+    function SourceForm({ kind, source, onPickLocal, onChange, onCancel, t }) {
+      const set = (patch) => onChange({ ...source, ...patch })
+      const field = (label, input) => h('div', { className: 'mv-field' }, h('label', null, label), input)
+      const pickTiles = async () => {
+        if (typeof onPickLocal !== 'function') return
+        const url = await onPickLocal()
+        if (url) set({ type: 'xyz', url, maximumLevel: source.maximumLevel ?? 18 })
+      }
+      const text = (key, value, placeholder) =>
+        h('input', {
+          key,
+          value: value ?? '',
+          placeholder: placeholder ?? '',
+          onChange: (event) => set({ [key]: event.target.value }),
+        })
+      return h(
+        'div',
+        { className: 'mv-form' },
+        h(
+          'div',
+          { className: 'grid' },
+          field(t('settings.field.name'), text('name')),
+          field(
+            t('settings.field.type'),
+            h(
+              'select',
+              { value: source.type, onChange: (event) => set({ type: event.target.value }) },
+              SOURCE_TYPES[kind].map((type) => h('option', { key: type, value: type }, t(SOURCE_TYPE_KEY[type]))),
+            ),
+          ),
+        ),
+        field(t('settings.field.url'), text('url', source.url, kind === 'imagery' ? 'https://…/{z}/{x}/{y}.png' : 'https://…')),
+        field(t('settings.field.credit'), text('credit', source.credit)),
+        kind === 'imagery' && source.type === 'xyz'
+          ? h(
+              'div',
+              { className: 'grid' },
+              field(
+                t('settings.field.maxLevel'),
+                h('input', {
+                  type: 'number',
+                  min: 0,
+                  max: 25,
+                  value: source.maximumLevel ?? '',
+                  onChange: (event) =>
+                    set({ maximumLevel: event.target.value === '' ? undefined : Number(event.target.value) }),
+                }),
+              ),
+              field(
+                t('settings.field.tilingScheme'),
+                h(
+                  'select',
+                  {
+                    value: source.tilingScheme ?? 'web-mercator',
+                    onChange: (event) => set({ tilingScheme: event.target.value }),
+                  },
+                  h('option', { value: 'web-mercator' }, t('settings.tiling.webMercator')),
+                  h('option', { value: 'geographic' }, t('settings.tiling.geographic')),
+                ),
+              ),
+              field(
+                t('settings.field.subdomains'),
+                h('input', {
+                  value: (source.subdomains ?? []).join(','),
+                  onChange: (event) =>
+                    set({
+                      subdomains: event.target.value
+                        .split(',')
+                        .map((item) => item.trim())
+                        .filter((item) => item !== ''),
+                    }),
+                }),
+              ),
+            )
+          : null,
+        kind === 'imagery' && source.type === 'xyz'
+          ? h(
+              'div',
+              { className: 'grid' },
+              h(
+                'div',
+                { className: 'mv-field check' },
+                h('input', {
+                  id: 'mv-reverse-y',
+                  type: 'checkbox',
+                  checked: source.reverseY === true,
+                  onChange: (event) => set({ reverseY: event.target.checked }),
+                }),
+                h('label', { htmlFor: 'mv-reverse-y' }, t('settings.field.tms')),
+              ),
+              h(
+                'div',
+                { className: 'mv-field' },
+                h(
+                  'button',
+                  { type: 'button', className: 'mv-cta', onClick: pickTiles },
+                  t('settings.field.localTiles'),
+                ),
+              ),
+            )
+          : null,
+        kind === 'imagery' && source.type === 'wms'
+          ? field(t('settings.field.layers'), text('layers', source.layers))
+          : null,
+        kind === 'terrain'
+          ? h(
+              'div',
+              { className: 'grid' },
+              h(
+                'div',
+                { className: 'mv-field check' },
+                h('input', {
+                  id: 'mv-normals',
+                  type: 'checkbox',
+                  checked: source.requestVertexNormals === true,
+                  onChange: (event) => set({ requestVertexNormals: event.target.checked }),
+                }),
+                h('label', { htmlFor: 'mv-normals' }, t('settings.field.normals')),
+              ),
+              h(
+                'div',
+                { className: 'mv-field check' },
+                h('input', {
+                  id: 'mv-water',
+                  type: 'checkbox',
+                  checked: source.requestWaterMask === true,
+                  onChange: (event) => set({ requestWaterMask: event.target.checked }),
+                }),
+                h('label', { htmlFor: 'mv-water' }, t('settings.field.waterMask')),
+              ),
+            )
+          : null,
+        h(
+          'div',
+          { style: { display: 'flex', justifyContent: 'flex-end', gap: '8px' } },
+          h('button', { type: 'button', className: 'mv-cta', onClick: onCancel }, t('btn.cancel')),
+        ),
+      )
+    }
+
+    function SourcesDialog({ config, defaults, environmentDark, themeMode, onPickLocal, onSave, onClose, messages }) {
+      const t = messages
+      const [draft, setDraft] = React.useState(() => clone(config))
+      const [tab, setTab] = React.useState('imagery')
+      const [editing, setEditing] = React.useState(null)
+      const activeId = (kind) => (kind === 'imagery' ? draft.settings.imagery : draft.settings.terrain)
+
+      React.useEffect(() => {
+        const onKey = (event) => {
+          if (event.key !== 'Escape') return
+          event.stopPropagation()
+          onClose()
+        }
+        document.addEventListener('keydown', onKey, true)
+        return () => document.removeEventListener('keydown', onKey, true)
+      }, [onClose])
+
+      const setSources = (kind, list) => setDraft((current) => ({ ...current, [kind]: list }))
+      const selectSource = (kind, id) =>
+        setDraft((current) => ({
+          ...current,
+          settings: { ...current.settings, [kind]: id },
+        }))
+      const addSource = (kind) => {
+        const source = emptySource(kind)
+        setSources(kind, [...draft[kind], source])
+        setEditing({ kind, id: source.id })
+      }
+      const removeSource = (kind, id) => {
+        setSources(
+          kind,
+          draft[kind].filter((item) => item.id !== id),
+        )
+        if (draft.settings[kind] === id) selectSource(kind, null)
+        if (editing?.id === id) setEditing(null)
+      }
+      const updateSource = (kind, source) =>
+        setSources(
+          kind,
+          draft[kind].map((item) => (item.id === source.id ? source : item)),
+        )
+      const save = () => {
+        for (const kind of ['imagery', 'terrain']) {
+          if (draft[kind].some((source) => source.name.trim() === '' || source.url.trim() === '')) {
+            window.alert(t('settings.required'))
+            return
+          }
+        }
+        onSave(draft)
+      }
+      const restore = () => {
+        if (!window.confirm(t('settings.restoreConfirm'))) return
+        setDraft(clone(defaults))
+        setEditing(null)
+      }
+      const segments = [
+        ['auto', 'theme.auto'],
+        ['light', 'theme.light'],
+        ['dark', 'theme.dark'],
+      ]
+      const rowsFor = (kind) =>
+        draft[kind].map((source) =>
+          editing?.kind === kind && editing.id === source.id
+            ? h(SourceForm, {
+                key: source.id,
+                kind,
+                source,
+                t,
+                onPickLocal,
+                onChange: (next) => updateSource(kind, next),
+                onCancel: () => setEditing(null),
+              })
+            : h(
+                'div',
+                { key: source.id, className: 'mv-src' },
+                h('span', {
+                  className: `radio${activeId(kind) === source.id ? ' on' : ''}`,
+                  role: 'radio',
+                  'aria-checked': activeId(kind) === source.id,
+                  tabIndex: 0,
+                  onClick: () => selectSource(kind, activeId(kind) === source.id ? null : source.id),
+                  onKeyDown: (event) => {
+                    if (event.key === 'Enter' || event.key === ' ') selectSource(kind, source.id)
+                  },
+                }),
+                h(
+                  'div',
+                  { className: 'meta' },
+                  h('b', null, source.name),
+                  h('span', null, source.url),
+                ),
+                h('span', { className: 'badge' }, t(SOURCE_TYPE_KEY[source.type] ?? source.type)),
+                h(
+                  'button',
+                  {
+                    type: 'button',
+                    className: 'mv-icon-btn',
+                    title: t('btn.edit'),
+                    onClick: () => setEditing({ kind, id: source.id }),
+                  },
+                  '✎',
+                ),
+                h(
+                  'button',
+                  {
+                    type: 'button',
+                    className: 'mv-icon-btn',
+                    title: t('btn.delete'),
+                    onClick: () => {
+                      if (window.confirm(t('settings.deleteConfirm', { name: source.name }))) removeSource(kind, source.id)
+                    },
+                  },
+                  '✕',
+                ),
+              ),
+        )
+
+      const appearance = h(
+        'div',
+        { style: { display: 'flex', flexDirection: 'column', gap: '10px' } },
+        h('p', { className: 'mv-note' }, t('theme.appearanceHint')),
+        h(
+          'div',
+          { className: 'mv-seg', role: 'radiogroup' },
+          segments.map(([value, key]) =>
+            h(
+              'button',
+              {
+                key: value,
+                type: 'button',
+                className: themeMode === value ? 'on' : '',
+                role: 'radio',
+                'aria-checked': themeMode === value,
+                onClick: () => setDraft((current) => ({ ...current, settings: { ...current.settings, theme: value } })),
+              },
+              t(key),
+            ),
+          ),
+        ),
+        h('p', { className: 'mv-note' }, `${t('theme.auto')} · ${environmentDark ? t('theme.dark') : t('theme.light')}`),
+      )
+
+      return h(
+        'div',
+        { className: 'mv-modal', onPointerDown: (event) => event.target === event.currentTarget && onClose() },
+        h(
+          'div',
+          { className: 'mv-dialog', role: 'dialog', 'aria-modal': true },
+          h(
+            'header',
+            null,
+            h('b', null, t('settings.title')),
+            h('button', { type: 'button', className: 'mv-icon-btn', onClick: onClose, title: t('btn.close') }, '✕'),
+          ),
+          h(
+            'div',
+            { className: 'mv-tabs' },
+            [['imagery', 'settings.tab.imagery'], ['terrain', 'settings.tab.terrain'], ['appearance', 'settings.tab.appearance']].map(
+              ([value, key]) =>
+                h(
+                  'button',
+                  {
+                    key: value,
+                    type: 'button',
+                    className: `mv-tab${tab === value ? ' on' : ''}`,
+                    onClick: () => setTab(value),
+                  },
+                  t(key),
+                ),
+            ),
+          ),
+          h(
+            'div',
+            { className: 'body' },
+            tab === 'appearance'
+              ? appearance
+              : h(
+                  React.Fragment,
+                  null,
+                  h('p', { className: 'mv-note' }, t(tab === 'imagery' ? 'settings.imageryHint' : 'settings.terrainHint')),
+                  rowsFor(tab),
+                  draft[tab].length === 0 && editing === null
+                    ? h('p', { className: 'mv-note' }, t('settings.empty'))
+                    : null,
+                  h(
+                    'div',
+                    { style: { display: 'flex', justifyContent: 'flex-start' } },
+                    h('button', { type: 'button', className: 'mv-cta', onClick: () => addSource(tab) }, `+ ${t('btn.add')}`),
+                  ),
+                ),
+          ),
+          h(
+            'div',
+            { className: 'footer' },
+            h(
+              'div',
+              { style: { display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 } },
+              h('button', { type: 'button', className: 'mv-cta', onClick: restore }, t('btn.restore')),
+              h(
+                'a',
+                {
+                  className: 'mv-team',
+                  href: 'https://www.whu-cveo.com/',
+                  target: '_blank',
+                  rel: 'noopener noreferrer',
+                  title: 'https://www.whu-cveo.com/',
+                },
+                t('settings.team'),
+              ),
+            ),
+            h(
+              'div',
+              { className: 'right' },
+              h('button', { type: 'button', className: 'mv-cta', onClick: onClose }, t('btn.cancel')),
+              h('button', { type: 'button', className: 'mv-cta primary', onClick: save }, t('btn.save')),
+            ),
+          ),
+        ),
+      )
+    }
+    //#endregion sources dialog
+
+    function ViewerPanel({ t: injectedT }) {
+      const fallbackT = useTranslation()
+      const t = typeof injectedT === 'function' ? injectedT : fallbackT
+      const environmentDark = useEnvironmentDark()
+      const globeRef = React.useRef(null)
+      const creditRef = React.useRef(null)
+      const menuRef = React.useRef(null)
+      const viewerRef = React.useRef(null)
+      const cesiumRef = React.useRef(null)
+      const metaRef = React.useRef(null)
+      const layersRef = React.useRef([])
+      const toolRef = React.useRef(null)
+      const measureRef = React.useRef({ points: [], entities: [] })
+      const handlerRef = React.useRef(null)
+      const imageryRef = React.useRef(null)
+      const sourcesRef = React.useRef(null)
+      const toastTimer = React.useRef(0)
+
+      const [phase, setPhase] = React.useState('loading')
+      const [error, setError] = React.useState('')
+      const [layers, setLayers] = React.useState([])
+      const [sources, setSources] = React.useState(null)
+      const [defaults, setDefaults] = React.useState(null)
+      const [tool, setTool] = React.useState(null)
+      const [fps, setFps] = React.useState(0)
+      const [stats, setStats] = React.useState(null)
+      const [pickInfo, setPickInfo] = React.useState(null)
+      const [measureInfo, setMeasureInfo] = React.useState(null)
+      const [scan, setScan] = React.useState(null)
+      const [urlBar, setUrlBar] = React.useState(false)
+      const [urlInput, setUrlInput] = React.useState('')
+      const [busy, setBusy] = React.useState('')
+      const [toast, setToast] = React.useState('')
+      const [openMenu, setOpenMenu] = React.useState(null)
+      const [layersOpen, setLayersOpen] = React.useState(true)
+      const [settingsOpen, setSettingsOpen] = React.useState(false)
+      const [terrainBusy, setTerrainBusy] = React.useState(false)
+      const [imageryBusy, setImageryBusy] = React.useState(false)
+
+      const themeMode = sources?.settings?.theme ?? 'auto'
+      const resolvedDark = themeMode === 'auto' ? environmentDark : themeMode === 'dark'
+      const activeImageryId = sources?.settings?.imagery ?? null
+      const activeTerrainId = sources?.settings?.terrain ?? null
+      const activeImagery = sources?.imagery?.find((source) => source.id === activeImageryId) ?? null
+
+      const showToast = (text) => {
+        setToast(text)
+        clearTimeout(toastTimer.current)
+        toastTimer.current = setTimeout(() => setToast(''), 6000)
+      }
+
+      const syncLayers = () => {
+        setLayers(layersRef.current.map((layer) => ({ id: layer.id, name: layer.name, visible: layer.visible })))
+      }
+
+      const commitSources = (next, notify) => {
+        const previous = sourcesRef.current
+        sourcesRef.current = next
+        setSources(next)
+        const meta = metaRef.current
+        if (!meta) return
+        persistSources(meta, next)
+          .then((saved) => {
+            if (!saved) return
+            sourcesRef.current = saved
+            setSources(saved)
+            if (notify) showToast(t('toast.sourcesSaved'))
+          })
+          .catch((error) => {
+            sourcesRef.current = previous
+            setSources(previous)
+            showToast(t('toast.saveFailed', { message: message(error) }))
+          })
+      }
+
+      const updateSettings = (patch, notify) => {
+        const current = sourcesRef.current
+        if (!current) return
+        commitSources({ ...current, settings: { ...current.settings, ...patch } }, notify)
+      }
+
+      const pickSurface = (position) => {
+        const viewer = viewerRef.current
+        if (!viewer) return null
+        if (viewer.scene.pickPositionSupported) {
+          try {
+            const picked = viewer.scene.pickPosition(position)
+            if (picked) return picked
+          } catch {
+            /* fall through to the globe ray pick */
+          }
+        }
+        const ray = viewer.camera.getPickRay(position)
+        return ray ? viewer.scene.globe.pick(ray, viewer.scene) ?? null : null
+      }
+
+      const proxyUrlFor = (url) => {
+        const meta = metaRef.current
+        const parsed = new URL(url)
+        const path = parsed.pathname
+          .replace(/^\//, '')
+          .split('/')
+          .map((part) => encodeURIComponent(part))
+          .join('/')
+        return `${meta.remoteBase}${b64url(parsed.origin)}/${path}`
+      }
+
+      const localPathToUrl = async (filePath) => {
+        const meta = metaRef.current
+        const normalized = filePath.replace(/\\/g, '/')
+        const index = normalized.lastIndexOf('/')
+        if (index <= 0) throw new Error(t('toast.invalidPath'))
+        const dir = normalized.slice(0, index)
+        const rel = normalized.slice(index + 1)
+        // The host only serves tile files from directories opened through /scan.
+        await fetch(`${meta.scanUrl}?token=${encodeURIComponent(meta.token)}&dir=${encodeURIComponent(dir)}`, {
+          credentials: 'same-origin',
+        })
+        return `${meta.tilesBase}${encodeURIComponent(b64url(dir))}/${encodeURIComponent(rel)}`
+      }
+
+      async function addTileset(url, name) {
+        const Cesium = cesiumRef.current
+        const viewer = viewerRef.current
+        if (!Cesium || !viewer) return
+        const label = name || decodeURIComponent(url.split('/').filter(Boolean).slice(-2).join('/'))
+        setBusy(t('toast.loadingData'))
+        try {
+          let tileset
+          try {
+            tileset = await Cesium.Cesium3DTileset.fromUrl(url)
+          } catch (directError) {
+            if (!/^https?:/i.test(url)) throw directError
+            tileset = await Cesium.Cesium3DTileset.fromUrl(proxyUrlFor(url))
+            showToast(t('toast.proxyFallback'))
+          }
+          viewer.scene.primitives.add(tileset)
+          layersRef.current.push({
+            id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+            name: label,
+            url,
+            tileset,
+            visible: true,
+          })
+          syncLayers()
+          setScan(null)
+          await viewer.flyTo(tileset, { duration: 1.2 })
+        } catch (error) {
+          showToast(t('toast.loadFailed', { message: message(error) }))
+        } finally {
+          setBusy('')
+        }
+      }
+
+      async function pickLocal() {
+        setOpenMenu(null)
+        const workspace = service('uiWorkspace')
+        if (!workspace) {
+          showToast(t('toast.dialogUnavailable'))
+          return
+        }
+        setBusy(t('toast.busyDirectory'))
+        try {
+          const dir = await workspace.pickDirectory()
+          if (!dir) return
+          const meta = metaRef.current
+          const response = await fetch(
+            `${meta.scanUrl}?token=${encodeURIComponent(meta.token)}&dir=${encodeURIComponent(dir)}`,
+            { credentials: 'same-origin' },
+          )
+          if (!response.ok) throw new Error(`HTTP ${response.status}`)
+          const data = await response.json()
+          if (!data.items || data.items.length === 0) {
+            showToast(t('toast.scanEmpty'))
+            return
+          }
+          setScan({ dir, items: data.items })
+        } catch (error) {
+          showToast(t('toast.scanFailed', { message: message(error) }))
+        } finally {
+          setBusy('')
+        }
+      }
+
+      /**
+       * Pick a local tile pyramid folder and turn it into a `/tiles` template.
+       * Opening the folder through /scan is what whitelists it on the host, so a
+       * local XYZ pyramid needs no extra permission plumbing.
+       */
+      async function pickLocalTiles() {
+        const workspace = service('uiWorkspace')
+        if (!workspace) {
+          showToast(t('toast.dialogUnavailable'))
+          return null
+        }
+        try {
+          const dir = await workspace.pickDirectory()
+          if (!dir) return null
+          const meta = metaRef.current
+          const response = await fetch(
+            `${meta.scanUrl}?token=${encodeURIComponent(meta.token)}&dir=${encodeURIComponent(dir)}`,
+            { credentials: 'same-origin' },
+          )
+          if (!response.ok) throw new Error(`HTTP ${response.status}`)
+          const folder = dir.replace(/\\/g, '/').replace(/\/+$/, '')
+          return `${meta.tilesBase}${encodeURIComponent(b64url(folder))}/{z}/{x}/{y}.png`
+        } catch (error) {
+          showToast(t('toast.scanFailed', { message: message(error) }))
+          return null
+        }
+      }
+
+      async function applyImagery(id, notify) {
+        const Cesium = cesiumRef.current
+        const viewer = viewerRef.current
+        if (!Cesium || !viewer) return
+        const config = sourcesRef.current
+        const source = config?.imagery.find((item) => item.id === id) ?? null
+        setImageryBusy(true)
+        try {
+          if (imageryRef.current) {
+            viewer.scene.imageryLayers.remove(imageryRef.current, true)
+            imageryRef.current = null
+          }
+          if (source) {
+            const provider = await imageryProvider(Cesium, source)
+            imageryRef.current = viewer.scene.imageryLayers.addImageryProvider(provider)
+            if (notify) showToast(t('toast.basemap', { name: source.name }))
+          } else if (notify) {
+            showToast(t('toast.basemapNone'))
+          }
+        } catch (error) {
+          showToast(t('toast.basemapFailed', { message: message(error) }))
+        } finally {
+          setImageryBusy(false)
+        }
+      }
+
+      async function applyTerrain(id, notify) {
+        const Cesium = cesiumRef.current
+        const viewer = viewerRef.current
+        if (!Cesium || !viewer) return
+        const config = sourcesRef.current
+        const source = config?.terrain.find((item) => item.id === id) ?? null
+        setTerrainBusy(true)
+        if (notify) setBusy(t('toast.terrainLoading'))
+        try {
+          if (source) {
+            viewer.terrainProvider = await terrainProvider(Cesium, source)
+            showToast(t('toast.terrainOn', { name: source.name }))
+          } else {
+            viewer.terrainProvider = new Cesium.EllipsoidTerrainProvider()
+            showToast(t('toast.terrainOff'))
+          }
+        } catch (error) {
+          viewer.terrainProvider = new Cesium.EllipsoidTerrainProvider()
+          showToast(t('toast.terrainFailed', { message: message(error) }))
+        } finally {
+          setTerrainBusy(false)
+          if (notify) setBusy('')
+        }
+      }
+
+      const changeImagery = (id) => {
+        updateSettings({ imagery: id })
+        applyImagery(id, true)
+        setOpenMenu(null)
+      }
+
+      const changeTerrain = (id) => {
+        updateSettings({ terrain: id })
+        applyTerrain(id, true)
+        setOpenMenu(null)
+      }
+
+      const setTheme = (mode) => {
+        updateSettings({ theme: mode })
+        setOpenMenu(null)
+      }
+
+      const saveSources = (draft) => {
+        const current = sourcesRef.current
+        const meta = metaRef.current
+        if (!meta) return
+        const next = { ...draft }
+        commitSources(next, true)
+        setSettingsOpen(false)
+        if (current?.settings?.imagery !== next.settings.imagery) applyImagery(next.settings.imagery, false)
+        if (current?.settings?.terrain !== next.settings.terrain) applyTerrain(next.settings.terrain, false)
+      }
+
+      function setToolMode(mode) {
+        toolRef.current = mode
+        setTool(mode)
+        clearMeasure()
+        if (mode) setPickInfo(null)
+        setOpenMenu(null)
+      }
+
+      function clearMeasure() {
+        const viewer = viewerRef.current
+        const state = measureRef.current
+        if (viewer) {
+          for (const entity of state.entities) viewer.entities.remove(entity)
+        }
+        state.entities = []
+        state.points = []
+        setMeasureInfo(null)
+      }
+
+      function redrawMeasure(mode) {
+        const Cesium = cesiumRef.current
+        const viewer = viewerRef.current
+        const state = measureRef.current
+        if (!Cesium || !viewer) return
+        for (const entity of state.entities) viewer.entities.remove(entity)
+        state.entities = []
+        const points = state.points
+        const add = (options) => {
+          const entity = viewer.entities.add(options)
+          state.entities.push(entity)
+          return entity
+        }
+        const accent = Cesium.Color.fromCssColorString('#5b8cff')
+        const label = (position, text) =>
+          add({
+            position,
+            label: {
+              text,
+              font: '12px -apple-system,"Segoe UI","PingFang SC",sans-serif',
+              style: Cesium.LabelStyle.FILL,
+              fillColor: Cesium.Color.WHITE,
+              showBackground: true,
+              backgroundColor: new Cesium.Color(0.06, 0.09, 0.15, 0.85),
+              backgroundPadding: new Cesium.Cartesian2(8, 5),
+              pixelOffset: new Cesium.Cartesian2(0, -18),
+              disableDepthTestDistance: Number.POSITIVE_INFINITY,
+            },
+          })
+        for (const position of points) {
+          add({
+            position,
+            point: {
+              pixelSize: 6,
+              color: accent,
+              outlineColor: Cesium.Color.WHITE,
+              outlineWidth: 1,
+              disableDepthTestDistance: Number.POSITIVE_INFINITY,
+            },
+          })
+        }
+        if (mode === 'distance' && points.length >= 2) {
+          add({ polyline: { positions: points, width: 2, material: accent, depthFailMaterial: accent } })
+          const total = geodesicLength(Cesium, points)
+          label(points[points.length - 1], t('measure.total', { value: formatDistance(total) }))
+          setMeasureInfo({ text: t('measure.distance', { value: formatDistance(total) }) })
+        } else if (mode === 'area' && points.length >= 3) {
+          add({
+            polygon: {
+              hierarchy: new Cesium.PolygonHierarchy(points),
+              perPositionHeight: true,
+              material: accent.withAlpha(0.28),
+              outline: true,
+              outlineColor: accent,
+            },
+          })
+          const area = planarArea(Cesium, points)
+          const center = Cesium.BoundingSphere.fromPoints(points).center
+          label(center, t('measure.areaLabel', { value: formatArea(area) }))
+          setMeasureInfo({ text: t('measure.area', { value: formatArea(area) }) })
+        } else if (mode === 'height' && points.length === 2) {
+          add({
+            polyline: {
+              positions: points,
+              width: 2,
+              material: Cesium.Color.fromCssColorString('#f0b84b'),
+              depthFailMaterial: Cesium.Color.fromCssColorString('#f0b84b'),
+            },
+          })
+          const left = Cesium.Cartographic.fromCartesian(points[0])
+          const right = Cesium.Cartographic.fromCartesian(points[1])
+          const delta = right.height - left.height
+          const horizontal = new Cesium.EllipsoidGeodesic(left, right).surfaceDistance
+          const text = t('measure.height', {
+            value: `${delta >= 0 ? '+' : ''}${delta.toFixed(2)} m`,
+            distance: formatDistance(horizontal),
+          })
+          label(points[1], text)
+          setMeasureInfo({ text })
+        } else {
+          setMeasureInfo({ text: t('measure.start') })
+        }
+      }
+
+      function layerLabel(tileset) {
+        const found = layersRef.current.find((entry) => entry.tileset === tileset)
+        return found ? found.name : t('model.unnamed')
+      }
+
+      function pickAt(position) {
+        const Cesium = cesiumRef.current
+        const viewer = viewerRef.current
+        if (!Cesium || !viewer) return
+        const picked = viewer.scene.pick(position)
+        if (!Cesium.defined(picked)) {
+          setPickInfo({ title: t('toast.pickNone'), rows: [] })
+          return
+        }
+        if (picked instanceof Cesium.Cesium3DTileFeature) {
+          const rows = []
+          for (const id of picked.getPropertyIds()) {
+            if (rows.length >= 60) break
+            rows.push([id, formatValue(picked.getProperty(id))])
+          }
+          if (rows.length === 0) rows.push([t('pick.noProperties'), t('pick.noPropertiesValue')])
+          setPickInfo({ title: layerLabel(picked.primitive ?? picked.tileset), rows })
+          return
+        }
+        const primitive = picked?.primitive ?? picked
+        let rows
+        if (primitive instanceof Cesium.Cesium3DTileset) {
+          rows = [
+            [t('pick.type'), t('pick.tiles')],
+            [t('pick.layer'), layerLabel(primitive)],
+          ]
+        } else if (picked?.id instanceof Cesium.Entity) {
+          rows = [
+            [t('pick.type'), t('pick.entity')],
+            [t('pick.name'), picked.id.name ?? picked.id.id],
+          ]
+        } else {
+          rows = [[t('pick.type'), t('pick.scene')]]
+        }
+        setPickInfo({ title: t('pick.title'), rows })
+      }
+
+      function onCanvasClick(position) {
+        const mode = toolRef.current
+        if (mode === null) return
+        if (mode === 'pick') {
+          pickAt(position)
+          return
+        }
+        const surface = pickSurface(position)
+        if (!surface) {
+          showToast(t('toast.noSurface'))
+          return
+        }
+        measureRef.current.points.push(surface)
+        if (mode === 'height' && measureRef.current.points.length > 2) {
+          measureRef.current.points.splice(0, measureRef.current.points.length - 2)
+        }
+        redrawMeasure(mode)
+      }
+
+      function finishMeasure() {
+        if (toolRef.current === 'distance' || toolRef.current === 'area') {
+          toolRef.current = null
+          setTool(null)
+        }
+      }
+
+      function resetView() {
+        const Cesium = cesiumRef.current
+        const viewer = viewerRef.current
+        if (!Cesium || !viewer) return
+        viewer.camera.flyTo({
+          destination: Cesium.Cartesian3.fromDegrees(104, 31, 14000000),
+          duration: 1.2,
+        })
+      }
+
+      async function screenshot() {
+        const viewer = viewerRef.current
+        if (!viewer) return
+        try {
+          viewer.render()
+          const blob = await new Promise((resolve) => viewer.canvas.toBlob(resolve, 'image/png'))
+          if (!blob) throw new Error('empty canvas')
+          const link = document.createElement('a')
+          link.href = URL.createObjectURL(blob)
+          link.download = `digital-earth-${new Date().toISOString().replace(/[:.]/g, '-')}.png`
+          link.click()
+          setTimeout(() => URL.revokeObjectURL(link.href), 5000)
+          showToast(t('toast.screenshotSaved'))
+        } catch (error) {
+          showToast(t('toast.screenshotFailed', { message: message(error) }))
+        }
+      }
+
+      function toggleLayer(id) {
+        const layer = layersRef.current.find((item) => item.id === id)
+        if (!layer) return
+        layer.visible = !layer.visible
+        layer.tileset.show = layer.visible
+        syncLayers()
+      }
+
+      function flyToLayer(id) {
+        const layer = layersRef.current.find((item) => item.id === id)
+        const viewer = viewerRef.current
+        if (layer && viewer) viewer.flyTo(layer.tileset, { duration: 1.0 })
+      }
+
+      function removeLayer(id) {
+        const viewer = viewerRef.current
+        const index = layersRef.current.findIndex((item) => item.id === id)
+        if (index < 0 || !viewer) return
+        const [layer] = layersRef.current.splice(index, 1)
+        try {
+          viewer.scene.primitives.remove(layer.tileset)
+        } catch {
+          /* already detached */
+        }
+        syncLayers()
+      }
+
+      function collectStats() {
+        const Cesium = cesiumRef.current
+        const viewer = viewerRef.current
+        if (!Cesium || !viewer) return null
+        const layerRows = layersRef.current.map((layer) => {
+          const statistics = layer.tileset.statistics ?? {}
+          return {
+            id: layer.id,
+            name: layer.name,
+            tiles: statistics.numberOfTilesWithContentReady ?? statistics.numberOfTilesLoaded,
+            pending: statistics.numberOfPendingRequests,
+            triangles: statistics.numberOfTrianglesSelected,
+            memory: layer.tileset.cacheBytes ?? layer.tileset.totalMemoryUsageInBytes,
+          }
+        })
+        const heading = Cesium.Math.toDegrees(viewer.camera.heading ?? 0)
+        const pitch = Cesium.Math.toDegrees(viewer.camera.pitch ?? 0)
+        return {
+          height: formatHeight(viewer.camera.positionCartographic.height),
+          heading: `${heading.toFixed(0)}°`,
+          pitch: `${pitch.toFixed(0)}°`,
+          layers: layerRows,
+        }
+      }
+
+      async function submitUrl() {
+        const value = urlInput.trim()
+        if (!value) return
+        let url = value
+        if (/^[a-zA-Z]:[\\/]/.test(value) || value.startsWith('\\\\')) {
+          try {
+            url = await localPathToUrl(value)
+          } catch (error) {
+            showToast(message(error))
+            return
+          }
+        } else if (!/^https?:\/\//i.test(value)) {
+          showToast(t('toast.invalidUrl'))
+          return
+        }
+        setUrlBar(false)
+        setUrlInput('')
+        await addTileset(url, value.split(/[\\/]/).filter(Boolean).slice(-2).join('/'))
+      }
+
+      React.useEffect(() => {
+        let cancelled = false
+        ;(async () => {
+          try {
+            const meta = await loadMeta()
+            if (cancelled) return
+            metaRef.current = meta
+            const [Cesium, catalog] = await Promise.all([loadCesium(), loadSources(meta)])
+            await loadCesiumStyle()
+            if (cancelled || !globeRef.current) return
+            cesiumRef.current = Cesium
+            sourcesRef.current = catalog.config
+            setSources(catalog.config)
+            setDefaults(catalog.defaults)
+            const viewer = new Cesium.Viewer(globeRef.current, {
+              baseLayer: false,
+              animation: false,
+              timeline: false,
+              baseLayerPicker: false,
+              geocoder: false,
+              homeButton: false,
+              sceneModePicker: false,
+              navigationHelpButton: false,
+              infoBox: false,
+              selectionIndicator: false,
+              fullscreenButton: false,
+              vrButton: false,
+              creditContainer: creditRef.current,
+              contextOptions: { webgl: { preserveDrawingBuffer: true } },
+            })
+            viewerRef.current = viewer
+            viewer.scene.globe.baseColor = Cesium.Color.fromCssColorString('#060a12')
+            viewer.camera.setView({ destination: Cesium.Cartesian3.fromDegrees(104, 31, 14000000) })
+            await applyImagery(catalog.config.settings.imagery, false)
+            if (catalog.config.settings.terrain) await applyTerrain(catalog.config.settings.terrain, false)
+            const handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas)
+            handler.setInputAction((event) => onCanvasClick(event.position), Cesium.ScreenSpaceEventType.LEFT_CLICK)
+            handler.setInputAction(() => finishMeasure(), Cesium.ScreenSpaceEventType.LEFT_DOUBLE_CLICK)
+            handlerRef.current = handler
+            setPhase('ready')
+          } catch (error) {
+            if (!cancelled) {
+              setError(message(error))
+              setPhase('error')
+            }
+          }
+        })()
+        return () => {
+          cancelled = true
+          clearTimeout(toastTimer.current)
+          try {
+            handlerRef.current?.destroy()
+          } catch {
+            /* ignore */
+          }
+          handlerRef.current = null
+          try {
+            viewerRef.current?.destroy()
+          } catch {
+            /* ignore */
+          }
+          viewerRef.current = null
+          layersRef.current = []
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+      }, [])
+
+      React.useEffect(() => {
+        if (!openMenu) return undefined
+        const close = (event) => {
+          if (!menuRef.current?.contains(event.target)) setOpenMenu(null)
+        }
+        document.addEventListener('pointerdown', close, true)
+        return () => document.removeEventListener('pointerdown', close, true)
+      }, [openMenu])
+
+      React.useEffect(() => {
+        if (phase !== 'ready') return undefined
+        const element = globeRef.current
+        if (!element || typeof ResizeObserver === 'undefined') return undefined
+        const observer = new ResizeObserver(() => {
+          try {
+            viewerRef.current?.resize()
+          } catch {
+            /* ignore */
+          }
+        })
+        observer.observe(element)
+        return () => observer.disconnect()
+      }, [phase])
+
+      React.useEffect(() => {
+        if (phase !== 'ready') return undefined
+        let raf = 0
+        let frames = 0
+        let last = performance.now()
+        const tick = (now) => {
+          frames += 1
+          if (now - last >= 1000) {
+            setFps(Math.round((frames * 1000) / (now - last)))
+            frames = 0
+            last = now
+          }
+          raf = requestAnimationFrame(tick)
+        }
+        raf = requestAnimationFrame(tick)
+        return () => cancelAnimationFrame(raf)
+      }, [phase])
+
+      React.useEffect(() => {
+        if (!scan) return undefined
+        const onKey = (event) => {
+          if (event.key === 'Escape') setScan(null)
+        }
+        document.addEventListener('keydown', onKey)
+        return () => document.removeEventListener('keydown', onKey)
+      }, [scan])
+
+      React.useEffect(() => {
+        if (phase !== 'ready') return undefined
+        const timer = setInterval(() => setStats(collectStats()), 500)
+        return () => clearInterval(timer)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+      }, [phase])
+
+      // Keep the bare globe (no imagery) and its atmosphere in step with the
+      // resolved light/dark scheme, so an explicit override tints the whole panel.
+      React.useEffect(() => {
+        const viewer = viewerRef.current
+        const Cesium = cesiumRef.current
+        if (phase !== 'ready' || !viewer || !Cesium) return
+        viewer.scene.globe.baseColor = Cesium.Color.fromCssColorString(resolvedDark ? '#05080f' : '#dde6f2')
+        viewer.scene.globe.showGroundAtmosphere = resolvedDark
+        if (viewer.scene.skyAtmosphere) viewer.scene.skyAtmosphere.show = resolvedDark
+        viewer.scene.requestRender?.()
+      }, [phase, resolvedDark])
+
+      const button = (label, onClick, active, extra) =>
+        h(
+          'button',
+          { type: 'button', className: `mv-btn${active ? ' on' : ''}${extra ? ` ${extra}` : ''}`, onClick },
+          label,
+        )
+      const menu = (id, label, items, active) =>
+        h(
+          'div',
+          { key: id, className: 'mv-menu' },
+          button(`${label} ▾`, () => setOpenMenu(openMenu === id ? null : id), active),
+          openMenu === id ? h('div', { className: 'mv-menu-panel mv-glass' }, items) : null,
+        )
+
+      const status = busy || (phase === 'loading' ? t('panel.status.loading') : layers.length ? t(layers.length === 1 ? 'panel.status.layers.one' : 'panel.status.layers.other', { n: layers.length }) : t('panel.status.ready'))
+      const hudLabels = {
+        pointer: t('hud.pointer'),
+        camera: t('hud.camera'),
+        heading: t('hud.heading'),
+        tiles: t('hud.tiles'),
+        pending: t('hud.pending'),
+        triangles: t('hud.triangles'),
+        cache: t('hud.cache'),
+      }
+
+      return h(
+        'div',
+        { className: 'mv-root', 'data-mv-theme': themeMode === 'auto' ? undefined : themeMode, 'data-mv-scheme': resolvedDark ? 'dark' : 'light' },
+        h('style', { key: 'css' }, CSS),
+        h('div', { key: 'globe', ref: globeRef, className: 'mv-globe' }),
+        activeImagery?.credit
+          ? h('div', { key: 'attr', className: 'mv-attr' }, `${t('credit.imagery')} © ${activeImagery.credit}`)
+          : null,
+        h('div', { key: 'credits', ref: creditRef, className: 'mv-credits' }),
+        h(
+          'div',
+          { key: 'top', className: 'mv-top' },
+          h(
+            'div',
+            { className: 'mv-brand mv-glass' },
+            h(ViewerIcon, { size: 18 }),
+            h('b', null, t('panel.title')),
+            h('span', null, status),
+          ),
+          h(
+            'div',
+            { ref: menuRef, className: 'mv-actions mv-glass' },
+            menu(
+              'data',
+              t('btn.data'),
+              [
+                h(MenuItem, { key: 'local', onClick: pickLocal }, t('btn.openLocal')),
+                h(
+                  MenuItem,
+                  {
+                    key: 'url',
+                    onClick: () => {
+                      setOpenMenu(null)
+                      setUrlBar((value) => !value)
+                    },
+                  },
+                  t('btn.openUrl'),
+                ),
+                h('i', { key: 'sep', className: 'mv-sep', style: { width: 'auto', height: '.5px', margin: '4px 8px' } }),
+                h(
+                  MenuItem,
+                  {
+                    key: 'clear',
+                    onClick: () => {
+                      setOpenMenu(null)
+                      setToolMode(null)
+                      setPickInfo(null)
+                      setMeasureInfo(null)
+                    },
+                  },
+                  t('tool.clear'),
+                ),
+              ],
+            ),
+            menu(
+              'basemap',
+              t('btn.basemap'),
+              [
+                h(
+                  MenuItem,
+                  { key: 'none', active: activeImageryId === null, onClick: () => changeImagery(null) },
+                  t('menu.none'),
+                ),
+                ...(sources?.imagery ?? []).map((source) =>
+                  h(
+                    MenuItem,
+                    { key: source.id, active: activeImageryId === source.id, onClick: () => changeImagery(source.id) },
+                    source.name,
+                  ),
+                ),
+              ],
+              Boolean(activeImageryId),
+            ),
+            menu(
+              'terrain',
+              t('btn.terrain'),
+              [
+                h(MenuItem, { key: 'off', active: activeTerrainId === null, onClick: () => changeTerrain(null) }, t('menu.terrainOff')),
+                ...(sources?.terrain ?? []).map((source) =>
+                  h(
+                    MenuItem,
+                    { key: source.id, active: activeTerrainId === source.id, onClick: () => changeTerrain(source.id) },
+                    source.name,
+                  ),
+                ),
+              ],
+              activeTerrainId !== null,
+            ),
+            h('i', { key: 's1', className: 'mv-sep' }),
+            menu(
+              'measure',
+              t('btn.measure'),
+              [
+                h(MenuItem, { key: 'distance', active: tool === 'distance', onClick: () => setToolMode(tool === 'distance' ? null : 'distance') }, t('tool.distance')),
+                h(MenuItem, { key: 'area', active: tool === 'area', onClick: () => setToolMode(tool === 'area' ? null : 'area') }, t('tool.area')),
+                h(MenuItem, { key: 'height', active: tool === 'height', onClick: () => setToolMode(tool === 'height' ? null : 'height') }, t('tool.height')),
+                h(MenuItem, { key: 'pick', active: tool === 'pick', onClick: () => setToolMode(tool === 'pick' ? null : 'pick') }, t('tool.pick')),
+              ],
+              tool !== null,
+            ),
+            h('i', { key: 's2', className: 'mv-sep' }),
+            button(`${t('btn.layers')}${layers.length ? ` ${layers.length}` : ''}`, () => setLayersOpen((value) => !value), layersOpen && layers.length > 0),
+            button(t('btn.screenshot'), screenshot),
+            button(t('btn.reset'), resetView),
+            h('i', { key: 's3', className: 'mv-sep' }),
+            h(
+              'div',
+              { key: 'appearance', className: 'mv-menu' },
+              h(
+                'button',
+                {
+                  type: 'button',
+                  className: 'mv-btn icon',
+                  title: `${t('btn.appearance')} · ${t(themeMode === 'auto' ? 'theme.auto' : themeMode === 'light' ? 'theme.light' : 'theme.dark')}`,
+                  'aria-haspopup': 'menu',
+                  onClick: () => setOpenMenu(openMenu === 'appearance' ? null : 'appearance'),
+                },
+                h(ThemeIcon, { mode: resolvedDark ? 'dark' : 'light' }),
+              ),
+              openMenu === 'appearance'
+                ? h(
+                    'div',
+                    { className: 'mv-menu-panel mv-glass' },
+                    [
+                      ['auto', 'theme.auto'],
+                      ['light', 'theme.light'],
+                      ['dark', 'theme.dark'],
+                    ].map(([mode, label]) =>
+                      h(
+                        MenuItem,
+                        {
+                          key: mode,
+                          active: themeMode === mode,
+                          onClick: () => setTheme(mode),
+                        },
+                        t(label),
+                      ),
+                    ),
+                  )
+                : null,
+            ),
+            h(
+              'button',
+              {
+                key: 'settings',
+                type: 'button',
+                className: 'mv-btn icon',
+                title: t('btn.settings'),
+                onClick: () => setSettingsOpen(true),
+              },
+              h(
+                'svg',
+                { viewBox: '0 0 24 24', width: 16, height: 16, 'aria-hidden': true, style: { display: 'block' } },
+                h('g', { stroke: 'currentColor', strokeWidth: 1.7, fill: 'none', strokeLinecap: 'round' },
+                  h('circle', { cx: 12, cy: 12, r: 3.2 }),
+                  h('path', { d: 'M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.2a1.6 1.6 0 0 0-1-1.5 1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.2a1.6 1.6 0 0 0 1.5-1 1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.2a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.2a1.6 1.6 0 0 0-1.4 1z' }),
+                ),
+              ),
+            ),
+          ),
+        ),
+        urlBar
+          ? h(
+              'div',
+              { key: 'urlbar', className: 'mv-urlbar mv-glass' },
+              h('input', {
+                autoFocus: true,
+                value: urlInput,
+                placeholder: t('urlbar.placeholder'),
+                onChange: (event) => setUrlInput(event.target.value),
+                onKeyDown: (event) => {
+                  if (event.key === 'Enter') submitUrl()
+                  if (event.key === 'Escape') setUrlBar(false)
+                },
+              }),
+              h('button', { type: 'button', onClick: submitUrl }, t('urlbar.submit')),
+            )
+          : null,
+        layersOpen && layers.length > 0
+          ? h(
+              'div',
+              { key: 'layers', className: 'mv-layers mv-glass' },
+              h(
+                'header',
+                null,
+                h('span', null, `${t('layers.title')} · ${layers.length}`),
+              ),
+              h(
+                'div',
+                { className: 'mv-layer-list' },
+                layers.map((layer) =>
+                  h(
+                    'div',
+                    { key: layer.id, className: `mv-layer${layer.visible ? '' : ' off'}` },
+                    h('span', { className: 'name', title: layer.name, onClick: () => flyToLayer(layer.id) }, layer.name),
+                    h(
+                      'button',
+                      {
+                        type: 'button',
+                        className: `mv-icon-btn${layer.visible ? '' : ' on'}`,
+                        title: layer.visible ? t('btn.visible') : t('btn.hidden'),
+                        onClick: () => toggleLayer(layer.id),
+                      },
+                      layer.visible ? '◉' : '○',
+                    ),
+                    h('button', { type: 'button', className: 'mv-icon-btn', title: t('btn.flyTo'), onClick: () => flyToLayer(layer.id) }, '⌖'),
+                    h('button', { type: 'button', className: 'mv-icon-btn', title: t('btn.delete'), onClick: () => removeLayer(layer.id) }, '✕'),
+                  ),
+                ),
+              ),
+            )
+          : null,
+        phase === 'ready' && layers.length === 0
+          ? h(
+              'div',
+              { key: 'empty', className: 'mv-overlay' },
+              h(
+                'div',
+                { className: 'mv-empty' },
+                h(ViewerIcon, { size: 30 }),
+                h('h2', null, t('panel.empty.title')),
+                h('p', null, t('panel.empty.body')),
+                h(
+                  'div',
+                  { className: 'buttons' },
+                  h('button', { type: 'button', className: 'mv-cta primary', onClick: pickLocal }, t('panel.empty.local')),
+                  h('button', { type: 'button', className: 'mv-cta', onClick: () => setUrlBar(true) }, t('panel.empty.url')),
+                ),
+              ),
+            )
+          : null,
+        phase === 'loading'
+          ? h('div', { key: 'loading', className: 'mv-overlay dim' }, h('div', { className: 'mv-empty' }, h('div', { className: 'mv-spinner' }), h('p', null, t('panel.status.loading'))))
+          : null,
+        phase === 'error'
+          ? h(
+              'div',
+              { key: 'error', className: 'mv-overlay dim' },
+              h(
+                'div',
+                { className: 'mv-empty' },
+                h('h2', null, '⚠'),
+                h('p', null, error),
+                h('div', { className: 'buttons' }, h('button', { type: 'button', className: 'mv-cta', onClick: () => location.reload() }, t('btn.retry'))),
+              ),
+            )
+          : null,
+        stats
+          ? h(StatusHud, { key: 'hud', fps, stats, viewerRef, cesiumRef, labels: hudLabels })
+          : null,
+        measureInfo ? h('div', { key: 'measure', className: 'mv-measure mv-glass' }, measureInfo.text) : null,
+        pickInfo
+          ? h(
+              'div',
+              { key: 'pick', className: 'mv-pick mv-glass' },
+              h(
+                'header',
+                null,
+                h('span', null, pickInfo.title),
+                h(
+                  'button',
+                  { type: 'button', className: 'mv-icon-btn', onClick: () => setPickInfo(null), title: t('btn.close') },
+                  '✕',
+                ),
+              ),
+              h(
+                'table',
+                null,
+                h(
+                  'tbody',
+                  null,
+                  pickInfo.rows.map(([name, value]) => h('tr', { key: name }, h('td', null, name), h('td', null, value))),
+                ),
+              ),
+            )
+          : null,
+        toast ? h('div', { key: 'toast', className: 'mv-toast' }, toast) : null,
+        scan
+          ? h(
+              'div',
+              { key: 'scan', className: 'mv-modal', onPointerDown: (event) => event.target === event.currentTarget && setScan(null) },
+              h(
+                'div',
+                { className: 'mv-dialog' },
+                h(
+                  'header',
+                  null,
+                  h('b', null, t('layers.title')),
+                  h('span', { className: 'path', style: { fontWeight: 400, color: 'var(--mv-dim)' } }, scan.dir),
+                  h('button', { type: 'button', className: 'mv-icon-btn', onClick: () => setScan(null), title: t('btn.close') }, '✕'),
+                ),
+                h(
+                  'div',
+                  { className: 'body' },
+                  scan.items.map((item) =>
+                    h(
+                      'button',
+                      {
+                        key: item.url,
+                        type: 'button',
+                        className: 'mv-cta',
+                        style: { textAlign: 'left', display: 'flex', flexDirection: 'column', gap: '2px' },
+                        onClick: () => addTileset(item.url, item.name.split(/[\\/]/).filter(Boolean).slice(-2).join('/')),
+                      },
+                      h('span', null, item.name),
+                    ),
+                  ),
+                ),
+              ),
+            )
+          : null,
+        settingsOpen && sources && defaults
+          ? h(SourcesDialog, {
+              key: 'settings',
+              config: sources,
+              defaults,
+              environmentDark,
+              themeMode,
+              messages: t,
+              onPickLocal: pickLocalTiles,
+              onSave: saveSources,
+              onClose: () => setSettingsOpen(false),
+            })
+          : null,
+        imageryBusy || terrainBusy
+          ? h('div', { key: 'busy', className: 'mv-measure mv-glass', style: { bottom: '44px' } }, t('toast.loadingData'))
+          : null,
+      )
+    }
+
+    return {
+      inject: ['slots', 'uiWorkspace', 'locale', 'theme'],
+      apply(ctx) {
+        appCtx = ctx
+        const NS = 'dsh-digital-earth'
+        // Registered through ctx.effect so a hot reload disposes the old dictionaries
+        // before the new ones land (the registry rejects duplicate namespaces).
+        ctx.effect(
+          () => ctx.locale.register(NS, { zh: MESSAGES.zh, en: MESSAGES.en }),
+          'dsh-digital-earth: dictionaries',
+        )
+        const translate = ctx.locale.bind(NS)
+        ctx.slots.inject('sidebar.panellist', () =>
+          ctx.slots.register(
+            {
+              name: 'sidebar.panellist',
+              id: 'digital-earth',
+              order: 30,
+              label: () => translate('panel.title'),
+              locale: NS,
+            },
+            ViewerIcon,
+          ),
+        )
+        ctx.slots.inject('main', () =>
+          ctx.slots.register({ name: 'main', key: 'digital-earth', locale: NS }, ViewerPanel),
+        )
+      },
+    }
+  },
+})
