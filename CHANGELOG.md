@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.3.0
+
+标注与量测版本。
+
+- **Agent 自动打开面板**：Agent 调用 `earth_scene` / `earth_capture` / `earth_draw` / `earth_measure` 时，插件自动在对话右侧打开当前会话的数字地球页签，并等待它连上（最多约 8 秒），不再需要先手动打开；「设置 → 外观」新增「Agent 调用时自动打开数字地球」开关，可随时关闭，偏好只保存在本机浏览器。
+- **`earth_draw` 标注工具**：Agent 用 GeoJSON 在地球上绘制点 / 多点、线 / 多线、面 / 多面与文字标签（要素 `properties.name` 作为逐要素标签），提供 accent / alert / success / warm / violet 五套配色；`clear=true` 清除此前由 Agent 绘制的全部标注与量测，单次最多 500 个要素 / 20000 个坐标。
+- **`earth_measure` 量测工具**：Agent 用 `[lon,lat]` 或 `[lon,lat,height]` 点串量测大地线距离、平面面积（含周长）或高差（含水平距离与坡度），默认把量测绘到地球上，`draw=false` 只返回数值；结果 JSON 以米 / 千米给出。
+- **标注管理**：存在 Agent 标注时，面板「数据」菜单出现「清除 Agent 标注」；`earth_scene` 的 `status` 新增 `annotations{drawn_features, measured_points, overlays}`；沉浸式主面板与对话同屏页签行为一致。
+- **空状态可关闭**：面板「在地球上叠加你的数据」提示卡右上角新增 ✕，关闭后在本次面板挂载期间不再遮挡地球，便于直接用自然语言自定义指令；「数据 ▾」菜单仍可随时打开本地目录或在线地址。
+- **场景不再丢**：切换会话 / 窗口或面板被右侧栏回收后，重新打开面板（或下一次 Agent 调用自动打开）会按会话恢复相机视角、已加载图层（按原始本地路径或在线地址重新加载）、图层显隐与 Agent 标注 / 量测；快照保存在本机浏览器，按会话保留最近 12 份并自动限容，底图与地形沿用数据源设置。
+- **最近打开的目录**：面板里选过的本地目录记入 `$DSH_HOME/digital-earth/directories.json`，重启 DSH 后在「数据 → 最近打开」里可直接重扫加载；`/scan` 仍是新增目录的唯一入口，白名单边界不变。
+- **关于页签**：在项目源码链接旁新增 GitHub Issues 链接（两个链接地址都由宿主下发）。
+- **工具与提示**：Agent 工具增至 4 个（`earth_scene`、`earth_capture`、`earth_draw`、`earth_measure`），系统提示词同步覆盖绘制与量测。
+
 ## 1.2.1
 
 界面微调版本。

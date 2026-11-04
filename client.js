@@ -40,6 +40,7 @@ window.__ModuleLoader__.load({
           '打开本地目录或在线地址，把 3D Tiles（b3dm / glb / 3DGS）叠加到 CesiumJS 地球上；底图、地形与量测工具已就绪。',
         'panel.empty.local': '打开本地目录',
         'panel.empty.url': '加载在线地址',
+        'panel.empty.dismiss': '关闭提示',
         'btn.data': '数据',
         'btn.openLocal': '打开本地目录…',
         'btn.openUrl': '加载在线地址…',
@@ -64,6 +65,8 @@ window.__ModuleLoader__.load({
         'btn.hidden': '隐藏',
         'menu.none': '无底图',
         'menu.terrainOff': '关闭地形',
+        'menu.recentDirs': '最近打开',
+        'menu.clearAgent': '清除 Agent 标注',
         'tool.distance': '测距',
         'tool.area': '测面',
         'tool.height': '测高',
@@ -159,12 +162,34 @@ window.__ModuleLoader__.load({
         'header.open': '在对话旁打开数字地球',
         'btn.beside': '在对话旁打开',
         'btn.immersive': '全屏查看',
+        'tool.action.status': '读取场景',
+        'tool.action.list': '读取图层',
+        'tool.action.load': '加载图层',
+        'tool.action.remove': '移除图层',
+        'tool.action.visible': '切换可见',
+        'tool.action.basemap': '切换底图',
+        'tool.action.terrain': '切换地形',
+        'tool.action.fly': '移动视角',
+        'tool.action.reset': '复位视角',
+        'tool.action.pick': '拾取对象',
+        'tool.action.inspect': '数据体检',
+        'tool.action.capture': '截图',
+        'tool.action.draw': '绘制标注',
+        'tool.action.measure': '量测',
+        'tool.action.clearAgent': '清除标注',
+        'tool.action.generic': '三维场景',
+        'tool.open': '打开',
+        'tool.openTip': '在对话右侧打开数字地球',
         'settings.tab.about': '关于',
+        'settings.autoOpenPanel': 'Agent 调用时自动打开数字地球',
+        'settings.autoOpenPanelHint':
+          'Agent 调用地球工具（earth_scene / earth_capture / earth_draw / earth_measure）时，自动在对话右侧打开数字地球面板；关闭后仍可从对话标题栏的地球按钮手动打开。该偏好只保存在本机浏览器。',
         'settings.screenshotHud': '截图时叠加坐标 HUD 与署名',
         'settings.screenshotHudHint':
           '默认关闭：截图只保留干净的三维画面，便于分享或交给模型识别。打开后会在图片内叠加光标坐标、相机参数与团队署名（面板工具栏属于网页元素，不会进入图片）。',
         'about.version': '版本',
         'about.homepage': '项目源码',
+        'about.issues': '问题反馈',
         'about.team': '开发团队',
         'about.teamName': '武汉大学 CVEO 课题组',
         'about.license': 'MIT License',
@@ -215,6 +240,10 @@ window.__ModuleLoader__.load({
         'agent.unknownImagery': '找不到影像源「{name}」，可用：{list}',
         'agent.unknownTerrain': '找不到地形源「{name}」，可用：{list}',
         'agent.badAction': '不支持的操作：{action}',
+        'agent.badGeojson': '标注数据无效：{message}',
+        'agent.badMeasure': '量测参数无效：{message}',
+        'agent.measureEmpty': '没有可用的量测结果。',
+        'agent.clearedOverlays': '已清除 Agent 标注',
         'toast.captureSaved': '已生成 {width}×{height} 截图：{path}',
         'toast.noSession': '请先打开一个会话，再在对话旁查看数字地球。',
         'unit.hectare': '公顷',
@@ -229,6 +258,7 @@ window.__ModuleLoader__.load({
           'Open a local folder or an online URL to add 3D Tiles (b3dm / glb / 3DGS) to this CesiumJS globe. Imagery, terrain and measurement tools are ready.',
         'panel.empty.local': 'Open local folder',
         'panel.empty.url': 'Load from URL',
+        'panel.empty.dismiss': 'Dismiss',
         'btn.data': 'Data',
         'btn.openLocal': 'Open local folder…',
         'btn.openUrl': 'Load from URL…',
@@ -253,6 +283,8 @@ window.__ModuleLoader__.load({
         'btn.hidden': 'Hide',
         'menu.none': 'No basemap',
         'menu.terrainOff': 'Terrain off',
+        'menu.recentDirs': 'Recently opened',
+        'menu.clearAgent': 'Clear Agent annotations',
         'tool.distance': 'Distance',
         'tool.area': 'Area',
         'tool.height': 'Height',
@@ -348,12 +380,34 @@ window.__ModuleLoader__.load({
         'header.open': 'Open Digital Earth beside the chat',
         'btn.beside': 'Open beside chat',
         'btn.immersive': 'Full screen',
+        'tool.action.status': 'Read scene',
+        'tool.action.list': 'List layers',
+        'tool.action.load': 'Load layer',
+        'tool.action.remove': 'Remove layer',
+        'tool.action.visible': 'Toggle visibility',
+        'tool.action.basemap': 'Switch basemap',
+        'tool.action.terrain': 'Switch terrain',
+        'tool.action.fly': 'Move camera',
+        'tool.action.reset': 'Reset view',
+        'tool.action.pick': 'Pick object',
+        'tool.action.inspect': 'Data check',
+        'tool.action.capture': 'Snapshot',
+        'tool.action.draw': 'Draw annotations',
+        'tool.action.measure': 'Measure',
+        'tool.action.clearAgent': 'Clear annotations',
+        'tool.action.generic': '3D scene',
+        'tool.open': 'Open',
+        'tool.openTip': 'Open Digital Earth beside the chat',
         'settings.tab.about': 'About',
+        'settings.autoOpenPanel': 'Open Digital Earth automatically on Agent calls',
+        'settings.autoOpenPanelHint':
+          'When the Agent calls an earth tool (earth_scene / earth_capture / earth_draw / earth_measure), open the Digital Earth panel beside the conversation; with this off you can still open it from the globe button in the chat header. The preference is stored in this browser only.',
         'settings.screenshotHud': 'Overlay coordinate HUD and credits in snapshots',
         'settings.screenshotHudHint':
           'Off by default: snapshots keep only the clean 3D view, which is easier to share or hand to a model. Turn it on to burn the cursor coordinates, camera parameters and team credit into the image (the panel toolbar is DOM chrome and can never be part of the image).',
         'about.version': 'Version',
         'about.homepage': 'Source code',
+        'about.issues': 'Report an issue',
         'about.team': 'Developed by',
         'about.teamName': 'Wuhan University CVEO Research Group',
         'about.license': 'MIT License',
@@ -405,6 +459,10 @@ window.__ModuleLoader__.load({
         'agent.unknownImagery': 'No imagery source "{name}". Available: {list}',
         'agent.unknownTerrain': 'No terrain source "{name}". Available: {list}',
         'agent.badAction': 'Unsupported action: {action}',
+        'agent.badGeojson': 'Invalid annotation data: {message}',
+        'agent.badMeasure': 'Invalid measurement arguments: {message}',
+        'agent.measureEmpty': 'No measurement result was produced.',
+        'agent.clearedOverlays': 'Agent annotations cleared',
         'toast.captureSaved': 'Saved {width}×{height} snapshot: {path}',
         'toast.noSession': 'Open a conversation first to view the globe beside it.',
         'unit.hectare': 'ha',
@@ -413,7 +471,7 @@ window.__ModuleLoader__.load({
 
     /** About-tab fallbacks used before the Host meta payload arrives. */
     const FALLBACK_ABOUT = {
-      version: '1.2.0',
+      version: '1.3.0',
       homepage: 'https://github.com/CVEO/dsh-digital-earth',
       teamUrl: 'https://www.whu-cveo.com/',
     }
@@ -484,6 +542,186 @@ window.__ModuleLoader__.load({
       return React.useSyncExternalStore(subscribe, darkFromEnvironment)
     }
     //#endregion theme
+
+    //#region preferences ------------------------------------------------------
+
+    /**
+     * Browser-local preferences live in localStorage rather than the Host source
+     * catalog: the client must read the auto-open switch while the panel (and its
+     * settings dialog) is closed, before any Host round-trip could complete.
+     */
+    const AUTO_OPEN_KEY = 'dsh.digital-earth.autoOpenPanel'
+
+    /** Read the auto-open preference; default ON, and never throw on disabled storage. */
+    const readAutoOpen = () => {
+      try {
+        const stored = window.localStorage.getItem(AUTO_OPEN_KEY)
+        return stored === null ? true : stored === '1'
+      } catch {
+        return true
+      }
+    }
+
+    const writeAutoOpen = (value) => {
+      try {
+        window.localStorage.setItem(AUTO_OPEN_KEY, value ? '1' : '0')
+      } catch {
+        // Storage disabled: the preference only survives until the page reloads.
+      }
+    }
+
+    /**
+     * Read one tool argument across the three owner blocks: a live call exposes a
+     * growing `PartialArguments` view (`.text(key)`), a settled one keeps raw JSON
+     * on `block.call.argsRaw`, and preparations may expose neither.
+     */
+    const toolArg = (block, key) => {
+      const call = block?.call
+      if (typeof call?.argsRaw === 'string') {
+        try {
+          const parsed = JSON.parse(call.argsRaw)
+          if (parsed && typeof parsed === 'object' && typeof parsed[key] === 'string') return parsed[key]
+        } catch {
+          // The stream has not produced valid JSON yet; fall through to the live view.
+        }
+      }
+      const view = block?.args
+      if (view && typeof view === 'object') {
+        try {
+          if (typeof view.text === 'function') {
+            const text = view.text(key)
+            if (typeof text === 'string' && text !== '') return text
+          }
+          if (typeof view[key] === 'string') return view[key]
+        } catch {
+          // A partially streamed argument can throw while decoding.
+        }
+      }
+      return undefined
+    }
+
+    /** Last path segment of a Windows or POSIX folder path, for compact menus. */
+    const folderName = (dir) => String(dir).replace(/[\\/]+$/, '').split(/[\\/]/).pop() || String(dir)
+    //#endregion preferences
+
+    //#region scene persistence -----------------------------------------------
+    // The right sidebar may dispose a session's tab body when the user visits
+    // another session or window, which would otherwise drop the globe state. The
+    // scene is snapshotted per session in localStorage (camera, layers by source,
+    // Agent overlays) and rebuilt when the panel mounts again. It is page-local
+    // data: sources were already authorised by the user, and snapshots are
+    // trimmed so many sessions cannot exhaust the origin quota.
+    const SCENE_STORE_PREFIX = 'dsh.digital-earth.scene.'
+    const SCENE_STORE_VERSION = 1
+    const SCENE_STORE_MAX_ENTRIES = 12
+    const SCENE_STORE_MAX_BYTES = 512 * 1024
+
+    const sceneStoreKey = (sessionId) => `${SCENE_STORE_PREFIX}${sessionId}`
+
+    const sceneStorage = () => {
+      try {
+        return typeof window !== 'undefined' ? window.localStorage : null
+      } catch {
+        return null
+      }
+    }
+
+    /** Snapshot guard: storage can hold data written by an older or broken build. */
+    const isSnapshotView = (view) =>
+      view !== null &&
+      typeof view === 'object' &&
+      ['lon', 'lat', 'height', 'heading', 'pitch'].every(
+        (key) => typeof view[key] === 'number' && Number.isFinite(view[key]),
+      )
+
+    const isSnapshotLayer = (layer) =>
+      layer !== null &&
+      typeof layer === 'object' &&
+      typeof layer.name === 'string' &&
+      layer.source !== null &&
+      typeof layer.source === 'object' &&
+      (typeof layer.source.path === 'string' || typeof layer.source.url === 'string')
+
+    function readSceneSnapshot(sessionId) {
+      if (typeof sessionId !== 'string' || sessionId === '') return null
+      const store = sceneStorage()
+      if (!store) return null
+      try {
+        const raw = store.getItem(sceneStoreKey(sessionId))
+        if (typeof raw !== 'string' || raw === '') return null
+        const snapshot = JSON.parse(raw)
+        if (snapshot === null || typeof snapshot !== 'object' || snapshot.v !== SCENE_STORE_VERSION) return null
+        const layers = (Array.isArray(snapshot.layers) ? snapshot.layers : [])
+          .filter(isSnapshotLayer)
+          .map((layer) => ({ name: layer.name, source: layer.source, visible: layer.visible !== false }))
+        const draw = Array.isArray(snapshot.annotations?.draw)
+          ? snapshot.annotations.draw.filter((command) => command !== null && typeof command === 'object' && command.geojson !== undefined)
+          : []
+        const measure = Array.isArray(snapshot.annotations?.measure)
+          ? snapshot.annotations.measure.filter(
+              (command) => command !== null && typeof command === 'object' && typeof command.mode === 'string' && Array.isArray(command.points),
+            )
+          : []
+        return { view: isSnapshotView(snapshot.view) ? snapshot.view : null, layers, annotations: { draw, measure } }
+      } catch {
+        return null
+      }
+    }
+
+    /** Drop the oldest snapshots so the store stays bounded across sessions. */
+    function trimSceneSnapshots(store, keepKey) {
+      try {
+        const entries = []
+        for (let index = 0; index < store.length; index += 1) {
+          const key = store.key(index)
+          if (typeof key !== 'string' || !key.startsWith(SCENE_STORE_PREFIX) || key === keepKey) continue
+          let savedAt = ''
+          try {
+            const parsed = JSON.parse(store.getItem(key))
+            if (typeof parsed?.savedAt === 'string') savedAt = parsed.savedAt
+          } catch {
+            // Unreadable entry sorts first and is removed before valid ones.
+          }
+          entries.push({ key, savedAt })
+        }
+        entries.sort((left, right) => left.savedAt.localeCompare(right.savedAt))
+        const excess = entries.length + 1 - SCENE_STORE_MAX_ENTRIES
+        for (let index = 0; index < excess; index += 1) store.removeItem(entries[index].key)
+      } catch {
+        // Quota or privacy mode: persistence stays best effort.
+      }
+    }
+
+    function writeSceneSnapshot(sessionId, snapshot) {
+      if (typeof sessionId !== 'string' || sessionId === '') return
+      const store = sceneStorage()
+      if (!store) return
+      const body = { v: SCENE_STORE_VERSION, savedAt: new Date().toISOString(), ...snapshot }
+      let text = ''
+      try {
+        text = JSON.stringify(body)
+      } catch {
+        return
+      }
+      // Overlays are reconstructible from the conversation, so drop them first
+      // rather than lose the camera and layer list to the quota.
+      if (text.length > SCENE_STORE_MAX_BYTES) {
+        body.annotations = { draw: [], measure: [] }
+        try {
+          text = JSON.stringify(body)
+        } catch {
+          return
+        }
+        if (text.length > SCENE_STORE_MAX_BYTES) return
+      }
+      try {
+        store.setItem(sceneStoreKey(sessionId), text)
+      } catch {
+        return
+      }
+      trimSceneSnapshots(store, sceneStoreKey(sessionId))
+    }
+    //#endregion scene persistence
 
     //#region helpers ----------------------------------------------------------
 
@@ -893,10 +1131,10 @@ window.__ModuleLoader__.load({
       )
     }
 
-    function MenuItem({ onClick, children, active }) {
+    function MenuItem({ onClick, children, active, title }) {
       return h(
         'button',
-        { type: 'button', className: `mv-menu-item${active ? ' on' : ''}`, onClick },
+        { type: 'button', className: `mv-menu-item${active ? ' on' : ''}`, onClick, title },
         children,
         active ? h('span', { className: 'check', 'aria-hidden': true }, '✓') : null,
       )
@@ -931,6 +1169,8 @@ window.__ModuleLoader__.load({
 .mv-menu-item:hover{background:color-mix(in srgb,var(--mv-lift) 80%,transparent)}
 .mv-menu-item.on{color:var(--mv-accent)}
 .mv-menu-item .check{font-size:11px}
+.mv-menu-label{padding:4px 10px 2px;font-size:10.5px;line-height:1.4;letter-spacing:.04em;color:var(--mv-dim);white-space:nowrap}
+.mv-menu-item .ellipsis{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mv-urlbar{position:absolute;top:58px;left:50%;transform:translateX(-50%);display:flex;gap:6px;padding:6px;border-radius:11px;z-index:12;width:min(640px,82%)}
 .mv-urlbar input{flex:1;min-width:0;background:var(--mv-input);border:.5px solid var(--mv-line);color:var(--mv-text);border-radius:7px;padding:7px 9px;font:inherit;font-size:12px;outline:none}
 .mv-urlbar input:focus{border-color:var(--mv-accent)}
@@ -960,7 +1200,10 @@ window.__ModuleLoader__.load({
 .mv-toast{position:absolute;left:50%;bottom:64px;transform:translateX(-50%);z-index:40;background:var(--mv-glass-strong);border:.5px solid var(--mv-line);color:var(--mv-text);padding:8px 14px;border-radius:9px;font-size:12px;max-width:72%;word-break:break-all;box-shadow:var(--mv-shadow)}
 .mv-overlay{position:absolute;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;padding:24px;background:var(--mv-overlay);pointer-events:none}
 .mv-overlay.dim{background:var(--mv-scrim)}
-.mv-empty{display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center;max-width:470px;pointer-events:auto;padding:24px 28px;border-radius:16px;background:var(--mv-glass-strong);border:.5px solid var(--mv-line);box-shadow:0 24px 64px var(--mv-shadow)}
+.mv-empty{position:relative;display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center;max-width:470px;pointer-events:auto;padding:24px 28px;border-radius:16px;background:var(--mv-glass-strong);border:.5px solid var(--mv-line);box-shadow:0 24px 64px var(--mv-shadow)}
+.mv-empty .mv-empty-close{position:absolute;top:8px;right:8px;display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;padding:0;border:none;border-radius:7px;background:transparent;color:var(--mv-dim);font-size:14px;line-height:1;cursor:pointer;transition:background .12s,color .12s}
+.mv-empty .mv-empty-close:hover{background:color-mix(in srgb,var(--mv-lift) 80%,transparent);color:var(--mv-text)}
+.mv-empty .mv-empty-close:focus-visible{outline:2px solid var(--mv-accent);outline-offset:1px}
 .mv-empty h2{margin:0;font-size:17px;font-weight:600;letter-spacing:.01em;color:var(--mv-text)}
 .mv-empty p{margin:0;color:var(--mv-dim);font-size:12px;line-height:1.75}
 .mv-empty .buttons{display:flex;gap:8px;margin-top:2px}
@@ -1005,28 +1248,28 @@ window.__ModuleLoader__.load({
 /* The host already draws the tab strip right above this body, so the floating
    toolbar keeps a visible gap instead of hugging it; the layer card follows the
    same offset so the two never collide when the action row wraps. */
-.mv-root.mv-docked{container-type:inline-size}
+.mv-root.mv-docked{container-type:inline-size;margin-top:9px}
 .mv-root.mv-docked .mv-top{top:20px;left:20px;right:20px;gap:8px}
 .mv-root.mv-docked .mv-brand{padding:6px 10px;flex:none;gap:6px}
-.mv-root.mv-docked .mv-actions{gap:0;padding:3px;flex:1 1 auto;min-width:0;row-gap:2px}
+.mv-root.mv-docked .mv-actions{gap:0;padding:3px;flex:0 1 auto;max-width:100%;margin-left:auto;min-width:0;row-gap:2px}
 .mv-root.mv-docked .mv-layers{top:96px;right:20px;width:min(284px,calc(100% - 40px));max-height:calc(100% - 250px)}
 .mv-root.mv-docked .mv-dialog{width:min(680px,96%)}
 /* Narrow docked panes: the host tab already shows the panel title, so drop the
    duplicated brand title, then the status text, then the whole brand, keeping
    the action row on one line as long as possible. */
-@container (max-width: 1000px){
+@container (max-width: 900px){
   .mv-root.mv-docked .mv-brand b{display:none}
 }
-@container (max-width: 860px){
+@container (max-width: 760px){
   .mv-root.mv-docked .mv-actions .mv-btn{padding:6px 8px}
   .mv-root.mv-docked .mv-actions .mv-sep{margin:0 1px}
   .mv-root.mv-docked .mv-actions .mv-btn.icon{padding:7px 6px}
 }
-@container (max-width: 720px){
+@container (max-width: 640px){
   .mv-root.mv-docked .mv-brand span{display:none}
   .mv-root.mv-docked .mv-brand{padding:6px 8px}
 }
-@container (max-width: 600px){
+@container (max-width: 540px){
   .mv-root.mv-docked .mv-brand{display:none}
   .mv-root.mv-docked .mv-actions{justify-content:flex-end}
 }
@@ -1232,6 +1475,9 @@ window.__ModuleLoader__.load({
       const [draft, setDraft] = React.useState(() => clone(config))
       const [tab, setTab] = React.useState('imagery')
       const [editing, setEditing] = React.useState(null)
+      // Auto-open is a browser preference, not part of the Host source catalog, so
+      // it stays outside `draft` and applies the moment the checkbox changes.
+      const [autoOpen, setAutoOpen] = React.useState(readAutoOpen)
       const activeId = (kind) => (kind === 'imagery' ? draft.settings.imagery : draft.settings.terrain)
 
       React.useEffect(() => {
@@ -1373,6 +1619,24 @@ window.__ModuleLoader__.load({
           h(
             'span',
             { className: 'text' },
+            h('b', null, t('settings.autoOpenPanel')),
+            h('span', null, t('settings.autoOpenPanelHint')),
+          ),
+          h('input', {
+            type: 'checkbox',
+            checked: autoOpen,
+            onChange: (event) => {
+              setAutoOpen(event.target.checked)
+              writeAutoOpen(event.target.checked)
+            },
+          }),
+        ),
+        h(
+          'label',
+          { className: 'mv-toggle' },
+          h(
+            'span',
+            { className: 'text' },
             h('b', null, t('settings.screenshotHud')),
             h('span', null, t('settings.screenshotHudHint')),
           ),
@@ -1389,6 +1653,9 @@ window.__ModuleLoader__.load({
       )
 
       const homepage = meta?.homepage ?? FALLBACK_ABOUT.homepage
+      // Prefer the Host's issues URL; older hosts only send homepage, whose
+      // conventional sibling is /issues, so both paths stay useful.
+      const issuesUrl = meta?.issues ?? `${String(homepage).replace(/\/+$/, '')}/issues`
       const teamUrl = meta?.team?.url ?? FALLBACK_ABOUT.teamUrl
       const about = h(
         'div',
@@ -1405,6 +1672,12 @@ window.__ModuleLoader__.load({
           { className: 'row' },
           h('span', { className: 'key' }, t('about.homepage')),
           h('a', { href: homepage, target: '_blank', rel: 'noopener noreferrer' }, homepage),
+        ),
+        h(
+          'div',
+          { className: 'row' },
+          h('span', { className: 'key' }, t('about.issues')),
+          h('a', { href: issuesUrl, target: '_blank', rel: 'noopener noreferrer' }, 'GitHub Issues'),
         ),
         h(
           'div',
@@ -1651,6 +1924,10 @@ window.__ModuleLoader__.load({
       const captureReadoutRef = React.useRef(null)
       const commandChainRef = React.useRef(Promise.resolve())
       const commandRef = React.useRef(null)
+      // Resolves when the Cesium viewer is fully ready. The bridge connects before
+      // that (right after meta arrives) so a cold panel mount does not eat the
+      // Host's attach grace; commands wait on this gate instead.
+      const readyGateRef = React.useRef({ ready: false, error: null, waiters: [] })
       const healthSeqRef = React.useRef(0)
       const sessionRef = React.useRef(sessionId)
       sessionRef.current = sessionId
@@ -1666,11 +1943,16 @@ window.__ModuleLoader__.load({
       const [pickInfo, setPickInfo] = React.useState(null)
       const [measureInfo, setMeasureInfo] = React.useState(null)
       const [scan, setScan] = React.useState(null)
+      // The empty-state card is onboarding, not chrome: dismissing it keeps the
+      // globe free for custom instructions until this panel is remounted.
+      const [emptyDismissed, setEmptyDismissed] = React.useState(false)
+      const [restoringScene, setRestoringScene] = React.useState(false)
       const [urlBar, setUrlBar] = React.useState(false)
       const [urlInput, setUrlInput] = React.useState('')
       const [busy, setBusy] = React.useState('')
       const [toast, setToast] = React.useState('')
       const [openMenu, setOpenMenu] = React.useState(null)
+      const [recentDirs, setRecentDirs] = React.useState([])
       const [layersOpen, setLayersOpen] = React.useState(true)
       const [settingsOpen, setSettingsOpen] = React.useState(false)
       const [health, setHealth] = React.useState(null)
@@ -1693,8 +1975,61 @@ window.__ModuleLoader__.load({
         toastTimer.current = setTimeout(() => setToast(''), 6000)
       }
 
+      /** Wake every command waiting for the viewer: resolve when ready, reject on failure. */
+      const settleReadyWaiters = (error) => {
+        const gate = readyGateRef.current
+        if (error === undefined) {
+          gate.ready = true
+          gate.error = null
+        } else {
+          gate.error = error
+        }
+        const waiters = gate.waiters.splice(0)
+        for (const waiter of waiters) {
+          if (error === undefined) waiter.resolve()
+          else waiter.reject(error)
+        }
+      }
+
+      /**
+       * Wait for the viewer before executing a bridge command. The Host starts its
+       * command deadline when it sends the frame, so this wait is bounded by the
+       * Host timeout too; the local timeout only keeps a dead panel from stalling
+       * the command chain forever.
+       */
+      const waitForPanelReady = (timeoutMs = 30000) =>
+        new Promise((resolve, reject) => {
+          const gate = readyGateRef.current
+          if (gate.ready) {
+            resolve()
+            return
+          }
+          // A failed panel init never becomes ready: fail fast instead of leaving
+          // the Agent waiting for the local timeout.
+          if (gate.error !== null) {
+            reject(gate.error)
+            return
+          }
+          const waiter = { resolve: null, reject: null }
+          const timer = setTimeout(() => {
+            const index = gate.waiters.indexOf(waiter)
+            if (index >= 0) gate.waiters.splice(index, 1)
+            reject(new Error(t('agent.notReady')))
+          }, timeoutMs)
+          waiter.resolve = () => {
+            clearTimeout(timer)
+            resolve()
+          }
+          waiter.reject = (error) => {
+            clearTimeout(timer)
+            reject(error)
+          }
+          gate.waiters.push(waiter)
+        })
+
       const syncLayers = () => {
         setLayers(layersRef.current.map((layer) => ({ id: layer.id, name: layer.name, visible: layer.visible })))
+        markSceneDirty()
       }
 
       // Persist writes run one at a time and stale responses are dropped, so two
@@ -1776,8 +2111,8 @@ window.__ModuleLoader__.load({
         return `${meta.tilesBase}${encodeURIComponent(b64url(dir))}/${encodeURIComponent(rel)}`
       }
 
-      /** Add a 3D Tiles layer and fly to it; throws so the Agent can report failures. */
-      async function loadTileset(url, name, source = null) {
+      /** Add a 3D Tiles layer; flies to it unless the caller restores a saved view. */
+      async function loadTileset(url, name, source = null, options = {}) {
         const Cesium = cesiumRef.current
         const viewer = viewerRef.current
         if (!Cesium || !viewer) throw new Error(t('agent.notReady'))
@@ -1804,7 +2139,7 @@ window.__ModuleLoader__.load({
           layersRef.current.push(layer)
           syncLayers()
           setScan(null)
-          await viewer.flyTo(tileset, { duration: 1.2 })
+          if (options.fly !== false) await viewer.flyTo(tileset, { duration: 1.2 })
           return layer
         } finally {
           setBusy('')
@@ -1821,6 +2156,59 @@ window.__ModuleLoader__.load({
           await loadTileset(url, name, source)
         } catch (error) {
           showToast(t('toast.loadFailed', { message: message(error) }))
+        }
+      }
+
+      /**
+       * Load the folders the Host remembers from earlier `/scan` calls (newest
+       * first). Older Hosts do not send `directoriesUrl`: hide the section then
+       * rather than failing a menu that otherwise works.
+       */
+      const refreshRecentDirs = async () => {
+        const url = metaRef.current?.directoriesUrl
+        if (typeof url !== 'string' || url === '') return
+        try {
+          const response = await fetch(url, { credentials: 'same-origin' })
+          if (!response.ok) throw new Error(`HTTP ${response.status}`)
+          const data = await response.json()
+          const list = Array.isArray(data?.directories) ? data.directories : []
+          const entries = []
+          for (const entry of list) {
+            const dir = typeof entry === 'string' ? entry : entry?.path
+            if (typeof dir !== 'string' || dir === '') continue
+            entries.push({ dir, name: typeof entry?.name === 'string' && entry.name !== '' ? entry.name : folderName(dir) })
+            if (entries.length >= 5) break
+          }
+          setRecentDirs(entries)
+        } catch (error) {
+          // A stale endpoint must not break the data menu; surface it like a scan error.
+          setRecentDirs([])
+          showToast(t('toast.scanFailed', { message: message(error) }))
+        }
+      }
+
+      /** Re-open a remembered folder exactly like the picker would. */
+      async function openRecentDirectory(dir) {
+        setOpenMenu(null)
+        setBusy(t('toast.busyDirectory'))
+        try {
+          const meta = metaRef.current
+          const response = await fetch(
+            `${meta.scanUrl}?token=${encodeURIComponent(meta.token)}&dir=${encodeURIComponent(dir)}`,
+            { credentials: 'same-origin', headers: { 'x-dsh-panel': '1' } },
+          )
+          if (!response.ok) throw new Error(`HTTP ${response.status}`)
+          const data = await response.json()
+          refreshRecentDirs()
+          if (!data.items || data.items.length === 0) {
+            showToast(t('toast.scanEmpty'))
+            return
+          }
+          setScan({ dir, items: data.items })
+        } catch (error) {
+          showToast(t('toast.scanFailed', { message: message(error) }))
+        } finally {
+          setBusy('')
         }
       }
 
@@ -1842,6 +2230,8 @@ window.__ModuleLoader__.load({
           )
           if (!response.ok) throw new Error(`HTTP ${response.status}`)
           const data = await response.json()
+          // `/scan` records the folder on the Host, so the recent list is stale now.
+          refreshRecentDirs()
           if (!data.items || data.items.length === 0) {
             showToast(t('toast.scanEmpty'))
             return
@@ -2104,6 +2494,508 @@ window.__ModuleLoader__.load({
           setMeasureInfo({ text: t('measure.start') })
         }
       }
+
+      //#region Agent overlays (annotations + measurements) ---------------------
+      // Overlays the Agent asked for live in their own entity lists: they do not
+      // mix with the user's measuring tool, can be cleared as one group from the
+      // Data menu, and status reports how much of them is currently drawn.
+      const agentOverlayRef = React.useRef({
+        draw: [],
+        measure: [],
+        drawnFeatures: 0,
+        measuredCount: 0,
+        // The commands themselves are kept so a remounted panel can redraw them.
+        drawCommands: [],
+        measureCommands: [],
+      })
+      const [agentOverlayCount, setAgentOverlayCount] = React.useState(0)
+
+      const syncAgentOverlayCount = () => {
+        const state = agentOverlayRef.current
+        setAgentOverlayCount(state.draw.length + state.measure.length)
+      }
+
+      function clearAgentOverlays(kind = 'all') {
+        const viewer = viewerRef.current
+        const state = agentOverlayRef.current
+        const drop = (entities) => {
+          if (viewer) for (const entity of entities) viewer.entities.remove(entity)
+        }
+        if (kind === 'all' || kind === 'draw') {
+          drop(state.draw)
+          state.draw = []
+          state.drawnFeatures = 0
+          state.drawCommands = []
+        }
+        if (kind === 'all' || kind === 'measure') {
+          drop(state.measure)
+          state.measure = []
+          state.measuredCount = 0
+          state.measureCommands = []
+        }
+        syncAgentOverlayCount()
+        markSceneDirty()
+      }
+
+      const AGENT_OVERLAY_COLORS = {
+        accent: '#5b8cff',
+        alert: '#e5484d',
+        success: '#2ec27e',
+        warm: '#f0b84b',
+        violet: '#a855f7',
+      }
+
+      const agentOverlayColor = (Cesium, style) => {
+        const css = AGENT_OVERLAY_COLORS[style] ?? AGENT_OVERLAY_COLORS.accent
+        try {
+          return Cesium.Color.fromCssColorString(css)
+        } catch {
+          return Cesium.Color.DODGERBLUE
+        }
+      }
+
+      /** Surface height at a lon/lat when terrain is loaded, otherwise 0. */
+      const agentSurfaceHeight = (Cesium, viewer, lon, lat) => {
+        try {
+          const height = viewer.scene.globe.getHeight(Cesium.Cartographic.fromDegrees(lon, lat))
+          if (Number.isFinite(height)) return height
+        } catch {
+          // No terrain provider: the ellipsoid surface is height 0.
+        }
+        return 0
+      }
+
+      const agentLabelText = (text, value) =>
+        typeof text === 'string' && text !== '' ? text : typeof value === 'string' ? value : ''
+
+      /** Add a result label anchored on a ground point. */
+      const addAgentGroundLabel = (Cesium, add, lon, lat, text) =>
+        add({
+          position: Cesium.Cartesian3.fromDegrees(lon, lat),
+          label: {
+            text,
+            font: '12px -apple-system,"Segoe UI","PingFang SC",sans-serif',
+            style: Cesium.LabelStyle.FILL,
+            fillColor: Cesium.Color.WHITE,
+            showBackground: true,
+            backgroundColor: new Cesium.Color(0.06, 0.09, 0.15, 0.85),
+            backgroundPadding: new Cesium.Cartesian2(8, 5),
+            pixelOffset: new Cesium.Cartesian2(0, -18),
+            heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+            disableDepthTestDistance: Number.POSITIVE_INFINITY,
+          },
+        })
+
+      /**
+       * Draw a host-validated GeoJSON FeatureCollection. Every annotation is
+       * ground-draped so it stays visible on terrain and imagery; optional
+       * GeoJSON heights are therefore ignored here (measurements keep them).
+       */
+      function drawAgentOverlay(Cesium, viewer, geojson, style, caption) {
+        const state = agentOverlayRef.current
+        const color = agentOverlayColor(Cesium, style)
+        const byType = { points: 0, lines: 0, polygons: 0 }
+        const bbox = { west: Infinity, south: Infinity, east: -Infinity, north: -Infinity }
+        let drawn = 0
+        const add = (options) => {
+          const entity = viewer.entities.add(options)
+          state.draw.push(entity)
+          return entity
+        }
+        const track = (coordinates) => {
+          if (Array.isArray(coordinates)) {
+            if (typeof coordinates[0] === 'number' && coordinates.length >= 2) {
+              const [lon, lat] = coordinates
+              if (Number.isFinite(lon) && Number.isFinite(lat)) {
+                bbox.west = Math.min(bbox.west, lon)
+                bbox.south = Math.min(bbox.south, lat)
+                bbox.east = Math.max(bbox.east, lon)
+                bbox.north = Math.max(bbox.north, lat)
+              }
+            } else {
+              for (const item of coordinates) track(item)
+            }
+          }
+        }
+        const flat2d = (positions) => {
+          // Cesium's fromDegreesArray takes lon/lat pairs; optional heights are
+          // dropped on purpose here because these primitives are ground-draped.
+          const flat = []
+          for (const position of positions) {
+            if (!Array.isArray(position) || position.length < 2) continue
+            flat.push(position[0], position[1])
+          }
+          return flat
+        }
+        const nameOf = (properties) => {
+          const name = properties?.name
+          return typeof name === 'string' && name.trim() !== '' ? name.trim() : ''
+        }
+        const drawLine = (coordinates, name) => {
+          if (!Array.isArray(coordinates) || coordinates.length < 2) return
+          add({
+            polyline: {
+              positions: Cesium.Cartesian3.fromDegreesArray(flat2d(coordinates)),
+              width: 3,
+              material: color,
+              depthFailMaterial: color.withAlpha(0.55),
+              clampToGround: true,
+            },
+          })
+          byType.lines += 1
+          drawn += 1
+          track(coordinates)
+          if (name !== '') {
+            const middle = coordinates[Math.floor(coordinates.length / 2)]
+            addAgentGroundLabel(Cesium, add, middle[0], middle[1], name)
+          }
+        }
+        const drawPolygon = (rings, name) => {
+          if (!Array.isArray(rings) || rings.length === 0 || !Array.isArray(rings[0])) return
+          const outer = Cesium.Cartesian3.fromDegreesArray(flat2d(rings[0]))
+          if (outer.length < 3) return
+          const holes = rings.slice(1).map((ring) => new Cesium.PolygonHierarchy(Cesium.Cartesian3.fromDegreesArray(flat2d(ring))))
+          add({ polygon: { hierarchy: new Cesium.PolygonHierarchy(outer, holes), material: color.withAlpha(0.26), outline: false, perPositionHeight: false } })
+          // Ground polygons do not draw an outline reliably, so trace the rings.
+          for (const ring of rings) {
+            if (!Array.isArray(ring) || ring.length < 2) continue
+            const closed = ring.slice()
+            const first = closed[0]
+            const last = closed[closed.length - 1]
+            if (first[0] !== last[0] || first[1] !== last[1]) closed.push(first)
+            add({
+              polyline: {
+                positions: Cesium.Cartesian3.fromDegreesArray(flat2d(closed)),
+                width: 2,
+                material: color,
+                depthFailMaterial: color.withAlpha(0.55),
+                clampToGround: true,
+              },
+            })
+          }
+          byType.polygons += 1
+          drawn += 1
+          for (const ring of rings) track(ring)
+          if (name !== '') {
+            let lon = 0
+            let lat = 0
+            for (const position of rings[0]) {
+              lon += position[0]
+              lat += position[1]
+            }
+            addAgentGroundLabel(Cesium, add, lon / rings[0].length, lat / rings[0].length, name)
+          }
+        }
+        const drawPoint = (coordinates, name) => {
+          if (!Array.isArray(coordinates) || coordinates.length < 2) return
+          add({
+            position: Cesium.Cartesian3.fromDegrees(coordinates[0], coordinates[1]),
+            point: {
+              pixelSize: 11,
+              color,
+              outlineColor: Cesium.Color.WHITE,
+              outlineWidth: 2,
+              heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+              disableDepthTestDistance: Number.POSITIVE_INFINITY,
+            },
+          })
+          byType.points += 1
+          drawn += 1
+          track(coordinates)
+          if (name !== '') addAgentGroundLabel(Cesium, add, coordinates[0], coordinates[1], name)
+        }
+        const drawGeometry = (geometry, properties) => {
+          if (geometry === null || typeof geometry !== 'object') return
+          const label = agentLabelText(nameOf(properties), caption)
+          switch (geometry.type) {
+            case 'Point':
+              drawPoint(geometry.coordinates, label)
+              break
+            case 'MultiPoint':
+              for (const position of geometry.coordinates ?? []) drawPoint(position, label)
+              break
+            case 'LineString':
+              drawLine(geometry.coordinates, label)
+              break
+            case 'MultiLineString':
+              for (const line of geometry.coordinates ?? []) drawLine(line, label)
+              break
+            case 'Polygon':
+              drawPolygon(geometry.coordinates, label)
+              break
+            case 'MultiPolygon':
+              for (const polygon of geometry.coordinates ?? []) drawPolygon(polygon, label)
+              break
+            default:
+              break
+          }
+        }
+        const features = Array.isArray(geojson?.features) ? geojson.features : []
+        for (const feature of features) {
+          if (feature?.geometry?.type === 'GeometryCollection') {
+            for (const child of feature.geometry.geometries ?? []) {
+              drawGeometry(child, feature.properties)
+            }
+          } else {
+            drawGeometry(feature?.geometry, feature?.properties)
+          }
+        }
+        state.drawnFeatures += drawn
+        if (drawn > 0) {
+          state.drawCommands.push({
+            geojson,
+            style,
+            ...(typeof caption === 'string' && caption !== '' ? { caption } : {}),
+          })
+          markSceneDirty()
+        }
+        syncAgentOverlayCount()
+        const rounded = (value, digits = 6) => Math.round(value * 10 ** digits) / 10 ** digits
+        const hasBox = Number.isFinite(bbox.west) && Number.isFinite(bbox.east)
+        return {
+          drawn,
+          by_type: byType,
+          bbox: hasBox
+            ? { west: rounded(bbox.west), south: rounded(bbox.south), east: rounded(bbox.east), north: rounded(bbox.north) }
+            : null,
+        }
+      }
+
+      /** Compute and (by default) draw a measurement; returns structured values. */
+      function measureAgentOverlay(Cesium, viewer, args) {
+        const state = agentOverlayRef.current
+        const mode = args.mode
+        const points = Array.isArray(args.points) ? args.points : []
+        const round = (value, digits = 3) => Math.round(value * 10 ** digits) / 10 ** digits
+        if (points.length < 2) throw new Error(t('agent.badMeasure', { message: 'need at least 2 points' }))
+        const located = points.map((position) => {
+          const lon = position[0]
+          const lat = position[1]
+          const height = Number.isFinite(position[2]) ? position[2] : agentSurfaceHeight(Cesium, viewer, lon, lat)
+          return { lon, lat, height }
+        })
+        const ground = located.map((point) => Cesium.Cartesian3.fromDegrees(point.lon, point.lat, 0))
+        const draw = args.draw !== false
+        const color = Cesium.Color.fromCssColorString('#f0b84b')
+        const add = (options) => {
+          const entity = viewer.entities.add(options)
+          state.measure.push(entity)
+          return entity
+        }
+        const dot = (lon, lat, height) =>
+          add({
+            position: Cesium.Cartesian3.fromDegrees(lon, lat, height),
+            point: {
+              pixelSize: 8,
+              color,
+              outlineColor: Cesium.Color.WHITE,
+              outlineWidth: 1,
+              disableDepthTestDistance: Number.POSITIVE_INFINITY,
+            },
+          })
+        const result = { mode, points: points.length, drawn: draw }
+        if (mode === 'distance') {
+          const distance = geodesicLength(Cesium, ground)
+          result.distance_m = round(distance)
+          result.distance_km = round(distance / 1000, 4)
+          if (draw) {
+            for (const point of located) dot(point.lon, point.lat, point.height)
+            add({
+              polyline: {
+                positions: ground,
+                width: 3,
+                material: color,
+                depthFailMaterial: color.withAlpha(0.55),
+                clampToGround: true,
+              },
+            })
+            const last = located[located.length - 1]
+            addAgentGroundLabel(Cesium, add, last.lon, last.lat, t('measure.total', { value: formatDistance(distance) }))
+          }
+        } else if (mode === 'area') {
+          if (points.length < 3) throw new Error(t('agent.badMeasure', { message: 'area needs at least 3 points' }))
+          const area = planarArea(Cesium, ground)
+          const perimeter = geodesicLength(Cesium, [...ground, ground[0]])
+          result.area_m2 = round(area)
+          result.area_km2 = round(area / 1e6, 6)
+          result.perimeter_m = round(perimeter)
+          if (draw) {
+            add({ polygon: { hierarchy: new Cesium.PolygonHierarchy(ground), material: color.withAlpha(0.28), outline: false, perPositionHeight: false } })
+            add({
+              polyline: {
+                positions: [...ground, ground[0]],
+                width: 3,
+                material: color,
+                depthFailMaterial: color.withAlpha(0.55),
+                clampToGround: true,
+              },
+            })
+            let lon = 0
+            let lat = 0
+            for (const point of located) {
+              lon += point.lon
+              lat += point.lat
+            }
+            addAgentGroundLabel(Cesium, add, lon / located.length, lat / located.length, t('measure.areaLabel', { value: formatArea(area) }))
+          }
+        } else if (mode === 'height') {
+          if (points.length !== 2) throw new Error(t('agent.badMeasure', { message: 'height needs exactly 2 points' }))
+          const from = located[0]
+          const to = located[1]
+          const delta = to.height - from.height
+          const horizontal = new Cesium.EllipsoidGeodesic(
+            Cesium.Cartographic.fromDegrees(from.lon, from.lat, from.height),
+            Cesium.Cartographic.fromDegrees(to.lon, to.lat, to.height),
+          ).surfaceDistance
+          const slope = horizontal > 0 ? (Math.atan2(delta, horizontal) * 180) / Math.PI : 0
+          result.height_m = round(delta)
+          result.height_from_m = round(from.height)
+          result.height_to_m = round(to.height)
+          result.horizontal_m = round(horizontal)
+          result.slope_deg = round(slope, 2)
+          if (draw) {
+            for (const point of located) dot(point.lon, point.lat, point.height)
+            add({
+              polyline: {
+                positions: located.map((point) => Cesium.Cartesian3.fromDegrees(point.lon, point.lat, point.height)),
+                width: 3,
+                material: color,
+                depthFailMaterial: color.withAlpha(0.55),
+              },
+            })
+            addAgentGroundLabel(Cesium, add, to.lon, to.lat, `${t('measure.height', { value: `${delta >= 0 ? '+' : ''}${delta.toFixed(2)} m`, distance: formatDistance(horizontal) })}`)
+          }
+        } else {
+          throw new Error(t('agent.badMeasure', { message: `unsupported mode ${String(mode)}` }))
+        }
+        // `measured_points` counts what is currently drawn, matching the entity
+        // count in `overlays`; a numeric-only measurement adds no overlay.
+        if (draw) {
+          state.measuredCount += points.length
+          state.measureCommands.push({ mode, points, draw: true })
+          markSceneDirty()
+        }
+        syncAgentOverlayCount()
+        return result
+      }
+      //#endregion Agent overlays
+
+      //#region scene snapshot ---------------------------------------------------
+      // Camera, layers (by their original source) and Agent overlays survive the
+      // tab body being disposed: they are written to localStorage per session and
+      // rebuilt into the next viewer. Writes are debounced through a dirty flag
+      // plus a short timer, and flushed synchronously on unmount/page hide.
+      const sceneDirtyRef = React.useRef(false)
+      // Whether a restore decision was already made for this mount; a session id
+      // that arrives after the viewer is ready gets exactly one late restore.
+      const sceneRestoredRef = React.useRef(false)
+
+      const markSceneDirty = () => {
+        sceneDirtyRef.current = true
+      }
+
+      /** Everything needed to rebuild this panel's scene in a later mount. */
+      const currentSceneSnapshot = () => {
+        const Cesium = cesiumRef.current
+        const viewer = viewerRef.current
+        if (!Cesium || !viewer) return null
+        const carto = viewer.camera.positionCartographic
+        const round = (value) => Math.round(value * 1e6) / 1e6
+        return {
+          view: {
+            lon: round(Cesium.Math.toDegrees(carto.longitude)),
+            lat: round(Cesium.Math.toDegrees(carto.latitude)),
+            height: Math.round(carto.height),
+            heading: Math.round(Cesium.Math.toDegrees(viewer.camera.heading ?? 0)),
+            pitch: Math.round(Cesium.Math.toDegrees(viewer.camera.pitch ?? 0)),
+          },
+          layers: layersRef.current
+            .filter(
+              (layer) =>
+                layer.source !== null &&
+                typeof layer.source === 'object' &&
+                (typeof layer.source.path === 'string' || typeof layer.source.url === 'string'),
+            )
+            .map((layer) => ({ name: layer.name, source: layer.source, visible: layer.visible !== false })),
+          annotations: {
+            draw: agentOverlayRef.current.drawCommands,
+            measure: agentOverlayRef.current.measureCommands,
+          },
+        }
+      }
+
+      /** Persist the current scene for this session (best effort, never throws). */
+      const saveSceneSnapshot = () => {
+        const session = sessionRef.current
+        if (typeof session !== 'string' || session === '') return
+        try {
+          const snapshot = currentSceneSnapshot()
+          if (snapshot === null) return
+          writeSceneSnapshot(session, snapshot)
+          sceneDirtyRef.current = false
+        } catch {
+          // Persistence must never take the panel down.
+        }
+      }
+
+      /** Rebuild a saved scene into the freshly created viewer. Best effort per item. */
+      async function restoreSceneSnapshot(snapshot) {
+        const Cesium = cesiumRef.current
+        const viewer = viewerRef.current
+        if (!Cesium || !viewer || snapshot === null) return
+        setRestoringScene(snapshot.layers.length > 0)
+        try {
+          for (const item of snapshot.layers) {
+            const source = item.source
+            let url = ''
+            if (typeof source.path === 'string' && source.path !== '') {
+              try {
+                url = await localPathToUrl(source.path)
+              } catch {
+                // The folder may not be authorised any more: skip that layer.
+                continue
+              }
+            } else if (typeof source.url === 'string' && /^https?:\/\//i.test(source.url)) {
+              url = source.url
+            }
+            if (url === '') continue
+            try {
+              const layer = await loadTileset(url, item.name, source, { fly: false })
+              if (item.visible === false) setLayerVisible(layer.id, false)
+            } catch {
+              // One missing or moved source must not abort the other layers.
+            }
+          }
+          for (const command of snapshot.annotations.draw) {
+            try {
+              drawAgentOverlay(Cesium, viewer, command.geojson, command.style, command.caption)
+            } catch {
+              // A stale annotation is not worth failing the restore.
+            }
+          }
+          for (const command of snapshot.annotations.measure) {
+            try {
+              measureAgentOverlay(Cesium, viewer, command)
+            } catch {
+              // Same for a stale measurement.
+            }
+          }
+          if (snapshot.view !== null) {
+            viewer.camera.setView({
+              destination: Cesium.Cartesian3.fromDegrees(snapshot.view.lon, snapshot.view.lat, snapshot.view.height),
+              orientation: {
+                heading: Cesium.Math.toRadians(snapshot.view.heading),
+                pitch: Cesium.Math.toRadians(snapshot.view.pitch),
+                roll: 0,
+              },
+            })
+          }
+        } finally {
+          setRestoringScene(false)
+          sceneDirtyRef.current = false
+        }
+      }
+      //#endregion scene snapshot
 
       function layerLabel(tileset) {
         const found = layersRef.current.find((entry) => entry.tileset === tileset)
@@ -2627,6 +3519,11 @@ window.__ModuleLoader__.load({
           viewport: { width: viewer.canvas.width, height: viewer.canvas.height },
           snapshot: { includeHud: config.settings.screenshotHud === true },
           measureTool: toolRef.current,
+          annotations: {
+            drawn_features: agentOverlayRef.current.drawnFeatures,
+            measured_points: agentOverlayRef.current.measuredCount,
+            overlays: agentOverlayRef.current.draw.length + agentOverlayRef.current.measure.length,
+          },
           busy: busy || '',
         }
       }
@@ -2789,16 +3686,40 @@ window.__ModuleLoader__.load({
           )
           return pickResult(position)
         }
+        if (action === 'draw') {
+          if (args.clear === true) clearAgentOverlays('all')
+          const outcome = args.geojson !== undefined
+            ? drawAgentOverlay(Cesium, viewer, args.geojson, args.style, args.label)
+            : { drawn: 0, by_type: { points: 0, lines: 0, polygons: 0 }, bbox: null }
+          const value = {
+            ok: true,
+            cleared: args.clear === true,
+            drawn: outcome.drawn,
+            by_type: outcome.by_type,
+            bbox: outcome.bbox,
+            overlays: agentOverlayRef.current.draw.length + agentOverlayRef.current.measure.length,
+          }
+          if (typeof args.label === 'string' && args.label !== '') value.label = args.label
+          return value
+        }
+        if (action === 'measure') {
+          if (args.clear === true) clearAgentOverlays('all')
+          const value = measureAgentOverlay(Cesium, viewer, args)
+          value.cleared = args.clear === true
+          value.overlays = agentOverlayRef.current.draw.length + agentOverlayRef.current.measure.length
+          return value
+        }
         throw new Error(t('agent.badAction', { action: String(action) }))
       }
       commandRef.current = runCommand
 
       // The bridge connects only inside a Session (the right sidebar tab), never in
-      // the immersive main panel, so one Agent never drives two globes at once.
+      // the immersive main panel, so one Agent never drives two globes at once. It
+      // connects as soon as the page metadata exists, so the Host's attach grace is
+      // spent on the tab mount rather than on the Cesium cold start; commands then
+      // wait for the viewer through `waitForPanelReady`.
       React.useEffect(() => {
-        if (!sessionId || phase !== 'ready') return undefined
-        const meta = metaRef.current
-        if (!meta?.bridgeUrl) return undefined
+        if (!sessionId || !meta?.bridgeUrl) return undefined
         // Everything below is bound to the session that opened this connection:
         // a later sidebar session switch must not re-address in-flight acks.
         const bridgeSession = sessionId
@@ -2839,6 +3760,7 @@ window.__ModuleLoader__.load({
           commandChainRef.current = commandChainRef.current
             .then(async () => {
               try {
+                await waitForPanelReady()
                 const result = await commandRef.current(payload.action, payload.args ?? {}, bridgeSession)
                 await ack({ session: bridgeSession, id: payload.id, ok: true, result })
               } catch (error) {
@@ -2886,7 +3808,7 @@ window.__ModuleLoader__.load({
             /* already closed */
           }
         }
-      }, [sessionId, phase, bridgeEpoch])
+      }, [sessionId, meta, bridgeEpoch])
 
       React.useEffect(() => {
         let cancelled = false
@@ -2928,9 +3850,22 @@ window.__ModuleLoader__.load({
             handler.setInputAction((event) => onCanvasClick(event.position), Cesium.ScreenSpaceEventType.LEFT_CLICK)
             handler.setInputAction(() => finishMeasure(), Cesium.ScreenSpaceEventType.LEFT_DOUBLE_CLICK)
             handlerRef.current = handler
+            // A camera move is the most frequent scene change: mark it dirty and
+            // let the short timer batch the localStorage write.
+            viewer.camera.moveEnd.addEventListener(markSceneDirty)
+            // Rebuild the scene this session had when its tab body was disposed;
+            // commands wait for this so they cannot race the restored camera.
+            const savedScene = typeof sessionId === 'string' && sessionId !== '' ? readSceneSnapshot(sessionId) : null
+            if (savedScene !== null) {
+              await restoreSceneSnapshot(savedScene)
+              if (cancelled) return
+            }
+            sceneRestoredRef.current = typeof sessionId === 'string' && sessionId !== ''
+            settleReadyWaiters()
             setPhase('ready')
           } catch (error) {
             if (!cancelled) {
+              settleReadyWaiters(error instanceof Error ? error : new Error(String(error)))
               setError(message(error))
               setPhase('error')
             }
@@ -2938,6 +3873,10 @@ window.__ModuleLoader__.load({
         })()
         return () => {
           cancelled = true
+          // Capture the last scene before the viewer is destroyed.
+          saveSceneSnapshot()
+          readyGateRef.current.ready = false
+          settleReadyWaiters(new Error(t('agent.notReady')))
           clearTimeout(toastTimer.current)
           try {
             handlerRef.current?.destroy()
@@ -2956,6 +3895,43 @@ window.__ModuleLoader__.load({
         // eslint-disable-next-line react-hooks/exhaustive-deps
       }, [])
 
+      // A tab body can mount before its session id is known; restore once the
+      // viewer is ready and the id arrives (the normal path restores inside the
+      // init effect and leaves this no-op).
+      React.useEffect(() => {
+        if (phase !== 'ready' || sceneRestoredRef.current) return undefined
+        if (typeof sessionId !== 'string' || sessionId === '') return undefined
+        sceneRestoredRef.current = true
+        const snapshot = readSceneSnapshot(sessionId)
+        if (snapshot === null) return undefined
+        void restoreSceneSnapshot(snapshot)
+        return undefined
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+      }, [phase, sessionId])
+
+      // Debounced scene persistence: camera moves and layer/overlay changes set
+      // the dirty flag, this timer writes at most every few seconds. pagehide and
+      // visibilitychange flush before the tab body is disposed or the window hides.
+      React.useEffect(() => {
+        const timer = setInterval(() => {
+          if (sceneDirtyRef.current) saveSceneSnapshot()
+        }, 3000)
+        const flush = () => {
+          if (sceneDirtyRef.current) saveSceneSnapshot()
+        }
+        const onVisibility = () => {
+          if (document.visibilityState === 'hidden') flush()
+        }
+        window.addEventListener('pagehide', flush)
+        document.addEventListener('visibilitychange', onVisibility)
+        return () => {
+          clearInterval(timer)
+          window.removeEventListener('pagehide', flush)
+          document.removeEventListener('visibilitychange', onVisibility)
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+      }, [])
+
       React.useEffect(() => {
         if (!openMenu) return undefined
         const close = (event) => {
@@ -2964,6 +3940,13 @@ window.__ModuleLoader__.load({
         document.addEventListener('pointerdown', close, true)
         return () => document.removeEventListener('pointerdown', close, true)
       }, [openMenu])
+
+      // The recent-folder list is Host state, so fetch it when the menu opens rather
+      // than at panel start: a closed menu costs no request, an open one is current.
+      React.useEffect(() => {
+        if (openMenu === 'data') refreshRecentDirs()
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+      }, [openMenu, meta?.directoriesUrl])
 
       React.useEffect(() => {
         if (phase !== 'ready') return undefined
@@ -3083,6 +4066,34 @@ window.__ModuleLoader__.load({
               t('btn.data'),
               [
                 h(MenuItem, { key: 'local', onClick: pickLocal }, t('btn.openLocal')),
+                recentDirs.length
+                  ? h(
+                      React.Fragment,
+                      { key: 'recent' },
+                      h('span', { className: 'mv-menu-label' }, t('menu.recentDirs')),
+                      ...recentDirs.map((entry) =>
+                        h(
+                          MenuItem,
+                          { key: entry.dir, title: entry.dir, onClick: () => openRecentDirectory(entry.dir) },
+                          h('span', { className: 'ellipsis' }, entry.name),
+                        ),
+                      ),
+                    )
+                  : null,
+                agentOverlayCount > 0
+                  ? h(
+                      MenuItem,
+                      {
+                        key: 'clearAgent',
+                        onClick: () => {
+                          setOpenMenu(null)
+                          clearAgentOverlays('all')
+                          showToast(t('agent.clearedOverlays'))
+                        },
+                      },
+                      t('menu.clearAgent'),
+                    )
+                  : null,
                 h(
                   MenuItem,
                   {
@@ -3288,13 +4299,24 @@ window.__ModuleLoader__.load({
               ),
             )
           : null,
-        phase === 'ready' && layers.length === 0
+        phase === 'ready' && layers.length === 0 && !emptyDismissed && !restoringScene
           ? h(
               'div',
               { key: 'empty', className: 'mv-overlay' },
               h(
                 'div',
                 { className: 'mv-empty' },
+                h(
+                  'button',
+                  {
+                    type: 'button',
+                    className: 'mv-empty-close',
+                    title: t('panel.empty.dismiss'),
+                    'aria-label': t('panel.empty.dismiss'),
+                    onClick: () => setEmptyDismissed(true),
+                  },
+                  '✕',
+                ),
                 h(ViewerIcon, { size: 30 }),
                 h('h2', null, t('panel.empty.title')),
                 h('p', null, t('panel.empty.body')),
@@ -3467,6 +4489,153 @@ window.__ModuleLoader__.load({
       )
     }
 
+    //#region agent tool rows --------------------------------------------------
+
+    /**
+     * The panel's own stylesheet only exists inside an `mv-root`, but the tool
+     * rows live in the chat, so they need their own (host-token based) sheet.
+     */
+    const TOOL_CSS = `
+.mv-toolrow{display:flex;align-items:center;min-width:0;height:calc(24px + var(--dsh-content-font-delta,0px));color:var(--dsw-alias-label-tertiary,#8a8f98);font-size:var(--dsh-content-font-size-secondary,13px);line-height:calc(24px + var(--dsh-content-font-delta,0px))}
+.mv-toolrow .glyph{display:inline-flex;flex:none;align-items:center;justify-content:center;width:calc(16px + var(--dsh-content-font-delta,0px));height:calc(16px + var(--dsh-content-font-delta,0px));margin-right:6px;color:inherit}
+.mv-toolrow .glyph svg{width:calc(14px + var(--dsh-content-font-delta,0px));height:calc(14px + var(--dsh-content-font-delta,0px))}
+.mv-toolrow .title{flex:none;color:inherit}
+.mv-toolrow .sep{flex:none;width:2px;height:2px;margin:0 8px;border-radius:1px;background:var(--dsw-alias-label-caption,#a8adb5)}
+.mv-toolrow .summary{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mv-toolrow[data-state="error"] .summary{color:var(--dsw-alias-state-error-primary,#e5484d)}
+.mv-toolrow .open{appearance:none;flex:none;margin-left:8px;border:.5px solid var(--dsw-alias-border-l1,#d0d4da);border-radius:999px;background:var(--dsw-alias-bg-base,transparent);color:var(--dsw-alias-label-secondary,#5b6068);font:inherit;font-size:11px;line-height:16px;padding:2px 9px;cursor:pointer;opacity:.72;transition:opacity .1s,background .1s}
+.mv-toolrow .open:hover,.mv-toolrow .open:focus-visible{opacity:1;background:var(--dsw-alias-interactive-bg-hover-solid,rgba(127,127,127,.16));color:var(--dsw-alias-label-primary,#0f1115)}
+.mv-toolrow .open:focus-visible{outline:2px solid var(--dsw-alias-state-business-primary,#4176e6);outline-offset:1px}
+`
+
+    /** Inject the chat-row stylesheet once; a hot reload may re-run `apply`. */
+    const ensureToolCss = () => {
+      if (typeof document === 'undefined') return
+      const id = '@cveo/dsh-digital-earth/tool-row.css'
+      if (document.querySelector(`style[data-plugin-css="${id}"]`)) return
+      const tag = document.createElement('style')
+      tag.dataset.plugin = '@cveo/dsh-digital-earth'
+      tag.dataset.pluginCss = id
+      tag.textContent = TOOL_CSS
+      document.head.appendChild(tag)
+    }
+
+    /** Open the session-scoped earth tab, falling back to the immersive panel. */
+    const openEarthPanel = () => {
+      // Prefer the chat-adjacent tab so the conversation stays visible; the
+      // immersive main panel is only a fallback for hosts without a session.
+      try {
+        const rightbar = service('sidebarRight')
+        if (rightbar && typeof rightbar.openTab === 'function') {
+          rightbar.openTab('digital-earth')
+          return
+        }
+      } catch {
+        // No on-screen session: fall through to the immersive panel.
+      }
+      service('layout')?.selectPanel?.('digital-earth')
+    }
+
+    /**
+     * First line of a settled tool result. A failed earth call keeps its guidance
+     * ("panel did not attach…") in the transcript instead of hiding it behind the
+     * generic row this custom view replaced.
+     */
+    const resultFirstLine = (block) => {
+      const content = Array.isArray(block?.content) ? block.content : []
+      for (const part of content) {
+        if (part?.type !== 'text' || typeof part.text !== 'string') continue
+        const line = part.text.split('\n').find((item) => item.trim() !== '')
+        if (line !== undefined) return line.trim()
+      }
+      return ''
+    }
+
+    /** Locale keys for the action summary shown on an earth tool-call row. */
+    const SCENE_ACTION_KEYS = {
+      status: 'tool.action.status',
+      list: 'tool.action.list',
+      load: 'tool.action.load',
+      remove: 'tool.action.remove',
+      visible: 'tool.action.visible',
+      basemap: 'tool.action.basemap',
+      terrain: 'tool.action.terrain',
+      fly: 'tool.action.fly',
+      reset: 'tool.action.reset',
+      pick: 'tool.action.pick',
+      inspect: 'tool.action.inspect',
+    }
+
+    /** Fixed summary keys for the tools that carry no `action` argument. */
+    const TOOL_SUMMARY_KEYS = {
+      earth_capture: 'tool.action.capture',
+      earth_draw: 'tool.action.draw',
+      earth_measure: 'tool.action.measure',
+    }
+
+    /**
+     * Call ids whose live row already opened the panel. Module-level so a row
+     * remount (scrolling, session switch) cannot reopen a panel the user closed,
+     * while a genuinely new call still opens it.
+     */
+    const AUTO_OPENED_CALLS = new Set()
+
+    /**
+     * Chat row for the four Agent wire tools. It keeps the transcript compact,
+     * offers a way back into the panel, and is the client's auto-open trigger: a
+     * live call opens the docked tab so the Host tool call finds a panel to drive.
+     */
+    function EarthToolRow({ toolName, phase, block, callId }) {
+      const t = useTranslation()
+      const openedRef = React.useRef(false)
+
+      React.useEffect(() => {
+        // Replayed history renders with phase === 'result' and must never pop the
+        // panel. The refs make this one-shot per rendered row and per call id: a
+        // long turn (or React re-running the effect in development) cannot re-open
+        // a panel the user just closed.
+        if (phase === 'result' || openedRef.current) return
+        if (typeof callId === 'string' && AUTO_OPENED_CALLS.has(callId)) return
+        if (!readAutoOpen()) return
+        const rightbar = service('sidebarRight')
+        // A service that is not mounted yet must not burn the one-shot: the next
+        // phase transition retries instead of leaving the Host call waiting.
+        if (!rightbar || typeof rightbar.openTab !== 'function') return
+        openedRef.current = true
+        try {
+          const alreadyOpen = rightbar.isExpanded?.() === true && rightbar.active?.()?.kind === 'digital-earth'
+          if (!alreadyOpen) rightbar.openTab('digital-earth')
+          // Recorded only after openTab returned: a throw (no on-screen session)
+          // must stay retryable on the next phase transition.
+          if (typeof callId === 'string') AUTO_OPENED_CALLS.add(callId)
+        } catch {
+          // No on-screen Session yet: the row's Open button stays the manual path.
+        }
+      }, [phase, callId])
+
+      const action = toolName === 'earth_scene' ? toolArg(block, 'action') : ''
+      const state = phase === 'result' ? (block?.isError === true ? 'error' : 'ok') : 'live'
+      const failure = state === 'error' ? resultFirstLine(block) : ''
+      const summaryKey = toolName === 'earth_scene'
+        ? SCENE_ACTION_KEYS[action] ?? 'tool.action.generic'
+        : TOOL_SUMMARY_KEYS[toolName] ?? 'tool.action.generic'
+      const summary = failure !== '' ? failure : t(summaryKey)
+      return h(
+        'div',
+        { className: 'mv-toolrow', 'data-state': state, 'data-tool': toolName },
+        h('span', { className: 'glyph', 'aria-hidden': true }, h(ViewerIcon, { size: 14 })),
+        h('span', { className: 'title' }, t('panel.title')),
+        h('span', { className: 'sep', 'aria-hidden': true }),
+        h('span', { className: 'summary', title: failure !== '' ? failure : undefined }, summary),
+        h(
+          'button',
+          { type: 'button', className: 'open', title: t('tool.openTip'), onClick: openEarthPanel },
+          t('tool.open'),
+        ),
+      )
+    }
+    //#endregion agent tool rows
+
     return {
       inject: ['slots', 'uiWorkspace', 'locale', 'theme'],
       apply(ctx) {
@@ -3479,20 +4648,8 @@ window.__ModuleLoader__.load({
           'dsh-digital-earth: dictionaries',
         )
         const translate = ctx.locale.bind(NS)
-        const openPanel = () => {
-          // Prefer the chat-adjacent tab so the conversation stays visible; the
-          // immersive main panel is only a fallback for hosts without a session.
-          try {
-            const rightbar = service('sidebarRight')
-            if (rightbar && typeof rightbar.openTab === 'function') {
-              rightbar.openTab('digital-earth')
-              return
-            }
-          } catch {
-            // No on-screen session: fall through to the immersive panel.
-          }
-          service('layout')?.selectPanel?.('digital-earth')
-        }
+        // The chat rows live outside the panel, so their styles must be global.
+        ensureToolCss()
         ctx.slots.inject('sidebar.panellist', () =>
           ctx.slots.register(
             {
@@ -3534,9 +4691,17 @@ window.__ModuleLoader__.load({
         ctx.slots.inject('conversation.session.header.utilities', () =>
           ctx.slots.register(
             { name: 'conversation.session.header.utilities', id: 'digital-earth-open', order: 30, locale: NS },
-            (props) => h(HeaderButton, { ...props, onOpen: openPanel }),
+            (props) => h(HeaderButton, { ...props, onOpen: openEarthPanel }),
           ),
         )
+        // The Agent drives the same panel through these two wire tools, so their
+        // rows own the auto-open: the Host tool call waits for this tab to attach.
+        ctx.slots.inject('tool.call.toolview', function* () {
+          yield ctx.slots.register({ name: 'tool.call.toolview', key: 'earth_scene', locale: NS }, EarthToolRow)
+          yield ctx.slots.register({ name: 'tool.call.toolview', key: 'earth_capture', locale: NS }, EarthToolRow)
+          yield ctx.slots.register({ name: 'tool.call.toolview', key: 'earth_draw', locale: NS }, EarthToolRow)
+          yield ctx.slots.register({ name: 'tool.call.toolview', key: 'earth_measure', locale: NS }, EarthToolRow)
+        })
       },
     }
   },

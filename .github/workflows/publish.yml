@@ -1,6 +1,6 @@
 name: Publish
 
-# 发布链路（详细流程见 RELEASING.md）：
+# 发布链路（维护文档不随插件仓库分发，流程约定只写在本注释里）：
 #   - push 到 main（develop 合并上来的正式版）→ package.json 的版本还没上 npm 就自动发布；
 #   - push v* tag → 同上，且 tag 必须严格等于 v<package.json 的 version>，不一致直接失败；
 #   - workflow_dispatch → 手动补发 / 重试。

@@ -28,6 +28,9 @@ const SOURCES_ROUTE = `${API}/sources`
 const BRIDGE_ROUTE = `${API}/bridge`
 const CAPTURE_ROUTE = `${API}/capture`
 const FILES_ROUTE = `${API}/files`
+// Remembered-folder list for the panel's data menu. This is page-only data: the
+// page opened those folders itself, and no tool result ever exposes them.
+const DIRECTORIES_ROUTE = `${API}/directories`
 // Opening a local folder registers it in the agent allowlist. Only the panel's
 // own fetch can send a custom header, so /scan requires this header: a model
 // that makes Cesium request a same-origin GET (for example load url=...) cannot
@@ -39,6 +42,10 @@ const MAX_SCAN_DEPTH = 4
 // browser so it survives port changes (localStorage is per-origin) and restarts.
 const STATE_DIR = join(process.env.DSH_HOME || join(homedir(), '.dsh'), 'digital-earth')
 const SOURCES_FILE = join(STATE_DIR, 'sources.json')
+// Folders the user opened in the panel, remembered across DSH restarts so the
+// agent may load the same data again without another panel gesture.
+const DIRECTORIES_FILE = join(STATE_DIR, 'directories.json')
+const MAX_RECENT_DIRECTORIES = 20
 const CAPTURES_DIR = resolve(STATE_DIR, 'captures')
 const PACKAGE_FILE = join(ROOT_DIR, 'package.json')
 const MAX_SOURCES_BODY = 128 * 1024
@@ -71,6 +78,20 @@ const SPZ_MAGIC = 0x5053474e
 const BRIDGE_HEARTBEAT_MS = 15000
 const SCENE_TIMEOUT_MS = 20000
 const CAPTURE_TIMEOUT_MS = 40000
+// Drawing and measurement are browser-side and synchronous, so a stuck tab is
+// the only slow case; 15 s leaves room for a first frame without holding a turn.
+const DRAW_TIMEOUT_MS = 15000
+const MEASURE_TIMEOUT_MS = 15000
+// Bounded model input: one call may add at most this many annotations and
+// coordinates, so a runaway GeoJSON cannot freeze the panel.
+const MAX_DRAW_FEATURES = 500
+const MAX_DRAW_COORDINATES = 20000
+const MAX_MEASURE_POINTS = 200
+const MIN_MEASURE_POINTS = 2
+// A tool call can arrive before the panel tab exists: the client half opens the
+// docked panel on demand and then connects its SSE stream. The bridge waits this
+// long for that connection so the first call in a closed conversation works.
+const PANEL_ATTACH_GRACE_MS = 8000
 const MAX_IMAGERY_SOURCES = 20
 const MAX_TERRAIN_SOURCES = 10
 const IMAGERY_TYPES = new Set(['xyz', 'arcgis', 'wms'])
@@ -218,8 +239,9 @@ function cleanUrl(value) {
 }
 
 const FALLBACK_ABOUT = {
-  version: '1.2.0',
+  version: '1.3.0',
   homepage: 'https://github.com/CVEO/dsh-digital-earth',
+  issues: 'https://github.com/CVEO/dsh-digital-earth/issues',
   team: { name: '武汉大学 CVEO 课题组', url: 'https://www.whu-cveo.com/' },
 }
 
@@ -244,6 +266,9 @@ function readAbout() {
   return {
     version: version !== '' ? version : FALLBACK_ABOUT.version,
     homepage: homepage !== '' ? homepage : FALLBACK_ABOUT.homepage,
+    // Not a package.json field of this plugin: the repository issues page is a
+    // fixed fact, so the About tab does not depend on the publish metadata.
+    issues: FALLBACK_ABOUT.issues,
     team: {
       name: teamName !== '' ? teamName : FALLBACK_ABOUT.team.name,
       url: teamUrl !== '' ? teamUrl : FALLBACK_ABOUT.team.url,
@@ -401,6 +426,104 @@ async function writeSources(config) {
     await fs.rm(temporary, { force: true }).catch(() => {})
     throw error
   }
+}
+
+// ---------------------------------------------------------------------------
+// Remembered folders (directories.json). `/scan` remains the only way a folder
+// enters the allowlist, but that gesture is a user decision: remembering it lets
+// the agent load the same data after a DSH restart without asking again. The
+// list is page-only data for the panel's data menu; it never reaches tool
+// results, so absolute local paths stay between the host and this page.
+// ---------------------------------------------------------------------------
+
+/**
+ * Test seam: pure merge for the remembered-folder list. The new entry becomes
+ * the newest item, a duplicate path keeps only its newest position, and the
+ * result is capped at `max`. Neither argument is mutated.
+ */
+export function mergeRecentDirectories(list, entry, max = MAX_RECENT_DIRECTORIES) {
+  const entries = []
+  if (entry !== null && typeof entry === 'object' && typeof entry.path === 'string' && entry.path.trim() !== '') {
+    const at = typeof entry.at === 'string' && entry.at !== '' ? entry.at : new Date().toISOString()
+    entries.push({ path: entry.path.trim(), at })
+  }
+  if (Array.isArray(list)) entries.push(...list)
+  return sanitizeRecentDirectories(entries, max)
+}
+
+/** Deduplicate by path, keep arrival order (newest first), cap the length. */
+function sanitizeRecentDirectories(entries, max = MAX_RECENT_DIRECTORIES) {
+  const limit = Number.isInteger(max) && max > 0 ? max : MAX_RECENT_DIRECTORIES
+  const seen = new Set()
+  const clean = []
+  for (const item of entries) {
+    if (item === null || typeof item !== 'object') continue
+    if (typeof item.path !== 'string' || item.path.trim() === '') continue
+    const path = item.path.trim()
+    if (seen.has(path)) continue
+    seen.add(path)
+    clean.push({ path, at: typeof item.at === 'string' ? item.at : '' })
+    if (clean.length >= limit) break
+  }
+  return clean
+}
+
+async function readRecentDirectories() {
+  let text
+  try {
+    text = await fs.readFile(DIRECTORIES_FILE, 'utf8')
+  } catch {
+    return []
+  }
+  try {
+    const parsed = JSON.parse(text)
+    const entries = Array.isArray(parsed) ? parsed : Array.isArray(parsed?.directories) ? parsed.directories : []
+    return sanitizeRecentDirectories(entries)
+  } catch {
+    return []
+  }
+}
+
+/** Replace the remembered list atomically, with the catalog's temp+rename rule. */
+async function writeRecentDirectories(list) {
+  await fs.mkdir(STATE_DIR, { recursive: true })
+  const temporary = `${DIRECTORIES_FILE}.tmp-${randomBytes(6).toString('hex')}`
+  try {
+    await fs.writeFile(temporary, `${JSON.stringify(list, null, 2)}\n`, 'utf8')
+    await renameWithRetry(temporary, DIRECTORIES_FILE)
+  } catch (error) {
+    await fs.rm(temporary, { force: true }).catch(() => {})
+    throw error
+  }
+}
+
+/** Best effort: a read-only DSH home must never fail a panel request. */
+function persistRecentDirectories(list) {
+  return writeRecentDirectories(list).catch(() => {})
+}
+
+/**
+ * GET: folders remembered from earlier sessions. This response is data for the
+ * page only — it is never merged into a tool result, so the token-bearing route
+ * cannot hand absolute local paths to the model.
+ */
+async function directoriesHandler(getDirectories, req, res) {
+  const entries = typeof getDirectories === 'function' ? getDirectories() : []
+  const directories = []
+  for (const entry of Array.isArray(entries) ? entries : []) {
+    if (directories.length >= MAX_RECENT_DIRECTORIES) break
+    // A moved or unmounted folder stays listed with exists:false so the user
+    // can see why loading from it would fail.
+    let exists = false
+    try {
+      await fs.access(entry.path)
+      exists = true
+    } catch {
+      // Missing on purpose; the flag above is the answer.
+    }
+    directories.push({ path: entry.path, name: basename(entry.path), at: entry.at, exists })
+  }
+  sendJson(res, 200, { directories })
 }
 
 /** Hosts the proxy must never reach: loopback, private ranges and link-local. */
@@ -1291,8 +1414,12 @@ function metaHandler(req, res) {
     scanUrl: `${API}/scan`,
     remoteBase: `${API}/remote/${TOKEN}/`,
     sourcesUrl: `${SOURCES_ROUTE}/${TOKEN}`,
+    // Page-only list of folders the user opened before (data menu); the host
+    // already re-allowed them, so the page never needs to re-register them.
+    directoriesUrl: `${DIRECTORIES_ROUTE}/${TOKEN}`,
     version: ABOUT.version,
     homepage: ABOUT.homepage,
+    issues: ABOUT.issues,
     team: { name: ABOUT.team.name, url: ABOUT.team.url },
     bridgeUrl: BRIDGE_ROUTE,
     captureUrl: CAPTURE_ROUTE,
@@ -1367,7 +1494,7 @@ async function tilesHandler(req, res, allowedDirs) {
   await serveFile(req, res, resolvedDir, relParts.join(sep), 'public, max-age=60')
 }
 
-async function scanHandler(req, res, allowedDirs) {
+async function scanHandler(req, res, allowedDirs, onOpened) {
   let parsed
   try {
     parsed = new URL(req.url, 'http://localhost')
@@ -1387,6 +1514,15 @@ async function scanHandler(req, res, allowedDirs) {
   const realDir = await realPathOr(resolvedDir)
   allowedDirs.add(resolvedDir)
   allowedDirs.add(realDir)
+  // This gesture is the user's decision, so remember the folder (and its
+  // resolved spelling) for later sessions; a failed save never fails the scan.
+  if (typeof onOpened === 'function') {
+    try {
+      onOpened(resolvedDir, realDir)
+    } catch {
+      // The remembered list is a convenience, not a precondition.
+    }
+  }
   const files = await findTilesets(resolvedDir)
   const items = files.map((file) => {
     const rel = file
@@ -1471,9 +1607,11 @@ async function remoteHandler(req, res) {
 
 const SCENE_TOOL_NAME = 'earth_scene'
 const CAPTURE_TOOL_NAME = 'earth_capture'
+const DRAW_TOOL_NAME = 'earth_draw'
+const MEASURE_TOOL_NAME = 'earth_measure'
 const SCENE_RENDER_LIMIT = 4096
-const CAPTURE_NOTE = 'Image file written. If this model can read images, call read_image with this path; otherwise rely on earth_scene status JSON.'
-const PANEL_CLOSED_MESSAGE = 'The Digital Earth panel is not open in this conversation. Ask the user to click the earth button in the chat header to open it, then retry.'
+const CAPTURE_NOTE = 'Image file written. If this model can read images, call read_image with this path; otherwise rely on earth_scene status JSON. To show the image to the user, call present with the path; never embed a local path in Markdown image syntax.'
+const PANEL_CLOSED_MESSAGE = 'The Digital Earth panel did not attach in time. Ask the user to open the digital earth tab with the globe button in the chat header, then retry.'
 const SESSION_FALLBACK_NOTE = 'No session id was supplied by this tool call; the only connected digital earth panel session was used.'
 
 const SCENE_ACTIONS = {
@@ -1545,7 +1683,7 @@ const SCENE_PARAMETERS = {
 
 const SCENE_DESCRIPTION = [
   'Read, change or health-check the interactive digital earth panel (CesiumJS) open in this conversation: 3D Tiles and Gaussian splat layers, imagery basemap, terrain and camera.',
-  'The panel must be open for the scene and capture actions; otherwise the call fails with an instruction you should relay to the user. inspect with path or url works while the panel is closed.',
+  'The panel opens automatically when a tool call needs it and the call waits briefly for it. If it still did not attach, ask the user to open the digital earth tab with the globe button in the chat header, then retry. inspect with path or url works while the panel is closed.',
   '',
   'Actions:',
   '- status: returns view{lon,lat,height,heading,pitch}, layers, imagery, terrain, sources, viewport, snapshot and measureTool, plus busy state. Start here.',
@@ -1591,20 +1729,97 @@ const CAPTURE_PARAMETERS = {
 
 const CAPTURE_DESCRIPTION = [
   'Save the current digital earth view as an image file on the host and return its absolute path.',
-  'The panel must already be open; set up the camera and scene with earth_scene first.',
+  'Set up the camera and scene with earth_scene first. The panel opens automatically when a capture needs it and the call waits briefly for it; if it still did not attach, ask the user to open the digital earth tab with the globe button in the chat header, then retry.',
   '',
   'By default the image follows the panel screenshot setting (usually a clean view); set include_hud true to burn in the coordinate HUD and team credit. The DOM toolbar is never part of the image.',
   'If this model can read images, call read_image on the returned path; otherwise describe the scene only from earth_scene status JSON.',
+  'To show the image to the user, call present with its path. Never embed a local path in Markdown image syntax: the chat cannot load it and renders a broken preview.',
+].join('\n')
+
+const DRAW_STYLES = ['accent', 'alert', 'success', 'warm', 'violet']
+const MAX_DRAW_LABEL = 80
+
+const DRAW_PARAMETERS = {
+  type: 'object',
+  properties: {
+    features: {
+      type: 'string',
+      description: 'GeoJSON as a JSON string: a FeatureCollection, a Feature, or a bare geometry (Point / MultiPoint / LineString / MultiLineString / Polygon / MultiPolygon / GeometryCollection). WGS84 coordinates as [lon, lat] or [lon, lat, height] in degrees and meters. Required unless clear is true.',
+    },
+    style: {
+      type: 'string',
+      enum: DRAW_STYLES,
+      description: 'Colour preset for the new annotations. Default accent.',
+    },
+    label: {
+      type: 'string',
+      description: `Optional caption for the whole annotation set (up to ${MAX_DRAW_LABEL} characters). Feature properties.name becomes the per-feature label when present.`,
+    },
+    clear: {
+      type: 'boolean',
+      description: 'true first removes every overlay the Agent drew earlier in this panel (annotations and measurements); it may be used alone.',
+    },
+  },
+  additionalProperties: false,
+}
+
+const DRAW_DESCRIPTION = [
+  'Draw annotations on the interactive digital earth panel: points, lines, polygons and labels from GeoJSON the Agent provides.',
+  'Use it to show the user where something is — mark sites, outline areas, trace routes, label features. The overlay stays until the user clears it or a later call passes clear=true; the user can also clear it from the panel Data menu.',
+  'The panel opens automatically when this tool is called and the call waits briefly for the tab to attach. If it still did not attach, ask the user to open the digital earth tab with the globe button in the chat header, then retry.',
+  'Coordinates are WGS84 degrees; height is optional meters. Do not guess coordinates: take them from the user, from earth_scene status/pick, or from geodata the user provided. One call accepts up to 500 features and 20000 coordinates.',
+  'Returns compact JSON with the count by geometry type and the bounding box. Call earth_capture afterwards to show or verify the result.',
+].join('\n')
+
+const MEASURE_MODES = ['distance', 'area', 'height']
+
+const MEASURE_PARAMETERS = {
+  type: 'object',
+  properties: {
+    mode: {
+      type: 'string',
+      enum: MEASURE_MODES,
+      description: 'distance: geodesic length along the points; area: planar area of the polygon (perimeter included); height: height difference between the first and last point, with horizontal distance and slope.',
+    },
+    points: {
+      type: 'array',
+      description: 'Ordered points, each [lon, lat] or [lon, lat, height] (WGS84 degrees, meters). distance needs 2+, area needs 3+, height needs exactly 2. Up to 200 points.',
+      items: {
+        type: 'array',
+        items: { type: 'number' },
+      },
+    },
+    draw: {
+      type: 'boolean',
+      description: 'Draw the measurement (points, line or polygon, and a result label) on the globe. Default true.',
+    },
+    clear: {
+      type: 'boolean',
+      description: 'true first removes every overlay the Agent drew earlier in this panel (annotations and measurements).',
+    },
+  },
+  required: ['mode', 'points'],
+  additionalProperties: false,
+}
+
+const MEASURE_DESCRIPTION = [
+  'Measure on the interactive digital earth panel and return the numeric result: geodesic distance along points, area of a polygon, or the height difference between two points.',
+  'Coordinates are WGS84 degrees. distance and area are measured on the ellipsoid surface; height mode uses each point\'s height when provided, otherwise the terrain/globe surface height the panel reports. Points are not tied to loaded data, so measure only where the user asked or where the scene shows a real feature.',
+  'By default the measurement is also drawn on the globe (points, line/polygon and a label) so the user can see it; pass draw=false for a numeric-only answer, and clear=true to remove earlier Agent overlays first.',
+  'The panel opens automatically when this tool is called and the call waits briefly for the tab to attach. If it still did not attach, ask the user to open the digital earth tab with the globe button in the chat header, then retry.',
+  'Returns compact JSON with meters/degrees plus a rendered summary; follow with earth_capture when the user should see the measurement in the transcript.',
 ].join('\n')
 
 const SYSTEM_PROMPT_SECTION = [
-  'The Web UI has an interactive digital earth panel (CesiumJS) rendering 3D Tiles, Gaussian splats, imagery and terrain. Control it with earth_scene and earth_capture.',
+  'The Web UI has an interactive digital earth panel (CesiumJS) rendering 3D Tiles, Gaussian splats, imagery and terrain. Control it with earth_scene, earth_capture, earth_draw and earth_measure.',
   '',
-  '- Open the panel in this conversation first (earth button in chat header); otherwise tools return an actionable error — relay it, do not retry blindly.',
+  '- The panel opens automatically when a tool call needs it; the call waits briefly for the tab to attach. If it still did not attach, ask the user to click the globe button in the chat header to open the digital earth tab, then retry.',
   '- Call earth_scene "status" before changing anything so changes build on the real camera, layers and sources; "list" is the lighter variant.',
   '- Local data loads only from a folder the user opened once in the panel (host allowlist); never guess an absolute path. If refused, ask the user to open that folder in the panel data setting, then retry.',
   '- earth_scene actions: status, list, load, remove, visible, basemap, terrain, fly, reset, pick, inspect. Use inspect to health-check a tileset (a loaded layer, or a path/url that works while the panel is closed) before debugging rendering or after loading suspect data.',
   '- earth_capture saves a screenshot and returns its absolute path; by default it follows the panel screenshot setting (usually hidden HUD). If this model reads images, call read_image on that path; otherwise rely on earth_scene status JSON. Never describe scene content you did not receive.',
+  '- Local file paths do not render in the chat. Never embed one in Markdown image syntax (for example ![...](C:\\...)): the Web UI cannot load it and shows a broken image placeholder. To show a capture or exported file to the user, call present with its path; otherwise mention the path as plain text.',
+  '- earth_draw adds GeoJSON annotations (points/lines/polygons/labels) and earth_measure returns distance/area/height numbers, both drawn on the globe by default. They draw on top of data, so take coordinates from the user or from earth_scene status/pick instead of guessing.',
   '- Report only state the tools returned; never claim data is loaded or visible otherwise.',
 ].join('\n')
 
@@ -1627,6 +1842,10 @@ const MULTI_TAB_HINT = ' Several panel tabs are connected for this session and o
 const sceneError = (message) => new Error(`earth_scene: ${message}`)
 
 const captureError = (message) => new Error(`earth_capture: ${message}`)
+
+const drawError = (message) => new Error(`earth_draw: ${message}`)
+
+const measureError = (message) => new Error(`earth_measure: ${message}`)
 
 function requireSceneString(raw, key, action) {
   const value = raw[key]
@@ -1775,6 +1994,325 @@ function normalizeCaptureRequest(raw) {
   return { args, includeHud }
 }
 
+// ---------------------------------------------------------------------------
+// earth_draw / earth_measure: browser-side overlays. The Host validates the
+// model input (bounded size, real WGS84 positions) and forwards a normalized
+// payload; the panel owns the Cesium entities and the numeric geometry.
+// ---------------------------------------------------------------------------
+
+const DRAW_GEOMETRY_TYPES = new Set([
+  'Point',
+  'MultiPoint',
+  'LineString',
+  'MultiLineString',
+  'Polygon',
+  'MultiPolygon',
+  'GeometryCollection',
+])
+
+/** Validate one GeoJSON position; `position` may carry an optional height. */
+function validateDrawPosition(position) {
+  if (!Array.isArray(position) || position.length < 2 || position.length > 3) {
+    throw drawError('every GeoJSON position must be [lon, lat] or [lon, lat, height].')
+  }
+  for (const value of position) {
+    if (typeof value !== 'number' || !Number.isFinite(value)) {
+      throw drawError('GeoJSON coordinates must be finite numbers.')
+    }
+  }
+  const [lon, lat, height] = position
+  if (lon < -180 || lon > 180) throw drawError(`longitude ${lon} is outside -180..180 degrees.`)
+  if (lat < -90 || lat > 90) throw drawError(`latitude ${lat} is outside -90..90 degrees.`)
+  if (position.length === 3 && Math.abs(height) > 10000000) {
+    throw drawError('height must be within ±10,000,000 meters.')
+  }
+}
+
+/**
+ * Reject degenerate geometry up front: a LineString with one position or a
+ * Polygon ring with two would otherwise draw nothing (or a NaN label) while the
+ * tool reports success, which is worse for the model than an actionable error.
+ */
+function validateDrawGeometryShape(type, coordinates) {
+  const isPosition = (value) => Array.isArray(value) && typeof value[0] === 'number'
+  const requireArray = (value, message) => {
+    if (!Array.isArray(value) || value.length === 0) throw drawError(message)
+    return value
+  }
+  // A positions array must be an array *of positions*, not one position passed
+  // by mistake (e.g. a LineString with coordinates [1, 2]).
+  const requirePositions = (value, message, minimum) => {
+    if (!Array.isArray(value) || value.length < minimum || !value.every(isPosition)) throw drawError(message)
+    return value
+  }
+  switch (type) {
+    case 'Point':
+      validateDrawPosition(coordinates)
+      return
+    case 'MultiPoint':
+      requirePositions(coordinates, 'a MultiPoint needs a non-empty array of [lon, lat] positions.', 1)
+      return
+    case 'LineString':
+      requirePositions(coordinates, 'a LineString needs at least 2 positions.', 2)
+      return
+    case 'MultiLineString':
+      for (const line of requireArray(coordinates, 'a MultiLineString needs at least one line.')) {
+        requirePositions(line, 'every MultiLineString line needs at least 2 positions.', 2)
+      }
+      return
+    case 'Polygon':
+      for (const ring of requireArray(coordinates, 'a Polygon needs at least one ring.')) {
+        requirePositions(ring, 'every Polygon ring needs at least 3 positions.', 3)
+      }
+      return
+    case 'MultiPolygon':
+      for (const polygon of requireArray(coordinates, 'a MultiPolygon needs at least one polygon.')) {
+        for (const ring of requireArray(polygon, 'every MultiPolygon polygon needs at least one ring.')) {
+          requirePositions(ring, 'every Polygon ring needs at least 3 positions.', 3)
+        }
+      }
+      return
+    default:
+      throw drawError(`unsupported geometry type ${JSON.stringify(type)}; supported: ${[...DRAW_GEOMETRY_TYPES].join(', ')}.`)
+  }
+}
+
+/**
+ * Walk a GeoJSON coordinates value (any nesting depth) and validate every
+ * position in place. A position is an array whose first entry is a number.
+ */
+function collectDrawPositions(value, positions) {
+  if (!Array.isArray(value)) throw drawError('GeoJSON coordinates must be nested arrays of numbers.')
+  if (value.length === 0) return
+  if (typeof value[0] === 'number') {
+    validateDrawPosition(value)
+    positions.push(value)
+    return
+  }
+  for (const item of value) collectDrawPositions(item, positions)
+}
+
+/** Keep only scalar feature properties and derive a display name, when any. */
+function drawFeatureProperties(feature) {
+  const source = feature?.properties
+  const properties = {}
+  if (source !== null && typeof source === 'object' && !Array.isArray(source)) {
+    for (const [key, value] of Object.entries(source)) {
+      if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') properties[key] = value
+    }
+  }
+  for (const key of ['name', 'title', 'label']) {
+    const value = properties[key]
+    if (typeof value === 'string' && value.trim() !== '') {
+      properties.name = value.trim().slice(0, 120)
+      break
+    }
+  }
+  return properties
+}
+
+/** Validate and flatten GeoJSON into a bounded FeatureCollection the panel draws. */
+function normalizeDrawGeoJson(input) {
+  let document = input
+  if (typeof document === 'string') {
+    try {
+      document = JSON.parse(document)
+    } catch (error) {
+      throw drawError(`"features" must be valid GeoJSON JSON: ${error instanceof Error ? error.message : String(error)}`)
+    }
+  }
+  if (document === null || typeof document !== 'object' || Array.isArray(document)) {
+    throw drawError('"features" must be a GeoJSON object (FeatureCollection, Feature or a geometry).')
+  }
+  const features = []
+  const state = { coordinates: 0 }
+  const addFeature = (feature) => {
+    const geometry = feature?.geometry
+    // GeoJSON allows a null geometry; it has nothing to draw.
+    if (geometry === null || geometry === undefined) return
+    const type = geometry?.type
+    if (typeof type !== 'string' || !DRAW_GEOMETRY_TYPES.has(type)) {
+      throw drawError(`unsupported geometry type ${JSON.stringify(type)}; supported: ${[...DRAW_GEOMETRY_TYPES].join(', ')}.`)
+    }
+    if (type === 'GeometryCollection') {
+      if (!Array.isArray(geometry.geometries)) throw drawError('a GeometryCollection needs a geometries array.')
+      for (const child of geometry.geometries) addFeature({ properties: feature.properties, geometry: child })
+      return
+    }
+    validateDrawGeometryShape(type, geometry.coordinates)
+    const positions = []
+    collectDrawPositions(geometry.coordinates, positions)
+    state.coordinates += positions.length
+    if (state.coordinates > MAX_DRAW_COORDINATES) {
+      throw drawError(`the GeoJSON has more than ${MAX_DRAW_COORDINATES} coordinates; split it into several calls.`)
+    }
+    features.push({
+      type: 'Feature',
+      properties: drawFeatureProperties(feature),
+      geometry: { type, coordinates: geometry.coordinates },
+    })
+    if (features.length > MAX_DRAW_FEATURES) {
+      throw drawError(`the GeoJSON has more than ${MAX_DRAW_FEATURES} features; split it into several calls.`)
+    }
+  }
+  if (document.type === 'FeatureCollection') {
+    if (!Array.isArray(document.features)) throw drawError('a FeatureCollection needs a features array.')
+    for (const feature of document.features) {
+      if (feature === null || typeof feature !== 'object' || feature.type !== 'Feature') {
+        throw drawError('every entry of a FeatureCollection must be a GeoJSON Feature.')
+      }
+      addFeature(feature)
+    }
+  } else if (document.type === 'Feature') {
+    addFeature(document)
+  } else {
+    addFeature({ geometry: document, properties: {} })
+  }
+  return { type: 'FeatureCollection', features }
+}
+
+/** Validate the model-facing earth_draw arguments and build the bridge command. */
+export function normalizeDrawRequest(raw) {
+  const input = raw === null || raw === undefined ? {} : raw
+  if (typeof input !== 'object' || Array.isArray(input)) throw drawError('the arguments must be an object.')
+  const accepted = new Set(['features', 'style', 'clear', 'label'])
+  for (const key of Object.keys(input)) {
+    if (accepted.has(key)) continue
+    throw drawError(`it does not accept "${key}"; accepted arguments: features, style, label, clear.`)
+  }
+  if (input.clear !== undefined && typeof input.clear !== 'boolean') {
+    throw drawError('"clear" must be true or false.')
+  }
+  const clear = input.clear === true
+  let style = 'accent'
+  if (input.style !== undefined) {
+    if (typeof input.style !== 'string' || !DRAW_STYLES.includes(input.style)) {
+      throw drawError(`"style" must be one of ${DRAW_STYLES.join(', ')}.`)
+    }
+    style = input.style
+  }
+  let label = ''
+  if (input.label !== undefined) {
+    if (typeof input.label !== 'string') throw drawError('"label" must be a string.')
+    label = input.label.trim().slice(0, MAX_DRAW_LABEL)
+  }
+  const args = { clear, style }
+  if (label !== '') args.label = label
+  if (input.features !== undefined && input.features !== null) {
+    const geojson = normalizeDrawGeoJson(input.features)
+    if (geojson.features.length === 0 && !clear) {
+      throw drawError('"features" contains no drawable features; pass at least one Point, LineString or Polygon, or use clear=true.')
+    }
+    if (geojson.features.length > 0) args.geojson = geojson
+  } else if (!clear) {
+    throw drawError('needs "features" with GeoJSON to draw, or clear=true to remove the overlays the Agent drew earlier.')
+  }
+  return { args }
+}
+
+/** Validate one [lon, lat] or [lon, lat, height] measurement point. */
+function normalizeMeasurePoint(position, index) {
+  const label = `points[${index}]`
+  if (!Array.isArray(position) || position.length < 2 || position.length > 3) {
+    throw measureError(`${label} must be [lon, lat] or [lon, lat, height].`)
+  }
+  for (const value of position) {
+    if (typeof value !== 'number' || !Number.isFinite(value)) {
+      throw measureError(`${label} must contain finite numbers.`)
+    }
+  }
+  const [lon, lat, height] = position
+  if (lon < -180 || lon > 180) throw measureError(`${label} longitude ${lon} is outside -180..180 degrees.`)
+  if (lat < -90 || lat > 90) throw measureError(`${label} latitude ${lat} is outside -90..90 degrees.`)
+  if (position.length === 3 && Math.abs(height) > 10000000) throw measureError(`${label} height must be within ±10,000,000 meters.`)
+  return position.length === 3 ? [lon, lat, height] : [lon, lat]
+}
+
+/** Validate the model-facing earth_measure arguments and build the bridge command. */
+export function normalizeMeasureRequest(raw) {
+  const input = raw === null || raw === undefined ? {} : raw
+  if (typeof input !== 'object' || Array.isArray(input)) throw measureError('the arguments must be an object.')
+  const accepted = new Set(['mode', 'points', 'draw', 'clear'])
+  for (const key of Object.keys(input)) {
+    if (accepted.has(key)) continue
+    throw measureError(`it does not accept "${key}"; accepted arguments: mode, points, draw, clear.`)
+  }
+  const mode = input.mode
+  if (typeof mode !== 'string' || !MEASURE_MODES.includes(mode)) {
+    throw measureError(`"mode" must be one of ${MEASURE_MODES.join(', ')}.`)
+  }
+  if (!Array.isArray(input.points)) {
+    throw measureError('"points" must be an array of [lon, lat] or [lon, lat, height] positions.')
+  }
+  if (input.points.length < MIN_MEASURE_POINTS) {
+    throw measureError(`"points" needs at least ${MIN_MEASURE_POINTS} positions.`)
+  }
+  if (input.points.length > MAX_MEASURE_POINTS) {
+    throw measureError(`"points" is limited to ${MAX_MEASURE_POINTS} positions per call.`)
+  }
+  const points = input.points.map((position, index) => normalizeMeasurePoint(position, index))
+  if (mode === 'area' && points.length < 3) throw measureError('area needs at least 3 points.')
+  if (mode === 'height' && points.length !== 2) throw measureError('height needs exactly 2 points (the first and the last).')
+  if (input.draw !== undefined && typeof input.draw !== 'boolean') throw measureError('"draw" must be true or false.')
+  if (input.clear !== undefined && typeof input.clear !== 'boolean') throw measureError('"clear" must be true or false.')
+  return { args: { mode, points, draw: input.draw !== false, clear: input.clear === true } }
+}
+
+/** Compact host-side distance text for model-facing renderers. */
+function formatMeasureDistance(meters) {
+  if (!Number.isFinite(meters)) return 'unknown'
+  return meters >= 1000 ? `${(meters / 1000).toFixed(3)} km (${meters.toFixed(1)} m)` : `${meters.toFixed(2)} m`
+}
+
+/** Compact host-side area text for model-facing renderers. */
+function formatMeasureArea(squareMeters) {
+  if (!Number.isFinite(squareMeters)) return 'unknown'
+  if (squareMeters >= 1e6) return `${(squareMeters / 1e6).toFixed(3)} km² (${Math.round(squareMeters)} m²)`
+  return `${squareMeters.toFixed(1)} m²`
+}
+
+function renderDrawResult(value) {
+  const lines = []
+  if (value.cleared === true) lines.push('Cleared the overlays the Agent drew earlier on the digital earth.')
+  const drawn = Number.isInteger(value.drawn) ? value.drawn : 0
+  if (drawn > 0) {
+    const byType = isPlainObject(value.by_type) ? value.by_type : {}
+    const parts = ['points', 'lines', 'polygons']
+      .filter((key) => Number.isInteger(byType[key]) && byType[key] > 0)
+      .map((key) => `${key}=${byType[key]}`)
+    lines.push(`Drew ${drawn} feature${drawn === 1 ? '' : 's'} on the digital earth${parts.length > 0 ? ` (${parts.join(', ')})` : ''}.`)
+    const bbox = isPlainObject(value.bbox) ? value.bbox : null
+    if (bbox !== null) {
+      lines.push(`Bounding box: west=${bbox.west}, south=${bbox.south}, east=${bbox.east}, north=${bbox.north}.`)
+    }
+    if (typeof value.label === 'string' && value.label !== '') lines.push(`Label: ${value.label}`)
+    lines.push('Call earth_capture if the user should see the annotated view.')
+  } else if (value.cleared !== true) {
+    lines.push('No features were drawn.')
+  }
+  return lines.join('\n')
+}
+
+function renderMeasureResult(value) {
+  const lines = []
+  if (value.cleared === true) lines.push('Cleared the overlays the Agent drew earlier on the digital earth.')
+  if (value.mode === 'distance' && Number.isFinite(value.distance_m)) {
+    lines.push(`Geodesic distance: ${formatMeasureDistance(value.distance_m)} across ${Number.isInteger(value.points) ? value.points : '?'} points.`)
+  } else if (value.mode === 'area' && Number.isFinite(value.area_m2)) {
+    const perimeter = Number.isFinite(value.perimeter_m) ? `, perimeter ${formatMeasureDistance(value.perimeter_m)}` : ''
+    lines.push(`Area: ${formatMeasureArea(value.area_m2)}${perimeter}.`)
+  } else if (value.mode === 'height' && Number.isFinite(value.height_m)) {
+    const sign = value.height_m >= 0 ? '+' : ''
+    const horizontal = Number.isFinite(value.horizontal_m) ? ` over ${formatMeasureDistance(value.horizontal_m)} horizontal distance` : ''
+    const slope = Number.isFinite(value.slope_deg) ? ` (slope ${value.slope_deg.toFixed(1)}°)` : ''
+    lines.push(`Height difference: ${sign}${value.height_m.toFixed(2)} m${horizontal}${slope}.`)
+  } else {
+    lines.push(`Measurement (${String(value.mode)}) completed.`)
+  }
+  if (value.drawn === true) lines.push('The measurement is drawn on the globe; call earth_capture if the user should see it.')
+  return lines.join('\n')
+}
+
 /**
  * Which browser session should run this command. The tool execution normally
  * carries the conversation's session id; a fallback covers transports that do
@@ -1819,15 +2357,72 @@ function scrubToken(value) {
  * load or capture twice; older tabs keep their stream and heartbeat but stay
  * idle. The first acknowledgement settles the call, and calls for one session
  * run one at a time so concurrent tool calls cannot interleave camera changes.
+ *
+ * A tool call may arrive before the panel exists: the client half opens the
+ * docked tab on demand. `waitForAttach` therefore holds the command for a short
+ * grace period (options.attachGraceMs) while the tab connects, instead of
+ * failing the first call in a closed conversation.
+ *
+ * Test seam: exported so the host bridge can be exercised without a web server.
  */
-function createBridge(allowedDirs) {
+export function createBridge(allowedDirs, options = {}) {
   const sessions = new Map()
   const pending = new Map()
   const queues = new Map()
+  // One waiter set per session id: the attach waiters of that session.
+  const attachWaiters = new Map()
+  const requestedGrace = options?.attachGraceMs
+  const attachGraceMs = Number.isFinite(requestedGrace) && requestedGrace >= 0 ? requestedGrace : PANEL_ATTACH_GRACE_MS
   let sequence = 0
 
   const connectedSessions = () =>
     [...sessions.keys()].filter((sessionId) => (sessions.get(sessionId)?.size ?? 0) > 0)
+
+  const hasConnection = (sessionId) => (sessions.get(sessionId)?.size ?? 0) > 0
+
+  /** Wake every attach waiter of a session; a real connection replaces the wait. */
+  const wakeAttachWaiters = (sessionId) => {
+    const waiters = attachWaiters.get(sessionId)
+    if (!waiters) return
+    for (const waiter of [...waiters]) waiter.finish(true)
+  }
+
+  /**
+   * Resolve true once a connection for the session exists, false after the
+   * timeout or on abort, true immediately when a tab is already connected.
+   */
+  const waitForAttach = (sessionId, timeoutMs, signal) => {
+    if (hasConnection(sessionId)) return Promise.resolve(true)
+    return new Promise((resolveWait) => {
+      const limit = Number.isFinite(timeoutMs) && timeoutMs > 0 ? timeoutMs : 0
+      if (limit === 0) {
+        resolveWait(false)
+        return
+      }
+      const waiters = attachWaiters.get(sessionId) ?? new Set()
+      attachWaiters.set(sessionId, waiters)
+      let timer = null
+      const waiter = {
+        done: false,
+        finish: (attached) => {
+          if (waiter.done) return
+          waiter.done = true
+          if (timer !== null) clearTimeout(timer)
+          signal?.removeEventListener?.('abort', onAbort)
+          waiters.delete(waiter)
+          if (waiters.size === 0 && attachWaiters.get(sessionId) === waiters) attachWaiters.delete(sessionId)
+          resolveWait(attached)
+        },
+      }
+      const onAbort = () => waiter.finish(false)
+      waiters.add(waiter)
+      timer = setTimeout(() => waiter.finish(false), limit)
+      timer.unref?.()
+      signal?.addEventListener?.('abort', onAbort, { once: true })
+      // `abort` may have fired between the check above and the listener.
+      if (signal?.aborted) waiter.finish(false)
+    })
+  }
 
   const writeFrame = (connection, frame) => {
     if (connection.closed) return false
@@ -1872,6 +2467,8 @@ function createBridge(allowedDirs) {
     connection.timer.unref?.()
     req.on('close', detach)
     req.on('error', detach)
+    // The stream is live: release any tool call that was waiting for this tab.
+    wakeAttachWaiters(sessionId)
     return connection
   }
 
@@ -1889,13 +2486,25 @@ function createBridge(allowedDirs) {
     return current
   }
 
-  const run = (sessionId, action, args, timeoutMs, signal) => {
+  // Wait for the tab outside the queue and start the command deadline only once
+  // it is attached: the panel's start-up time must not eat SCENE_TIMEOUT_MS.
+  const run = async (sessionId, action, args, timeoutMs, signal) => {
     // Local loads are gated here, before the command reaches any browser tab:
     // the panel's `/scan` call made afterwards can only re-register a folder
     // the user already opened.
     const denial = loadPathDenial(action, args, allowedDirs)
-    if (denial !== null) return Promise.reject(new Error(denial))
-    const deadline = Date.now() + timeoutMs
+    if (denial !== null) throw new Error(denial)
+    if (signal?.aborted) {
+      throw new Error(`The "${action}" command was cancelled before it reached the digital earth panel.`)
+    }
+    const attached = await waitForAttach(sessionId, attachGraceMs, signal)
+    if (!attached) {
+      // An abort is the caller's own cancellation, not a missing panel.
+      if (signal?.aborted) {
+        throw new Error(`The "${action}" command was cancelled before it reached the digital earth panel.`)
+      }
+      throw new Error(PANEL_CLOSED_MESSAGE)
+    }
     return enqueue(sessionId, () => new Promise((resolve, reject) => {
       if (signal?.aborted) {
         reject(new Error(`The "${action}" command was cancelled before it reached the digital earth panel.`))
@@ -1906,7 +2515,9 @@ function createBridge(allowedDirs) {
         reject(new Error(PANEL_CLOSED_MESSAGE))
         return
       }
-      const remaining = deadline - Date.now()
+      // The timeout starts when this command is actually dispatched, not when it
+      // was queued behind an earlier one for the same session.
+      const remaining = timeoutMs
       if (remaining <= 0) {
         reject(new Error(timeoutMessage(action, timeoutMs) + (connections.size > 1 ? MULTI_TAB_HINT : '')))
         return
@@ -1957,6 +2568,11 @@ function createBridge(allowedDirs) {
   }
 
   const dispose = () => {
+    // Pending attach waiters must not outlive the plugin and reject later.
+    for (const waiters of [...attachWaiters.values()]) {
+      for (const waiter of [...waiters]) waiter.finish(false)
+    }
+    attachWaiters.clear()
     for (const job of [...pending.values()]) {
       if (!job.settled) job.finish(new Error('The digital earth bridge was unloaded before the command completed.'))
     }
@@ -1976,7 +2592,7 @@ function createBridge(allowedDirs) {
     queues.clear()
   }
 
-  return { attach, run, settle, connectedSessions, dispose }
+  return { attach, waitForAttach, run, settle, connectedSessions, dispose }
 }
 
 function validSessionId(value) {
@@ -2393,6 +3009,46 @@ function createCaptureTool(bridge) {
   }
 }
 
+function createDrawTool(bridge) {
+  return {
+    name: DRAW_TOOL_NAME,
+    description: DRAW_DESCRIPTION,
+    parameters: DRAW_PARAMETERS,
+    output: {
+      schema: { type: 'object' },
+      render: (_args, value) => [{ type: 'text', text: renderDrawResult(value) }],
+    },
+    async execute(args, exec = {}) {
+      const request = normalizeDrawRequest(args)
+      const target = resolveSessionTarget(bridge, exec)
+      if (target === null) throw new Error(PANEL_CLOSED_MESSAGE)
+      const value = scrubToken(asResultObject(await bridge.run(target.sessionId, 'draw', request.args, DRAW_TIMEOUT_MS, exec.signal)))
+      if (target.fallback) value.session_fallback = SESSION_FALLBACK_NOTE
+      return value
+    },
+  }
+}
+
+function createMeasureTool(bridge) {
+  return {
+    name: MEASURE_TOOL_NAME,
+    description: MEASURE_DESCRIPTION,
+    parameters: MEASURE_PARAMETERS,
+    output: {
+      schema: { type: 'object' },
+      render: (_args, value) => [{ type: 'text', text: renderMeasureResult(value) }],
+    },
+    async execute(args, exec = {}) {
+      const request = normalizeMeasureRequest(args)
+      const target = resolveSessionTarget(bridge, exec)
+      if (target === null) throw new Error(PANEL_CLOSED_MESSAGE)
+      const value = scrubToken(asResultObject(await bridge.run(target.sessionId, 'measure', request.args, MEASURE_TIMEOUT_MS, exec.signal)))
+      if (target.fallback) value.session_fallback = SESSION_FALLBACK_NOTE
+      return value
+    },
+  }
+}
+
 /**
  * Agent tools and the prompt section are optional: mount them only when the
  * host provides the tools and system-prompt services, so the panel HTTP API
@@ -2404,6 +3060,8 @@ function mountAgentTools(ctx, bridge, allowedDirs) {
       const disposers = [
         scope.tools.register(createSceneTool(bridge, allowedDirs)),
         scope.tools.register(createCaptureTool(bridge)),
+        scope.tools.register(createDrawTool(bridge)),
+        scope.tools.register(createMeasureTool(bridge)),
         scope.systemPrompt.section({
           name: 'plugin:digital-earth',
           order: 810,
@@ -2431,8 +3089,66 @@ export function apply(ctx) {
   // them, so a token holder cannot read arbitrary paths on the machine.
   const allowedDirs = new Set()
 
+  // Folders remembered from earlier sessions. They are re-allowed below and
+  // listed for the panel's data menu; `/scan` stays the only way to add one.
+  let recentDirectories = []
+
+  /** Record one folder the user opened; persisting is best effort and silent. */
+  // Writes are serialised like the source catalog: two quick scans must never
+  // let an older snapshot land after a newer one. The snapshot is captured at
+  // call time so the queued write persists exactly the list that gesture saw.
+  let persistChain = Promise.resolve()
+  const rememberDirectory = (directory) => {
+    recentDirectories = mergeRecentDirectories(recentDirectories, { path: directory, at: new Date().toISOString() })
+    const snapshot = recentDirectories
+    persistChain = persistChain.then(() => persistRecentDirectories(snapshot)).catch(() => {})
+  }
+
+  const rememberScannedDirectory = (resolvedDir, realDir) => {
+    // Record the resolved spelling last, so the page lists the path the user
+    // actually picked first; a junctioned folder contributes both spellings.
+    if (realDir !== resolvedDir) rememberDirectory(realDir)
+    rememberDirectory(resolvedDir)
+  }
+
+  /**
+   * Restore remembered folders into the allowlist. A missing or unreadable
+   * folder (unmounted drive, deleted directory) is skipped, and one bad entry
+   * must never fail plugin startup; everything here swallows its errors.
+   */
+  const restoreRememberedDirectories = async () => {
+    const entries = await readRecentDirectories()
+    const restored = []
+    for (const entry of entries) {
+      try {
+        const directory = resolve(entry.path)
+        // A drive/share root would hand the agent every file on it.
+        if (isFilesystemRoot(directory)) continue
+        restored.push(entry)
+        try {
+          await fs.access(directory)
+        } catch {
+          continue
+        }
+        allowedDirs.add(directory)
+        // Restore has no user gesture behind it, so it must not follow a folder
+        // that was since replaced by a junction to a drive root: that would hand
+        // the agent a whole drive. `/scan` keeps its own realpath check.
+        const realDirectory = await realPathOr(directory)
+        if (!isFilesystemRoot(realDirectory)) allowedDirs.add(realDirectory)
+      } catch {
+        // Best effort: keep loading the remaining entries.
+      }
+    }
+    recentDirectories = sanitizeRecentDirectories([...recentDirectories, ...restored])
+  }
+
   // Commands from Host tools to the open panel live for the plugin lifetime.
   const bridge = createBridge(allowedDirs)
+
+  // Never block apply() on disk: the panel routes exist immediately and the
+  // remembered folders join the allowlist as soon as the file is read.
+  void restoreRememberedDirectories().catch(() => {})
 
   // The host web server has no auth or origin policy of its own, so every route
   // below asks the DSH Connection service to reject foreign or unauthenticated
@@ -2484,9 +3200,12 @@ export function apply(ctx) {
       register('prefix', CESIUM_ROUTE, cesiumHandler),
       register('prefix', TILES_ROUTE, (req, res) => tilesHandler(req, res, allowedDirs)),
       register('prefix', REMOTE_ROUTE, remoteHandler),
-      register('exact', `${API}/scan`, (req, res) => scanHandler(req, res, allowedDirs)),
+      register('exact', `${API}/scan`, (req, res) => scanHandler(req, res, allowedDirs, rememberScannedDirectory)),
       register('exact', `${SOURCES_ROUTE}/${TOKEN}`, (req, res) =>
         req.method === 'GET' ? sourcesHandler(req, res) : req.method === 'PUT' ? saveSourcesHandler(req, res) : sendText(res, 405, 'method not allowed'),
+      ),
+      register('exact', `${DIRECTORIES_ROUTE}/${TOKEN}`, (req, res) =>
+        req.method === 'GET' ? directoriesHandler(() => recentDirectories, req, res) : sendText(res, 405, 'method not allowed'),
       ),
       register('exact', BRIDGE_ROUTE, bridgeHandler(bridge)),
       register('exact', CAPTURE_ROUTE, captureHandler),
