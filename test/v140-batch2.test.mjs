@@ -278,7 +278,7 @@ test('normalizeAnalyzeRequest：所有拒绝都走统一 earth_analyze 错误前
 // Host：工具 schema / 描述 / 桥接 / 渲染 / 提示词
 // ---------------------------------------------------------------------------
 
-test('earth_analyze schema：注册第五个工具，10 个参数、required action、两处 additionalProperties:false', () => {
+test('earth_analyze schema：注册于六工具集，10 个参数、required action、两处 additionalProperties:false', () => {
   const params = block(host, 'const ANALYZE_PARAMETERS = {', '\n}')
   const properties = [...params.matchAll(/^    ([a-z_]+): \{/gm)].map((match) => match[1])
   assert.deepEqual(properties, [
@@ -301,7 +301,8 @@ test('earth_analyze schema：注册第五个工具，10 个参数、required act
   assert.match(params, /minimum: -90, maximum: 90/)
 
   assert.match(host, /scope\.tools\.register\(createAnalyzeTool\(bridge\)\)/)
-  assert.equal((host.match(/scope\.tools\.register\(/g) ?? []).length, 5)
+  // B3：earth_shader 是第六个工具，注册总数随之 5→6。
+  assert.equal((host.match(/scope\.tools\.register\(/g) ?? []).length, 6)
 
   const tool = block(host, 'function createAnalyzeTool(bridge) {', '\n}')
   assert.match(tool, /name: ANALYZE_TOOL_NAME/)
@@ -627,18 +628,19 @@ test('client 单活动分析：analysis- 实体前缀独立于 agent-，clear �
   }
 })
 
-test('client toolview：五个地球工具行（含 earth_analyze），TOOL_SUMMARY_KEYS 与中英文案对齐', () => {
-  // F1（Expert round1 FAIL）：earth_analyze 也有聊天工具行，冷启动即可自动打开面板。
-  assert.equal((client.match(/name: 'tool\.call\.toolview'/g) ?? []).length, 5)
+test('client toolview：六个地球工具行（含 earth_analyze/earth_shader），TOOL_SUMMARY_KEYS 与中英文案对齐', () => {
+  // F1/B3：earth_analyze、earth_shader 都有聊天工具行，冷启动即可自动打开面板。
+  assert.equal((client.match(/name: 'tool\.call\.toolview'/g) ?? []).length, 6)
   const toolviews = [...client.matchAll(/name: 'tool\.call\.toolview', key: '([a-z_]+)'/g)].map((match) => match[1])
-  assert.deepEqual(toolviews, ['earth_scene', 'earth_capture', 'earth_draw', 'earth_measure', 'earth_analyze'])
-  // 五个工具行共用 EarthToolRow：非 earth_scene 工具走 TOOL_SUMMARY_KEYS。
+  assert.deepEqual(toolviews, ['earth_scene', 'earth_capture', 'earth_draw', 'earth_measure', 'earth_analyze', 'earth_shader'])
+  // 六个工具行共用 EarthToolRow：非 earth_scene 工具走 TOOL_SUMMARY_KEYS。
   assert.match(client, /function EarthToolRow\(\{ toolName, phase, block, callId \}\)/)
   assert.match(client, /rightbar\.openTab\('digital-earth'\)/)
   assert.match(client, /if \(phase === 'result' \|\| openedRef\.current\) return/)
 
   const summaryKeys = block(client, 'const TOOL_SUMMARY_KEYS = {', '\n    }')
   assert.match(summaryKeys, /earth_analyze: 'tool\.action\.analyze'/)
+  assert.match(summaryKeys, /earth_shader: 'tool\.action\.shader'/)
   for (const [tool, key] of [['earth_capture', 'capture'], ['earth_draw', 'draw'], ['earth_measure', 'measure']]) {
     assert.match(summaryKeys, new RegExp(`${tool}: 'tool\\.action\\.${key}'`))
   }

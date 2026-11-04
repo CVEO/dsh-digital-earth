@@ -50,6 +50,8 @@ window.__ModuleLoader__.load({
         'btn.hud': '坐标 HUD',
         'btn.hudShow': '显示坐标 HUD',
         'btn.hudHide': '隐藏坐标 HUD',
+        'btn.shaderShow': '打开着色器工作台',
+        'btn.shaderHide': '关闭着色器工作台',
         'btn.basemap': '底图',
         'btn.terrain': '地形',
         'btn.measure': '量测',
@@ -113,6 +115,9 @@ window.__ModuleLoader__.load({
         'toast.screenshotFailed': '截图失败：{message}',
         'toast.sourcesSaved': '数据源已保存',
         'toast.saveFailed': '保存失败：{message}',
+        'toast.shaderApplied': '已应用预设：{preset}（{layer}）',
+        'toast.shaderReset': '已重置图层着色器：{layer}',
+        'toast.shaderResetAll': '已清除全部图层着色器',
         'toast.noSurface': '该位置没有可拾取的表面',
         'toast.pickNone': '未拾取到对象',
         'measure.start': '左键点击取点，双击结束',
@@ -184,6 +189,7 @@ window.__ModuleLoader__.load({
         'tool.action.draw': '绘制标注',
         'tool.action.measure': '量测',
         'tool.action.analyze': '分析',
+        'tool.action.shader': '着色器',
         'tool.action.clearAgent': '清除标注',
         'tool.action.generic': '三维场景',
         'tool.open': '打开',
@@ -191,7 +197,7 @@ window.__ModuleLoader__.load({
         'settings.tab.about': '关于',
         'settings.autoOpenPanel': 'Agent 调用时自动打开数字地球',
         'settings.autoOpenPanelHint':
-          'Agent 调用地球工具（earth_scene / earth_capture / earth_draw / earth_measure / earth_analyze）时，自动在对话右侧打开数字地球面板；关闭后仍可从对话标题栏的地球按钮手动打开。该偏好只保存在本机浏览器。',
+          'Agent 调用地球工具（earth_scene / earth_capture / earth_draw / earth_measure / earth_analyze / earth_shader）时，自动在对话右侧打开数字地球面板；关闭后仍可从对话标题栏的地球按钮手动打开。该偏好只保存在本机浏览器。',
         'settings.screenshotHud': '截图时叠加坐标 HUD 与署名',
         'settings.screenshotHudHint':
           '默认关闭：截图只保留干净的三维画面，便于分享或交给模型识别。打开后会在图片内叠加光标坐标、相机参数与团队署名（面板工具栏属于网页元素，不会进入图片）。',
@@ -312,6 +318,29 @@ window.__ModuleLoader__.load({
         'analysis.end': '终点 {value}',
         'analysis.waterLabel': '水面 {value}',
         'analysis.sunLabel': '太阳 {altitude}° / {azimuth}°',
+        'shader.title': '着色器工作台',
+        'shader.close': '关闭着色器工作台',
+        'shader.layerLabel': '目标图层',
+        'shader.layerAuto': '最上可见图层（自动）',
+        'shader.presetLabel': '预设',
+        'shader.preset.height-false-color': '高程假彩色',
+        'shader.preset.contour': '等高线',
+        'shader.preset.scan': '高度扫描',
+        'shader.preset.water': '水面波纹',
+        'shader.param.minHeight': '最小高程 (m)',
+        'shader.param.maxHeight': '最大高程 (m)',
+        'shader.param.auto': '自动',
+        'shader.param.interval': '等高距 (m)',
+        'shader.param.speed': '动画速度',
+        'shader.param.amplitude': '波幅',
+        'shader.param.opacity': '不透明度',
+        'shader.apply': '应用预设',
+        'shader.resetLayer': '重置当前图层',
+        'shader.resetAll': '全部重置',
+        'shader.active': '活动预设',
+        'shader.activeEmpty': '尚未应用任何预设',
+        'shader.hint': '仅支持四个白名单预设，Agent 与界面都不能注入自定义 GLSL。',
+        'shader.noLayers': '先加载 3D Tiles 图层，再应用着色器预设。',
         'toast.captureSaved': '已生成 {width}×{height} 截图：{path}',
         'toast.noSession': '请先打开一个会话，再在对话旁查看数字地球。',
         'unit.hectare': '公顷',
@@ -336,6 +365,8 @@ window.__ModuleLoader__.load({
         'btn.hud': 'Coordinate HUD',
         'btn.hudShow': 'Show coordinate HUD',
         'btn.hudHide': 'Hide coordinate HUD',
+        'btn.shaderShow': 'Open shader workbench',
+        'btn.shaderHide': 'Close shader workbench',
         'btn.basemap': 'Basemap',
         'btn.terrain': 'Terrain',
         'btn.measure': 'Measure',
@@ -399,6 +430,9 @@ window.__ModuleLoader__.load({
         'toast.screenshotFailed': 'Snapshot failed: {message}',
         'toast.sourcesSaved': 'Sources saved',
         'toast.saveFailed': 'Save failed: {message}',
+        'toast.shaderApplied': 'Preset applied: {preset} ({layer})',
+        'toast.shaderReset': 'Shader reset on layer: {layer}',
+        'toast.shaderResetAll': 'All layer shaders cleared',
         'toast.noSurface': 'No pickable surface there',
         'toast.pickNone': 'Nothing picked',
         'measure.start': 'Left-click to add points, double-click to finish',
@@ -470,6 +504,7 @@ window.__ModuleLoader__.load({
         'tool.action.draw': 'Draw annotations',
         'tool.action.measure': 'Measure',
         'tool.action.analyze': 'Analyze',
+        'tool.action.shader': 'Shader',
         'tool.action.clearAgent': 'Clear annotations',
         'tool.action.generic': '3D scene',
         'tool.open': 'Open',
@@ -477,7 +512,7 @@ window.__ModuleLoader__.load({
         'settings.tab.about': 'About',
         'settings.autoOpenPanel': 'Open Digital Earth automatically on Agent calls',
         'settings.autoOpenPanelHint':
-          'When the Agent calls an earth tool (earth_scene / earth_capture / earth_draw / earth_measure / earth_analyze), open the Digital Earth panel beside the conversation; with this off you can still open it from the globe button in the chat header. The preference is stored in this browser only.',
+          'When the Agent calls an earth tool (earth_scene / earth_capture / earth_draw / earth_measure / earth_analyze / earth_shader), open the Digital Earth panel beside the conversation; with this off you can still open it from the globe button in the chat header. The preference is stored in this browser only.',
         'settings.screenshotHud': 'Overlay coordinate HUD and credits in snapshots',
         'settings.screenshotHudHint':
           'Off by default: snapshots keep only the clean 3D view, which is easier to share or hand to a model. Turn it on to burn the cursor coordinates, camera parameters and team credit into the image (the panel toolbar is DOM chrome and can never be part of the image).',
@@ -602,6 +637,29 @@ window.__ModuleLoader__.load({
         'analysis.end': 'End {value}',
         'analysis.waterLabel': 'Water {value}',
         'analysis.sunLabel': 'Sun {altitude}° / {azimuth}°',
+        'shader.title': 'Shader workbench',
+        'shader.close': 'Close shader workbench',
+        'shader.layerLabel': 'Target layer',
+        'shader.layerAuto': 'Top visible layer (auto)',
+        'shader.presetLabel': 'Preset',
+        'shader.preset.height-false-color': 'Height false color',
+        'shader.preset.contour': 'Contours',
+        'shader.preset.scan': 'Height scan',
+        'shader.preset.water': 'Water ripples',
+        'shader.param.minHeight': 'Min height (m)',
+        'shader.param.maxHeight': 'Max height (m)',
+        'shader.param.auto': 'Auto',
+        'shader.param.interval': 'Contour interval (m)',
+        'shader.param.speed': 'Animation speed',
+        'shader.param.amplitude': 'Amplitude',
+        'shader.param.opacity': 'Opacity',
+        'shader.apply': 'Apply preset',
+        'shader.resetLayer': 'Reset layer',
+        'shader.resetAll': 'Reset all',
+        'shader.active': 'Active presets',
+        'shader.activeEmpty': 'No preset applied yet',
+        'shader.hint': 'Only the four white-listed presets are available; neither the Agent nor the UI can inject custom GLSL.',
+        'shader.noLayers': 'Load a 3D Tiles layer before applying a shader preset.',
         'toast.captureSaved': 'Saved {width}×{height} snapshot: {path}',
         'toast.noSession': 'Open a conversation first to view the globe beside it.',
         'unit.hectare': 'ha',
@@ -1318,6 +1376,253 @@ window.__ModuleLoader__.load({
     }
     //#endregion analysis core
 
+    //#region shader core ------------------------------------------------------
+    // B3 shader presets. The model and the workbench can only pick from this
+    // white list; no arbitrary GLSL ever reaches Cesium. Every preset modifies
+    // only the fragment material (diffuse/alpha), so lighting and geometry stay
+    // untouched and a broken shader cannot corrupt the scene.
+    const SHADER_PRESETS = ['height-false-color', 'contour', 'scan', 'water']
+    /** Hard cap from the B3 contract: one preset source stays well under 8 KB. */
+    const SHADER_SOURCE_LIMIT = 8 * 1024
+    const SHADER_HEIGHT_FLOOR = -1000
+    const SHADER_HEIGHT_CEILING = 9000
+    const SHADER_PARAM_LIMITS = {
+      min_height: [-1000, 9000],
+      max_height: [-1000, 9000],
+      interval: [1, 500],
+      speed: [0.1, 10],
+      amplitude: [0.1, 5],
+      opacity: [0.05, 1],
+    }
+    const SHADER_PRESET_PARAMS = {
+      'height-false-color': ['min_height', 'max_height'],
+      contour: ['interval'],
+      scan: ['speed'],
+      water: ['speed', 'amplitude', 'opacity'],
+    }
+    const SHADER_PRESET_DEFAULTS = {
+      'height-false-color': {},
+      contour: { interval: 20 },
+      scan: { speed: 1 },
+      water: { speed: 1, amplitude: 1, opacity: 0.75 },
+    }
+
+    const shaderClamp = (value, minimum, maximum) => Math.min(Math.max(value, minimum), maximum)
+    const shaderFinite = (value) => typeof value === 'number' && Number.isFinite(value)
+    /** All failures are model-facing: one `shader:` prefix and one actionable `next:`. */
+    const shaderFail = (message, next) => new Error(`shader: ${message} next: ${next}`)
+
+    /**
+     * Normalise bridge arguments against the frozen B3 contract. Returns either a
+     * request object or an Error carrying the model-facing message (never throws),
+     * so both runCommand and the workbench share exactly one validation path.
+     */
+    function shaderValidateRequest(args = {}) {
+      const raw = args && typeof args === 'object' && !Array.isArray(args) ? args : {}
+      const action = typeof raw.action === 'string' ? raw.action.trim() : ''
+      if (action !== 'apply' && action !== 'reset' && action !== 'list') {
+        return shaderFail(`不支持的操作 "${String(raw.action)}"。`, '使用 apply / reset / list。')
+      }
+      if (raw.layer !== undefined && raw.layer !== null && typeof raw.layer !== 'string') {
+        return shaderFail('layer 必须是图层名或 id 字符串。', '传入字符串后重试。')
+      }
+      const layer = typeof raw.layer === 'string' && raw.layer.trim() !== '' ? raw.layer.trim() : null
+      const keys = Object.keys(raw).filter((key) => key !== 'action')
+
+      if (action === 'list') {
+        if (keys.length > 0) return shaderFail(`list 不接受参数 "${keys[0]}"。`, '只传 action: "list"。')
+        return { operation: 'list' }
+      }
+      if (action === 'reset') {
+        const extra = keys.filter((key) => key !== 'layer')
+        if (extra.length > 0) return shaderFail(`reset 不接受参数 "${extra[0]}"。`, 'reset 只接受 action 与可选的 layer。')
+        return { operation: 'reset', layer }
+      }
+
+      const preset = typeof raw.preset === 'string' ? raw.preset.trim() : ''
+      if (!SHADER_PRESETS.includes(preset)) {
+        return shaderFail(
+          `不支持的预设 "${String(raw.preset)}"。`,
+          '使用 height-false-color / contour / scan / water。',
+        )
+      }
+      const allowed = new Set(['preset', 'layer', ...SHADER_PRESET_PARAMS[preset]])
+      const extra = keys.filter((key) => !allowed.has(key))
+      if (extra.length > 0) {
+        return shaderFail(
+          `预设 ${preset} 不接受参数 "${extra[0]}"。`,
+          `只使用 ${['preset', 'layer', ...SHADER_PRESET_PARAMS[preset]].join(', ')}。`,
+        )
+      }
+      const params = { ...SHADER_PRESET_DEFAULTS[preset] }
+      for (const key of SHADER_PRESET_PARAMS[preset]) {
+        const value = raw[key]
+        if (value === undefined || value === null) continue
+        if (!shaderFinite(value)) return shaderFail(`参数 ${key} 必须是有限数字。`, '传入数字后重试。')
+        const [minimum, maximum] = SHADER_PARAM_LIMITS[key]
+        if (value < minimum || value > maximum) {
+          return shaderFail(`参数 ${key}=${value} 超出 ${minimum}..${maximum}。`, '调整到合法范围后重试。')
+        }
+        params[key] = value
+      }
+      if (
+        preset === 'height-false-color' &&
+        params.min_height !== undefined &&
+        params.max_height !== undefined &&
+        !(params.min_height < params.max_height)
+      ) {
+        return shaderFail('min_height 必须小于 max_height。', '调整两个高度后重试。')
+      }
+      return { operation: 'apply', preset, layer, params }
+    }
+
+    /** ext list detection: Cesium 1.147 keeps tileset JSON extensions in `_extensionsUsed`. */
+    function shaderTilesetExtensions(tileset) {
+      const lists = [tileset?.extensionsUsed, tileset?._extensionsUsed, tileset?.root?.extensionsUsed]
+      const values = []
+      for (const list of lists) {
+        if (!Array.isArray(list)) continue
+        for (const item of list) {
+          if (typeof item === 'string' && !values.includes(item)) values.push(item)
+        }
+      }
+      return values
+    }
+
+    /** 3DGS splats have no per-vertex GLSL material Cesium.CustomShader can edit. */
+    function shaderGaussianLayer(tileset) {
+      if (shaderTilesetExtensions(tileset).includes('KHR_gaussian_splatting')) return true
+      if (typeof tileset?.hasExtension === 'function') {
+        try {
+          return tileset.hasExtension('KHR_gaussian_splatting') === true
+        } catch {
+          return false
+        }
+      }
+      return false
+    }
+
+    /**
+     * Relative height on the dataset: |positionWC| - |centre| + centreHeight is a
+     * tangent-plane approximation that works for any tileset orientation. The
+     * default range comes from the bounding sphere; the contract fallback is 0..200.
+     */
+    function shaderHeightRange(Cesium, tileset, fallbackCenter) {
+      let center =
+        tileset?.boundingSphere?.center ?? tileset?.root?.boundingSphere?.center ?? fallbackCenter ?? null
+      if (!center) center = Cesium.Cartesian3.fromDegrees(0, 0, 0)
+      let centerHeight = 0
+      try {
+        const carto = Cesium.Cartographic.fromCartesian(center)
+        if (carto && shaderFinite(carto.height)) centerHeight = carto.height
+      } catch {
+        centerHeight = 0
+      }
+      const rawRadius = Number(tileset?.boundingSphere?.radius ?? tileset?.root?.boundingSphere?.radius)
+      const radius = shaderFinite(rawRadius) ? Math.abs(rawRadius) : 0
+      let minimum = 0
+      let maximum = 0
+      if (radius > 0) {
+        minimum = shaderClamp(centerHeight - radius, SHADER_HEIGHT_FLOOR, SHADER_HEIGHT_CEILING)
+        maximum = shaderClamp(centerHeight + radius, SHADER_HEIGHT_FLOOR, SHADER_HEIGHT_CEILING)
+      } else if (centerHeight !== 0) {
+        // A point-like bounding sphere still gives a usable band around the data.
+        minimum = shaderClamp(centerHeight - 50, SHADER_HEIGHT_FLOOR, SHADER_HEIGHT_CEILING)
+        maximum = shaderClamp(centerHeight + 50, SHADER_HEIGHT_FLOOR, SHADER_HEIGHT_CEILING)
+      }
+      // Contract fallback when no usable bounding volume exists.
+      if (!(maximum > minimum)) {
+        minimum = 0
+        maximum = 200
+      }
+      return { center, centerHeight, minimum, maximum, estimated: radius > 0 }
+    }
+
+    /** Per-preset uniform map; every value is finite and inside the contract bounds. */
+    function shaderUniforms(Cesium, preset, params, range) {
+      const uniforms = {
+        u_center: { type: Cesium.UniformType.VEC3, value: range.center },
+        u_centerHeight: { type: Cesium.UniformType.FLOAT, value: range.centerHeight },
+      }
+      if (preset === 'height-false-color' || preset === 'scan') {
+        uniforms.u_minHeight = { type: Cesium.UniformType.FLOAT, value: range.minimum }
+        uniforms.u_maxHeight = { type: Cesium.UniformType.FLOAT, value: range.maximum }
+      }
+      if (preset === 'contour') {
+        uniforms.u_interval = { type: Cesium.UniformType.FLOAT, value: params.interval ?? 20 }
+      }
+      if (preset === 'scan' || preset === 'water') {
+        uniforms.u_speed = { type: Cesium.UniformType.FLOAT, value: params.speed ?? 1 }
+        uniforms.u_time = { type: Cesium.UniformType.FLOAT, value: 0 }
+      }
+      if (preset === 'water') {
+        uniforms.u_amplitude = { type: Cesium.UniformType.FLOAT, value: params.amplitude ?? 1 }
+        uniforms.u_opacity = { type: Cesium.UniformType.FLOAT, value: params.opacity ?? 0.75 }
+      }
+      return uniforms
+    }
+
+    function shaderFragmentSource(preset) {
+      const source = SHADER_FRAGMENT_SOURCES[preset]
+      if (typeof source !== 'string' || source.length === 0 || source.length > SHADER_SOURCE_LIMIT) {
+        throw shaderFail(`预设 ${String(preset)} 的着色器源码无效。`, '联系面板维护者检查预设定义。')
+      }
+      return source
+    }
+
+    // Fragments only touch `material.diffuse` / `material.alpha`. Cesium declares
+    // the uniforms from the CustomShader uniform map, so they are never re-declared
+    // here; `fsInput.attributes.positionWC` is auto-wired by Cesium when referenced.
+    const SHADER_FRAGMENT_SOURCES = {
+      'height-false-color': `void fragmentMain(FragmentInput fsInput, inout czm_modelMaterial material) {
+  float height = length(fsInput.attributes.positionWC) - length(u_center) + u_centerHeight;
+  float span = max(u_maxHeight - u_minHeight, 1.0);
+  float t = clamp((height - u_minHeight) / span, 0.0, 1.0);
+  vec3 low = vec3(0.16, 0.36, 0.86);
+  vec3 midLow = vec3(0.20, 0.78, 0.36);
+  vec3 mid = vec3(0.96, 0.90, 0.22);
+  vec3 midHigh = vec3(0.98, 0.56, 0.14);
+  vec3 high = vec3(0.92, 0.18, 0.16);
+  vec3 ramp = t < 0.25
+    ? mix(low, midLow, t / 0.25)
+    : t < 0.5
+      ? mix(midLow, mid, (t - 0.25) / 0.25)
+      : t < 0.75
+        ? mix(mid, midHigh, (t - 0.5) / 0.25)
+        : mix(midHigh, high, (t - 0.75) / 0.25);
+  material.diffuse = mix(material.diffuse, ramp, 0.85);
+}`,
+      contour: `void fragmentMain(FragmentInput fsInput, inout czm_modelMaterial material) {
+  float height = length(fsInput.attributes.positionWC) - length(u_center) + u_centerHeight;
+  float spacing = max(u_interval, 1.0);
+  float band = fract(height / spacing);
+  float edge = min(band, 1.0 - band);
+  float line = 1.0 - smoothstep(0.0, 0.08, edge);
+  vec3 contourColor = vec3(0.98, 0.84, 0.28);
+  material.diffuse = mix(material.diffuse, contourColor, line);
+}`,
+      scan: `void fragmentMain(FragmentInput fsInput, inout czm_modelMaterial material) {
+  float height = length(fsInput.attributes.positionWC) - length(u_center) + u_centerHeight;
+  float span = max(u_maxHeight - u_minHeight, 1.0);
+  float t = clamp((height - u_minHeight) / span, 0.0, 1.0);
+  float sweep = fract(u_time * max(u_speed, 0.1) * 0.12);
+  float distanceToBand = abs(t - sweep);
+  float band = 1.0 - smoothstep(0.0, 0.05, distanceToBand);
+  vec3 scanColor = vec3(0.32, 0.95, 1.0);
+  material.diffuse = mix(material.diffuse * 0.6, scanColor, band);
+}`,
+      water: `void fragmentMain(FragmentInput fsInput, inout czm_modelMaterial material) {
+  float height = length(fsInput.attributes.positionWC) - length(u_center) + u_centerHeight;
+  float waveA = sin(height * 0.35 + u_time * u_speed * 1.6);
+  float waveB = sin(height * 0.72 - u_time * u_speed * 2.4);
+  float ripple = clamp(0.5 + (waveA * 0.35 + waveB * 0.15) * u_amplitude, 0.0, 1.0);
+  vec3 waterColor = mix(vec3(0.03, 0.16, 0.38), vec3(0.24, 0.62, 0.92), ripple);
+  material.diffuse = mix(material.diffuse, waterColor, u_opacity);
+  material.alpha = mix(material.alpha, 0.92, u_opacity * 0.5);
+}`,
+    }
+    //#endregion shader core
+
     function ViewerIcon({ size = 18 }) {
       return h(
         'svg',
@@ -1418,6 +1723,18 @@ window.__ModuleLoader__.load({
         shapes = [h('path', { key: 'x', d: 'M6 6l12 12M18 6L6 18', ...stroke })]
       }
       return h('svg', { viewBox: '0 0 24 24', width: size, height: size, 'aria-hidden': true, style: { display: 'block' } }, shapes)
+    }
+
+    /** B3: workbench toggle icon (three sliders), matches the stroke icon family. */
+    function ShaderIcon({ size = 16 }) {
+      const stroke = { stroke: 'currentColor', strokeWidth: 1.7, strokeLinecap: 'round', strokeLinejoin: 'round', fill: 'none' }
+      return h(
+        'svg',
+        { viewBox: '0 0 24 24', width: size, height: size, 'aria-hidden': true, style: { display: 'block' } },
+        h('path', { d: 'M3 7h6.5M13.5 7H21M3 17h4M11 17h10', ...stroke }),
+        h('circle', { cx: 11.5, cy: 7, r: 2.4, ...stroke }),
+        h('circle', { cx: 8.5, cy: 17, r: 2.4, ...stroke }),
+      )
     }
 
     /** Bottom-left HUD: FPS, pointer position/elevation, camera and per-layer statistics. */
@@ -1603,6 +1920,30 @@ window.__ModuleLoader__.load({
 .mv-analysis .chart{width:100%;height:auto;display:block;margin-top:2px;border:.5px solid var(--mv-line);border-radius:8px;background:color-mix(in srgb,var(--mv-bg) 45%,transparent)}
 .mv-analysis .chart text{fill:var(--mv-dim);font-size:8px}
 .mv-analysis .hint{margin:2px 0 0;color:var(--mv-dim);font-size:10px;line-height:1.5}
+/* Shader workbench (B3): one compact card on the left, never wider than 320px. */
+.mv-shader{position:absolute;top:60px;left:10px;width:min(320px,calc(100% - 20px));max-height:calc(100% - 150px);z-index:14;display:flex;flex-direction:column;overflow:hidden;border-radius:13px}
+.mv-shader>header{display:flex;align-items:center;gap:4px;padding:7px 7px 7px 11px;border-bottom:.5px solid var(--mv-line)}
+.mv-shader>header .title{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;font-weight:600}
+.mv-shader .body{padding:8px 11px 10px;overflow:auto;display:flex;flex-direction:column;gap:8px;min-height:0}
+.mv-shader .field{display:flex;flex-direction:column;gap:3px;min-width:0}
+.mv-shader .field label{font-size:10.5px;color:var(--mv-dim)}
+.mv-shader .field select,.mv-shader .field input{background:var(--mv-input);border:.5px solid var(--mv-line);color:var(--mv-text);border-radius:6px;padding:6px 8px;font:inherit;font-size:11.5px;outline:none;min-width:0}
+.mv-shader .field select:focus,.mv-shader .field input:focus{border-color:var(--mv-accent)}
+.mv-shader .params{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.mv-shader .presets{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+.mv-shader .preset{appearance:none;border:.5px solid var(--mv-line);background:var(--mv-input);color:var(--mv-dim);font:inherit;font-size:11px;padding:6px 8px;border-radius:7px;cursor:pointer;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mv-shader .preset.on{background:color-mix(in srgb,var(--mv-accent) 22%,transparent);color:var(--mv-text);border-color:color-mix(in srgb,var(--mv-accent) 45%,transparent)}
+.mv-shader .preset:focus-visible,.mv-shader .mv-cta:focus-visible,.mv-shader .mv-icon-btn:focus-visible{outline:2px solid var(--mv-accent);outline-offset:1px}
+.mv-shader .row{display:flex;gap:6px}
+.mv-shader .row .mv-cta{flex:1;min-width:0;padding:6px 8px;font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mv-shader .row .mv-cta:disabled{opacity:.45;cursor:not-allowed}
+.mv-shader .active{display:flex;flex-direction:column;gap:4px;border-top:.5px solid var(--mv-line);padding-top:7px}
+.mv-shader .active b{font-size:10.5px;letter-spacing:.04em;color:var(--mv-dim);font-weight:600}
+.mv-shader .active .item{display:flex;align-items:baseline;justify-content:space-between;gap:8px;font-size:11px;line-height:1.4}
+.mv-shader .active .item span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--mv-dim)}
+.mv-shader .active .item em{flex:none;font-style:normal;color:var(--mv-text)}
+.mv-shader .empty{color:var(--mv-dim);font-size:10.5px}
+.mv-shader .hint{margin:0;color:var(--mv-dim);font-size:10px;line-height:1.5}
 .mv-layers>header{display:flex;align-items:center;justify-content:space-between;padding:9px 11px;font-size:11px;letter-spacing:.06em;color:var(--mv-dim);border-bottom:.5px solid var(--mv-line)}
 .mv-layers>header .mv-icon-btn{width:22px;height:22px;font-size:12px}
 .mv-layer-list{overflow:auto;padding:4px;min-height:0}
@@ -1683,6 +2024,7 @@ window.__ModuleLoader__.load({
 .mv-root.mv-docked .mv-brand{padding:6px 10px;flex:none;gap:6px}
 .mv-root.mv-docked .mv-actions{gap:0;padding:3px;flex:0 1 auto;max-width:100%;margin-left:auto;min-width:0;row-gap:2px}
 .mv-root.mv-docked .mv-right{top:96px;right:20px;width:min(300px,calc(100% - 40px));max-height:calc(100% - 250px)}
+.mv-root.mv-docked .mv-shader{top:96px;left:20px;width:min(320px,calc(100% - 40px));max-height:calc(100% - 250px)}
 .mv-root.mv-docked .mv-dialog{width:min(680px,96%)}
 /* Narrow docked panes: the host tab already shows the panel title, so drop the
    duplicated brand title, then the status text, then the whole brand, keeping
@@ -1714,9 +2056,10 @@ window.__ModuleLoader__.load({
   .mv-root.mv-docked .mv-right{top:92px;right:12px;width:min(300px,calc(100% - 24px));max-height:calc(100% - 236px)}
   .mv-root.mv-docked .mv-right .mv-layers{position:static;top:auto;right:auto;width:100%;max-height:none}
   .mv-root.mv-docked .mv-right .mv-analysis{max-width:100%}
+  .mv-root.mv-docked .mv-shader{top:92px;left:12px;width:min(320px,calc(100% - 24px));max-height:calc(100% - 236px)}
 }
 /* Snapshot mode: the picture is meant to be clean, so every overlay is hidden. */
-.mv-root.mv-capturing .mv-top,.mv-root.mv-capturing .mv-urlbar,.mv-root.mv-capturing .mv-right,.mv-root.mv-capturing .mv-layers,.mv-root.mv-capturing .mv-analysis,.mv-root.mv-capturing .mv-hud,.mv-root.mv-capturing .mv-attr,.mv-root.mv-capturing .mv-credits,.mv-root.mv-capturing .mv-pick,.mv-root.mv-capturing .mv-measure,.mv-root.mv-capturing .mv-toast,.mv-root.mv-capturing .mv-overlay,.mv-root.mv-capturing .mv-modal{visibility:hidden!important}
+.mv-root.mv-capturing .mv-top,.mv-root.mv-capturing .mv-urlbar,.mv-root.mv-capturing .mv-right,.mv-root.mv-capturing .mv-shader,.mv-root.mv-capturing .mv-layers,.mv-root.mv-capturing .mv-analysis,.mv-root.mv-capturing .mv-hud,.mv-root.mv-capturing .mv-attr,.mv-root.mv-capturing .mv-credits,.mv-root.mv-capturing .mv-pick,.mv-root.mv-capturing .mv-measure,.mv-root.mv-capturing .mv-toast,.mv-root.mv-capturing .mv-overlay,.mv-root.mv-capturing .mv-modal{visibility:hidden!important}
 .mv-about{display:flex;flex-direction:column;gap:12px;padding:2px 0;font-size:12px}
 .mv-about .intro{margin:0;color:var(--mv-dim);line-height:1.75}
 .mv-about .row{display:flex;gap:12px;align-items:baseline}
@@ -2609,6 +2952,149 @@ window.__ModuleLoader__.load({
     }
     //#endregion analysis card
 
+    //#region shader workbench ------------------------------------------------
+    /**
+     * B3 workbench: a compact floating card. It can pick a visible layer, one of
+     * the four presets and that preset's bounded parameters; it never edits GLSL.
+     */
+    function ShaderWorkbench({
+      t,
+      layers,
+      form,
+      active,
+      onClose,
+      onLayer,
+      onPreset,
+      onField,
+      onApply,
+      onResetLayer,
+      onResetAll,
+    }) {
+      const visibleLayers = layers.filter((layer) => layer.visible)
+      const numberField = (key, labelKey, placeholder) =>
+        h(
+          'div',
+          { className: 'field', key },
+          h('label', { htmlFor: `mv-shader-${key}` }, t(labelKey)),
+          h('input', {
+            id: `mv-shader-${key}`,
+            type: 'number',
+            inputMode: 'decimal',
+            step: 'any',
+            value: form[key],
+            placeholder: placeholder ?? '',
+            onChange: (event) => onField(key, event.target.value),
+          }),
+        )
+
+      let params = null
+      if (form.preset === 'height-false-color') {
+        const auto = t('shader.param.auto')
+        params = h(
+          'div',
+          { className: 'params' },
+          numberField('minHeight', 'shader.param.minHeight', auto),
+          numberField('maxHeight', 'shader.param.maxHeight', auto),
+        )
+      } else if (form.preset === 'contour') {
+        params = h('div', { className: 'params' }, numberField('interval', 'shader.param.interval'))
+      } else if (form.preset === 'scan') {
+        params = h('div', { className: 'params' }, numberField('speed', 'shader.param.speed'))
+      } else {
+        params = h(
+          'div',
+          { className: 'params' },
+          numberField('speed', 'shader.param.speed'),
+          numberField('amplitude', 'shader.param.amplitude'),
+          numberField('opacity', 'shader.param.opacity'),
+        )
+      }
+
+      return h(
+        'div',
+        { className: 'mv-card mv-shader', role: 'region', 'aria-label': t('shader.title') },
+        h(
+          'header',
+          null,
+          h('span', { className: 'title' }, t('shader.title')),
+          h(
+            'button',
+            { type: 'button', className: 'mv-icon-btn', title: t('shader.close'), 'aria-label': t('shader.close'), onClick: onClose },
+            '✕',
+          ),
+        ),
+        h(
+          'div',
+          { className: 'body' },
+          h(
+            'div',
+            { className: 'field' },
+            h('label', { htmlFor: 'mv-shader-layer' }, t('shader.layerLabel')),
+            h(
+              'select',
+              {
+                id: 'mv-shader-layer',
+                value: form.layerId,
+                disabled: visibleLayers.length === 0,
+                onChange: (event) => onLayer(event.target.value),
+              },
+              h('option', { value: '' }, t('shader.layerAuto')),
+              ...visibleLayers.map((layer) => h('option', { key: layer.id, value: layer.id }, layer.name)),
+            ),
+          ),
+          h(
+            'div',
+            { className: 'field' },
+            h('label', null, t('shader.presetLabel')),
+            h(
+              'div',
+              { className: 'presets' },
+              ...SHADER_PRESETS.map((preset) =>
+                h(
+                  'button',
+                  {
+                    key: preset,
+                    type: 'button',
+                    className: `preset${form.preset === preset ? ' on' : ''}`,
+                    title: t(`shader.preset.${preset}`),
+                    'aria-pressed': form.preset === preset,
+                    onClick: () => onPreset(preset),
+                  },
+                  t(`shader.preset.${preset}`),
+                ),
+              ),
+            ),
+          ),
+          params,
+          h(
+            'div',
+            { className: 'row' },
+            h('button', { type: 'button', className: 'mv-cta primary', disabled: visibleLayers.length === 0, onClick: onApply }, t('shader.apply')),
+            h('button', { type: 'button', className: 'mv-cta', onClick: onResetLayer }, t('shader.resetLayer')),
+            h('button', { type: 'button', className: 'mv-cta', disabled: active.length === 0, onClick: onResetAll }, t('shader.resetAll')),
+          ),
+          h(
+            'div',
+            { className: 'active' },
+            h('b', null, t('shader.active')),
+            active.length === 0
+              ? h('span', { className: 'empty' }, t('shader.activeEmpty'))
+              : active.map((entry) =>
+                  h(
+                    'div',
+                    { key: entry.layer, className: 'item' },
+                    h('span', { title: entry.layer }, entry.layer),
+                    h('em', null, t(`shader.preset.${entry.preset}`)),
+                  ),
+                ),
+          ),
+          visibleLayers.length === 0 ? h('p', { className: 'hint' }, t('shader.noLayers')) : null,
+          h('p', { className: 'hint' }, t('shader.hint')),
+        ),
+      )
+    }
+    //#endregion shader workbench
+
     /** Immersive `main` panel: no Session, so the Agent bridge stays off. */
     function ViewerPanel(props) {
       return h(ViewerSurface, { t: props.t, sessionId: null, docked: false })
@@ -2651,6 +3137,10 @@ window.__ModuleLoader__.load({
       // Single active analysis: owns its entities plus the scene state sunlight
       // changed (lighting, shadows, clock) so clear() can restore it exactly.
       const analysisRef = React.useRef({ operation: null, layerId: null, layerName: null, entities: [], restore: null })
+      // B3 shader: one active preset per layer, plus the single preRender u_time
+      // tick that is registered only while at least one preset is active.
+      const shaderEntriesRef = React.useRef(new Map())
+      const shaderTickRef = React.useRef(null)
       // Resolves when the Cesium viewer is fully ready. The bridge connects before
       // that (right after meta arrives) so a cold panel mount does not eat the
       // Host's attach grace; commands wait on this gate instead.
@@ -2683,6 +3173,18 @@ window.__ModuleLoader__.load({
       const [accessRequest, setAccessRequest] = React.useState(null)
       const [accessBusy, setAccessBusy] = React.useState(false)
       const [analysis, setAnalysis] = React.useState(null)
+      const [shaderOpen, setShaderOpen] = React.useState(false)
+      const [shaderActive, setShaderActive] = React.useState([])
+      const [shaderForm, setShaderForm] = React.useState({
+        layerId: '',
+        preset: 'height-false-color',
+        minHeight: '',
+        maxHeight: '',
+        interval: '20',
+        speed: '1',
+        amplitude: '1',
+        opacity: '0.75',
+      })
       const [settingsOpen, setSettingsOpen] = React.useState(false)
       const [health, setHealth] = React.useState(null)
       const [terrainBusy, setTerrainBusy] = React.useState(false)
@@ -4085,6 +4587,206 @@ window.__ModuleLoader__.load({
       }
       //#endregion analysis engine
 
+      //#region shader engine ----------------------------------------------------
+      // One active preset per layer. Shader state is transient on purpose: it is
+      // not part of the persisted scene snapshot, so a remounted panel starts from
+      // the untouched tileset material. The original customShader (usually null)
+      // is saved per layer and put back on reset / layer removal.
+      const shaderResult = (operation, preset, layer) => ({
+        operation,
+        preset: preset ?? null,
+        layer: layer ?? null,
+        active: shaderActiveList(),
+        presets: SHADER_PRESETS.slice(),
+      })
+
+      const shaderActiveList = () => {
+        const order = new Map(layersRef.current.map((layer, index) => [layer.id, index]))
+        return [...shaderEntriesRef.current.values()]
+          .sort((left, right) => (order.get(left.layer.id) ?? 0) - (order.get(right.layer.id) ?? 0))
+          .map((entry) => ({ layer: entry.layerName, preset: entry.preset }))
+      }
+
+      const refreshShaderActive = () => setShaderActive(shaderActiveList())
+
+      /** Register the single u_time tick only when the first preset becomes active. */
+      function ensureShaderTick() {
+        const viewer = viewerRef.current
+        if (!viewer || shaderTickRef.current) return
+        const tick = () => {
+          const seconds = (typeof performance !== 'undefined' ? performance.now() : Date.now()) / 1000
+          for (const entry of shaderEntriesRef.current.values()) {
+            const shader = entry.shader
+            if (!shader || !shader.uniforms || !('u_time' in shader.uniforms)) continue
+            try {
+              shader.setUniform('u_time', seconds)
+            } catch {
+              /* an already replaced shader is detached from the tileset */
+            }
+          }
+        }
+        try {
+          viewer.scene.preRender.addEventListener(tick)
+          shaderTickRef.current = { viewer, tick }
+        } catch {
+          shaderTickRef.current = null
+        }
+      }
+
+      function releaseShaderTick() {
+        const handle = shaderTickRef.current
+        shaderTickRef.current = null
+        if (!handle) return
+        try {
+          handle.viewer.scene.preRender.removeEventListener(handle.tick)
+        } catch {
+          /* the viewer may already be destroyed */
+        }
+      }
+
+      function restoreShaderEntry(entry) {
+        try {
+          entry.layer.tileset.customShader = entry.previous ?? undefined
+          return null
+        } catch (error) {
+          return error
+        }
+      }
+
+      /** Layer removal: drop its preset and the tick when nothing is left. */
+      function detachShaderForLayer(id, restore) {
+        const entries = shaderEntriesRef.current
+        const entry = entries.get(id)
+        if (!entry) return false
+        entries.delete(id)
+        if (restore) restoreShaderEntry(entry)
+        refreshShaderActive()
+        if (entries.size === 0) releaseShaderTick()
+        return true
+      }
+
+      function resolveShaderLayer(token) {
+        if (token) {
+          const layer = findLayer(token)
+          if (!layer) {
+            throw shaderFail(`未找到图层 "${token}"。`, '用 earth_scene 的 list 动作查看当前图层名。')
+          }
+          return layer
+        }
+        for (let index = layersRef.current.length - 1; index >= 0; index -= 1) {
+          const layer = layersRef.current[index]
+          if (layer.visible) return layer
+        }
+        throw shaderFail('当前视图没有可见的 3D Tiles 图层。', '先加载或显示 3D Tiles 图层后重试。')
+      }
+
+      function applyShader(request) {
+        const Cesium = cesiumRef.current
+        const viewer = viewerRef.current
+        if (!Cesium || !viewer) throw shaderFail('三维引擎尚未就绪。', '打开数字地球面板后重试。')
+        if (typeof Cesium.CustomShader !== 'function') {
+          throw shaderFail('当前 Cesium 不支持 CustomShader。', '升级 Cesium 版本或换用其他可视化方式。')
+        }
+        const layer = resolveShaderLayer(request.layer)
+        if (shaderGaussianLayer(layer.tileset)) {
+          // Exact wording from the frozen B3 contract (used by QA and the model).
+          throw new Error('shader: 3DGS 图层不支持该预设。next: 换 3D Tiles 图层。')
+        }
+        // The contract fallback for a not-yet-loaded tileset is 0..200, not the
+        // camera altitude: the dataset centre must not depend on where we look.
+        const range = shaderHeightRange(Cesium, layer.tileset, null)
+        if (request.params.min_height !== undefined) range.minimum = request.params.min_height
+        if (request.params.max_height !== undefined) range.maximum = request.params.max_height
+        if (!(range.maximum > range.minimum)) {
+          throw shaderFail(`高程范围无效（${range.minimum}..${range.maximum}）。`, '传入 min_height < max_height。')
+        }
+        const options = {
+          uniforms: shaderUniforms(Cesium, request.preset, request.params, range),
+          fragmentShaderText: shaderFragmentSource(request.preset),
+        }
+        if (request.preset === 'water' && Cesium.CustomShaderTranslucencyMode?.TRANSLUCENT !== undefined) {
+          options.translucencyMode = Cesium.CustomShaderTranslucencyMode.TRANSLUCENT
+        }
+        let shader = null
+        try {
+          shader = new Cesium.CustomShader(options)
+        } catch (error) {
+          throw shaderFail(`预设着色器构造失败（${message(error)}）。`, '换一个预设或重置后重试。')
+        }
+        // Re-applying on the same layer keeps the very first saved shader so reset
+        // never restores a preset we applied ourselves.
+        const existing = shaderEntriesRef.current.get(layer.id)
+        const previous = existing ? existing.previous : (layer.tileset.customShader ?? null)
+        try {
+          layer.tileset.customShader = shader
+          if (layer.tileset.customShader !== shader) throw new Error('图层拒绝了 customShader 赋值')
+        } catch (error) {
+          try {
+            layer.tileset.customShader = previous ?? undefined
+          } catch {
+            /* keep the layer untouched if even the restore fails */
+          }
+          throw shaderFail(`预设应用失败（${message(error)}）。`, '换一个预设或重置后重试。')
+        }
+        shaderEntriesRef.current.set(layer.id, {
+          layer,
+          layerName: layer.name,
+          preset: request.preset,
+          params: { ...request.params },
+          previous,
+          shader,
+        })
+        ensureShaderTick()
+        refreshShaderActive()
+        return shaderResult('apply', request.preset, layer.name)
+      }
+
+      function resetShader(layerToken) {
+        const entries = shaderEntriesRef.current
+        let targetLayerName = null
+        let targets = []
+        if (layerToken) {
+          const layer = findLayer(layerToken)
+          if (!layer) {
+            throw shaderFail(`未找到图层 "${layerToken}"。`, '用 earth_scene 的 list 动作查看当前图层名。')
+          }
+          targetLayerName = layer.name
+          const entry = entries.get(layer.id)
+          if (entry) targets = [entry]
+        } else {
+          targets = [...entries.values()]
+        }
+        let failure = null
+        for (const entry of targets) {
+          entries.delete(entry.layer.id)
+          const error = restoreShaderEntry(entry)
+          if (error && !failure) failure = error
+        }
+        if (entries.size === 0) releaseShaderTick()
+        refreshShaderActive()
+        if (failure) {
+          throw shaderFail(`恢复原有着色器失败（${message(failure)}）。`, '重试 reset，或换一个预设后重置。')
+        }
+        return shaderResult('reset', null, targetLayerName)
+      }
+
+      /**
+       * Bridge entry for the B3 `shader` command: apply / reset / list. Argument
+       * validation runs before the viewer check so a malformed call gets the same
+       * actionable message even on a cold panel.
+       */
+      async function shaderCommand(args = {}) {
+        const request = shaderValidateRequest(args)
+        if (request instanceof Error) throw request
+        if (request.operation === 'list') return shaderResult('list', null, null)
+        const Cesium = cesiumRef.current
+        const viewer = viewerRef.current
+        if (!Cesium || !viewer) throw shaderFail('三维引擎尚未就绪。', '打开数字地球面板后重试。')
+        if (request.operation === 'reset') return resetShader(request.layer)
+        return applyShader(request)
+      }
+      //#endregion shader engine
+
       //#region scene snapshot ---------------------------------------------------
       // Camera, layers (by their original source) and Agent overlays survive the
       // tab body being disposed: they are written to localStorage per session and
@@ -4558,6 +5260,9 @@ window.__ModuleLoader__.load({
         // An analysis that targeted this layer loses its data source: clear it
         // before the tileset detaches so the card never points at a removed layer.
         if (analysisRef.current.layerId === id) clearAnalysis()
+        // B3: a removed layer must not keep a dangling shader entry (or the u_time
+        // tick alive); no restore is needed because the tileset is being detached.
+        detachShaderForLayer(id, false)
         const [layer] = layersRef.current.splice(index, 1)
         try {
           viewer.scene.primitives.remove(layer.tileset)
@@ -4798,6 +5503,18 @@ window.__ModuleLoader__.load({
             // Every analysis failure must end in an actionable next step.
             if (text.includes('next:')) throw error
             throw new Error(`${text} next: 用 earth_scene 检查面板与数据状态后重试，或先执行 analyze clear。`)
+          }
+        }
+        // B3 shader bridge: apply / reset / list (Host tool `earth_shader`). Like
+        // analysis, it is checked before the generic readiness guard so a cold
+        // viewer still produces a model-facing "next:" instead of a dead end.
+        if (action === 'shader') {
+          try {
+            return await shaderCommand(args)
+          } catch (error) {
+            const text = message(error)
+            if (text.includes('next:')) throw error
+            throw new Error(`${text} next: 用 earth_scene 的 list 动作确认图层后，先 shader reset 再重试。`)
           }
         }
         if (!Cesium || !viewer) throw new Error(t('agent.notReady'))
@@ -5138,6 +5855,10 @@ window.__ModuleLoader__.load({
             /* ignore */
           }
           handlerRef.current = null
+          // B3: detach the u_time tick and forget per-layer shader entries before
+          // the viewer goes away; the tilesets themselves are destroyed with it.
+          releaseShaderTick()
+          shaderEntriesRef.current.clear()
           try {
             viewerRef.current?.destroy()
           } catch {
@@ -5301,6 +6022,66 @@ window.__ModuleLoader__.load({
         cache: t('hud.cache'),
       }
 
+      // B3 workbench wiring: the card only builds bridge-shaped apply/reset calls;
+      // shaderCommand owns validation, layer resolution and the active list.
+      const shaderField = (key, value) => setShaderForm((form) => ({ ...form, [key]: value }))
+      const shaderFormLayer = () => layers.find((layer) => layer.id === shaderForm.layerId) ?? null
+      const shaderFormArgs = () => {
+        const args = { action: 'apply', preset: shaderForm.preset }
+        if (shaderForm.layerId) args.layer = shaderForm.layerId
+        const readNumber = (key) => (shaderForm[key] === '' ? undefined : Number(shaderForm[key]))
+        if (shaderForm.preset === 'height-false-color') {
+          const minimum = readNumber('minHeight')
+          const maximum = readNumber('maxHeight')
+          if (minimum !== undefined) args.min_height = minimum
+          if (maximum !== undefined) args.max_height = maximum
+        } else if (shaderForm.preset === 'contour') {
+          const interval = readNumber('interval')
+          if (interval !== undefined) args.interval = interval
+        } else if (shaderForm.preset === 'scan') {
+          const speed = readNumber('speed')
+          if (speed !== undefined) args.speed = speed
+        } else {
+          const speed = readNumber('speed')
+          const amplitude = readNumber('amplitude')
+          const opacity = readNumber('opacity')
+          if (speed !== undefined) args.speed = speed
+          if (amplitude !== undefined) args.amplitude = amplitude
+          if (opacity !== undefined) args.opacity = opacity
+        }
+        return args
+      }
+      const applyShaderFromWorkbench = async () => {
+        try {
+          const result = await shaderCommand(shaderFormArgs())
+          showToast(t('toast.shaderApplied', { preset: t(`shader.preset.${result.preset}`), layer: result.layer }))
+        } catch (error) {
+          showToast(message(error))
+        }
+      }
+      const resetShaderFromWorkbench = async () => {
+        try {
+          const visible = layers.filter((layer) => layer.visible)
+          const target = shaderFormLayer() ?? visible[visible.length - 1] ?? null
+          if (!target) {
+            showToast(t('shader.noLayers'))
+            return
+          }
+          const result = await shaderCommand({ action: 'reset', layer: target.id })
+          showToast(result.layer ? t('toast.shaderReset', { layer: result.layer }) : t('toast.shaderResetAll'))
+        } catch (error) {
+          showToast(message(error))
+        }
+      }
+      const resetAllShadersFromWorkbench = async () => {
+        try {
+          await shaderCommand({ action: 'reset' })
+          showToast(t('toast.shaderResetAll'))
+        } catch (error) {
+          showToast(message(error))
+        }
+      }
+
       return h(
         'div',
         {
@@ -5448,6 +6229,12 @@ window.__ModuleLoader__.load({
               () => updateSettings({ showHud: !showHud }),
               showHud,
             ),
+            iconButton(
+              h(ShaderIcon),
+              shaderOpen ? t('btn.shaderHide') : t('btn.shaderShow'),
+              () => setShaderOpen((value) => !value),
+              shaderOpen,
+            ),
             button(t('btn.screenshot'), screenshot),
             button(t('btn.reset'), resetView),
             docked
@@ -5526,6 +6313,22 @@ window.__ModuleLoader__.load({
               }),
               h('button', { type: 'button', onClick: submitUrl }, t('urlbar.submit')),
             )
+          : null,
+        shaderOpen
+          ? h(ShaderWorkbench, {
+              key: 'shader',
+              t,
+              layers,
+              form: shaderForm,
+              active: shaderActive,
+              onClose: () => setShaderOpen(false),
+              onLayer: (layerId) => shaderField('layerId', layerId),
+              onPreset: (preset) => shaderField('preset', preset),
+              onField: shaderField,
+              onApply: applyShaderFromWorkbench,
+              onResetLayer: resetShaderFromWorkbench,
+              onResetAll: resetAllShadersFromWorkbench,
+            })
           : null,
         analysis || (showLayers && layers.length > 0)
           ? h(
@@ -5883,6 +6686,7 @@ window.__ModuleLoader__.load({
       earth_draw: 'tool.action.draw',
       earth_measure: 'tool.action.measure',
       earth_analyze: 'tool.action.analyze',
+      earth_shader: 'tool.action.shader',
     }
 
     /**
@@ -5893,7 +6697,7 @@ window.__ModuleLoader__.load({
     const AUTO_OPENED_CALLS = new Set()
 
     /**
-     * Chat row for the five Agent wire tools. It keeps the transcript compact,
+     * Chat row for the six Agent wire tools. It keeps the transcript compact,
      * offers a way back into the panel, and is the client's auto-open trigger: a
      * live call opens the docked tab so the Host tool call finds a panel to drive.
      */
@@ -6006,7 +6810,7 @@ window.__ModuleLoader__.load({
             (props) => h(HeaderButton, { ...props, onOpen: openEarthPanel }),
           ),
         )
-        // The Agent drives the same panel through these five wire tools, so their
+        // The Agent drives the same panel through these six wire tools, so their
         // rows own the auto-open: the Host tool call waits for this tab to attach.
         ctx.slots.inject('tool.call.toolview', function* () {
           yield ctx.slots.register({ name: 'tool.call.toolview', key: 'earth_scene', locale: NS }, EarthToolRow)
@@ -6014,6 +6818,7 @@ window.__ModuleLoader__.load({
           yield ctx.slots.register({ name: 'tool.call.toolview', key: 'earth_draw', locale: NS }, EarthToolRow)
           yield ctx.slots.register({ name: 'tool.call.toolview', key: 'earth_measure', locale: NS }, EarthToolRow)
           yield ctx.slots.register({ name: 'tool.call.toolview', key: 'earth_analyze', locale: NS }, EarthToolRow)
+          yield ctx.slots.register({ name: 'tool.call.toolview', key: 'earth_shader', locale: NS }, EarthToolRow)
         })
       },
     }
