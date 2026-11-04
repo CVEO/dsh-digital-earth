@@ -11,7 +11,7 @@
 import { randomBytes } from 'node:crypto'
 import { createReadStream, readFileSync, promises as fs } from 'node:fs'
 import { homedir } from 'node:os'
-import { dirname, extname, isAbsolute, join, parse, resolve, sep } from 'node:path'
+import { basename, dirname, extname, isAbsolute, join, parse, resolve, sep } from 'node:path'
 import { Readable } from 'node:stream'
 import { fileURLToPath } from 'node:url'
 
@@ -45,6 +45,29 @@ const MAX_SOURCES_BODY = 128 * 1024
 const MAX_BRIDGE_BODY = 256 * 1024
 const MAX_CAPTURE_BODY = 16 * 1024 * 1024
 const MAX_CAPTURE_FILES = 50
+// Signed tile and WMS URLs carry their credentials in the query string, which
+// the panel appends verbatim to the proxy path. Keep it bounded: the proxy must
+// never turn into a way to make the host issue very long upstream URLs.
+const MAX_REMOTE_QUERY = 2048
+// Static tileset health check: bounded request/response sizes, bounded BFS and
+// one shared 8 s budget for every remote read of a single inspection.
+const INSPECT_ROUTE = `${API}/inspect`
+const MAX_INSPECT_BODY = 64 * 1024
+const MAX_INSPECT_JSON = 8 * 1024 * 1024
+const MAX_INSPECT_CONTENT_BYTES = 256 * 1024 * 1024
+const MAX_INSPECT_CONTENT_CHECKS = 200
+const MAX_INSPECT_TILESETS = 50
+const MAX_INSPECT_ISSUES = 200
+const MAX_INSPECT_REPORTS = 100
+const INSPECT_FETCH_TIMEOUT_MS = 8000
+// The bridge command lets the panel resolve a layer source first; the contract
+// keeps that budget at 20 s or more, independent of the normal scene budget.
+const INSPECT_BRIDGE_TIMEOUT_MS = 30000
+const REPORT_DIR = resolve(STATE_DIR, 'reports')
+// SPZ (Niantic Gaussian splat) header: magic, version, numPoints as little-endian
+// uint32 values. Only used for a best-effort local check; a parse failure is a
+// warning and never fails the inspection.
+const SPZ_MAGIC = 0x5053474e
 const BRIDGE_HEARTBEAT_MS = 15000
 const SCENE_TIMEOUT_MS = 20000
 const CAPTURE_TIMEOUT_MS = 40000
@@ -195,7 +218,7 @@ function cleanUrl(value) {
 }
 
 const FALLBACK_ABOUT = {
-  version: '1.1.0',
+  version: '1.2.0',
   homepage: 'https://github.com/CVEO/dsh-digital-earth',
   team: { name: '武汉大学 CVEO 课题组', url: 'https://www.whu-cveo.com/' },
 }
@@ -401,9 +424,9 @@ function blockedHost(origin) {
   return a === 0 || a === 10 || a === 127 || (a === 169 && b === 254) || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168) || a >= 224
 }
 
+/** Case-folded on Windows: the filesystem there is case-insensitive. */
 function within(root, target) {
-  const prefix = root.endsWith(sep) ? root : root + sep
-  return target === root || target.startsWith(prefix)
+  return isWithinDirectory(target, root)
 }
 
 /** `fs.realpath` that falls back to the resolved input when the path is missing. */
@@ -458,6 +481,729 @@ function loadPathDenial(action, args, allowedDirs) {
   return LOCAL_DIR_NOT_OPENED_MESSAGE
 }
 
+// ---------------------------------------------------------------------------
+// Data health check (v1.2.0). A static analysis of one tileset.json runs on the
+// host, so the panel button and the earth_scene "inspect" action share the same
+// report. It is independent from the scene bridge and never changes the scene.
+// ---------------------------------------------------------------------------
+
+/** A failure that maps onto the frozen /inspect failure response. */
+class InspectError extends Error {
+  constructor(code, message) {
+    super(message)
+    this.name = 'InspectError'
+    this.code = code
+  }
+}
+
+// The frozen contract lists exactly these codes and HTTP statuses.
+const INSPECT_FAILURE_STATUS = {
+  forbidden: 403,
+  invalid_source: 400,
+  invalid_json: 400,
+  too_large: 413,
+  unreachable: 502,
+  timeout: 502,
+  internal: 502,
+}
+
+const INSPECT_FORBIDDEN_MESSAGE = 'This local path is outside the folders the user opened in the Digital Earth panel. Ask the user to open that folder in the panel, then retry.'
+
+const INSPECT_CONTENT_KINDS = {
+  b3dm: 'b3dm',
+  glb: 'glb',
+  gltf: 'glb',
+  pnts: 'pnts',
+  spz: 'spz',
+}
+
+const INSPECT_SUPPORTED_EXTENSIONS = new Set(['KHR_gaussian_splatting'])
+
+const isPlainObject = (value) => value !== null && typeof value === 'object' && !Array.isArray(value)
+
+function inspectTimestamp(date = new Date()) {
+  const pad = (value) => String(value).padStart(2, '0')
+  return `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}-${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())}`
+}
+
+/** A short, token-free slug for the report file name. */
+function inspectSlug(label) {
+  const raw = typeof label === 'string' ? scrubToken(label) : ''
+  const slug = raw
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 32)
+  return slug === '' ? 'tileset' : slug
+}
+
+function inspectSourceLabel(source) {
+  if (source.kind === 'remote') {
+    try {
+      return new URL(source.url).hostname
+    } catch {
+      return 'tileset'
+    }
+  }
+  const parent = basename(dirname(source.path))
+  if (parent !== '' && parent !== '.' && parent !== sep) return parent
+  return basename(source.path)
+}
+
+/** Validate a source spec from the panel route or from the agent tool. */
+function normalizeInspectSource(raw) {
+  if (!isPlainObject(raw)) throw new InspectError('invalid_source', 'source must be an object with kind "local" or "remote".')
+  if (raw.kind === 'local') {
+    if (typeof raw.path !== 'string' || raw.path.trim() === '') {
+      throw new InspectError('invalid_source', 'local source.path must be a non-empty string.')
+    }
+    const path = raw.path.trim()
+    if (!isAbsolute(path)) throw new InspectError('invalid_source', `local source.path must be an absolute path, got ${JSON.stringify(path)}.`)
+    return { kind: 'local', path: resolve(path) }
+  }
+  if (raw.kind === 'remote') {
+    if (typeof raw.url !== 'string' || raw.url.trim() === '') {
+      throw new InspectError('invalid_source', 'remote source.url must be a non-empty string.')
+    }
+    const url = raw.url.trim()
+    if (!isHttpUrl(url)) throw new InspectError('invalid_source', `remote source.url must be an absolute http(s) URL, got ${JSON.stringify(url)}.`)
+    return { kind: 'remote', url }
+  }
+  throw new InspectError('invalid_source', 'source.kind must be "local" or "remote".')
+}
+
+/** Keep only the four numeric runtime counters; null when the panel sent none. */
+function normalizeInspectRuntime(raw) {
+  if (!isPlainObject(raw)) return null
+  const value = {}
+  for (const key of ['tiles', 'pending', 'triangles', 'memory']) {
+    const item = raw[key]
+    if (typeof item === 'number' && Number.isFinite(item) && item >= 0) value[key] = item
+  }
+  return Object.keys(value).length === 0 ? null : value
+}
+
+/** Windows UNC paths (`\\host\share`) and their `//host/share` spelling. */
+function isUncPath(value) {
+  const text = typeof value === 'string' ? value : ''
+  return text.startsWith('\\\\') || /^\/\/[^/]/.test(text)
+}
+
+/**
+ * Containment check shared by the entry path and every derived local read
+ * (external tileset JSON, deep content stat, SPZ header): lexical containment
+ * below an opened folder plus a realpath containment check on both sides.
+ * Returns the resolved path when it may be read, or `null` when it may not.
+ * Derived refs additionally refuse UNC paths, so a tileset document can never
+ * make the host touch an SMB share even when a network folder was opened.
+ */
+async function inspectAllowedLocalPath(path, allowedDirs, { derived = false } = {}) {
+  const target = resolve(path)
+  if (derived && isUncPath(target)) return null
+  const realTarget = await realPathOr(target)
+  for (const allowed of allowedDirs) {
+    const realAllowed = await realPathOr(allowed)
+    const lexical = isWithinDirectory(target, allowed) || isWithinDirectory(target, realAllowed)
+    if (lexical && isWithinDirectory(realTarget, realAllowed)) return target
+  }
+  return null
+}
+
+/** Local tileset files may come only from a folder the user opened in the panel. */
+async function inspectLocalPath(path, allowedDirs) {
+  const target = await inspectAllowedLocalPath(path, allowedDirs)
+  if (target === null) throw new InspectError('forbidden', INSPECT_FORBIDDEN_MESSAGE)
+  return target
+}
+
+const inspectRemaining = (deadline) => deadline - Date.now()
+
+async function inspectReadLocalJson(path, deadline) {
+  let stat
+  try {
+    stat = await fs.stat(path)
+  } catch {
+    throw new InspectError('invalid_source', `cannot read the tileset JSON at ${path}.`)
+  }
+  if (!stat.isFile()) throw new InspectError('invalid_source', `the tileset path is not a file: ${path}.`)
+  if (stat.size > MAX_INSPECT_JSON) {
+    throw new InspectError('too_large', `the tileset JSON is ${stat.size} bytes, above the ${MAX_INSPECT_JSON / (1024 * 1024)} MB inspection limit.`)
+  }
+  if (inspectRemaining(deadline) <= 0) throw new InspectError('timeout', 'the inspection exceeded its 8 s budget.')
+  return { text: await fs.readFile(path, 'utf8'), bytes: stat.size, label: path }
+}
+
+async function inspectFetchRemote(url, deadline, method = 'GET') {
+  if (blockedHost(url)) throw new InspectError('forbidden', 'the remote tileset URL points at a local or private address.')
+  const remaining = inspectRemaining(deadline)
+  if (remaining <= 0) throw new InspectError('timeout', 'the inspection exceeded its 8 s budget.')
+  const controller = new AbortController()
+  // One deadline for the whole exchange: the timer stays armed while the body
+  // is read, so a slow or endless response body cannot outlive the 8 s budget.
+  const timer = setTimeout(() => controller.abort(), Math.max(1, Math.min(remaining, INSPECT_FETCH_TIMEOUT_MS)))
+  timer.unref?.()
+  try {
+    let response
+    try {
+      response = await fetch(url, { method, redirect: 'manual', signal: controller.signal })
+    } catch (error) {
+      if (controller.signal.aborted || error?.name === 'AbortError') {
+        throw new InspectError('timeout', 'fetching the remote tileset timed out.')
+      }
+      throw new InspectError('unreachable', `could not fetch the remote tileset: ${error instanceof Error ? error.message : String(error)}.`)
+    }
+    if (response.status >= 300 && response.status < 400) {
+      throw new InspectError('unreachable', 'the remote tileset redirects; redirects are not followed.')
+    }
+    if (!response.ok) throw new InspectError('unreachable', `the remote tileset answered HTTP ${response.status}.`)
+    if (method === 'HEAD') return { response }
+    const reported = Number(response.headers?.get?.('content-length'))
+    if (Number.isFinite(reported) && reported > MAX_INSPECT_JSON) {
+      throw new InspectError('too_large', `the remote tileset JSON is ${reported} bytes, above the ${MAX_INSPECT_JSON / (1024 * 1024)} MB inspection limit.`)
+    }
+    if (response.body === null) return { text: '', bytes: 0, label: url }
+    const reader = response.body.getReader()
+    const chunks = []
+    let total = 0
+    for (;;) {
+      if (inspectRemaining(deadline) <= 0) {
+        throw new InspectError('timeout', 'the inspection exceeded its 8 s budget while reading the remote tileset body.')
+      }
+      let step
+      try {
+        step = await reader.read()
+      } catch (error) {
+        if (controller.signal.aborted || error?.name === 'AbortError') {
+          throw new InspectError('timeout', 'reading the remote tileset body timed out.')
+        }
+        throw new InspectError('unreachable', `could not read the remote tileset body: ${error instanceof Error ? error.message : String(error)}.`)
+      }
+      if (step.done) break
+      total += step.value.byteLength
+      if (total > MAX_INSPECT_JSON) {
+        // Stop the transfer immediately: a rejected report must never buffer the
+        // whole oversized body first.
+        controller.abort()
+        reader.cancel().catch(() => {})
+        throw new InspectError('too_large', `the remote tileset JSON is above the ${MAX_INSPECT_JSON / (1024 * 1024)} MB inspection limit.`)
+      }
+      chunks.push(Buffer.from(step.value))
+    }
+    return { text: Buffer.concat(chunks).toString('utf8'), bytes: total, label: url }
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
+/** Frozen issue code for an external tileset document that could not be loaded. */
+function inspectExternalLoadIssueCode(error, location) {
+  const code = error instanceof InspectError ? error.code : 'internal'
+  if (code === 'invalid_json' || code === 'too_large') return code
+  return location.kind === 'local' ? 'content_missing' : 'content_unreachable'
+}
+
+function inspectParseJson(text, label) {
+  try {
+    const value = JSON.parse(text)
+    if (!isPlainObject(value)) throw new Error('the top-level JSON value is not an object')
+    return value
+  } catch (error) {
+    throw new InspectError('invalid_json', `the tileset JSON at ${label} is not a valid 3D Tiles document: ${error instanceof Error ? error.message : String(error)}.`)
+  }
+}
+
+/** Resolve a tile content uri against the document that declared it. */
+function resolveInspectUri(base, uri) {
+  if (typeof uri !== 'string' || uri.trim() === '') return null
+  const raw = uri.trim()
+  const scheme = /^[a-z][a-z0-9+.-]*:/i.test(raw)
+  if (base.kind === 'remote') {
+    if (scheme) return /^https?:\/\//i.test(raw) ? { kind: 'remote', value: raw } : null
+    try {
+      return { kind: 'remote', value: new URL(raw, base.url).href }
+    } catch {
+      return null
+    }
+  }
+  if (scheme) return /^https?:\/\//i.test(raw) ? { kind: 'remote', value: raw } : null
+  return { kind: 'local', value: resolve(base.dir, raw.split('?')[0].split('#')[0]) }
+}
+
+function inspectLocation(resolved) {
+  if (resolved.kind === 'local') return { kind: 'local', value: resolved.value, dir: dirname(resolved.value) }
+  return { kind: 'remote', value: resolved.value }
+}
+
+function inspectBoundingVolume(value) {
+  if (!isPlainObject(value)) return null
+  const key = ['box', 'region', 'sphere'].find((name) => Array.isArray(value[name]))
+  if (key === undefined) return null
+  const numbers = value[key]
+  if (!numbers.every((item) => typeof item === 'number' && Number.isFinite(item))) return null
+  if (key === 'box' && numbers.length !== 12) return null
+  if (key === 'region' && numbers.length !== 6) return null
+  if (key === 'sphere' && numbers.length !== 4) return null
+  return { type: key, center: key === 'region' ? null : numbers.slice(0, 3), region: key === 'region' ? numbers.slice() : null }
+}
+
+function inspectContentRefs(tile) {
+  const refs = []
+  const push = (content) => {
+    if (!isPlainObject(content)) return
+    const uri = typeof content.uri === 'string' ? content.uri : typeof content.url === 'string' ? content.url : ''
+    if (uri.trim() !== '') refs.push(uri.trim())
+  }
+  if (Array.isArray(tile.content)) {
+    for (const content of tile.content) push(content)
+  } else {
+    push(tile.content)
+  }
+  return refs
+}
+
+function inspectIssue(issues, level, code, message, path) {
+  if (issues.length >= MAX_INSPECT_ISSUES) {
+    issues.dropped = (issues.dropped ?? 0) + 1
+    return
+  }
+  const issue = { level, code, message }
+  if (typeof path === 'string' && path !== '') issue.path = path
+  issues.push(issue)
+}
+
+function inspectRootGeometricError(doc) {
+  if (!isPlainObject(doc?.root)) return null
+  const error = doc.root.geometricError
+  return typeof error === 'number' && Number.isFinite(error) ? error : null
+}
+
+/** Walk every tile of one tileset document and fold its statistics into state. */
+function inspectDocTiles(doc, docLabel, state, base, isRootDoc) {
+  const roots = []
+  if (isPlainObject(doc.root)) roots.push(doc.root)
+  else if (Array.isArray(doc.tiles)) for (const tile of doc.tiles) if (isPlainObject(tile)) roots.push(tile)
+  if (roots.length === 0) return { roots: 0, docDepth: 0 }
+  const stack = roots.map((tile, index) => ({ tile, path: index === 0 ? `${docLabel}:root` : `${docLabel}:tiles[${index}]`, depth: 0 }))
+  let docDepth = 0
+  while (stack.length > 0) {
+    const { tile, path, depth } = stack.pop()
+    state.tiles += 1
+    if (depth > docDepth) docDepth = depth
+    const children = Array.isArray(tile.children) ? tile.children.filter((item) => isPlainObject(item)) : []
+    const refs = inspectContentRefs(tile)
+    if (Array.isArray(tile.children) && children.length === 0 && refs.length === 0) {
+      inspectIssue(state.issues, 'warn', 'empty_children', 'a tile declares no content and no children.', path)
+    }
+    if (Object.hasOwn(tile, 'geometricError')) {
+      const error = tile.geometricError
+      if (typeof error !== 'number' || !Number.isFinite(error) || error < 0) {
+        inspectIssue(state.issues, 'warn', 'geometric_error_invalid', `tile geometricError must be a finite number >= 0, got ${JSON.stringify(error)}.`, path)
+      }
+    }
+    if (Object.hasOwn(tile, 'boundingVolume') && inspectBoundingVolume(tile.boundingVolume) === null) {
+      inspectIssue(state.issues, 'warn', 'bounding_volume_invalid', 'tile boundingVolume must be a box, region or sphere with the right number of finite numbers.', path)
+    }
+    for (const uri of refs) {
+      state.contents += 1
+      const extension = extname(uri.split('?')[0].split('#')[0]).slice(1).toLowerCase()
+      const resolved = resolveInspectUri(base, uri)
+      if (extension === 'json') {
+        state.externalFiles += 1
+        if (resolved !== null) state.externalTilesets.push({ location: inspectLocation(resolved), label: uri })
+      } else if (INSPECT_CONTENT_KINDS[extension] !== undefined) {
+        state.kinds[INSPECT_CONTENT_KINDS[extension]] += 1
+      }
+      if (extension === 'spz') state.spzCount += 1
+      state.contentRefs.push({ uri, extension, resolved })
+      if (isRootDoc && depth === 0) state.rootContents.push({ uri, extension, resolved })
+    }
+    for (let index = children.length - 1; index >= 0; index -= 1) {
+      stack.push({ tile: children[index], path: `${path}.children[${index}]`, depth: depth + 1 })
+    }
+  }
+  return { roots: roots.length, docDepth }
+}
+
+async function inspectSpzHeader(path) {
+  let handle
+  try {
+    handle = await fs.open(path, 'r')
+    const buffer = Buffer.alloc(16)
+    const { bytesRead } = await handle.read(buffer, 0, 16, 0)
+    if (bytesRead < 12) return { ok: false, reason: 'file is shorter than the SPZ header' }
+    const magic = buffer.readUInt32LE(0)
+    const version = buffer.readUInt32LE(4)
+    const points = buffer.readUInt32LE(8)
+    if (magic !== SPZ_MAGIC) return { ok: false, reason: `unexpected SPZ magic 0x${magic.toString(16)}` }
+    if (version !== 1 && version !== 2) return { ok: false, reason: `unsupported SPZ version ${version}` }
+    if (points === 0) return { ok: false, reason: 'SPZ file declares zero splats' }
+    return { ok: true, version, points }
+  } catch (error) {
+    return { ok: false, reason: error instanceof Error ? error.message : String(error) }
+  } finally {
+    if (handle !== undefined) await handle.close().catch(() => {})
+  }
+}
+
+/** Deep check: local content files are stat'ed, remote root contents are HEADed. */
+async function inspectDeepContents(state, source, deadline, allowedDirs) {
+  if (source.kind === 'local') {
+    let checked = 0
+    for (const item of state.contentRefs) {
+      if (item.resolved === null || item.resolved.kind !== 'local') continue
+      if (checked >= MAX_INSPECT_CONTENT_CHECKS) break
+      checked += 1
+      // Derived content paths get the same allowlist + realpath check as the
+      // entry path; an escape is a warning and the file is never touched.
+      const target = await inspectAllowedLocalPath(item.resolved.value, allowedDirs, { derived: true })
+      if (target === null) {
+        inspectIssue(state.issues, 'warn', 'content_unreachable', 'a content file is outside the folders the user opened in the panel; it was not read.')
+        continue
+      }
+      let stat
+      try {
+        stat = await fs.stat(target)
+      } catch {
+        inspectIssue(state.issues, 'warn', 'content_missing', `content file not found: ${item.uri}`, target)
+        continue
+      }
+      if (!stat.isFile()) {
+        inspectIssue(state.issues, 'warn', 'content_missing', `content path is not a file: ${item.uri}`, target)
+        continue
+      }
+      if (stat.size > MAX_INSPECT_CONTENT_BYTES) {
+        inspectIssue(state.issues, 'warn', 'content_too_large', `content file is ${stat.size} bytes: ${item.uri}`, target)
+      }
+      if (item.extension === 'spz') {
+        // Only reached for a path that passed the allowlist + realpath check.
+        const header = await inspectSpzHeader(target)
+        if (header.ok) {
+          inspectIssue(state.issues, 'info', 'gaussian_splatting_ok', `SPZ header ok: version ${header.version}, ${header.points} splats.`, item.uri)
+        } else {
+          inspectIssue(state.issues, 'warn', 'spz_header_invalid', `SPZ header could not be parsed: ${header.reason}.`, item.uri)
+        }
+      }
+    }
+    return
+  }
+  for (const item of state.rootContents) {
+    if (item.resolved === null || item.resolved.kind !== 'remote') continue
+    if (item.extension === 'spz') {
+      inspectIssue(state.issues, 'info', 'gaussian_splatting_ok', 'remote .spz content detected; its header is not read for remote files.', item.uri)
+      continue
+    }
+    if (inspectRemaining(deadline) <= 0) break
+    try {
+      const { response } = await inspectFetchRemote(item.resolved.value, deadline, 'HEAD')
+      const reported = Number(response.headers?.get?.('content-length'))
+      if (Number.isFinite(reported) && reported > MAX_INSPECT_CONTENT_BYTES) {
+        inspectIssue(state.issues, 'warn', 'content_too_large', `content file is ${reported} bytes: ${item.uri}`, item.uri)
+      }
+    } catch (error) {
+      const code = error instanceof InspectError ? error.code : 'internal'
+      inspectIssue(state.issues, 'warn', 'content_unreachable', `content file could not be reached (${code}): ${item.uri}`, item.uri)
+    }
+  }
+}
+
+async function analyzeTileset(source, options = {}) {
+  // allowedDirs is a Set in the running plugin; an array keeps the analyser
+  // usable from tests and from any future caller.
+  const allowedDirs = options.allowedDirs instanceof Set || Array.isArray(options.allowedDirs) ? options.allowedDirs : []
+  const deep = options.deep === true
+  const runtime = normalizeInspectRuntime(options.runtime)
+  const deadline = Date.now() + INSPECT_FETCH_TIMEOUT_MS
+  let rootLocation
+  if (source.kind === 'local') {
+    const target = await inspectLocalPath(source.path, allowedDirs)
+    rootLocation = { kind: 'local', value: target, dir: dirname(target) }
+  } else {
+    if (blockedHost(source.url)) throw new InspectError('forbidden', 'the remote tileset URL points at a local or private address. Use a public http(s) URL.')
+    rootLocation = { kind: 'remote', value: source.url }
+  }
+  const state = {
+    tiles: 0,
+    contents: 0,
+    externalFiles: 0,
+    maxDepth: 0,
+    kinds: { b3dm: 0, glb: 0, pnts: 0, gaussianSplatting: false, spz: false },
+    extensionsUsed: new Set(),
+    extensionsRequired: new Set(),
+    issues: [],
+    contentRefs: [],
+    rootContents: [],
+    externalTilesets: [],
+    documents: 0,
+    spzCount: 0,
+  }
+  let rootDoc = null
+  let rootBytes = 0
+  const queue = [{ location: rootLocation, isRoot: true, label: source.kind === 'local' ? source.path : source.url }]
+  const seen = new Set()
+  while (queue.length > 0 && state.documents < MAX_INSPECT_TILESETS) {
+    const entry = queue.shift()
+    if (seen.has(entry.location.value)) continue
+    seen.add(entry.location.value)
+    let loaded
+    try {
+      if (entry.location.kind === 'local') {
+        // The entry path was already validated; every derived tileset JSON is
+        // re-checked against the allowlist and its realpath before it is read.
+        const target = entry.isRoot
+          ? entry.location.value
+          : await inspectAllowedLocalPath(entry.location.value, allowedDirs, { derived: true })
+        if (target === null) {
+          if (entry.isRoot) throw new InspectError('forbidden', INSPECT_FORBIDDEN_MESSAGE)
+          inspectIssue(state.issues, 'warn', 'content_unreachable', 'an external tileset is outside the folders the user opened in the panel; it was not read.')
+          continue
+        }
+        if (!entry.isRoot) entry.location = { ...entry.location, value: target, dir: dirname(target) }
+        loaded = await inspectReadLocalJson(target, deadline)
+      } else {
+        loaded = await inspectFetchRemote(entry.location.value, deadline)
+      }
+    } catch (error) {
+      if (entry.isRoot) throw error
+      const code = inspectExternalLoadIssueCode(error, entry.location)
+      inspectIssue(state.issues, 'error', code, `could not load an external tileset: ${error instanceof Error ? error.message : String(error)}`, entry.label)
+      continue
+    }
+    let doc
+    try {
+      doc = inspectParseJson(loaded.text, loaded.label)
+    } catch (error) {
+      if (entry.isRoot) throw error
+      inspectIssue(state.issues, 'error', 'invalid_json', `external tileset is not valid JSON: ${entry.label}`, entry.label)
+      continue
+    }
+    if (entry.isRoot) {
+      rootDoc = doc
+      rootBytes = loaded.bytes
+      inspectRootDocument(doc, entry.label, state)
+    }
+    state.documents += 1
+    if (Array.isArray(doc.extensionsUsed)) {
+      for (const extension of doc.extensionsUsed) if (typeof extension === 'string') state.extensionsUsed.add(extension)
+    }
+    if (Array.isArray(doc.extensionsRequired)) {
+      for (const extension of doc.extensionsRequired) if (typeof extension === 'string') state.extensionsRequired.add(extension)
+    }
+    const base = entry.location.kind === 'local' ? { kind: 'local', dir: entry.location.dir } : { kind: 'remote', url: entry.location.value }
+    const before = state.externalTilesets.length
+    const walked = inspectDocTiles(doc, entry.label, state, base, entry.isRoot)
+    if (walked.docDepth > state.maxDepth) state.maxDepth = walked.docDepth
+    for (const external of state.externalTilesets.slice(before)) queue.push({ ...external, isRoot: false })
+    state.externalTilesets.length = before
+  }
+  if (queue.length > 0) {
+    inspectIssue(state.issues, 'warn', 'too_large', `inspection stopped after ${MAX_INSPECT_TILESETS} tileset documents; deeper tilesets were not read.`)
+  }
+  for (const extension of [...state.extensionsRequired].sort()) {
+    if (!INSPECT_SUPPORTED_EXTENSIONS.has(extension)) {
+      inspectIssue(state.issues, 'warn', 'unsupported_extension', `the tileset requires extension "${extension}", which this inspection does not verify.`)
+    }
+  }
+  const hasSplatExtension = state.extensionsUsed.has('KHR_gaussian_splatting') || state.extensionsRequired.has('KHR_gaussian_splatting')
+  state.kinds.spz = state.spzCount > 0
+  state.kinds.gaussianSplatting = hasSplatExtension || state.kinds.spz
+  if (state.kinds.gaussianSplatting) {
+    inspectIssue(
+      state.issues,
+      'info',
+      'gaussian_splatting_ok',
+      hasSplatExtension ? 'KHR_gaussian_splatting extension detected; the panel can render these Gaussian splats.' : '.spz content detected (Gaussian splatting).',
+    )
+  }
+  if (deep) await inspectDeepContents(state, source, deadline, allowedDirs)
+  // The issue list itself stays at the limit; the truncation count is a
+  // separate field so `issues` never grows past MAX_INSPECT_ISSUES.
+  const droppedIssues = Number.isInteger(state.issues.dropped) ? state.issues.dropped : 0
+  const rootBoundingVolume = inspectBoundingVolume(rootDoc?.root?.boundingVolume)
+  const rootGeometricError = inspectRootGeometricError(rootDoc)
+  const ok = !state.issues.some((issue) => issue.level === 'error')
+  const scenes = isPlainObject(rootDoc) && Array.isArray(rootDoc.scenes) && rootDoc.scenes.length > 0
+    ? rootDoc.scenes.filter((scene) => isPlainObject(scene)).map((scene) => ({
+      geometricError: Number.isFinite(scene.geometricError) ? scene.geometricError : rootGeometricError,
+      tilesetCount: 1,
+    }))
+    : [{ geometricError: rootGeometricError, tilesetCount: 1 }]
+  const report = {
+    ok,
+    source: { kind: source.kind, label: inspectSourceLabel(source), bytes: rootBytes },
+    asset: {
+      version: typeof rootDoc?.asset?.version === 'string' ? rootDoc.asset.version : null,
+      minVersion: typeof rootDoc?.asset?.minVersion === 'string' ? rootDoc.asset.minVersion : null,
+      generator: typeof rootDoc?.asset?.generator === 'string' ? rootDoc.asset.generator : null,
+    },
+    root: {
+      geometricError: rootGeometricError,
+      boundingVolume: {
+        type: rootBoundingVolume?.type ?? null,
+        center: rootBoundingVolume?.center ?? null,
+        region: rootBoundingVolume?.region ?? null,
+      },
+      children: isPlainObject(rootDoc?.root) && Array.isArray(rootDoc.root.children) ? rootDoc.root.children.length : 0,
+      depth: state.maxDepth,
+    },
+    counts: {
+      tiles: state.tiles,
+      contents: state.contents,
+      externalFiles: state.externalFiles,
+      extensionsUsed: [...state.extensionsUsed].sort(),
+    },
+    kinds: state.kinds,
+    scenes,
+    issues: state.issues,
+  }
+  if (droppedIssues > 0) report.issuesDropped = droppedIssues
+  if (runtime !== null) report.runtime = runtime
+  return scrubToken(report)
+}
+
+/** Validate the root document: asset version, root tile and its refined values. */
+function inspectRootDocument(doc, label, state) {
+  const version = typeof doc.asset?.version === 'string' ? doc.asset.version.trim() : ''
+  if (version !== '' && !/^1(\.|$)/.test(version)) {
+    inspectIssue(state.issues, 'error', 'asset_version_unsupported', `asset.version "${version}" is not supported; this panel targets 3D Tiles 1.x.`, `${label}:asset.version`)
+  }
+  const root = isPlainObject(doc.root) ? doc.root : null
+  if (root === null && (!Array.isArray(doc.tiles) || doc.tiles.length === 0)) {
+    inspectIssue(state.issues, 'error', 'no_root', 'the tileset has neither a root tile nor a tiles array.', label)
+    return
+  }
+  if (root !== null) {
+    if (!Object.hasOwn(root, 'geometricError')) {
+      inspectIssue(state.issues, 'warn', 'no_geometric_error', 'the root tile has no geometricError, so refinement distances are undefined.', `${label}:root`)
+    } else if (typeof root.geometricError !== 'number' || !Number.isFinite(root.geometricError) || root.geometricError < 0) {
+      inspectIssue(state.issues, 'error', 'geometric_error_invalid', 'the root tile geometricError must be a finite number >= 0.', `${label}:root`)
+    }
+    if (inspectBoundingVolume(root.boundingVolume) === null) {
+      inspectIssue(state.issues, 'error', 'bounding_volume_invalid', 'the root tile needs a boundingVolume with a box, region or sphere.', `${label}:root.boundingVolume`)
+    }
+  }
+}
+
+/** Write the report JSON, then keep only the newest reports. The absolute path is
+ * added to the report itself as well, so the panel can copy it from either place. */
+async function writeInspectReport(report) {
+  await fs.mkdir(REPORT_DIR, { recursive: true })
+  const base = `${inspectTimestamp()}-${inspectSlug(report.source?.label)}`
+  let handle
+  let target
+  // `wx` makes create-or-fail atomic, so two inspections in the same second get
+  // different files instead of racing between exists() and writeFile().
+  for (let attempt = 0; attempt < 100; attempt += 1) {
+    target = join(REPORT_DIR, attempt === 0 ? `${base}.json` : `${base}-${attempt + 1}.json`)
+    try {
+      handle = await fs.open(target, 'wx')
+      break
+    } catch (error) {
+      if (error?.code !== 'EEXIST') throw error
+    }
+  }
+  if (handle === undefined) throw new InspectError('internal', 'could not create a unique inspection report file.')
+  report.reportPath = target
+  try {
+    await handle.writeFile(`${JSON.stringify(report, null, 2)}\n`, 'utf8')
+  } finally {
+    await handle.close().catch(() => {})
+  }
+  try {
+    await pruneInspectReports()
+  } catch {
+    // Retention is best effort; the report itself already exists.
+  }
+  return report
+}
+
+/** Keep the newest 100 report files, deleting the oldest first. */
+async function pruneInspectReports() {
+  let names
+  try {
+    names = await fs.readdir(REPORT_DIR)
+  } catch {
+    return
+  }
+  const reports = names.filter((name) => /^\d{8}-\d{6}-.+\.json$/.test(name))
+  if (reports.length <= MAX_INSPECT_REPORTS) return
+  const stats = await Promise.all(reports.map(async (name) => {
+    try {
+      return { name, stat: await fs.stat(join(REPORT_DIR, name)) }
+    } catch {
+      return null
+    }
+  }))
+  const present = stats.filter((item) => item !== null).sort((a, b) => b.stat.mtimeMs - a.stat.mtimeMs || b.name.localeCompare(a.name))
+  for (const item of present.slice(MAX_INSPECT_REPORTS)) {
+    try {
+      await fs.rm(join(REPORT_DIR, item.name), { force: true })
+    } catch {
+      // Best effort only.
+    }
+  }
+}
+
+/** POST /api/3dviewer/inspect: the panel's data health check endpoint. */
+async function inspectHandler(req, res, allowedDirs) {
+  if (req.method !== 'POST') return sendText(res, 405, 'method not allowed')
+  let parsed
+  try {
+    parsed = new URL(req.url ?? '/', 'http://localhost')
+  } catch {
+    return sendText(res, 400, 'bad request')
+  }
+  if (parsed.searchParams.get('token') !== TOKEN) return sendText(res, 403, 'forbidden')
+  if (req.headers?.[PANEL_HEADER] !== '1') return sendText(res, 403, 'inspect requests must come from the panel')
+  let body = ''
+  try {
+    for await (const chunk of req) {
+      body += chunk
+      if (Buffer.byteLength(body, 'utf8') > MAX_INSPECT_BODY) {
+        req.destroy()
+        return sendInspectFailure(res, 'too_large', `inspect request body exceeds ${MAX_INSPECT_BODY / 1024} KiB.`)
+      }
+    }
+  } catch {
+    return sendInspectFailure(res, 'invalid_json', 'could not read the inspect request body.')
+  }
+  let payload
+  try {
+    payload = JSON.parse(body)
+  } catch {
+    return sendInspectFailure(res, 'invalid_json', 'inspect request body is not valid JSON.')
+  }
+  if (!isPlainObject(payload)) return sendInspectFailure(res, 'invalid_source', 'inspect request body must be a JSON object.')
+  if (payload.deep !== undefined && typeof payload.deep !== 'boolean') {
+    return sendInspectFailure(res, 'invalid_source', 'inspect "deep" must be true or false.')
+  }
+  if (payload.runtime !== undefined && payload.runtime !== null && normalizeInspectRuntime(payload.runtime) === null) {
+    return sendInspectFailure(res, 'invalid_source', 'inspect "runtime" must contain numeric tiles/pending/triangles/memory counters.')
+  }
+  let source
+  try {
+    source = normalizeInspectSource(payload.source)
+  } catch (error) {
+    return sendInspectFailure(res, error instanceof InspectError ? error.code : 'invalid_source', error instanceof Error ? error.message : String(error))
+  }
+  try {
+    const report = await analyzeTileset(source, {
+      deep: payload.deep === true,
+      runtime: payload.runtime,
+      allowedDirs,
+    })
+    await writeInspectReport(report)
+    sendJson(res, 200, scrubToken({ ok: true, reportPath: report.reportPath, report }))
+  } catch (error) {
+    if (error instanceof InspectError) return sendInspectFailure(res, error.code, error.message)
+    sendInspectFailure(res, 'internal', error instanceof Error ? error.message : String(error))
+  }
+}
+
+function sendInspectFailure(res, code, message) {
+  const status = INSPECT_FAILURE_STATUS[code] ?? 502
+  sendJson(res, status, { ok: false, code, error: scrubToken(typeof message === 'string' ? message : 'inspection failed') })
+}
+
 /** Percent-encoded pathname of a request; the router hands route handlers only (req, res). */
 function requestPath(req) {
   try {
@@ -471,6 +1217,41 @@ function requestPath(req) {
 function subPath(pathname, prefix) {
   if (pathname === prefix) return ''
   if (pathname.startsWith(`${prefix}/`)) return pathname.slice(prefix.length + 1)
+  return null
+}
+
+/**
+ * Query string of the request target, read from the raw request line so encoded
+ * separators stay intact. The panel appends a remote URL's `?query` after the
+ * encoded path; it belongs to the upstream URL, not to the final path segment.
+ */
+function requestQuery(req) {
+  const raw = typeof req.url === 'string' ? req.url : ''
+  const mark = raw.indexOf('?')
+  if (mark < 0) return ''
+  return raw.slice(mark + 1)
+}
+
+/**
+ * Reject a proxy query that could make the host issue a malformed or unsafe
+ * upstream request. Returns `{ status, message }`, or `null` when it is fine.
+ */
+function remoteQueryDenial(query) {
+  if (query.length > MAX_REMOTE_QUERY) {
+    return { status: 400, message: `remote query string is longer than ${MAX_REMOTE_QUERY} characters` }
+  }
+  let decoded
+  try {
+    decoded = decodeURIComponent(query)
+  } catch {
+    return { status: 403, message: 'remote query string is not valid percent-encoding' }
+  }
+  // CRLF would break out of a header if a future upstream ever echoed the query
+  // into one, and other control characters have no place in a tile URL. Check
+  // both the raw text and its decoded form (`%0d%0a` must not slip through).
+  if (/[\u0000-\u001f\u007f-\u009f]/.test(query) || /[\u0000-\u001f\u007f-\u009f]/.test(decoded)) {
+    return { status: 403, message: 'remote query string must not contain control characters' }
+  }
   return null
 }
 
@@ -515,6 +1296,9 @@ function metaHandler(req, res) {
     team: { name: ABOUT.team.name, url: ABOUT.team.url },
     bridgeUrl: BRIDGE_ROUTE,
     captureUrl: CAPTURE_ROUTE,
+    // The panel posts data health check requests here; it needs the URL because
+    // the page no longer guesses routes from scanUrl.
+    inspectUrl: INSPECT_ROUTE,
   })
 }
 
@@ -656,7 +1440,17 @@ async function remoteHandler(req, res) {
     if (decoded === null || decoded.includes('\0')) return sendText(res, 403, 'forbidden')
     relParts.push(decoded)
   }
-  const target = `${origin}/${relParts.join('/')}`
+  // The query is forwarded to the upstream URL as-is, never decoded into the
+  // path segments above.
+  const query = requestQuery(req)
+  if (query !== '') {
+    const denial = remoteQueryDenial(query)
+    if (denial !== null) return sendText(res, denial.status, denial.message)
+  }
+  const target = `${origin}/${relParts.join('/')}${query === '' ? '' : `?${query}`}`
+  // Re-check the final URL: a malformed target or a query that made the parser
+  // pick a different host must never reach the network.
+  if (blockedHost(target)) return sendText(res, 403, 'forbidden')
   try {
     // Redirects are refused: a harmless host could otherwise bounce the proxy
     // to a loopback/private address that `blockedHost` already rejected.
@@ -679,7 +1473,7 @@ const SCENE_TOOL_NAME = 'earth_scene'
 const CAPTURE_TOOL_NAME = 'earth_capture'
 const SCENE_RENDER_LIMIT = 4096
 const CAPTURE_NOTE = 'Image file written. If this model can read images, call read_image with this path; otherwise rely on earth_scene status JSON.'
-const PANEL_CLOSED_MESSAGE = '数字地球面板未打开：请点击聊天标题栏右侧的地球按钮（或在对话中输入“打开数字地球”）。'
+const PANEL_CLOSED_MESSAGE = 'The Digital Earth panel is not open in this conversation. Ask the user to click the earth button in the chat header to open it, then retry.'
 const SESSION_FALLBACK_NOTE = 'No session id was supplied by this tool call; the only connected digital earth panel session was used.'
 
 const SCENE_ACTIONS = {
@@ -693,6 +1487,7 @@ const SCENE_ACTIONS = {
   fly: ['lon', 'lat', 'height', 'heading', 'pitch', 'duration'],
   reset: [],
   pick: [],
+  inspect: ['layer', 'path', 'url', 'deep'],
 }
 const SCENE_ACTION_NAMES = Object.keys(SCENE_ACTIONS)
 const CAPTURE_ARG_NAMES = new Set(['width', 'format', 'include_hud', 'label'])
@@ -711,15 +1506,19 @@ const SCENE_PARAMETERS = {
     },
     url: {
       type: 'string',
-      description: 'load: absolute http(s) URL of a tileset.json; exactly one of url or path.',
+      description: 'load: absolute http(s) URL of a tileset.json; exactly one of url or path. inspect: absolute http(s) tileset.json URL to analyze; it works while the panel is closed.',
     },
     path: {
       type: 'string',
-      description: 'load: absolute path of a tileset.json inside a folder the user opened in the panel; exactly one of url or path.',
+      description: 'load: absolute path of a tileset.json inside a folder the user opened in the panel; exactly one of url or path. inspect: absolute local tileset.json path to analyze; its containing folder must be one the user opened in the panel.',
     },
     layer: {
       type: 'string',
-      description: 'remove/visible: layer id from status.layers, or its exact name.',
+      description: 'remove/visible: layer id from status.layers, or its exact name. inspect: analyze this loaded layer after the panel resolves its source; the panel must be open.',
+    },
+    deep: {
+      type: 'boolean',
+      description: 'inspect: true also checks content files (local: existence and size of up to 200 contents; remote: reachability of root content). Default false.',
     },
     visible: {
       type: 'boolean',
@@ -745,8 +1544,8 @@ const SCENE_PARAMETERS = {
 }
 
 const SCENE_DESCRIPTION = [
-  'Read or change the interactive digital earth panel (CesiumJS) open in this conversation: 3D Tiles and Gaussian splat layers, imagery basemap, terrain and camera.',
-  'The panel must already be open; otherwise the call fails with an instruction you should relay to the user.',
+  'Read, change or health-check the interactive digital earth panel (CesiumJS) open in this conversation: 3D Tiles and Gaussian splat layers, imagery basemap, terrain and camera.',
+  'The panel must be open for the scene and capture actions; otherwise the call fails with an instruction you should relay to the user. inspect with path or url works while the panel is closed.',
   '',
   'Actions:',
   '- status: returns view{lon,lat,height,heading,pitch}, layers, imagery, terrain, sources, viewport, snapshot and measureTool, plus busy state. Start here.',
@@ -759,8 +1558,9 @@ const SCENE_DESCRIPTION = [
   '- fly: move the camera.',
   '- reset: return to the global view.',
   '- pick: identify whatever is at the center of the view.',
+  '- inspect: static data health check of a tileset, without changing the scene. Pass layer (panel open; resolves that layer source and merges the panel runtime counters), or path/url of a tileset.json (works while the panel is closed); deep true also checks content files. Returns a compact summary plus a host report path; the full report stays on the host and in the panel.',
   '',
-  'Returns the panel JSON result for the action; that result is the authoritative scene state.',
+  'Returns the panel JSON result for the scene actions; that result is the authoritative scene state. inspect returns a compact data_health summary with report_path.',
 ].join('\n')
 
 const CAPTURE_PARAMETERS = {
@@ -798,14 +1598,14 @@ const CAPTURE_DESCRIPTION = [
 ].join('\n')
 
 const SYSTEM_PROMPT_SECTION = [
-  'The Web UI has an interactive digital earth panel (CesiumJS) that renders 3D Tiles, Gaussian splats, imagery basemaps and terrain. Control it with earth_scene and earth_capture.',
+  'The Web UI has an interactive digital earth panel (CesiumJS) rendering 3D Tiles, Gaussian splats, imagery and terrain. Control it with earth_scene and earth_capture.',
   '',
-  '- The panel must be open in this conversation first (earth button in the chat header). When it is not, the tools return an actionable error; relay that instruction instead of retrying blindly.',
-  '- Call earth_scene with action "status" before changing anything, so changes build on the real camera, layers and sources; "list" is the lighter variant.',
-  '- Local data can be loaded only from a folder the user opened once in the panel, because the host keeps an allowlist. Never guess an absolute path. If a local load is refused, ask the user to open the folder from the panel data setting, then retry.',
-  '- earth_scene actions: status, list, load, remove, visible, basemap, terrain, fly, reset, pick.',
-  '- earth_capture saves a screenshot to the host and returns its absolute path; by default it follows the panel screenshot setting (usually the HUD stays hidden). If the model can read images, call read_image on that path; otherwise rely on earth_scene status JSON. Never describe scene content you did not receive.',
-  '- Report only the state the tools returned; never claim data is loaded or visible when the result does not say so.',
+  '- Open the panel in this conversation first (earth button in chat header); otherwise tools return an actionable error — relay it, do not retry blindly.',
+  '- Call earth_scene "status" before changing anything so changes build on the real camera, layers and sources; "list" is the lighter variant.',
+  '- Local data loads only from a folder the user opened once in the panel (host allowlist); never guess an absolute path. If refused, ask the user to open that folder in the panel data setting, then retry.',
+  '- earth_scene actions: status, list, load, remove, visible, basemap, terrain, fly, reset, pick, inspect. Use inspect to health-check a tileset (a loaded layer, or a path/url that works while the panel is closed) before debugging rendering or after loading suspect data.',
+  '- earth_capture saves a screenshot and returns its absolute path; by default it follows the panel screenshot setting (usually hidden HUD). If this model reads images, call read_image on that path; otherwise rely on earth_scene status JSON. Never describe scene content you did not receive.',
+  '- Report only state the tools returned; never claim data is loaded or visible otherwise.',
 ].join('\n')
 
 const isHttpUrl = (value) => {
@@ -914,6 +1714,31 @@ function normalizeSceneRequest(raw) {
           throw sceneError(`fly "${key}" must be a finite number.`)
         }
         args[key] = raw[key]
+      }
+      break
+    }
+    case 'inspect': {
+      for (const key of ['url', 'path', 'layer']) {
+        if (raw[key] !== undefined && typeof raw[key] !== 'string') throw sceneError(`inspect "${key}" must be a string.`)
+      }
+      const url = typeof raw.url === 'string' ? raw.url.trim() : ''
+      const path = typeof raw.path === 'string' ? raw.path.trim() : ''
+      const layer = typeof raw.layer === 'string' ? raw.layer.trim() : ''
+      const given = [url !== '', path !== '', layer !== ''].filter((item) => item).length
+      if (given === 0) throw sceneError('inspect needs exactly one of "layer" (a layer loaded in the panel), "path" (local tileset.json) or "url" (http(s) tileset.json).')
+      if (given > 1) throw sceneError('inspect takes exactly one of "layer", "path" or "url", not several.')
+      if (url !== '') {
+        if (!isHttpUrl(url)) throw sceneError(`inspect "url" must be an absolute http(s) URL, got ${JSON.stringify(url)}.`)
+        args.url = url
+      } else if (path !== '') {
+        if (!isAbsolute(path)) throw sceneError('inspect "path" must be an absolute path to a tileset.json.')
+        args.path = path
+      } else {
+        args.layer = layer
+      }
+      if (raw.deep !== undefined) {
+        if (typeof raw.deep !== 'boolean') throw sceneError('inspect "deep" must be true or false.')
+        args.deep = raw.deep
       }
       break
     }
@@ -1389,7 +2214,11 @@ function renderSceneResult(value) {
 function renderCaptureResult(value) {
   const lines = [`Captured image: ${value.path}`]
   const dimensions = Number.isInteger(value.width) && Number.isInteger(value.height) ? `${value.width}x${value.height} px, ` : ''
-  const hud = value.hud_hidden === true ? '; HUD and toolbars hidden' : ''
+  const hud = value.hud_hidden === true
+    ? '; HUD and toolbars hidden'
+    : value.hud_hidden === false
+      ? '; HUD visible in the image'
+      : ''
   lines.push(`${dimensions}${value.bytes} bytes${hud}.`)
   const context = []
   const camera = value.camera !== null && typeof value.camera === 'object' && !Array.isArray(value.camera) ? value.camera : null
@@ -1404,17 +2233,136 @@ function renderCaptureResult(value) {
   return lines.join('\n')
 }
 
-function createSceneTool(bridge) {
+/** Model-facing error text for an inspection failure, always with a next step. */
+function inspectToolError(error) {
+  if (!(error instanceof InspectError)) return error instanceof Error ? error.message : String(error)
+  switch (error.code) {
+    case 'forbidden': return error.message
+    case 'invalid_source': return `The inspect source is not valid: ${error.message}`
+    case 'invalid_json': return 'The tileset JSON is malformed, so it cannot be analyzed. Fix or replace the file, then retry.'
+    case 'too_large': return 'The tileset JSON is larger than the 8 MB inspection limit. Inspect a smaller or split tileset.'
+    case 'unreachable': return `The tileset could not be fetched: ${error.message} Check the URL and network, then retry.`
+    case 'timeout': return 'The data inspection timed out after 8 s. Retry, or inspect a local tileset instead.'
+    default: return `The data inspection failed: ${error.message}`
+  }
+}
+
+/** Compact tool value: the full report stays on the host and in the panel. */
+function inspectToolValue(report, layer) {
+  const value = {
+    operation: 'inspect',
+    ok: report.ok,
+    source: report.source,
+    asset: report.asset,
+    root: report.root,
+    counts: report.counts,
+    kinds: report.kinds,
+    scenes: report.scenes,
+    issues: report.issues.slice(0, 10),
+    issues_total: report.issues.length,
+    report_path: report.reportPath,
+  }
+  if (Number.isInteger(report.issuesDropped) && report.issuesDropped > 0) value.issues_dropped = report.issuesDropped
+  if (report.runtime !== undefined) value.runtime = report.runtime
+  if (typeof layer === 'string' && layer !== '') value.layer = layer
+  return scrubToken(value)
+}
+
+async function inspectSceneAction(bridge, allowedDirs, args, exec) {
+  let source
+  let runtime = null
+  let layer = null
+  let fallback = false
+  if (typeof args.layer === 'string') {
+    const target = resolveSessionTarget(bridge, exec)
+    if (target === null) throw new Error(PANEL_CLOSED_MESSAGE)
+    fallback = target.fallback === true
+    const ack = asResultObject(await bridge.run(target.sessionId, 'inspect', { layer: args.layer, deep: args.deep === true }, INSPECT_BRIDGE_TIMEOUT_MS, exec.signal))
+    layer = typeof ack.layer === 'string' && ack.layer.trim() !== '' ? ack.layer.trim() : args.layer
+    try {
+      source = normalizeInspectSource(ack.source)
+    } catch {
+      throw sceneError('the panel could not resolve this layer to a local path or an http(s) URL. Reload the layer in the panel, then retry.')
+    }
+    runtime = normalizeInspectRuntime(ack.runtime)
+  } else {
+    source = typeof args.path === 'string' ? { kind: 'local', path: resolve(args.path) } : { kind: 'remote', url: args.url }
+  }
+  let report
+  try {
+    report = await analyzeTileset(source, { deep: args.deep === true, runtime, allowedDirs })
+    await writeInspectReport(report)
+  } catch (error) {
+    throw sceneError(inspectToolError(error))
+  }
+  const value = inspectToolValue(report, layer)
+  if (fallback) value.session_fallback = SESSION_FALLBACK_NOTE
+  return value
+}
+
+function renderInspectResult(value) {
+  const source = isPlainObject(value.source) ? value.source : {}
+  const kind = typeof source.kind === 'string' ? source.kind : 'unknown'
+  const label = typeof source.label === 'string' ? source.label : ''
+  const bytes = Number.isFinite(source.bytes) ? `, ${source.bytes} bytes` : ''
+  const lines = [`Data health: ok=${value.ok === true ? 'true' : 'false'} (${kind}${label !== '' ? ` ${label}` : ''}${bytes}).`]
+  const asset = isPlainObject(value.asset) ? value.asset : {}
+  const assetParts = []
+  if (typeof value.layer === 'string') assetParts.push(`layer=${value.layer}`)
+  assetParts.push(`version=${asset.version ?? 'unknown'}`)
+  if (typeof asset.minVersion === 'string') assetParts.push(`minVersion=${asset.minVersion}`)
+  if (typeof asset.generator === 'string') assetParts.push(`generator=${asset.generator}`)
+  lines.push(`Asset: ${assetParts.join(', ')}.`)
+  const root = isPlainObject(value.root) ? value.root : {}
+  const boundingType = isPlainObject(root.boundingVolume) && typeof root.boundingVolume.type === 'string' ? root.boundingVolume.type : 'none'
+  lines.push(`Root: geometricError=${root.geometricError ?? 'null'}, boundingVolume=${boundingType}, children=${Number.isInteger(root.children) ? root.children : 0}, depth=${Number.isInteger(root.depth) ? root.depth : 0}.`)
+  const counts = isPlainObject(value.counts) ? value.counts : {}
+  const extensions = Array.isArray(counts.extensionsUsed) && counts.extensionsUsed.length > 0 ? `, extensions=[${counts.extensionsUsed.join(', ')}]` : ''
+  lines.push(`Counts: tiles=${counts.tiles ?? 0}, contents=${counts.contents ?? 0}, externalFiles=${counts.externalFiles ?? 0}${extensions}.`)
+  const kinds = isPlainObject(value.kinds) ? value.kinds : {}
+  lines.push(`Kinds: b3dm=${kinds.b3dm ?? 0}, glb=${kinds.glb ?? 0}, pnts=${kinds.pnts ?? 0}, gaussianSplatting=${kinds.gaussianSplatting === true ? 'true' : 'false'}, spz=${kinds.spz === true ? 'true' : 'false'}.`)
+  const runtime = isPlainObject(value.runtime) ? value.runtime : null
+  if (runtime !== null) {
+    const parts = ['tiles', 'pending', 'triangles', 'memory'].filter((key) => Number.isFinite(runtime[key])).map((key) => `${key}=${runtime[key]}`)
+    if (parts.length > 0) lines.push(`Panel runtime: ${parts.join(', ')}.`)
+  }
+  const issues = Array.isArray(value.issues) ? value.issues : []
+  const total = Number.isInteger(value.issues_total) ? value.issues_total : issues.length
+  if (issues.length === 0) {
+    lines.push('Issues: none.')
+  } else {
+    lines.push(`Issues (${issues.length} of ${total}):`)
+    for (const issue of issues) {
+      if (!isPlainObject(issue)) continue
+      const level = typeof issue.level === 'string' ? issue.level : 'info'
+      const code = typeof issue.code === 'string' ? issue.code : 'unknown'
+      const message = typeof issue.message === 'string' ? issue.message : ''
+      const path = typeof issue.path === 'string' && issue.path !== '' ? ` (${issue.path})` : ''
+      lines.push(`- [${level}] ${code}: ${message}${path}`)
+    }
+  }
+  if (total > issues.length) lines.push(`... ${total - issues.length} more issues are in the report file.`)
+  const dropped = Number.isInteger(value.issues_dropped) ? value.issues_dropped : 0
+  if (dropped > 0) lines.push(`... ${dropped} further issues were omitted at the ${MAX_INSPECT_ISSUES}-issue limit.`)
+  if (typeof value.report_path === 'string') lines.push(`Report: ${value.report_path}`)
+  return lines.join('\n')
+}
+
+function createSceneTool(bridge, allowedDirs) {
   return {
     name: SCENE_TOOL_NAME,
     description: SCENE_DESCRIPTION,
     parameters: SCENE_PARAMETERS,
     output: {
       schema: { type: 'object' },
-      render: (_args, value) => [{ type: 'text', text: renderSceneResult(value) }],
+      render: (_args, value) => [{
+        type: 'text',
+        text: isPlainObject(value) && value.operation === 'inspect' ? renderInspectResult(value) : renderSceneResult(value),
+      }],
     },
     async execute(args, exec = {}) {
       const request = normalizeSceneRequest(args)
+      if (request.action === 'inspect') return inspectSceneAction(bridge, allowedDirs, request.args, exec)
       const target = resolveSessionTarget(bridge, exec)
       if (target === null) throw new Error(PANEL_CLOSED_MESSAGE)
       const value = scrubToken(asResultObject(await bridge.run(target.sessionId, request.action, request.args, SCENE_TIMEOUT_MS, exec.signal)))
@@ -1450,11 +2398,11 @@ function createCaptureTool(bridge) {
  * host provides the tools and system-prompt services, so the panel HTTP API
  * keeps working in a build without an agent runtime.
  */
-function mountAgentTools(ctx, bridge) {
+function mountAgentTools(ctx, bridge, allowedDirs) {
   ctx.inject(['tools', 'systemPrompt'], (scope) => {
     scope.effect(() => {
       const disposers = [
-        scope.tools.register(createSceneTool(bridge)),
+        scope.tools.register(createSceneTool(bridge, allowedDirs)),
         scope.tools.register(createCaptureTool(bridge)),
         scope.systemPrompt.section({
           name: 'plugin:digital-earth',
@@ -1542,6 +2490,7 @@ export function apply(ctx) {
       ),
       register('exact', BRIDGE_ROUTE, bridgeHandler(bridge)),
       register('exact', CAPTURE_ROUTE, captureHandler),
+      register('exact', INSPECT_ROUTE, (req, res) => inspectHandler(req, res, allowedDirs)),
       register('prefix', FILES_ROUTE, capturesHandler),
     ]
     return () => {
@@ -1552,6 +2501,6 @@ export function apply(ctx) {
     }
   }, 'digital-earth api routes')
 
-  mountAgentTools(ctx, bridge)
+  mountAgentTools(ctx, bridge, allowedDirs)
 }
 

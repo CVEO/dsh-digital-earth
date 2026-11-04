@@ -72,6 +72,7 @@ window.__ModuleLoader__.load({
         'hud.pointer': '光标',
         'hud.center': '视线中心',
         'hud.camera': '相机高度',
+        'hud.cameraPos': '相机位置',
         'hud.heading': '朝向',
         'hud.tiles': '瓦片',
         'hud.pending': '待加载',
@@ -173,6 +174,35 @@ window.__ModuleLoader__.load({
         'about.agent': 'Agent 集成',
         'about.agent.on': '已连接，可被对话调用',
         'about.agent.off': '面板打开后自动连接',
+        'about.agent.stale': '连接已断开，刷新页面后自动重连',
+        'btn.health': '数据体检',
+        'health.title': '数据体检',
+        'health.loading': '正在体检数据…',
+        'health.failed': '体检失败：{message}',
+        'health.noSource': '该图层没有可体检的数据来源，请重新加载后再试。',
+        'health.source': '来源',
+        'health.sourceLabel': '图层',
+        'health.kind.local': '本地',
+        'health.kind.remote': '远程',
+        'health.assetVersion': '资产版本',
+        'health.tiles': '瓦片数',
+        'health.contents': '内容数',
+        'health.depth': 'LOD 深度',
+        'health.extensions': '扩展',
+        'health.rootError': '根几何误差',
+        'health.boundingVolume': '包围体',
+        'health.reportPath': '报告路径',
+        'health.copy': '复制路径',
+        'health.copied': '报告路径已复制',
+        'health.copyFailed': '复制失败，请手动选择报告路径',
+        'health.issues': '问题',
+        'health.noIssues': '未发现数据问题',
+        'health.runtime': '当前运行统计',
+        'health.level.error': '错误',
+        'health.level.warn': '警告',
+        'health.level.info': '提示',
+        'health.unknown': '—',
+        'agent.unknownSource': '无法确定图层「{name}」的数据来源：请重新加载该图层后再体检。',
         'agent.notReady': '三维引擎尚未就绪，请稍后再试。',
         'agent.hiddenPanel': '数字地球面板当前不可见（已切到别的页签或窗口在后台），无法渲染截图。请先切到右侧「数字地球」页签、保持窗口在前台，再重试。',
         'agent.captureTooLarge': '截图体积超过上限，请降低 width 后重试。',
@@ -231,6 +261,7 @@ window.__ModuleLoader__.load({
         'hud.pointer': 'Cursor',
         'hud.center': 'View centre',
         'hud.camera': 'Camera',
+        'hud.cameraPos': 'Camera position',
         'hud.heading': 'Heading',
         'hud.tiles': 'Tiles',
         'hud.pending': 'Pending',
@@ -332,6 +363,35 @@ window.__ModuleLoader__.load({
         'about.agent': 'Agent integration',
         'about.agent.on': 'Connected and callable from chat',
         'about.agent.off': 'Connects when the panel opens',
+        'about.agent.stale': 'Connection lost; reload the page to reconnect',
+        'btn.health': 'Data check',
+        'health.title': 'Data health check',
+        'health.loading': 'Checking the dataset…',
+        'health.failed': 'Data check failed: {message}',
+        'health.noSource': 'This layer has no inspectable source; reload it and try again.',
+        'health.source': 'Source',
+        'health.sourceLabel': 'Layer',
+        'health.kind.local': 'Local',
+        'health.kind.remote': 'Remote',
+        'health.assetVersion': 'Asset version',
+        'health.tiles': 'Tiles',
+        'health.contents': 'Contents',
+        'health.depth': 'LOD depth',
+        'health.extensions': 'Extensions',
+        'health.rootError': 'Root geometric error',
+        'health.boundingVolume': 'Bounding volume',
+        'health.reportPath': 'Report path',
+        'health.copy': 'Copy path',
+        'health.copied': 'Report path copied',
+        'health.copyFailed': 'Copy failed; select the report path manually',
+        'health.issues': 'Issues',
+        'health.noIssues': 'No data issues found',
+        'health.runtime': 'Current runtime statistics',
+        'health.level.error': 'Error',
+        'health.level.warn': 'Warning',
+        'health.level.info': 'Info',
+        'health.unknown': '—',
+        'agent.unknownSource': 'Cannot determine the data source of layer "{name}"; reload the layer and inspect it again.',
         'agent.notReady': 'The 3D engine is not ready yet; retry in a moment.',
         'agent.hiddenPanel':
           'The Digital Earth panel is not visible (another tab is selected or the window is in the background), so no frame can be rendered. Switch to the Digital Earth tab in the right sidebar, keep the window in the foreground, then retry.',
@@ -353,7 +413,7 @@ window.__ModuleLoader__.load({
 
     /** About-tab fallbacks used before the Host meta payload arrives. */
     const FALLBACK_ABOUT = {
-      version: '1.1.0',
+      version: '1.2.0',
       homepage: 'https://github.com/CVEO/dsh-digital-earth',
       teamUrl: 'https://www.whu-cveo.com/',
     }
@@ -904,8 +964,7 @@ window.__ModuleLoader__.load({
 .mv-field.check input{appearance:auto;width:13px;height:13px;padding:0;margin:0}
 .mv-dialog .footer{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 14px;border-top:.5px solid var(--mv-line)}
 .mv-dialog .footer .right{display:flex;gap:8px}
-.mv-team{margin-left:8px;color:var(--mv-dim);font-size:10.5px;letter-spacing:.2px;text-decoration:none;opacity:.72;transition:opacity .15s,color .15s}
-.mv-team:hover,.mv-team:focus-visible{opacity:1;color:var(--mv-accent)}
+
 .mv-seg{display:flex;gap:2px;padding:3px;border:.5px solid var(--mv-line);border-radius:9px;background:var(--mv-input)}
 .mv-seg button{appearance:none;border:0;background:transparent;color:var(--mv-dim);font:inherit;font-size:11.5px;padding:6px 12px;border-radius:6px;cursor:pointer;flex:1}
 .mv-seg button.on{background:color-mix(in srgb,var(--mv-accent) 22%,transparent);color:var(--mv-text)}
@@ -927,6 +986,25 @@ window.__ModuleLoader__.load({
 .mv-toggle .text b{font-size:12px;font-weight:600}
 .mv-toggle .text span{color:var(--mv-dim);font-size:10.5px;line-height:1.5}
 .mv-toggle input{appearance:auto;width:15px;height:15px;flex:none;margin:0;cursor:pointer}
+.mv-health{width:min(680px,94%)}
+.mv-health-loading{display:flex;flex-direction:column;align-items:center;gap:12px;padding:18px 0}
+.mv-health-rows{display:flex;flex-direction:column;gap:5px}
+.mv-health-rows .row{display:flex;gap:10px;font-size:12px;line-height:1.5}
+.mv-health-rows .key{width:112px;flex:none;color:var(--mv-dim);font-size:11px}
+.mv-health-rows .value{min-width:0;word-break:break-all}
+.mv-health-section{display:flex;flex-direction:column;gap:6px;border-top:.5px solid var(--mv-line);padding-top:8px}
+.mv-health-section>b{font-size:12px}
+.mv-health-runtime{font-size:11.5px;color:var(--mv-dim);line-height:1.6}
+.mv-health .issues{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:5px;max-height:220px;overflow:auto}
+.mv-health .issues li{display:flex;gap:8px;align-items:baseline;font-size:11.5px;line-height:1.55}
+.mv-health .issues .badge{flex:none;font-size:10px;padding:1px 6px;border-radius:999px;border:.5px solid var(--mv-line);color:var(--mv-dim)}
+.mv-health .issues .lvl-error .badge{color:#ff8b8b;border-color:rgba(255,139,139,.45)}
+.mv-health .issues .lvl-warn .badge{color:#ffc46b;border-color:rgba(255,196,107,.45)}
+.mv-health .issues code{flex:none;color:var(--mv-accent);font-size:10.5px}
+.mv-health .issues .msg{color:var(--mv-dim);word-break:break-word}
+.mv-health-path{display:flex;align-items:center;gap:8px;border-top:.5px solid var(--mv-line);padding-top:8px;font-size:11px}
+.mv-health-path .key{flex:none;color:var(--mv-dim)}
+.mv-health-path code{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--mv-text);direction:rtl;text-align:left}
 `
 
     //#region sources dialog ---------------------------------------------------
@@ -1090,7 +1168,7 @@ window.__ModuleLoader__.load({
       )
     }
 
-    function SourcesDialog({ config, defaults, environmentDark, themeMode, onPickLocal, onSave, onClose, messages, meta, bridgeOn }) {
+    function SourcesDialog({ config, defaults, environmentDark, themeMode, onPickLocal, onSave, onClose, messages, meta, bridgeOn, bridgeReload }) {
       const t = messages
       const [draft, setDraft] = React.useState(() => clone(config))
       const [tab, setTab] = React.useState('imagery')
@@ -1284,7 +1362,7 @@ window.__ModuleLoader__.load({
           'div',
           { className: 'row' },
           h('span', { className: 'key' }, t('about.agent')),
-          h('span', null, bridgeOn ? t('about.agent.on') : t('about.agent.off')),
+          h('span', null, bridgeReload ? t('about.agent.stale') : bridgeOn ? t('about.agent.on') : t('about.agent.off')),
         ),
         h(
           'div',
@@ -1365,6 +1443,117 @@ window.__ModuleLoader__.load({
     }
     //#endregion sources dialog
 
+    //#region data health dialog ----------------------------------------------
+
+    /**
+     * Read-only report dialog for the Host data-health inspector. The panel
+     * never analyses tilesets itself: it posts the layer source and renders
+     * whatever the Host returns.
+     */
+    function HealthDialog({ state, messages: t, onClose, onCopy }) {
+      const report = state?.report ?? null
+      const issues = Array.isArray(report?.issues) ? report.issues : []
+      const extensions = Array.isArray(report?.counts?.extensionsUsed) ? report.counts.extensionsUsed : []
+      const kind = report?.source?.kind === 'remote' ? 'health.kind.remote' : 'health.kind.local'
+      const rows = report
+        ? [
+            ['health.source', `${t(kind)} · ${report.source?.label ?? t('health.unknown')}`],
+            ['health.assetVersion', report.asset?.version ?? t('health.unknown')],
+            ['health.tiles', String(report.counts?.tiles ?? 0)],
+            ['health.contents', String(report.counts?.contents ?? 0)],
+            ['health.depth', String(report.root?.depth ?? 0)],
+            ['health.rootError', String(report.root?.geometricError ?? t('health.unknown'))],
+            ['health.extensions', extensions.length > 0 ? extensions.join(', ') : t('health.unknown')],
+          ]
+        : []
+      const runtime = report?.runtime ?? null
+      const reportPath = state?.reportPath ?? report?.reportPath ?? ''
+      const body = state?.loading
+        ? h(
+            'div',
+            { className: 'mv-health-loading' },
+            h('div', { className: 'mv-spinner' }),
+            h('p', { className: 'mv-note' }, t('health.loading')),
+          )
+        : state?.error
+          ? h('p', { className: 'mv-note' }, t('health.failed', { message: state.error }))
+          : report
+            ? h(
+                'div',
+                { className: 'mv-health-body' },
+                h(
+                  'div',
+                  { className: 'mv-health-rows' },
+                  rows.map(([key, value]) =>
+                    h(
+                      'div',
+                      { className: 'row', key },
+                      h('span', { className: 'key' }, t(key)),
+                      h('span', { className: 'value' }, value),
+                    ),
+                  ),
+                ),
+                h(
+                  'div',
+                  { className: 'mv-health-section' },
+                  h('b', null, `${t('health.issues')} · ${issues.length}`),
+                  issues.length > 0
+                    ? h(
+                        'ul',
+                        { className: 'issues' },
+                        issues.map((issue, index) =>
+                          h(
+                            'li',
+                            { key: `${issue.code}-${index}`, className: `lvl-${issue.level}` },
+                            h('span', { className: 'badge' }, t(`health.level.${issue.level}`)),
+                            h('code', null, issue.code),
+                            h('span', { className: 'msg' }, issue.message),
+                          ),
+                        ),
+                      )
+                    : h('p', { className: 'mv-note' }, t('health.noIssues')),
+                ),
+                runtime
+                  ? h(
+                      'div',
+                      { className: 'mv-health-section' },
+                      h('b', null, t('health.runtime')),
+                      h(
+                        'div',
+                        { className: 'mv-health-runtime' },
+                        `${t('hud.tiles')} ${runtime.tiles ?? 0} · ${t('hud.pending')} ${runtime.pending ?? 0} · ${t('hud.triangles')} ${runtime.triangles ?? 0}`,
+                      ),
+                    )
+                  : null,
+                h(
+                  'div',
+                  { className: 'mv-health-path' },
+                  h('span', { className: 'key' }, t('health.reportPath')),
+                  h('code', { title: reportPath }, reportPath || t('health.unknown')),
+                  reportPath
+                    ? h('button', { type: 'button', className: 'mv-cta', onClick: onCopy }, t('health.copy'))
+                    : null,
+                ),
+              )
+            : null
+      return h(
+        'div',
+        { className: 'mv-modal', onPointerDown: (event) => event.target === event.currentTarget && onClose() },
+        h(
+          'div',
+          { className: 'mv-dialog mv-health', role: 'dialog', 'aria-modal': true },
+          h(
+            'header',
+            null,
+            h('b', null, state?.layer ? `${t('health.title')} · ${state.layer}` : t('health.title')),
+            h('button', { type: 'button', className: 'mv-icon-btn', onClick: onClose, title: t('btn.close') }, '✕'),
+          ),
+          h('div', { className: 'body' }, body),
+        ),
+      )
+    }
+    //#endregion data health dialog
+
     /** Immersive `main` panel: no Session, so the Agent bridge stays off. */
     function ViewerPanel(props) {
       return h(ViewerSurface, { t: props.t, sessionId: null, docked: false })
@@ -1403,6 +1592,7 @@ window.__ModuleLoader__.load({
       const captureReadoutRef = React.useRef(null)
       const commandChainRef = React.useRef(Promise.resolve())
       const commandRef = React.useRef(null)
+      const healthSeqRef = React.useRef(0)
       const sessionRef = React.useRef(sessionId)
       sessionRef.current = sessionId
 
@@ -1424,10 +1614,12 @@ window.__ModuleLoader__.load({
       const [openMenu, setOpenMenu] = React.useState(null)
       const [layersOpen, setLayersOpen] = React.useState(true)
       const [settingsOpen, setSettingsOpen] = React.useState(false)
+      const [health, setHealth] = React.useState(null)
       const [terrainBusy, setTerrainBusy] = React.useState(false)
       const [imageryBusy, setImageryBusy] = React.useState(false)
       const [meta, setMeta] = React.useState(null)
       const [bridgeOn, setBridgeOn] = React.useState(false)
+      const [bridgeReload, setBridgeReload] = React.useState(false)
       const [bridgeEpoch, setBridgeEpoch] = React.useState(0)
 
       const themeMode = sources?.settings?.theme ?? 'auto'
@@ -1503,7 +1695,9 @@ window.__ModuleLoader__.load({
           .split('/')
           .map((part) => encodeURIComponent(part))
           .join('/')
-        return `${meta.remoteBase}${b64url(parsed.origin)}/${path}`
+        // Signed tile URLs (and some WMS endpoints) carry their credentials in
+        // the query string; the proxy must forward it untouched.
+        return `${meta.remoteBase}${b64url(parsed.origin)}/${path}${parsed.search}`
       }
 
       const localPathToUrl = async (filePath) => {
@@ -1524,7 +1718,7 @@ window.__ModuleLoader__.load({
       }
 
       /** Add a 3D Tiles layer and fly to it; throws so the Agent can report failures. */
-      async function loadTileset(url, name) {
+      async function loadTileset(url, name, source = null) {
         const Cesium = cesiumRef.current
         const viewer = viewerRef.current
         if (!Cesium || !viewer) throw new Error(t('agent.notReady'))
@@ -1544,6 +1738,7 @@ window.__ModuleLoader__.load({
             id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
             name: label,
             url,
+            source,
             tileset,
             visible: true,
           }
@@ -1557,9 +1752,14 @@ window.__ModuleLoader__.load({
         }
       }
 
-      async function addTileset(url, name) {
+      /** Join a folder and a relative tileset path for the Host allowlist check. */
+      function joinLocalPath(dir, rel) {
+        return `${String(dir).replace(/[\\/]+$/, '')}/${String(rel).replace(/\\/g, '/')}`
+      }
+
+      async function addTileset(url, name, source = null) {
         try {
-          await loadTileset(url, name)
+          await loadTileset(url, name, source)
         } catch (error) {
           showToast(t('toast.loadFailed', { message: message(error) }))
         }
@@ -2009,7 +2209,7 @@ window.__ModuleLoader__.load({
           `${lastReadout ? t('hud.pointer') : t('hud.center')}  ${pointerText || t('hud.empty')}`,
           `${t('hud.camera')} ${cameraHeight} m · ${t('hud.heading')} ${heading}° · ${pitch}°`,
           `${t('hud.layers')} ${visibleCount}/${layersRef.current.length} · ${imagery?.name ?? '—'} · ${terrain?.name ?? '—'}`,
-          `Camera ${lon}, ${lat}`,
+          `${t('hud.cameraPos')} ${lon}, ${lat}`,
         ]
         const family = '"Segoe UI", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif'
         context.save()
@@ -2029,12 +2229,20 @@ window.__ModuleLoader__.load({
           context.fillText(line, boxX + padding, boxY + padding + index * lineGap)
         })
         const title = t('panel.title')
+        const aboutMeta = metaRef.current
+        const teamName = aboutMeta?.team?.name ?? t('about.teamName')
+        let teamHost = 'www.whu-cveo.com'
+        try {
+          teamHost = new URL(aboutMeta?.team?.url ?? FALLBACK_ABOUT.teamUrl).host || teamHost
+        } catch {
+          /* keep the static fallback */
+        }
         context.font = `600 ${font}px ${family}`
         context.fillStyle = 'rgba(240, 246, 255, 0.9)'
         context.shadowColor = 'rgba(0, 0, 0, 0.45)'
         context.shadowBlur = Math.round(font * 0.6)
         context.fillText(title, padding, padding)
-        const credit = `${t('about.teamName')} · www.whu-cveo.com`
+        const credit = `${teamName} · ${teamHost}`
         context.textAlign = 'right'
         context.font = `${Math.max(10, Math.round(font * 0.85))}px ${family}`
         context.fillStyle = 'rgba(238, 244, 255, 0.85)'
@@ -2226,6 +2434,71 @@ window.__ModuleLoader__.load({
         }
       }
 
+      /** The original source behind a layer, for the Host inspector. */
+      function sourceOfLayer(layer) {
+        if (layer?.source) return layer.source
+        if (typeof layer?.url === 'string' && /^https?:\/\//i.test(layer.url)) {
+          return { kind: 'remote', url: layer.url }
+        }
+        return null
+      }
+
+      /** Runtime counters merged into the Host report when the panel is online. */
+      function layerRuntime(layer) {
+        const statistics = layer?.tileset?.statistics ?? {}
+        const memory = layer?.tileset?.cacheBytes ?? layer?.tileset?.totalMemoryUsageInBytes
+        return {
+          tiles: statistics.numberOfTilesWithContentReady ?? statistics.numberOfTilesLoaded ?? 0,
+          pending: statistics.numberOfPendingRequests ?? 0,
+          triangles: statistics.numberOfTrianglesSelected ?? 0,
+          memory: typeof memory === 'number' ? memory : 0,
+        }
+      }
+
+      /** Run the Host data-health inspector for one loaded layer. */
+      async function inspectLayer(layerId) {
+        const layer = layersRef.current.find((entry) => entry.id === layerId)
+        if (!layer) return
+        const source = sourceOfLayer(layer)
+        if (!source) {
+          showToast(t('health.noSource'))
+          return
+        }
+        const meta = metaRef.current
+        if (!meta?.token || (!meta.inspectUrl && !meta.scanUrl)) {
+          showToast(t('health.failed', { message: t('agent.notReady') }))
+          return
+        }
+        const endpoint = meta.inspectUrl ?? `${meta.scanUrl.replace(/\/scan$/, '')}/inspect`
+        const requestSeq = healthSeqRef.current + 1
+        healthSeqRef.current = requestSeq
+        setHealth({ loading: true, layer: layer.name, source })
+        try {
+          const response = await fetch(`${endpoint}?token=${encodeURIComponent(meta.token)}`, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'content-type': 'application/json', 'x-dsh-panel': '1' },
+            body: JSON.stringify({ source, deep: false, runtime: layerRuntime(layer) }),
+          })
+          const data = await response.json().catch(() => null)
+          // The dialog may have been closed while the Host was analysing; a
+          // late answer must not reopen it or toast behind the user's back.
+          if (requestSeq !== healthSeqRef.current) return
+          if (!response.ok || !data?.ok) throw new Error(data?.error ?? `HTTP ${response.status}`)
+          setHealth({ loading: false, layer: layer.name, source, report: data.report, reportPath: data.reportPath })
+        } catch (error) {
+          if (requestSeq !== healthSeqRef.current) return
+          setHealth({ loading: false, layer: layer.name, source, error: message(error) })
+          showToast(t('health.failed', { message: message(error) }))
+        }
+      }
+
+      /** Close the health dialog and invalidate any request still in flight. */
+      const closeHealth = () => {
+        healthSeqRef.current += 1
+        setHealth(null)
+      }
+
       async function submitUrl() {
         const value = urlInput.trim()
         if (!value) return
@@ -2243,7 +2516,9 @@ window.__ModuleLoader__.load({
         }
         setUrlBar(false)
         setUrlInput('')
-        await addTileset(url, value.split(/[\\/]/).filter(Boolean).slice(-2).join('/'))
+        const local = /^[a-zA-Z]:[\\/]/.test(value) || value.startsWith('\\\\')
+        const source = local ? { kind: 'local', path: value } : { kind: 'remote', url: value }
+        await addTileset(url, value.split(/[\\/]/).filter(Boolean).slice(-2).join('/'), source)
       }
 
       const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
@@ -2338,6 +2613,14 @@ window.__ModuleLoader__.load({
         }
         if (!Cesium || !viewer) throw new Error(t('agent.notReady'))
 
+        if (action === 'inspect') {
+          const layer = requireLayer()
+          const source = sourceOfLayer(layer)
+          if (!source) throw new Error(t('agent.unknownSource', { name: layer.name }))
+          // The Host analyses the tileset itself; the panel only resolves the
+          // layer to its original source and adds live runtime counters.
+          return { layer: layer.name, source, runtime: layerRuntime(layer) }
+        }
         if (action === 'list') {
           const status = await collectSceneStatus()
           return { layers: status.layers, sources: status.sources, imagery: status.imagery, terrain: status.terrain }
@@ -2356,7 +2639,10 @@ window.__ModuleLoader__.load({
           const label = rawPath
             ? rawPath.replace(/\\/g, '/').split('/').filter(Boolean).slice(-2).join('/')
             : undefined
-          const layer = await loadTileset(url, label)
+          const source = rawPath && !/^https?:\/\//i.test(rawPath)
+            ? { kind: 'local', path: rawPath }
+            : { kind: 'remote', url: rawPath || url }
+          const layer = await loadTileset(url, label, source)
           return { loaded: true, layer: { id: layer.id, name: layer.name, url: redactUrl(layer.url) } }
         }
         if (action === 'remove') {
@@ -2480,6 +2766,7 @@ window.__ModuleLoader__.load({
         }
         const onHello = () => {
           retries = 0
+          setBridgeReload(false)
           setBridgeOn(true)
         }
         const onCommand = (event) => {
@@ -2503,8 +2790,10 @@ window.__ModuleLoader__.load({
         }
         const onError = () => {
           setBridgeOn(false)
-          // A host restart rotates the token; refetch the meta once and reconnect.
-          if (retries >= 2 || retryTimer !== null) return
+          // A host restart rotates the token; refetch meta and reconnect. A long
+          // outage can outlive the EventSource retry, so allow four backoff rounds
+          // (500ms → 4s) before asking the user to reload.
+          if (retries >= 4 || retryTimer !== null) return
           retries += 1
           retryTimer = setTimeout(async () => {
             retryTimer = null
@@ -2518,7 +2807,10 @@ window.__ModuleLoader__.load({
             } catch {
               /* keep the current connection state; the UI already shows it off */
             }
-          }, 2000 * retries)
+            // Backoff is exhausted: stop retrying quietly and tell the user how
+            // to reconnect instead of leaving a misleading "connecting" state.
+            if (retries >= 4) setBridgeReload(true)
+          }, Math.min(4000, 500 * 2 ** (retries - 1)))
         }
         source.addEventListener('hello', onHello)
         source.addEventListener('command', onCommand)
@@ -2912,6 +3204,17 @@ window.__ModuleLoader__.load({
                       layer.visible ? '◉' : '○',
                     ),
                     h('button', { type: 'button', className: 'mv-icon-btn', title: t('btn.flyTo'), onClick: () => flyToLayer(layer.id) }, '⌖'),
+                    h(
+                      'button',
+                      {
+                        type: 'button',
+                        className: 'mv-icon-btn',
+                        title: t('btn.health'),
+                        'aria-label': t('btn.health'),
+                        onClick: () => inspectLayer(layer.id),
+                      },
+                      '⌕',
+                    ),
                     h('button', { type: 'button', className: 'mv-icon-btn', title: t('btn.delete'), onClick: () => removeLayer(layer.id) }, '✕'),
                   ),
                 ),
@@ -3008,7 +3311,11 @@ window.__ModuleLoader__.load({
                         type: 'button',
                         className: 'mv-cta',
                         style: { textAlign: 'left', display: 'flex', flexDirection: 'column', gap: '2px' },
-                        onClick: () => addTileset(item.url, item.name.split(/[\\/]/).filter(Boolean).slice(-2).join('/')),
+                        onClick: () =>
+                          addTileset(item.url, item.name.split(/[\\/]/).filter(Boolean).slice(-2).join('/'), {
+                            kind: 'local',
+                            path: joinLocalPath(scan.dir, item.name),
+                          }),
                       },
                       h('span', null, item.name),
                     ),
@@ -3016,6 +3323,24 @@ window.__ModuleLoader__.load({
                 ),
               ),
             )
+          : null,
+        health
+          ? h(HealthDialog, {
+              key: 'health',
+              state: health,
+              messages: t,
+              onClose: closeHealth,
+              onCopy: async () => {
+                const path = health.reportPath ?? health.report?.reportPath
+                if (!path) return
+                try {
+                  await navigator.clipboard.writeText(path)
+                  showToast(t('health.copied'))
+                } catch {
+                  showToast(t('health.copyFailed'))
+                }
+              },
+            })
           : null,
         settingsOpen && sources && defaults
           ? h(SourcesDialog, {
@@ -3027,6 +3352,7 @@ window.__ModuleLoader__.load({
               messages: t,
               meta,
               bridgeOn,
+              bridgeReload,
               onPickLocal: pickLocalTiles,
               onSave: saveSources,
               onClose: () => setSettingsOpen(false),

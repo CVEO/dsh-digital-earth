@@ -6,7 +6,7 @@
 
 [中文](README.md) · [English](README.en.md)
 
-![版本](https://img.shields.io/badge/版本-1.1.0-4f8cff)
+![版本](https://img.shields.io/badge/版本-1.2.0-4f8cff)
 ![许可](https://img.shields.io/badge/许可-MIT-2ea44f)
 ![平台](https://img.shields.io/badge/平台-Web-8b5cf6)
 ![DSH](https://img.shields.io/badge/DSH-%3E%3D0.2.1--rc.1-0ea5e9)
@@ -32,6 +32,7 @@
 | 坐标 HUD | 光标经纬度 + 高程；裸地球、地形、模型三种情形均可用，约 8 Hz 采样，不触发重渲染 |
 | 量测与工具 | 测距、测面、测高、拾取 3D Tiles 属性、截图、复位视角 |
 | 图层统计 | 每层瓦片数、待加载数、三角面数、缓存占用；全局 FPS 与相机高度 / 朝向 |
+| 数据体检 | 图层行一键静态体检 `tileset.json`：资产版本、根几何误差、LOD 深度、瓦片 / 内容数、外部 tileset、`extensionsUsed`、内容缺失与包围体问题；报告落盘可追溯，Agent 也可通过 `earth_scene` 触发 |
 | 双语 | 跟随 DSH 语言，中文 / English 运行时即时切换 |
 | 主题 | 跟随 DSH 或系统；可显式选择浅色 / 深色，仅作用于本面板 |
 
@@ -51,7 +52,7 @@ dsh plugin --profile <profile> add @cveo/dsh-digital-earth
 
 # 从本地目录 / 打包文件安装
 dsh plugin --profile <profile> add "<path-to-plugin>"
-dsh plugin --profile <profile> add "./cveo-dsh-digital-earth-1.1.0.tgz"
+dsh plugin --profile <profile> add "./cveo-dsh-digital-earth-1.2.0.tgz"
 ```
 
 安装或更新后请**完全退出并重新打开 DSH** 一次：客户端 bundle 在宿主启动时注册，仅刷新页面不会重新注册。随后左侧栏出现「数字地球 / Digital Earth」入口，对话标题栏也会出现地球按钮。
@@ -64,7 +65,7 @@ dsh plugin --profile <profile> add "./cveo-dsh-digital-earth-1.1.0.tgz"
 | **数据 ▾** | 打开本地目录（递归扫描 `tileset.json`）、加载在线地址 / 本地路径、清除量测与拾取结果 |
 | **底图 ▾ / 地形 ▾** | 在已配置的数据源之间切换，或关闭底图 / 地形 |
 | **量测 ▾** | 测距、测面、测高、拾取属性；左键取点，双击结束 |
-| **图层 n** | 图层面板：点名称定位、◉ 显隐、✕ 移除 |
+| **图层 n** | 图层面板：点名称定位、◉ 显隐、⌕ 数据体检、✕ 移除 |
 | **外观** | 跟随系统 / 浅色 / 深色 |
 | **设置** | 数据源管理（影像 / 地形）、外观、截图叠加信息开关与「关于」页签 |
 
@@ -76,13 +77,14 @@ dsh plugin --profile <profile> add "./cveo-dsh-digital-earth-1.1.0.tgz"
 
 | 工具 | 参数 | 作用 |
 | --- | --- | --- |
-| `earth_scene` | `action`（`status` / `list` / `load` / `remove` / `visible` / `basemap` / `terrain` / `fly` / `reset` / `pick`） | 读取场景状态与图层统计；加载 / 移除 / 显隐图层；切换底图与地形；飞到指定经纬度；拾取画面中心对象 |
+| `earth_scene` | `action`（`status` / `list` / `load` / `remove` / `visible` / `basemap` / `terrain` / `fly` / `reset` / `pick` / `inspect`） | 读取场景状态与图层统计；加载 / 移除 / 显隐图层；切换底图与地形；飞到指定经纬度；拾取画面中心对象；数据体检（`layer` / `path` / `url` 三选一，`deep` 可选） |
 | `earth_capture` | `width`、`format`、`include_hud`、`label` | 生成截图并返回宿主绝对路径；默认只保留干净三维画面，`include_hud=true` 时把坐标 HUD 与团队署名直接绘入图片 |
 
 - **截图叠加信息**：面板工具栏与 HUD 是网页 DOM 元素，本身无法与 WebGL 画面一起导出；打开「设置 → 截图时叠加坐标 HUD 与署名」后，插件会把光标坐标、相机参数和团队署名重绘到图片画布上，手动截图与 Agent 截图都生效，默认关闭。
 - **本地数据**：Agent 只能加载用户在面板「数据 → 打开本地目录」里选择过的目录，宿主在执行前校验白名单，越权路径会返回明确提示；命令桥与所有工具结果都不会向模型暴露实例 token，模型无法自行扩大白名单。
 - **截图与多模态**：截图保存到 `$DSH_HOME/digital-earth/captures`，支持图像解译的多模态模型可用 `read_image` 读取返回路径；不支持视觉的模型则退回 `earth_scene` 的 `status` JSON，不编造画面内容。
-- **示例**：「打开数字地球，切到影像底图，飞到武汉大学并截图」；「加载我刚才选过的那个数据目录里的 tileset」；「把第二个图层隐藏，再报告当前相机高度」。
+- **数据体检**：对当前图层说「做一次数据体检」即可；`layer` 模式由面板解析原始来源并附加运行统计，`path` / `url` 模式在面板未打开时也能体检。报告写入 `$DSH_HOME/digital-earth/reports`（保留最近 100 份），工具只返回摘要与 `report_path`，需要细节时再读文件。
+- **示例**：「打开数字地球，切到影像底图，飞到武汉大学并截图」；「加载我刚才选过的那个数据目录里的 tileset」；「把第二个图层隐藏，再报告当前相机高度」；「对当前图层做数据体检，看看有没有内容缺失」。
 
 ## 数据源
 
@@ -107,16 +109,16 @@ dsh plugin --profile <profile> add "./cveo-dsh-digital-earth-1.1.0.tgz"
 
 - **宿主侧**（`index.js`）：注册 `/api/3dviewer/*` 路由，负责 Cesium 静态资源、本地目录扫描与白名单、瓦片服务、跨域代理、数据源配置读写，以及 `earth_scene` / `earth_capture` 工具和 session 级命令桥。
 - **客户端**（`client.js`）：作为 DSH 客户端模块加载，声明 `sidebar.panellist`、`main` 与右侧边栏页签，按需动态 `import()` 自托管 CesiumJS；页签内面板用 `EventSource` 连接命令桥，串行执行 Agent 指令并回执。
-- **Agent 命令桥**：`GET /api/3dviewer/bridge?session=…` 推送命令，`POST /api/3dviewer/bridge` 回执；同一会话只由最新打开的那个地球页签执行命令，避免重复加载；截图经 `POST /api/3dviewer/capture` 落盘，再由 `/api/3dviewer/files` 回读。
-- **安全**：所有路由绑定 DSH `connection` 会话与同源校验，并带插件实例 token（只下发给页面，不出现在任何工具结果里）；`/tiles` 仅服务经文件选择器加入白名单的目录，Agent 加载本地路径同样受该白名单约束，且会校验真实路径；白名单注册端点 `/scan` 只接受面板自身的请求头，模型无法借 Cesium 发同源 GET 间接触发；`/remote` 代理拒绝字面量 loopback / 私网地址与 3xx 重定向，避免直接 SSRF；代理不做 DNS 解析，若域名解析到内网可能绕过（见已知限制）。插件不上传数据、不主动外联。
+- **Agent 命令桥**：`GET /api/3dviewer/bridge?session=…` 推送命令，`POST /api/3dviewer/bridge` 回执；同一会话只由最新打开的那个地球页签执行命令，避免重复加载；截图经 `POST /api/3dviewer/capture` 落盘，再由 `/api/3dviewer/files` 回读；数据体检经 `POST /api/3dviewer/inspect` 分析并写入报告目录。
+- **安全**：所有路由绑定 DSH `connection` 会话与同源校验，并带插件实例 token（只下发给页面，不出现在任何工具结果里）；`/tiles` 仅服务经文件选择器加入白名单的目录，Agent 加载本地路径同样受该白名单约束，且会校验真实路径；白名单注册端点 `/scan` 只接受面板自身的请求头，模型无法借 Cesium 发同源 GET 间接触发；`/inspect` 同样要求面板请求头，本地路径走白名单 + 真实路径，远程 URL 复用 `/remote` 规则；`/remote` 代理拒绝字面量 loopback / 私网地址与 3xx 重定向，避免直接 SSRF；代理不做 DNS 解析，若域名解析到内网可能绕过（见已知限制）。插件不上传数据、不主动外联。
 - **自托管 CesiumJS**：`vendor/cesium` 随插件分发，无 CDN、无 Cesium ion Token。
 
 ## 已知限制
 
 - 同一会话若在多个浏览器标签页里打开地球页签，只有最新连接的那一个会执行 Agent 命令，其余页签保持只读展示。
 - Agent 截图要求地球页签可见：切到其他页签或窗口在后台时会返回「面板不可见」提示，而不是生成空白图。
-- 截图目录只保留最近 50 张，避免长期使用后无限增长。
-- `/remote` 代理不透传查询串，WMS / WMTS 需要服务端允许直连 CORS 才能使用；后续会补齐代理的查询串支持。
+- 截图目录只保留最近 50 张，体检报告只保留最近 100 份，避免长期使用后无限增长。
+- `/remote` 代理已透传查询串（长度上限 2048 字符，超限 400，控制字符与非法编码 403），WMS / WMTS / 带签名参数的瓦片可直接经代理加载；体检会读取外部 `tileset.json`（本地与远程最多 50 个），远程 `deep` 模式只检查根瓦片内容，本地 `deep` 模式最多检查 200 个内容文件。
 - `/remote` 代理按字面量判断内网地址、不做 DNS 解析；在不可信网络里请勿把它暴露给不可控的模型 / 用户组合，后续版本会补 DNS 解析与解析后校验。
 - 在线 Esri 服务在部分网络环境可能不可达，此时底图会显示为空白，可切换为本地瓦片数据源。
 

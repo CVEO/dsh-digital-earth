@@ -1,6 +1,6 @@
 {
   "meta": {
     "title": "Digital Earth",
-    "description": "Lay 3D Tiles / 3DGS layers over a CesiumJS globe beside the chat, and let the Agent read and drive the scene in natural language; bilingual UI, light/dark themes, managed imagery and terrain sources, a coordinate HUD and measurement tools."
+    "description": "Lay 3D Tiles / 3DGS layers over a CesiumJS globe beside the chat, and let the Agent read and drive the scene in natural language; built-in data health checks, bilingual UI, light/dark themes, managed imagery and terrain sources, a coordinate HUD and measurement tools."
   }
 }

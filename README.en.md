@@ -6,7 +6,7 @@
 
 [中文](README.md) · [English](README.en.md)
 
-![version](https://img.shields.io/badge/version-1.1.0-4f8cff)
+![version](https://img.shields.io/badge/version-1.2.0-4f8cff)
 ![license](https://img.shields.io/badge/license-MIT-2ea44f)
 ![platform](https://img.shields.io/badge/platform-Web-8b5cf6)
 ![DSH](https://img.shields.io/badge/DSH-%3E%3D0.2.1--rc.1-0ea5e9)
@@ -32,6 +32,7 @@ Digital Earth adds a CesiumJS globe to DSH. It opens beside the conversation so 
 | Cursor HUD | Longitude / latitude plus elevation on the bare globe, terrain and 3D surfaces; ~8 Hz sampling without React re-renders |
 | Measurement | Distance, area, height difference, 3D Tiles property picking, snapshot, reset view |
 | Layer statistics | Tiles, pending tiles, triangles and cache per layer; global FPS and camera height / heading |
+| Data health check | One click per layer inspects the `tileset.json`: asset version, root geometric error, LOD depth, tile / content counts, external tilesets, `extensionsUsed`, missing content and bounding-volume problems; the report is persisted and the Agent can run the same check through `earth_scene` |
 | Bilingual | Follows the DSH language and switches between Chinese and English at runtime |
 | Theme | Follows DSH or the system; explicit light / dark override scoped to this panel |
 
@@ -51,7 +52,7 @@ dsh plugin --profile <profile> add @cveo/dsh-digital-earth
 
 # from a local folder or tarball
 dsh plugin --profile <profile> add "<path-to-plugin>"
-dsh plugin --profile <profile> add "./cveo-dsh-digital-earth-1.1.0.tgz"
+dsh plugin --profile <profile> add "./cveo-dsh-digital-earth-1.2.0.tgz"
 ```
 
 Fully quit and reopen DSH after installing or updating: client bundles are registered when the host starts, so reloading the page alone is not enough. The “Digital Earth” entry then appears in the sidebar, and a globe button appears in the conversation header.
@@ -64,7 +65,7 @@ Fully quit and reopen DSH after installing or updating: client bundles are regis
 | **Data ▾** | Open a local folder (`tileset.json` discovery), load an online URL or local path, clear measurements and picking results |
 | **Basemap ▾ / Terrain ▾** | Switch between configured sources, or turn basemap / terrain off |
 | **Measure ▾** | Distance, area, height, property picking; left click to add a point, double click to finish |
-| **Layers n** | Layer list: click a name to fly to it, ◉ toggles visibility, ✕ removes it |
+| **Layers n** | Layer list: click a name to fly to it, ◉ toggles visibility, ⌕ runs a data health check, ✕ removes it |
 | **Appearance** | Follow system / light / dark |
 | **Settings** | Source management (imagery / terrain), appearance, the snapshot annotation switch and an About tab |
 
@@ -76,13 +77,14 @@ Once the globe tab is open, the plugin connects the panel to the current convers
 
 | Tool | Parameters | What it does |
 | --- | --- | --- |
-| `earth_scene` | `action` (`status` / `list` / `load` / `remove` / `visible` / `basemap` / `terrain` / `fly` / `reset` / `pick`) | Read scene state and layer statistics; load / remove / show or hide layers; switch basemap and terrain; fly to coordinates; pick whatever sits at the view centre |
+| `earth_scene` | `action` (`status` / `list` / `load` / `remove` / `visible` / `basemap` / `terrain` / `fly` / `reset` / `pick` / `inspect`) | Read scene state and layer statistics; load / remove / show or hide layers; switch basemap and terrain; fly to coordinates; pick whatever sits at the view centre; run a data health check (`layer` / `path` / `url`, plus optional `deep`) |
 | `earth_capture` | `width`, `format`, `include_hud`, `label` | Capture a snapshot and return its absolute host path; by default the image keeps only the clean 3D view, and `include_hud=true` burns the coordinate HUD and team credit into the picture |
 
 - **Snapshot annotations**: the panel toolbar and HUD are DOM chrome, so they can never be exported with the WebGL canvas. Turning on **Settings → Overlay coordinate HUD and credits in snapshots** redraws the cursor coordinates, camera parameters and team credit onto the image canvas; it applies to manual and Agent captures alike and is off by default.
 - **Local data**: the Agent can only load folders the user opened once through the panel’s **Data → Open local folder**. The host validates this whitelist before dispatching a command and returns an actionable error otherwise. Neither the command bridge nor any tool result exposes the plugin token to the model, so the model cannot widen the whitelist itself.
 - **Snapshots and multimodal models**: captures are written to `$DSH_HOME/digital-earth/captures`. Models that understand images can call `read_image` on the returned path; models without vision fall back to the `status` JSON from `earth_scene` instead of guessing the picture.
-- **Try saying**: “Open Digital Earth, switch to satellite imagery, fly to Wuhan University and take a snapshot”; “Load the tileset from the folder I just picked”; “Hide the second layer and report the camera height”.
+- **Data health check**: ask for “a data health check on this layer”. In `layer` mode the panel resolves the original source and adds live runtime counters; `path` / `url` modes also work while the panel is closed. Reports go to `$DSH_HOME/digital-earth/reports` (latest 100 are kept); the tool returns a compact summary plus `report_path`, and the file can be read for details.
+- **Try saying**: “Open Digital Earth, switch to satellite imagery, fly to Wuhan University and take a snapshot”; “Load the tileset from the folder I just picked”; “Hide the second layer and report the camera height”; “Run a data health check on the current layer and look for missing content”.
 
 ## Data sources
 
@@ -107,16 +109,16 @@ Selections persist with the rest of the catalog, so changing ports or restarting
 
 - **Host** (`index.js`) registers the `/api/3dviewer/*` routes: Cesium static assets, local folder scanning and whitelisting, tile serving, the cross-origin proxy, catalog persistence, plus the `earth_scene` / `earth_capture` tools and the session command bridge.
 - **Client** (`client.js`) loads as a DSH client module, claims the `sidebar.panellist`, `main` and right-sidebar tab slots, and dynamically imports the self-hosted CesiumJS build. The tab panel uses `EventSource` to receive Agent commands, executes them in order and posts an acknowledgement.
-- **Agent bridge**: `GET /api/3dviewer/bridge?session=…` pushes commands, `POST /api/3dviewer/bridge` acknowledges them; within one session only the most recently opened globe tab executes commands, so nothing loads twice. Snapshots are written by `POST /api/3dviewer/capture` and read back through `/api/3dviewer/files`.
-- **Security**: every route is bound to the DSH `connection` session and same-origin checks with a plugin-instance token that is only handed to the page and never appears in tool results; `/tiles` only serves directories opened through the file picker, and Agent-side local loads obey the same whitelist with a real-path check; the whitelist registration endpoint `/scan` accepts only the panel’s own request header, so a model cannot trigger it through a same-origin Cesium fetch; the `/remote` proxy rejects literal loopback and private addresses plus 3xx redirects to prevent direct SSRF; it does not resolve DNS, so a hostname that resolves to an internal address can still slip through (see Known limitations). The plugin never uploads data or reaches out on its own.
+- **Agent bridge**: `GET /api/3dviewer/bridge?session=…` pushes commands, `POST /api/3dviewer/bridge` acknowledges them; within one session only the most recently opened globe tab executes commands, so nothing loads twice. Snapshots are written by `POST /api/3dviewer/capture` and read back through `/api/3dviewer/files`; data health checks go through `POST /api/3dviewer/inspect` and are written to the report folder.
+- **Security**: every route is bound to the DSH `connection` session and same-origin checks with a plugin-instance token that is only handed to the page and never appears in tool results; `/tiles` only serves directories opened through the file picker, and Agent-side local loads obey the same whitelist with a real-path check; the whitelist registration endpoint `/scan` accepts only the panel’s own request header, so a model cannot trigger it through a same-origin Cesium fetch; `/inspect` requires the same panel header, validates local paths against the whitelist plus realpath and reuses the `/remote` rules for remote URLs; the `/remote` proxy rejects literal loopback and private addresses plus 3xx redirects to prevent direct SSRF; it does not resolve DNS, so a hostname that resolves to an internal address can still slip through (see Known limitations). The plugin never uploads data or reaches out on its own.
 - **Self-hosted CesiumJS**: `vendor/cesium` ships with the plugin — no CDN, no Cesium ion token.
 
 ## Known limitations
 
 - When the same session opens the globe tab in several browser tabs, only the most recently connected one executes Agent commands; the others stay read-only.
 - Agent captures require the globe tab to be visible: switching to another tab or backgrounding the window returns a clear “panel is not visible” error instead of a blank image.
-- The capture folder keeps only the latest 50 images so it cannot grow without bound.
-- The `/remote` proxy does not forward query strings yet, so WMS / WMTS requires a service that allows direct cross-origin requests; proxy query support is planned.
+- The capture folder keeps only the latest 50 images and the health-report folder the latest 100 reports, so they cannot grow without bound.
+- The `/remote` proxy forwards query strings (up to 2048 characters; overlong queries get 400, control characters or invalid encoding get 403), so WMS / WMTS and signed tile URLs work through it; health checks read external `tileset.json` files (at most 50, local and remote), remote `deep` mode only checks the root tile content, and local `deep` mode checks at most 200 content files.
 - The `/remote` proxy classifies internal addresses literally and does not resolve DNS; do not expose it to an untrusted model/user mix on untrusted networks. DNS resolution plus post-resolve checks are planned.
 - Public Esri services can be unreachable on some networks; the basemap then renders empty, and a local tile source can be used instead.
 
