@@ -2417,7 +2417,10 @@ export function createBridge(allowedDirs, options = {}) {
       const onAbort = () => waiter.finish(false)
       waiters.add(waiter)
       timer = setTimeout(() => waiter.finish(false), limit)
-      timer.unref?.()
+      // Keep this short timer ref'd: unref'ing it lets a test runner (or a
+      // draining event loop) end the process while the awaited attach promise is
+      // still pending, which surfaces as "Promise resolution is still pending".
+      timer.ref?.()
       signal?.addEventListener?.('abort', onAbort, { once: true })
       // `abort` may have fired between the check above and the listener.
       if (signal?.aborted) waiter.finish(false)
