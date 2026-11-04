@@ -239,7 +239,7 @@ function cleanUrl(value) {
 }
 
 const FALLBACK_ABOUT = {
-  version: '1.3.0',
+  version: '1.4.0',
   homepage: 'https://github.com/CVEO/dsh-digital-earth',
   issues: 'https://github.com/CVEO/dsh-digital-earth/issues',
   team: { name: '武汉大学 CVEO 课题组', url: 'https://www.whu-cveo.com/' },

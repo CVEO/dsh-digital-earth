@@ -668,7 +668,7 @@ window.__ModuleLoader__.load({
 
     /** About-tab fallbacks used before the Host meta payload arrives. */
     const FALLBACK_ABOUT = {
-      version: '1.3.0',
+      version: '1.4.0',
       homepage: 'https://github.com/CVEO/dsh-digital-earth',
       teamUrl: 'https://www.whu-cveo.com/',
     }
@@ -1525,12 +1525,10 @@ window.__ModuleLoader__.load({
       if (radius > 0) {
         minimum = shaderClamp(centerHeight - radius, SHADER_HEIGHT_FLOOR, SHADER_HEIGHT_CEILING)
         maximum = shaderClamp(centerHeight + radius, SHADER_HEIGHT_FLOOR, SHADER_HEIGHT_CEILING)
-      } else if (centerHeight !== 0) {
-        // A point-like bounding sphere still gives a usable band around the data.
-        minimum = shaderClamp(centerHeight - 50, SHADER_HEIGHT_FLOOR, SHADER_HEIGHT_CEILING)
-        maximum = shaderClamp(centerHeight + 50, SHADER_HEIGHT_FLOOR, SHADER_HEIGHT_CEILING)
       }
-      // Contract fallback when no usable bounding volume exists.
+      // Contract fallback when there is no usable bounding volume: a zero-radius
+      // (point-like) sphere also uses 0..200, exactly as the frozen contract says.
+      // User-supplied min_height/max_height still override this range later.
       if (!(maximum > minimum)) {
         minimum = 0
         maximum = 200
@@ -4673,9 +4671,23 @@ window.__ModuleLoader__.load({
           }
           return layer
         }
+        let gaussianOnly = false
         for (let index = layersRef.current.length - 1; index >= 0; index -= 1) {
           const layer = layersRef.current[index]
-          if (layer.visible) return layer
+          if (!layer.visible) continue
+          // Auto-selection skips 3DGS so a splat layer on top cannot shadow a usable
+          // 3D Tiles layer below; an explicit layer still gets the exact 3DGS error.
+          if (shaderGaussianLayer(layer.tileset)) {
+            gaussianOnly = true
+            continue
+          }
+          return layer
+        }
+        if (gaussianOnly) {
+          throw shaderFail(
+            '当前视图没有可用的 3D Tiles 图层（可见图层均为 3DGS）。',
+            '加载或显示普通 3D Tiles 图层后重试。',
+          )
         }
         throw shaderFail('当前视图没有可见的 3D Tiles 图层。', '先加载或显示 3D Tiles 图层后重试。')
       }
@@ -4721,10 +4733,31 @@ window.__ModuleLoader__.load({
           layer.tileset.customShader = shader
           if (layer.tileset.customShader !== shader) throw new Error('图层拒绝了 customShader 赋值')
         } catch (error) {
+          // Restore the preset that is still active (not the layer's original shader)
+          // so the entries, shader list and workbench keep matching the scene. Only
+          // when even that restore fails do we drop the stale entry.
+          let restored = false
           try {
-            layer.tileset.customShader = previous ?? undefined
+            if (existing) {
+              layer.tileset.customShader = existing.shader ?? undefined
+              restored = layer.tileset.customShader === (existing.shader ?? undefined)
+            } else {
+              layer.tileset.customShader = previous ?? undefined
+              restored = layer.tileset.customShader === (previous ?? undefined)
+            }
           } catch {
-            /* keep the layer untouched if even the restore fails */
+            restored = false
+          }
+          if (!restored) {
+            if (existing) {
+              shaderEntriesRef.current.delete(layer.id)
+              if (shaderEntriesRef.current.size === 0) releaseShaderTick()
+              refreshShaderActive()
+            }
+            throw shaderFail(
+              `预设应用失败（${message(error)}），且原有着色器恢复失败。`,
+              '重新加载该图层或刷新面板后重试。',
+            )
           }
           throw shaderFail(`预设应用失败（${message(error)}）。`, '换一个预设或重置后重试。')
         }
