@@ -183,6 +183,7 @@ window.__ModuleLoader__.load({
         'tool.action.capture': '截图',
         'tool.action.draw': '绘制标注',
         'tool.action.measure': '量测',
+        'tool.action.analyze': '分析',
         'tool.action.clearAgent': '清除标注',
         'tool.action.generic': '三维场景',
         'tool.open': '打开',
@@ -190,7 +191,7 @@ window.__ModuleLoader__.load({
         'settings.tab.about': '关于',
         'settings.autoOpenPanel': 'Agent 调用时自动打开数字地球',
         'settings.autoOpenPanelHint':
-          'Agent 调用地球工具（earth_scene / earth_capture / earth_draw / earth_measure）时，自动在对话右侧打开数字地球面板；关闭后仍可从对话标题栏的地球按钮手动打开。该偏好只保存在本机浏览器。',
+          'Agent 调用地球工具（earth_scene / earth_capture / earth_draw / earth_measure / earth_analyze）时，自动在对话右侧打开数字地球面板；关闭后仍可从对话标题栏的地球按钮手动打开。该偏好只保存在本机浏览器。',
         'settings.screenshotHud': '截图时叠加坐标 HUD 与署名',
         'settings.screenshotHudHint':
           '默认关闭：截图只保留干净的三维画面，便于分享或交给模型识别。打开后会在图片内叠加光标坐标、相机参数与团队署名（面板工具栏属于网页元素，不会进入图片）。',
@@ -274,6 +275,43 @@ window.__ModuleLoader__.load({
         'access.scanFailed': '目录登记失败，本次操作未执行：{message}',
         'access.remote': '仅本地路径需要授权；在线地址无需此步骤。',
         'access.badPath': '授权请求缺少有效的本地路径。',
+        'analysis.title.profile': '地形剖面',
+        'analysis.title.flood': '淹没分析',
+        'analysis.title.sunlight': '日照分析',
+        'analysis.layer': '图层',
+        'analysis.collapse': '折叠分析卡',
+        'analysis.expand': '展开分析卡',
+        'analysis.close': '关闭分析卡',
+        'analysis.chart': '距离—高程剖面',
+        'analysis.length': '剖面长度',
+        'analysis.minHeight': '最低高程',
+        'analysis.maxHeight': '最高高程',
+        'analysis.relief': '起伏',
+        'analysis.gain': '累计爬升',
+        'analysis.loss': '累计下降',
+        'analysis.samples': '采样点',
+        'analysis.region': '分析范围',
+        'analysis.waterHeight': '水位',
+        'analysis.area': '分析面积',
+        'analysis.inundated': '淹没面积',
+        'analysis.inundatedRatio': '淹没比例',
+        'analysis.depthMax': '最大水深',
+        'analysis.depthMean': '平均水深',
+        'analysis.inundatedSamples': '淹没格点',
+        'analysis.altitude': '高度角',
+        'analysis.azimuth': '方位角',
+        'analysis.datetime': '时间',
+        'analysis.shadows': '阴影',
+        'analysis.shadowsOn': '已开启',
+        'analysis.shadowsOff': '已关闭',
+        'analysis.night': '夜间',
+        'analysis.day': '白天',
+        'analysis.daylight': '昼夜',
+        'analysis.hint': '单次仅保留一个分析；再次分析或调用 clear 会替换当前结果。',
+        'analysis.start': '起点 {value}',
+        'analysis.end': '终点 {value}',
+        'analysis.waterLabel': '水面 {value}',
+        'analysis.sunLabel': '太阳 {altitude}° / {azimuth}°',
         'toast.captureSaved': '已生成 {width}×{height} 截图：{path}',
         'toast.noSession': '请先打开一个会话，再在对话旁查看数字地球。',
         'unit.hectare': '公顷',
@@ -431,6 +469,7 @@ window.__ModuleLoader__.load({
         'tool.action.capture': 'Snapshot',
         'tool.action.draw': 'Draw annotations',
         'tool.action.measure': 'Measure',
+        'tool.action.analyze': 'Analyze',
         'tool.action.clearAgent': 'Clear annotations',
         'tool.action.generic': '3D scene',
         'tool.open': 'Open',
@@ -438,7 +477,7 @@ window.__ModuleLoader__.load({
         'settings.tab.about': 'About',
         'settings.autoOpenPanel': 'Open Digital Earth automatically on Agent calls',
         'settings.autoOpenPanelHint':
-          'When the Agent calls an earth tool (earth_scene / earth_capture / earth_draw / earth_measure), open the Digital Earth panel beside the conversation; with this off you can still open it from the globe button in the chat header. The preference is stored in this browser only.',
+          'When the Agent calls an earth tool (earth_scene / earth_capture / earth_draw / earth_measure / earth_analyze), open the Digital Earth panel beside the conversation; with this off you can still open it from the globe button in the chat header. The preference is stored in this browser only.',
         'settings.screenshotHud': 'Overlay coordinate HUD and credits in snapshots',
         'settings.screenshotHudHint':
           'Off by default: snapshots keep only the clean 3D view, which is easier to share or hand to a model. Turn it on to burn the cursor coordinates, camera parameters and team credit into the image (the panel toolbar is DOM chrome and can never be part of the image).',
@@ -526,6 +565,43 @@ window.__ModuleLoader__.load({
         'access.scanFailed': 'The folder could not be registered, so the operation did not run: {message}',
         'access.remote': 'Only local paths need authorisation; remote URLs do not.',
         'access.badPath': 'The authorisation request has no valid local path.',
+        'analysis.title.profile': 'Terrain profile',
+        'analysis.title.flood': 'Flood analysis',
+        'analysis.title.sunlight': 'Sunlight analysis',
+        'analysis.layer': 'Layer',
+        'analysis.collapse': 'Collapse analysis card',
+        'analysis.expand': 'Expand analysis card',
+        'analysis.close': 'Close analysis card',
+        'analysis.chart': 'Distance–elevation profile',
+        'analysis.length': 'Profile length',
+        'analysis.minHeight': 'Lowest elevation',
+        'analysis.maxHeight': 'Highest elevation',
+        'analysis.relief': 'Relief',
+        'analysis.gain': 'Total ascent',
+        'analysis.loss': 'Total descent',
+        'analysis.samples': 'Samples',
+        'analysis.region': 'Analysis extent',
+        'analysis.waterHeight': 'Water level',
+        'analysis.area': 'Analysis area',
+        'analysis.inundated': 'Inundated area',
+        'analysis.inundatedRatio': 'Inundated share',
+        'analysis.depthMax': 'Max depth',
+        'analysis.depthMean': 'Mean depth',
+        'analysis.inundatedSamples': 'Inundated cells',
+        'analysis.altitude': 'Solar altitude',
+        'analysis.azimuth': 'Solar azimuth',
+        'analysis.datetime': 'Time',
+        'analysis.shadows': 'Shadows',
+        'analysis.shadowsOn': 'enabled',
+        'analysis.shadowsOff': 'disabled',
+        'analysis.night': 'Night',
+        'analysis.day': 'Day',
+        'analysis.daylight': 'Day / night',
+        'analysis.hint': 'One analysis is kept at a time; another analysis or clear replaces the current result.',
+        'analysis.start': 'Start {value}',
+        'analysis.end': 'End {value}',
+        'analysis.waterLabel': 'Water {value}',
+        'analysis.sunLabel': 'Sun {altitude}° / {azimuth}°',
         'toast.captureSaved': 'Saved {width}×{height} snapshot: {path}',
         'toast.noSession': 'Open a conversation first to view the globe beside it.',
         'unit.hectare': 'ha',
@@ -1077,6 +1153,171 @@ window.__ModuleLoader__.load({
     }
     //#endregion cursor sampling
 
+    //#region analysis core ----------------------------------------------------
+    // Shared maths for the B2 analysis engine (profile / flood / sunlight). The
+    // engine itself lives inside ViewerSurface because it owns the viewer and the
+    // React card state; these helpers stay pure so the sampling/formatting rules
+    // are the same for every operation.
+
+    /** Analysis entities share this id prefix so clear() never touches agent overlays. */
+    const ANALYSIS_ENTITY_PREFIX = 'analysis-'
+    /** At least this many elevation samples are required for a surface statistic. */
+    const ANALYSIS_MIN_SAMPLES = 2
+    /** Elevation colour band: blue (low) → green → yellow → orange → red (high). */
+    const ANALYSIS_ELEVATION_STOPS = ['#3b82f6', '#22c55e', '#eab308', '#f97316', '#ef4444']
+
+    const analysisRound = (value, digits = 1) => {
+      const factor = 10 ** digits
+      return Math.round(value * factor) / factor
+    }
+
+    const analysisInteger = (value, fallback, minimum, maximum) => {
+      const number = Number(value)
+      if (!Number.isFinite(number)) return fallback
+      return Math.min(maximum, Math.max(minimum, Math.round(number)))
+    }
+
+    const analysisLonLat = (value) => {
+      if (!Array.isArray(value) || value.length < 2) return null
+      const lon = Number(value[0])
+      const lat = Number(value[1])
+      if (!Number.isFinite(lon) || !Number.isFinite(lat)) return null
+      if (lon < -180 || lon > 180 || lat < -90 || lat > 90) return null
+      return [lon, lat]
+    }
+
+    const analysisRegion = (value) => {
+      if (value === null || typeof value !== 'object') return null
+      const west = Number(value.west)
+      const south = Number(value.south)
+      const east = Number(value.east)
+      const north = Number(value.north)
+      if (![west, south, east, north].every((item) => Number.isFinite(item))) return null
+      if (west < -180 || east > 180 || south < -90 || north > 90 || west >= east || south >= north) return null
+      return { west, south, east, north }
+    }
+
+    /** Interpolate the profile colour band for a 0..1 elevation ratio. */
+    const analysisColorAt = (Cesium, ratio) => {
+      const clamped = Math.min(1, Math.max(0, Number.isFinite(ratio) ? ratio : 0))
+      const scaled = clamped * (ANALYSIS_ELEVATION_STOPS.length - 1)
+      const index = Math.min(ANALYSIS_ELEVATION_STOPS.length - 2, Math.floor(scaled))
+      const local = scaled - index
+      try {
+        const from = Cesium.Color.fromCssColorString(ANALYSIS_ELEVATION_STOPS[index])
+        const to = Cesium.Color.fromCssColorString(ANALYSIS_ELEVATION_STOPS[index + 1])
+        return Cesium.Color.lerp(from, to, local, new Cesium.Color())
+      } catch {
+        return Cesium.Color.DODGERBLUE
+      }
+    }
+
+    /**
+     * Elevation probe used by profile/flood. A visible 3D Tiles layer may expose
+     * `getHeight` (some providers return a Promise), terrain is the fallback, and
+     * a missing value stays `null` — never a fake zero.
+     */
+    const analysisElevation = async (Cesium, viewer, layer, carto) => {
+      const scene = viewer.scene
+      const tileset = layer && layer.visible ? layer.tileset : null
+      if (tileset && typeof tileset.getHeight === 'function') {
+        try {
+          const value = tileset.getHeight(carto, scene)
+          const height = value && typeof value.then === 'function' ? await value : value
+          if (typeof height === 'number' && Number.isFinite(height)) return height
+        } catch {
+          /* fall back to the globe */
+        }
+      }
+      try {
+        const height = scene.globe.getHeight(carto)
+        if (typeof height === 'number' && Number.isFinite(height)) return height
+      } catch {
+        /* no terrain provider: leave the sample empty */
+      }
+      return null
+    }
+
+    /**
+     * Sun altitude/azimuth at an observer for a date, using Cesium's built-in
+     * ephemeris (Simon1994) plus an inertial→fixed rotation. Altitude is 0 at the
+     * horizon; azimuth is degrees clockwise from north.
+     *
+     * `computeIcrfToFixedMatrix` needs Cesium's IAU2006 XYS assets and returns
+     * undefined until they are loaded, so that rotation is preferred when it is
+     * available and the synchronous TEME→pseudo-fixed rotation (GMST-based, no
+     * assets, ~0.01° difference for a sun direction) is used as a fallback.
+     * The date has to be a `JulianDate`; Cesium's ephemeris reads Julian fields.
+     */
+    const analysisSunAngles = (Cesium, date, observer) => {
+      try {
+        if (!Cesium.Simon1994PlanetaryPositions || !Cesium.Transforms) return null
+        const julianDate = Cesium.JulianDate.fromDate(date)
+        const sunInertial =
+          Cesium.Simon1994PlanetaryPositions.computeSunPositionInEarthInertialFrame(julianDate)
+        if (!sunInertial) return null
+        let icrfToFixed = null
+        try {
+          icrfToFixed = Cesium.Transforms.computeIcrfToFixedMatrix(julianDate)
+        } catch {
+          icrfToFixed = null
+        }
+        if (!icrfToFixed) {
+          icrfToFixed = Cesium.Transforms.computeTemeToPseudoFixedMatrix(julianDate)
+        }
+        if (!icrfToFixed) return null
+        const sunFixed = Cesium.Matrix3.multiplyByVector(icrfToFixed, sunInertial, new Cesium.Cartesian3())
+        const sunDirection = Cesium.Cartesian3.normalize(sunFixed, new Cesium.Cartesian3())
+        // Cesium 1.147: geodeticSurfaceNormal takes a Cartesian, the Cartographic
+        // sugar is geodeticSurfaceNormalCartographic.
+        const ellipsoid = Cesium.Ellipsoid.WGS84
+        const up =
+          typeof ellipsoid.geodeticSurfaceNormalCartographic === 'function'
+            ? ellipsoid.geodeticSurfaceNormalCartographic(observer, new Cesium.Cartesian3())
+            : Cesium.Cartesian3.normalize(
+                ellipsoid.cartographicToCartesian(observer, new Cesium.Cartesian3()),
+                new Cesium.Cartesian3(),
+              )
+        const sine = Cesium.Math.clamp(Cesium.Cartesian3.dot(sunDirection, up), -1, 1)
+        const altitude = Cesium.Math.toDegrees(Math.asin(sine))
+        if (!Number.isFinite(altitude)) return null
+        const enu = Cesium.Transforms.eastNorthUpToFixedFrame(
+          Cesium.Cartesian3.fromRadians(observer.longitude, observer.latitude, 0),
+        )
+        const east = Cesium.Matrix4.getColumn(enu, 0, new Cesium.Cartesian4())
+        const north = Cesium.Matrix4.getColumn(enu, 1, new Cesium.Cartesian4())
+        const eastDirection = new Cesium.Cartesian3(east.x, east.y, east.z)
+        const northDirection = new Cesium.Cartesian3(north.x, north.y, north.z)
+        const azimuth = (
+          Cesium.Math.toDegrees(
+            Math.atan2(
+              Cesium.Cartesian3.dot(sunDirection, eastDirection),
+              Cesium.Cartesian3.dot(sunDirection, northDirection),
+            ),
+          ) + 360
+        ) % 360
+        if (!Number.isFinite(azimuth)) return null
+        return { altitude: analysisRound(altitude, 2), azimuth: analysisRound(azimuth, 2) }
+      } catch {
+        return null
+      }
+    }
+
+    /** Sun angles describe the dataset centre when known, otherwise the camera. */
+    const analysisObserver = (Cesium, viewer, layer) => {
+      const tileset = layer ? layer.tileset : null
+      if (tileset && tileset.boundingSphere) {
+        try {
+          const carto = Cesium.Cartographic.fromCartesian(tileset.boundingSphere.center)
+          if (carto) return carto
+        } catch {
+          /* use the camera position */
+        }
+      }
+      return viewer.camera.positionCartographic
+    }
+    //#endregion analysis core
+
     function ViewerIcon({ size = 18 }) {
       return h(
         'svg',
@@ -1345,10 +1586,26 @@ window.__ModuleLoader__.load({
 .mv-urlbar input:focus{border-color:var(--mv-accent)}
 .mv-urlbar button{appearance:none;border:.5px solid var(--mv-line);background:var(--mv-lift);color:var(--mv-text);font:inherit;font-size:12px;padding:7px 13px;border-radius:7px;cursor:pointer}
 .mv-urlbar button:hover{border-color:var(--mv-accent)}
-.mv-layers{position:absolute;top:60px;right:10px;width:284px;max-height:calc(100% - 214px);display:flex;flex-direction:column;border-radius:13px;z-index:9;overflow:hidden}
+/* Right-hand floating column: the analysis card (Agent result) and the layer
+   card share one stack so a new analysis never overlaps the layers list. */
+.mv-right{position:absolute;top:60px;right:10px;width:min(300px,calc(100% - 20px));max-height:calc(100% - 150px);display:flex;flex-direction:column;gap:10px;z-index:9;pointer-events:none}
+.mv-right>*{pointer-events:auto}
+.mv-card{background:var(--mv-glass);border:.5px solid var(--mv-line);box-shadow:var(--mv-shadow);border-radius:13px}
+.mv-layers{width:100%;min-height:0;flex:1 1 auto;display:flex;flex-direction:column;border-radius:13px;overflow:hidden}
+.mv-analysis{flex:0 1 auto;min-height:0;max-height:min(62%,380px);width:100%;max-width:300px;display:flex;flex-direction:column;overflow:hidden}
+.mv-analysis>header{display:flex;align-items:center;gap:2px;padding:7px 7px 7px 11px;border-bottom:.5px solid var(--mv-line)}
+.mv-analysis>header .title{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;font-weight:600}
+.mv-analysis .body{padding:8px 11px 10px;overflow:auto;display:flex;flex-direction:column;gap:5px;min-height:0}
+.mv-analysis .layer{color:var(--mv-dim);font-size:10.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mv-analysis .stat{display:flex;align-items:baseline;justify-content:space-between;gap:10px;font-size:11.5px;line-height:1.5}
+.mv-analysis .stat span{flex:none;color:var(--mv-dim)}
+.mv-analysis .stat b{text-align:right;font-weight:600;font-variant-numeric:tabular-nums;word-break:break-word}
+.mv-analysis .chart{width:100%;height:auto;display:block;margin-top:2px;border:.5px solid var(--mv-line);border-radius:8px;background:color-mix(in srgb,var(--mv-bg) 45%,transparent)}
+.mv-analysis .chart text{fill:var(--mv-dim);font-size:8px}
+.mv-analysis .hint{margin:2px 0 0;color:var(--mv-dim);font-size:10px;line-height:1.5}
 .mv-layers>header{display:flex;align-items:center;justify-content:space-between;padding:9px 11px;font-size:11px;letter-spacing:.06em;color:var(--mv-dim);border-bottom:.5px solid var(--mv-line)}
 .mv-layers>header .mv-icon-btn{width:22px;height:22px;font-size:12px}
-.mv-layer-list{overflow:auto;padding:4px}
+.mv-layer-list{overflow:auto;padding:4px;min-height:0}
 .mv-layer{display:flex;align-items:center;gap:2px;padding:5px 6px;border-radius:8px}
 .mv-layer:hover{background:color-mix(in srgb,var(--mv-lift) 64%,transparent)}
 .mv-layer .name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;cursor:pointer}
@@ -1425,7 +1682,7 @@ window.__ModuleLoader__.load({
 .mv-root.mv-docked .mv-top{top:20px;left:20px;right:20px;gap:8px}
 .mv-root.mv-docked .mv-brand{padding:6px 10px;flex:none;gap:6px}
 .mv-root.mv-docked .mv-actions{gap:0;padding:3px;flex:0 1 auto;max-width:100%;margin-left:auto;min-width:0;row-gap:2px}
-.mv-root.mv-docked .mv-layers{top:96px;right:20px;width:min(284px,calc(100% - 40px));max-height:calc(100% - 250px)}
+.mv-root.mv-docked .mv-right{top:96px;right:20px;width:min(300px,calc(100% - 40px));max-height:calc(100% - 250px)}
 .mv-root.mv-docked .mv-dialog{width:min(680px,96%)}
 /* Narrow docked panes: the host tab already shows the panel title, so drop the
    duplicated brand title, then the status text, then the whole brand, keeping
@@ -1454,9 +1711,12 @@ window.__ModuleLoader__.load({
   .mv-root.mv-docked .mv-actions .mv-sep{display:none}
   .mv-root.mv-docked .mv-actions .mv-btn.icon{padding:7px 6px}
   .mv-root.mv-docked .mv-layers{top:92px;right:12px;width:min(284px,calc(100% - 24px))}
+  .mv-root.mv-docked .mv-right{top:92px;right:12px;width:min(300px,calc(100% - 24px));max-height:calc(100% - 236px)}
+  .mv-root.mv-docked .mv-right .mv-layers{position:static;top:auto;right:auto;width:100%;max-height:none}
+  .mv-root.mv-docked .mv-right .mv-analysis{max-width:100%}
 }
 /* Snapshot mode: the picture is meant to be clean, so every overlay is hidden. */
-.mv-root.mv-capturing .mv-top,.mv-root.mv-capturing .mv-urlbar,.mv-root.mv-capturing .mv-layers,.mv-root.mv-capturing .mv-hud,.mv-root.mv-capturing .mv-attr,.mv-root.mv-capturing .mv-credits,.mv-root.mv-capturing .mv-pick,.mv-root.mv-capturing .mv-measure,.mv-root.mv-capturing .mv-toast,.mv-root.mv-capturing .mv-overlay,.mv-root.mv-capturing .mv-modal{visibility:hidden!important}
+.mv-root.mv-capturing .mv-top,.mv-root.mv-capturing .mv-urlbar,.mv-root.mv-capturing .mv-right,.mv-root.mv-capturing .mv-layers,.mv-root.mv-capturing .mv-analysis,.mv-root.mv-capturing .mv-hud,.mv-root.mv-capturing .mv-attr,.mv-root.mv-capturing .mv-credits,.mv-root.mv-capturing .mv-pick,.mv-root.mv-capturing .mv-measure,.mv-root.mv-capturing .mv-toast,.mv-root.mv-capturing .mv-overlay,.mv-root.mv-capturing .mv-modal{visibility:hidden!important}
 .mv-about{display:flex;flex-direction:column;gap:12px;padding:2px 0;font-size:12px}
 .mv-about .intro{margin:0;color:var(--mv-dim);line-height:1.75}
 .mv-about .row{display:flex;gap:12px;align-items:baseline}
@@ -2192,6 +2452,163 @@ window.__ModuleLoader__.load({
     }
     //#endregion local path authorisation
 
+    //#region analysis card ----------------------------------------------------
+
+    const analysisMetric = (value, digits = 1) =>
+      typeof value === 'number' && Number.isFinite(value) ? value.toFixed(digits) : '—'
+
+    /** SVG distance–elevation chart; gaps in the sampled data stay visible. */
+    function AnalysisProfileChart({ points, t }) {
+      if (!Array.isArray(points) || points.length < 2) return null
+      const width = 260
+      const height = 92
+      const padX = 10
+      const padY = 12
+      const valid = points.filter(
+        (point) => point && typeof point.height_m === 'number' && Number.isFinite(point.height_m),
+      )
+      if (valid.length < 2) return null
+      const maxDistance = Math.max(...points.map((point) => Number(point.distance_m) || 0), 1)
+      const minimum = Math.min(...valid.map((point) => point.height_m))
+      const maximum = Math.max(...valid.map((point) => point.height_m))
+      const range = maximum - minimum || 1
+      const x = (distance) => padX + (width - padX * 2) * Math.min(1, Math.max(0, distance / maxDistance))
+      const y = (value) => height - padY - (height - padY * 2) * ((value - minimum) / range)
+      const segments = []
+      let current = []
+      for (const point of points) {
+        const heightValue = point ? point.height_m : null
+        if (typeof heightValue === 'number' && Number.isFinite(heightValue)) {
+          const distance = Number(point.distance_m) || 0
+          current.push(`${x(distance).toFixed(1)},${y(heightValue).toFixed(1)}`)
+        } else if (current.length > 0) {
+          segments.push(current.join(' '))
+          current = []
+        }
+      }
+      if (current.length > 0) segments.push(current.join(' '))
+      return h(
+        'svg',
+        {
+          className: 'chart',
+          viewBox: `0 0 ${width} ${height}`,
+          role: 'img',
+          'aria-label': t('analysis.chart'),
+        },
+        h('line', {
+          x1: padX,
+          y1: height - padY,
+          x2: width - padX,
+          y2: height - padY,
+          stroke: 'var(--mv-line)',
+        }),
+        ...segments.map((pointsText, index) =>
+          h('polyline', {
+            key: `segment-${index}`,
+            points: pointsText,
+            fill: 'none',
+            stroke: 'var(--mv-accent)',
+            strokeWidth: 1.7,
+            strokeLinejoin: 'round',
+            strokeLinecap: 'round',
+          }),
+        ),
+        h('text', { x: padX, y: padY - 3 }, formatHeight(maximum)),
+        h('text', { x: padX, y: height - 2 }, formatHeight(minimum)),
+        h('text', { x: width - padX, y: height - 2, textAnchor: 'end' }, formatDistance(maxDistance)),
+      )
+    }
+
+    /** Floating result card for the single active analysis. */
+    function AnalysisCard({ state, t, onClose }) {
+      const [open, setOpen] = React.useState(true)
+      if (!state || !state.result) return null
+      const result = state.result
+      const operation = state.operation
+      const rows = []
+      const row = (key, label, value) =>
+        rows.push(h('div', { key, className: 'stat' }, h('span', null, label), h('b', null, value)))
+      if (operation === 'profile') {
+        const stats = result.stats ?? {}
+        row('length', t('analysis.length'), formatDistance(result.length_m ?? 0))
+        row('min', t('analysis.minHeight'), formatHeight(stats.min_height ?? 0))
+        row('max', t('analysis.maxHeight'), formatHeight(stats.max_height ?? 0))
+        row('relief', t('analysis.relief'), formatHeight(stats.relief_m ?? 0))
+        row('gain', t('analysis.gain'), formatHeight(stats.gain_m ?? 0))
+        row('loss', t('analysis.loss'), formatHeight(stats.loss_m ?? 0))
+        row('samples', t('analysis.samples'), `${result.samples ?? 0}`)
+      } else if (operation === 'flood') {
+        row('water', t('analysis.waterHeight'), formatHeight(result.water_height ?? 0))
+        row('area', t('analysis.area'), `${analysisMetric(result.area_km2, 3)} km²`)
+        row('inundated', t('analysis.inundated'), `${analysisMetric(result.inundated_km2, 3)} km²`)
+        row('ratio', t('analysis.inundatedRatio'), `${analysisMetric((result.inundated_ratio ?? 0) * 100, 1)}%`)
+        row('depthMax', t('analysis.depthMax'), formatHeight(result.depth_max_m ?? 0))
+        row('depthMean', t('analysis.depthMean'), formatHeight(result.depth_mean_m ?? 0))
+        row(
+          'samples',
+          t('analysis.inundatedSamples'),
+          `${result.samples_inundated ?? 0} / ${result.samples_with_data ?? 0}`,
+        )
+        const region = result.region ?? {}
+        row(
+          'region',
+          t('analysis.region'),
+          `${analysisMetric(region.west, 2)}, ${analysisMetric(region.south, 2)} – ${analysisMetric(region.east, 2)}, ${analysisMetric(region.north, 2)}`,
+        )
+      } else if (operation === 'sunlight') {
+        let dateText = String(result.datetime ?? '')
+        try {
+          dateText = new Date(result.datetime).toLocaleString()
+        } catch {
+          /* keep the raw ISO text */
+        }
+        row('datetime', t('analysis.datetime'), dateText)
+        row('altitude', t('analysis.altitude'), `${analysisMetric(result.sun?.altitude_deg, 2)}°`)
+        row('azimuth', t('analysis.azimuth'), `${analysisMetric(result.sun?.azimuth_deg, 2)}°`)
+        row('shadows', t('analysis.shadows'), result.shadows_enabled ? t('analysis.shadowsOn') : t('analysis.shadowsOff'))
+        row('daylight', t('analysis.daylight'), result.night ? t('analysis.night') : t('analysis.day'))
+      }
+      return h(
+        'div',
+        { className: 'mv-card mv-analysis', role: 'region', 'aria-label': t(`analysis.title.${operation}`) },
+        h(
+          'header',
+          null,
+          h('span', { className: 'title' }, t(`analysis.title.${operation}`)),
+          h(
+            'button',
+            {
+              type: 'button',
+              className: 'mv-icon-btn',
+              title: open ? t('analysis.collapse') : t('analysis.expand'),
+              'aria-label': open ? t('analysis.collapse') : t('analysis.expand'),
+              'aria-expanded': open,
+              onClick: () => setOpen(!open),
+            },
+            open ? '▾' : '▸',
+          ),
+          h(
+            'button',
+            { type: 'button', className: 'mv-icon-btn', title: t('analysis.close'), 'aria-label': t('analysis.close'), onClick: onClose },
+            '✕',
+          ),
+        ),
+        open
+          ? h(
+              'div',
+              { className: 'body' },
+              state.layerName
+                ? h('div', { className: 'layer', title: state.layerName }, `${t('analysis.layer')}: ${state.layerName}`)
+                : null,
+              ...rows,
+              operation === 'profile' ? h(AnalysisProfileChart, { points: result.points, t }) : null,
+              h('p', { className: 'hint' }, t('analysis.hint')),
+            )
+          : null,
+      )
+    }
+    //#endregion analysis card
+
     /** Immersive `main` panel: no Session, so the Agent bridge stays off. */
     function ViewerPanel(props) {
       return h(ViewerSurface, { t: props.t, sessionId: null, docked: false })
@@ -2231,6 +2648,9 @@ window.__ModuleLoader__.load({
       const commandChainRef = React.useRef(Promise.resolve())
       const commandRef = React.useRef(null)
       const accessRef = React.useRef(null)
+      // Single active analysis: owns its entities plus the scene state sunlight
+      // changed (lighting, shadows, clock) so clear() can restore it exactly.
+      const analysisRef = React.useRef({ operation: null, layerId: null, layerName: null, entities: [], restore: null })
       // Resolves when the Cesium viewer is fully ready. The bridge connects before
       // that (right after meta arrives) so a cold panel mount does not eat the
       // Host's attach grace; commands wait on this gate instead.
@@ -2262,6 +2682,7 @@ window.__ModuleLoader__.load({
       const [recentDirs, setRecentDirs] = React.useState([])
       const [accessRequest, setAccessRequest] = React.useState(null)
       const [accessBusy, setAccessBusy] = React.useState(false)
+      const [analysis, setAnalysis] = React.useState(null)
       const [settingsOpen, setSettingsOpen] = React.useState(false)
       const [health, setHealth] = React.useState(null)
       const [terrainBusy, setTerrainBusy] = React.useState(false)
@@ -3254,6 +3675,416 @@ window.__ModuleLoader__.load({
       }
       //#endregion Agent overlays
 
+      //#region analysis engine ---------------------------------------------------
+      // B2 `analyze` bridge command: profile / flood / sunlight / clear. Only one
+      // analysis is active at a time; every entity carries the `analysis-` id
+      // prefix so clear() can never remove Agent annotations or user measurements.
+
+      const analysisAdd = (Cesium, viewer, options) => {
+        const state = analysisRef.current
+        const entity = viewer.entities.add({ ...options, id: `${ANALYSIS_ENTITY_PREFIX}${options.id}` })
+        state.entities.push(entity)
+        return entity
+      }
+
+      const analysisLabel = (Cesium, text) => ({
+        text,
+        font: '12px -apple-system,"Segoe UI","PingFang SC",sans-serif',
+        style: Cesium.LabelStyle.FILL,
+        fillColor: Cesium.Color.WHITE,
+        showBackground: true,
+        backgroundColor: new Cesium.Color(0.06, 0.09, 0.15, 0.85),
+        backgroundPadding: new Cesium.Cartesian2(8, 5),
+        pixelOffset: new Cesium.Cartesian2(0, -18),
+        disableDepthTestDistance: Number.POSITIVE_INFINITY,
+      })
+
+      /** Restore whatever the sunlight operation changed in the scene. */
+      const restoreAnalysisScene = () => {
+        const viewer = viewerRef.current
+        const restore = analysisRef.current.restore
+        if (!viewer || !restore) return
+        try {
+          if (typeof restore.enableLighting === 'boolean') viewer.scene.globe.enableLighting = restore.enableLighting
+          if (typeof restore.shadowMapEnabled === 'boolean') viewer.scene.shadowMap.enabled = restore.shadowMapEnabled
+          if (typeof restore.shouldAnimate === 'boolean') viewer.clock.shouldAnimate = restore.shouldAnimate
+          if (restore.currentTime) viewer.clock.currentTime = restore.currentTime
+          for (const saved of restore.tilesets ?? []) {
+            const layer = layersRef.current.find((item) => item.id === saved.id)
+            if (layer && layer.tileset) layer.tileset.shadows = saved.shadows
+          }
+        } catch {
+          /* the viewer may be mid-teardown; state restoration is best-effort */
+        }
+        analysisRef.current.restore = null
+      }
+
+      /** Remove every analysis entity and restore the pre-analysis scene state. */
+      function clearAnalysis() {
+        const viewer = viewerRef.current
+        const state = analysisRef.current
+        const cleared = state.operation ? [state.operation] : []
+        if (viewer) {
+          for (const entity of state.entities) {
+            try {
+              viewer.entities.remove(entity)
+            } catch {
+              /* already detached */
+            }
+          }
+        }
+        state.entities = []
+        restoreAnalysisScene()
+        state.operation = null
+        state.layerId = null
+        state.layerName = null
+        setAnalysis(null)
+        markSceneDirty()
+        return cleared
+      }
+
+      const beginAnalysis = (operation, layer) => {
+        const state = analysisRef.current
+        state.operation = operation
+        state.layerId = layer ? layer.id : null
+        state.layerName = layer ? layer.name : null
+      }
+
+      const analyzeProfile = async (Cesium, viewer, layer, args) => {
+        const from = analysisLonLat(args.from)
+        const to = analysisLonLat(args.to)
+        if (!from || !to) {
+          throw new Error('analysis: `from`/`to` must be [lon, lat] pairs. next: pass two legal WGS84 [lon, lat] arrays.')
+        }
+        const samples = analysisInteger(args.samples, 32, 8, 64)
+        const ellipsoid = viewer.scene.globe.ellipsoid
+        const geodesic = new Cesium.EllipsoidGeodesic(
+          Cesium.Cartographic.fromDegrees(from[0], from[1]),
+          Cesium.Cartographic.fromDegrees(to[0], to[1]),
+          ellipsoid,
+        )
+        const length = Number.isFinite(geodesic.surfaceDistance) ? geodesic.surfaceDistance : 0
+        const points = []
+        let withData = 0
+        for (let index = 0; index < samples; index += 1) {
+          const fraction = samples === 1 ? 0 : index / (samples - 1)
+          const carto = geodesic.interpolateUsingFraction(fraction, new Cesium.Cartographic())
+          const height = carto ? await analysisElevation(Cesium, viewer, layer, carto) : null
+          if (height !== null) withData += 1
+          points.push({
+            distance_m: analysisRound(length * fraction, 1),
+            height_m: height === null ? null : analysisRound(height, 1),
+          })
+        }
+        if (withData < ANALYSIS_MIN_SAMPLES) {
+          throw new Error(
+            'analysis: 当前视图中没有可采样的高程数据，先加载 3D Tiles 或地形再试。next: 用 earth_scene 的 list 查看可见图层，或先 load 3D Tiles / 地形后重试。',
+          )
+        }
+        const heights = points.filter((point) => point.height_m !== null).map((point) => point.height_m)
+        const minimum = Math.min(...heights)
+        const maximum = Math.max(...heights)
+        let gain = 0
+        let loss = 0
+        let previous = null
+        // Adjacent valid samples define ascent/descent; a data gap bridges the last
+        // known height so a hole neither invents nor removes relief.
+        for (const point of points) {
+          if (point.height_m === null) continue
+          if (previous !== null) {
+            const delta = point.height_m - previous
+            if (delta > 0) gain += delta
+            else loss -= delta
+          }
+          previous = point.height_m
+        }
+        const relief = maximum - minimum
+        const stats = {
+          min_height: analysisRound(minimum, 1),
+          max_height: analysisRound(maximum, 1),
+          relief_m: analysisRound(relief, 1),
+          gain_m: analysisRound(gain, 1),
+          loss_m: analysisRound(loss, 1),
+        }
+        beginAnalysis('profile', layer)
+        const positionAt = (fraction, height) => {
+          const carto = geodesic.interpolateUsingFraction(fraction, new Cesium.Cartographic())
+          return Cesium.Cartesian3.fromRadians(carto.longitude, carto.latitude, height + 2)
+        }
+        const step = samples > 1 ? 1 / (samples - 1) : 0
+        for (let index = 1; index < points.length; index += 1) {
+          const left = points[index - 1]
+          const right = points[index]
+          if (left.height_m === null || right.height_m === null) continue
+          const ratio = relief > 0 ? ((left.height_m + right.height_m) / 2 - minimum) / relief : 0
+          const color = analysisColorAt(Cesium, ratio)
+          analysisAdd(Cesium, viewer, {
+            id: `profile-line-${index}`,
+            polyline: {
+              positions: [
+                positionAt((index - 1) * step, left.height_m),
+                positionAt(index * step, right.height_m),
+              ],
+              width: 3.5,
+              arcType: Cesium.ArcType.NONE,
+              material: color,
+              depthFailMaterial: color.withAlpha(0.35),
+            },
+          })
+        }
+        const endpointHeight = (point) => (point.height_m === null ? 0 : point.height_m)
+        const endpointText = (point) => (point.height_m === null ? t('hud.empty') : formatHeight(point.height_m))
+        const marker = (id, fraction, point, color) => {
+          analysisAdd(Cesium, viewer, {
+            id,
+            position: positionAt(fraction, endpointHeight(point)),
+            point: {
+              pixelSize: 9,
+              color,
+              disableDepthTestDistance: Number.POSITIVE_INFINITY,
+            },
+            label: analysisLabel(
+              Cesium,
+              id === 'profile-start'
+                ? t('analysis.start', { value: endpointText(point) })
+                : t('analysis.end', { value: endpointText(point) }),
+            ),
+          })
+        }
+        marker('profile-start', 0, points[0], analysisColorAt(Cesium, 0))
+        marker('profile-end', 1, points[points.length - 1], analysisColorAt(Cesium, 1))
+        const result = {
+          operation: 'profile',
+          layer: layer ? layer.name : null,
+          from,
+          to,
+          samples,
+          length_m: analysisRound(length, 1),
+          stats,
+          points,
+        }
+        setAnalysis({ operation: 'profile', layerName: result.layer, result })
+        markSceneDirty()
+        return result
+      }
+
+      const analyzeFlood = async (Cesium, viewer, layer, args) => {
+        const region = analysisRegion(args.region)
+        if (!region) {
+          throw new Error('analysis: `region` must be {west, south, east, north} with west < east and south < north. next: pass a legal WGS84 bounding box.')
+        }
+        const waterHeight = Number(args.water_height)
+        if (!Number.isFinite(waterHeight)) {
+          throw new Error('analysis: `water_height` must be a finite number in metres. next: pass the water level to test.')
+        }
+        const grid = analysisInteger(args.grid, 12, 4, 24)
+        const ellipsoid = viewer.scene.globe.ellipsoid
+        const span = (lon1, lat1, lon2, lat2) =>
+          new Cesium.EllipsoidGeodesic(
+            Cesium.Cartographic.fromDegrees(lon1, lat1),
+            Cesium.Cartographic.fromDegrees(lon2, lat2),
+            ellipsoid,
+          ).surfaceDistance
+        const middleLat = (region.south + region.north) / 2
+        const middleLon = (region.west + region.east) / 2
+        // Cell size from the region centre: the mean width/height of one grid cell,
+        // so the area is finite even when the region is a tiny sliver.
+        const cellWidth = span(region.west, middleLat, region.east, middleLat) / grid
+        const cellHeight = span(middleLon, region.south, middleLon, region.north) / grid
+        const cellArea = Math.abs(cellWidth * cellHeight)
+        if (!Number.isFinite(cellArea) || cellArea <= 0) {
+          throw new Error('analysis: 分析范围过小，无法计算格元面积。next: 扩大 region 后重试。')
+        }
+        const probes = []
+        for (let row = 0; row < grid; row += 1) {
+          const lat = region.south + ((region.north - region.south) * (row + 0.5)) / grid
+          for (let column = 0; column < grid; column += 1) {
+            const lon = region.west + ((region.east - region.west) * (column + 0.5)) / grid
+            probes.push(Cesium.Cartographic.fromDegrees(lon, lat))
+          }
+        }
+        const heights = await Promise.all(probes.map((carto) => analysisElevation(Cesium, viewer, layer, carto)))
+        let withData = 0
+        let inundated = 0
+        let depthMaximum = 0
+        let depthSum = 0
+        for (const height of heights) {
+          if (height === null) continue
+          withData += 1
+          if (waterHeight > height) {
+            const depth = waterHeight - height
+            inundated += 1
+            depthSum += depth
+            if (depth > depthMaximum) depthMaximum = depth
+          }
+        }
+        if (withData === 0) {
+          throw new Error(
+            'analysis: 当前视图中没有可采样的高程数据，先加载 3D Tiles 或地形再试。next: 用 earth_scene 的 list 查看可见图层，或先 load 3D Tiles / 地形后重试。',
+          )
+        }
+        beginAnalysis('flood', layer)
+        const waterColor = Cesium.Color.fromCssColorString('#2f7fe0').withAlpha(0.38)
+        const borderColor = Cesium.Color.fromCssColorString('#9fc7ff')
+        analysisAdd(Cesium, viewer, {
+          id: 'flood-water',
+          rectangle: {
+            coordinates: Cesium.Rectangle.fromDegrees(region.west, region.south, region.east, region.north),
+            height: waterHeight,
+            material: waterColor,
+            outline: true,
+            outlineColor: borderColor,
+          },
+        })
+        const corners = [
+          [region.west, region.south],
+          [region.east, region.south],
+          [region.east, region.north],
+          [region.west, region.north],
+          [region.west, region.south],
+        ]
+        analysisAdd(Cesium, viewer, {
+          id: 'flood-border',
+          polyline: {
+            positions: corners.map(([lon, lat]) => Cesium.Cartesian3.fromDegrees(lon, lat, waterHeight)),
+            width: 2,
+            arcType: Cesium.ArcType.NONE,
+            material: borderColor,
+          },
+        })
+        analysisAdd(Cesium, viewer, {
+          id: 'flood-label',
+          position: Cesium.Cartesian3.fromDegrees(middleLon, middleLat, waterHeight + 2),
+          label: analysisLabel(Cesium, t('analysis.waterLabel', { value: formatHeight(waterHeight) })),
+        })
+        const regionArea = grid * grid * cellArea
+        const result = {
+          operation: 'flood',
+          layer: layer ? layer.name : null,
+          region,
+          water_height: analysisRound(waterHeight, 2),
+          grid,
+          cell_area_m2: analysisRound(cellArea, 1),
+          area_km2: analysisRound(regionArea / 1e6, 6),
+          inundated_km2: analysisRound((inundated * cellArea) / 1e6, 6),
+          inundated_ratio: analysisRound(withData > 0 ? inundated / withData : 0, 4),
+          depth_max_m: analysisRound(depthMaximum, 2),
+          depth_mean_m: analysisRound(inundated > 0 ? depthSum / inundated : 0, 2),
+          samples_with_data: withData,
+          samples_inundated: inundated,
+        }
+        setAnalysis({ operation: 'flood', layerName: result.layer, result })
+        markSceneDirty()
+        return result
+      }
+
+      const analyzeSunlight = (Cesium, viewer, layer, args) => {
+        const date = args.datetime === undefined || args.datetime === null ? new Date() : new Date(args.datetime)
+        if (Number.isNaN(date.getTime())) {
+          throw new Error('analysis: `datetime` must be a valid ISO 8601 date. next: pass an ISO timestamp, or omit it for the current time.')
+        }
+        const showShadows = args.show_shadows !== false
+        const observer = analysisObserver(Cesium, viewer, layer)
+        const sun = analysisSunAngles(Cesium, date, observer)
+        if (!sun) {
+          throw new Error('analysis: 无法计算太阳位置（Cesium 星历不可用）。next: 检查浏览器控制台后重试，或先执行 clear。')
+        }
+        const scene = viewer.scene
+        const restore = {
+          enableLighting: scene.globe.enableLighting,
+          shadowMapEnabled: scene.shadowMap ? scene.shadowMap.enabled : null,
+          shouldAnimate: viewer.clock.shouldAnimate,
+          currentTime: viewer.clock.currentTime ? viewer.clock.currentTime.clone() : null,
+          tilesets: layersRef.current
+            .filter((item) => item.visible && item.tileset)
+            .map((item) => ({ id: item.id, shadows: item.tileset.shadows })),
+        }
+        beginAnalysis('sunlight', layer)
+        analysisRef.current.restore = restore
+        scene.globe.enableLighting = true
+        if (scene.shadowMap) {
+          // Sunlight always turns the shadow pipeline on; show_shadows=false only
+          // keeps the shadows themselves from being rendered.
+          scene.shadowMap.enabled = true
+          scene.shadowMap.softShadows = true
+          scene.shadowMap.darkness = 0.35
+          if (!showShadows) scene.shadowMap.enabled = false
+        }
+        viewer.clock.currentTime = Cesium.JulianDate.fromDate(date)
+        viewer.clock.shouldAnimate = false
+        for (const saved of restore.tilesets) {
+          const item = layersRef.current.find((entry) => entry.id === saved.id)
+          if (item && item.tileset) {
+            item.tileset.shadows = Cesium.ShadowMode.ENABLED
+            if (!showShadows) item.tileset.shadows = Cesium.ShadowMode.DISABLED
+          }
+        }
+        analysisAdd(Cesium, viewer, {
+          id: 'sun-label',
+          position: Cesium.Cartesian3.fromDegrees(
+            Cesium.Math.toDegrees(observer.longitude),
+            Cesium.Math.toDegrees(observer.latitude),
+            (observer.height || 0) + 30,
+          ),
+          label: analysisLabel(
+            Cesium,
+            t('analysis.sunLabel', { altitude: sun.altitude, azimuth: sun.azimuth }),
+          ),
+        })
+        const result = {
+          operation: 'sunlight',
+          layer: layer ? layer.name : null,
+          datetime: date.toISOString(),
+          sun: { altitude_deg: sun.altitude, azimuth_deg: sun.azimuth },
+          shadows_enabled: showShadows,
+          night: sun.altitude < 0,
+        }
+        setAnalysis({ operation: 'sunlight', layerName: result.layer, result })
+        markSceneDirty()
+        return result
+      }
+
+      async function analyzeCommand(args = {}) {
+        const Cesium = cesiumRef.current
+        const viewer = viewerRef.current
+        if (!Cesium || !viewer) {
+          throw new Error('analysis: 三维引擎尚未就绪。next: 打开数字地球面板后重试。')
+        }
+        const operation = typeof args.action === 'string' ? args.action.trim() : ''
+        if (operation === 'clear') {
+          const cleared = clearAnalysis()
+          return { operation: 'clear', layer: null, cleared }
+        }
+        if (operation !== 'profile' && operation !== 'flood' && operation !== 'sunlight') {
+          throw new Error(
+            `analysis: 不支持的分析类型 "${String(args.action)}"。next: 使用 profile / flood / sunlight / clear。`,
+          )
+        }
+        // Resolve the layer before clearing the previous result, so a typo does not
+        // destroy a valid analysis that is already on screen.
+        let layer = null
+        const requested = typeof args.layer === 'string' ? args.layer.trim() : ''
+        if (requested !== '') {
+          layer = findLayer(requested)
+          if (!layer) {
+            throw new Error(`analysis: 未找到图层 "${requested}"。next: 用 earth_scene 的 list 动作查看当前图层名。`)
+          }
+        } else {
+          for (let index = layersRef.current.length - 1; index >= 0; index -= 1) {
+            if (layersRef.current[index].visible) {
+              layer = layersRef.current[index]
+              break
+            }
+          }
+        }
+        // Single active analysis: the new result replaces the previous one.
+        clearAnalysis()
+        if (operation === 'profile') return analyzeProfile(Cesium, viewer, layer, args)
+        if (operation === 'flood') return analyzeFlood(Cesium, viewer, layer, args)
+        return analyzeSunlight(Cesium, viewer, layer, args)
+      }
+      //#endregion analysis engine
+
       //#region scene snapshot ---------------------------------------------------
       // Camera, layers (by their original source) and Agent overlays survive the
       // tab body being disposed: they are written to localStorage per session and
@@ -3724,6 +4555,9 @@ window.__ModuleLoader__.load({
         const viewer = viewerRef.current
         const index = layersRef.current.findIndex((item) => item.id === id)
         if (index < 0 || !viewer) return null
+        // An analysis that targeted this layer loses its data source: clear it
+        // before the tileset detaches so the card never points at a removed layer.
+        if (analysisRef.current.layerId === id) clearAnalysis()
         const [layer] = layersRef.current.splice(index, 1)
         try {
           viewer.scene.primitives.remove(layer.tileset)
@@ -3950,6 +4784,20 @@ window.__ModuleLoader__.load({
             hud_hidden: saved.hud !== true,
             layers_visible: layersRef.current.filter((layer) => layer.visible).length,
             view: (await collectSceneStatus()).view,
+          }
+        }
+        // B2 analysis bridge: profile / flood / sunlight / clear (Host tool
+        // `earth_analyze`); the Host validates the operation before sending it.
+        // Checked before the generic readiness guard so every analysis failure
+        // (including a cold viewer) carries an actionable "next:" step.
+        if (action === 'analyze') {
+          try {
+            return await analyzeCommand(args)
+          } catch (error) {
+            const text = message(error)
+            // Every analysis failure must end in an actionable next step.
+            if (text.includes('next:')) throw error
+            throw new Error(`${text} next: 用 earth_scene 检查面板与数据状态后重试，或先执行 analyze clear。`)
           }
         }
         if (!Cesium || !viewer) throw new Error(t('agent.notReady'))
@@ -4679,68 +5527,77 @@ window.__ModuleLoader__.load({
               h('button', { type: 'button', onClick: submitUrl }, t('urlbar.submit')),
             )
           : null,
-        showLayers && layers.length > 0
+        analysis || (showLayers && layers.length > 0)
           ? h(
               'div',
-              { key: 'layers', className: 'mv-layers mv-glass' },
-              h(
-                'header',
-                null,
-                h('span', null, `${t('layers.title')} · ${layers.length}`),
-                h(
-                  'button',
-                  {
-                    type: 'button',
-                    className: 'mv-icon-btn',
-                    title: t('layers.collapse'),
-                    'aria-label': t('layers.collapse'),
-                    onClick: () => updateSettings({ showLayers: false }),
-                  },
-                  h(CollapseIcon),
-                ),
-              ),
-              h(
-                'div',
-                { className: 'mv-layer-list' },
-                layers.map((layer) =>
-                  h(
+              { key: 'right', className: 'mv-right' },
+              analysis
+                ? h(AnalysisCard, { key: 'analysis', state: analysis, t, onClose: () => clearAnalysis() })
+                : null,
+              showLayers && layers.length > 0
+                ? h(
                     'div',
-                    { key: layer.id, className: `mv-layer${layer.visible ? '' : ' off'}` },
-                    h('span', { className: 'name', title: layer.name, onClick: () => flyToLayer(layer.id) }, layer.name),
+                    { key: 'layers', className: 'mv-layers mv-glass' },
                     h(
-                      'button',
-                      {
-                        type: 'button',
-                        className: `mv-icon-btn${layer.visible ? '' : ' on'}`,
-                        title: layer.visible ? t('btn.visible') : t('btn.hidden'),
-                        onClick: () => toggleLayer(layer.id),
-                      },
-                      layer.visible ? h(LayerActionIcon, { key: 'v', kind: 'visible' }) : h(LayerActionIcon, { key: 'v', kind: 'hidden' }),
+                      'header',
+                      null,
+                      h('span', null, `${t('layers.title')} · ${layers.length}`),
+                      h(
+                        'button',
+                        {
+                          type: 'button',
+                          className: 'mv-icon-btn',
+                          title: t('layers.collapse'),
+                          'aria-label': t('layers.collapse'),
+                          onClick: () => updateSettings({ showLayers: false }),
+                        },
+                        h(CollapseIcon),
+                      ),
                     ),
                     h(
-                      'button',
-                      { type: 'button', className: 'mv-icon-btn', title: t('btn.flyTo'), 'aria-label': t('btn.flyTo'), onClick: () => flyToLayer(layer.id) },
-                      h(LayerActionIcon, { kind: 'locate' }),
+                      'div',
+                      { className: 'mv-layer-list' },
+                      layers.map((layer) =>
+                        h(
+                          'div',
+                          { key: layer.id, className: `mv-layer${layer.visible ? '' : ' off'}` },
+                          h('span', { className: 'name', title: layer.name, onClick: () => flyToLayer(layer.id) }, layer.name),
+                          h(
+                            'button',
+                            {
+                              type: 'button',
+                              className: `mv-icon-btn${layer.visible ? '' : ' on'}`,
+                              title: layer.visible ? t('btn.visible') : t('btn.hidden'),
+                              onClick: () => toggleLayer(layer.id),
+                            },
+                            layer.visible ? h(LayerActionIcon, { key: 'v', kind: 'visible' }) : h(LayerActionIcon, { key: 'v', kind: 'hidden' }),
+                          ),
+                          h(
+                            'button',
+                            { type: 'button', className: 'mv-icon-btn', title: t('btn.flyTo'), 'aria-label': t('btn.flyTo'), onClick: () => flyToLayer(layer.id) },
+                            h(LayerActionIcon, { kind: 'locate' }),
+                          ),
+                          h(
+                            'button',
+                            {
+                              type: 'button',
+                              className: 'mv-icon-btn',
+                              title: t('btn.health'),
+                              'aria-label': t('btn.health'),
+                              onClick: () => inspectLayer(layer.id),
+                            },
+                            h(LayerActionIcon, { kind: 'inspect' }),
+                          ),
+                          h(
+                            'button',
+                            { type: 'button', className: 'mv-icon-btn', title: t('btn.delete'), 'aria-label': t('btn.delete'), onClick: () => removeLayer(layer.id) },
+                            h(LayerActionIcon, { kind: 'delete' }),
+                          ),
+                        ),
+                      ),
                     ),
-                    h(
-                      'button',
-                      {
-                        type: 'button',
-                        className: 'mv-icon-btn',
-                        title: t('btn.health'),
-                        'aria-label': t('btn.health'),
-                        onClick: () => inspectLayer(layer.id),
-                      },
-                      h(LayerActionIcon, { kind: 'inspect' }),
-                    ),
-                    h(
-                      'button',
-                      { type: 'button', className: 'mv-icon-btn', title: t('btn.delete'), 'aria-label': t('btn.delete'), onClick: () => removeLayer(layer.id) },
-                      h(LayerActionIcon, { kind: 'delete' }),
-                    ),
-                  ),
-                ),
-              ),
+                  )
+                : null,
             )
           : null,
         phase === 'ready' && layers.length === 0 && !emptyDismissed && !restoringScene
@@ -5025,6 +5882,7 @@ window.__ModuleLoader__.load({
       earth_capture: 'tool.action.capture',
       earth_draw: 'tool.action.draw',
       earth_measure: 'tool.action.measure',
+      earth_analyze: 'tool.action.analyze',
     }
 
     /**
@@ -5035,7 +5893,7 @@ window.__ModuleLoader__.load({
     const AUTO_OPENED_CALLS = new Set()
 
     /**
-     * Chat row for the four Agent wire tools. It keeps the transcript compact,
+     * Chat row for the five Agent wire tools. It keeps the transcript compact,
      * offers a way back into the panel, and is the client's auto-open trigger: a
      * live call opens the docked tab so the Host tool call finds a panel to drive.
      */
@@ -5148,13 +6006,14 @@ window.__ModuleLoader__.load({
             (props) => h(HeaderButton, { ...props, onOpen: openEarthPanel }),
           ),
         )
-        // The Agent drives the same panel through these two wire tools, so their
+        // The Agent drives the same panel through these five wire tools, so their
         // rows own the auto-open: the Host tool call waits for this tab to attach.
         ctx.slots.inject('tool.call.toolview', function* () {
           yield ctx.slots.register({ name: 'tool.call.toolview', key: 'earth_scene', locale: NS }, EarthToolRow)
           yield ctx.slots.register({ name: 'tool.call.toolview', key: 'earth_capture', locale: NS }, EarthToolRow)
           yield ctx.slots.register({ name: 'tool.call.toolview', key: 'earth_draw', locale: NS }, EarthToolRow)
           yield ctx.slots.register({ name: 'tool.call.toolview', key: 'earth_measure', locale: NS }, EarthToolRow)
+          yield ctx.slots.register({ name: 'tool.call.toolview', key: 'earth_analyze', locale: NS }, EarthToolRow)
         })
       },
     }

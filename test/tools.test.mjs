@@ -5,7 +5,7 @@
  *   - earth_draw 只接受有界、合法的 GeoJSON（FeatureCollection / Feature / 裸几何），
  *     clear 可以单独使用，超限与未知参数必须报出 earth_draw: 前缀的错误；
  *   - earth_measure 按 distance / area / height 校验点数，draw 缺省为 true；
- *   - 浏览器侧必须还挂着四个工具行，runCommand 认识 draw / measure，
+ *   - 浏览器侧必须还挂着五个工具行，runCommand 认识 draw / measure，
  *     collectSceneStatus 报告 annotations，中英词典都有对应文案。
  *
  * 渲染细节（Cesium 实体长什么样）由人工验证，不在这里重复；这里只钉住
@@ -200,13 +200,13 @@ test('measure：未知参数、非对象入参与 200 点上限', () => {
 // 浏览器侧接线：只读 client.js 文本，防止两个工具在界面上「失踪」
 // ---------------------------------------------------------------------------
 
-test('客户端：四个地球工具都注册了 tool.call.toolview 工具行', () => {
+test('客户端：五个地球工具都注册了 tool.call.toolview 工具行', () => {
   assert.match(client, /name: 'tool\.call\.toolview'/)
-  for (const tool of ['earth_scene', 'earth_capture', 'earth_draw', 'earth_measure']) {
+  for (const tool of ['earth_scene', 'earth_capture', 'earth_draw', 'earth_measure', 'earth_analyze']) {
     assert.match(client, new RegExp(`key: '${tool}'`), `缺少 ${tool} 的工具行注册`)
   }
   const registrations = client.match(/name: 'tool\.call\.toolview'/g) ?? []
-  assert.ok(registrations.length >= 4, `tool.call.toolview 至少注册 4 次，实际 ${registrations.length}`)
+  assert.ok(registrations.length >= 5, `tool.call.toolview 至少注册 5 次，实际 ${registrations.length}`)
 })
 
 test('客户端：runCommand 处理 draw / measure，并保留叠加层清理入口', () => {
@@ -258,29 +258,36 @@ test('客户端：自动打开面板仍只在实时阶段触发', () => {
 })
 
 // ---------------------------------------------------------------------------
-// 宿主侧接线：四个工具与系统提示词段落
+// 宿主侧接线：五个工具与系统提示词段落
 // ---------------------------------------------------------------------------
 
-test('宿主：导出两个归一化函数，且四个工具都在 mountAgentTools 里注册', () => {
+test('宿主：导出两个归一化函数，且五个工具都在 mountAgentTools 里注册', () => {
   assert.equal(typeof normalizeDrawRequest, 'function')
   assert.equal(typeof normalizeMeasureRequest, 'function')
   assert.match(host, /const DRAW_TOOL_NAME = 'earth_draw'/)
   assert.match(host, /const MEASURE_TOOL_NAME = 'earth_measure'/)
+  assert.match(host, /const ANALYZE_TOOL_NAME = 'earth_analyze'/)
   for (const call of [
     'scope\\.tools\\.register\\(createSceneTool\\(bridge, allowedDirs\\)\\)',
     'scope\\.tools\\.register\\(createCaptureTool\\(bridge\\)\\)',
     'scope\\.tools\\.register\\(createDrawTool\\(bridge\\)\\)',
     'scope\\.tools\\.register\\(createMeasureTool\\(bridge\\)\\)',
+    'scope\\.tools\\.register\\(createAnalyzeTool\\(bridge\\)\\)',
   ]) {
     assert.match(host, new RegExp(call))
   }
-  assert.equal((host.match(/scope\.tools\.register\(/g) ?? []).length, 4, '应恰好注册四个 Agent 工具')
+  assert.equal((host.match(/scope\.tools\.register\(/g) ?? []).length, 5, '应恰好注册五个 Agent 工具')
+  assert.match(host, /function createAnalyzeTool\(bridge\)/)
   assert.match(host, /name: DRAW_TOOL_NAME/)
   assert.match(host, /name: MEASURE_TOOL_NAME/)
+  assert.match(host, /name: ANALYZE_TOOL_NAME/)
 })
 
-test('宿主：系统提示词段落提到四个工具', () => {
+test('宿主：系统提示词段落提到五个工具', () => {
+  // B2 保留了旧四工具短语，并在其后追加 earth_analyze。
   assert.match(host, /earth_scene, earth_capture, earth_draw and earth_measure/)
   assert.match(host, /earth_draw adds GeoJSON annotations/)
   assert.match(host, /earth_measure returns distance\/area\/height numbers/)
+  assert.match(host, /plus earth_analyze/)
+  assert.match(host, /earth_analyze runs one analysis at a time/)
 })
