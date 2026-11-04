@@ -9,9 +9,9 @@
  *   online tilesets whose server does not send CORS headers.
  */
 import { randomBytes } from 'node:crypto'
-import { createReadStream, promises as fs } from 'node:fs'
+import { createReadStream, readFileSync, promises as fs } from 'node:fs'
 import { homedir } from 'node:os'
-import { basename, dirname, extname, join, resolve, sep } from 'node:path'
+import { basename, dirname, extname, isAbsolute, join, parse, resolve, sep } from 'node:path'
 import { Readable } from 'node:stream'
 import { fileURLToPath } from 'node:url'
 
@@ -25,16 +25,52 @@ const CESIUM_ROUTE = `${API}/cesium`
 const TILES_ROUTE = `${API}/tiles`
 const REMOTE_ROUTE = `${API}/remote`
 const SOURCES_ROUTE = `${API}/sources`
-// Agent bridge: panels listen on `events`, tools wait for receipts on `result`.
-const EVENTS_ROUTE = `${API}/events`
-const RESULT_ROUTE = `${API}/result`
+const BRIDGE_ROUTE = `${API}/bridge`
+const CAPTURE_ROUTE = `${API}/capture`
+const FILES_ROUTE = `${API}/files`
+// Opening a local folder registers it in the agent allowlist. Only the panel's
+// own fetch can send a custom header, so /scan requires this header: a model
+// that makes Cesium request a same-origin GET (for example load url=...) cannot
+// forge it and therefore cannot widen the allowlist.
+const PANEL_HEADER = 'x-dsh-panel'
 const MAX_SCAN_ITEMS = 200
 const MAX_SCAN_DEPTH = 4
 // The source catalog is small JSON owned by this plugin; keep it outside the
 // browser so it survives port changes (localStorage is per-origin) and restarts.
 const STATE_DIR = join(process.env.DSH_HOME || join(homedir(), '.dsh'), 'digital-earth')
 const SOURCES_FILE = join(STATE_DIR, 'sources.json')
+const CAPTURES_DIR = resolve(STATE_DIR, 'captures')
+const PACKAGE_FILE = join(ROOT_DIR, 'package.json')
 const MAX_SOURCES_BODY = 128 * 1024
+const MAX_BRIDGE_BODY = 256 * 1024
+const MAX_CAPTURE_BODY = 16 * 1024 * 1024
+const MAX_CAPTURE_FILES = 50
+// Signed tile and WMS URLs carry their credentials in the query string, which
+// the panel appends verbatim to the proxy path. Keep it bounded: the proxy must
+// never turn into a way to make the host issue very long upstream URLs.
+const MAX_REMOTE_QUERY = 2048
+// Static tileset health check: bounded request/response sizes, bounded BFS and
+// one shared 8 s budget for every remote read of a single inspection.
+const INSPECT_ROUTE = `${API}/inspect`
+const MAX_INSPECT_BODY = 64 * 1024
+const MAX_INSPECT_JSON = 8 * 1024 * 1024
+const MAX_INSPECT_CONTENT_BYTES = 256 * 1024 * 1024
+const MAX_INSPECT_CONTENT_CHECKS = 200
+const MAX_INSPECT_TILESETS = 50
+const MAX_INSPECT_ISSUES = 200
+const MAX_INSPECT_REPORTS = 100
+const INSPECT_FETCH_TIMEOUT_MS = 8000
+// The bridge command lets the panel resolve a layer source first; the contract
+// keeps that budget at 20 s or more, independent of the normal scene budget.
+const INSPECT_BRIDGE_TIMEOUT_MS = 30000
+const REPORT_DIR = resolve(STATE_DIR, 'reports')
+// SPZ (Niantic Gaussian splat) header: magic, version, numPoints as little-endian
+// uint32 values. Only used for a best-effort local check; a parse failure is a
+// warning and never fails the inspection.
+const SPZ_MAGIC = 0x5053474e
+const BRIDGE_HEARTBEAT_MS = 15000
+const SCENE_TIMEOUT_MS = 20000
+const CAPTURE_TIMEOUT_MS = 40000
 const MAX_IMAGERY_SOURCES = 20
 const MAX_TERRAIN_SOURCES = 10
 const IMAGERY_TYPES = new Set(['xyz', 'arcgis', 'wms'])
@@ -108,7 +144,7 @@ const DEFAULT_SOURCES = {
       credit: 'Esri, CGIAR, USGS',
     },
   ],
-  settings: { theme: 'auto', imagery: 'esri-world-imagery', terrain: null },
+  settings: { theme: 'auto', imagery: 'esri-world-imagery', terrain: null, screenshotHud: false },
 }
 
 const MIME = {
@@ -180,6 +216,42 @@ function cleanUrl(value) {
     return ''
   }
 }
+
+const FALLBACK_ABOUT = {
+  version: '1.2.0',
+  homepage: 'https://github.com/CVEO/dsh-digital-earth',
+  team: { name: '武汉大学 CVEO 课题组', url: 'https://www.whu-cveo.com/' },
+}
+
+/**
+ * About-tab facts for the client. package.json is the single source of the
+ * version, so a release bump needs no code edit; constants cover a checkout
+ * whose package file is missing or malformed.
+ */
+function readAbout() {
+  let record = {}
+  try {
+    const parsed = JSON.parse(readFileSync(PACKAGE_FILE, 'utf8'))
+    if (parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed)) record = parsed
+  } catch {
+    record = {}
+  }
+  const version = cleanText(record.version, 32)
+  const homepage = cleanUrl(record.homepage)
+  const team = record.team !== null && typeof record.team === 'object' ? record.team : {}
+  const teamName = cleanText(team.name, 60)
+  const teamUrl = cleanUrl(team.url)
+  return {
+    version: version !== '' ? version : FALLBACK_ABOUT.version,
+    homepage: homepage !== '' ? homepage : FALLBACK_ABOUT.homepage,
+    team: {
+      name: teamName !== '' ? teamName : FALLBACK_ABOUT.team.name,
+      url: teamUrl !== '' ? teamUrl : FALLBACK_ABOUT.team.url,
+    },
+  }
+}
+
+const ABOUT = readAbout()
 
 function cleanId(value, fallback) {
   const text = typeof value === 'string' ? value.trim().toLowerCase() : ''
@@ -280,6 +352,7 @@ function normalizeConfig(raw) {
       theme,
       imagery: selection(input.settings?.imagery, imagery, DEFAULT_SOURCES.settings.imagery),
       terrain: selection(input.settings?.terrain, terrain, DEFAULT_SOURCES.settings.terrain),
+      screenshotHud: input.settings?.screenshotHud === true,
     },
   }
 }
@@ -298,33 +371,837 @@ async function readSources() {
   }
 }
 
+/**
+ * Replace the catalog atomically. Windows antivirus filters can hold a freshly
+ * written file for a moment, so a transient rename failure is retried briefly
+ * instead of failing the save.
+ */
+async function renameWithRetry(from, to) {
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      await fs.rename(from, to)
+      return
+    } catch (error) {
+      const transient = error?.code === 'EPERM' || error?.code === 'EACCES' || error?.code === 'EBUSY'
+      if (!transient || attempt >= 2) throw error
+      await new Promise((resolve) => setTimeout(resolve, 25 * (attempt + 1)))
+    }
+  }
+}
+
 async function writeSources(config) {
   await fs.mkdir(STATE_DIR, { recursive: true })
-  const temporary = `${SOURCES_FILE}.tmp`
-  await fs.writeFile(temporary, `${JSON.stringify(config, null, 2)}\n`, 'utf8')
-  await fs.rename(temporary, SOURCES_FILE)
+  // A unique temporary name keeps two concurrent saves from sharing one file;
+  // the rename stays atomic, so readers see either the old or the new catalog.
+  const temporary = `${SOURCES_FILE}.tmp-${randomBytes(6).toString('hex')}`
+  try {
+    await fs.writeFile(temporary, `${JSON.stringify(config, null, 2)}\n`, 'utf8')
+    await renameWithRetry(temporary, SOURCES_FILE)
+  } catch (error) {
+    await fs.rm(temporary, { force: true }).catch(() => {})
+    throw error
+  }
 }
 
 /** Hosts the proxy must never reach: loopback, private ranges and link-local. */
 function blockedHost(origin) {
   let hostname
   try {
-    hostname = new URL(origin).hostname.toLowerCase()
+    hostname = new URL(origin).hostname.toLowerCase().replace(/\.+$/, '')
   } catch {
     return true
   }
   if (hostname.startsWith('[')) return true
   if (hostname === 'localhost' || hostname.endsWith('.localhost')) return true
   if (hostname.endsWith('.local') || hostname.endsWith('.internal')) return true
+  // The URL parser normalises numeric IPv4 spellings, but reject the raw forms
+  // too (decimal `2130706433`, hex `0x7f000001`) in case a parser does not.
+  const rawHost = origin.replace(/^https?:\/\//i, '').split(/[/?#:]/)[0].toLowerCase().replace(/\.+$/, '')
+  if (/^\d+$/.test(rawHost) || /^0x[0-9a-f]+$/.test(rawHost)) return true
   const parts = hostname.split('.').map((part) => Number(part))
   if (parts.length !== 4 || parts.some((part) => !Number.isInteger(part))) return false
   const [a, b] = parts
   return a === 0 || a === 10 || a === 127 || (a === 169 && b === 254) || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168) || a >= 224
 }
 
+/** Case-folded on Windows: the filesystem there is case-insensitive. */
 function within(root, target) {
-  const prefix = root.endsWith(sep) ? root : root + sep
-  return target === root || target.startsWith(prefix)
+  return isWithinDirectory(target, root)
+}
+
+/** `fs.realpath` that falls back to the resolved input when the path is missing. */
+async function realPathOr(value) {
+  try {
+    return await fs.realpath(value)
+  } catch {
+    return resolve(value)
+  }
+}
+
+/** A filesystem root (`C:\`, `C:/`, `/`, a UNC share root): never a data folder. */
+function isFilesystemRoot(value) {
+  const resolved = resolve(value)
+  return parse(resolved).root === resolved
+}
+
+const LOCAL_DIR_NOT_OPENED_MESSAGE = `This local directory has not been opened in the Digital Earth panel yet. Ask the user to pick it once via the panel's Data → Open local folder, then retry.`
+
+const LOCAL_PATH_NOT_ABSOLUTE_MESSAGE = 'earth_scene load "path" must be an absolute file path inside a folder the user opened in the Digital Earth panel.'
+
+const IS_WINDOWS = process.platform === 'win32'
+
+/** Comparison key: resolved, and case-folded on Windows where paths are case-insensitive. */
+const pathKey = (value) => {
+  const resolved = resolve(value)
+  return IS_WINDOWS ? resolved.toLowerCase() : resolved
+}
+
+function isWithinDirectory(target, root) {
+  const targetKey = pathKey(target)
+  const rootKey = pathKey(root)
+  if (targetKey === rootKey) return true
+  return targetKey.startsWith(rootKey.endsWith(sep) ? rootKey : `${rootKey}${sep}`)
+}
+
+/**
+ * A local `load` may only read below a directory the user opened in the panel.
+ * The `/scan` endpoint is a UI registration endpoint, not an authorisation for
+ * the agent: the *containing directory* of the tileset must already be in the
+ * allowlist, so an agent cannot widen access by pointing `/scan` at a folder of
+ * its own choosing. Returns an actionable message, or `null` when allowed.
+ */
+function loadPathDenial(action, args, allowedDirs) {
+  if (action !== 'load' || typeof args?.path !== 'string') return null
+  const raw = args.path
+  if (raw.trim() === '' || !isAbsolute(raw)) return LOCAL_PATH_NOT_ABSOLUTE_MESSAGE
+  const directory = dirname(resolve(raw))
+  for (const allowed of allowedDirs) {
+    if (isWithinDirectory(directory, allowed)) return null
+  }
+  return LOCAL_DIR_NOT_OPENED_MESSAGE
+}
+
+// ---------------------------------------------------------------------------
+// Data health check (v1.2.0). A static analysis of one tileset.json runs on the
+// host, so the panel button and the earth_scene "inspect" action share the same
+// report. It is independent from the scene bridge and never changes the scene.
+// ---------------------------------------------------------------------------
+
+/** A failure that maps onto the frozen /inspect failure response. */
+class InspectError extends Error {
+  constructor(code, message) {
+    super(message)
+    this.name = 'InspectError'
+    this.code = code
+  }
+}
+
+// The frozen contract lists exactly these codes and HTTP statuses.
+const INSPECT_FAILURE_STATUS = {
+  forbidden: 403,
+  invalid_source: 400,
+  invalid_json: 400,
+  too_large: 413,
+  unreachable: 502,
+  timeout: 502,
+  internal: 502,
+}
+
+const INSPECT_FORBIDDEN_MESSAGE = 'This local path is outside the folders the user opened in the Digital Earth panel. Ask the user to open that folder in the panel, then retry.'
+
+const INSPECT_CONTENT_KINDS = {
+  b3dm: 'b3dm',
+  glb: 'glb',
+  gltf: 'glb',
+  pnts: 'pnts',
+  spz: 'spz',
+}
+
+const INSPECT_SUPPORTED_EXTENSIONS = new Set(['KHR_gaussian_splatting'])
+
+const isPlainObject = (value) => value !== null && typeof value === 'object' && !Array.isArray(value)
+
+function inspectTimestamp(date = new Date()) {
+  const pad = (value) => String(value).padStart(2, '0')
+  return `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}-${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())}`
+}
+
+/** A short, token-free slug for the report file name. */
+function inspectSlug(label) {
+  const raw = typeof label === 'string' ? scrubToken(label) : ''
+  const slug = raw
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 32)
+  return slug === '' ? 'tileset' : slug
+}
+
+function inspectSourceLabel(source) {
+  if (source.kind === 'remote') {
+    try {
+      return new URL(source.url).hostname
+    } catch {
+      return 'tileset'
+    }
+  }
+  const parent = basename(dirname(source.path))
+  if (parent !== '' && parent !== '.' && parent !== sep) return parent
+  return basename(source.path)
+}
+
+/** Validate a source spec from the panel route or from the agent tool. */
+function normalizeInspectSource(raw) {
+  if (!isPlainObject(raw)) throw new InspectError('invalid_source', 'source must be an object with kind "local" or "remote".')
+  if (raw.kind === 'local') {
+    if (typeof raw.path !== 'string' || raw.path.trim() === '') {
+      throw new InspectError('invalid_source', 'local source.path must be a non-empty string.')
+    }
+    const path = raw.path.trim()
+    if (!isAbsolute(path)) throw new InspectError('invalid_source', `local source.path must be an absolute path, got ${JSON.stringify(path)}.`)
+    return { kind: 'local', path: resolve(path) }
+  }
+  if (raw.kind === 'remote') {
+    if (typeof raw.url !== 'string' || raw.url.trim() === '') {
+      throw new InspectError('invalid_source', 'remote source.url must be a non-empty string.')
+    }
+    const url = raw.url.trim()
+    if (!isHttpUrl(url)) throw new InspectError('invalid_source', `remote source.url must be an absolute http(s) URL, got ${JSON.stringify(url)}.`)
+    return { kind: 'remote', url }
+  }
+  throw new InspectError('invalid_source', 'source.kind must be "local" or "remote".')
+}
+
+/** Keep only the four numeric runtime counters; null when the panel sent none. */
+function normalizeInspectRuntime(raw) {
+  if (!isPlainObject(raw)) return null
+  const value = {}
+  for (const key of ['tiles', 'pending', 'triangles', 'memory']) {
+    const item = raw[key]
+    if (typeof item === 'number' && Number.isFinite(item) && item >= 0) value[key] = item
+  }
+  return Object.keys(value).length === 0 ? null : value
+}
+
+/** Windows UNC paths (`\\host\share`) and their `//host/share` spelling. */
+function isUncPath(value) {
+  const text = typeof value === 'string' ? value : ''
+  return text.startsWith('\\\\') || /^\/\/[^/]/.test(text)
+}
+
+/**
+ * Containment check shared by the entry path and every derived local read
+ * (external tileset JSON, deep content stat, SPZ header): lexical containment
+ * below an opened folder plus a realpath containment check on both sides.
+ * Returns the resolved path when it may be read, or `null` when it may not.
+ * Derived refs additionally refuse UNC paths, so a tileset document can never
+ * make the host touch an SMB share even when a network folder was opened.
+ */
+async function inspectAllowedLocalPath(path, allowedDirs, { derived = false } = {}) {
+  const target = resolve(path)
+  if (derived && isUncPath(target)) return null
+  const realTarget = await realPathOr(target)
+  for (const allowed of allowedDirs) {
+    const realAllowed = await realPathOr(allowed)
+    const lexical = isWithinDirectory(target, allowed) || isWithinDirectory(target, realAllowed)
+    if (lexical && isWithinDirectory(realTarget, realAllowed)) return target
+  }
+  return null
+}
+
+/** Local tileset files may come only from a folder the user opened in the panel. */
+async function inspectLocalPath(path, allowedDirs) {
+  const target = await inspectAllowedLocalPath(path, allowedDirs)
+  if (target === null) throw new InspectError('forbidden', INSPECT_FORBIDDEN_MESSAGE)
+  return target
+}
+
+const inspectRemaining = (deadline) => deadline - Date.now()
+
+async function inspectReadLocalJson(path, deadline) {
+  let stat
+  try {
+    stat = await fs.stat(path)
+  } catch {
+    throw new InspectError('invalid_source', `cannot read the tileset JSON at ${path}.`)
+  }
+  if (!stat.isFile()) throw new InspectError('invalid_source', `the tileset path is not a file: ${path}.`)
+  if (stat.size > MAX_INSPECT_JSON) {
+    throw new InspectError('too_large', `the tileset JSON is ${stat.size} bytes, above the ${MAX_INSPECT_JSON / (1024 * 1024)} MB inspection limit.`)
+  }
+  if (inspectRemaining(deadline) <= 0) throw new InspectError('timeout', 'the inspection exceeded its 8 s budget.')
+  return { text: await fs.readFile(path, 'utf8'), bytes: stat.size, label: path }
+}
+
+async function inspectFetchRemote(url, deadline, method = 'GET') {
+  if (blockedHost(url)) throw new InspectError('forbidden', 'the remote tileset URL points at a local or private address.')
+  const remaining = inspectRemaining(deadline)
+  if (remaining <= 0) throw new InspectError('timeout', 'the inspection exceeded its 8 s budget.')
+  const controller = new AbortController()
+  // One deadline for the whole exchange: the timer stays armed while the body
+  // is read, so a slow or endless response body cannot outlive the 8 s budget.
+  const timer = setTimeout(() => controller.abort(), Math.max(1, Math.min(remaining, INSPECT_FETCH_TIMEOUT_MS)))
+  timer.unref?.()
+  try {
+    let response
+    try {
+      response = await fetch(url, { method, redirect: 'manual', signal: controller.signal })
+    } catch (error) {
+      if (controller.signal.aborted || error?.name === 'AbortError') {
+        throw new InspectError('timeout', 'fetching the remote tileset timed out.')
+      }
+      throw new InspectError('unreachable', `could not fetch the remote tileset: ${error instanceof Error ? error.message : String(error)}.`)
+    }
+    if (response.status >= 300 && response.status < 400) {
+      throw new InspectError('unreachable', 'the remote tileset redirects; redirects are not followed.')
+    }
+    if (!response.ok) throw new InspectError('unreachable', `the remote tileset answered HTTP ${response.status}.`)
+    if (method === 'HEAD') return { response }
+    const reported = Number(response.headers?.get?.('content-length'))
+    if (Number.isFinite(reported) && reported > MAX_INSPECT_JSON) {
+      throw new InspectError('too_large', `the remote tileset JSON is ${reported} bytes, above the ${MAX_INSPECT_JSON / (1024 * 1024)} MB inspection limit.`)
+    }
+    if (response.body === null) return { text: '', bytes: 0, label: url }
+    const reader = response.body.getReader()
+    const chunks = []
+    let total = 0
+    for (;;) {
+      if (inspectRemaining(deadline) <= 0) {
+        throw new InspectError('timeout', 'the inspection exceeded its 8 s budget while reading the remote tileset body.')
+      }
+      let step
+      try {
+        step = await reader.read()
+      } catch (error) {
+        if (controller.signal.aborted || error?.name === 'AbortError') {
+          throw new InspectError('timeout', 'reading the remote tileset body timed out.')
+        }
+        throw new InspectError('unreachable', `could not read the remote tileset body: ${error instanceof Error ? error.message : String(error)}.`)
+      }
+      if (step.done) break
+      total += step.value.byteLength
+      if (total > MAX_INSPECT_JSON) {
+        // Stop the transfer immediately: a rejected report must never buffer the
+        // whole oversized body first.
+        controller.abort()
+        reader.cancel().catch(() => {})
+        throw new InspectError('too_large', `the remote tileset JSON is above the ${MAX_INSPECT_JSON / (1024 * 1024)} MB inspection limit.`)
+      }
+      chunks.push(Buffer.from(step.value))
+    }
+    return { text: Buffer.concat(chunks).toString('utf8'), bytes: total, label: url }
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
+/** Frozen issue code for an external tileset document that could not be loaded. */
+function inspectExternalLoadIssueCode(error, location) {
+  const code = error instanceof InspectError ? error.code : 'internal'
+  if (code === 'invalid_json' || code === 'too_large') return code
+  return location.kind === 'local' ? 'content_missing' : 'content_unreachable'
+}
+
+function inspectParseJson(text, label) {
+  try {
+    const value = JSON.parse(text)
+    if (!isPlainObject(value)) throw new Error('the top-level JSON value is not an object')
+    return value
+  } catch (error) {
+    throw new InspectError('invalid_json', `the tileset JSON at ${label} is not a valid 3D Tiles document: ${error instanceof Error ? error.message : String(error)}.`)
+  }
+}
+
+/** Resolve a tile content uri against the document that declared it. */
+function resolveInspectUri(base, uri) {
+  if (typeof uri !== 'string' || uri.trim() === '') return null
+  const raw = uri.trim()
+  const scheme = /^[a-z][a-z0-9+.-]*:/i.test(raw)
+  if (base.kind === 'remote') {
+    if (scheme) return /^https?:\/\//i.test(raw) ? { kind: 'remote', value: raw } : null
+    try {
+      return { kind: 'remote', value: new URL(raw, base.url).href }
+    } catch {
+      return null
+    }
+  }
+  if (scheme) return /^https?:\/\//i.test(raw) ? { kind: 'remote', value: raw } : null
+  return { kind: 'local', value: resolve(base.dir, raw.split('?')[0].split('#')[0]) }
+}
+
+function inspectLocation(resolved) {
+  if (resolved.kind === 'local') return { kind: 'local', value: resolved.value, dir: dirname(resolved.value) }
+  return { kind: 'remote', value: resolved.value }
+}
+
+function inspectBoundingVolume(value) {
+  if (!isPlainObject(value)) return null
+  const key = ['box', 'region', 'sphere'].find((name) => Array.isArray(value[name]))
+  if (key === undefined) return null
+  const numbers = value[key]
+  if (!numbers.every((item) => typeof item === 'number' && Number.isFinite(item))) return null
+  if (key === 'box' && numbers.length !== 12) return null
+  if (key === 'region' && numbers.length !== 6) return null
+  if (key === 'sphere' && numbers.length !== 4) return null
+  return { type: key, center: key === 'region' ? null : numbers.slice(0, 3), region: key === 'region' ? numbers.slice() : null }
+}
+
+function inspectContentRefs(tile) {
+  const refs = []
+  const push = (content) => {
+    if (!isPlainObject(content)) return
+    const uri = typeof content.uri === 'string' ? content.uri : typeof content.url === 'string' ? content.url : ''
+    if (uri.trim() !== '') refs.push(uri.trim())
+  }
+  if (Array.isArray(tile.content)) {
+    for (const content of tile.content) push(content)
+  } else {
+    push(tile.content)
+  }
+  return refs
+}
+
+function inspectIssue(issues, level, code, message, path) {
+  if (issues.length >= MAX_INSPECT_ISSUES) {
+    issues.dropped = (issues.dropped ?? 0) + 1
+    return
+  }
+  const issue = { level, code, message }
+  if (typeof path === 'string' && path !== '') issue.path = path
+  issues.push(issue)
+}
+
+function inspectRootGeometricError(doc) {
+  if (!isPlainObject(doc?.root)) return null
+  const error = doc.root.geometricError
+  return typeof error === 'number' && Number.isFinite(error) ? error : null
+}
+
+/** Walk every tile of one tileset document and fold its statistics into state. */
+function inspectDocTiles(doc, docLabel, state, base, isRootDoc) {
+  const roots = []
+  if (isPlainObject(doc.root)) roots.push(doc.root)
+  else if (Array.isArray(doc.tiles)) for (const tile of doc.tiles) if (isPlainObject(tile)) roots.push(tile)
+  if (roots.length === 0) return { roots: 0, docDepth: 0 }
+  const stack = roots.map((tile, index) => ({ tile, path: index === 0 ? `${docLabel}:root` : `${docLabel}:tiles[${index}]`, depth: 0 }))
+  let docDepth = 0
+  while (stack.length > 0) {
+    const { tile, path, depth } = stack.pop()
+    state.tiles += 1
+    if (depth > docDepth) docDepth = depth
+    const children = Array.isArray(tile.children) ? tile.children.filter((item) => isPlainObject(item)) : []
+    const refs = inspectContentRefs(tile)
+    if (Array.isArray(tile.children) && children.length === 0 && refs.length === 0) {
+      inspectIssue(state.issues, 'warn', 'empty_children', 'a tile declares no content and no children.', path)
+    }
+    if (Object.hasOwn(tile, 'geometricError')) {
+      const error = tile.geometricError
+      if (typeof error !== 'number' || !Number.isFinite(error) || error < 0) {
+        inspectIssue(state.issues, 'warn', 'geometric_error_invalid', `tile geometricError must be a finite number >= 0, got ${JSON.stringify(error)}.`, path)
+      }
+    }
+    if (Object.hasOwn(tile, 'boundingVolume') && inspectBoundingVolume(tile.boundingVolume) === null) {
+      inspectIssue(state.issues, 'warn', 'bounding_volume_invalid', 'tile boundingVolume must be a box, region or sphere with the right number of finite numbers.', path)
+    }
+    for (const uri of refs) {
+      state.contents += 1
+      const extension = extname(uri.split('?')[0].split('#')[0]).slice(1).toLowerCase()
+      const resolved = resolveInspectUri(base, uri)
+      if (extension === 'json') {
+        state.externalFiles += 1
+        if (resolved !== null) state.externalTilesets.push({ location: inspectLocation(resolved), label: uri })
+      } else if (INSPECT_CONTENT_KINDS[extension] !== undefined) {
+        state.kinds[INSPECT_CONTENT_KINDS[extension]] += 1
+      }
+      if (extension === 'spz') state.spzCount += 1
+      state.contentRefs.push({ uri, extension, resolved })
+      if (isRootDoc && depth === 0) state.rootContents.push({ uri, extension, resolved })
+    }
+    for (let index = children.length - 1; index >= 0; index -= 1) {
+      stack.push({ tile: children[index], path: `${path}.children[${index}]`, depth: depth + 1 })
+    }
+  }
+  return { roots: roots.length, docDepth }
+}
+
+async function inspectSpzHeader(path) {
+  let handle
+  try {
+    handle = await fs.open(path, 'r')
+    const buffer = Buffer.alloc(16)
+    const { bytesRead } = await handle.read(buffer, 0, 16, 0)
+    if (bytesRead < 12) return { ok: false, reason: 'file is shorter than the SPZ header' }
+    const magic = buffer.readUInt32LE(0)
+    const version = buffer.readUInt32LE(4)
+    const points = buffer.readUInt32LE(8)
+    if (magic !== SPZ_MAGIC) return { ok: false, reason: `unexpected SPZ magic 0x${magic.toString(16)}` }
+    if (version !== 1 && version !== 2) return { ok: false, reason: `unsupported SPZ version ${version}` }
+    if (points === 0) return { ok: false, reason: 'SPZ file declares zero splats' }
+    return { ok: true, version, points }
+  } catch (error) {
+    return { ok: false, reason: error instanceof Error ? error.message : String(error) }
+  } finally {
+    if (handle !== undefined) await handle.close().catch(() => {})
+  }
+}
+
+/** Deep check: local content files are stat'ed, remote root contents are HEADed. */
+async function inspectDeepContents(state, source, deadline, allowedDirs) {
+  if (source.kind === 'local') {
+    let checked = 0
+    for (const item of state.contentRefs) {
+      if (item.resolved === null || item.resolved.kind !== 'local') continue
+      if (checked >= MAX_INSPECT_CONTENT_CHECKS) break
+      checked += 1
+      // Derived content paths get the same allowlist + realpath check as the
+      // entry path; an escape is a warning and the file is never touched.
+      const target = await inspectAllowedLocalPath(item.resolved.value, allowedDirs, { derived: true })
+      if (target === null) {
+        inspectIssue(state.issues, 'warn', 'content_unreachable', 'a content file is outside the folders the user opened in the panel; it was not read.')
+        continue
+      }
+      let stat
+      try {
+        stat = await fs.stat(target)
+      } catch {
+        inspectIssue(state.issues, 'warn', 'content_missing', `content file not found: ${item.uri}`, target)
+        continue
+      }
+      if (!stat.isFile()) {
+        inspectIssue(state.issues, 'warn', 'content_missing', `content path is not a file: ${item.uri}`, target)
+        continue
+      }
+      if (stat.size > MAX_INSPECT_CONTENT_BYTES) {
+        inspectIssue(state.issues, 'warn', 'content_too_large', `content file is ${stat.size} bytes: ${item.uri}`, target)
+      }
+      if (item.extension === 'spz') {
+        // Only reached for a path that passed the allowlist + realpath check.
+        const header = await inspectSpzHeader(target)
+        if (header.ok) {
+          inspectIssue(state.issues, 'info', 'gaussian_splatting_ok', `SPZ header ok: version ${header.version}, ${header.points} splats.`, item.uri)
+        } else {
+          inspectIssue(state.issues, 'warn', 'spz_header_invalid', `SPZ header could not be parsed: ${header.reason}.`, item.uri)
+        }
+      }
+    }
+    return
+  }
+  for (const item of state.rootContents) {
+    if (item.resolved === null || item.resolved.kind !== 'remote') continue
+    if (item.extension === 'spz') {
+      inspectIssue(state.issues, 'info', 'gaussian_splatting_ok', 'remote .spz content detected; its header is not read for remote files.', item.uri)
+      continue
+    }
+    if (inspectRemaining(deadline) <= 0) break
+    try {
+      const { response } = await inspectFetchRemote(item.resolved.value, deadline, 'HEAD')
+      const reported = Number(response.headers?.get?.('content-length'))
+      if (Number.isFinite(reported) && reported > MAX_INSPECT_CONTENT_BYTES) {
+        inspectIssue(state.issues, 'warn', 'content_too_large', `content file is ${reported} bytes: ${item.uri}`, item.uri)
+      }
+    } catch (error) {
+      const code = error instanceof InspectError ? error.code : 'internal'
+      inspectIssue(state.issues, 'warn', 'content_unreachable', `content file could not be reached (${code}): ${item.uri}`, item.uri)
+    }
+  }
+}
+
+async function analyzeTileset(source, options = {}) {
+  // allowedDirs is a Set in the running plugin; an array keeps the analyser
+  // usable from tests and from any future caller.
+  const allowedDirs = options.allowedDirs instanceof Set || Array.isArray(options.allowedDirs) ? options.allowedDirs : []
+  const deep = options.deep === true
+  const runtime = normalizeInspectRuntime(options.runtime)
+  const deadline = Date.now() + INSPECT_FETCH_TIMEOUT_MS
+  let rootLocation
+  if (source.kind === 'local') {
+    const target = await inspectLocalPath(source.path, allowedDirs)
+    rootLocation = { kind: 'local', value: target, dir: dirname(target) }
+  } else {
+    if (blockedHost(source.url)) throw new InspectError('forbidden', 'the remote tileset URL points at a local or private address. Use a public http(s) URL.')
+    rootLocation = { kind: 'remote', value: source.url }
+  }
+  const state = {
+    tiles: 0,
+    contents: 0,
+    externalFiles: 0,
+    maxDepth: 0,
+    kinds: { b3dm: 0, glb: 0, pnts: 0, gaussianSplatting: false, spz: false },
+    extensionsUsed: new Set(),
+    extensionsRequired: new Set(),
+    issues: [],
+    contentRefs: [],
+    rootContents: [],
+    externalTilesets: [],
+    documents: 0,
+    spzCount: 0,
+  }
+  let rootDoc = null
+  let rootBytes = 0
+  const queue = [{ location: rootLocation, isRoot: true, label: source.kind === 'local' ? source.path : source.url }]
+  const seen = new Set()
+  while (queue.length > 0 && state.documents < MAX_INSPECT_TILESETS) {
+    const entry = queue.shift()
+    if (seen.has(entry.location.value)) continue
+    seen.add(entry.location.value)
+    let loaded
+    try {
+      if (entry.location.kind === 'local') {
+        // The entry path was already validated; every derived tileset JSON is
+        // re-checked against the allowlist and its realpath before it is read.
+        const target = entry.isRoot
+          ? entry.location.value
+          : await inspectAllowedLocalPath(entry.location.value, allowedDirs, { derived: true })
+        if (target === null) {
+          if (entry.isRoot) throw new InspectError('forbidden', INSPECT_FORBIDDEN_MESSAGE)
+          inspectIssue(state.issues, 'warn', 'content_unreachable', 'an external tileset is outside the folders the user opened in the panel; it was not read.')
+          continue
+        }
+        if (!entry.isRoot) entry.location = { ...entry.location, value: target, dir: dirname(target) }
+        loaded = await inspectReadLocalJson(target, deadline)
+      } else {
+        loaded = await inspectFetchRemote(entry.location.value, deadline)
+      }
+    } catch (error) {
+      if (entry.isRoot) throw error
+      const code = inspectExternalLoadIssueCode(error, entry.location)
+      inspectIssue(state.issues, 'error', code, `could not load an external tileset: ${error instanceof Error ? error.message : String(error)}`, entry.label)
+      continue
+    }
+    let doc
+    try {
+      doc = inspectParseJson(loaded.text, loaded.label)
+    } catch (error) {
+      if (entry.isRoot) throw error
+      inspectIssue(state.issues, 'error', 'invalid_json', `external tileset is not valid JSON: ${entry.label}`, entry.label)
+      continue
+    }
+    if (entry.isRoot) {
+      rootDoc = doc
+      rootBytes = loaded.bytes
+      inspectRootDocument(doc, entry.label, state)
+    }
+    state.documents += 1
+    if (Array.isArray(doc.extensionsUsed)) {
+      for (const extension of doc.extensionsUsed) if (typeof extension === 'string') state.extensionsUsed.add(extension)
+    }
+    if (Array.isArray(doc.extensionsRequired)) {
+      for (const extension of doc.extensionsRequired) if (typeof extension === 'string') state.extensionsRequired.add(extension)
+    }
+    const base = entry.location.kind === 'local' ? { kind: 'local', dir: entry.location.dir } : { kind: 'remote', url: entry.location.value }
+    const before = state.externalTilesets.length
+    const walked = inspectDocTiles(doc, entry.label, state, base, entry.isRoot)
+    if (walked.docDepth > state.maxDepth) state.maxDepth = walked.docDepth
+    for (const external of state.externalTilesets.slice(before)) queue.push({ ...external, isRoot: false })
+    state.externalTilesets.length = before
+  }
+  if (queue.length > 0) {
+    inspectIssue(state.issues, 'warn', 'too_large', `inspection stopped after ${MAX_INSPECT_TILESETS} tileset documents; deeper tilesets were not read.`)
+  }
+  for (const extension of [...state.extensionsRequired].sort()) {
+    if (!INSPECT_SUPPORTED_EXTENSIONS.has(extension)) {
+      inspectIssue(state.issues, 'warn', 'unsupported_extension', `the tileset requires extension "${extension}", which this inspection does not verify.`)
+    }
+  }
+  const hasSplatExtension = state.extensionsUsed.has('KHR_gaussian_splatting') || state.extensionsRequired.has('KHR_gaussian_splatting')
+  state.kinds.spz = state.spzCount > 0
+  state.kinds.gaussianSplatting = hasSplatExtension || state.kinds.spz
+  if (state.kinds.gaussianSplatting) {
+    inspectIssue(
+      state.issues,
+      'info',
+      'gaussian_splatting_ok',
+      hasSplatExtension ? 'KHR_gaussian_splatting extension detected; the panel can render these Gaussian splats.' : '.spz content detected (Gaussian splatting).',
+    )
+  }
+  if (deep) await inspectDeepContents(state, source, deadline, allowedDirs)
+  // The issue list itself stays at the limit; the truncation count is a
+  // separate field so `issues` never grows past MAX_INSPECT_ISSUES.
+  const droppedIssues = Number.isInteger(state.issues.dropped) ? state.issues.dropped : 0
+  const rootBoundingVolume = inspectBoundingVolume(rootDoc?.root?.boundingVolume)
+  const rootGeometricError = inspectRootGeometricError(rootDoc)
+  const ok = !state.issues.some((issue) => issue.level === 'error')
+  const scenes = isPlainObject(rootDoc) && Array.isArray(rootDoc.scenes) && rootDoc.scenes.length > 0
+    ? rootDoc.scenes.filter((scene) => isPlainObject(scene)).map((scene) => ({
+      geometricError: Number.isFinite(scene.geometricError) ? scene.geometricError : rootGeometricError,
+      tilesetCount: 1,
+    }))
+    : [{ geometricError: rootGeometricError, tilesetCount: 1 }]
+  const report = {
+    ok,
+    source: { kind: source.kind, label: inspectSourceLabel(source), bytes: rootBytes },
+    asset: {
+      version: typeof rootDoc?.asset?.version === 'string' ? rootDoc.asset.version : null,
+      minVersion: typeof rootDoc?.asset?.minVersion === 'string' ? rootDoc.asset.minVersion : null,
+      generator: typeof rootDoc?.asset?.generator === 'string' ? rootDoc.asset.generator : null,
+    },
+    root: {
+      geometricError: rootGeometricError,
+      boundingVolume: {
+        type: rootBoundingVolume?.type ?? null,
+        center: rootBoundingVolume?.center ?? null,
+        region: rootBoundingVolume?.region ?? null,
+      },
+      children: isPlainObject(rootDoc?.root) && Array.isArray(rootDoc.root.children) ? rootDoc.root.children.length : 0,
+      depth: state.maxDepth,
+    },
+    counts: {
+      tiles: state.tiles,
+      contents: state.contents,
+      externalFiles: state.externalFiles,
+      extensionsUsed: [...state.extensionsUsed].sort(),
+    },
+    kinds: state.kinds,
+    scenes,
+    issues: state.issues,
+  }
+  if (droppedIssues > 0) report.issuesDropped = droppedIssues
+  if (runtime !== null) report.runtime = runtime
+  return scrubToken(report)
+}
+
+/** Validate the root document: asset version, root tile and its refined values. */
+function inspectRootDocument(doc, label, state) {
+  const version = typeof doc.asset?.version === 'string' ? doc.asset.version.trim() : ''
+  if (version !== '' && !/^1(\.|$)/.test(version)) {
+    inspectIssue(state.issues, 'error', 'asset_version_unsupported', `asset.version "${version}" is not supported; this panel targets 3D Tiles 1.x.`, `${label}:asset.version`)
+  }
+  const root = isPlainObject(doc.root) ? doc.root : null
+  if (root === null && (!Array.isArray(doc.tiles) || doc.tiles.length === 0)) {
+    inspectIssue(state.issues, 'error', 'no_root', 'the tileset has neither a root tile nor a tiles array.', label)
+    return
+  }
+  if (root !== null) {
+    if (!Object.hasOwn(root, 'geometricError')) {
+      inspectIssue(state.issues, 'warn', 'no_geometric_error', 'the root tile has no geometricError, so refinement distances are undefined.', `${label}:root`)
+    } else if (typeof root.geometricError !== 'number' || !Number.isFinite(root.geometricError) || root.geometricError < 0) {
+      inspectIssue(state.issues, 'error', 'geometric_error_invalid', 'the root tile geometricError must be a finite number >= 0.', `${label}:root`)
+    }
+    if (inspectBoundingVolume(root.boundingVolume) === null) {
+      inspectIssue(state.issues, 'error', 'bounding_volume_invalid', 'the root tile needs a boundingVolume with a box, region or sphere.', `${label}:root.boundingVolume`)
+    }
+  }
+}
+
+/** Write the report JSON, then keep only the newest reports. The absolute path is
+ * added to the report itself as well, so the panel can copy it from either place. */
+async function writeInspectReport(report) {
+  await fs.mkdir(REPORT_DIR, { recursive: true })
+  const base = `${inspectTimestamp()}-${inspectSlug(report.source?.label)}`
+  let handle
+  let target
+  // `wx` makes create-or-fail atomic, so two inspections in the same second get
+  // different files instead of racing between exists() and writeFile().
+  for (let attempt = 0; attempt < 100; attempt += 1) {
+    target = join(REPORT_DIR, attempt === 0 ? `${base}.json` : `${base}-${attempt + 1}.json`)
+    try {
+      handle = await fs.open(target, 'wx')
+      break
+    } catch (error) {
+      if (error?.code !== 'EEXIST') throw error
+    }
+  }
+  if (handle === undefined) throw new InspectError('internal', 'could not create a unique inspection report file.')
+  report.reportPath = target
+  try {
+    await handle.writeFile(`${JSON.stringify(report, null, 2)}\n`, 'utf8')
+  } finally {
+    await handle.close().catch(() => {})
+  }
+  try {
+    await pruneInspectReports()
+  } catch {
+    // Retention is best effort; the report itself already exists.
+  }
+  return report
+}
+
+/** Keep the newest 100 report files, deleting the oldest first. */
+async function pruneInspectReports() {
+  let names
+  try {
+    names = await fs.readdir(REPORT_DIR)
+  } catch {
+    return
+  }
+  const reports = names.filter((name) => /^\d{8}-\d{6}-.+\.json$/.test(name))
+  if (reports.length <= MAX_INSPECT_REPORTS) return
+  const stats = await Promise.all(reports.map(async (name) => {
+    try {
+      return { name, stat: await fs.stat(join(REPORT_DIR, name)) }
+    } catch {
+      return null
+    }
+  }))
+  const present = stats.filter((item) => item !== null).sort((a, b) => b.stat.mtimeMs - a.stat.mtimeMs || b.name.localeCompare(a.name))
+  for (const item of present.slice(MAX_INSPECT_REPORTS)) {
+    try {
+      await fs.rm(join(REPORT_DIR, item.name), { force: true })
+    } catch {
+      // Best effort only.
+    }
+  }
+}
+
+/** POST /api/3dviewer/inspect: the panel's data health check endpoint. */
+async function inspectHandler(req, res, allowedDirs) {
+  if (req.method !== 'POST') return sendText(res, 405, 'method not allowed')
+  let parsed
+  try {
+    parsed = new URL(req.url ?? '/', 'http://localhost')
+  } catch {
+    return sendText(res, 400, 'bad request')
+  }
+  if (parsed.searchParams.get('token') !== TOKEN) return sendText(res, 403, 'forbidden')
+  if (req.headers?.[PANEL_HEADER] !== '1') return sendText(res, 403, 'inspect requests must come from the panel')
+  let body = ''
+  try {
+    for await (const chunk of req) {
+      body += chunk
+      if (Buffer.byteLength(body, 'utf8') > MAX_INSPECT_BODY) {
+        req.destroy()
+        return sendInspectFailure(res, 'too_large', `inspect request body exceeds ${MAX_INSPECT_BODY / 1024} KiB.`)
+      }
+    }
+  } catch {
+    return sendInspectFailure(res, 'invalid_json', 'could not read the inspect request body.')
+  }
+  let payload
+  try {
+    payload = JSON.parse(body)
+  } catch {
+    return sendInspectFailure(res, 'invalid_json', 'inspect request body is not valid JSON.')
+  }
+  if (!isPlainObject(payload)) return sendInspectFailure(res, 'invalid_source', 'inspect request body must be a JSON object.')
+  if (payload.deep !== undefined && typeof payload.deep !== 'boolean') {
+    return sendInspectFailure(res, 'invalid_source', 'inspect "deep" must be true or false.')
+  }
+  if (payload.runtime !== undefined && payload.runtime !== null && normalizeInspectRuntime(payload.runtime) === null) {
+    return sendInspectFailure(res, 'invalid_source', 'inspect "runtime" must contain numeric tiles/pending/triangles/memory counters.')
+  }
+  let source
+  try {
+    source = normalizeInspectSource(payload.source)
+  } catch (error) {
+    return sendInspectFailure(res, error instanceof InspectError ? error.code : 'invalid_source', error instanceof Error ? error.message : String(error))
+  }
+  try {
+    const report = await analyzeTileset(source, {
+      deep: payload.deep === true,
+      runtime: payload.runtime,
+      allowedDirs,
+    })
+    await writeInspectReport(report)
+    sendJson(res, 200, scrubToken({ ok: true, reportPath: report.reportPath, report }))
+  } catch (error) {
+    if (error instanceof InspectError) return sendInspectFailure(res, error.code, error.message)
+    sendInspectFailure(res, 'internal', error instanceof Error ? error.message : String(error))
+  }
+}
+
+function sendInspectFailure(res, code, message) {
+  const status = INSPECT_FAILURE_STATUS[code] ?? 502
+  sendJson(res, status, { ok: false, code, error: scrubToken(typeof message === 'string' ? message : 'inspection failed') })
 }
 
 /** Percent-encoded pathname of a request; the router hands route handlers only (req, res). */
@@ -343,10 +1220,48 @@ function subPath(pathname, prefix) {
   return null
 }
 
+/**
+ * Query string of the request target, read from the raw request line so encoded
+ * separators stay intact. The panel appends a remote URL's `?query` after the
+ * encoded path; it belongs to the upstream URL, not to the final path segment.
+ */
+function requestQuery(req) {
+  const raw = typeof req.url === 'string' ? req.url : ''
+  const mark = raw.indexOf('?')
+  if (mark < 0) return ''
+  return raw.slice(mark + 1)
+}
+
+/**
+ * Reject a proxy query that could make the host issue a malformed or unsafe
+ * upstream request. Returns `{ status, message }`, or `null` when it is fine.
+ */
+function remoteQueryDenial(query) {
+  if (query.length > MAX_REMOTE_QUERY) {
+    return { status: 400, message: `remote query string is longer than ${MAX_REMOTE_QUERY} characters` }
+  }
+  let decoded
+  try {
+    decoded = decodeURIComponent(query)
+  } catch {
+    return { status: 403, message: 'remote query string is not valid percent-encoding' }
+  }
+  // CRLF would break out of a header if a future upstream ever echoed the query
+  // into one, and other control characters have no place in a tile URL. Check
+  // both the raw text and its decoded form (`%0d%0a` must not slip through).
+  if (/[\u0000-\u001f\u007f-\u009f]/.test(query) || /[\u0000-\u001f\u007f-\u009f]/.test(decoded)) {
+    return { status: 403, message: 'remote query string must not contain control characters' }
+  }
+  return null
+}
+
 async function serveFile(req, res, root, relPath, cacheControl) {
   if (relPath === '') return sendText(res, 404, 'not found')
   const target = resolve(root, relPath)
   if (!within(root, target)) return sendText(res, 403, 'forbidden')
+  // A symlink or junction below the root must not escape it: compare the
+  // resolved real paths, not just the lexical ones.
+  if (!isWithinDirectory(await realPathOr(target), await realPathOr(root))) return sendText(res, 403, 'forbidden')
   let stat
   try {
     stat = await fs.stat(target)
@@ -368,21 +1283,23 @@ async function serveFile(req, res, root, relPath, cacheControl) {
     .pipe(res)
 }
 
-async function metaHandler(req, res) {
-  const meta = {
+function metaHandler(req, res) {
+  sendJson(res, 200, {
     token: TOKEN,
     cesiumBase: `${API}/cesium/`,
     tilesBase: `${API}/tiles/${TOKEN}/`,
     scanUrl: `${API}/scan`,
     remoteBase: `${API}/remote/${TOKEN}/`,
     sourcesUrl: `${SOURCES_ROUTE}/${TOKEN}`,
-    eventsUrl: EVENTS_ROUTE,
-    resultUrl: RESULT_ROUTE,
-  }
-  // Read lazily and never fail the route: an "about" label is not worth a 500.
-  const version = await packageVersion()
-  if (version !== null) meta.version = version
-  sendJson(res, 200, meta)
+    version: ABOUT.version,
+    homepage: ABOUT.homepage,
+    team: { name: ABOUT.team.name, url: ABOUT.team.url },
+    bridgeUrl: BRIDGE_ROUTE,
+    captureUrl: CAPTURE_ROUTE,
+    // The panel posts data health check requests here; it needs the URL because
+    // the page no longer guesses routes from scanUrl.
+    inspectUrl: INSPECT_ROUTE,
+  })
 }
 
 /** GET: the current catalog plus the built-ins the UI can restore. */
@@ -427,16 +1344,17 @@ function cesiumHandler(req, res) {
   serveFile(req, res, resolve(CESIUM_DIR), relPath, 'public, max-age=86400')
 }
 
-function tilesHandler(req, res, allowedDirs) {
+async function tilesHandler(req, res, allowedDirs) {
   const raw = subPath(requestPath(req), TILES_ROUTE)
   if (raw === null) return sendText(res, 403, 'forbidden')
   const parts = segments(raw)
   if (parts[0] !== TOKEN || parts.length < 2) return sendText(res, 403, 'forbidden')
   const dir = fromB64(parts[1])
   // Only absolute Windows or POSIX directories, and only ones the user opened.
-  if (!/^([a-zA-Z]:[\\/]|\\\\|\/)/.test(dir) || !allowedDirs.has(resolve(dir))) {
-    return sendText(res, 403, 'forbidden')
-  }
+  if (!/^([a-zA-Z]:[\\/]|\\\\|\/)/.test(dir)) return sendText(res, 403, 'forbidden')
+  const resolvedDir = resolve(dir)
+  const realDir = await realPathOr(resolvedDir)
+  if (!allowedDirs.has(resolvedDir) && !allowedDirs.has(realDir)) return sendText(res, 403, 'forbidden')
   const relParts = []
   for (const part of parts.slice(2)) {
     const decoded = decodeSegment(part)
@@ -445,7 +1363,8 @@ function tilesHandler(req, res, allowedDirs) {
     }
     relParts.push(decoded)
   }
-  serveFile(req, res, resolve(dir), relParts.join(sep), 'public, max-age=60')
+  // serveFile repeats the real-path containment check on the target file.
+  await serveFile(req, res, resolvedDir, relParts.join(sep), 'public, max-age=60')
 }
 
 async function scanHandler(req, res, allowedDirs) {
@@ -457,18 +1376,28 @@ async function scanHandler(req, res, allowedDirs) {
   }
   const dir = parsed.searchParams.get('dir')
   if (parsed.searchParams.get('token') !== TOKEN || !dir) return sendText(res, 403, 'forbidden')
-  allowedDirs.add(resolve(dir))
-  const files = await findTilesets(dir)
+  // The allowlist may only grow from a user gesture in the panel, never from a
+  // URL the model can cause Cesium to load; the panel's fetch adds this header.
+  if (req.headers?.[PANEL_HEADER] !== '1') return sendText(res, 403, 'scan requests must come from the panel')
+  const resolvedDir = resolve(dir)
+  // Registering a drive/UNC/share root would hand the agent every file on it.
+  if (isFilesystemRoot(resolvedDir)) return sendText(res, 400, 'scanning a filesystem root is not allowed')
+  // Record both spellings so a path remembered by the page still matches after
+  // a symlinked or junctioned folder is resolved by the filesystem.
+  const realDir = await realPathOr(resolvedDir)
+  allowedDirs.add(resolvedDir)
+  allowedDirs.add(realDir)
+  const files = await findTilesets(resolvedDir)
   const items = files.map((file) => {
     const rel = file
-      .slice(dir.length)
+      .slice(resolvedDir.length)
       .replace(/^[\\/]+/, '')
       .split(/[\\/]/)
       .map(encodeURIComponent)
       .join('/')
     return {
-      name: file.slice(dir.length).replace(/^[\\/]+/, ''),
-      url: `${API}/tiles/${TOKEN}/${encodeURIComponent(toB64(dir))}/${rel}`,
+      name: file.slice(resolvedDir.length).replace(/^[\\/]+/, ''),
+      url: `${API}/tiles/${TOKEN}/${encodeURIComponent(toB64(resolvedDir))}/${rel}`,
     }
   })
   sendJson(res, 200, { items })
@@ -511,9 +1440,22 @@ async function remoteHandler(req, res) {
     if (decoded === null || decoded.includes('\0')) return sendText(res, 403, 'forbidden')
     relParts.push(decoded)
   }
-  const target = `${origin}/${relParts.join('/')}`
+  // The query is forwarded to the upstream URL as-is, never decoded into the
+  // path segments above.
+  const query = requestQuery(req)
+  if (query !== '') {
+    const denial = remoteQueryDenial(query)
+    if (denial !== null) return sendText(res, denial.status, denial.message)
+  }
+  const target = `${origin}/${relParts.join('/')}${query === '' ? '' : `?${query}`}`
+  // Re-check the final URL: a malformed target or a query that made the parser
+  // pick a different host must never reach the network.
+  if (blockedHost(target)) return sendText(res, 403, 'forbidden')
   try {
-    const upstream = await fetch(target, { redirect: 'follow' })
+    // Redirects are refused: a harmless host could otherwise bounce the proxy
+    // to a loopback/private address that `blockedHost` already rejected.
+    const upstream = await fetch(target, { redirect: 'manual' })
+    if (upstream.status >= 300 && upstream.status < 400) return sendText(res, 403, 'forbidden')
     if (!upstream.ok || upstream.body === null) {
       return sendText(res, upstream.status === 200 ? 502 : upstream.status, `upstream ${upstream.status}`)
     }
@@ -527,670 +1469,959 @@ async function remoteHandler(req, res) {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Agent bridge (docs/agent-bridge.md)
-//
-// The Host half of the panel bridge: panels connect over SSE, each with its own
-// serial command queue, and the model-facing tools turn calls into `command`
-// frames and wait for the matching `POST /result` receipt. Nothing here trusts
-// the panel: command ids are random, receipts need the process token, and local
-// load paths must already be whitelisted by `/scan`.
-// ---------------------------------------------------------------------------
+const SCENE_TOOL_NAME = 'earth_scene'
+const CAPTURE_TOOL_NAME = 'earth_capture'
+const SCENE_RENDER_LIMIT = 4096
+const CAPTURE_NOTE = 'Image file written. If this model can read images, call read_image with this path; otherwise rely on earth_scene status JSON.'
+const PANEL_CLOSED_MESSAGE = 'The Digital Earth panel is not open in this conversation. Ask the user to click the earth button in the chat header to open it, then retry.'
+const SESSION_FALLBACK_NOTE = 'No session id was supplied by this tool call; the only connected digital earth panel session was used.'
 
-const MAX_RESULT_BODY = 16 * 1024 * 1024
-const MAX_PANEL_CONNECTIONS = 8
-const PANEL_PING_INTERVAL = 15_000
-const PANEL_SESSION_LIMIT = 128
-const SCENE_TIMEOUT_MS = 20_000
-const CAPTURE_TIMEOUT_MS = 30_000
-const CAPTURE_WIDTH_DEFAULT = 1280
-const CAPTURE_WIDTH_MIN = 320
-const CAPTURE_WIDTH_MAX = 2560
-const SCENE_ACTION_LIST = ['status', 'load', 'remove', 'visible', 'basemap', 'terrain', 'fly', 'reset', 'pick']
-const SCENE_ACTIONS = new Set(SCENE_ACTION_LIST)
-const CAPTURE_FORMAT_LIST = ['png', 'jpeg']
-const CAPTURE_FORMATS = new Set(CAPTURE_FORMAT_LIST)
-const ABSOLUTE_PATH = /^([a-zA-Z]:[\\/]|\\\\|\/)/
-const DATA_URL = /^data:image\/(png|jpeg);base64,([a-z0-9+/=\s]+)$/i
-
-/** Failure codes the bridge can emit, with the hint a model can act on. */
-const BRIDGE_ERROR_HINTS = {
-  panel_not_open: 'Ask the user to open the Digital Earth panel from the left sidebar, then retry.',
-  panel_ambiguous: 'Several Digital Earth panels are open; ask the user to keep one, then retry.',
-  bridge_offline: 'The panel connection dropped; ask the user to reopen the Digital Earth panel.',
-  timeout: 'The panel did not answer in time; retry once, or ask the user to reload the panel.',
-  panel_gone: 'The panel was closed while the command was in flight; ask the user to reopen it.',
-  bad_args: 'Check the arguments against the documented earth_scene/earth_capture parameters.',
-  needs_user_directory: "Ask the user to open that folder from the panel's local-directory picker first.",
-  not_found: 'Nothing matches that id; call earth_scene with action="status" to list the current scene.',
-  capture_failed: 'The panel could not produce a usable screenshot; retry once.',
-  load_failed: 'The tileset could not be loaded; verify the url/path and retry.',
+const SCENE_ACTIONS = {
+  status: [],
+  list: [],
+  load: ['url', 'path'],
+  remove: ['layer'],
+  visible: ['layer', 'visible'],
+  basemap: ['imagery'],
+  terrain: ['terrain'],
+  fly: ['lon', 'lat', 'height', 'heading', 'pitch', 'duration'],
+  reset: [],
+  pick: [],
+  inspect: ['layer', 'path', 'url', 'deep'],
 }
+const SCENE_ACTION_NAMES = Object.keys(SCENE_ACTIONS)
+const CAPTURE_ARG_NAMES = new Set(['width', 'format', 'include_hud', 'label'])
+const CAPTURE_FORMATS = new Set(['jpeg', 'png'])
+const DEFAULT_CAPTURE_WIDTH = 1280
+const MIN_CAPTURE_WIDTH = 480
+const MAX_CAPTURE_WIDTH = 2560
 
-const EARTH_SCENE_DESCRIPTION = '操作已打开的数字地球面板：读取/加载/删除 3D Tiles 图层、切换底图与地形、飞行相机、拾取要素。坐标为 WGS84 十进制度（经度 lon、纬度 lat），高度单位米。不确定当前场景时先 action="status"；不要猜坐标。面板未打开时会返回 panel_not_open，请让用户从左侧边栏打开数字地球。'
-
-const EARTH_CAPTURE_DESCRIPTION = '截取数字地球当前视口为 PNG 存到工作区，返回路径、相机和图层摘要；截图不含工具栏。截完后用 read_image 读取该路径，确认真实画面后再描述。一次对话最多截 1–2 张。'
-
-/**
- * Raw JSON Schema for the model-facing tools. Only the enforced DSH subset is
- * used (type/oneOf/properties/required/additionalProperties/items/enum/const +
- * annotations), so ranges are described in prose and checked in `execute`.
- */
-const EARTH_SCENE_PARAMETERS = {
+const SCENE_PARAMETERS = {
   type: 'object',
   properties: {
     action: {
       type: 'string',
-      enum: SCENE_ACTION_LIST,
-      description: 'Operation to run; use status first when the current scene is unknown.',
+      enum: SCENE_ACTION_NAMES,
+      description: 'Operation to run.',
     },
     url: {
       type: 'string',
-      description: 'load: http(s) address of a tileset.json, or a tiles URL the panel already shows.',
+      description: 'load: absolute http(s) URL of a tileset.json; exactly one of url or path. inspect: absolute http(s) tileset.json URL to analyze; it works while the panel is closed.',
     },
     path: {
       type: 'string',
-      description: 'load: absolute local directory or tileset.json inside a folder the user opened in the panel.',
+      description: 'load: absolute path of a tileset.json inside a folder the user opened in the panel; exactly one of url or path. inspect: absolute local tileset.json path to analyze; its containing folder must be one the user opened in the panel.',
     },
-    name: { type: 'string', description: 'load: optional layer display name.' },
-    id: {
-      description: 'remove/visible: layer id. basemap/terrain: imagery or terrain source id; null turns it off.',
-      oneOf: [
-        { type: 'string', description: 'Layer or source id.' },
-        { type: 'null', description: 'Turn the current basemap or terrain off.' },
-      ],
+    layer: {
+      type: 'string',
+      description: 'remove/visible: layer id from status.layers, or its exact name. inspect: analyze this loaded layer after the panel resolves its source; the panel must be open.',
     },
-    visible: { type: 'boolean', description: 'visible: show (true) or hide (false) the layer.' },
-    lon: { type: 'number', description: 'fly/pick: WGS84 longitude in decimal degrees (-180..180).' },
-    lat: { type: 'number', description: 'fly/pick: WGS84 latitude in decimal degrees (-90..90).' },
-    height: { type: 'number', description: 'fly: camera height in metres (default 2000).' },
-    heading: { type: 'number', description: 'fly: heading in degrees (default 0).' },
-    pitch: { type: 'number', description: 'fly: pitch in degrees (default -45).' },
-    duration: { type: 'number', description: 'fly: flight duration in seconds, 0-10 (default 1.5).' },
+    deep: {
+      type: 'boolean',
+      description: 'inspect: true also checks content files (local: existence and size of up to 200 contents; remote: reachability of root content). Default false.',
+    },
+    visible: {
+      type: 'boolean',
+      description: 'visible: true shows the layer, false hides it.',
+    },
+    imagery: {
+      type: 'string',
+      description: 'basemap: imagery source id from status.sources.imagery; pass "none" to turn the basemap off.',
+    },
+    terrain: {
+      type: 'string',
+      description: 'terrain: terrain source id from status.sources.terrain; pass "none" to turn terrain off.',
+    },
+    lon: { type: 'number', description: 'fly: target longitude in degrees.' },
+    lat: { type: 'number', description: 'fly: target latitude in degrees.' },
+    height: { type: 'number', description: 'fly: camera height in meters; default 1500.' },
+    heading: { type: 'number', description: 'fly: heading in degrees clockwise from north; default 0.' },
+    pitch: { type: 'number', description: 'fly: pitch in degrees, -90 looks straight down; default -45.' },
+    duration: { type: 'number', description: 'fly: flight time in seconds; default 1.2.' },
   },
   required: ['action'],
   additionalProperties: false,
 }
 
-const EARTH_CAPTURE_PARAMETERS = {
+const SCENE_DESCRIPTION = [
+  'Read, change or health-check the interactive digital earth panel (CesiumJS) open in this conversation: 3D Tiles and Gaussian splat layers, imagery basemap, terrain and camera.',
+  'The panel must be open for the scene and capture actions; otherwise the call fails with an instruction you should relay to the user. inspect with path or url works while the panel is closed.',
+  '',
+  'Actions:',
+  '- status: returns view{lon,lat,height,heading,pitch}, layers, imagery, terrain, sources, viewport, snapshot and measureTool, plus busy state. Start here.',
+  '- list: layers, sources, active imagery and terrain only (no camera/view), lighter than status.',
+  '- load: add a layer from url (online tileset.json) or path (local tileset.json inside a folder the user opened in the panel).',
+  '- remove: remove a layer by layer id or name.',
+  '- visible: show or hide one layer.',
+  '- basemap: switch the imagery source, or pass "none" to turn the basemap off.',
+  '- terrain: switch the terrain source, or pass "none" to turn terrain off.',
+  '- fly: move the camera.',
+  '- reset: return to the global view.',
+  '- pick: identify whatever is at the center of the view.',
+  '- inspect: static data health check of a tileset, without changing the scene. Pass layer (panel open; resolves that layer source and merges the panel runtime counters), or path/url of a tileset.json (works while the panel is closed); deep true also checks content files. Returns a compact summary plus a host report path; the full report stays on the host and in the panel.',
+  '',
+  'Returns the panel JSON result for the scene actions; that result is the authoritative scene state. inspect returns a compact data_health summary with report_path.',
+].join('\n')
+
+const CAPTURE_PARAMETERS = {
   type: 'object',
   properties: {
     width: {
       type: 'integer',
-      description: 'Output width in pixels, 320-2560 (default 1280); height keeps the viewport ratio.',
+      minimum: MIN_CAPTURE_WIDTH,
+      maximum: MAX_CAPTURE_WIDTH,
+      description: 'Target image width in output image pixels (capped by the panel canvas size); height follows the panel aspect ratio. Default 1280.',
     },
-    format: { type: 'string', enum: CAPTURE_FORMAT_LIST, description: 'Image format (default png).' },
+    format: {
+      type: 'string',
+      enum: ['jpeg', 'png'],
+      description: 'Image encoding. Default jpeg.',
+    },
+    include_hud: {
+      type: 'boolean',
+      description: 'true burns the coordinate HUD and team credit into the image (the DOM toolbar is never included); omit to use the panel screenshot setting (usually hidden).',
+    },
+    label: {
+      type: 'string',
+      description: 'Short scene label for this capture, used in the file name.',
+    },
   },
   additionalProperties: false,
 }
 
-/**
- * Shared output envelope. The success payload varies per action, so the schema
- * only pins down the `ok` discriminator and lets the action-specific fields
- * through; `render` is what the model actually reads.
- */
-const BRIDGE_TOOL_OUTPUT = {
-  schema: {
-    type: 'object',
-    description: 'Structured tool result. Success carries the action payload; failure carries code/message/hint.',
-    properties: {
-      ok: { type: 'boolean', description: 'Whether the operation succeeded.' },
-      code: { type: 'string', description: 'Machine-readable failure code (failure only).' },
-      message: { type: 'string', description: 'Human-readable failure detail (failure only).' },
-      hint: { type: 'string', description: 'Suggested next step for the model (failure only).' },
-    },
-    required: ['ok'],
-    additionalProperties: true,
-  },
-  render: (args, value) => [{ type: 'text', text: JSON.stringify(value, null, 2) }],
-}
+const CAPTURE_DESCRIPTION = [
+  'Save the current digital earth view as an image file on the host and return its absolute path.',
+  'The panel must already be open; set up the camera and scene with earth_scene first.',
+  '',
+  'By default the image follows the panel screenshot setting (usually a clean view); set include_hud true to burn in the coordinate HUD and team credit. The DOM toolbar is never part of the image.',
+  'If this model can read images, call read_image on the returned path; otherwise describe the scene only from earth_scene status JSON.',
+].join('\n')
 
-const SYSTEM_PROMPT_SECTION = {
-  name: 'digital-earth',
-  order: 550,
-  text: `## Digital Earth panel
-- earth_scene operates the user's open 3D globe panel; earth_capture saves a PNG of the viewport.
-- Coordinates are WGS84 decimal degrees (lon/lat). Heights are meters. Never guess coordinates; use status.
-- Call earth_scene(action="status") before changing a view you have not seen this turn.
-- panel_not_open means the user must open the Digital Earth panel from the left sidebar; don't retry blindly.
-- After changing the view, capture once and use read_image before describing what is visible.
-- Loading local files is limited to directories the user picked in the panel.`,
-}
+const SYSTEM_PROMPT_SECTION = [
+  'The Web UI has an interactive digital earth panel (CesiumJS) rendering 3D Tiles, Gaussian splats, imagery and terrain. Control it with earth_scene and earth_capture.',
+  '',
+  '- Open the panel in this conversation first (earth button in chat header); otherwise tools return an actionable error — relay it, do not retry blindly.',
+  '- Call earth_scene "status" before changing anything so changes build on the real camera, layers and sources; "list" is the lighter variant.',
+  '- Local data loads only from a folder the user opened once in the panel (host allowlist); never guess an absolute path. If refused, ask the user to open that folder in the panel data setting, then retry.',
+  '- earth_scene actions: status, list, load, remove, visible, basemap, terrain, fly, reset, pick, inspect. Use inspect to health-check a tileset (a loaded layer, or a path/url that works while the panel is closed) before debugging rendering or after loading suspect data.',
+  '- earth_capture saves a screenshot and returns its absolute path; by default it follows the panel screenshot setting (usually hidden HUD). If this model reads images, call read_image on that path; otherwise rely on earth_scene status JSON. Never describe scene content you did not receive.',
+  '- Report only state the tools returned; never claim data is loaded or visible otherwise.',
+].join('\n')
 
-const errorMessage = (error) => (error instanceof Error ? error.message : String(error))
-const isRecord = (value) => value !== null && typeof value === 'object' && !Array.isArray(value)
-const finiteNumber = (value) => (typeof value === 'number' && Number.isFinite(value) ? value : null)
-
-/** `ctx.logger` when the host provides one, console otherwise: a bridge warning must never throw. */
-function warnWith(ctx, message) {
+const isHttpUrl = (value) => {
   try {
-    if (typeof ctx.logger?.warn === 'function') {
-      ctx.logger.warn(message)
-      return
-    }
+    const parsed = new URL(value)
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:'
   } catch {
-    // fall through to console
-  }
-  console.warn(message)
-}
-
-/** Optional service lookup: absent on hosts that do not mount the service. */
-function serviceOf(ctx, name) {
-  try {
-    const service = ctx.get(name)
-    if (service !== undefined && service !== null) return service
-  } catch {
-    // fall through to the direct property
-  }
-  try {
-    return ctx[name]
-  } catch {
-    return undefined
+    return false
   }
 }
 
-let cachedPackageVersion
-/** This package's version for `/meta`, omitted when the manifest cannot be read. */
-async function packageVersion() {
-  if (cachedPackageVersion !== undefined) return cachedPackageVersion
-  try {
-    const manifest = JSON.parse(await fs.readFile(new URL('./package.json', import.meta.url), 'utf8'))
-    cachedPackageVersion = typeof manifest?.version === 'string' && manifest.version !== '' ? manifest.version : null
-  } catch {
-    cachedPackageVersion = null
+const timeoutMessage = (action, timeoutMs) =>
+  `The digital earth panel did not answer the "${action}" command within ${Math.round(timeoutMs / 1000)}s. Make sure the panel is still open and has finished loading, then retry.`
+
+// Only the newest connection of a session receives commands, so several open
+// tabs cannot run one command twice; older tabs stay connected but idle.
+const MULTI_TAB_HINT = ' Several panel tabs are connected for this session and only the most recently opened one receives commands; switch to that tab (or reopen the panel here) and retry.'
+
+const sceneError = (message) => new Error(`earth_scene: ${message}`)
+
+const captureError = (message) => new Error(`earth_capture: ${message}`)
+
+function requireSceneString(raw, key, action) {
+  const value = raw[key]
+  if (typeof value !== 'string' || value.trim() === '') {
+    throw sceneError(`${action} needs "${key}" as a non-empty string.`)
   }
-  return cachedPackageVersion
+  return value.trim()
 }
 
-/** Read a JSON receipt body with a hard byte cap; a body of exactly the cap is allowed. */
-function readRequestBody(req, limit) {
-  return new Promise((resolve) => {
-    const chunks = []
-    let size = 0
-    let tooLarge = false
-    let settled = false
-    const finish = (result) => {
-      if (settled) return
-      settled = true
-      resolve(result)
-    }
-    req.on('data', (chunk) => {
-      if (tooLarge) return
-      size += chunk.length
-      if (size > limit) {
-        tooLarge = true
-        chunks.length = 0
-        return
-      }
-      chunks.push(chunk)
-    })
-    req.on('end', () => finish({ tooLarge, text: tooLarge ? '' : Buffer.concat(chunks).toString('utf8') }))
-    req.on('error', () => finish({ tooLarge: false, text: '', error: true }))
-    req.on('close', () => finish({ tooLarge: false, text: '', error: true }))
-  })
+function nullableSceneString(raw, key, action) {
+  const value = raw[key]
+  if (value === null) return null
+  if (typeof value === 'string' && value.trim() !== '') {
+    const trimmed = value.trim()
+    // The DSH schema subset has no `type: ['string', 'null']`, so the schema
+    // advertises the string "none" and it is normalised to null here.
+    return trimmed.toLowerCase() === 'none' ? null : trimmed
+  }
+  throw sceneError(`${action} "${key}" must be a source id string, or "none" to turn it off.`)
 }
 
-/** Normalize one panel receipt into the bridge's internal result shape. */
-function normalizeBridgeResult(receipt) {
-  if (receipt.ok === true) return { ok: true, data: receipt.data ?? {} }
-  const code = typeof receipt.code === 'string' && receipt.code !== '' ? receipt.code.slice(0, 64) : 'bridge_offline'
-  const message = typeof receipt.message === 'string' && receipt.message !== '' ? receipt.message.slice(0, 600) : 'The Digital Earth panel rejected the command.'
-  return { ok: false, code, message }
-}
-
-/** Tool-facing failure: never throw, always explain what the model can do next. */
-function bridgeFailure(code, message) {
-  const result = { ok: false, code: typeof code === 'string' && code !== '' ? code.slice(0, 64) : 'bridge_offline' }
-  result.message = typeof message === 'string' && message !== '' ? message.slice(0, 600) : 'The Digital Earth bridge rejected the request.'
-  const hint = BRIDGE_ERROR_HINTS[result.code]
-  if (hint !== undefined) result.hint = hint
-  return result
-}
-
-/** Tool-facing success: a scene snapshot is spread so the model reads camera/layers directly. */
-function bridgeSuccess(data) {
-  if (isRecord(data)) return { ...data, ok: true }
-  return { ok: true, data: data ?? null }
-}
-
-/**
- * The directory `/scan` must have whitelisted for a `load.path`, or null.
- * `tileset.json` paths are judged by their parent directory because that is
- * what `/scan` records and what the tiles route can serve from.
- */
-function whitelistedTilesDir(path, allowedDirs) {
-  if (typeof path !== 'string' || !ABSOLUTE_PATH.test(path)) return null
-  const resolved = resolve(path)
-  const dir = basename(resolved).toLowerCase() === 'tileset.json' ? dirname(resolved) : resolved
-  return allowedDirs.has(dir) ? dir : null
-}
-
-/**
- * Validate and map one `earth_scene` call onto the client command args.
- * Returns `{ ok: true, args }` or a ready-made failure object; `load` with a
- * non-whitelisted local path never reaches the wire.
- */
-function sceneCommandArgs(action, raw, allowedDirs) {
+/** Validate the model-facing arguments and build the command the browser executes. */
+function normalizeSceneRequest(raw) {
+  if (raw === null || typeof raw !== 'object' || Array.isArray(raw)) {
+    throw sceneError('the arguments must be an object with an "action" field.')
+  }
+  const action = raw.action
+  if (typeof action !== 'string' || !Object.hasOwn(SCENE_ACTIONS, action)) {
+    throw sceneError(`"action" must be one of ${SCENE_ACTION_NAMES.join(', ')}.`)
+  }
+  const allowed = SCENE_ACTIONS[action]
+  for (const key of Object.keys(raw)) {
+    if (key === 'action' || allowed.includes(key)) continue
+    throw sceneError(`action "${action}" does not accept "${key}"; accepted arguments: action${allowed.length === 0 ? '' : `, ${allowed.join(', ')}`}.`)
+  }
   const args = {}
-  const bad = (message) => ({ ok: false, code: 'bad_args', message })
   switch (action) {
-    case 'status':
-    case 'reset':
-      return { ok: true, args }
     case 'load': {
       const url = typeof raw.url === 'string' ? raw.url.trim() : ''
       const path = typeof raw.path === 'string' ? raw.path.trim() : ''
+      if (url !== '' && path !== '') throw sceneError('load takes either "url" or "path", not both.')
+      if (url === '' && path === '') {
+        throw sceneError('load needs "url" (online tileset.json) or "path" (local tileset.json inside a folder the user opened in the panel).')
+      }
       if (url !== '') {
-        // Absolute http(s), or a tiles URL the panel itself handed out (already
-        // same-origin and token-scoped, so it needs no extra permission check).
-        const panelUrl = url.startsWith(`${TILES_ROUTE}/`) || url.startsWith(`${REMOTE_ROUTE}/`)
-        if (!panelUrl && !/^https?:\/\//i.test(url)) return bad('url must be an absolute http(s) URL or a panel tiles URL')
-        args.url = url.slice(0, 2048)
-      } else if (path !== '') {
-        if (whitelistedTilesDir(path, allowedDirs) === null) {
-          return {
-            ok: false,
-            code: 'needs_user_directory',
-            message: `"${path}" is not inside a folder the user opened in the panel, so it was not forwarded.`,
-          }
+        if (!isHttpUrl(url)) throw sceneError(`load "url" must be an absolute http(s) URL, got ${JSON.stringify(url)}.`)
+        args.url = url
+      } else {
+        args.path = path
+      }
+      break
+    }
+    case 'remove':
+      args.layer = requireSceneString(raw, 'layer', action)
+      break
+    case 'visible':
+      if (typeof raw.visible !== 'boolean') throw sceneError('visible needs "visible" as true or false.')
+      args.layer = requireSceneString(raw, 'layer', action)
+      args.visible = raw.visible
+      break
+    case 'basemap':
+      if (!Object.hasOwn(raw, 'imagery')) {
+        throw sceneError('basemap needs "imagery" (a source id from status.sources.imagery, or "none" to turn the basemap off).')
+      }
+      args.imagery = nullableSceneString(raw, 'imagery', action)
+      break
+    case 'terrain':
+      if (!Object.hasOwn(raw, 'terrain')) {
+        throw sceneError('terrain needs "terrain" (a source id from status.sources.terrain, or "none" to turn terrain off).')
+      }
+      args.terrain = nullableSceneString(raw, 'terrain', action)
+      break
+    case 'fly': {
+      for (const key of ['lon', 'lat']) {
+        if (typeof raw[key] !== 'number' || !Number.isFinite(raw[key])) {
+          throw sceneError(`fly needs "${key}" as a finite number of degrees.`)
         }
+        args[key] = raw[key]
+      }
+      if (args.lon < -180 || args.lon > 180) throw sceneError('fly "lon" must be between -180 and 180 degrees.')
+      if (args.lat < -90 || args.lat > 90) throw sceneError('fly "lat" must be between -90 and 90 degrees.')
+      for (const key of ['height', 'heading', 'pitch', 'duration']) {
+        if (raw[key] === undefined) continue
+        if (typeof raw[key] !== 'number' || !Number.isFinite(raw[key])) {
+          throw sceneError(`fly "${key}" must be a finite number.`)
+        }
+        args[key] = raw[key]
+      }
+      break
+    }
+    case 'inspect': {
+      for (const key of ['url', 'path', 'layer']) {
+        if (raw[key] !== undefined && typeof raw[key] !== 'string') throw sceneError(`inspect "${key}" must be a string.`)
+      }
+      const url = typeof raw.url === 'string' ? raw.url.trim() : ''
+      const path = typeof raw.path === 'string' ? raw.path.trim() : ''
+      const layer = typeof raw.layer === 'string' ? raw.layer.trim() : ''
+      const given = [url !== '', path !== '', layer !== ''].filter((item) => item).length
+      if (given === 0) throw sceneError('inspect needs exactly one of "layer" (a layer loaded in the panel), "path" (local tileset.json) or "url" (http(s) tileset.json).')
+      if (given > 1) throw sceneError('inspect takes exactly one of "layer", "path" or "url", not several.')
+      if (url !== '') {
+        if (!isHttpUrl(url)) throw sceneError(`inspect "url" must be an absolute http(s) URL, got ${JSON.stringify(url)}.`)
+        args.url = url
+      } else if (path !== '') {
+        if (!isAbsolute(path)) throw sceneError('inspect "path" must be an absolute path to a tileset.json.')
         args.path = path
       } else {
-        return bad('load needs url or path')
+        args.layer = layer
       }
-      if (typeof raw.name === 'string' && raw.name.trim() !== '') args.name = raw.name.trim().slice(0, 120)
-      return { ok: true, args }
-    }
-    case 'remove': {
-      if (typeof raw.id !== 'string' || raw.id.trim() === '') return bad('remove needs a layer id')
-      args.id = raw.id.trim()
-      return { ok: true, args }
-    }
-    case 'visible': {
-      if (typeof raw.id !== 'string' || raw.id.trim() === '') return bad('visible needs a layer id')
-      if (typeof raw.visible !== 'boolean') return bad('visible needs a boolean visible flag')
-      args.id = raw.id.trim()
-      args.visible = raw.visible
-      return { ok: true, args }
-    }
-    case 'basemap':
-    case 'terrain': {
-      if (Object.hasOwn(raw, 'id')) {
-        if (raw.id === null || raw.id === '') args.id = null
-        else if (typeof raw.id === 'string' && raw.id.trim() !== '') args.id = raw.id.trim()
-        else return bad(`${action} id must be a source id string or null to turn it off`)
+      if (raw.deep !== undefined) {
+        if (typeof raw.deep !== 'boolean') throw sceneError('inspect "deep" must be true or false.')
+        args.deep = raw.deep
       }
-      return { ok: true, args }
-    }
-    case 'fly': {
-      const lon = finiteNumber(raw.lon)
-      const lat = finiteNumber(raw.lat)
-      if (lon === null || lat === null) return bad('fly needs numeric lon and lat')
-      if (lon < -180 || lon > 180) return bad('lon must be between -180 and 180')
-      if (lat < -90 || lat > 90) return bad('lat must be between -90 and 90')
-      args.lon = lon
-      args.lat = lat
-      const duration = finiteNumber(raw.duration)
-      if (raw.duration !== undefined && duration === null) return bad('duration must be a number of seconds')
-      if (duration !== null && (duration < 0 || duration > 10)) return bad('duration must be between 0 and 10 seconds')
-      for (const key of ['height', 'heading', 'pitch']) {
-        if (raw[key] === undefined) continue
-        const value = finiteNumber(raw[key])
-        if (value === null) return bad(`${key} must be a number`)
-        args[key] = value
-      }
-      if (duration !== null) args.duration = duration
-      return { ok: true, args }
-    }
-    case 'pick': {
-      const lon = finiteNumber(raw.lon)
-      const lat = finiteNumber(raw.lat)
-      if (lon === null || lat === null) return bad('pick needs numeric lon and lat')
-      if (lon < -180 || lon > 180) return bad('lon must be between -180 and 180')
-      if (lat < -90 || lat > 90) return bad('lat must be between -90 and 90')
-      args.lon = lon
-      args.lat = lat
-      return { ok: true, args }
+      break
     }
     default:
-      return bad('unsupported action')
+      break
   }
+  return { action, args }
 }
 
-/** Decode `data:image/(png|jpeg);base64,…`, accepting only real PNG/JPEG bytes. */
-function decodeCaptureImage(dataUrl) {
-  if (typeof dataUrl !== 'string') return null
-  const match = DATA_URL.exec(dataUrl)
-  if (match === null) return null
-  let buffer
-  try {
-    buffer = Buffer.from(match[2].replace(/\s+/g, ''), 'base64')
-  } catch {
-    return null
+/** Validate capture options and build the capture command, passed through as-is. */
+function normalizeCaptureRequest(raw) {
+  const input = raw === null || raw === undefined ? {} : raw
+  if (typeof input !== 'object' || Array.isArray(input)) throw captureError('the arguments must be an object.')
+  for (const key of Object.keys(input)) {
+    if (CAPTURE_ARG_NAMES.has(key)) continue
+    throw captureError(`it does not accept "${key}"; accepted arguments: width, format, include_hud, label.`)
   }
-  if (buffer.length >= 8 && buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4e && buffer[3] === 0x47) {
-    return { format: 'png', buffer }
+  const width = input.width === undefined ? DEFAULT_CAPTURE_WIDTH : input.width
+  if (!Number.isInteger(width) || width < MIN_CAPTURE_WIDTH || width > MAX_CAPTURE_WIDTH) {
+    throw captureError(`"width" must be an integer between ${MIN_CAPTURE_WIDTH} and ${MAX_CAPTURE_WIDTH} pixels.`)
   }
-  if (buffer.length >= 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) {
-    return { format: 'jpeg', buffer }
-  }
-  return null
-}
-
-/** `<yyyyMMdd-HHmmss>-<4 hex chars>`, so captures sort by time and never collide. */
-function captureBaseName(now = new Date()) {
-  const pad = (value) => String(value).padStart(2, '0')
-  const stamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`
-  return `${stamp}-${randomBytes(2).toString('hex')}`
-}
-
-/** The session working directory when available, the plugin state dir otherwise. */
-async function captureDirectory(ctx, exec) {
-  try {
-    const workingDirectory = serviceOf(ctx, 'workingDirectory')
-    if (workingDirectory !== undefined && workingDirectory !== null && typeof workingDirectory.ensure === 'function') {
-      const cwd = await workingDirectory.ensure(exec?.agent, exec?.signal)
-      if (typeof cwd === 'string' && cwd.trim() !== '') return join(cwd, '.dsh-earth', 'captures')
-    }
-  } catch (error) {
-    warnWith(ctx, `digital-earth: could not resolve the session working directory for the capture: ${errorMessage(error)}`)
-  }
-  return join(STATE_DIR, 'captures')
-}
-
-/** Write the PNG/JPEG plus its JSON sidecar; returns the tool payload or a failure. */
-async function saveCapture(ctx, exec, data, requestedWidth) {
-  const image = decodeCaptureImage(isRecord(data) ? data.dataUrl : undefined)
-  if (image === null) return bridgeFailure('capture_failed', 'The panel returned no usable image data.')
-  const scene = isRecord(data?.scene) ? data.scene : null
-  const camera = isRecord(data?.camera) ? data.camera : isRecord(scene?.camera) ? scene.camera : null
-  const layers = Array.isArray(data?.layers) ? data.layers : Array.isArray(scene?.layers) ? scene.layers : null
-  const width = Number.isInteger(data?.width) && data.width > 0 ? data.width : requestedWidth
-  const height = Number.isInteger(data?.height) && data.height > 0 ? data.height : null
-  const directory = await captureDirectory(ctx, exec)
-  try {
-    await fs.mkdir(directory, { recursive: true })
-    for (let attempt = 0; attempt < 5; attempt += 1) {
-      const base = captureBaseName()
-      const imagePath = join(directory, `${base}.${image.format}`)
-      try {
-        // `wx` keeps a concurrent capture from silently overwriting this one.
-        await fs.writeFile(imagePath, image.buffer, { flag: 'wx' })
-      } catch (error) {
-        if (error?.code === 'EEXIST') continue
-        throw error
-      }
-      const sidecarPath = join(directory, `${base}.json`)
-      const metadata = {
-        capturedAt: new Date().toISOString(),
-        image: { path: imagePath, format: image.format, width, height, bytes: image.buffer.length },
-      }
-      if (scene !== null) metadata.scene = scene
-      if (camera !== null) metadata.camera = camera
-      if (layers !== null) metadata.layers = layers
-      await fs.writeFile(sidecarPath, `${JSON.stringify(metadata, null, 2)}\n`, 'utf8')
-      return {
-        ok: true,
-        path: imagePath,
-        sidecar: sidecarPath,
-        width,
-        height,
-        bytes: image.buffer.length,
-        format: image.format,
-        camera,
-        layers,
-        hint: `Use read_image on "${imagePath}" to inspect the capture before describing it.`,
-      }
-    }
-  } catch (error) {
-    return bridgeFailure('capture_failed', `The capture could not be written to disk: ${errorMessage(error)}`)
-  }
-  return bridgeFailure('capture_failed', 'A unique capture file name could not be allocated; retry once.')
+  const format = input.format === undefined ? 'jpeg' : input.format
+  if (!CAPTURE_FORMATS.has(format)) throw captureError('"format" must be "jpeg" or "png".')
+  // An explicit boolean wins; otherwise the key is left out so the page can
+  // fall back to its own screenshot setting (usually HUD hidden).
+  const includeHud = input.include_hud
+  if (includeHud !== undefined && typeof includeHud !== 'boolean') throw captureError('"include_hud" must be true or false.')
+  const label = input.label === undefined ? '' : input.label
+  if (typeof label !== 'string') throw captureError('"label" must be a string.')
+  const args = { width, format }
+  if (includeHud !== undefined) args.include_hud = includeHud
+  const trimmedLabel = label.trim().slice(0, 80)
+  if (trimmedLabel !== '') args.label = trimmedLabel
+  return { args, includeHud }
 }
 
 /**
- * Process-local panel registry plus the per-panel serial command queue.
- * `connect` owns SSE registration, `handleResult` resolves in-flight commands,
- * `dispatch` is what the tools call, and `closeAll` runs on plugin disposal.
+ * Which browser session should run this command. The tool execution normally
+ * carries the conversation's session id; a fallback covers transports that do
+ * not, as long as exactly one panel session is connected.
  */
-function createBridge({ warn }) {
-  const panels = new Map()
-  const pending = new Map()
+function resolveSessionTarget(bridge, exec) {
+  const direct = exec?.agent?.session?.id ?? exec?.agent?.id
+  if (typeof direct === 'string' && validSessionId(direct)) return { sessionId: direct, fallback: false }
+  const connected = bridge.connectedSessions()
+  if (connected.length === 1) return { sessionId: connected[0], fallback: true }
+  return null
+}
 
-  const writeRaw = (res, text) => {
-    if (res.writableEnded === true || res.destroyed === true) return false
+function asResultObject(value) {
+  if (value !== null && typeof value === 'object' && !Array.isArray(value)) return value
+  return { result: value === undefined ? null : value }
+}
+
+/**
+ * The per-process token authorises local file reads, so it must never reach the
+ * model. Any string below a tool result that still carries it is redacted; the
+ * page can echo token-bearing urls in status/list payloads.
+ */
+function scrubToken(value) {
+  if (typeof value === 'string') {
+    return value.includes(TOKEN) ? value.split(TOKEN).join('[token redacted]') : value
+  }
+  if (Array.isArray(value)) return value.map(scrubToken)
+  if (value !== null && typeof value === 'object') {
+    const cleaned = {}
+    for (const [key, item] of Object.entries(value)) cleaned[key] = scrubToken(item)
+    return cleaned
+  }
+  return value
+}
+
+/**
+ * Session-scoped command bridge between the Host tools and the browser panel.
+ *
+ * Each open tab holds one SSE connection. A command is delivered only to the
+ * newest connection of its session, so several open tabs can never run the same
+ * load or capture twice; older tabs keep their stream and heartbeat but stay
+ * idle. The first acknowledgement settles the call, and calls for one session
+ * run one at a time so concurrent tool calls cannot interleave camera changes.
+ */
+function createBridge(allowedDirs) {
+  const sessions = new Map()
+  const pending = new Map()
+  const queues = new Map()
+  let sequence = 0
+
+  const connectedSessions = () =>
+    [...sessions.keys()].filter((sessionId) => (sessions.get(sessionId)?.size ?? 0) > 0)
+
+  const writeFrame = (connection, frame) => {
+    if (connection.closed) return false
     try {
-      res.write(text)
+      connection.res.write(frame)
       return true
-    } catch (error) {
-      warn(`digital-earth: SSE write failed: ${errorMessage(error)}`)
+    } catch {
+      connection.detach()
       return false
     }
   }
 
-  const writeEvent = (res, event, data) => writeRaw(res, `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`)
-
-  /** Drop one panel: stop pinging, fail its in-flight command, end the stream. */
-  const closePanel = (panel, code) => {
-    if (panel.closed === true) return
-    panel.closed = true
-    panels.delete(panel.id)
-    if (panel.ping !== null) {
-      clearInterval(panel.ping)
-      panel.ping = null
+  const attach = (sessionId, req, res) => {
+    const connections = sessions.get(sessionId) ?? new Set()
+    sessions.set(sessionId, connections)
+    const connection = { res, closed: false, timer: null, detach: null }
+    const detach = () => {
+      if (connection.closed) return
+      connection.closed = true
+      if (connection.timer !== null) clearInterval(connection.timer)
+      connections.delete(connection)
+      if (connections.size === 0 && sessions.get(sessionId) === connections) sessions.delete(sessionId)
     }
-    for (const [id, entry] of pending) {
-      if (entry.panelId !== panel.id) continue
-      pending.delete(id)
-      clearTimeout(entry.timer)
-      entry.resolve({ ok: false, code, message: 'The Digital Earth panel closed before the command finished.' })
-    }
-    try {
-      panel.res.end()
-    } catch {
-      // Already gone; nothing left to close.
-    }
-  }
-
-  const connect = (req, res) => {
-    if (req.method !== 'GET') return sendText(res, 403, 'forbidden')
-    let url
-    try {
-      url = new URL(req.url ?? '/', 'http://localhost')
-    } catch {
-      return sendText(res, 400, 'bad request')
-    }
-    if (url.searchParams.get('token') !== TOKEN) return sendText(res, 403, 'forbidden')
-    const claimed = url.searchParams.get('session')
-    const session = typeof claimed === 'string' && claimed.trim() !== '' ? claimed.trim().slice(0, PANEL_SESSION_LIMIT) : null
+    connection.detach = detach
+    connections.add(connection)
     res.writeHead(200, {
       'content-type': 'text/event-stream; charset=utf-8',
       'cache-control': 'no-store',
       connection: 'keep-alive',
       'x-accel-buffering': 'no',
     })
-    res.flushHeaders?.()
-    const panel = {
-      id: `panel-${randomBytes(9).toString('base64url')}`,
-      session,
-      res,
-      ping: null,
-      closed: false,
-      tail: Promise.resolve(),
-    }
-    panels.set(panel.id, panel)
-    writeRaw(res, 'retry: 3000\n\n')
-    writeEvent(res, 'hello', { panelId: panel.id, session })
-    panel.ping = setInterval(() => {
-      writeRaw(res, ': ping\n\n')
-    }, PANEL_PING_INTERVAL)
-    panel.ping.unref?.()
-    const disconnect = () => closePanel(panel, 'panel_gone')
-    req.on('close', disconnect)
-    res.on('close', disconnect)
-    // Keep the registry bounded; the oldest connection loses, like a rolling log.
-    while (panels.size > MAX_PANEL_CONNECTIONS) {
-      const oldest = panels.values().next().value
-      if (oldest === undefined) break
-      closePanel(oldest, 'panel_gone')
-    }
-    return undefined
+    res.write('retry: 3000\n\n')
+    res.write(`event: hello\ndata: ${JSON.stringify({ session: sessionId })}\n\n`)
+    connection.timer = setInterval(() => {
+      if (connection.closed) return
+      try {
+        res.write(': ping\n\n')
+      } catch {
+        detach()
+      }
+    }, BRIDGE_HEARTBEAT_MS)
+    connection.timer.unref?.()
+    req.on('close', detach)
+    req.on('error', detach)
+    return connection
   }
 
-  const handleResult = async (req, res) => {
-    if (req.method !== 'POST') return sendText(res, 405, 'method not allowed')
-    let url
+  /** Run one task after every earlier task of the same session settled. */
+  const enqueue = (sessionId, task) => {
+    const previous = queues.get(sessionId) ?? Promise.resolve()
+    const current = previous.then(task, task)
+    let tail
+    tail = current
+      .then(() => undefined, () => undefined)
+      .finally(() => {
+        if (queues.get(sessionId) === tail) queues.delete(sessionId)
+      })
+    queues.set(sessionId, tail)
+    return current
+  }
+
+  const run = (sessionId, action, args, timeoutMs, signal) => {
+    // Local loads are gated here, before the command reaches any browser tab:
+    // the panel's `/scan` call made afterwards can only re-register a folder
+    // the user already opened.
+    const denial = loadPathDenial(action, args, allowedDirs)
+    if (denial !== null) return Promise.reject(new Error(denial))
+    const deadline = Date.now() + timeoutMs
+    return enqueue(sessionId, () => new Promise((resolve, reject) => {
+      if (signal?.aborted) {
+        reject(new Error(`The "${action}" command was cancelled before it reached the digital earth panel.`))
+        return
+      }
+      const connections = sessions.get(sessionId)
+      if (!connections || connections.size === 0) {
+        reject(new Error(PANEL_CLOSED_MESSAGE))
+        return
+      }
+      const remaining = deadline - Date.now()
+      if (remaining <= 0) {
+        reject(new Error(timeoutMessage(action, timeoutMs) + (connections.size > 1 ? MULTI_TAB_HINT : '')))
+        return
+      }
+      const id = `earth-${Date.now().toString(36)}-${(sequence += 1)}`
+      let abortListener = null
+      const job = {
+        session: sessionId,
+        settled: false,
+        timer: null,
+        finish: (error, value) => {
+          if (job.settled) return
+          job.settled = true
+          if (job.timer !== null) clearTimeout(job.timer)
+          if (abortListener !== null) signal?.removeEventListener?.('abort', abortListener)
+          pending.delete(id)
+          if (error) reject(error)
+          else resolve(value === undefined ? {} : value)
+        },
+      }
+      abortListener = () => job.finish(new Error(`The "${action}" command was cancelled.`))
+      signal?.addEventListener?.('abort', abortListener, { once: true })
+      pending.set(id, job)
+      const timerMessage = timeoutMessage(action, timeoutMs) + (connections.size > 1 ? MULTI_TAB_HINT : '')
+      job.timer = setTimeout(() => job.finish(new Error(timerMessage)), remaining)
+      job.timer.unref?.()
+      const frame = `event: command\ndata: ${JSON.stringify({ id, action, args })}\n\n`
+      // Only the newest attachment executes: an older tab that still has the
+      // panel open must stay idle instead of running the command a second time.
+      const newest = [...connections].pop()
+      if (!newest || !writeFrame(newest, frame)) job.finish(new Error(PANEL_CLOSED_MESSAGE))
+    }))
+  }
+
+  /** Settle a pending command from the browser acknowledgement, first ack wins. */
+  const settle = (sessionId, id, payload) => {
+    const job = pending.get(id)
+    if (!job || job.settled || job.session !== sessionId) return false
+    if (payload.ok === true) {
+      job.finish(null, payload.result)
+      return true
+    }
+    const message = typeof payload.error === 'string' && payload.error.trim() !== ''
+      ? scrubToken(payload.error.trim().slice(0, 2000))
+      : 'The digital earth panel reported the command as failed without an error message.'
+    job.finish(new Error(message))
+    return true
+  }
+
+  const dispose = () => {
+    for (const job of [...pending.values()]) {
+      if (!job.settled) job.finish(new Error('The digital earth bridge was unloaded before the command completed.'))
+    }
+    pending.clear()
+    for (const connections of [...sessions.values()]) {
+      for (const connection of [...connections]) {
+        connection.closed = true
+        if (connection.timer !== null) clearInterval(connection.timer)
+        try {
+          connection.res.end()
+        } catch {
+          // The page is already gone.
+        }
+      }
+    }
+    sessions.clear()
+    queues.clear()
+  }
+
+  return { attach, run, settle, connectedSessions, dispose }
+}
+
+function validSessionId(value) {
+  return typeof value === 'string' && value.length > 0 && value.length <= 200 && !/[\u0000-\u0020]/.test(value)
+}
+
+function bridgeHandler(bridge) {
+  return (req, res) => {
+    let parsed
     try {
-      url = new URL(req.url ?? '/', 'http://localhost')
+      parsed = new URL(req.url ?? '/', 'http://localhost')
     } catch {
       return sendText(res, 400, 'bad request')
     }
-    if (url.searchParams.get('token') !== TOKEN) return sendText(res, 403, 'forbidden')
-    const body = await readRequestBody(req, MAX_RESULT_BODY)
-    if (body.tooLarge === true) return sendJson(res, 413, { accepted: false })
-    if (body.error === true) return sendJson(res, 400, { accepted: false })
-    let receipt
+    if (parsed.searchParams.get('token') !== TOKEN) return sendText(res, 403, 'forbidden')
+    if (req.method === 'GET') {
+      const session = parsed.searchParams.get('session') ?? ''
+      if (!validSessionId(session)) return sendText(res, 400, 'missing or invalid session')
+      bridge.attach(session, req, res)
+      return
+    }
+    if (req.method === 'POST') return bridgeAck(bridge, req, res)
+    return sendText(res, 405, 'method not allowed')
+  }
+}
+
+/** POST: the browser acknowledges one command; unknown or stale ids are ignored. */
+async function bridgeAck(bridge, req, res) {
+  try {
+    let body = ''
     try {
-      receipt = JSON.parse(body.text)
-    } catch {
-      return sendJson(res, 400, { accepted: false })
-    }
-    if (
-      !isRecord(receipt) ||
-      typeof receipt.id !== 'string' ||
-      receipt.id === '' ||
-      receipt.id.length > 200 ||
-      typeof receipt.ok !== 'boolean'
-    ) {
-      return sendJson(res, 400, { accepted: false })
-    }
-    const entry = pending.get(receipt.id)
-    if (entry === undefined) return sendJson(res, 404, { accepted: false })
-    pending.delete(receipt.id)
-    clearTimeout(entry.timer)
-    entry.resolve(normalizeBridgeResult(receipt))
-    return sendJson(res, 200, { accepted: true })
-  }
-
-  /**
-   * Session match first, then the single-panel fallback. A stale or absent
-   * session on the panel side is normal (the panel may not know the session
-   * id), so one connection is always unambiguous.
-   */
-  const selectPanel = (exec) => {
-    const all = [...panels.values()]
-    if (all.length === 0) return { ok: false, code: 'panel_not_open', message: 'No Digital Earth panel is connected.' }
-    const session = exec?.agent?.id
-    if (typeof session === 'string' && session !== '') {
-      const matches = all.filter((panel) => panel.session === session)
-      if (matches.length === 1) return { panel: matches[0] }
-      if (matches.length > 1) {
-        return { ok: false, code: 'panel_ambiguous', message: `${matches.length} panels report the current session.` }
-      }
-    }
-    if (all.length === 1) return { panel: all[0] }
-    return {
-      ok: false,
-      code: 'panel_ambiguous',
-      message: `${all.length} panels are connected and none reports the current session.`,
-    }
-  }
-
-  /** Send one command frame and wait for its receipt, the panel going away, or the deadline. */
-  const runCommand = (panel, action, args, timeoutMs) =>
-    new Promise((resolve) => {
-      if (panel.closed === true) {
-        resolve({ ok: false, code: 'panel_gone', message: 'The Digital Earth panel is no longer connected.' })
-        return
-      }
-      const id = `c-${randomBytes(8).toString('base64url')}`
-      const timer = setTimeout(() => {
-        if (pending.delete(id) === false) return
-        resolve({ ok: false, code: 'timeout', message: `The panel did not answer within ${Math.round(timeoutMs / 1000)} s.` })
-      }, timeoutMs)
-      timer.unref?.()
-      pending.set(id, { panelId: panel.id, timer, resolve })
-      if (writeEvent(panel.res, 'command', { id, action, args }) === false) {
-        pending.delete(id)
-        clearTimeout(timer)
-        resolve({ ok: false, code: 'bridge_offline', message: 'The command could not be written to the panel stream.' })
-      }
-    })
-
-  /** Queue one command behind the panel's previous one; commands never overlap. */
-  const dispatch = async (exec, action, args, timeoutMs) => {
-    const selection = selectPanel(exec)
-    if (selection.panel === undefined) return selection
-    const panel = selection.panel
-    const run = panel.tail.then(() => runCommand(panel, action, args, timeoutMs))
-    panel.tail = run.then(
-      () => undefined,
-      () => undefined,
-    )
-    return run
-  }
-
-  const closeAll = () => {
-    for (const panel of [...panels.values()]) closePanel(panel, 'panel_gone')
-  }
-
-  return { connect, handleResult, dispatch, closeAll }
-}
-
-/** `earth_scene`: validate locally, then one serialized command round-trip. */
-function createEarthSceneTool({ bridge, allowedDirs }) {
-  return {
-    name: 'earth_scene',
-    description: EARTH_SCENE_DESCRIPTION,
-    parameters: EARTH_SCENE_PARAMETERS,
-    timeoutMs: SCENE_TIMEOUT_MS,
-    output: BRIDGE_TOOL_OUTPUT,
-    async execute(rawArgs, exec) {
-      const args = isRecord(rawArgs) ? rawArgs : {}
-      const action = typeof args.action === 'string' ? args.action : ''
-      if (!SCENE_ACTIONS.has(action)) {
-        return bridgeFailure('bad_args', `action must be one of ${SCENE_ACTION_LIST.join(', ')}`)
-      }
-      const prepared = sceneCommandArgs(action, args, allowedDirs)
-      if (prepared.ok === false) return bridgeFailure(prepared.code, prepared.message)
-      const result = await bridge.dispatch(exec, action, prepared.args, SCENE_TIMEOUT_MS)
-      if (result.ok === true) return bridgeSuccess(result.data)
-      return bridgeFailure(result.code, result.message)
-    },
-  }
-}
-
-/** `earth_capture`: request a canvas screenshot, then persist it in the workspace. */
-function createEarthCaptureTool({ ctx, bridge }) {
-  return {
-    name: 'earth_capture',
-    description: EARTH_CAPTURE_DESCRIPTION,
-    parameters: EARTH_CAPTURE_PARAMETERS,
-    timeoutMs: CAPTURE_TIMEOUT_MS,
-    output: BRIDGE_TOOL_OUTPUT,
-    async execute(rawArgs, exec) {
-      const args = isRecord(rawArgs) ? rawArgs : {}
-      let width = CAPTURE_WIDTH_DEFAULT
-      if (args.width !== undefined) {
-        if (!Number.isInteger(args.width) || args.width < CAPTURE_WIDTH_MIN || args.width > CAPTURE_WIDTH_MAX) {
-          return bridgeFailure('bad_args', `width must be an integer between ${CAPTURE_WIDTH_MIN} and ${CAPTURE_WIDTH_MAX}`)
+      for await (const chunk of req) {
+        body += chunk
+        if (body.length > MAX_BRIDGE_BODY) {
+          req.destroy()
+          return sendText(res, 413, 'payload too large')
         }
-        width = args.width
       }
-      let format = 'png'
-      if (args.format !== undefined) {
-        if (!CAPTURE_FORMATS.has(args.format)) return bridgeFailure('bad_args', "format must be 'png' or 'jpeg'")
-        format = args.format
+    } catch {
+      return sendText(res, 400, 'bad request')
+    }
+    let payload
+    try {
+      payload = JSON.parse(body)
+    } catch {
+      return sendText(res, 400, 'invalid json')
+    }
+    if (payload === null || typeof payload !== 'object' || Array.isArray(payload)) {
+      return sendText(res, 400, 'invalid ack')
+    }
+    const session = typeof payload.session === 'string' ? payload.session : ''
+    const id = typeof payload.id === 'string' ? payload.id : ''
+    if (session !== '' && id !== '') bridge.settle(session, id, payload)
+    res.writeHead(204, { 'cache-control': 'no-store' })
+    res.end()
+  } catch {
+    if (!res.writableEnded) sendText(res, 400, 'bad ack')
+  }
+}
+
+function sanitizeLabel(value) {
+  if (typeof value !== 'string') return ''
+  return value
+    .replace(/[^A-Za-z0-9_-]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 32)
+}
+
+function timeStamp() {
+  const now = new Date()
+  const pad = (value) => String(value).padStart(2, '0')
+  return `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`
+}
+
+/**
+ * Keep only the newest screenshots so the capture folder cannot grow without
+ * bound. Pruning is best effort and must never fail the capture that wrote the
+ * newest file.
+ */
+async function pruneCaptures(keepName) {
+  const entries = await fs.readdir(CAPTURES_DIR, { withFileTypes: true })
+  const names = entries
+    .filter((entry) => entry.isFile() && /^earth-.+\.(jpe?g|png)$/i.test(entry.name))
+    .map((entry) => entry.name)
+  if (names.length <= MAX_CAPTURE_FILES) return
+  const stats = []
+  for (const name of names) {
+    try {
+      stats.push({ name, mtime: (await fs.stat(join(CAPTURES_DIR, name))).mtimeMs })
+    } catch {
+      stats.push({ name, mtime: 0 })
+    }
+  }
+  stats.sort((a, b) => b.mtime - a.mtime || (a.name < b.name ? 1 : -1))
+  let remaining = stats.length
+  // Delete from the oldest end, never the file written by this capture.
+  for (let index = stats.length - 1; index >= 0 && remaining > MAX_CAPTURE_FILES; index -= 1) {
+    const item = stats[index]
+    if (item.name === keepName) continue
+    await fs.rm(join(CAPTURES_DIR, item.name), { force: true })
+    remaining -= 1
+  }
+}
+
+/** POST: the page uploads a rendered screenshot; answer with the stored file. */
+async function captureHandler(req, res) {
+  if (req.method !== 'POST') return sendText(res, 405, 'method not allowed')
+  let parsed
+  try {
+    parsed = new URL(req.url ?? '/', 'http://localhost')
+  } catch {
+    return sendText(res, 400, 'bad request')
+  }
+  if (parsed.searchParams.get('token') !== TOKEN) return sendText(res, 403, 'forbidden')
+  let body = ''
+  try {
+    for await (const chunk of req) {
+      body += chunk
+      if (body.length > MAX_CAPTURE_BODY) {
+        req.destroy()
+        return sendText(res, 413, 'payload too large')
       }
-      const result = await bridge.dispatch(exec, 'capture', { width, format }, CAPTURE_TIMEOUT_MS)
-      if (result.ok !== true) return bridgeFailure(result.code, result.message)
-      try {
-        return await saveCapture(ctx, exec, result.data, width)
-      } catch (error) {
-        return bridgeFailure('capture_failed', `The capture could not be saved: ${errorMessage(error)}`)
-      }
+    }
+  } catch {
+    return sendText(res, 400, 'bad request')
+  }
+  let payload
+  try {
+    payload = JSON.parse(body)
+  } catch {
+    return sendText(res, 400, 'invalid json')
+  }
+  if (payload === null || typeof payload !== 'object' || Array.isArray(payload)) {
+    return sendText(res, 400, 'invalid capture')
+  }
+  const dataUrl = typeof payload.dataUrl === 'string' ? payload.dataUrl : ''
+  const image = /^data:image\/(jpeg|png);base64,([A-Za-z0-9+/=]+)$/.exec(dataUrl)
+  if (image === null) return sendText(res, 400, 'invalid image data')
+  const bytes = Buffer.from(image[2], 'base64')
+  if (bytes.length === 0) return sendText(res, 400, 'empty image data')
+  const extension = image[1] === 'png' ? 'png' : 'jpg'
+  const label = sanitizeLabel(payload.label)
+  const name = `earth-${timeStamp()}-${randomBytes(4).toString('hex')}${label === '' ? '' : `-${label}`}.${extension}`
+  const target = join(CAPTURES_DIR, name)
+  try {
+    await fs.mkdir(CAPTURES_DIR, { recursive: true })
+    await fs.writeFile(target, bytes)
+  } catch (error) {
+    return sendText(res, 500, `capture save failed: ${error instanceof Error ? error.message : String(error)}`)
+  }
+  const value = { path: target, url: `${FILES_ROUTE}/${TOKEN}/${name}`, bytes: bytes.length }
+  if (Number.isInteger(payload.width) && payload.width > 0) value.width = payload.width
+  if (Number.isInteger(payload.height) && payload.height > 0) value.height = payload.height
+  try {
+    await pruneCaptures(name)
+  } catch {
+    // Retention is best effort; the capture itself already succeeded.
+  }
+  sendJson(res, 200, value)
+}
+
+/** GET: serve a captured screenshot back to the page that produced it. */
+function capturesHandler(req, res) {
+  if (req.method !== 'GET' && req.method !== 'HEAD') return sendText(res, 405, 'method not allowed')
+  const raw = subPath(requestPath(req), FILES_ROUTE)
+  if (raw === null) return sendText(res, 404, 'not found')
+  const parts = segments(raw)
+  const name = parts.length === 2 && parts[0] === TOKEN ? decodeSegment(parts[1]) : null
+  if (name === null || !/^[A-Za-z0-9._-]+$/.test(name)) return sendText(res, 403, 'forbidden')
+  serveFile(req, res, CAPTURES_DIR, name, 'no-store')
+}
+
+/** Turn a capture acknowledgement into the tool result, verified against the disk. */
+async function captureResultValue(ack, request) {
+  const result = asResultObject(ack)
+  const reported = typeof result.path === 'string' ? result.path.trim() : ''
+  if (reported === '') {
+    throw captureError('the panel did not report a written image file; the capture failed. Retry, and if it keeps failing check the browser console for canvas or WebGL errors.')
+  }
+  const target = resolve(reported)
+  if (!within(CAPTURES_DIR, target)) {
+    throw captureError('the panel reported an image path outside the host capture folder; no file was returned.')
+  }
+  let stat
+  try {
+    stat = await fs.stat(target)
+  } catch {
+    throw captureError('the captured image file is missing on disk; retry the capture.')
+  }
+  if (!stat.isFile() || stat.size === 0) throw captureError('the captured image file is empty; retry the capture.')
+  // No file url in the tool result: it would carry the per-process token and
+  // the model only needs the absolute path to read the image back.
+  const value = {
+    path: target,
+    bytes: stat.size,
+    hud_hidden: typeof result.hud_hidden === 'boolean'
+      ? result.hud_hidden
+      : typeof result.hud === 'boolean'
+        ? !result.hud
+        : request.includeHud !== true,
+    note: CAPTURE_NOTE,
+  }
+  if (Number.isInteger(result.width) && result.width > 0) value.width = result.width
+  if (Number.isInteger(result.height) && result.height > 0) value.height = result.height
+  // The page reports the camera as `view`; expose it as `camera` so the model
+  // gets place context next to the image. `camera` is accepted for older pages.
+  const view = result.view !== null && typeof result.view === 'object' && !Array.isArray(result.view) ? result.view : result.camera
+  if (view !== null && typeof view === 'object' && !Array.isArray(view)) value.camera = view
+  if (Number.isInteger(result.layers_visible) && result.layers_visible >= 0) value.layers_visible = result.layers_visible
+  return value
+}
+
+function renderSceneResult(value) {
+  let text
+  try {
+    text = JSON.stringify(value)
+  } catch {
+    return '[digital earth result is not JSON serializable]'
+  }
+  if (typeof text !== 'string') return 'null'
+  if (Buffer.byteLength(text, 'utf8') <= SCENE_RENDER_LIMIT) return text
+  // Cut on code-point boundaries so a surrogate pair or multi-byte character is
+  // never split, and keep the budget in UTF-8 bytes rather than JS characters.
+  let head = ''
+  let used = 0
+  for (const character of text) {
+    const size = Buffer.byteLength(character, 'utf8')
+    if (used + size > SCENE_RENDER_LIMIT) break
+    head += character
+    used += size
+  }
+  return `${head}\n[result truncated at ${SCENE_RENDER_LIMIT} UTF-8 bytes; request a narrower earth_scene action for the rest]`
+}
+
+function renderCaptureResult(value) {
+  const lines = [`Captured image: ${value.path}`]
+  const dimensions = Number.isInteger(value.width) && Number.isInteger(value.height) ? `${value.width}x${value.height} px, ` : ''
+  const hud = value.hud_hidden === true
+    ? '; HUD and toolbars hidden'
+    : value.hud_hidden === false
+      ? '; HUD visible in the image'
+      : ''
+  lines.push(`${dimensions}${value.bytes} bytes${hud}.`)
+  const context = []
+  const camera = value.camera !== null && typeof value.camera === 'object' && !Array.isArray(value.camera) ? value.camera : null
+  if (camera !== null) {
+    if (Number.isFinite(camera.lon)) context.push(`lon=${camera.lon}`)
+    if (Number.isFinite(camera.lat)) context.push(`lat=${camera.lat}`)
+    if (Number.isFinite(camera.height)) context.push(`height=${camera.height}m`)
+  }
+  if (Number.isInteger(value.layers_visible)) context.push(`layers_visible=${value.layers_visible}`)
+  if (context.length > 0) lines.push(`Camera and scene context: ${context.join(', ')}.`)
+  if (typeof value.note === 'string') lines.push(value.note)
+  return lines.join('\n')
+}
+
+/** Model-facing error text for an inspection failure, always with a next step. */
+function inspectToolError(error) {
+  if (!(error instanceof InspectError)) return error instanceof Error ? error.message : String(error)
+  switch (error.code) {
+    case 'forbidden': return error.message
+    case 'invalid_source': return `The inspect source is not valid: ${error.message}`
+    case 'invalid_json': return 'The tileset JSON is malformed, so it cannot be analyzed. Fix or replace the file, then retry.'
+    case 'too_large': return 'The tileset JSON is larger than the 8 MB inspection limit. Inspect a smaller or split tileset.'
+    case 'unreachable': return `The tileset could not be fetched: ${error.message} Check the URL and network, then retry.`
+    case 'timeout': return 'The data inspection timed out after 8 s. Retry, or inspect a local tileset instead.'
+    default: return `The data inspection failed: ${error.message}`
+  }
+}
+
+/** Compact tool value: the full report stays on the host and in the panel. */
+function inspectToolValue(report, layer) {
+  const value = {
+    operation: 'inspect',
+    ok: report.ok,
+    source: report.source,
+    asset: report.asset,
+    root: report.root,
+    counts: report.counts,
+    kinds: report.kinds,
+    scenes: report.scenes,
+    issues: report.issues.slice(0, 10),
+    issues_total: report.issues.length,
+    report_path: report.reportPath,
+  }
+  if (Number.isInteger(report.issuesDropped) && report.issuesDropped > 0) value.issues_dropped = report.issuesDropped
+  if (report.runtime !== undefined) value.runtime = report.runtime
+  if (typeof layer === 'string' && layer !== '') value.layer = layer
+  return scrubToken(value)
+}
+
+async function inspectSceneAction(bridge, allowedDirs, args, exec) {
+  let source
+  let runtime = null
+  let layer = null
+  let fallback = false
+  if (typeof args.layer === 'string') {
+    const target = resolveSessionTarget(bridge, exec)
+    if (target === null) throw new Error(PANEL_CLOSED_MESSAGE)
+    fallback = target.fallback === true
+    const ack = asResultObject(await bridge.run(target.sessionId, 'inspect', { layer: args.layer, deep: args.deep === true }, INSPECT_BRIDGE_TIMEOUT_MS, exec.signal))
+    layer = typeof ack.layer === 'string' && ack.layer.trim() !== '' ? ack.layer.trim() : args.layer
+    try {
+      source = normalizeInspectSource(ack.source)
+    } catch {
+      throw sceneError('the panel could not resolve this layer to a local path or an http(s) URL. Reload the layer in the panel, then retry.')
+    }
+    runtime = normalizeInspectRuntime(ack.runtime)
+  } else {
+    source = typeof args.path === 'string' ? { kind: 'local', path: resolve(args.path) } : { kind: 'remote', url: args.url }
+  }
+  let report
+  try {
+    report = await analyzeTileset(source, { deep: args.deep === true, runtime, allowedDirs })
+    await writeInspectReport(report)
+  } catch (error) {
+    throw sceneError(inspectToolError(error))
+  }
+  const value = inspectToolValue(report, layer)
+  if (fallback) value.session_fallback = SESSION_FALLBACK_NOTE
+  return value
+}
+
+function renderInspectResult(value) {
+  const source = isPlainObject(value.source) ? value.source : {}
+  const kind = typeof source.kind === 'string' ? source.kind : 'unknown'
+  const label = typeof source.label === 'string' ? source.label : ''
+  const bytes = Number.isFinite(source.bytes) ? `, ${source.bytes} bytes` : ''
+  const lines = [`Data health: ok=${value.ok === true ? 'true' : 'false'} (${kind}${label !== '' ? ` ${label}` : ''}${bytes}).`]
+  const asset = isPlainObject(value.asset) ? value.asset : {}
+  const assetParts = []
+  if (typeof value.layer === 'string') assetParts.push(`layer=${value.layer}`)
+  assetParts.push(`version=${asset.version ?? 'unknown'}`)
+  if (typeof asset.minVersion === 'string') assetParts.push(`minVersion=${asset.minVersion}`)
+  if (typeof asset.generator === 'string') assetParts.push(`generator=${asset.generator}`)
+  lines.push(`Asset: ${assetParts.join(', ')}.`)
+  const root = isPlainObject(value.root) ? value.root : {}
+  const boundingType = isPlainObject(root.boundingVolume) && typeof root.boundingVolume.type === 'string' ? root.boundingVolume.type : 'none'
+  lines.push(`Root: geometricError=${root.geometricError ?? 'null'}, boundingVolume=${boundingType}, children=${Number.isInteger(root.children) ? root.children : 0}, depth=${Number.isInteger(root.depth) ? root.depth : 0}.`)
+  const counts = isPlainObject(value.counts) ? value.counts : {}
+  const extensions = Array.isArray(counts.extensionsUsed) && counts.extensionsUsed.length > 0 ? `, extensions=[${counts.extensionsUsed.join(', ')}]` : ''
+  lines.push(`Counts: tiles=${counts.tiles ?? 0}, contents=${counts.contents ?? 0}, externalFiles=${counts.externalFiles ?? 0}${extensions}.`)
+  const kinds = isPlainObject(value.kinds) ? value.kinds : {}
+  lines.push(`Kinds: b3dm=${kinds.b3dm ?? 0}, glb=${kinds.glb ?? 0}, pnts=${kinds.pnts ?? 0}, gaussianSplatting=${kinds.gaussianSplatting === true ? 'true' : 'false'}, spz=${kinds.spz === true ? 'true' : 'false'}.`)
+  const runtime = isPlainObject(value.runtime) ? value.runtime : null
+  if (runtime !== null) {
+    const parts = ['tiles', 'pending', 'triangles', 'memory'].filter((key) => Number.isFinite(runtime[key])).map((key) => `${key}=${runtime[key]}`)
+    if (parts.length > 0) lines.push(`Panel runtime: ${parts.join(', ')}.`)
+  }
+  const issues = Array.isArray(value.issues) ? value.issues : []
+  const total = Number.isInteger(value.issues_total) ? value.issues_total : issues.length
+  if (issues.length === 0) {
+    lines.push('Issues: none.')
+  } else {
+    lines.push(`Issues (${issues.length} of ${total}):`)
+    for (const issue of issues) {
+      if (!isPlainObject(issue)) continue
+      const level = typeof issue.level === 'string' ? issue.level : 'info'
+      const code = typeof issue.code === 'string' ? issue.code : 'unknown'
+      const message = typeof issue.message === 'string' ? issue.message : ''
+      const path = typeof issue.path === 'string' && issue.path !== '' ? ` (${issue.path})` : ''
+      lines.push(`- [${level}] ${code}: ${message}${path}`)
+    }
+  }
+  if (total > issues.length) lines.push(`... ${total - issues.length} more issues are in the report file.`)
+  const dropped = Number.isInteger(value.issues_dropped) ? value.issues_dropped : 0
+  if (dropped > 0) lines.push(`... ${dropped} further issues were omitted at the ${MAX_INSPECT_ISSUES}-issue limit.`)
+  if (typeof value.report_path === 'string') lines.push(`Report: ${value.report_path}`)
+  return lines.join('\n')
+}
+
+function createSceneTool(bridge, allowedDirs) {
+  return {
+    name: SCENE_TOOL_NAME,
+    description: SCENE_DESCRIPTION,
+    parameters: SCENE_PARAMETERS,
+    output: {
+      schema: { type: 'object' },
+      render: (_args, value) => [{
+        type: 'text',
+        text: isPlainObject(value) && value.operation === 'inspect' ? renderInspectResult(value) : renderSceneResult(value),
+      }],
+    },
+    async execute(args, exec = {}) {
+      const request = normalizeSceneRequest(args)
+      if (request.action === 'inspect') return inspectSceneAction(bridge, allowedDirs, request.args, exec)
+      const target = resolveSessionTarget(bridge, exec)
+      if (target === null) throw new Error(PANEL_CLOSED_MESSAGE)
+      const value = scrubToken(asResultObject(await bridge.run(target.sessionId, request.action, request.args, SCENE_TIMEOUT_MS, exec.signal)))
+      if (target.fallback) value.session_fallback = SESSION_FALLBACK_NOTE
+      return value
     },
   }
+}
+
+function createCaptureTool(bridge) {
+  return {
+    name: CAPTURE_TOOL_NAME,
+    description: CAPTURE_DESCRIPTION,
+    parameters: CAPTURE_PARAMETERS,
+    output: {
+      schema: { type: 'object' },
+      render: (_args, value) => [{ type: 'text', text: renderCaptureResult(value) }],
+    },
+    async execute(args, exec = {}) {
+      const request = normalizeCaptureRequest(args)
+      const target = resolveSessionTarget(bridge, exec)
+      if (target === null) throw new Error(PANEL_CLOSED_MESSAGE)
+      const ack = await bridge.run(target.sessionId, 'capture', request.args, CAPTURE_TIMEOUT_MS, exec.signal)
+      const value = scrubToken(await captureResultValue(ack, request))
+      if (target.fallback) value.session_fallback = SESSION_FALLBACK_NOTE
+      return value
+    },
+  }
+}
+
+/**
+ * Agent tools and the prompt section are optional: mount them only when the
+ * host provides the tools and system-prompt services, so the panel HTTP API
+ * keeps working in a build without an agent runtime.
+ */
+function mountAgentTools(ctx, bridge, allowedDirs) {
+  ctx.inject(['tools', 'systemPrompt'], (scope) => {
+    scope.effect(() => {
+      const disposers = [
+        scope.tools.register(createSceneTool(bridge, allowedDirs)),
+        scope.tools.register(createCaptureTool(bridge)),
+        scope.systemPrompt.section({
+          name: 'plugin:digital-earth',
+          order: 810,
+          text: SYSTEM_PROMPT_SECTION,
+        }),
+      ]
+      return () => {
+        for (const dispose of disposers) {
+          if (typeof dispose !== 'function') continue
+          try {
+            dispose()
+          } catch {
+            // One broken contribution must not strand the others.
+          }
+        }
+      }
+    }, 'digital-earth agent tools')
+  })
 }
 
 export const inject = ['webServer', 'connection']
@@ -1199,9 +2430,9 @@ export function apply(ctx) {
   // Directories this page opened through `/scan`; tile files are served only from
   // them, so a token holder cannot read arbitrary paths on the machine.
   const allowedDirs = new Set()
-  const warn = (message) => warnWith(ctx, message)
-  // The bridge lives for the plugin instance: connections close on dispose.
-  const bridge = createBridge({ warn })
+
+  // Commands from Host tools to the open panel live for the plugin lifetime.
+  const bridge = createBridge(allowedDirs)
 
   // The host web server has no auth or origin policy of its own, so every route
   // below asks the DSH Connection service to reject foreign or unauthenticated
@@ -1254,52 +2485,22 @@ export function apply(ctx) {
       register('prefix', TILES_ROUTE, (req, res) => tilesHandler(req, res, allowedDirs)),
       register('prefix', REMOTE_ROUTE, remoteHandler),
       register('exact', `${API}/scan`, (req, res) => scanHandler(req, res, allowedDirs)),
-      // Long-lived SSE stream: one connection per mounted panel.
-      register('exact', EVENTS_ROUTE, (req, res) => bridge.connect(req, res)),
-      register('exact', RESULT_ROUTE, (req, res) => bridge.handleResult(req, res)),
       register('exact', `${SOURCES_ROUTE}/${TOKEN}`, (req, res) =>
         req.method === 'GET' ? sourcesHandler(req, res) : req.method === 'PUT' ? saveSourcesHandler(req, res) : sendText(res, 405, 'method not allowed'),
       ),
+      register('exact', BRIDGE_ROUTE, bridgeHandler(bridge)),
+      register('exact', CAPTURE_ROUTE, captureHandler),
+      register('exact', INSPECT_ROUTE, (req, res) => inspectHandler(req, res, allowedDirs)),
+      register('prefix', FILES_ROUTE, capturesHandler),
     ]
     return () => {
       for (const dispose of disposers) {
         if (typeof dispose === 'function') dispose()
       }
-      bridge.closeAll()
+      bridge.dispose()
     }
   }, 'digital-earth api routes')
 
-  // Model-facing tools are optional: a composition without `tools` just keeps
-  // the static viewer working.
-  ctx.effect(() => {
-    const tools = serviceOf(ctx, 'tools')
-    if (tools === undefined || tools === null || typeof tools.register !== 'function') return () => {}
-    const disposers = []
-    for (const definition of [createEarthSceneTool({ bridge, allowedDirs }), createEarthCaptureTool({ ctx, bridge })]) {
-      try {
-        const dispose = tools.register(definition)
-        if (typeof dispose === 'function') disposers.push(dispose)
-      } catch (error) {
-        warn(`digital-earth: could not register ${definition.name}: ${errorMessage(error)}`)
-      }
-    }
-    return () => {
-      for (const dispose of disposers) dispose()
-    }
-  }, 'digital-earth agent tools')
-
-  // One short prompt section is enough for the model to find the tools and not
-  // guess coordinates; it is removed together with the other registrations.
-  ctx.effect(() => {
-    const systemPrompt = serviceOf(ctx, 'systemPrompt')
-    if (systemPrompt === undefined || systemPrompt === null || typeof systemPrompt.section !== 'function') return () => {}
-    try {
-      const dispose = systemPrompt.section(SYSTEM_PROMPT_SECTION)
-      return typeof dispose === 'function' ? dispose : () => {}
-    } catch (error) {
-      warn(`digital-earth: could not register the system prompt section: ${errorMessage(error)}`)
-      return () => {}
-    }
-  }, 'digital-earth system prompt')
+  mountAgentTools(ctx, bridge, allowedDirs)
 }
 
