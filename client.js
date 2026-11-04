@@ -158,6 +158,27 @@ window.__ModuleLoader__.load({
         'theme.dark': '深色',
         'theme.appearanceHint': '默认跟随 DSH / 系统的浅深色；选择具体模式可覆盖本面板的外观。',
         'unit.hectare': '公顷',
+        'capture.save': '保存截图',
+        'capture.copySummary': '复制场景摘要',
+        'toast.sceneCopied': '场景摘要已复制到剪贴板',
+        'toast.sceneCopyFailed': '复制失败：{message}',
+        'toast.clipboardUnavailable': '剪贴板不可用',
+        'toast.loaded': '已加载：{name}',
+        'toast.removed': '已移除：{name}',
+        'toast.visibleOn': '已显示图层：{name}',
+        'toast.visibleOff': '已隐藏图层：{name}',
+        'toast.flew': '已移动相机',
+        'toast.viewReset': '已复位视角',
+        'settings.tab.about': '关于',
+        'settings.about.version': '版本',
+        'settings.about.repository': '项目仓库',
+        'settings.about.team': '课题组',
+        'settings.about.license': '许可证',
+        'settings.about.bundled': '随包分发',
+        'settings.about.cesium': 'CesiumJS · Apache-2.0',
+        'settings.about.cesiumNote': 'CesiumJS 以 Apache-2.0 许可随本包分发，版权归 Cesium GS, Inc. 所有。',
+        'agent.connected': 'Agent 桥已连接',
+        'agent.prefix': 'Agent：',
       },
       en: {
         'panel.title': 'Digital Earth',
@@ -287,6 +308,27 @@ window.__ModuleLoader__.load({
         'theme.dark': 'Dark',
         'theme.appearanceHint': 'Follows the DSH / system light-dark theme by default; pick a mode to override this panel only.',
         'unit.hectare': 'ha',
+        'capture.save': 'Save snapshot',
+        'capture.copySummary': 'Copy scene summary',
+        'toast.sceneCopied': 'Scene summary copied to clipboard',
+        'toast.sceneCopyFailed': 'Copy failed: {message}',
+        'toast.clipboardUnavailable': 'Clipboard unavailable',
+        'toast.loaded': 'Loaded: {name}',
+        'toast.removed': 'Removed: {name}',
+        'toast.visibleOn': 'Layer shown: {name}',
+        'toast.visibleOff': 'Layer hidden: {name}',
+        'toast.flew': 'Camera moved',
+        'toast.viewReset': 'View reset',
+        'settings.tab.about': 'About',
+        'settings.about.version': 'Version',
+        'settings.about.repository': 'Repository',
+        'settings.about.team': 'Research group',
+        'settings.about.license': 'License',
+        'settings.about.bundled': 'Bundled',
+        'settings.about.cesium': 'CesiumJS · Apache-2.0',
+        'settings.about.cesiumNote': 'CesiumJS is bundled under the Apache-2.0 license; copyright Cesium GS, Inc.',
+        'agent.connected': 'Agent bridge connected',
+        'agent.prefix': 'Agent: ',
       },
     }
 
@@ -419,6 +461,57 @@ window.__ModuleLoader__.load({
     }
 
     const clone = (value) => JSON.parse(JSON.stringify(value))
+
+    /**
+     * Promise wrapper around `camera.flyTo`. Cesium resolves the flight through
+     * the `complete`/`cancel` callbacks; the timer is a defensive fallback so a
+     * destroyed viewer or a dropped frame cannot wedge the agent command queue.
+     */
+    function flyCamera(viewer, options, duration) {
+      return new Promise((resolve) => {
+        const seconds = Number.isFinite(Number(duration)) ? Math.max(0, Number(duration)) : 0
+        let settled = false
+        let timer = 0
+        const finish = () => {
+          if (settled) return
+          settled = true
+          clearTimeout(timer)
+          resolve()
+        }
+        timer = setTimeout(finish, seconds * 1000 + 1500)
+        try {
+          viewer.camera.flyTo({ ...options, duration: seconds, complete: finish, cancel: finish })
+        } catch {
+          finish()
+        }
+      })
+    }
+
+    /** Resolve on the next animation frame, with a timer fallback for hidden tabs. */
+    function nextFrame() {
+      return new Promise((resolve) => {
+        let settled = false
+        const finish = () => {
+          if (settled) return
+          settled = true
+          clearTimeout(timer)
+          resolve()
+        }
+        const timer = setTimeout(finish, 300)
+        if (typeof requestAnimationFrame === 'function') requestAnimationFrame(() => requestAnimationFrame(finish))
+        else finish()
+      })
+    }
+
+    /** Read a Blob as a base64 data URL. */
+    function blobToDataUrl(blob) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => resolve(reader.result)
+        reader.onerror = () => reject(reader.error ?? new Error('read failed'))
+        reader.readAsDataURL(blob)
+      })
+    }
     //#endregion helpers
 
     //#region data access ------------------------------------------------------
@@ -825,6 +918,13 @@ window.__ModuleLoader__.load({
 .mv-seg{display:flex;gap:2px;padding:3px;border:.5px solid var(--mv-line);border-radius:9px;background:var(--mv-input)}
 .mv-seg button{appearance:none;border:0;background:transparent;color:var(--mv-dim);font:inherit;font-size:11.5px;padding:6px 12px;border-radius:6px;cursor:pointer;flex:1}
 .mv-seg button.on{background:color-mix(in srgb,var(--mv-accent) 22%,transparent);color:var(--mv-text)}
+.mv-agent-dot{display:inline-block;flex:none;width:6px;height:6px;border-radius:50%;background:var(--mv-accent,#4da3ff);margin-left:2px;align-self:center;box-shadow:0 0 0 3px color-mix(in srgb,var(--mv-accent,#4da3ff) 16%,transparent)}
+.mv-about{display:flex;flex-direction:column}
+.mv-about-row{display:flex;align-items:flex-start;gap:12px;padding:7px 0;border-bottom:.5px solid var(--mv-line);font-size:12px;line-height:1.5}
+.mv-about-row:last-child{border-bottom:0}
+.mv-about-row>span:first-child{flex:none;width:104px;color:var(--mv-dim);font-size:11px}
+.mv-about-row a{color:var(--mv-accent);text-decoration:none;word-break:break-all}
+.mv-about-row a:hover{text-decoration:underline}
 `
 
     //#region sources dialog ---------------------------------------------------
@@ -988,7 +1088,7 @@ window.__ModuleLoader__.load({
       )
     }
 
-    function SourcesDialog({ config, defaults, environmentDark, themeMode, onPickLocal, onSave, onClose, messages }) {
+    function SourcesDialog({ config, defaults, environmentDark, themeMode, meta, onPickLocal, onSave, onClose, messages }) {
       const t = messages
       const [draft, setDraft] = React.useState(() => clone(config))
       const [tab, setTab] = React.useState('imagery')
@@ -1130,6 +1230,26 @@ window.__ModuleLoader__.load({
         h('p', { className: 'mv-note' }, `${t('theme.auto')} · ${environmentDark ? t('theme.dark') : t('theme.light')}`),
       )
 
+      const aboutRow = (label, value) =>
+        h(
+          'div',
+          { className: 'mv-about-row' },
+          h('span', null, label),
+          h('span', null, value),
+        )
+      const link = (href, text) =>
+        h('a', { href, target: '_blank', rel: 'noopener noreferrer', title: href }, text)
+      const about = h(
+        'div',
+        { className: 'mv-about' },
+        aboutRow(t('settings.about.version'), meta?.version ?? '—'),
+        aboutRow(t('settings.about.repository'), link('https://github.com/CVEO/dsh-digital-earth', 'github.com/CVEO/dsh-digital-earth')),
+        aboutRow(t('settings.about.team'), link('https://www.whu-cveo.com/', t('settings.team'))),
+        aboutRow(t('settings.about.license'), 'MIT'),
+        aboutRow(t('settings.about.bundled'), t('settings.about.cesium')),
+        h('p', { className: 'mv-note', style: { marginTop: '8px' } }, t('settings.about.cesiumNote')),
+      )
+
       return h(
         'div',
         { className: 'mv-modal', onPointerDown: (event) => event.target === event.currentTarget && onClose() },
@@ -1145,7 +1265,12 @@ window.__ModuleLoader__.load({
           h(
             'div',
             { className: 'mv-tabs' },
-            [['imagery', 'settings.tab.imagery'], ['terrain', 'settings.tab.terrain'], ['appearance', 'settings.tab.appearance']].map(
+            [
+              ['imagery', 'settings.tab.imagery'],
+              ['terrain', 'settings.tab.terrain'],
+              ['appearance', 'settings.tab.appearance'],
+              ['about', 'settings.tab.about'],
+            ].map(
               ([value, key]) =>
                 h(
                   'button',
@@ -1164,7 +1289,9 @@ window.__ModuleLoader__.load({
             { className: 'body' },
             tab === 'appearance'
               ? appearance
-              : h(
+              : tab === 'about'
+                ? about
+                : h(
                   React.Fragment,
                   null,
                   h('p', { className: 'mv-note' }, t(tab === 'imagery' ? 'settings.imageryHint' : 'settings.terrainHint')),
@@ -1197,6 +1324,17 @@ window.__ModuleLoader__.load({
                 },
                 t('settings.team'),
               ),
+              h(
+                'a',
+                {
+                  className: 'mv-team',
+                  href: 'https://github.com/CVEO/dsh-digital-earth',
+                  target: '_blank',
+                  rel: 'noopener noreferrer',
+                  title: 'https://github.com/CVEO/dsh-digital-earth',
+                },
+                'GitHub',
+              ),
             ),
             h(
               'div',
@@ -1227,6 +1365,10 @@ window.__ModuleLoader__.load({
       const imageryRef = React.useRef(null)
       const sourcesRef = React.useRef(null)
       const toastTimer = React.useRef(0)
+      // Mirrors of async state that the SSE bridge reads from its long-lived
+      // effect closure: state values captured there would be stale forever.
+      const busyRef = React.useRef('')
+      const agentRef = React.useRef(null)
 
       const [phase, setPhase] = React.useState('loading')
       const [error, setError] = React.useState('')
@@ -1248,6 +1390,7 @@ window.__ModuleLoader__.load({
       const [settingsOpen, setSettingsOpen] = React.useState(false)
       const [terrainBusy, setTerrainBusy] = React.useState(false)
       const [imageryBusy, setImageryBusy] = React.useState(false)
+      const [bridge, setBridge] = React.useState('off')
 
       const themeMode = sources?.settings?.theme ?? 'auto'
       const resolvedDark = themeMode === 'auto' ? environmentDark : themeMode === 'dark'
@@ -1331,10 +1474,16 @@ window.__ModuleLoader__.load({
         return `${meta.tilesBase}${encodeURIComponent(b64url(dir))}/${encodeURIComponent(rel)}`
       }
 
+      /**
+       * Load a 3D Tiles URL as a new layer and return the created layer object.
+       * Throws on failure so callers decide how to report it (the toolbar and the
+       * scan dialog toast `toast.loadFailed`; the agent bridge maps it to
+       * `load_failed` without touching the UI).
+       */
       async function addTileset(url, name) {
         const Cesium = cesiumRef.current
         const viewer = viewerRef.current
-        if (!Cesium || !viewer) return
+        if (!Cesium || !viewer) throw new Error('viewer not ready')
         const label = name || decodeURIComponent(url.split('/').filter(Boolean).slice(-2).join('/'))
         setBusy(t('toast.loadingData'))
         try {
@@ -1346,22 +1495,27 @@ window.__ModuleLoader__.load({
             tileset = await Cesium.Cesium3DTileset.fromUrl(proxyUrlFor(url))
             showToast(t('toast.proxyFallback'))
           }
-          viewer.scene.primitives.add(tileset)
-          layersRef.current.push({
+          const layer = {
             id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
             name: label,
             url,
             tileset,
             visible: true,
-          })
+          }
+          viewer.scene.primitives.add(tileset)
+          layersRef.current.push(layer)
           syncLayers()
           setScan(null)
           await viewer.flyTo(tileset, { duration: 1.2 })
-        } catch (error) {
-          showToast(t('toast.loadFailed', { message: message(error) }))
+          return layer
         } finally {
           setBusy('')
         }
+      }
+
+      /** UI wrapper around {@link addTileset}: keeps the historical error toast. */
+      function loadTilesetFromUi(url, name) {
+        addTileset(url, name).catch((error) => showToast(t('toast.loadFailed', { message: message(error) })))
       }
 
       async function pickLocal() {
@@ -1422,12 +1576,13 @@ window.__ModuleLoader__.load({
         }
       }
 
-      async function applyImagery(id, notify) {
+      async function applyImagery(id, notify, viaAgent) {
         const Cesium = cesiumRef.current
         const viewer = viewerRef.current
         if (!Cesium || !viewer) return
         const config = sourcesRef.current
         const source = config?.imagery.find((item) => item.id === id) ?? null
+        const prefix = viaAgent ? t('agent.prefix') : ''
         setImageryBusy(true)
         try {
           if (imageryRef.current) {
@@ -1437,9 +1592,9 @@ window.__ModuleLoader__.load({
           if (source) {
             const provider = await imageryProvider(Cesium, source)
             imageryRef.current = viewer.scene.imageryLayers.addImageryProvider(provider)
-            if (notify) showToast(t('toast.basemap', { name: source.name }))
+            if (notify) showToast(`${prefix}${t('toast.basemap', { name: source.name })}`)
           } else if (notify) {
-            showToast(t('toast.basemapNone'))
+            showToast(`${prefix}${t('toast.basemapNone')}`)
           }
         } catch (error) {
           showToast(t('toast.basemapFailed', { message: message(error) }))
@@ -1448,21 +1603,22 @@ window.__ModuleLoader__.load({
         }
       }
 
-      async function applyTerrain(id, notify) {
+      async function applyTerrain(id, notify, viaAgent) {
         const Cesium = cesiumRef.current
         const viewer = viewerRef.current
         if (!Cesium || !viewer) return
         const config = sourcesRef.current
         const source = config?.terrain.find((item) => item.id === id) ?? null
+        const prefix = viaAgent ? t('agent.prefix') : ''
         setTerrainBusy(true)
         if (notify) setBusy(t('toast.terrainLoading'))
         try {
           if (source) {
             viewer.terrainProvider = await terrainProvider(Cesium, source)
-            showToast(t('toast.terrainOn', { name: source.name }))
+            showToast(`${prefix}${t('toast.terrainOn', { name: source.name })}`)
           } else {
             viewer.terrainProvider = new Cesium.EllipsoidTerrainProvider()
-            showToast(t('toast.terrainOff'))
+            showToast(`${prefix}${t('toast.terrainOff')}`)
           }
         } catch (error) {
           viewer.terrainProvider = new Cesium.EllipsoidTerrainProvider()
@@ -1609,41 +1765,84 @@ window.__ModuleLoader__.load({
         return found ? found.name : t('model.unnamed')
       }
 
-      function pickAt(position) {
+      /** Coerce a picked property into a compact JSON-safe value (strings ≤ 500). */
+      function pickPropertyValue(value) {
+        const truncate = (text) => (text.length > 500 ? `${text.slice(0, 500)}…` : text)
+        if (typeof value === 'string') return truncate(value)
+        if (typeof value === 'number' || typeof value === 'boolean' || value === null) return value
+        try {
+          const text = JSON.stringify(value)
+          return typeof text === 'string' ? truncate(text) : String(value)
+        } catch {
+          return truncate(String(value))
+        }
+      }
+
+      /**
+       * Pick at a canvas position and describe the result without any UI copy:
+       * `{type: 'feature'|'tileset'|'entity'|'scene', layer?, properties}`.
+       * The `pick` agent command returns it verbatim; the tooltip builds its
+       * localized rows from the same payload so both cannot drift apart.
+       */
+      function pickPayload(position) {
         const Cesium = cesiumRef.current
         const viewer = viewerRef.current
-        if (!Cesium || !viewer) return
+        if (!Cesium || !viewer) return null
         const picked = viewer.scene.pick(position)
-        if (!Cesium.defined(picked)) {
+        if (!Cesium.defined(picked)) return null
+        if (picked instanceof Cesium.Cesium3DTileFeature) {
+          const properties = Object.create(null)
+          let count = 0
+          for (const id of picked.getPropertyIds()) {
+            if (count >= 60) break
+            properties[id] = pickPropertyValue(picked.getProperty(id))
+            count += 1
+          }
+          return { type: 'feature', layer: layerLabel(picked.primitive ?? picked.tileset), properties }
+        }
+        const primitive = picked?.primitive ?? picked
+        if (primitive instanceof Cesium.Cesium3DTileset) {
+          return { type: 'tileset', layer: layerLabel(primitive), properties: {} }
+        }
+        if (picked?.id instanceof Cesium.Entity) {
+          return { type: 'entity', properties: { name: picked.id.name ?? picked.id.id } }
+        }
+        return { type: 'scene', properties: {} }
+      }
+
+      function pickAt(position) {
+        const payload = pickPayload(position)
+        if (!payload) {
           setPickInfo({ title: t('toast.pickNone'), rows: [] })
           return
         }
-        if (picked instanceof Cesium.Cesium3DTileFeature) {
-          const rows = []
-          for (const id of picked.getPropertyIds()) {
-            if (rows.length >= 60) break
-            rows.push([id, formatValue(picked.getProperty(id))])
-          }
+        if (payload.type === 'feature') {
+          const rows = Object.entries(payload.properties).map(([name, value]) => [name, formatValue(value)])
           if (rows.length === 0) rows.push([t('pick.noProperties'), t('pick.noPropertiesValue')])
-          setPickInfo({ title: layerLabel(picked.primitive ?? picked.tileset), rows })
+          setPickInfo({ title: payload.layer ?? t('pick.tiles'), rows })
           return
         }
-        const primitive = picked?.primitive ?? picked
-        let rows
-        if (primitive instanceof Cesium.Cesium3DTileset) {
-          rows = [
-            [t('pick.type'), t('pick.tiles')],
-            [t('pick.layer'), layerLabel(primitive)],
-          ]
-        } else if (picked?.id instanceof Cesium.Entity) {
-          rows = [
-            [t('pick.type'), t('pick.entity')],
-            [t('pick.name'), picked.id.name ?? picked.id.id],
-          ]
-        } else {
-          rows = [[t('pick.type'), t('pick.scene')]]
+        if (payload.type === 'tileset') {
+          setPickInfo({
+            title: t('pick.title'),
+            rows: [
+              [t('pick.type'), t('pick.tiles')],
+              [t('pick.layer'), payload.layer ?? t('model.unnamed')],
+            ],
+          })
+          return
         }
-        setPickInfo({ title: t('pick.title'), rows })
+        if (payload.type === 'entity') {
+          setPickInfo({
+            title: t('pick.title'),
+            rows: [
+              [t('pick.type'), t('pick.entity')],
+              [t('pick.name'), formatValue(payload.properties.name ?? '')],
+            ],
+          })
+          return
+        }
+        setPickInfo({ title: t('pick.title'), rows: [[t('pick.type'), t('pick.scene')]] })
       }
 
       function onCanvasClick(position) {
@@ -1672,14 +1871,15 @@ window.__ModuleLoader__.load({
         }
       }
 
-      function resetView() {
+      async function resetView() {
         const Cesium = cesiumRef.current
         const viewer = viewerRef.current
         if (!Cesium || !viewer) return
-        viewer.camera.flyTo({
-          destination: Cesium.Cartesian3.fromDegrees(104, 31, 14000000),
-          duration: 1.2,
-        })
+        await flyCamera(
+          viewer,
+          { destination: Cesium.Cartesian3.fromDegrees(104, 31, 14000000) },
+          1.2,
+        )
       }
 
       async function screenshot() {
@@ -1752,6 +1952,275 @@ window.__ModuleLoader__.load({
         }
       }
 
+      /** Compact, model-facing snapshot of the current scene (docs §4). */
+      function sceneSnapshot() {
+        const Cesium = cesiumRef.current
+        const viewer = viewerRef.current
+        const config = sourcesRef.current
+        let camera = null
+        if (Cesium && viewer) {
+          const cartographic = viewer.camera.positionCartographic
+          camera = {
+            lon: Number(Cesium.Math.toDegrees(cartographic.longitude).toFixed(6)),
+            lat: Number(Cesium.Math.toDegrees(cartographic.latitude).toFixed(6)),
+            height: Math.round(cartographic.height),
+            heading: Number(Cesium.Math.toDegrees(viewer.camera.heading ?? 0).toFixed(1)),
+            pitch: Number(Cesium.Math.toDegrees(viewer.camera.pitch ?? 0).toFixed(1)),
+          }
+        }
+        const layerRows = layersRef.current.map((layer) => {
+          const statistics = layer.tileset.statistics ?? {}
+          return {
+            id: layer.id,
+            name: layer.name,
+            visible: layer.visible,
+            tiles: statistics.numberOfTilesWithContentReady ?? statistics.numberOfTilesLoaded ?? 0,
+            pending: statistics.numberOfPendingRequests ?? 0,
+            triangles: statistics.numberOfTrianglesSelected ?? 0,
+          }
+        })
+        const sourceEntry = (kind) => {
+          const id = config?.settings?.[kind] ?? null
+          const source = id ? config?.[kind]?.find((item) => item.id === id) : null
+          return source ? { id: source.id, name: source.name } : null
+        }
+        const snapshot = {
+          ready: phase === 'ready' && Boolean(viewer),
+          camera,
+          layers: layerRows.slice(0, 20),
+          basemap: sourceEntry('imagery'),
+          terrain: sourceEntry('terrain'),
+          measure: { tool: toolRef.current ?? null, points: measureRef.current.points.length },
+          uiBusy: Boolean(busyRef.current),
+        }
+        if (layerRows.length > 20) snapshot.truncated = true
+        return snapshot
+      }
+
+      /** Copy the §4 snapshot as JSON into the clipboard (toolbar menu action). */
+      async function copySceneSummary() {
+        try {
+          const text = JSON.stringify(sceneSnapshot(), null, 2)
+          if (!navigator?.clipboard?.writeText) throw new Error(t('toast.clipboardUnavailable'))
+          await navigator.clipboard.writeText(text)
+          showToast(t('toast.sceneCopied'))
+        } catch (error) {
+          showToast(t('toast.sceneCopyFailed', { message: message(error) }))
+        }
+      }
+
+      /**
+       * Render the Cesium canvas and return a scaled PNG/JPEG data URL for
+       * `earth_capture` (docs §5). Only `viewer.canvas` is captured, so the
+       * image never contains the toolbar, HUD or layer list.
+       */
+      async function captureScene(args = {}) {
+        const viewer = viewerRef.current
+        if (!viewer) return { ok: false, code: 'capture_failed', message: 'viewer not ready' }
+        const format = args.format === undefined ? 'png' : args.format
+        if (format !== 'png' && format !== 'jpeg') {
+          return { ok: false, code: 'bad_args', message: 'format must be png or jpeg' }
+        }
+        let width = args.width === undefined ? 1280 : Number(args.width)
+        if (!Number.isFinite(width)) width = 1280
+        width = Math.max(320, Math.min(2560, Math.round(width)))
+        const snapshot = sceneSnapshot()
+        try {
+          viewer.render()
+          await nextFrame()
+          const blob = await new Promise((resolve) => viewer.canvas.toBlob(resolve, 'image/png'))
+          if (!blob) throw new Error('empty canvas')
+          const sourceWidth = viewer.canvas.width
+          const sourceHeight = viewer.canvas.height
+          const outputWidth = width
+          const outputHeight = Math.max(1, Math.round((sourceHeight * width) / sourceWidth))
+          let dataUrl
+          if (format === 'png' && outputWidth === sourceWidth) {
+            dataUrl = await blobToDataUrl(blob)
+          } else {
+            const canvas = document.createElement('canvas')
+            canvas.width = outputWidth
+            canvas.height = outputHeight
+            const context = canvas.getContext('2d')
+            if (!context) throw new Error('2d context unavailable')
+            context.drawImage(viewer.canvas, 0, 0, outputWidth, outputHeight)
+            dataUrl = canvas.toDataURL(format === 'jpeg' ? 'image/jpeg' : 'image/png', 0.85)
+          }
+          return {
+            ok: true,
+            data: {
+              dataUrl,
+              width: outputWidth,
+              height: outputHeight,
+              camera: snapshot.camera,
+              layers: snapshot.layers,
+              scene: snapshot,
+            },
+          }
+        } catch (error) {
+          return { ok: false, code: 'capture_failed', message: message(error) }
+        }
+      }
+
+      /**
+       * Execute one Agent bridge command (docs §3/§5) and return the result
+       * payload `{ok, data}` / `{ok:false, code, message}`. Never throws: the
+       * SSE bridge posts whatever comes back and keeps the queue moving.
+       */
+      async function runAgentAction(action, args) {
+        const Cesium = cesiumRef.current
+        const viewer = viewerRef.current
+        const badArgs = (detail) => ({ ok: false, code: 'bad_args', message: detail ?? 'invalid arguments' })
+        const requireViewer = () => (!Cesium || !viewer ? badArgs('viewer not ready') : null)
+        const cameraResult = () => ({ ok: true, data: { camera: sceneSnapshot().camera } })
+
+        const applySource = async (kind, key) => {
+          const config = sourcesRef.current
+          if (!config) return badArgs('sources not ready')
+          let nextId = config.settings?.[kind] ?? null
+          if (args.id !== undefined) {
+            if (args.id === null) {
+              nextId = null
+            } else {
+              if (typeof args.id !== 'string' || args.id === '') return badArgs(`${key} id must be a string or null`)
+              if (!config[kind]?.some((item) => item.id === args.id)) return badArgs(`unknown ${key} source: ${args.id}`)
+              nextId = args.id
+            }
+            updateSettings({ [kind]: nextId })
+            if (kind === 'imagery') await applyImagery(nextId, true, true)
+            else await applyTerrain(nextId, true, true)
+          }
+          const source = nextId ? config[kind]?.find((item) => item.id === nextId) : null
+          return { ok: true, data: { [key]: source ? { id: source.id, name: source.name } : null } }
+        }
+        const validLonLat = () => {
+          const lon = Number(args.lon)
+          const lat = Number(args.lat)
+          if (!Number.isFinite(lon) || lon < -180 || lon > 180) return badArgs('lon must be a number within [-180, 180]')
+          if (!Number.isFinite(lat) || lat < -90 || lat > 90) return badArgs('lat must be a number within [-90, 90]')
+          return { lon, lat }
+        }
+
+        switch (action) {
+          case 'status':
+            return { ok: true, data: sceneSnapshot() }
+          case 'load': {
+            const url = typeof args.url === 'string' ? args.url.trim() : ''
+            const path = typeof args.path === 'string' ? args.path.trim() : ''
+            const name = typeof args.name === 'string' && args.name.trim() !== '' ? args.name.trim() : undefined
+            if (!url && !path) return badArgs('load requires url or path')
+            let target = url
+            if (!target) {
+              if (!/^(?:[a-zA-Z]:[\\/]|\\\\|\/)/.test(path)) return badArgs('path must be an absolute local path')
+              try {
+                const filePath = /tileset\.json$/i.test(path) ? path : `${path.replace(/[\\/]+$/, '')}/tileset.json`
+                target = await localPathToUrl(filePath)
+              } catch (error) {
+                return { ok: false, code: 'load_failed', message: message(error) }
+              }
+            } else if (!/^https?:\/\//i.test(target) && !target.startsWith('/')) {
+              return badArgs('url must be http(s) or a panel-issued tiles URL')
+            }
+            try {
+              const layer = await addTileset(target, name)
+              showToast(`${t('agent.prefix')}${t('toast.loaded', { name: layer.name })}`)
+              return { ok: true, data: { layer: { id: layer.id, name: layer.name }, count: layersRef.current.length } }
+            } catch (error) {
+              return { ok: false, code: 'load_failed', message: message(error) }
+            }
+          }
+          case 'remove': {
+            if (typeof args.id !== 'string' || args.id === '') return badArgs('id is required')
+            const layer = layersRef.current.find((item) => item.id === args.id)
+            if (!layer) return { ok: false, code: 'not_found', message: `layer not found: ${args.id}` }
+            const name = layer.name
+            removeLayer(args.id)
+            showToast(`${t('agent.prefix')}${t('toast.removed', { name })}`)
+            return { ok: true, data: { removed: true, count: layersRef.current.length } }
+          }
+          case 'visible': {
+            if (typeof args.id !== 'string' || args.id === '') return badArgs('id is required')
+            if (typeof args.visible !== 'boolean') return badArgs('visible must be a boolean')
+            const layer = layersRef.current.find((item) => item.id === args.id)
+            if (!layer) return { ok: false, code: 'not_found', message: `layer not found: ${args.id}` }
+            layer.visible = args.visible
+            layer.tileset.show = args.visible
+            syncLayers()
+            showToast(
+              `${t('agent.prefix')}${t(args.visible ? 'toast.visibleOn' : 'toast.visibleOff', { name: layer.name })}`,
+            )
+            return { ok: true, data: { id: layer.id, visible: layer.visible } }
+          }
+          case 'basemap':
+            return applySource('imagery', 'basemap')
+          case 'terrain':
+            return applySource('terrain', 'terrain')
+          case 'fly': {
+            const invalid = requireViewer()
+            if (invalid) return invalid
+            const coords = validLonLat()
+            if (coords.code) return coords
+            const height = args.height === undefined ? 2000 : Number(args.height)
+            if (!Number.isFinite(height) || height < 0) return badArgs('height must be a number >= 0')
+            const heading = args.heading === undefined ? 0 : Number(args.heading)
+            const pitch = args.pitch === undefined ? -45 : Number(args.pitch)
+            if (!Number.isFinite(heading) || !Number.isFinite(pitch)) return badArgs('heading and pitch must be numbers')
+            const duration = args.duration === undefined ? 1.5 : Number(args.duration)
+            if (!Number.isFinite(duration) || duration < 0 || duration > 10) {
+              return badArgs('duration must be a number within [0, 10]')
+            }
+            await flyCamera(
+              viewer,
+              {
+                destination: Cesium.Cartesian3.fromDegrees(coords.lon, coords.lat, height),
+                orientation: {
+                  heading: Cesium.Math.toRadians(heading),
+                  pitch: Cesium.Math.toRadians(pitch),
+                  roll: 0,
+                },
+              },
+              duration,
+            )
+            showToast(`${t('agent.prefix')}${t('toast.flew')}`)
+            return cameraResult()
+          }
+          case 'reset': {
+            const invalid = requireViewer()
+            if (invalid) return invalid
+            await resetView()
+            showToast(`${t('agent.prefix')}${t('toast.viewReset')}`)
+            return cameraResult()
+          }
+          case 'pick': {
+            const invalid = requireViewer()
+            if (invalid) return invalid
+            const coords = validLonLat()
+            if (coords.code) return coords
+            const cartographic = Cesium.Cartographic.fromDegrees(coords.lon, coords.lat)
+            let height = 0
+            try {
+              const terrainHeight = viewer.scene.globe.getHeight(cartographic)
+              if (typeof terrainHeight === 'number' && Number.isFinite(terrainHeight)) height = terrainHeight
+            } catch {
+              /* fall back to the ellipsoid surface */
+            }
+            const cartesian = Cesium.Cartesian3.fromRadians(cartographic.longitude, cartographic.latitude, height)
+            let windowPosition = null
+            try {
+              windowPosition = Cesium.SceneTransforms.worldToWindowCoordinates(viewer.scene, cartesian)
+            } catch {
+              windowPosition = null
+            }
+            if (!Cesium.defined(windowPosition)) return { ok: true, data: { picked: null } }
+            return { ok: true, data: { picked: pickPayload(windowPosition) } }
+          }
+          case 'capture':
+            return captureScene(args)
+          default:
+            return badArgs(`unknown action: ${action || '(empty)'}`)
+        }
+      }
+
       async function submitUrl() {
         const value = urlInput.trim()
         if (!value) return
@@ -1769,7 +2238,7 @@ window.__ModuleLoader__.load({
         }
         setUrlBar(false)
         setUrlInput('')
-        await addTileset(url, value.split(/[\\/]/).filter(Boolean).slice(-2).join('/'))
+        loadTilesetFromUi(url, value.split(/[\\/]/).filter(Boolean).slice(-2).join('/'))
       }
 
       React.useEffect(() => {
@@ -1838,6 +2307,95 @@ window.__ModuleLoader__.load({
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
       }, [])
+
+      // Mirror `busy` for the long-lived bridge closure and the scene snapshot.
+      React.useEffect(() => {
+        busyRef.current = busy
+      }, [busy])
+
+      // Agent bridge: one EventSource per panel. The Host sends `hello` once and
+      // `command` frames afterwards; every command is answered with a POST to
+      // `resultUrl`. Commands run strictly one at a time, and a duplicate id is
+      // ignored (defensive only — the Host never resends).
+      React.useEffect(() => {
+        if (phase !== 'ready') return undefined
+        const meta = metaRef.current
+        if (!meta?.eventsUrl || !meta?.resultUrl || !meta?.token) return undefined
+        let cancelled = false
+        let source = null
+        let chain = Promise.resolve()
+        const seen = new Set()
+        const seenOrder = []
+        const endpoint = `${meta.resultUrl}?token=${encodeURIComponent(meta.token)}`
+        const postResult = (id, payload) => {
+          fetch(endpoint, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ id, ...payload }),
+          }).catch(() => {
+            /* A lost receipt is the Host's timeout; never surface it as a panel error. */
+          })
+        }
+        const handleCommand = (event) => {
+          let frame
+          try {
+            frame = JSON.parse(event.data)
+          } catch {
+            return
+          }
+          const id = typeof frame?.id === 'string' ? frame.id : ''
+          if (!id || seen.has(id)) return
+          seen.add(id)
+          seenOrder.push(id)
+          if (seenOrder.length > 64) seen.delete(seenOrder.shift())
+          const action = typeof frame.action === 'string' ? frame.action : ''
+          const args = frame.args && typeof frame.args === 'object' ? frame.args : {}
+          chain = chain
+            .then(async () => {
+              if (cancelled) return
+              const outcome = await runAgentAction(action, args).catch((error) => ({
+                ok: false,
+                code: 'bad_args',
+                message: message(error),
+              }))
+              if (cancelled) return
+              postResult(id, outcome)
+            })
+            .catch(() => {})
+        }
+        try {
+          source = new EventSource(`${meta.eventsUrl}?token=${encodeURIComponent(meta.token)}`)
+        } catch {
+          setBridge('off')
+          return undefined
+        }
+        source.addEventListener('open', () => {
+          if (!cancelled) setBridge('on')
+        })
+        source.addEventListener('error', () => {
+          // EventSource reconnects on its own; no manual retry loop.
+          if (!cancelled) setBridge('off')
+        })
+        source.addEventListener('hello', (event) => {
+          try {
+            agentRef.current = JSON.parse(event.data)
+          } catch {
+            /* ignore a malformed hello */
+          }
+        })
+        source.addEventListener('command', handleCommand)
+        return () => {
+          cancelled = true
+          try {
+            source?.close()
+          } catch {
+            /* ignore */
+          }
+          setBridge('off')
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+      }, [phase])
 
       React.useEffect(() => {
         if (!openMenu) return undefined
@@ -1952,6 +2510,15 @@ window.__ModuleLoader__.load({
             h(ViewerIcon, { size: 18 }),
             h('b', null, t('panel.title')),
             h('span', null, status),
+            bridge === 'on'
+              ? h('span', {
+                  key: 'agent',
+                  className: 'mv-agent-dot',
+                  'data-on': bridge === 'on',
+                  title: t('agent.connected'),
+                  'aria-label': t('agent.connected'),
+                })
+              : null,
           ),
           h(
             'div',
@@ -2036,7 +2603,30 @@ window.__ModuleLoader__.load({
             ),
             h('i', { key: 's2', className: 'mv-sep' }),
             button(`${t('btn.layers')}${layers.length ? ` ${layers.length}` : ''}`, () => setLayersOpen((value) => !value), layersOpen && layers.length > 0),
-            button(t('btn.screenshot'), screenshot),
+            menu('capture', t('btn.screenshot'), [
+              h(
+                MenuItem,
+                {
+                  key: 'save',
+                  onClick: () => {
+                    setOpenMenu(null)
+                    screenshot()
+                  },
+                },
+                t('capture.save'),
+              ),
+              h(
+                MenuItem,
+                {
+                  key: 'copy',
+                  onClick: () => {
+                    setOpenMenu(null)
+                    copySceneSummary()
+                  },
+                },
+                t('capture.copySummary'),
+              ),
+            ]),
             button(t('btn.reset'), resetView),
             h('i', { key: 's3', className: 'mv-sep' }),
             h(
@@ -2236,7 +2826,7 @@ window.__ModuleLoader__.load({
                         type: 'button',
                         className: 'mv-cta',
                         style: { textAlign: 'left', display: 'flex', flexDirection: 'column', gap: '2px' },
-                        onClick: () => addTileset(item.url, item.name.split(/[\\/]/).filter(Boolean).slice(-2).join('/')),
+                        onClick: () => loadTilesetFromUi(item.url, item.name.split(/[\\/]/).filter(Boolean).slice(-2).join('/')),
                       },
                       h('span', null, item.name),
                     ),
@@ -2252,6 +2842,7 @@ window.__ModuleLoader__.load({
               defaults,
               environmentDark,
               themeMode,
+              meta: metaRef.current,
               messages: t,
               onPickLocal: pickLocalTiles,
               onSave: saveSources,

@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.1.0
+
+第二阶段（P0）：让对话里的 Agent 能**操作**数字地球、也能**看到**数字地球。
+
+- **Agent 命令桥**：Host 新增 `GET /api/3dviewer/events`（SSE，面板登记 + 心跳 + 断线清理）与 `POST /api/3dviewer/result`（回执，16 MiB 上限、id 归属校验）；一个面板一条串行命令队列，工具调用 20s / 截图 30s 超时；按会话优先、唯一面板兜底选择目标面板，无面板时返回结构化 `panel_not_open`。
+- **`earth_scene` 工具**：`status / load / remove / visible / basemap / terrain / fly / reset / pick` 九个 action；坐标 WGS84 十进制度、高度米；`status` 返回紧凑场景快照（相机、图层统计、底图/地形、量测）；本地 `load.path` 只允许用户已在面板打开过的目录（`/scan` 白名单，未授权返回 `needs_user_directory` 且不下发命令）。
+- **`earth_capture` 工具**：截取 Cesium 视口（PNG/JPEG，宽 320–2560，默认 1280），落盘到会话工作区 `.dsh-earth/captures/` 并写同名 `.json` 侧车（场景快照 + 图像元信息），返回路径/相机/图层摘要，提示模型用 `read_image` 复核。截图只含地球画布，天然不含 HUD / 工具栏 / 图层面板。
+- **系统提示小节**：≤300 tokens 的硬规则（坐标约定、先 `status`、面板未打开时的处理、改完视图先截图、本地路径白名单），随插件注册/销毁。
+- **面板侧**：顶部加入极小的 Agent 连接指示点；工具栏「截图」改为菜单——「保存截图」（原下载行为）/「复制场景摘要」（场景 JSON 到剪贴板）；Agent 操作时沿用现有 busy/toast 反馈，不新增弹层。
+- **设置 › 关于**：新增「关于 / About」页签（版本、GitHub 仓库、课题组、MIT 许可、随包分发的 CesiumJS Apache-2.0 署名），页脚课题组链接旁增加轻量 GitHub 入口。
+- **兼容性**：旧 Host 不提供 `eventsUrl`/`resultUrl` 时面板照常工作（桥静默跳过）；视觉链路与具体模型无关，任何支持图像输入的模型都可 `read_image` 读截图。
+- **测试**：`node --test` 54 项（新增 Host 桥 16 项、Client 结构 12 项、CI 11 项），CI 在 Node 22/24 上跑语法检查、结构测试、打包清单与真实打包冒烟。
+- **发布流程**：`develop` 日常开发 → `main` 合并即触发 GitHub Actions 自动发布 npm（OIDC Trusted Publishing，版本已存在自动跳过）。
+
 ## 1.0.0
 
 首个公开版本（npm 包名 `@cveo/dsh-digital-earth`，面板名「数字地球 / Digital Earth」）。

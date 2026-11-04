@@ -6,10 +6,15 @@
 
 [中文](README.md) · [English](README.en.md)
 
+[![CI](https://github.com/CVEO/dsh-digital-earth/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/CVEO/dsh-digital-earth/actions/workflows/ci.yml)
+[![Publish](https://github.com/CVEO/dsh-digital-earth/actions/workflows/publish.yml/badge.svg?branch=main)](https://github.com/CVEO/dsh-digital-earth/actions/workflows/publish.yml)
+
 ![版本](https://img.shields.io/badge/版本-1.0.0-4f8cff)
 ![许可](https://img.shields.io/badge/许可-MIT-2ea44f)
 ![平台](https://img.shields.io/badge/平台-Web-8b5cf6)
 ![DSH](https://img.shields.io/badge/DSH-%3E%3D0.2.1--rc.1-0ea5e9)
+
+**仓库 / Repository:** <https://github.com/CVEO/dsh-digital-earth>
 
 </div>
 
@@ -32,6 +37,17 @@
 | 图层统计 | 每层瓦片数、待加载数、三角面数、缓存占用；全局 FPS 与相机高度 / 朝向 |
 | 双语 | 跟随 DSH 语言，中文 / English 运行时即时切换 |
 | 主题 | 跟随 DSH 或系统；可显式选择浅色 / 深色，仅作用于本面板 |
+| Agent 工具（v1.1.0） | 对话中操作地球（`earth_scene`）与截图（`earth_capture`）；设置新增「关于」页与 GitHub 链接，详见下文 |
+
+### Agent 能力（v1.1.0）
+
+版本 **1.1.0** 起，对话里的模型可以直接操作、观察数字地球：
+
+- **`earth_scene`**：操作已打开的数字地球面板——`status`（读取相机 / 图层 / 底图 / 地形快照）、`load` / `remove` / `visible`（加载、删除、显隐 3D Tiles / 3DGS 图层）、`basemap` / `terrain`（切换底图与地形）、`fly` / `reset`（飞行与复位相机）、`pick`（按经纬度拾取要素属性）。
+- **`earth_capture`**：把当前视口截成 PNG 存到工作区，返回路径、相机与图层摘要；模型随后用 `read_image` 读取截图再描述画面。截图只含 Cesium 画布，天然不含 HUD / 工具栏。
+- **设置 →「关于」页**：显示版本号、项目仓库、课题组、许可证与 CesiumJS 署名，页脚新增 GitHub 链接。
+
+> v1.1.0 **不含**右栏停靠 Tab、Agent 标注（`earth_draw`）与 Agent 量测（`earth_measure`）工具——它们仍在 roadmap 中，请勿据此假设已可用。
 
 ## 环境要求
 
@@ -63,7 +79,7 @@ dsh plugin --profile <profile> add "./cveo-dsh-digital-earth-1.0.0.tgz"
 | **量测 ▾** | 测距、测面、测高、拾取属性；左键取点，双击结束 |
 | **图层 n** | 图层面板：点名称定位、◉ 显隐、✕ 移除 |
 | **外观** | 跟随系统 / 浅色 / 深色 |
-| **设置** | 数据源管理（影像 / 地形）与外观设置 |
+| **设置** | 数据源管理（影像 / 地形）、外观设置；v1.1.0 起新增「关于」页与 GitHub 链接 |
 
 鼠标坐标按约 8 Hz 采样：射线与椭球求交保证裸地球也有经纬度；命中 3D Tiles / 3DGS 时用深度缓冲取模型表面高程；有地形时用 `globe.getHeight` 校正。HUD 文本直接写入 DOM，不触发 React 重渲染。
 
@@ -107,13 +123,15 @@ dsh-digital-earth/
 ├── cordis.patch.yml    # bundle 补丁
 ├── locale/             # 插件市场元数据（中 / 英）
 ├── vendor/cesium/      # 自托管 CesiumJS 1.147
+├── test/               # node:test 结构测试（发布产物、工作流、Agent 桥）
+├── .github/workflows/  # CI 与自动发布
 ├── icon.svg
 └── preview.png
 ```
 
 ## 反馈与贡献
 
-欢迎通过 [Issue](https://github.com/CVEO/dsh-digital-earth/issues) 报告问题或提出建议。提交前请确保 `node --check index.js && node --check client.js` 通过。
+欢迎通过 [Issue](https://github.com/CVEO/dsh-digital-earth/issues) 报告问题或提出建议，也欢迎 PR。提交前请确保 `npm run check` 通过（语法检查 + `node --test`）。
 
 ## 团队
 

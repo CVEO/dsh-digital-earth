@@ -1,10 +1,12 @@
 name: Publish
 
-# 发布策略：
-#   - push 到 main（合并 develop 的正式版）→ 若 package.json 的版本还没上 npm，就自动发布；
-#   - 打 v* tag → 同上；
-#   - 手动触发 → 同上。
-# 版本已存在时跳过而不是失败，所以「改代码但没升版本」的合并不会把 CI 变红。
+# 发布链路（详细流程见 RELEASING.md）：
+#   - push 到 main（develop 合并上来的正式版）→ package.json 的版本还没上 npm 就自动发布；
+#   - push v* tag → 同上，且 tag 必须严格等于 v<package.json 的 version>，不一致直接失败；
+#   - workflow_dispatch → 手动补发 / 重试。
+# 认证走 npm Trusted Publishing（OIDC），不需要 NPM_TOKEN secret；npm 版本须 ≥ 11.5.1，故这里升级 npm。
+# 版本已存在时跳过而不是失败，所以「改代码但没升版本」的合并不会把发布链路变红。
+# 发布前的校验必须在本工作流里重跑一遍：CI 可能跑的是旧提交 / 被跳过，发布不能只信 CI 的结论。
 
 on:
   push:
@@ -16,15 +18,24 @@ permissions:
   id-token: write # npm Trusted Publishing (OIDC) 必需
   contents: read
 
+# 发布不可取消：已经开始的 npm publish 被中断会留下不确定状态，宁可用新 run 补发。
 concurrency:
   group: publish-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
   publish:
+    name: publish to npm
     runs-on: ubuntu-latest
+    # 可选环境：在仓库 Settings → Environments 创建 `npm`，可加保护规则 / 维护者审批。
+    # Trusted Publishing 走 OIDC，不需要在这里配置任何 secret；npmjs.com 的
+    # Trusted Publisher 配置里若填了 Environment name，请同样填 `npm`（可留空）。
+    environment: npm
     steps:
-      - uses: actions/checkout@v6
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0 # 取全量 tag，供 tag / package.json 版本一致性校验使用
 
       - uses: actions/setup-node@v6
         with:
@@ -43,6 +54,56 @@ jobs:
 
       - name: Package manifest
         run: npm pack --dry-run
+
+      - name: Package smoke test
+        # 与 ci.yml 相同：真实打包 → 解包 → 检查随包资源 → import 宿主入口。
+        run: |
+          set -euo pipefail
+          DEST="$(mktemp -d)"
+          TARBALL=""
+          cleanup() {
+            rm -rf "$DEST"
+            if [ -n "$TARBALL" ]; then rm -f "$TARBALL"; fi
+          }
+          trap cleanup EXIT
+
+          TARBALL="$(npm pack --silent | tail -n 1)"
+          tar -xzf "$TARBALL" -C "$DEST"
+
+          for FILE in index.js client.js cordis.patch.yml vendor/cesium/Cesium.js; do
+            test -f "$DEST/package/$FILE" || { echo "::error::打包结果缺少 $FILE"; exit 1; }
+          done
+
+          ENTRY="$DEST/package/index.js"
+          node --input-type=module -e "const m = await import('$ENTRY'); if (typeof m.apply !== 'function') { console.error('index.js 未导出 apply()'); process.exit(1) }"
+          echo "打包冒烟通过：$TARBALL"
+
+      - name: Check tag / package.json version consistency
+        # tag 发布：tag 必须精确等于 v<version>，否则一定是打错版本或忘记改 package.json，直接失败。
+        # main / 手动发布：没有 tag 可比，只对比最新 tag 并给出警告，不阻塞发布。
+        env:
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          VERSION=$(node -p "require('./package.json').version")
+          echo "package.json version = $VERSION"
+
+          if [ "$REF_TYPE" = "tag" ]; then
+            if [ "$REF_NAME" != "v$VERSION" ]; then
+              echo "::error::tag $REF_NAME 与 package.json 的 version $VERSION 不一致，期望 tag v$VERSION"
+              exit 1
+            fi
+            echo "::notice::tag $REF_NAME 与 package.json version 一致"
+            exit 0
+          fi
+
+          LATEST_TAG="$(git tag --list 'v*' --sort=-v:refname | head -n 1 || true)"
+          if [ -n "$LATEST_TAG" ] && [ "$LATEST_TAG" != "v$VERSION" ]; then
+            echo "::warning::package.json version 为 $VERSION，但最新 tag 是 $LATEST_TAG；建议发布成功后补打 tag v$VERSION 便于追溯（main 分支发布不因此失败）"
+          else
+            echo "::notice::分支 / 手动发布：当前 version 与最新 tag 一致或仓库尚无 tag，继续"
+          fi
 
       - name: Check whether this version is already on npm
         id: probe

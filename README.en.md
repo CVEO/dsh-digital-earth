@@ -6,10 +6,15 @@
 
 [中文](README.md) · [English](README.en.md)
 
+[![CI](https://github.com/CVEO/dsh-digital-earth/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/CVEO/dsh-digital-earth/actions/workflows/ci.yml)
+[![Publish](https://github.com/CVEO/dsh-digital-earth/actions/workflows/publish.yml/badge.svg?branch=main)](https://github.com/CVEO/dsh-digital-earth/actions/workflows/publish.yml)
+
 ![version](https://img.shields.io/badge/version-1.0.0-4f8cff)
 ![license](https://img.shields.io/badge/license-MIT-2ea44f)
 ![platform](https://img.shields.io/badge/platform-Web-8b5cf6)
 ![DSH](https://img.shields.io/badge/DSH-%3E%3D0.2.1--rc.1-0ea5e9)
+
+**Repository:** <https://github.com/CVEO/dsh-digital-earth>
 
 </div>
 
@@ -32,6 +37,17 @@ Digital Earth adds a CesiumJS globe to the DSH main workspace so photogrammetry 
 | Layer statistics | Tiles, pending tiles, triangles and cache per layer; global FPS and camera height / heading |
 | Bilingual | Follows the DSH language and switches between Chinese and English at runtime |
 | Theme | Follows DSH or the system; explicit light / dark override scoped to this panel |
+| Agent tools (v1.1.0) | Drive the globe from the chat (`earth_scene`) and capture the viewport (`earth_capture`); a new About page links to GitHub — see below |
+
+### Agent tools (v1.1.0)
+
+Since version **1.1.0**, the model in the chat can operate and observe the globe:
+
+- **`earth_scene`** — operates the open Digital Earth panel: `status` (camera / layers / basemap / terrain snapshot), `load` / `remove` / `visible` (load, remove and toggle 3D Tiles / 3DGS layers), `basemap` / `terrain` (switch sources), `fly` / `reset` (move and reset the camera), `pick` (pick feature properties at a lon/lat).
+- **`earth_capture`** — saves a PNG of the current viewport to the workspace and returns its path, camera and layer summary; the model then reads it with `read_image`. Only the Cesium canvas is captured, so no HUD or toolbar is included.
+- **Settings → About** — version, repository, research group, license and CesiumJS attribution, plus a GitHub link in the footer.
+
+> v1.1.0 does **not** include the right-docked tab, Agent annotation (`earth_draw`) or Agent measurement (`earth_measure`) tools — those stay on the roadmap, so please do not assume they are available.
 
 ## Requirements
 
@@ -63,7 +79,7 @@ Fully quit and reopen DSH after installing or updating: client bundles are regis
 | **Measure ▾** | Distance, area, height, property picking; left click to add a point, double click to finish |
 | **Layers n** | Layer list: click a name to fly to it, ◉ toggles visibility, ✕ removes it |
 | **Appearance** | Follow system / light / dark |
-| **Settings** | Source management (imagery / terrain) and appearance |
+| **Settings** | Source management (imagery / terrain) and appearance; v1.1.0 adds an About page and a GitHub link |
 
 Cursor coordinates are sampled at roughly 8 Hz: a ray–ellipsoid intersection keeps the readout alive on the bare globe, the depth buffer provides 3D Tiles / 3DGS surface elevations, and `globe.getHeight` corrects terrain. HUD text is written straight to the DOM, so it never triggers React re-renders.
 
@@ -107,13 +123,15 @@ dsh-digital-earth/
 ├── cordis.patch.yml    # bundle patch
 ├── locale/             # plugin market metadata (zh / en)
 ├── vendor/cesium/      # self-hosted CesiumJS 1.147
+├── test/               # node:test structural tests (package, workflows, agent bridge)
+├── .github/workflows/  # CI and automated publishing
 ├── icon.svg
 └── preview.png
 ```
 
 ## Feedback
 
-Issues and suggestions are welcome in the [issue tracker](https://github.com/CVEO/dsh-digital-earth/issues). Please make sure `node --check index.js && node --check client.js` passes before opening a pull request.
+Issues and suggestions are welcome in the [issue tracker](https://github.com/CVEO/dsh-digital-earth/issues), and so are pull requests. Please make sure `npm run check` passes (syntax checks + `node --test`) before opening a pull request.
 
 ## Team
 

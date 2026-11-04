@@ -1,5 +1,11 @@
 name: CI
 
+# 每次 push / PR 到 main 或 develop 都跑：
+#   语法检查 → node:test 结构测试 → 打包清单 → 真实打包冒烟（解包后 import 宿主入口）。
+# publish.yml 会在发布前独立重跑同一组校验，不依赖本工作流的结论。
+# 注意：这里刻意保持「无第三方依赖、无 npm install」——插件没有运行期依赖，
+# 测试与打包只需要 Node 自带能力，避免供应链与缓存带来的不确定性。
+
 on:
   push:
     branches: [main, develop]
@@ -9,15 +15,25 @@ on:
 permissions:
   contents: read
 
+# 同一 ref 的新推送取消旧任务；PR 与分支 push 的 ref 不同，各自独立。
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   verify:
+    name: verify (Node ${{ matrix.node }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [22, 24]
     steps:
       - uses: actions/checkout@v6
 
       - uses: actions/setup-node@v6
         with:
-          node-version: '24'
+          node-version: ${{ matrix.node }}
           package-manager-cache: false
 
       - name: Syntax check
@@ -28,3 +44,28 @@ jobs:
 
       - name: Package manifest
         run: npm pack --dry-run
+
+      - name: Package smoke test
+        # 真实打包一次再解包，验证发布产物（而不是工作区）里确实有入口与随包资源，
+        # 且宿主入口在干净目录下能被 Node 加载。能拦住 files 白名单漏项、
+        # 入口路径写错、vendor 未随包分发这类「装得上但加载不了」的问题。
+        run: |
+          set -euo pipefail
+          DEST="$(mktemp -d)"
+          TARBALL=""
+          cleanup() {
+            rm -rf "$DEST"
+            if [ -n "$TARBALL" ]; then rm -f "$TARBALL"; fi
+          }
+          trap cleanup EXIT
+
+          TARBALL="$(npm pack --silent | tail -n 1)"
+          tar -xzf "$TARBALL" -C "$DEST"
+
+          for FILE in index.js client.js cordis.patch.yml vendor/cesium/Cesium.js; do
+            test -f "$DEST/package/$FILE" || { echo "::error::打包结果缺少 $FILE"; exit 1; }
+          done
+
+          ENTRY="$DEST/package/index.js"
+          node --input-type=module -e "const m = await import('$ENTRY'); if (typeof m.apply !== 'function') { console.error('index.js 未导出 apply()'); process.exit(1) }"
+          echo "打包冒烟通过：$TARBALL"
