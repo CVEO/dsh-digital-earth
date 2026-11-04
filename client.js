@@ -45,6 +45,11 @@ window.__ModuleLoader__.load({
         'btn.openLocal': '打开本地目录…',
         'btn.openUrl': '加载在线地址…',
         'btn.layers': '图层',
+        'btn.layersShow': '展开图层卡',
+        'btn.layersHide': '收起图层卡',
+        'btn.hud': '坐标 HUD',
+        'btn.hudShow': '显示坐标 HUD',
+        'btn.hudHide': '隐藏坐标 HUD',
         'btn.basemap': '底图',
         'btn.terrain': '地形',
         'btn.measure': '量测',
@@ -85,6 +90,7 @@ window.__ModuleLoader__.load({
         'hud.elevation': '高程 {value}',
         'hud.empty': '—',
         'layers.title': '图层',
+        'layers.collapse': '收起图层卡',
         'urlbar.placeholder': 'tileset.json 的 http(s) 地址，或本地绝对路径',
         'urlbar.submit': '加载',
         'toast.scanEmpty': '该目录下没有找到 tileset.json',
@@ -162,6 +168,7 @@ window.__ModuleLoader__.load({
         'header.open': '在对话旁打开数字地球',
         'btn.beside': '在对话旁打开',
         'btn.immersive': '全屏查看',
+        'btn.immersiveTitle': '全屏查看（再次点击返回停靠）',
         'tool.action.status': '读取场景',
         'tool.action.list': '读取图层',
         'tool.action.load': '加载图层',
@@ -187,6 +194,11 @@ window.__ModuleLoader__.load({
         'settings.screenshotHud': '截图时叠加坐标 HUD 与署名',
         'settings.screenshotHudHint':
           '默认关闭：截图只保留干净的三维画面，便于分享或交给模型识别。打开后会在图片内叠加光标坐标、相机参数与团队署名（面板工具栏属于网页元素，不会进入图片）。',
+        'settings.showLayers': '显示图层卡',
+        'settings.showLayersHint': '关闭后图层卡从画布上收起；仍可从工具栏的「图层」按钮重新展开。该偏好会写回数据源配置。',
+        'settings.showHud': '显示坐标 HUD',
+        'settings.showHudHint':
+          '关闭后不渲染左下角的坐标/瓦片统计，并停止指针采样以节省性能。截图默认仍不叠加 HUD；该偏好会写回数据源配置。',
         'about.version': '版本',
         'about.homepage': '项目源码',
         'about.issues': '问题反馈',
@@ -235,7 +247,7 @@ window.__ModuleLoader__.load({
         'agent.missingLayer': '请提供 layer（图层 id 或名称）。',
         'agent.unknownLayer': '找不到图层「{name}」，当前图层：{list}',
         'agent.missingUrl': '请提供 http(s) 地址或本地 tileset.json 路径。',
-        'agent.dirDenied': '该本地目录尚未在面板中授权（{message}）。请先在面板「数据 → 打开本地目录」里选择一次。',
+        'agent.dirDenied': '访问本地目录失败（{message}）。请重试一次以重新触发授权；若仍失败，请在面板中授权该目录后再试。',
         'agent.missingCoords': '请提供 lon 与 lat。',
         'agent.unknownImagery': '找不到影像源「{name}」，可用：{list}',
         'agent.unknownTerrain': '找不到地形源「{name}」，可用：{list}',
@@ -244,6 +256,24 @@ window.__ModuleLoader__.load({
         'agent.badMeasure': '量测参数无效：{message}',
         'agent.measureEmpty': '没有可用的量测结果。',
         'agent.clearedOverlays': '已清除 Agent 标注',
+        'access.title': '授权访问本地数据',
+        'access.body': 'Agent 想从这个本地路径加载数据。允许后，面板会先把该文件所在目录登记为可读取的本地数据源（仅本页面会话内有效），然后继续操作。',
+        'access.dir': '目录',
+        'access.path': '请求路径',
+        'access.target': '解析到的文件',
+        'access.file': '文件',
+        'access.allowing': '正在登记目录…',
+        'access.request.load': '加载 3D Tiles',
+        'access.request.inspect': '数据体检',
+        'access.request.generic': '读取本地数据',
+        'access.missing': '该路径当前未找到 tileset.json：允许后 Host 会继续在上层目录内查找唯一候选，找到才会加载。',
+        'access.resolved': '已在上层目录中找到候选文件，允许后加载这个文件：',
+        'access.allow': '允许并继续',
+        'access.cancel': '取消',
+        'access.denied': '用户取消了本地路径授权，本次操作未执行。',
+        'access.scanFailed': '目录登记失败，本次操作未执行：{message}',
+        'access.remote': '仅本地路径需要授权；在线地址无需此步骤。',
+        'access.badPath': '授权请求缺少有效的本地路径。',
         'toast.captureSaved': '已生成 {width}×{height} 截图：{path}',
         'toast.noSession': '请先打开一个会话，再在对话旁查看数字地球。',
         'unit.hectare': '公顷',
@@ -263,6 +293,11 @@ window.__ModuleLoader__.load({
         'btn.openLocal': 'Open local folder…',
         'btn.openUrl': 'Load from URL…',
         'btn.layers': 'Layers',
+        'btn.layersShow': 'Show layer card',
+        'btn.layersHide': 'Hide layer card',
+        'btn.hud': 'Coordinate HUD',
+        'btn.hudShow': 'Show coordinate HUD',
+        'btn.hudHide': 'Hide coordinate HUD',
         'btn.basemap': 'Basemap',
         'btn.terrain': 'Terrain',
         'btn.measure': 'Measure',
@@ -303,6 +338,7 @@ window.__ModuleLoader__.load({
         'hud.elevation': 'Elev {value}',
         'hud.empty': '—',
         'layers.title': 'Layers',
+        'layers.collapse': 'Collapse layer card',
         'urlbar.placeholder': 'http(s) URL of tileset.json, or an absolute local path',
         'urlbar.submit': 'Load',
         'toast.scanEmpty': 'No tileset.json found in that folder',
@@ -380,6 +416,7 @@ window.__ModuleLoader__.load({
         'header.open': 'Open Digital Earth beside the chat',
         'btn.beside': 'Open beside chat',
         'btn.immersive': 'Full screen',
+        'btn.immersiveTitle': 'Full screen (click again to return to the dock)',
         'tool.action.status': 'Read scene',
         'tool.action.list': 'List layers',
         'tool.action.load': 'Load layer',
@@ -405,6 +442,12 @@ window.__ModuleLoader__.load({
         'settings.screenshotHud': 'Overlay coordinate HUD and credits in snapshots',
         'settings.screenshotHudHint':
           'Off by default: snapshots keep only the clean 3D view, which is easier to share or hand to a model. Turn it on to burn the cursor coordinates, camera parameters and team credit into the image (the panel toolbar is DOM chrome and can never be part of the image).',
+        'settings.showLayers': 'Show the layer card',
+        'settings.showLayersHint':
+          'When off, the layer card collapses off the canvas; reopen it from the Layers button in the toolbar. The preference is written back to the sources config.',
+        'settings.showHud': 'Show the coordinate HUD',
+        'settings.showHudHint':
+          'When off, the bottom-left coordinates/tile statistics are not rendered and pointer sampling stops to save performance. Snapshots still hide the HUD by default; the preference is written back to the sources config.',
         'about.version': 'Version',
         'about.homepage': 'Source code',
         'about.issues': 'Report an issue',
@@ -454,7 +497,7 @@ window.__ModuleLoader__.load({
         'agent.missingLayer': 'Provide layer (a layer id or name).',
         'agent.unknownLayer': 'No layer "{name}". Current layers: {list}',
         'agent.missingUrl': 'Provide an http(s) URL or a local tileset.json path.',
-        'agent.dirDenied': 'That local folder is not authorized yet ({message}). Open it once in the panel via Data → Open local folder.',
+        'agent.dirDenied': 'Could not access that local folder ({message}). Retry once to trigger the authorisation prompt; if it still fails, authorise the folder in the panel and try again.',
         'agent.missingCoords': 'Provide lon and lat.',
         'agent.unknownImagery': 'No imagery source "{name}". Available: {list}',
         'agent.unknownTerrain': 'No terrain source "{name}". Available: {list}',
@@ -463,6 +506,26 @@ window.__ModuleLoader__.load({
         'agent.badMeasure': 'Invalid measurement arguments: {message}',
         'agent.measureEmpty': 'No measurement result was produced.',
         'agent.clearedOverlays': 'Agent annotations cleared',
+        'access.title': 'Allow local data access',
+        'access.body':
+          'The Agent wants to load data from this local path. If you allow it, the panel first registers the containing folder as a readable local data source (for this page session only), then continues the operation.',
+        'access.dir': 'Folder',
+        'access.path': 'Requested path',
+        'access.target': 'Resolved file',
+        'access.file': 'File',
+        'access.allowing': 'Registering the folder…',
+        'access.request.load': 'Load 3D Tiles',
+        'access.request.inspect': 'Data health check',
+        'access.request.generic': 'read local data',
+        'access.missing':
+          'No tileset.json exists at that exact path right now: after you allow it, the Host keeps looking for a single candidate inside the ancestor folder and only loads the file when exactly one is found.',
+        'access.resolved': 'A candidate file was found in an ancestor folder; allowing loads this file:',
+        'access.allow': 'Allow and continue',
+        'access.cancel': 'Cancel',
+        'access.denied': 'The user cancelled the local path authorisation, so the operation did not run.',
+        'access.scanFailed': 'The folder could not be registered, so the operation did not run: {message}',
+        'access.remote': 'Only local paths need authorisation; remote URLs do not.',
+        'access.badPath': 'The authorisation request has no valid local path.',
         'toast.captureSaved': 'Saved {width}×{height} snapshot: {path}',
         'toast.noSession': 'Open a conversation first to view the globe beside it.',
         'unit.hectare': 'ha',
@@ -887,6 +950,28 @@ window.__ModuleLoader__.load({
     }
 
     /** Map a stored imagery source onto a Cesium imagery provider. */
+    /**
+     * Register a local folder with the Host scan endpoint so its files can be
+     * served same-origin. `x-dsh-panel` is required: it proves the request comes
+     * from the panel, not from arbitrary page script.
+     */
+    const scanLocalDirectory = async (meta, directory) => {
+      const response = await fetch(
+        `${meta.scanUrl}?token=${encodeURIComponent(meta.token)}&dir=${encodeURIComponent(directory)}`,
+        { credentials: 'same-origin', headers: { 'x-dsh-panel': '1' } },
+      )
+      if (!response.ok) throw new Error(`HTTP ${response.status}`)
+      return response.json().catch(() => ({}))
+    }
+
+    /**
+     * Client-side cleanup deadline for the authorisation dialog. The Host times the
+     * request out at 30 s and maps it to `access_timeout`; this timer only keeps the
+     * panel's serialised command chain from waiting forever after that, and the Host
+     * ignores the late ack.
+     */
+    const ACCESS_TIMEOUT_MS = 32000
+
     async function imageryProvider(Cesium, source) {
       const options = {}
       if (source.credit) options.credit = source.credit
@@ -922,27 +1007,27 @@ window.__ModuleLoader__.load({
 
     //#region cursor sampling --------------------------------------------------
 
-    /** True when a pick result describes geometry above the globe (tiles, models). */
-    function isModelPick(Cesium, picked) {
-      if (!Cesium.defined(picked)) return false
-      if (picked instanceof Cesium.Cesium3DTileFeature) return true
-      const primitive = picked.primitive ?? picked
-      if (primitive instanceof Cesium.Cesium3DTileset) return true
-      if (primitive instanceof Cesium.Model) return true
-      return false
-    }
+    /** Above this camera height the depth buffer is too coarse to trust. */
+    const PICK_POSITION_MAX_CAMERA_HEIGHT = 100000
+    /** Steady HUD refresh cadence while the pointer moves (5–6 Hz is plenty). */
+    const HUD_SAMPLE_INTERVAL_MS = 180
+    /** Quiet time after the last pointer move before the one depth-buffer read. */
+    const HUD_SETTLE_MS = 180
 
     /**
      * Sample the point under the pointer.
      *
-     * The globe surface always has an answer (ray → ellipsoid), which keeps the
-     * readout alive on the bare globe with terrain disabled. When a 3D Tiles or
-     * glTF surface is under the cursor its depth is preferred, at any camera
-     * distance, so the reported elevation is the model surface instead of sea
-     * level. Terrain elevation is filled in from the globe when a terrain
-     * provider is attached and the depth buffer is too coarse to trust.
+     * The globe ray hit always has an answer (ray → ellipsoid), which keeps the
+     * readout alive on the bare globe with terrain disabled; a non-flat terrain
+     * provider fills in the surface elevation through `globe.getHeight`.
+     * `options.pickPosition` additionally reads the depth buffer so a 3D Tiles /
+     * glTF surface under the cursor reports its own elevation — that is a GPU→CPU
+     * readback, so the HUD only asks for it once the pointer settles. `scene.pick`
+     * is deliberately not used here: the pick was only needed to decide whether
+     * depth was trustworthy, and `earth_scene pick` remains the way to identify
+     * an object.
      */
-    function sampleCursor(viewer, Cesium, position) {
+    function sampleCursor(viewer, Cesium, position, options = {}) {
       const scene = viewer.scene
       const ellipsoid = scene.globe.ellipsoid
       const ray = viewer.camera.getPickRay(position)
@@ -951,10 +1036,9 @@ window.__ModuleLoader__.load({
       if (!carto) return null
       carto.height = 0
 
-      const picked = scene.pick(position)
-      const overModel = isModelPick(Cesium, picked)
       let sampled = false
-      if (scene.pickPositionSupported && (overModel || viewer.camera.positionCartographic.height < 100000)) {
+      const cameraHeight = viewer.camera.positionCartographic.height
+      if (options.pickPosition === true && scene.pickPositionSupported && cameraHeight < PICK_POSITION_MAX_CAMERA_HEIGHT) {
         try {
           const point = scene.pickPosition(position)
           if (Cesium.defined(point)) {
@@ -977,7 +1061,7 @@ window.__ModuleLoader__.load({
         } else {
           carto.height = 0
         }
-      } else if (!overModel && scene.globe.terrainProvider instanceof Cesium.EllipsoidTerrainProvider) {
+      } else if (scene.globe.terrainProvider instanceof Cesium.EllipsoidTerrainProvider) {
         // The depth buffer biases the faceted ellipsoid by up to a few
         // kilometres; report sea level instead of a fake elevation.
         if (Math.abs(carto.height) < 100) carto.height = 0
@@ -1026,6 +1110,46 @@ window.__ModuleLoader__.load({
       )
 
     /** Crisp 16px action icons for the layer rows (Unicode glyphs rendered unevenly). */
+    /** Four-corner expand glyph: the docked toolbar's fullscreen toggle. */
+    const FullscreenIcon = ({ size = 15 }) =>
+      h(
+        'svg',
+        { viewBox: '0 0 24 24', width: size, height: size, 'aria-hidden': true, style: { display: 'block' } },
+        h(
+          'g',
+          { stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round', fill: 'none' },
+          h('path', { d: 'M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5' }),
+        ),
+      )
+
+    /** Coordinate crosshair used by the HUD visibility toggle. */
+    const HudIcon = ({ size = 16 }) =>
+      h(
+        'svg',
+        { viewBox: '0 0 24 24', width: size, height: size, 'aria-hidden': true, style: { display: 'block' } },
+        h(
+          'g',
+          { stroke: 'currentColor', strokeWidth: 1.7, strokeLinecap: 'round', fill: 'none' },
+          h('circle', { cx: 12, cy: 12, r: 5.2 }),
+          h('path', { d: 'M12 2.8v3.4M12 17.8v3.4M2.8 12h3.4M17.8 12h3.4' }),
+        ),
+      )
+
+    /** Chevron used by the floating layer-card header to collapse itself. */
+    const CollapseIcon = ({ size = 13 }) =>
+      h(
+        'svg',
+        { viewBox: '0 0 24 24', width: size, height: size, 'aria-hidden': true, style: { display: 'block' } },
+        h('path', {
+          d: 'M5 15l7-7 7 7',
+          fill: 'none',
+          stroke: 'currentColor',
+          strokeWidth: 2,
+          strokeLinecap: 'round',
+          strokeLinejoin: 'round',
+        }),
+      )
+
     function LayerActionIcon({ kind, size = 16 }) {
       const stroke = { stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round', fill: 'none' }
       let shapes
@@ -1057,7 +1181,7 @@ window.__ModuleLoader__.load({
 
     /** Bottom-left HUD: FPS, pointer position/elevation, camera and per-layer statistics. */
     function StatusHud({ fps, stats, viewerRef, cesiumRef, labels, readoutRef }) {
-      // The cursor readout is written straight into the DOM: it updates up to eight
+      // The cursor readout is written straight into the DOM: it updates around five
       // times a second, so keeping it out of React avoids re-renders while busy.
       const cursorRef = React.useRef(null)
 
@@ -1066,19 +1190,8 @@ window.__ModuleLoader__.load({
         const Cesium = cesiumRef.current
         if (!viewer || !Cesium) return undefined
         const canvas = viewer.scene.canvas
-        const pointer = { x: 0, y: 0, inside: false, dirty: false }
-        const onMove = (event) => {
-          pointer.x = event.offsetX
-          pointer.y = event.offsetY
-          pointer.inside = true
-          pointer.dirty = true
-        }
-        const onLeave = () => {
-          pointer.inside = false
-          pointer.dirty = true
-        }
-        canvas.addEventListener('pointermove', onMove, { passive: true })
-        canvas.addEventListener('pointerleave', onLeave, { passive: true })
+        const pointer = { x: 0, y: 0, inside: false, dirty: false, dragging: false }
+        let settleTimer = 0
         let shown = null
         const paint = (value) => {
           if (value === shown) return
@@ -1086,23 +1199,78 @@ window.__ModuleLoader__.load({
           if (cursorRef.current) cursorRef.current.textContent = value ?? t('hud.empty')
           if (readoutRef) readoutRef.current = value
         }
-        // Pick at ~8 Hz and only while the pointer keeps moving: one depth read per
-        // update keeps this cheap even on multi-million-triangle tilesets.
-        const timer = setInterval(() => {
-          if (!pointer.dirty) return
-          pointer.dirty = false
+        const sampleInto = (allowPickPosition) => {
           let next = null
           if (pointer.inside) {
             const position = new Cesium.Cartesian2(pointer.x, pointer.y)
-            const carto = sampleCursor(viewer, Cesium, position)
+            const carto = sampleCursor(viewer, Cesium, position, { pickPosition: allowPickPosition === true })
             if (carto) next = formatCursor(Cesium, carto)
           }
           paint(next)
-        }, 120)
+        }
+        const clearSettle = () => {
+          if (settleTimer) clearTimeout(settleTimer)
+          settleTimer = 0
+        }
+        // One sample shortly after the pointer stops, allowed to read the depth
+        // buffer: this is the only place the HUD pays for that GPU readback, and a
+        // single read is enough because the camera is no longer moving.
+        const armSettle = () => {
+          clearSettle()
+          settleTimer = setTimeout(() => {
+            settleTimer = 0
+            if (pointer.dragging) return
+            pointer.dirty = false
+            sampleInto(true)
+          }, HUD_SETTLE_MS)
+        }
+        const onMove = (event) => {
+          pointer.x = event.offsetX
+          pointer.y = event.offsetY
+          pointer.inside = true
+          pointer.dirty = true
+          // While the camera is being dragged the readout would be stale anyway;
+          // skip sampling and let the pointer-up settle produce one update.
+          if (!pointer.dragging) armSettle()
+        }
+        const onLeave = () => {
+          pointer.inside = false
+          pointer.dirty = true
+          clearSettle()
+        }
+        const onPointerDown = () => {
+          pointer.dragging = true
+          clearSettle()
+        }
+        const onPointerUp = () => {
+          if (!pointer.dragging) return
+          pointer.dragging = false
+          pointer.dirty = true
+          armSettle()
+        }
+        canvas.addEventListener('pointermove', onMove, { passive: true })
+        canvas.addEventListener('pointerleave', onLeave, { passive: true })
+        canvas.addEventListener('pointerdown', onPointerDown, { passive: true })
+        window.addEventListener('pointerup', onPointerUp, { passive: true })
+        window.addEventListener('pointercancel', onPointerUp, { passive: true })
+        // Steady cadence while the pointer moves: ray + terrain height only, so the
+        // periodic path never touches the depth buffer and stays smooth on
+        // multi-million-triangle tilesets.
+        const timer = setInterval(() => {
+          if (pointer.dragging || !pointer.dirty) return
+          pointer.dirty = false
+          sampleInto(false)
+        }, HUD_SAMPLE_INTERVAL_MS)
         return () => {
+          clearSettle()
+          clearInterval(timer)
           canvas.removeEventListener('pointermove', onMove)
           canvas.removeEventListener('pointerleave', onLeave)
-          clearInterval(timer)
+          canvas.removeEventListener('pointerdown', onPointerDown)
+          window.removeEventListener('pointerup', onPointerUp)
+          window.removeEventListener('pointercancel', onPointerUp)
+          // Drop the stale readout so a later capture cannot reuse an old coordinate.
+          if (readoutRef) readoutRef.current = null
         }
       }, [])
 
@@ -1161,7 +1329,8 @@ window.__ModuleLoader__.load({
 .mv-btn{appearance:none;border:0;background:transparent;color:var(--mv-dim);font:inherit;font-size:12px;line-height:1;padding:7px 9px;border-radius:7px;cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;gap:6px}
 .mv-btn:hover{background:color-mix(in srgb,var(--mv-lift) 72%,transparent);color:var(--mv-text)}
 .mv-btn.on{background:color-mix(in srgb,var(--mv-accent) 26%,transparent);color:var(--mv-text)}
-.mv-btn.icon{padding:7px 8px}
+.mv-btn.icon{padding:7px 8px;flex:none}
+.mv-btn:focus-visible{outline:2px solid var(--mv-accent);outline-offset:1px}
 .mv-sep{width:1px;height:17px;background:var(--mv-line);margin:0 3px}
 .mv-menu{position:relative;display:inline-flex}
 .mv-menu-panel{position:absolute;top:calc(100% + 6px);right:0;min-width:206px;padding:4px;border-radius:11px;z-index:20;display:flex;flex-direction:column;gap:1px}
@@ -1178,6 +1347,7 @@ window.__ModuleLoader__.load({
 .mv-urlbar button:hover{border-color:var(--mv-accent)}
 .mv-layers{position:absolute;top:60px;right:10px;width:284px;max-height:calc(100% - 214px);display:flex;flex-direction:column;border-radius:13px;z-index:9;overflow:hidden}
 .mv-layers>header{display:flex;align-items:center;justify-content:space-between;padding:9px 11px;font-size:11px;letter-spacing:.06em;color:var(--mv-dim);border-bottom:.5px solid var(--mv-line)}
+.mv-layers>header .mv-icon-btn{width:22px;height:22px;font-size:12px}
 .mv-layer-list{overflow:auto;padding:4px}
 .mv-layer{display:flex;align-items:center;gap:2px;padding:5px 6px;border-radius:8px}
 .mv-layer:hover{background:color-mix(in srgb,var(--mv-lift) 64%,transparent)}
@@ -1210,6 +1380,7 @@ window.__ModuleLoader__.load({
 .mv-cta{appearance:none;border:.5px solid var(--mv-line);background:var(--mv-lift);color:var(--mv-text);font:inherit;font-size:12px;padding:8px 16px;border-radius:9px;cursor:pointer;transition:background .15s ease,border-color .15s ease}
 .mv-cta.primary{background:color-mix(in srgb,var(--mv-accent) 20%,transparent);border-color:color-mix(in srgb,var(--mv-accent) 45%,transparent)}
 .mv-cta:hover{border-color:var(--mv-accent);background:color-mix(in srgb,var(--mv-accent) 26%,transparent)}
+.mv-cta:focus-visible{outline:2px solid var(--mv-accent);outline-offset:1px}
 .mv-spinner{width:24px;height:24px;border-radius:50%;border:2px solid rgba(120,160,255,.22);border-top-color:var(--mv-accent);animation:mv-spin .9s linear infinite}
 @keyframes mv-spin{to{transform:rotate(360deg)}}
 .mv-modal{position:absolute;inset:0;z-index:30;display:flex;align-items:center;justify-content:center;background:var(--mv-scrim);padding:20px}
@@ -1219,6 +1390,7 @@ window.__ModuleLoader__.load({
 .mv-tab{appearance:none;border:0;background:transparent;color:var(--mv-dim);font:inherit;font-size:12px;padding:8px 12px;border-radius:8px 8px 0 0;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
 .mv-tab:hover{color:var(--mv-text)}
 .mv-tab.on{color:var(--mv-text);border-bottom-color:var(--mv-accent)}
+.mv-tab:focus-visible{outline:2px solid var(--mv-accent);outline-offset:1px}
 .mv-dialog .body{padding:12px 14px;overflow:auto;display:flex;flex-direction:column;gap:8px}
 .mv-note{margin:0 0 2px;color:var(--mv-dim);font-size:11px;line-height:1.65}
 .mv-src{display:flex;align-items:center;gap:8px;padding:8px 10px;border:.5px solid var(--mv-line);border-radius:9px;background:color-mix(in srgb,var(--mv-bg) 55%,transparent)}
@@ -1244,6 +1416,7 @@ window.__ModuleLoader__.load({
 .mv-seg{display:flex;gap:2px;padding:3px;border:.5px solid var(--mv-line);border-radius:9px;background:var(--mv-input)}
 .mv-seg button{appearance:none;border:0;background:transparent;color:var(--mv-dim);font:inherit;font-size:11.5px;padding:6px 12px;border-radius:6px;cursor:pointer;flex:1}
 .mv-seg button.on{background:color-mix(in srgb,var(--mv-accent) 22%,transparent);color:var(--mv-text)}
+.mv-seg button:focus-visible,.mv-icon-btn:focus-visible{outline:2px solid var(--mv-accent);outline-offset:1px}
 /* Docked inside the session right sidebar: fill the tab body, tighten chrome. */
 /* The host already draws the tab strip right above this body, so the floating
    toolbar keeps a visible gap instead of hugging it; the layer card follows the
@@ -1273,6 +1446,15 @@ window.__ModuleLoader__.load({
   .mv-root.mv-docked .mv-brand{display:none}
   .mv-root.mv-docked .mv-actions{justify-content:flex-end}
 }
+/* 320px-wide docks: drop the separators and extra padding so the action row
+   wraps cleanly instead of overflowing the pane. */
+@container (max-width: 420px){
+  .mv-root.mv-docked .mv-top{left:12px;right:12px;gap:6px}
+  .mv-root.mv-docked .mv-actions .mv-btn{padding:6px 7px}
+  .mv-root.mv-docked .mv-actions .mv-sep{display:none}
+  .mv-root.mv-docked .mv-actions .mv-btn.icon{padding:7px 6px}
+  .mv-root.mv-docked .mv-layers{top:92px;right:12px;width:min(284px,calc(100% - 24px))}
+}
 /* Snapshot mode: the picture is meant to be clean, so every overlay is hidden. */
 .mv-root.mv-capturing .mv-top,.mv-root.mv-capturing .mv-urlbar,.mv-root.mv-capturing .mv-layers,.mv-root.mv-capturing .mv-hud,.mv-root.mv-capturing .mv-attr,.mv-root.mv-capturing .mv-credits,.mv-root.mv-capturing .mv-pick,.mv-root.mv-capturing .mv-measure,.mv-root.mv-capturing .mv-toast,.mv-root.mv-capturing .mv-overlay,.mv-root.mv-capturing .mv-modal{visibility:hidden!important}
 .mv-about{display:flex;flex-direction:column;gap:12px;padding:2px 0;font-size:12px}
@@ -1288,6 +1470,15 @@ window.__ModuleLoader__.load({
 .mv-toggle .text b{font-size:12px;font-weight:600}
 .mv-toggle .text span{color:var(--mv-dim);font-size:10.5px;line-height:1.5}
 .mv-toggle input{appearance:auto;width:15px;height:15px;flex:none;margin:0;cursor:pointer}
+/* Local path authorisation dialog: narrower than the settings dialog, with
+   labelled path rows so the user sees exactly which folder is granted. */
+.mv-access{width:min(560px,94%)}
+.mv-access-path{display:flex;flex-direction:column;gap:6px;border:.5px solid var(--mv-line);border-radius:9px;padding:9px 11px;background:color-mix(in srgb,var(--mv-bg) 42%,transparent)}
+.mv-access-path .row{display:flex;gap:10px;align-items:baseline;min-width:0}
+.mv-access-path .key{flex:none;width:54px;font-size:10.5px;color:var(--mv-dim)}
+.mv-access-path code{flex:1;min-width:0;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:11px;line-height:1.55;color:var(--mv-text);word-break:break-all;user-select:text}
+.mv-access .mv-note b{color:var(--mv-text);font-weight:600}
+.mv-access .footer .right{margin-left:auto}
 .mv-health{width:min(680px,94%)}
 .mv-health-loading{display:flex;flex-direction:column;align-items:center;gap:12px;padding:18px 0}
 .mv-health-rows{display:flex;flex-direction:column;gap:5px}
@@ -1650,6 +1841,44 @@ window.__ModuleLoader__.load({
               })),
           }),
         ),
+        h(
+          'label',
+          { className: 'mv-toggle' },
+          h(
+            'span',
+            { className: 'text' },
+            h('b', null, t('settings.showLayers')),
+            h('span', null, t('settings.showLayersHint')),
+          ),
+          h('input', {
+            type: 'checkbox',
+            checked: draft.settings.showLayers !== false,
+            onChange: (event) =>
+              setDraft((current) => ({
+                ...current,
+                settings: { ...current.settings, showLayers: event.target.checked },
+              })),
+          }),
+        ),
+        h(
+          'label',
+          { className: 'mv-toggle' },
+          h(
+            'span',
+            { className: 'text' },
+            h('b', null, t('settings.showHud')),
+            h('span', null, t('settings.showHudHint')),
+          ),
+          h('input', {
+            type: 'checkbox',
+            checked: draft.settings.showHud !== false,
+            onChange: (event) =>
+              setDraft((current) => ({
+                ...current,
+                settings: { ...current.settings, showHud: event.target.checked },
+              })),
+          }),
+        ),
       )
 
       const homepage = meta?.homepage ?? FALLBACK_ABOUT.homepage
@@ -1886,6 +2115,83 @@ window.__ModuleLoader__.load({
     }
     //#endregion data health dialog
 
+    //#region local path authorisation -----------------------------------------
+
+    /**
+     * Modal shown by the internal `authorize` bridge command before the Host may
+     * read a local folder. It only presents the request and wires its buttons:
+     * the actual `/scan` registration runs in the surface handler, so the bridge
+     * ack is sent only after that request succeeded.
+     */
+    function PathAccessDialog({ request, busy, t, onAllow, onDeny }) {
+      const denyRef = React.useRef(null)
+      React.useEffect(() => {
+        denyRef.current?.focus?.()
+      }, [])
+      React.useEffect(() => {
+        const onKey = (event) => {
+          if (event.key !== 'Escape') return
+          event.preventDefault()
+          onDeny()
+        }
+        document.addEventListener('keydown', onKey)
+        return () => document.removeEventListener('keydown', onKey)
+      }, [onDeny])
+      const action =
+        request.request === 'load'
+          ? t('access.request.load')
+          : request.request === 'inspect'
+            ? t('access.request.inspect')
+            : t('access.request.generic')
+      const row = (key, value) =>
+        value
+          ? h('div', { key, className: 'row' }, h('span', { className: 'key' }, t(key)), h('code', { title: value }, value))
+          : null
+      return h(
+        'div',
+        { className: 'mv-modal', onPointerDown: (event) => event.target === event.currentTarget && !busy && onDeny() },
+        h(
+          'div',
+          { className: 'mv-dialog mv-access', role: 'dialog', 'aria-modal': true, 'aria-labelledby': 'mv-access-title' },
+          h(
+            'header',
+            null,
+            h('b', { id: 'mv-access-title' }, `${t('access.title')} · ${action}`),
+            h('button', { type: 'button', className: 'mv-icon-btn', onClick: onDeny, disabled: busy, title: t('btn.close') }, '✕'),
+          ),
+          h(
+            'div',
+            { className: 'body' },
+            h('p', { className: 'mv-note' }, t('access.body')),
+            h(
+              'div',
+              { className: 'mv-access-path' },
+              row('access.path', request.path),
+              row('access.dir', request.directory),
+              request.resolved ? row('access.target', request.target) : null,
+            ),
+            request.kind === 'missing' ? h('p', { className: 'mv-note' }, t('access.missing')) : null,
+            request.resolved ? h('p', { className: 'mv-note' }, t('access.resolved')) : null,
+          ),
+          h(
+            'div',
+            { className: 'footer' },
+            h(
+              'div',
+              { className: 'right' },
+              h('button', { ref: denyRef, type: 'button', className: 'mv-cta', onClick: onDeny, disabled: busy }, t('access.cancel')),
+              h(
+                'button',
+                { type: 'button', className: 'mv-cta primary', onClick: onAllow, disabled: busy },
+                busy ? t('access.allowing') : t('access.allow'),
+              ),
+            ),
+          ),
+        ),
+      )
+    }
+    //#endregion local path authorisation
+
     /** Immersive `main` panel: no Session, so the Agent bridge stays off. */
     function ViewerPanel(props) {
       return h(ViewerSurface, { t: props.t, sessionId: null, docked: false })
@@ -1924,6 +2230,7 @@ window.__ModuleLoader__.load({
       const captureReadoutRef = React.useRef(null)
       const commandChainRef = React.useRef(Promise.resolve())
       const commandRef = React.useRef(null)
+      const accessRef = React.useRef(null)
       // Resolves when the Cesium viewer is fully ready. The bridge connects before
       // that (right after meta arrives) so a cold panel mount does not eat the
       // Host's attach grace; commands wait on this gate instead.
@@ -1953,7 +2260,8 @@ window.__ModuleLoader__.load({
       const [toast, setToast] = React.useState('')
       const [openMenu, setOpenMenu] = React.useState(null)
       const [recentDirs, setRecentDirs] = React.useState([])
-      const [layersOpen, setLayersOpen] = React.useState(true)
+      const [accessRequest, setAccessRequest] = React.useState(null)
+      const [accessBusy, setAccessBusy] = React.useState(false)
       const [settingsOpen, setSettingsOpen] = React.useState(false)
       const [health, setHealth] = React.useState(null)
       const [terrainBusy, setTerrainBusy] = React.useState(false)
@@ -1965,6 +2273,10 @@ window.__ModuleLoader__.load({
 
       const themeMode = sources?.settings?.theme ?? 'auto'
       const resolvedDark = themeMode === 'auto' ? environmentDark : themeMode === 'dark'
+      // Chrome visibility is persisted through `settings`: an older Host config may
+      // not have written these keys yet, so a missing value means "visible".
+      const showLayers = sources?.settings?.showLayers !== false
+      const showHud = sources?.settings?.showHud !== false
       const activeImageryId = sources?.settings?.imagery ?? null
       const activeTerrainId = sources?.settings?.terrain ?? null
       const activeImagery = sources?.imagery?.find((source) => source.id === activeImageryId) ?? null
@@ -2066,6 +2378,71 @@ window.__ModuleLoader__.load({
         commitSources({ ...current, settings: { ...current.settings, ...patch } }, notify)
       }
 
+      /**
+       * Map the frozen Host `authorize` args onto what the dialog renders. The Host
+       * resolves the target before asking, so `directory` and `target` are normally
+       * present; the fallbacks keep older/partial payloads working.
+       */
+      const normalizeAccessRequest = (args = {}) => {
+        const rawPath = typeof args.path === 'string' ? args.path.trim() : ''
+        const rawTarget = typeof args.target === 'string' ? args.target.trim() : ''
+        const target = rawTarget || rawPath
+        const explicitDir = typeof args.directory === 'string' ? args.directory.trim() : ''
+        const normalized = target.replace(/\\/g, '/')
+        const index = normalized.lastIndexOf('/')
+        return {
+          request: typeof args.request === 'string' ? args.request : 'load',
+          path: rawPath,
+          target,
+          directory: explicitDir || (index > 0 ? target.slice(0, index) : ''),
+          kind: typeof args.kind === 'string' ? args.kind : 'file',
+          resolved: args.resolved === true || (rawTarget !== '' && rawTarget !== rawPath),
+        }
+      }
+
+      /**
+       * Settle the open authorisation dialog exactly once. A late settle (e.g. the
+       * cleanup timer firing after the Host already timed out) is ignored.
+       */
+      const settleAccess = (outcome) => {
+        const current = accessRef.current
+        if (!current) return
+        accessRef.current = null
+        clearTimeout(current.timer)
+        setAccessRequest(null)
+        setAccessBusy(false)
+        current.resolve(outcome)
+      }
+
+      /**
+       * Open the dialog and wait for the user. The 32 s cleanup timer unblocks this
+       * panel's serialised command chain after the Host's own 30 s deadline; the
+       * late ack is ignored by the Host and never retried.
+       */
+      const askPathAccess = (request) =>
+        new Promise((resolve) => {
+          if (accessRef.current) settleAccess({ allowed: false, message: t('access.denied') })
+          const timer = setTimeout(() => settleAccess({ allowed: false, message: t('access.denied') }), ACCESS_TIMEOUT_MS)
+          accessRef.current = { resolve, timer }
+          setAccessBusy(false)
+          setAccessRequest(request)
+        })
+
+      /** Allow: register the folder via /scan first; only then does the bridge ack. */
+      const allowPathAccess = async () => {
+        const request = accessRequest
+        if (!request || accessBusy || !accessRef.current) return
+        setAccessBusy(true)
+        try {
+          await scanLocalDirectory(metaRef.current, request.directory)
+          settleAccess({ allowed: true, directory: request.directory })
+        } catch (error) {
+          const detail = message(error)
+          settleAccess({ allowed: false, message: t('access.scanFailed', { message: detail }) })
+          showToast(t('access.scanFailed', { message: detail }))
+        }
+      }
+
       const pickSurface = (position) => {
         const viewer = viewerRef.current
         if (!viewer) return null
@@ -2101,13 +2478,10 @@ window.__ModuleLoader__.load({
         if (index <= 0) throw new Error(t('toast.invalidPath'))
         const dir = normalized.slice(0, index)
         const rel = normalized.slice(index + 1)
-        // The host only serves tile files from directories opened through /scan;
-        // the Agent path is validated by the Host bridge before it reaches us.
-        const response = await fetch(
-          `${meta.scanUrl}?token=${encodeURIComponent(meta.token)}&dir=${encodeURIComponent(dir)}`,
-          { credentials: 'same-origin', headers: { 'x-dsh-panel': '1' } },
-        )
-        if (!response.ok) throw new Error(`HTTP ${response.status}`)
+        // The host only serves tile files from directories registered through /scan;
+        // the Agent path was validated and authorised by the Host bridge beforehand,
+        // so this call normally confirms an already-registered folder.
+        await scanLocalDirectory(meta, dir)
         return `${meta.tilesBase}${encodeURIComponent(b64url(dir))}/${encodeURIComponent(rel)}`
       }
 
@@ -3152,7 +3526,7 @@ window.__ModuleLoader__.load({
             Math.round(viewer.canvas.clientWidth / 2),
             Math.round(viewer.canvas.clientHeight / 2),
           )
-          const carto = sampleCursor(viewer, Cesium, center)
+          const carto = sampleCursor(viewer, Cesium, center, { pickPosition: true })
           if (carto) pointerText = formatCursor(Cesium, carto)
         }
         const visibleCount = layersRef.current.filter((layer) => layer.visible).length
@@ -3545,6 +3919,17 @@ window.__ModuleLoader__.load({
           return layer
         }
 
+        // Internal bridge action (not part of the earth_scene tool schema): the Host
+        // resolved a local path but the whitelist rejected it, so ask the user in
+        // the panel. Allow only after /scan registered the folder; the Host then
+        // re-validates and sends the real `load` with the resolved target path.
+        if (action === 'authorize') {
+          const request = normalizeAccessRequest(args)
+          if (!request.directory) throw new Error(`access_denied: ${t('access.badPath')}`)
+          const decision = await askPathAccess(request)
+          if (!decision.allowed) throw new Error(`access_denied: ${decision.message || t('access.denied')}`)
+          return { authorized: true, directory: decision.directory }
+        }
         if (action === 'status') return collectSceneStatus()
         if (action === 'capture') {
           const saved = await captureScene(
@@ -3599,7 +3984,12 @@ window.__ModuleLoader__.load({
             ? { kind: 'local', path: rawPath }
             : { kind: 'remote', url: rawPath || url }
           const layer = await loadTileset(url, label, source)
-          return { loaded: true, layer: { id: layer.id, name: layer.name, url: redactUrl(layer.url) } }
+          return {
+            loaded: true,
+            layer: { id: layer.id, name: layer.name, url: redactUrl(layer.url) },
+            view: (await collectSceneStatus()).view,
+            layers_count: layersRef.current.length,
+          }
         }
         if (action === 'remove') {
           const layer = requireLayer()
@@ -3760,7 +4150,10 @@ window.__ModuleLoader__.load({
           commandChainRef.current = commandChainRef.current
             .then(async () => {
               try {
-                await waitForPanelReady()
+                // The authorisation dialog only needs meta + DOM: answer it while
+                // Cesium is still booting so the Host's 30 s deadline is not spent
+                // waiting for the engine.
+                if (payload.action !== 'authorize') await waitForPanelReady()
                 const result = await commandRef.current(payload.action, payload.args ?? {}, bridgeSession)
                 await ack({ session: bridgeSession, id: payload.id, ok: true, result })
               } catch (error) {
@@ -3809,6 +4202,19 @@ window.__ModuleLoader__.load({
           }
         }
       }, [sessionId, meta, bridgeEpoch])
+
+      // A panel that goes away must not leave a pending authorisation promise or
+      // its cleanup timer behind: settle it as denied so the command chain ends.
+      React.useEffect(
+        () => () => {
+          const current = accessRef.current
+          if (!current) return
+          accessRef.current = null
+          clearTimeout(current.timer)
+          current.resolve({ allowed: false, message: t('access.denied') })
+        },
+        [],
+      )
 
       React.useEffect(() => {
         let cancelled = false
@@ -4009,11 +4415,24 @@ window.__ModuleLoader__.load({
         viewer.scene.requestRender?.()
       }, [phase, resolvedDark])
 
-      const button = (label, onClick, active, extra) =>
+      const button = (label, onClick, active, extra, title) =>
         h(
           'button',
-          { type: 'button', className: `mv-btn${active ? ' on' : ''}${extra ? ` ${extra}` : ''}`, onClick },
+          { type: 'button', className: `mv-btn${active ? ' on' : ''}${extra ? ` ${extra}` : ''}`, onClick, title },
           label,
+        )
+      const iconButton = (icon, title, onClick, active) =>
+        h(
+          'button',
+          {
+            type: 'button',
+            className: `mv-btn icon${active ? ' on' : ''}`,
+            title,
+            'aria-label': title,
+            'aria-pressed': active === undefined ? undefined : active,
+            onClick,
+          },
+          icon,
         )
       const menu = (id, label, items, active) =>
         h(
@@ -4168,10 +4587,24 @@ window.__ModuleLoader__.load({
               tool !== null,
             ),
             h('i', { key: 's2', className: 'mv-sep' }),
-            button(`${t('btn.layers')}${layers.length ? ` ${layers.length}` : ''}`, () => setLayersOpen((value) => !value), layersOpen && layers.length > 0),
+            button(
+              `${t('btn.layers')}${layers.length ? ` ${layers.length}` : ''}`,
+              () => updateSettings({ showLayers: !showLayers }),
+              showLayers && layers.length > 0,
+              undefined,
+              showLayers ? t('btn.layersHide') : t('btn.layersShow'),
+            ),
+            iconButton(
+              h(HudIcon),
+              showHud ? t('btn.hudHide') : t('btn.hudShow'),
+              () => updateSettings({ showHud: !showHud }),
+              showHud,
+            ),
             button(t('btn.screenshot'), screenshot),
             button(t('btn.reset'), resetView),
-            docked ? button(t('btn.immersive'), togglePaneFullscreen) : button(t('btn.beside'), openBeside),
+            docked
+              ? iconButton(h(FullscreenIcon), t('btn.immersiveTitle'), togglePaneFullscreen)
+              : button(t('btn.beside'), openBeside),
             h('i', { key: 's3', className: 'mv-sep' }),
             h(
               'div',
@@ -4246,7 +4679,7 @@ window.__ModuleLoader__.load({
               h('button', { type: 'button', onClick: submitUrl }, t('urlbar.submit')),
             )
           : null,
-        layersOpen && layers.length > 0
+        showLayers && layers.length > 0
           ? h(
               'div',
               { key: 'layers', className: 'mv-layers mv-glass' },
@@ -4254,6 +4687,17 @@ window.__ModuleLoader__.load({
                 'header',
                 null,
                 h('span', null, `${t('layers.title')} · ${layers.length}`),
+                h(
+                  'button',
+                  {
+                    type: 'button',
+                    className: 'mv-icon-btn',
+                    title: t('layers.collapse'),
+                    'aria-label': t('layers.collapse'),
+                    onClick: () => updateSettings({ showLayers: false }),
+                  },
+                  h(CollapseIcon),
+                ),
               ),
               h(
                 'div',
@@ -4345,7 +4789,7 @@ window.__ModuleLoader__.load({
               ),
             )
           : null,
-        stats
+        stats && showHud
           ? h(StatusHud, { key: 'hud', fps, stats, viewerRef, cesiumRef, labels: hudLabels, readoutRef: captureReadoutRef })
           : null,
         measureInfo ? h('div', { key: 'measure', className: 'mv-measure mv-glass' }, measureInfo.text) : null,
@@ -4445,6 +4889,16 @@ window.__ModuleLoader__.load({
               onPickLocal: pickLocalTiles,
               onSave: saveSources,
               onClose: () => setSettingsOpen(false),
+            })
+          : null,
+        accessRequest
+          ? h(PathAccessDialog, {
+              key: 'access',
+              request: accessRequest,
+              busy: accessBusy,
+              t,
+              onAllow: allowPathAccess,
+              onDeny: () => settleAccess({ allowed: false, message: t('access.denied') }),
             })
           : null,
         imageryBusy || terrainBusy

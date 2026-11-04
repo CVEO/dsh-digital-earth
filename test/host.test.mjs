@@ -7,9 +7,15 @@
  *   - 面板比工具调用晚到几毫秒时，调用会等它挂接而不是立刻失败；
  *   - 面板始终不出现时，等待结束即按 PANEL_CLOSED 拒绝；
  *   - 命令只写到该会话最新的连接，ack 能解决挂起的 promise；
+ *   - 本地路径未授权时先请面板授权（authorize 帧）：允许后继续 load，
+ *     拒绝为 access_denied，不回答为 access_timeout，不可解析则快速
+ *     path_not_found 且不发 authorize；
  *   - 目录合并只做纯数据变换（去重、最新在前、截断、不改入参）。
  */
 import { EventEmitter } from 'node:events'
+import { mkdtemp, realpath, rm, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join, resolve } from 'node:path'
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { apply, createBridge, inject, mergeRecentDirectories } from '../index.js'
@@ -40,6 +46,27 @@ function commandPayload(connection) {
   assert.equal(frames.length, 1, '最新连接应恰好收到一帧 event: command')
   const line = frames[0].split('\n').find((part) => part.startsWith('data: '))
   return JSON.parse(line.slice('data: '.length))
+}
+
+const eventFrames = (connection, event) =>
+  connection.frames.filter((frame) => frame.startsWith(`event: ${event}`))
+
+/** 读取连接上第 index 帧 event: <event> 的 JSON payload。 */
+function eventPayload(connection, event, index = 0) {
+  const frames = eventFrames(connection, event)
+  assert.ok(frames.length > index, `缺少第 ${index + 1} 帧 event: ${event}`)
+  const line = frames[index].split('\n').find((part) => part.startsWith('data: '))
+  return JSON.parse(line.slice('data: '.length))
+}
+
+/** 等至少 count 帧 event: <event> 写出：授权与后续 load 是两步异步往返。 */
+async function waitForEvents(connection, event, count = 1) {
+  const deadline = Date.now() + 2000
+  while (Date.now() < deadline) {
+    if (eventFrames(connection, event).length >= count) return
+    await new Promise((resolveDelay) => setTimeout(resolveDelay, 5))
+  }
+  assert.fail(`等待 ${count} 帧 event: ${event} 超时`)
 }
 
 test('宿主入口仍导出 inject/apply，且 createBridge 是测试缝', () => {
@@ -101,16 +128,112 @@ test('挂接后 run 只向最新连接写一帧 command，settle 解决 promise'
   bridge.dispose()
 })
 
-test('run 的本地路径门禁仍在等待面板之前拒绝', async () => {
-  // 等待 5 秒的 grace，但路径门禁必须先拒绝，不能为了等面板而放行。
-  const bridge = createBridge(new Set(['D:/allowed']), { attachGraceMs: 5000 })
-  const started = Date.now()
-  await assert.rejects(
-    bridge.run('session-e', 'load', { path: 'D:/secret/tileset.json' }, 1000),
-    /opened in the Digital Earth panel/,
-  )
-  assert.ok(Date.now() - started < 500, '门禁拒绝不应经过 attach 等待')
-  bridge.dispose()
+test('run 的本地路径未授权时按 authorize 协议：允许/拒绝/超时/不可解析', async () => {
+  const fixtureRoot = await mkdtemp(join(tmpdir(), 'dsh-earth-auth-'))
+  const fixtureFile = join(fixtureRoot, 'tileset.json')
+  await writeFile(fixtureFile, '{}')
+  // realpath 消除临时目录大小写/短名差异，授权与加载用同一份路径。
+  const allowedFolder = await realpath(fixtureRoot)
+  const allowedTileset = join(allowedFolder, 'tileset.json')
+
+  try {
+    // 0) 已在 allowlist 内的路径：直接发 load，不弹授权。
+    {
+      const bridge = createBridge(new Set([allowedFolder]), { attachGraceMs: 1000 })
+      const panel = openConnection()
+      bridge.attach('session-auth-allowed', panel.req, panel.res)
+      const running = bridge.run('session-auth-allowed', 'load', { path: allowedTileset }, 1000)
+      await waitForEvents(panel, 'command', 1)
+      assert.equal(eventPayload(panel, 'command').action, 'load')
+      assert.equal(eventFrames(panel, 'command').length, 1, '已授权路径不应出现 authorize 帧')
+      const load = eventPayload(panel, 'command')
+      assert.equal(bridge.settle('session-auth-allowed', load.id, { ok: true, result: { ok: true, layers: [{ name: 'a' }] } }), true)
+      assert.deepEqual(await running, { ok: true, layers: [{ name: 'a' }], layers_count: 1 })
+      bridge.dispose()
+    }
+
+    // 1) 未授权但可解析：先发 authorize 帧；面板允许（回执 ok + 目录入 allowlist）后继续 load。
+    {
+      const allowedDirs = new Set()
+      const bridge = createBridge(allowedDirs, { attachGraceMs: 1000, authorizeTimeoutMs: 2000 })
+      const panel = openConnection()
+      bridge.attach('session-auth-allow', panel.req, panel.res)
+      const running = bridge.run('session-auth-allow', 'load', { path: allowedTileset }, 1000)
+      await waitForEvents(panel, 'command', 1)
+      const authorize = eventPayload(panel, 'command')
+      assert.equal(authorize.action, 'authorize')
+      assert.equal(authorize.args.request, 'load')
+      assert.equal(authorize.args.path, resolve(allowedTileset))
+      assert.equal(authorize.args.target, allowedTileset)
+      assert.equal(authorize.args.directory, allowedFolder)
+      assert.equal(authorize.args.kind, 'file')
+      assert.equal(authorize.args.resolved, false)
+      assert.equal(eventFrames(panel, 'command').length, 1, '授权前不应先发 load')
+
+      allowedDirs.add(allowedFolder)
+      assert.equal(bridge.settle('session-auth-allow', authorize.id, { ok: true, result: { allowed: true } }), true)
+      await waitForEvents(panel, 'command', 2)
+      const load = eventPayload(panel, 'command', 1)
+      assert.equal(load.action, 'load')
+      assert.equal(load.args.path, allowedTileset)
+      assert.equal(bridge.settle('session-auth-allow', load.id, { ok: true, result: { ok: true, layers: [{ name: 'b' }] } }), true)
+      assert.deepEqual(await running, { ok: true, layers: [{ name: 'b' }], layers_count: 1 })
+      bridge.dispose()
+    }
+
+    // 2) 拒绝授权：access_denied，且不再发 load、不重试。
+    {
+      const bridge = createBridge(new Set(), { attachGraceMs: 1000, authorizeTimeoutMs: 2000 })
+      const panel = openConnection()
+      bridge.attach('session-auth-deny', panel.req, panel.res)
+      const running = bridge.run('session-auth-deny', 'load', { path: allowedTileset }, 1000)
+      await waitForEvents(panel, 'command', 1)
+      const authorize = eventPayload(panel, 'command')
+      assert.equal(authorize.action, 'authorize')
+      assert.equal(bridge.settle('session-auth-deny', authorize.id, { ok: false, error: 'the user denied' }), true)
+      await assert.rejects(running, /\[access_denied\]/)
+      assert.equal(eventFrames(panel, 'command').length, 1, '拒绝后不得再发 load 或重试授权')
+      bridge.dispose()
+    }
+
+    // 3) 一直不回答授权框：独立于场景超时的 access_timeout。
+    {
+      const bridge = createBridge(new Set(), { attachGraceMs: 1000, authorizeTimeoutMs: 80 })
+      const panel = openConnection()
+      bridge.attach('session-auth-timeout', panel.req, panel.res)
+      const started = Date.now()
+      const running = bridge.run('session-auth-timeout', 'load', { path: allowedTileset }, 1000)
+      await waitForEvents(panel, 'command', 1)
+      assert.equal(eventPayload(panel, 'command').action, 'authorize')
+      // 计时的授权 deadline 是 unref 的；测试里自己保持事件循环存活，否则
+      // node --test 会在计时器到点前判定「promise 仍挂起但事件循环已空」。
+      const keepAlive = setInterval(() => {}, 10)
+      try {
+        await assert.rejects(running, /\[access_timeout\]/)
+      } finally {
+        clearInterval(keepAlive)
+      }
+      assert.ok(Date.now() - started < 2000, '授权超时不应等待场景命令的 1s 时效')
+      bridge.dispose()
+    }
+
+    // 4) 不可解析的路径：快速 path_not_found，不发 authorize，也不进入 attach 等待。
+    {
+      const bridge = createBridge(new Set(), { attachGraceMs: 5000 })
+      const panel = openConnection()
+      bridge.attach('session-auth-missing', panel.req, panel.res)
+      const started = Date.now()
+      await assert.rejects(
+        bridge.run('session-auth-missing', 'load', { path: 'D:/secret/tileset.json' }, 1000),
+        /\[path_not_found\]/,
+      )
+      assert.ok(Date.now() - started < 1000, '路径不存在不应经过 5s 的 attach 等待')
+      assert.equal(eventFrames(panel, 'command').length, 0, '不可解析路径不得发 authorize 或 command 帧')
+      bridge.dispose()
+    }
+  } finally {
+    await rm(fixtureRoot, { recursive: true, force: true })
+  }
 })
 
 test('mergeRecentDirectories 去重、最新在前、截断，且不修改入参', () => {

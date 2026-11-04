@@ -11,7 +11,7 @@
 import { randomBytes } from 'node:crypto'
 import { createReadStream, readFileSync, promises as fs } from 'node:fs'
 import { homedir } from 'node:os'
-import { basename, dirname, extname, isAbsolute, join, parse, resolve, sep } from 'node:path'
+import { basename, dirname, extname, isAbsolute, join, parse, relative, resolve, sep } from 'node:path'
 import { Readable } from 'node:stream'
 import { fileURLToPath } from 'node:url'
 
@@ -165,7 +165,7 @@ const DEFAULT_SOURCES = {
       credit: 'Esri, CGIAR, USGS',
     },
   ],
-  settings: { theme: 'auto', imagery: 'esri-world-imagery', terrain: null, screenshotHud: false },
+  settings: { theme: 'auto', imagery: 'esri-world-imagery', terrain: null, screenshotHud: false, showLayers: true, showHud: true },
 }
 
 const MIME = {
@@ -353,9 +353,13 @@ function withBuiltins(list, builtins, limit) {
 }
 
 /** Turn arbitrary request JSON into the catalog persisted on disk. */
-function normalizeConfig(raw) {
+export function normalizeConfig(raw) {
   const input = raw !== null && typeof raw === 'object' ? raw : {}
   const theme = THEME_MODES.has(input.settings?.theme) ? input.settings.theme : 'auto'
+  // The layer list and HUD default to visible; only an explicit false hides
+  // them, so catalogs written by older versions keep both controls visible.
+  const showLayers = input.settings?.showLayers !== false
+  const showHud = input.settings?.showHud !== false
   const imagery = withBuiltins(
     normalizeSourceList('imagery', input.imagery, DEFAULT_SOURCES.imagery),
     DEFAULT_SOURCES.imagery,
@@ -378,6 +382,8 @@ function normalizeConfig(raw) {
       imagery: selection(input.settings?.imagery, imagery, DEFAULT_SOURCES.settings.imagery),
       terrain: selection(input.settings?.terrain, terrain, DEFAULT_SOURCES.settings.terrain),
       screenshotHud: input.settings?.screenshotHud === true,
+      showLayers,
+      showHud,
     },
   }
 }
@@ -567,10 +573,6 @@ function isFilesystemRoot(value) {
   return parse(resolved).root === resolved
 }
 
-const LOCAL_DIR_NOT_OPENED_MESSAGE = `This local directory has not been opened in the Digital Earth panel yet. Ask the user to pick it once via the panel's Data → Open local folder, then retry.`
-
-const LOCAL_PATH_NOT_ABSOLUTE_MESSAGE = 'earth_scene load "path" must be an absolute file path inside a folder the user opened in the Digital Earth panel.'
-
 const IS_WINDOWS = process.platform === 'win32'
 
 /** Comparison key: resolved, and case-folded on Windows where paths are case-insensitive. */
@@ -586,22 +588,234 @@ function isWithinDirectory(target, root) {
   return targetKey.startsWith(rootKey.endsWith(sep) ? rootKey : `${rootKey}${sep}`)
 }
 
-/**
- * A local `load` may only read below a directory the user opened in the panel.
- * The `/scan` endpoint is a UI registration endpoint, not an authorisation for
- * the agent: the *containing directory* of the tileset must already be in the
- * allowlist, so an agent cannot widen access by pointing `/scan` at a folder of
- * its own choosing. Returns an actionable message, or `null` when allowed.
- */
-function loadPathDenial(action, args, allowedDirs) {
-  if (action !== 'load' || typeof args?.path !== 'string') return null
-  const raw = args.path
-  if (raw.trim() === '' || !isAbsolute(raw)) return LOCAL_PATH_NOT_ABSOLUTE_MESSAGE
-  const directory = dirname(resolve(raw))
-  for (const allowed of allowedDirs) {
-    if (isWithinDirectory(directory, allowed)) return null
+// ---------------------------------------------------------------------------
+// Local tileset resolution (v1.4.0). A tool call may point at a folder, at a
+// file that has moved, or at a path below a folder the user has not opened yet.
+// Resolution reads filesystem metadata only (never file contents) inside a
+// bounded search; when the resolved file is outside the allowlist the bridge
+// asks the panel for one-time permission.
+// ---------------------------------------------------------------------------
+
+/** The panel dialog timeout is independent from SCENE_TIMEOUT_MS. */
+const LOCAL_ACCESS_TIMEOUT_MS = 30000
+const LOCAL_SEARCH_DEPTH = 3
+const LOCAL_SEARCH_ITEMS = 200
+const LOCAL_ANCESTOR_HOPS = 2
+const LOCAL_CANDIDATE_LIMIT = 10
+
+/** A local path failure with a stable code and one actionable next step. */
+class LocalPathError extends Error {
+  constructor(code, summary, next) {
+    super(`[${code}] ${summary} next: ${next}`)
+    this.name = 'LocalPathError'
+    this.code = code
   }
-  return LOCAL_DIR_NOT_OPENED_MESSAGE
+}
+
+const localPathError = (code, summary, next) => new LocalPathError(code, summary, next)
+
+/** Strip chat-copy noise (line breaks, wrapping quotes) without guessing. */
+function normalizeLocalInput(value) {
+  if (typeof value !== 'string') return ''
+  let text = value.replace(/[\r\n]+/g, ' ').trim()
+  for (;;) {
+    if (text.length < 2) break
+    const quote = text[0]
+    if ((quote !== '"' && quote !== "'") || text[text.length - 1] !== quote) break
+    text = text.slice(1, -1).trim()
+  }
+  return text
+}
+
+/** Bounded BFS: at most LOCAL_SEARCH_ITEMS entries and LOCAL_SEARCH_DEPTH levels. */
+async function searchLocalTilesets(base) {
+  const found = []
+  let visited = 0
+  let truncated = false
+  const queue = [{ directory: base, depth: 0 }]
+  while (queue.length > 0 && !truncated) {
+    const { directory, depth } = queue.shift()
+    let entries
+    try {
+      entries = await fs.readdir(directory, { withFileTypes: true })
+    } catch {
+      continue
+    }
+    entries.sort((left, right) => left.name.localeCompare(right.name))
+    for (const entry of entries) {
+      if (visited >= LOCAL_SEARCH_ITEMS) {
+        truncated = true
+        break
+      }
+      visited += 1
+      if (entry.isDirectory()) {
+        if (depth < LOCAL_SEARCH_DEPTH) queue.push({ directory: join(directory, entry.name), depth: depth + 1 })
+      } else if (entry.isFile() && entry.name.toLowerCase() === 'tileset.json') {
+        found.push(join(directory, entry.name))
+      }
+    }
+  }
+  return { found, visited, truncated }
+}
+
+/** Resolve and keep only files whose real path stays inside the searched folder. */
+async function insideFolder(files, base) {
+  const inside = []
+  for (const file of files) {
+    const real = await realPathOr(file)
+    if (isWithinDirectory(real, base)) inside.push(real)
+  }
+  return inside
+}
+
+function ambiguousLocalPath(base, files) {
+  const shown = files.slice(0, LOCAL_CANDIDATE_LIMIT).map((file) => relative(base, file).split(sep).join('/'))
+  const more = files.length > shown.length ? `, and ${files.length - shown.length} more` : ''
+  return localPathError(
+    'ambiguous_local_path',
+    `found ${files.length} tileset.json files under "${base}": ${shown.join(', ')}${more}.`,
+    'call again with the exact path of the tileset.json you want.',
+  )
+}
+
+/** A real search base must never be a drive/share root reached through a junction. */
+function assertSearchBase(base, requested) {
+  if (isUncPath(base) || isFilesystemRoot(base)) {
+    throw localPathError(
+      'invalid_local_path',
+      `"${requested}" resolves to a filesystem or share root.`,
+      'pass a folder below a root, not the root itself.',
+    )
+  }
+}
+
+/**
+ * Resolve a model-supplied local path to one concrete tileset.json.
+ *
+ * - an existing file is used as-is;
+ * - an existing folder is searched (depth <= 3, <= 200 entries) for the unique
+ *   tileset.json below it;
+ * - a missing path climbs at most two parent folders and searches the nearest
+ *   existing one, so a renamed/moved folder still heals in one call;
+ * - roots and UNC paths are refused, and every returned real path is re-checked
+ *   against the folder that was searched (symlink escapes are dropped);
+ * - when `allowedDirs` is given, the final file must also stay inside one of
+ *   them, otherwise the call fails with access_denied.
+ *
+ * Test seam: exported for unit tests; also used by earth_scene load/inspect.
+ */
+export async function resolveLocalTileset(rawPath, allowedDirs = null) {
+  const requested = normalizeLocalInput(rawPath)
+  if (requested === '') {
+    throw localPathError('invalid_local_path', 'the local path is empty.', 'pass an absolute path to a tileset.json.')
+  }
+  if (!isAbsolute(requested)) {
+    throw localPathError('invalid_local_path', `"${requested}" is not an absolute path.`, 'pass an absolute path, not a relative one.')
+  }
+  const resolved = resolve(requested)
+  if (isUncPath(resolved)) {
+    throw localPathError('invalid_local_path', 'UNC network paths are not supported.', 'copy the data to a local drive and pass that path.')
+  }
+  if (isFilesystemRoot(resolved)) {
+    throw localPathError('invalid_local_path', `"${resolved}" is a filesystem or share root.`, 'pass a folder below a root, not the root itself.')
+  }
+  let stat = null
+  try {
+    stat = await fs.stat(resolved)
+  } catch {
+    stat = null
+  }
+  let kind = 'missing'
+  let base = null
+  let target = null
+  let files = []
+  let truncated = false
+  if (stat !== null && stat.isFile()) {
+    kind = 'file'
+    target = await realPathOr(resolved)
+  } else if (stat !== null && stat.isDirectory()) {
+    kind = 'directory'
+    base = await realPathOr(resolved)
+    assertSearchBase(base, resolved)
+    const searched = await searchLocalTilesets(base)
+    files = await insideFolder(searched.found, base)
+    truncated = searched.truncated
+  } else {
+    // A missing path heals only when a parent within two levels exists; the
+    // search never climbs to a drive/share root.
+    let ancestor = null
+    let candidate = dirname(resolved)
+    for (let hop = 0; hop < LOCAL_ANCESTOR_HOPS && candidate !== '' && candidate !== null; hop += 1) {
+      if (isUncPath(candidate) || isFilesystemRoot(candidate)) break
+      let ancestorStat = null
+      try {
+        ancestorStat = await fs.stat(candidate)
+      } catch {
+        ancestorStat = null
+      }
+      if (ancestorStat !== null && ancestorStat.isDirectory()) {
+        ancestor = candidate
+        break
+      }
+      const parent = dirname(candidate)
+      if (parent === candidate) break
+      candidate = parent
+    }
+    if (ancestor === null) {
+      throw localPathError(
+        'path_not_found',
+        `"${resolved}" does not exist and no existing parent folder was found within ${LOCAL_ANCESTOR_HOPS} levels.`,
+        'check the path, then retry.',
+      )
+    }
+    base = await realPathOr(ancestor)
+    assertSearchBase(base, resolved)
+    const searched = await searchLocalTilesets(base)
+    files = await insideFolder(searched.found, base)
+    truncated = searched.truncated
+  }
+  if (target !== null && (isUncPath(target) || isFilesystemRoot(target))) {
+    throw localPathError('invalid_local_path', `"${resolved}" resolves to an unsupported network path.`, 'copy the data to a local drive and pass that path.')
+  }
+  if (target === null) {
+    if (files.length === 0) {
+      const limit = truncated ? ` (the search stopped at ${LOCAL_SEARCH_ITEMS} entries)` : ''
+      const summary = kind === 'missing'
+        ? `"${resolved}" does not exist and no tileset.json was found below its nearest existing parent "${base}"`
+        : `no tileset.json was found below "${base}"`
+      throw localPathError('no_tileset_found', `${summary}${limit}.`, 'pass the exact tileset.json path, or a folder that contains one.')
+    }
+    if (files.length > 1) throw ambiguousLocalPath(base, files)
+    target = files[0]
+  }
+  const resolution = {
+    requested: resolved,
+    path: target,
+    directory: dirname(target),
+    kind,
+  }
+  // Only a healed path needs to be reported; a direct file is already what the
+  // caller asked for (even when realpath normalises its case).
+  if (kind !== 'file' && target !== resolved) resolution.resolvedFrom = resolved
+  if (allowedDirs !== null && allowedDirs !== undefined && !isLocalResolutionAllowed(resolution, allowedDirs)) {
+    throw localPathError(
+      'access_denied',
+      `the folder for "${resolved}" has not been opened in the Digital Earth panel.`,
+      'ask the user to allow it in the panel; do not retry until they do.',
+    )
+  }
+  return resolution
+}
+
+/** True when the resolved real file is inside one of the user-opened folders. */
+export function isLocalResolutionAllowed(resolution, allowedDirs) {
+  if (resolution === null || typeof resolution?.path !== 'string' || resolution.path === '') return false
+  const folders = allowedDirs instanceof Set ? [...allowedDirs] : Array.isArray(allowedDirs) ? allowedDirs : []
+  for (const folder of folders) {
+    if (typeof folder !== 'string' || folder === '') continue
+    if (isWithinDirectory(resolution.path, folder)) return true
+  }
+  return false
 }
 
 // ---------------------------------------------------------------------------
@@ -1644,11 +1858,11 @@ const SCENE_PARAMETERS = {
     },
     url: {
       type: 'string',
-      description: 'load: absolute http(s) URL of a tileset.json; exactly one of url or path. inspect: absolute http(s) tileset.json URL to analyze; it works while the panel is closed.',
+      description: 'load: absolute http(s) URL of a tileset.json; exactly one of url or path. inspect: absolute http(s) tileset.json URL to analyze.',
     },
     path: {
       type: 'string',
-      description: 'load: absolute path of a tileset.json inside a folder the user opened in the panel; exactly one of url or path. inspect: absolute local tileset.json path to analyze; its containing folder must be one the user opened in the panel.',
+      description: 'load: absolute local path; a tileset.json file, or a folder/moved path that resolves to the unique tileset.json below it. A new folder needs one user confirmation in the panel. inspect: the same local path; an already allowed file works while the panel is closed.',
     },
     layer: {
       type: 'string',
@@ -1682,23 +1896,22 @@ const SCENE_PARAMETERS = {
 }
 
 const SCENE_DESCRIPTION = [
-  'Read, change or health-check the interactive digital earth panel (CesiumJS) open in this conversation: 3D Tiles and Gaussian splat layers, imagery basemap, terrain and camera.',
-  'The panel opens automatically when a tool call needs it and the call waits briefly for it. If it still did not attach, ask the user to open the digital earth tab with the globe button in the chat header, then retry. inspect with path or url works while the panel is closed.',
+  'Read, change or health-check the interactive digital earth panel (CesiumJS): 3D Tiles and Gaussian splat layers, imagery basemap, terrain and camera.',
   '',
   'Actions:',
-  '- status: returns view{lon,lat,height,heading,pitch}, layers, imagery, terrain, sources, viewport, snapshot and measureTool, plus busy state. Start here.',
-  '- list: layers, sources, active imagery and terrain only (no camera/view), lighter than status.',
-  '- load: add a layer from url (online tileset.json) or path (local tileset.json inside a folder the user opened in the panel).',
+  '- status: view, layers, imagery, terrain, sources, viewport, snapshot, measureTool and busy state.',
+  '- list: layers, sources, active imagery and terrain only (no camera/view).',
+  '- load: add a layer from url (online tileset.json) or path (absolute local tileset.json; a folder or moved path resolves to the unique tileset.json below it; new local folders get one panel confirmation). Returns view, layers_count and, when the path was healed, resolved_from.',
   '- remove: remove a layer by layer id or name.',
   '- visible: show or hide one layer.',
   '- basemap: switch the imagery source, or pass "none" to turn the basemap off.',
   '- terrain: switch the terrain source, or pass "none" to turn terrain off.',
-  '- fly: move the camera.',
+  '- fly: move the camera; returns the resulting view.',
   '- reset: return to the global view.',
   '- pick: identify whatever is at the center of the view.',
-  '- inspect: static data health check of a tileset, without changing the scene. Pass layer (panel open; resolves that layer source and merges the panel runtime counters), or path/url of a tileset.json (works while the panel is closed); deep true also checks content files. Returns a compact summary plus a host report path; the full report stays on the host and in the panel.',
+  '- inspect: static data health check of a tileset without changing the scene. Pass layer (panel resolves its source, merges runtime counters), or path/url; deep checks content files. Returns a compact summary plus a host report path.',
   '',
-  'Returns the panel JSON result for the scene actions; that result is the authoritative scene state. inspect returns a compact data_health summary with report_path.',
+  'The panel JSON result is the authoritative scene state.',
 ].join('\n')
 
 const CAPTURE_PARAMETERS = {
@@ -1729,7 +1942,6 @@ const CAPTURE_PARAMETERS = {
 
 const CAPTURE_DESCRIPTION = [
   'Save the current digital earth view as an image file on the host and return its absolute path.',
-  'Set up the camera and scene with earth_scene first. The panel opens automatically when a capture needs it and the call waits briefly for it; if it still did not attach, ask the user to open the digital earth tab with the globe button in the chat header, then retry.',
   '',
   'By default the image follows the panel screenshot setting (usually a clean view); set include_hud true to burn in the coordinate HUD and team credit. The DOM toolbar is never part of the image.',
   'If this model can read images, call read_image on the returned path; otherwise describe the scene only from earth_scene status JSON.',
@@ -1765,10 +1977,9 @@ const DRAW_PARAMETERS = {
 
 const DRAW_DESCRIPTION = [
   'Draw annotations on the interactive digital earth panel: points, lines, polygons and labels from GeoJSON the Agent provides.',
-  'Use it to show the user where something is — mark sites, outline areas, trace routes, label features. The overlay stays until the user clears it or a later call passes clear=true; the user can also clear it from the panel Data menu.',
-  'The panel opens automatically when this tool is called and the call waits briefly for the tab to attach. If it still did not attach, ask the user to open the digital earth tab with the globe button in the chat header, then retry.',
+  'Use it to show the user where something is — mark sites, outline areas, trace routes, label features. The overlay stays until a later call passes clear=true.',
   'Coordinates are WGS84 degrees; height is optional meters. Do not guess coordinates: take them from the user, from earth_scene status/pick, or from geodata the user provided. One call accepts up to 500 features and 20000 coordinates.',
-  'Returns compact JSON with the count by geometry type and the bounding box. Call earth_capture afterwards to show or verify the result.',
+  'Returns compact JSON with the count by geometry type and the bounding box.',
 ].join('\n')
 
 const MEASURE_MODES = ['distance', 'area', 'height']
@@ -1803,24 +2014,23 @@ const MEASURE_PARAMETERS = {
 }
 
 const MEASURE_DESCRIPTION = [
-  'Measure on the interactive digital earth panel and return the numeric result: geodesic distance along points, area of a polygon, or the height difference between two points.',
-  'Coordinates are WGS84 degrees. distance and area are measured on the ellipsoid surface; height mode uses each point\'s height when provided, otherwise the terrain/globe surface height the panel reports. Points are not tied to loaded data, so measure only where the user asked or where the scene shows a real feature.',
+  'Measure on the digital earth panel and return the numeric result: geodesic distance along points, area of a polygon, or the height difference between two points.',
+  'Coordinates are WGS84 degrees. distance and area are measured on the ellipsoid surface; height mode uses each point\'s height when provided, otherwise the terrain/globe surface height the panel reports. Measure only where the user asked or where the scene shows a real feature.',
   'By default the measurement is also drawn on the globe (points, line/polygon and a label) so the user can see it; pass draw=false for a numeric-only answer, and clear=true to remove earlier Agent overlays first.',
-  'The panel opens automatically when this tool is called and the call waits briefly for the tab to attach. If it still did not attach, ask the user to open the digital earth tab with the globe button in the chat header, then retry.',
-  'Returns compact JSON with meters/degrees plus a rendered summary; follow with earth_capture when the user should see the measurement in the transcript.',
+  'Returns compact JSON with meters/degrees plus a rendered summary; call earth_capture to show it.',
 ].join('\n')
 
-const SYSTEM_PROMPT_SECTION = [
+export const SYSTEM_PROMPT_SECTION = [
   'The Web UI has an interactive digital earth panel (CesiumJS) rendering 3D Tiles, Gaussian splats, imagery and terrain. Control it with earth_scene, earth_capture, earth_draw and earth_measure.',
   '',
-  '- The panel opens automatically when a tool call needs it; the call waits briefly for the tab to attach. If it still did not attach, ask the user to click the globe button in the chat header to open the digital earth tab, then retry.',
-  '- Call earth_scene "status" before changing anything so changes build on the real camera, layers and sources; "list" is the lighter variant.',
-  '- Local data loads only from a folder the user opened once in the panel (host allowlist); never guess an absolute path. If refused, ask the user to open that folder in the panel data setting, then retry.',
-  '- earth_scene actions: status, list, load, remove, visible, basemap, terrain, fly, reset, pick, inspect. Use inspect to health-check a tileset (a loaded layer, or a path/url that works while the panel is closed) before debugging rendering or after loading suspect data.',
-  '- earth_capture saves a screenshot and returns its absolute path; by default it follows the panel screenshot setting (usually hidden HUD). If this model reads images, call read_image on that path; otherwise rely on earth_scene status JSON. Never describe scene content you did not receive.',
-  '- Local file paths do not render in the chat. Never embed one in Markdown image syntax (for example ![...](C:\\...)): the Web UI cannot load it and shows a broken image placeholder. To show a capture or exported file to the user, call present with its path; otherwise mention the path as plain text.',
-  '- earth_draw adds GeoJSON annotations (points/lines/polygons/labels) and earth_measure returns distance/area/height numbers, both drawn on the globe by default. They draw on top of data, so take coordinates from the user or from earth_scene status/pick instead of guessing.',
+  '- The panel opens automatically when a tool call needs it and the call waits briefly for the tab. If it still does not attach, ask the user to open the digital earth tab with the globe button in the chat header, then retry.',
+  '- Local paths: pass the absolute path directly to earth_scene load/inspect. A new folder gets one confirmation dialog in the panel; the call continues after the user allows it. If access is denied or times out, stop and report it; do not retry.',
+  '- Call earth_scene status only when you need the current camera, layers or sources; load and fly return the view, so do not call status just to confirm a change.',
+  '- earth_scene actions: status, list, load, remove, visible, basemap, terrain, fly, reset, pick, inspect. Returned JSON is authoritative.',
+  '- earth_capture saves an image and returns its path; read it with read_image when this model supports images, otherwise rely on the returned JSON. To show a file, call present; never embed a local path in Markdown image syntax.',
+  '- earth_draw adds GeoJSON annotations and earth_measure returns distance/area/height numbers, both drawn by default. Take coordinates from the user, from status/pick, or from loaded data; never guess.',
   '- Report only state the tools returned; never claim data is loaded or visible otherwise.',
+  '- Errors start with a [code] and one next: step; follow that step, and never retry access_denied or access_timeout.',
 ].join('\n')
 
 const isHttpUrl = (value) => {
@@ -1885,16 +2095,18 @@ function normalizeSceneRequest(raw) {
   switch (action) {
     case 'load': {
       const url = typeof raw.url === 'string' ? raw.url.trim() : ''
-      const path = typeof raw.path === 'string' ? raw.path.trim() : ''
-      if (url !== '' && path !== '') throw sceneError('load takes either "url" or "path", not both.')
-      if (url === '' && path === '') {
-        throw sceneError('load needs "url" (online tileset.json) or "path" (local tileset.json inside a folder the user opened in the panel).')
-      }
+      const hasPath = typeof raw.path === 'string'
+      const path = hasPath ? raw.path : ''
+      if (url !== '' && hasPath && path.trim() !== '') throw sceneError('load takes either "url" or "path", not both.')
       if (url !== '') {
         if (!isHttpUrl(url)) throw sceneError(`load "url" must be an absolute http(s) URL, got ${JSON.stringify(url)}.`)
         args.url = url
-      } else {
+      } else if (hasPath) {
+        // The bridge resolves folders and healed paths and returns a typed
+        // [invalid_local_path] error for unusable input.
         args.path = path
+      } else {
+        throw sceneError('load needs "url" (online tileset.json) or "path" (absolute local path).')
       }
       break
     }
@@ -1950,7 +2162,8 @@ function normalizeSceneRequest(raw) {
         if (!isHttpUrl(url)) throw sceneError(`inspect "url" must be an absolute http(s) URL, got ${JSON.stringify(url)}.`)
         args.url = url
       } else if (path !== '') {
-        if (!isAbsolute(path)) throw sceneError('inspect "path" must be an absolute path to a tileset.json.')
+        // Folders and healed paths are resolved by the bridge, which returns
+        // [invalid_local_path] for unusable input.
         args.path = path
       } else {
         args.layer = layer
@@ -2373,6 +2586,10 @@ export function createBridge(allowedDirs, options = {}) {
   const attachWaiters = new Map()
   const requestedGrace = options?.attachGraceMs
   const attachGraceMs = Number.isFinite(requestedGrace) && requestedGrace >= 0 ? requestedGrace : PANEL_ATTACH_GRACE_MS
+  // Panel access dialogs get their own deadline; it is independent from the
+  // scene-command timeout and can be shortened by tests.
+  const requestedAuthorize = options?.authorizeTimeoutMs
+  const authorizeTimeoutMs = Number.isFinite(requestedAuthorize) && requestedAuthorize > 0 ? requestedAuthorize : LOCAL_ACCESS_TIMEOUT_MS
   let sequence = 0
 
   const connectedSessions = () =>
@@ -2489,70 +2706,155 @@ export function createBridge(allowedDirs, options = {}) {
     return current
   }
 
+  const bridgeFailure = (kind, message) => {
+    const error = new Error(message)
+    error.bridgeKind = kind
+    return error
+  }
+
+  /** Send one command to the newest connection of a session and await its ack. */
+  const dispatch = (sessionId, action, args, timeoutMs, signal) => new Promise((resolveCommand, rejectCommand) => {
+    const cancelledMessage = `The "${action}" command was cancelled before it reached the digital earth panel.`
+    if (signal?.aborted) {
+      rejectCommand(bridgeFailure('cancelled', cancelledMessage))
+      return
+    }
+    const connections = sessions.get(sessionId)
+    if (!connections || connections.size === 0) {
+      rejectCommand(bridgeFailure('closed', PANEL_CLOSED_MESSAGE))
+      return
+    }
+    // The timeout starts when this command is actually dispatched, not when it
+    // was queued behind an earlier one for the same session.
+    if (!(timeoutMs > 0)) {
+      rejectCommand(bridgeFailure('timeout', timeoutMessage(action, timeoutMs) + (connections.size > 1 ? MULTI_TAB_HINT : '')))
+      return
+    }
+    const id = `earth-${Date.now().toString(36)}-${(sequence += 1)}`
+    let abortListener = null
+    const job = {
+      session: sessionId,
+      settled: false,
+      timer: null,
+      finish: (error, value) => {
+        if (job.settled) return
+        job.settled = true
+        if (job.timer !== null) clearTimeout(job.timer)
+        if (abortListener !== null) signal?.removeEventListener?.('abort', abortListener)
+        pending.delete(id)
+        if (error) rejectCommand(error)
+        else resolveCommand(value === undefined ? {} : value)
+      },
+    }
+    abortListener = () => job.finish(bridgeFailure('cancelled', `The "${action}" command was cancelled.`))
+    signal?.addEventListener?.('abort', abortListener, { once: true })
+    pending.set(id, job)
+    const timerMessage = timeoutMessage(action, timeoutMs) + (connections.size > 1 ? MULTI_TAB_HINT : '')
+    job.timer = setTimeout(() => job.finish(bridgeFailure('timeout', timerMessage)), timeoutMs)
+    job.timer.unref?.()
+    const frame = `event: command\ndata: ${JSON.stringify({ id, action, args })}\n\n`
+    // Only the newest attachment executes: an older tab that still has the
+    // panel open must stay idle instead of running the command a second time.
+    const newest = [...connections].pop()
+    if (!newest || !writeFrame(newest, frame)) job.finish(bridgeFailure('closed', PANEL_CLOSED_MESSAGE))
+  })
+
+  /** The model-supplied absolute path of a load/inspect call, or null. */
+  const localPathRequest = (action, args) => {
+    if (action !== 'load' && action !== 'inspect') return null
+    return typeof args?.path === 'string' ? args.path : null
+  }
+
+  const authorizeArgs = (action, resolution) => ({
+    request: action,
+    path: resolution.requested,
+    target: resolution.path,
+    directory: resolution.directory,
+    kind: resolution.kind,
+    resolved: resolution.path !== resolution.requested,
+  })
+
+  /**
+   * Ask the panel for one-time access to a resolved folder. Any denial becomes
+   * `access_denied`; the independent dialog deadline becomes `access_timeout`.
+   * Neither case retries: a retry needs a fresh tool call from the model.
+   */
+  const requestAuthorization = async (sessionId, action, resolution, signal) => {
+    try {
+      return await dispatch(sessionId, 'authorize', authorizeArgs(action, resolution), authorizeTimeoutMs, signal)
+    } catch (error) {
+      if (error?.bridgeKind === 'timeout') {
+        throw localPathError(
+          'access_timeout',
+          `the user did not answer the access request for "${resolution.directory}" within ${Math.round(authorizeTimeoutMs / 1000)}s.`,
+          'ask the user to allow the folder, then retry once when they are ready.',
+        )
+      }
+      if (error?.bridgeKind === 'cancelled' || error?.bridgeKind === 'closed') throw error
+      throw localPathError(
+        'access_denied',
+        `the user did not allow "${resolution.directory}".`,
+        'stop and report this; do not retry.',
+      )
+    }
+  }
+
   // Wait for the tab outside the queue and start the command deadline only once
   // it is attached: the panel's start-up time must not eat SCENE_TIMEOUT_MS.
   const run = async (sessionId, action, args, timeoutMs, signal) => {
-    // Local loads are gated here, before the command reaches any browser tab:
-    // the panel's `/scan` call made afterwards can only re-register a folder
-    // the user already opened.
-    const denial = loadPathDenial(action, args, allowedDirs)
-    if (denial !== null) throw new Error(denial)
+    const requestedPath = localPathRequest(action, args)
+    let resolution = null
+    if (requestedPath !== null) {
+      // Local paths are resolved from filesystem metadata before a tab is
+      // needed; failures here carry their own [code] and never open a dialog.
+      resolution = await resolveLocalTileset(requestedPath)
+      // `inspect path` runs on the host, so an already allowed file keeps
+      // working with the panel closed.
+      if (action === 'inspect' && isLocalResolutionAllowed(resolution, allowedDirs)) return { ...resolution }
+    }
     if (signal?.aborted) {
-      throw new Error(`The "${action}" command was cancelled before it reached the digital earth panel.`)
+      throw bridgeFailure('cancelled', `The "${action}" command was cancelled before it reached the digital earth panel.`)
     }
     const attached = await waitForAttach(sessionId, attachGraceMs, signal)
     if (!attached) {
       // An abort is the caller's own cancellation, not a missing panel.
       if (signal?.aborted) {
-        throw new Error(`The "${action}" command was cancelled before it reached the digital earth panel.`)
+        throw bridgeFailure('cancelled', `The "${action}" command was cancelled before it reached the digital earth panel.`)
       }
-      throw new Error(PANEL_CLOSED_MESSAGE)
+      throw bridgeFailure('closed', PANEL_CLOSED_MESSAGE)
     }
-    return enqueue(sessionId, () => new Promise((resolve, reject) => {
-      if (signal?.aborted) {
-        reject(new Error(`The "${action}" command was cancelled before it reached the digital earth panel.`))
-        return
+    return enqueue(sessionId, async () => {
+      let current = resolution
+      if (requestedPath !== null) {
+        if (current === null) current = await resolveLocalTileset(requestedPath)
+        if (!isLocalResolutionAllowed(current, allowedDirs)) {
+          // Order matters: wait for the tab, ask for permission, re-check the
+          // allowlist (and the path) from scratch, then continue the original
+          // load/inspect. No retry on denial or timeout.
+          await requestAuthorization(sessionId, action, current, signal)
+          current = await resolveLocalTileset(requestedPath)
+          if (!isLocalResolutionAllowed(current, allowedDirs)) {
+            throw localPathError(
+              'access_denied',
+              `the folder for "${current.requested}" was not added to the panel allowlist.`,
+              'stop and report this; do not retry.',
+            )
+          }
+        }
+        if (action === 'inspect') return { ...current }
       }
-      const connections = sessions.get(sessionId)
-      if (!connections || connections.size === 0) {
-        reject(new Error(PANEL_CLOSED_MESSAGE))
-        return
+      const commandArgs = current === null ? args : { ...args, path: current.path }
+      const result = await dispatch(sessionId, action, commandArgs, timeoutMs, signal)
+      if (current !== null && action === 'load') {
+        // The panel returns view/layers_count; a healed path adds the original
+        // request so the model can report what it actually loaded.
+        const value = asResultObject(result)
+        if (current.resolvedFrom !== undefined && value.resolved_from === undefined) value.resolved_from = current.resolvedFrom
+        if (typeof value.layers_count !== 'number' && Array.isArray(value.layers)) value.layers_count = value.layers.length
+        return value
       }
-      // The timeout starts when this command is actually dispatched, not when it
-      // was queued behind an earlier one for the same session.
-      const remaining = timeoutMs
-      if (remaining <= 0) {
-        reject(new Error(timeoutMessage(action, timeoutMs) + (connections.size > 1 ? MULTI_TAB_HINT : '')))
-        return
-      }
-      const id = `earth-${Date.now().toString(36)}-${(sequence += 1)}`
-      let abortListener = null
-      const job = {
-        session: sessionId,
-        settled: false,
-        timer: null,
-        finish: (error, value) => {
-          if (job.settled) return
-          job.settled = true
-          if (job.timer !== null) clearTimeout(job.timer)
-          if (abortListener !== null) signal?.removeEventListener?.('abort', abortListener)
-          pending.delete(id)
-          if (error) reject(error)
-          else resolve(value === undefined ? {} : value)
-        },
-      }
-      abortListener = () => job.finish(new Error(`The "${action}" command was cancelled.`))
-      signal?.addEventListener?.('abort', abortListener, { once: true })
-      pending.set(id, job)
-      const timerMessage = timeoutMessage(action, timeoutMs) + (connections.size > 1 ? MULTI_TAB_HINT : '')
-      job.timer = setTimeout(() => job.finish(new Error(timerMessage)), remaining)
-      job.timer.unref?.()
-      const frame = `event: command\ndata: ${JSON.stringify({ id, action, args })}\n\n`
-      // Only the newest attachment executes: an older tab that still has the
-      // panel open must stay idle instead of running the command a second time.
-      const newest = [...connections].pop()
-      if (!newest || !writeFrame(newest, frame)) job.finish(new Error(PANEL_CLOSED_MESSAGE))
-    }))
+      return result
+    })
   }
 
   /** Settle a pending command from the browser acknowledgement, first ack wins. */
@@ -2904,8 +3206,24 @@ async function inspectSceneAction(bridge, allowedDirs, args, exec) {
       throw sceneError('the panel could not resolve this layer to a local path or an http(s) URL. Reload the layer in the panel, then retry.')
     }
     runtime = normalizeInspectRuntime(ack.runtime)
+  } else if (typeof args.path === 'string') {
+    // Reuse the bridge's local-path resolution and authorization. With no
+    // connected panel, an already allowed file can still be inspected.
+    const target = resolveSessionTarget(bridge, exec)
+    let resolution
+    if (target === null) {
+      resolution = await resolveLocalTileset(args.path)
+      if (!isLocalResolutionAllowed(resolution, allowedDirs)) throw new Error(PANEL_CLOSED_MESSAGE)
+    } else {
+      fallback = target.fallback === true
+      resolution = await bridge.run(target.sessionId, 'inspect', { path: args.path }, INSPECT_BRIDGE_TIMEOUT_MS, exec.signal)
+      if (typeof resolution?.path !== 'string' || resolution.path === '') {
+        throw sceneError('the panel did not return a resolved local path for this inspection.')
+      }
+    }
+    source = { kind: 'local', path: resolution.path }
   } else {
-    source = typeof args.path === 'string' ? { kind: 'local', path: resolve(args.path) } : { kind: 'remote', url: args.url }
+    source = { kind: 'remote', url: args.url }
   }
   let report
   try {
