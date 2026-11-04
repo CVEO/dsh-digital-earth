@@ -787,6 +787,36 @@ window.__ModuleLoader__.load({
               ),
       )
 
+    /** Crisp 16px action icons for the layer rows (Unicode glyphs rendered unevenly). */
+    function LayerActionIcon({ kind, size = 16 }) {
+      const stroke = { stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round', fill: 'none' }
+      let shapes
+      if (kind === 'visible') {
+        shapes = [
+          h('path', { key: 'eye', d: 'M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z', ...stroke }),
+          h('circle', { key: 'pupil', cx: 12, cy: 12, r: 3, ...stroke }),
+        ]
+      } else if (kind === 'hidden') {
+        shapes = [
+          h('path', { key: 'eye', d: 'M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z', ...stroke }),
+          h('path', { key: 'slash', d: 'M3.5 3.5l17 17', ...stroke }),
+        ]
+      } else if (kind === 'locate') {
+        shapes = [
+          h('circle', { key: 'ring', cx: 12, cy: 12, r: 5.5, ...stroke }),
+          h('path', { key: 'ticks', d: 'M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3', ...stroke }),
+        ]
+      } else if (kind === 'inspect') {
+        shapes = [
+          h('circle', { key: 'lens', cx: 10.5, cy: 10.5, r: 6, ...stroke }),
+          h('path', { key: 'handle', d: 'M15 15l5.5 5.5', ...stroke }),
+        ]
+      } else {
+        shapes = [h('path', { key: 'x', d: 'M6 6l12 12M18 6L6 18', ...stroke })]
+      }
+      return h('svg', { viewBox: '0 0 24 24', width: size, height: size, 'aria-hidden': true, style: { display: 'block' } }, shapes)
+    }
+
     /** Bottom-left HUD: FPS, pointer position/elevation, camera and per-layer statistics. */
     function StatusHud({ fps, stats, viewerRef, cesiumRef, labels, readoutRef }) {
       // The cursor readout is written straight into the DOM: it updates up to eight
@@ -888,6 +918,7 @@ window.__ModuleLoader__.load({
 .mv-brand{display:flex;align-items:center;gap:8px;padding:7px 12px;border-radius:11px;pointer-events:auto}
 .mv-brand b{font-size:13px;font-weight:600;letter-spacing:.01em}
 .mv-brand span{font-size:11px;color:var(--mv-dim)}
+.mv-brand b,.mv-brand span{white-space:nowrap}
 .mv-actions{display:flex;align-items:center;gap:2px;padding:4px;border-radius:11px;pointer-events:auto;flex-wrap:wrap;justify-content:flex-end}
 .mv-btn{appearance:none;border:0;background:transparent;color:var(--mv-dim);font:inherit;font-size:12px;line-height:1;padding:7px 9px;border-radius:7px;cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;gap:6px}
 .mv-btn:hover{background:color-mix(in srgb,var(--mv-lift) 72%,transparent);color:var(--mv-text)}
@@ -912,7 +943,9 @@ window.__ModuleLoader__.load({
 .mv-layer:hover{background:color-mix(in srgb,var(--mv-lift) 64%,transparent)}
 .mv-layer .name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;cursor:pointer}
 .mv-layer.off .name{color:var(--mv-dim);text-decoration:line-through}
-.mv-icon-btn{appearance:none;border:0;background:transparent;color:var(--mv-dim);width:22px;height:22px;border-radius:6px;cursor:pointer;font:inherit;font-size:11px;line-height:1;display:inline-flex;align-items:center;justify-content:center;flex:none}
+.mv-icon-btn{appearance:none;border:0;background:transparent;color:var(--mv-dim);width:26px;height:26px;border-radius:7px;cursor:pointer;font:inherit;font-size:14px;line-height:1;display:inline-flex;align-items:center;justify-content:center;flex:none}
+.mv-layer{gap:3px;padding:5px 7px}
+.mv-layer .mv-icon-btn{font-size:15px}
 .mv-icon-btn:hover{background:color-mix(in srgb,var(--mv-lift) 82%,transparent);color:var(--mv-text)}
 .mv-icon-btn.on{color:var(--mv-accent)}
 .mv-hud{position:absolute;left:10px;bottom:10px;z-index:9;padding:8px 11px;border-radius:11px;display:flex;flex-direction:column;gap:3px;font-size:11px;color:var(--mv-dim);max-width:calc(100% - 330px);pointer-events:none}
@@ -969,8 +1002,34 @@ window.__ModuleLoader__.load({
 .mv-seg button{appearance:none;border:0;background:transparent;color:var(--mv-dim);font:inherit;font-size:11.5px;padding:6px 12px;border-radius:6px;cursor:pointer;flex:1}
 .mv-seg button.on{background:color-mix(in srgb,var(--mv-accent) 22%,transparent);color:var(--mv-text)}
 /* Docked inside the session right sidebar: fill the tab body, tighten chrome. */
-.mv-root.mv-docked .mv-top{top:8px;left:8px;right:8px}
+/* The host already draws the tab strip right above this body, so the floating
+   toolbar keeps a visible gap instead of hugging it; the layer card follows the
+   same offset so the two never collide when the action row wraps. */
+.mv-root.mv-docked{container-type:inline-size}
+.mv-root.mv-docked .mv-top{top:20px;left:20px;right:20px;gap:8px}
+.mv-root.mv-docked .mv-brand{padding:6px 10px;flex:none;gap:6px}
+.mv-root.mv-docked .mv-actions{gap:0;padding:3px;flex:1 1 auto;min-width:0;row-gap:2px}
+.mv-root.mv-docked .mv-layers{top:96px;right:20px;width:min(284px,calc(100% - 40px));max-height:calc(100% - 250px)}
 .mv-root.mv-docked .mv-dialog{width:min(680px,96%)}
+/* Narrow docked panes: the host tab already shows the panel title, so drop the
+   duplicated brand title, then the status text, then the whole brand, keeping
+   the action row on one line as long as possible. */
+@container (max-width: 1000px){
+  .mv-root.mv-docked .mv-brand b{display:none}
+}
+@container (max-width: 860px){
+  .mv-root.mv-docked .mv-actions .mv-btn{padding:6px 8px}
+  .mv-root.mv-docked .mv-actions .mv-sep{margin:0 1px}
+  .mv-root.mv-docked .mv-actions .mv-btn.icon{padding:7px 6px}
+}
+@container (max-width: 720px){
+  .mv-root.mv-docked .mv-brand span{display:none}
+  .mv-root.mv-docked .mv-brand{padding:6px 8px}
+}
+@container (max-width: 600px){
+  .mv-root.mv-docked .mv-brand{display:none}
+  .mv-root.mv-docked .mv-actions{justify-content:flex-end}
+}
 /* Snapshot mode: the picture is meant to be clean, so every overlay is hidden. */
 .mv-root.mv-capturing .mv-top,.mv-root.mv-capturing .mv-urlbar,.mv-root.mv-capturing .mv-layers,.mv-root.mv-capturing .mv-hud,.mv-root.mv-capturing .mv-attr,.mv-root.mv-capturing .mv-credits,.mv-root.mv-capturing .mv-pick,.mv-root.mv-capturing .mv-measure,.mv-root.mv-capturing .mv-toast,.mv-root.mv-capturing .mv-overlay,.mv-root.mv-capturing .mv-modal{visibility:hidden!important}
 .mv-about{display:flex;flex-direction:column;gap:12px;padding:2px 0;font-size:12px}
@@ -3201,9 +3260,13 @@ window.__ModuleLoader__.load({
                         title: layer.visible ? t('btn.visible') : t('btn.hidden'),
                         onClick: () => toggleLayer(layer.id),
                       },
-                      layer.visible ? '◉' : '○',
+                      layer.visible ? h(LayerActionIcon, { key: 'v', kind: 'visible' }) : h(LayerActionIcon, { key: 'v', kind: 'hidden' }),
                     ),
-                    h('button', { type: 'button', className: 'mv-icon-btn', title: t('btn.flyTo'), onClick: () => flyToLayer(layer.id) }, '⌖'),
+                    h(
+                      'button',
+                      { type: 'button', className: 'mv-icon-btn', title: t('btn.flyTo'), 'aria-label': t('btn.flyTo'), onClick: () => flyToLayer(layer.id) },
+                      h(LayerActionIcon, { kind: 'locate' }),
+                    ),
                     h(
                       'button',
                       {
@@ -3213,9 +3276,13 @@ window.__ModuleLoader__.load({
                         'aria-label': t('btn.health'),
                         onClick: () => inspectLayer(layer.id),
                       },
-                      '⌕',
+                      h(LayerActionIcon, { kind: 'inspect' }),
                     ),
-                    h('button', { type: 'button', className: 'mv-icon-btn', title: t('btn.delete'), onClick: () => removeLayer(layer.id) }, '✕'),
+                    h(
+                      'button',
+                      { type: 'button', className: 'mv-icon-btn', title: t('btn.delete'), 'aria-label': t('btn.delete'), onClick: () => removeLayer(layer.id) },
+                      h(LayerActionIcon, { kind: 'delete' }),
+                    ),
                   ),
                 ),
               ),
