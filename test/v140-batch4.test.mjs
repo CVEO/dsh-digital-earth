@@ -26,7 +26,7 @@ import { fileURLToPath } from 'node:url'
 import { SYSTEM_PROMPT_SECTION } from '../index.js'
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)))
-const readText = (name) => readFile(join(root, name), 'utf8')
+const readText = (name) => readFile(join(root, name), 'utf8').then((text) => text.replace(/\r\n/g, '\n'))
 const [client, host, packageText, readmeZh, readmeEn, changelog] = await Promise.all([
   readText('client.js'),
   readText('index.js'),
@@ -423,8 +423,10 @@ test('B4 隐私：包内文本文件无个人绝对路径/用户名/常见密钥
   if (existsSync(join(root, '.git'))) {
     const tracked = execFileSync('git', ['ls-files', '--', '.research'], { cwd: root, encoding: 'utf8' })
     assert.equal(tracked.trim(), '', `.research 不得被 git 跟踪：\n${tracked}`)
-    const checkIgnore = execFileSync('git', ['check-ignore', '.research'], { cwd: root, encoding: 'utf8' })
-    assert.equal(checkIgnore.trim(), '.research')
+    const checkIgnore = execFileSync('git', ['check-ignore', '.research/'], { cwd: root, encoding: 'utf8' })
+    // Directory-only patterns need the trailing slash; `.research` alone does not
+    // match `.research/` and made this assertion fail on every clean checkout.
+    assert.equal(checkIgnore.trim(), '.research/')
   }
 })
 

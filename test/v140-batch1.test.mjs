@@ -26,7 +26,7 @@ import {
 } from '../index.js'
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)))
-const readText = (name) => readFile(join(root, name), 'utf8')
+const readText = (name) => readFile(join(root, name), 'utf8').then((text) => text.replace(/\r\n/g, '\n'))
 const [client, host, packageText] = await Promise.all([
   readText('client.js'),
   readText('index.js'),

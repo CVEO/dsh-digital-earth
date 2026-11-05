@@ -61,10 +61,12 @@ test('CI 权限最小化，且并发时取消旧任务', () => {
   assert.match(ci, /package-manager-cache:\s*false/)
 })
 
-test('Publish 由 main push、v* tag 与 workflow_dispatch 触发', () => {
-  assert.match(publish, /push:\s*\n\s*branches:\s*\[main\]/)
-  assert.match(publish, /tags:\s*\['v\*'\]/)
-  assert.match(publish, /workflow_dispatch:/)
+test('Publish 只在 v* tag 与手动 dispatch 时触发，push main 不再发版', () => {
+  // main 只做代码合入：合并不会把版本发到 npm，发版由维护者打 tag 决定。
+  const onBlock = publish.slice(publish.indexOf('on:'), publish.indexOf('permissions:'))
+  assert.doesNotMatch(onBlock, /branches:/, '发布工作流不应再按分支 push 触发')
+  assert.match(onBlock, /tags:\s*\['v\*'\]/)
+  assert.match(onBlock, /workflow_dispatch:/)
 })
 
 test('Publish 用 OIDC Trusted Publishing 并升级 npm 到支持版本', () => {
@@ -101,7 +103,7 @@ test('Publish 探测 npm 上是否已有该版本，已存在则跳过并 notice
   assert.match(publish, /npm publish/)
 })
 
-test('Publish 校验 tag 与 package.json 版本一致（tag 失败 / main 警告）', () => {
+test('Publish 校验 tag 与 package.json 版本一致（tag 失败 / 手动发布仅警告）', () => {
   assert.match(publish, /fetch-depth:\s*0/) // 需要全量 tag
   assert.match(publish, /REF_TYPE/)
   assert.match(publish, /REF_NAME/)
@@ -115,4 +117,12 @@ test('Publish 使用 environment 与不可取消的并发组', () => {
   assert.match(publish, /environment:\s*npm/)
   assert.match(publish, /concurrency:\s*\n\s*group:\s*publish-\$\{\{\s*github\.ref\s*\}\}/)
   assert.match(publish, /cancel-in-progress:\s*false/)
+})
+
+test('仓库统一声明 LF 行尾，避免 Windows 上的 CRLF checkout 让结构测试失败', async () => {
+  // 结构测试用 "\n" 断言源码文本；Git for Windows 默认 core.autocrlf=true 会把
+  // 工作区写成 CRLF，于是同一份代码在 Windows 上跑测试会红、在 Linux 上却是绿的。
+  // .gitattributes 的 eol=lf 优先级高于 core.autocrlf，保证两个平台一致。
+  const attrs = await read('.gitattributes')
+  assert.match(attrs, /^\* text=auto eol=lf$/m)
 })

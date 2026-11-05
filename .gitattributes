@@ -1,0 +1,8 @@
+# Normalise line endings to LF in the repository and in every checkout.
+#
+# Git for Windows defaults to core.autocrlf=true, which rewrites the working
+# tree to CRLF. The structural tests assert source text with "\n", so a CRLF
+# checkout fails them even though the committed blobs are LF. Declaring the
+# attribute makes checkouts platform-independent (attributes win over
+# core.autocrlf), and `text=auto` keeps real binaries untouched.
+* text=auto eol=lf

@@ -15,7 +15,7 @@
 import { EventEmitter } from 'node:events'
 import { mkdtemp, realpath, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { join, resolve } from 'node:path'
+import { join, parse, resolve } from 'node:path'
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { apply, createBridge, inject, mergeRecentDirectories } from '../index.js'
@@ -219,12 +219,16 @@ test('run 的本地路径未授权时按 authorize 协议：允许/拒绝/超时
 
     // 4) 不可解析的路径：快速 path_not_found，不发 authorize，也不进入 attach 等待。
     {
+      // 从当前盘符/根目录出发构造一条「最近父级也不存在」的绝对路径：
+      // 字面量 "D:/..." 在 POSIX 上是相对路径，"/..." 在 Windows 上也不是绝对路径，
+      // 直接写死会让这条用例只在其中一个平台成立（CI 曾因此在 Linux 上失败）。
+      const missingPath = join(parse(process.cwd()).root, `dsh-earth-missing-${process.pid}-${Date.now()}`, 'tileset.json')
       const bridge = createBridge(new Set(), { attachGraceMs: 5000 })
       const panel = openConnection()
       bridge.attach('session-auth-missing', panel.req, panel.res)
       const started = Date.now()
       await assert.rejects(
-        bridge.run('session-auth-missing', 'load', { path: 'D:/secret/tileset.json' }, 1000),
+        bridge.run('session-auth-missing', 'load', { path: missingPath }, 1000),
         /\[path_not_found\]/,
       )
       assert.ok(Date.now() - started < 1000, '路径不存在不应经过 5s 的 attach 等待')
