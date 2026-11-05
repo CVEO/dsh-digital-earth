@@ -45,10 +45,18 @@ window.__ModuleLoader__.load({
         'btn.openLocal': '打开本地目录…',
         'btn.openUrl': '加载在线地址…',
         'btn.layers': '图层',
+        'btn.layersShow': '展开图层卡',
+        'btn.layersHide': '收起图层卡',
+        'btn.hud': '坐标 HUD',
+        'btn.hudShow': '显示坐标 HUD',
+        'btn.hudHide': '隐藏坐标 HUD',
+        'btn.shaderShow': '打开着色器工作台',
+        'btn.shaderHide': '关闭着色器工作台',
         'btn.basemap': '底图',
         'btn.terrain': '地形',
         'btn.measure': '量测',
         'btn.screenshot': '截图',
+        'btn.askAgent': '问 Agent',
         'btn.reset': '复位',
         'btn.settings': '数据源与外观',
         'btn.appearance': '外观',
@@ -67,6 +75,7 @@ window.__ModuleLoader__.load({
         'menu.terrainOff': '关闭地形',
         'menu.recentDirs': '最近打开',
         'menu.clearAgent': '清除 Agent 标注',
+        'menu.report': '导出场景报告',
         'tool.distance': '测距',
         'tool.area': '测面',
         'tool.height': '测高',
@@ -85,6 +94,7 @@ window.__ModuleLoader__.load({
         'hud.elevation': '高程 {value}',
         'hud.empty': '—',
         'layers.title': '图层',
+        'layers.collapse': '收起图层卡',
         'urlbar.placeholder': 'tileset.json 的 http(s) 地址，或本地绝对路径',
         'urlbar.submit': '加载',
         'toast.scanEmpty': '该目录下没有找到 tileset.json',
@@ -107,6 +117,9 @@ window.__ModuleLoader__.load({
         'toast.screenshotFailed': '截图失败：{message}',
         'toast.sourcesSaved': '数据源已保存',
         'toast.saveFailed': '保存失败：{message}',
+        'toast.shaderApplied': '已应用预设：{preset}（{layer}）',
+        'toast.shaderReset': '已重置图层着色器：{layer}',
+        'toast.shaderResetAll': '已清除全部图层着色器',
         'toast.noSurface': '该位置没有可拾取的表面',
         'toast.pickNone': '未拾取到对象',
         'measure.start': '左键点击取点，双击结束',
@@ -162,6 +175,7 @@ window.__ModuleLoader__.load({
         'header.open': '在对话旁打开数字地球',
         'btn.beside': '在对话旁打开',
         'btn.immersive': '全屏查看',
+        'btn.immersiveTitle': '全屏查看（再次点击返回停靠）',
         'tool.action.status': '读取场景',
         'tool.action.list': '读取图层',
         'tool.action.load': '加载图层',
@@ -173,20 +187,29 @@ window.__ModuleLoader__.load({
         'tool.action.reset': '复位视角',
         'tool.action.pick': '拾取对象',
         'tool.action.inspect': '数据体检',
+        'tool.action.report': '导出报告',
         'tool.action.capture': '截图',
         'tool.action.draw': '绘制标注',
         'tool.action.measure': '量测',
+        'tool.action.analyze': '分析',
+        'tool.action.shader': '着色器',
         'tool.action.clearAgent': '清除标注',
         'tool.action.generic': '三维场景',
         'tool.open': '打开',
         'tool.openTip': '在对话右侧打开数字地球',
+        'tool.thumbOpen': '查看截图',
         'settings.tab.about': '关于',
         'settings.autoOpenPanel': 'Agent 调用时自动打开数字地球',
         'settings.autoOpenPanelHint':
-          'Agent 调用地球工具（earth_scene / earth_capture / earth_draw / earth_measure）时，自动在对话右侧打开数字地球面板；关闭后仍可从对话标题栏的地球按钮手动打开。该偏好只保存在本机浏览器。',
+          'Agent 调用地球工具（earth_scene / earth_capture / earth_draw / earth_measure / earth_analyze / earth_shader）时，自动在对话右侧打开数字地球面板；关闭后仍可从对话标题栏的地球按钮手动打开。该偏好只保存在本机浏览器。',
         'settings.screenshotHud': '截图时叠加坐标 HUD 与署名',
         'settings.screenshotHudHint':
           '默认关闭：截图只保留干净的三维画面，便于分享或交给模型识别。打开后会在图片内叠加光标坐标、相机参数与团队署名（面板工具栏属于网页元素，不会进入图片）。',
+        'settings.showLayers': '显示图层卡',
+        'settings.showLayersHint': '关闭后图层卡从画布上收起；仍可从工具栏的「图层」按钮重新展开。该偏好会写回数据源配置。',
+        'settings.showHud': '显示坐标 HUD',
+        'settings.showHudHint':
+          '关闭后不渲染左下角的坐标/瓦片统计，并停止指针采样以节省性能。截图默认仍不叠加 HUD；该偏好会写回数据源配置。',
         'about.version': '版本',
         'about.homepage': '项目源码',
         'about.issues': '问题反馈',
@@ -235,7 +258,7 @@ window.__ModuleLoader__.load({
         'agent.missingLayer': '请提供 layer（图层 id 或名称）。',
         'agent.unknownLayer': '找不到图层「{name}」，当前图层：{list}',
         'agent.missingUrl': '请提供 http(s) 地址或本地 tileset.json 路径。',
-        'agent.dirDenied': '该本地目录尚未在面板中授权（{message}）。请先在面板「数据 → 打开本地目录」里选择一次。',
+        'agent.dirDenied': '访问本地目录失败（{message}）。请重试一次以重新触发授权；若仍失败，请在面板中授权该目录后再试。',
         'agent.missingCoords': '请提供 lon 与 lat。',
         'agent.unknownImagery': '找不到影像源「{name}」，可用：{list}',
         'agent.unknownTerrain': '找不到地形源「{name}」，可用：{list}',
@@ -244,7 +267,89 @@ window.__ModuleLoader__.load({
         'agent.badMeasure': '量测参数无效：{message}',
         'agent.measureEmpty': '没有可用的量测结果。',
         'agent.clearedOverlays': '已清除 Agent 标注',
+        'access.title': '授权访问本地数据',
+        'access.body': 'Agent 想从这个本地路径加载数据。允许后，面板会先把该文件所在目录登记为可读取的本地数据源（仅本页面会话内有效），然后继续操作。',
+        'access.dir': '目录',
+        'access.path': '请求路径',
+        'access.target': '解析到的文件',
+        'access.file': '文件',
+        'access.allowing': '正在登记目录…',
+        'access.request.load': '加载 3D Tiles',
+        'access.request.inspect': '数据体检',
+        'access.request.generic': '读取本地数据',
+        'access.missing': '该路径当前未找到 tileset.json：允许后 Host 会继续在上层目录内查找唯一候选，找到才会加载。',
+        'access.resolved': '已在上层目录中找到候选文件，允许后加载这个文件：',
+        'access.allow': '允许并继续',
+        'access.cancel': '取消',
+        'access.denied': '用户取消了本地路径授权，本次操作未执行。',
+        'access.scanFailed': '目录登记失败，本次操作未执行：{message}',
+        'access.remote': '仅本地路径需要授权；在线地址无需此步骤。',
+        'access.badPath': '授权请求缺少有效的本地路径。',
+        'analysis.title.profile': '地形剖面',
+        'analysis.title.flood': '淹没分析',
+        'analysis.title.sunlight': '日照分析',
+        'analysis.layer': '图层',
+        'analysis.collapse': '折叠分析卡',
+        'analysis.expand': '展开分析卡',
+        'analysis.close': '关闭分析卡',
+        'analysis.chart': '距离—高程剖面',
+        'analysis.length': '剖面长度',
+        'analysis.minHeight': '最低高程',
+        'analysis.maxHeight': '最高高程',
+        'analysis.relief': '起伏',
+        'analysis.gain': '累计爬升',
+        'analysis.loss': '累计下降',
+        'analysis.samples': '采样点',
+        'analysis.region': '分析范围',
+        'analysis.waterHeight': '水位',
+        'analysis.area': '分析面积',
+        'analysis.inundated': '淹没面积',
+        'analysis.inundatedRatio': '淹没比例',
+        'analysis.depthMax': '最大水深',
+        'analysis.depthMean': '平均水深',
+        'analysis.inundatedSamples': '淹没格点',
+        'analysis.altitude': '高度角',
+        'analysis.azimuth': '方位角',
+        'analysis.datetime': '时间',
+        'analysis.shadows': '阴影',
+        'analysis.shadowsOn': '已开启',
+        'analysis.shadowsOff': '已关闭',
+        'analysis.night': '夜间',
+        'analysis.day': '白天',
+        'analysis.daylight': '昼夜',
+        'analysis.hint': '单次仅保留一个分析；再次分析或调用 clear 会替换当前结果。',
+        'analysis.start': '起点 {value}',
+        'analysis.end': '终点 {value}',
+        'analysis.waterLabel': '水面 {value}',
+        'analysis.sunLabel': '太阳 {altitude}° / {azimuth}°',
+        'shader.title': '着色器工作台',
+        'shader.close': '关闭着色器工作台',
+        'shader.layerLabel': '目标图层',
+        'shader.layerAuto': '最上可见图层（自动）',
+        'shader.presetLabel': '预设',
+        'shader.preset.height-false-color': '高程渐变',
+        'shader.preset.contour': '等高线',
+        'shader.preset.scan': '高度扫描',
+        'shader.preset.water': '水面波纹',
+        'shader.param.minHeight': '最小高程 (m)',
+        'shader.param.maxHeight': '最大高程 (m)',
+        'shader.param.auto': '自动',
+        'shader.param.interval': '等高距 (m)',
+        'shader.param.speed': '动画速度',
+        'shader.param.amplitude': '波幅',
+        'shader.param.opacity': '不透明度',
+        'shader.apply': '应用预设',
+        'shader.resetLayer': '重置当前图层',
+        'shader.resetAll': '全部重置',
+        'shader.active': '活动预设',
+        'shader.activeEmpty': '尚未应用任何预设',
+        'shader.noLayers': '先加载 3D Tiles 图层，再应用着色器预设。',
         'toast.captureSaved': '已生成 {width}×{height} 截图：{path}',
+        'toast.askAgentSent': '当前场景已发送到对话，直接输入问题即可。',
+        'toast.askAgentFailed': '发送场景失败：{message}',
+        'toast.askAgentNoSession': '请先打开一个会话，再使用「问 Agent」。',
+        'toast.reportSaved': '场景报告已保存：{path}',
+        'toast.reportFailed': '导出报告失败：{message}',
         'toast.noSession': '请先打开一个会话，再在对话旁查看数字地球。',
         'unit.hectare': '公顷',
       },
@@ -263,10 +368,18 @@ window.__ModuleLoader__.load({
         'btn.openLocal': 'Open local folder…',
         'btn.openUrl': 'Load from URL…',
         'btn.layers': 'Layers',
+        'btn.layersShow': 'Show layer card',
+        'btn.layersHide': 'Hide layer card',
+        'btn.hud': 'Coordinate HUD',
+        'btn.hudShow': 'Show coordinate HUD',
+        'btn.hudHide': 'Hide coordinate HUD',
+        'btn.shaderShow': 'Open shader workbench',
+        'btn.shaderHide': 'Close shader workbench',
         'btn.basemap': 'Basemap',
         'btn.terrain': 'Terrain',
         'btn.measure': 'Measure',
         'btn.screenshot': 'Snapshot',
+        'btn.askAgent': 'Ask Agent',
         'btn.reset': 'Reset',
         'btn.settings': 'Sources & appearance',
         'btn.appearance': 'Appearance',
@@ -285,6 +398,7 @@ window.__ModuleLoader__.load({
         'menu.terrainOff': 'Terrain off',
         'menu.recentDirs': 'Recently opened',
         'menu.clearAgent': 'Clear Agent annotations',
+        'menu.report': 'Export scene report',
         'tool.distance': 'Distance',
         'tool.area': 'Area',
         'tool.height': 'Height',
@@ -303,6 +417,7 @@ window.__ModuleLoader__.load({
         'hud.elevation': 'Elev {value}',
         'hud.empty': '—',
         'layers.title': 'Layers',
+        'layers.collapse': 'Collapse layer card',
         'urlbar.placeholder': 'http(s) URL of tileset.json, or an absolute local path',
         'urlbar.submit': 'Load',
         'toast.scanEmpty': 'No tileset.json found in that folder',
@@ -325,6 +440,9 @@ window.__ModuleLoader__.load({
         'toast.screenshotFailed': 'Snapshot failed: {message}',
         'toast.sourcesSaved': 'Sources saved',
         'toast.saveFailed': 'Save failed: {message}',
+        'toast.shaderApplied': 'Preset applied: {preset} ({layer})',
+        'toast.shaderReset': 'Shader reset on layer: {layer}',
+        'toast.shaderResetAll': 'All layer shaders cleared',
         'toast.noSurface': 'No pickable surface there',
         'toast.pickNone': 'Nothing picked',
         'measure.start': 'Left-click to add points, double-click to finish',
@@ -380,6 +498,7 @@ window.__ModuleLoader__.load({
         'header.open': 'Open Digital Earth beside the chat',
         'btn.beside': 'Open beside chat',
         'btn.immersive': 'Full screen',
+        'btn.immersiveTitle': 'Full screen (click again to return to the dock)',
         'tool.action.status': 'Read scene',
         'tool.action.list': 'List layers',
         'tool.action.load': 'Load layer',
@@ -391,20 +510,30 @@ window.__ModuleLoader__.load({
         'tool.action.reset': 'Reset view',
         'tool.action.pick': 'Pick object',
         'tool.action.inspect': 'Data check',
+        'tool.action.report': 'Export report',
         'tool.action.capture': 'Snapshot',
         'tool.action.draw': 'Draw annotations',
         'tool.action.measure': 'Measure',
+        'tool.action.analyze': 'Analyze',
+        'tool.action.shader': 'Shader',
         'tool.action.clearAgent': 'Clear annotations',
         'tool.action.generic': '3D scene',
         'tool.open': 'Open',
         'tool.openTip': 'Open Digital Earth beside the chat',
+        'tool.thumbOpen': 'Open snapshot',
         'settings.tab.about': 'About',
         'settings.autoOpenPanel': 'Open Digital Earth automatically on Agent calls',
         'settings.autoOpenPanelHint':
-          'When the Agent calls an earth tool (earth_scene / earth_capture / earth_draw / earth_measure), open the Digital Earth panel beside the conversation; with this off you can still open it from the globe button in the chat header. The preference is stored in this browser only.',
+          'When the Agent calls an earth tool (earth_scene / earth_capture / earth_draw / earth_measure / earth_analyze / earth_shader), open the Digital Earth panel beside the conversation; with this off you can still open it from the globe button in the chat header. The preference is stored in this browser only.',
         'settings.screenshotHud': 'Overlay coordinate HUD and credits in snapshots',
         'settings.screenshotHudHint':
           'Off by default: snapshots keep only the clean 3D view, which is easier to share or hand to a model. Turn it on to burn the cursor coordinates, camera parameters and team credit into the image (the panel toolbar is DOM chrome and can never be part of the image).',
+        'settings.showLayers': 'Show the layer card',
+        'settings.showLayersHint':
+          'When off, the layer card collapses off the canvas; reopen it from the Layers button in the toolbar. The preference is written back to the sources config.',
+        'settings.showHud': 'Show the coordinate HUD',
+        'settings.showHudHint':
+          'When off, the bottom-left coordinates/tile statistics are not rendered and pointer sampling stops to save performance. Snapshots still hide the HUD by default; the preference is written back to the sources config.',
         'about.version': 'Version',
         'about.homepage': 'Source code',
         'about.issues': 'Report an issue',
@@ -454,7 +583,7 @@ window.__ModuleLoader__.load({
         'agent.missingLayer': 'Provide layer (a layer id or name).',
         'agent.unknownLayer': 'No layer "{name}". Current layers: {list}',
         'agent.missingUrl': 'Provide an http(s) URL or a local tileset.json path.',
-        'agent.dirDenied': 'That local folder is not authorized yet ({message}). Open it once in the panel via Data → Open local folder.',
+        'agent.dirDenied': 'Could not access that local folder ({message}). Retry once to trigger the authorisation prompt; if it still fails, authorise the folder in the panel and try again.',
         'agent.missingCoords': 'Provide lon and lat.',
         'agent.unknownImagery': 'No imagery source "{name}". Available: {list}',
         'agent.unknownTerrain': 'No terrain source "{name}". Available: {list}',
@@ -463,7 +592,91 @@ window.__ModuleLoader__.load({
         'agent.badMeasure': 'Invalid measurement arguments: {message}',
         'agent.measureEmpty': 'No measurement result was produced.',
         'agent.clearedOverlays': 'Agent annotations cleared',
+        'access.title': 'Allow local data access',
+        'access.body':
+          'The Agent wants to load data from this local path. If you allow it, the panel first registers the containing folder as a readable local data source (for this page session only), then continues the operation.',
+        'access.dir': 'Folder',
+        'access.path': 'Requested path',
+        'access.target': 'Resolved file',
+        'access.file': 'File',
+        'access.allowing': 'Registering the folder…',
+        'access.request.load': 'Load 3D Tiles',
+        'access.request.inspect': 'Data health check',
+        'access.request.generic': 'read local data',
+        'access.missing':
+          'No tileset.json exists at that exact path right now: after you allow it, the Host keeps looking for a single candidate inside the ancestor folder and only loads the file when exactly one is found.',
+        'access.resolved': 'A candidate file was found in an ancestor folder; allowing loads this file:',
+        'access.allow': 'Allow and continue',
+        'access.cancel': 'Cancel',
+        'access.denied': 'The user cancelled the local path authorisation, so the operation did not run.',
+        'access.scanFailed': 'The folder could not be registered, so the operation did not run: {message}',
+        'access.remote': 'Only local paths need authorisation; remote URLs do not.',
+        'access.badPath': 'The authorisation request has no valid local path.',
+        'analysis.title.profile': 'Terrain profile',
+        'analysis.title.flood': 'Flood analysis',
+        'analysis.title.sunlight': 'Sunlight analysis',
+        'analysis.layer': 'Layer',
+        'analysis.collapse': 'Collapse analysis card',
+        'analysis.expand': 'Expand analysis card',
+        'analysis.close': 'Close analysis card',
+        'analysis.chart': 'Distance–elevation profile',
+        'analysis.length': 'Profile length',
+        'analysis.minHeight': 'Lowest elevation',
+        'analysis.maxHeight': 'Highest elevation',
+        'analysis.relief': 'Relief',
+        'analysis.gain': 'Total ascent',
+        'analysis.loss': 'Total descent',
+        'analysis.samples': 'Samples',
+        'analysis.region': 'Analysis extent',
+        'analysis.waterHeight': 'Water level',
+        'analysis.area': 'Analysis area',
+        'analysis.inundated': 'Inundated area',
+        'analysis.inundatedRatio': 'Inundated share',
+        'analysis.depthMax': 'Max depth',
+        'analysis.depthMean': 'Mean depth',
+        'analysis.inundatedSamples': 'Inundated cells',
+        'analysis.altitude': 'Solar altitude',
+        'analysis.azimuth': 'Solar azimuth',
+        'analysis.datetime': 'Time',
+        'analysis.shadows': 'Shadows',
+        'analysis.shadowsOn': 'enabled',
+        'analysis.shadowsOff': 'disabled',
+        'analysis.night': 'Night',
+        'analysis.day': 'Day',
+        'analysis.daylight': 'Day / night',
+        'analysis.hint': 'One analysis is kept at a time; another analysis or clear replaces the current result.',
+        'analysis.start': 'Start {value}',
+        'analysis.end': 'End {value}',
+        'analysis.waterLabel': 'Water {value}',
+        'analysis.sunLabel': 'Sun {altitude}° / {azimuth}°',
+        'shader.title': 'Shader workbench',
+        'shader.close': 'Close shader workbench',
+        'shader.layerLabel': 'Target layer',
+        'shader.layerAuto': 'Top visible layer (auto)',
+        'shader.presetLabel': 'Preset',
+        'shader.preset.height-false-color': 'Elevation ramp',
+        'shader.preset.contour': 'Contours',
+        'shader.preset.scan': 'Height scan',
+        'shader.preset.water': 'Water ripples',
+        'shader.param.minHeight': 'Min height (m)',
+        'shader.param.maxHeight': 'Max height (m)',
+        'shader.param.auto': 'Auto',
+        'shader.param.interval': 'Contour interval (m)',
+        'shader.param.speed': 'Animation speed',
+        'shader.param.amplitude': 'Amplitude',
+        'shader.param.opacity': 'Opacity',
+        'shader.apply': 'Apply preset',
+        'shader.resetLayer': 'Reset layer',
+        'shader.resetAll': 'Reset all',
+        'shader.active': 'Active presets',
+        'shader.activeEmpty': 'No preset applied yet',
+        'shader.noLayers': 'Load a 3D Tiles layer before applying a shader preset.',
         'toast.captureSaved': 'Saved {width}×{height} snapshot: {path}',
+        'toast.askAgentSent': 'Scene sent to the conversation; just type your question.',
+        'toast.askAgentFailed': 'Could not send the scene: {message}',
+        'toast.askAgentNoSession': 'Open a conversation first to use Ask Agent.',
+        'toast.reportSaved': 'Scene report saved: {path}',
+        'toast.reportFailed': 'Could not export the report: {message}',
         'toast.noSession': 'Open a conversation first to view the globe beside it.',
         'unit.hectare': 'ha',
       },
@@ -471,7 +684,7 @@ window.__ModuleLoader__.load({
 
     /** About-tab fallbacks used before the Host meta payload arrives. */
     const FALLBACK_ABOUT = {
-      version: '1.3.0',
+      version: '1.4.0',
       homepage: 'https://github.com/CVEO/dsh-digital-earth',
       teamUrl: 'https://www.whu-cveo.com/',
     }
@@ -642,6 +855,47 @@ window.__ModuleLoader__.load({
       typeof layer.source === 'object' &&
       (typeof layer.source.path === 'string' || typeof layer.source.url === 'string')
 
+    const SNAPSHOT_ANALYSIS_ACTIONS = ['profile', 'flood', 'sunlight']
+
+    const isSnapshotAnalysis = (analysis) =>
+      analysis !== null &&
+      typeof analysis === 'object' &&
+      typeof analysis.action === 'string' &&
+      SNAPSHOT_ANALYSIS_ACTIONS.includes(analysis.action)
+
+    const isSnapshotShader = (item) =>
+      item !== null && typeof item === 'object' && typeof item.layer === 'string' && typeof item.preset === 'string'
+
+    /** Normalize one stored snapshot body (localStorage or the host route). */
+    function normalizeSceneSnapshot(snapshot) {
+      if (snapshot === null || typeof snapshot !== 'object' || snapshot.v !== SCENE_STORE_VERSION) return null
+      const layers = (Array.isArray(snapshot.layers) ? snapshot.layers : [])
+        .filter(isSnapshotLayer)
+        .map((layer) => ({ name: layer.name, source: layer.source, visible: layer.visible !== false }))
+      const draw = Array.isArray(snapshot.annotations?.draw)
+        ? snapshot.annotations.draw.filter((command) => command !== null && typeof command === 'object' && command.geojson !== undefined)
+        : []
+      const measure = Array.isArray(snapshot.annotations?.measure)
+        ? snapshot.annotations.measure.filter(
+            (command) => command !== null && typeof command === 'object' && typeof command.mode === 'string' && Array.isArray(command.points),
+          )
+        : []
+      const shaders = Array.isArray(snapshot.shaders)
+        ? snapshot.shaders.filter(isSnapshotShader).map((item) => ({
+            layer: item.layer,
+            preset: item.preset,
+            params: item.params !== null && typeof item.params === 'object' ? item.params : {},
+          }))
+        : []
+      return {
+        view: isSnapshotView(snapshot.view) ? snapshot.view : null,
+        layers,
+        annotations: { draw, measure },
+        analysis: isSnapshotAnalysis(snapshot.analysis) ? snapshot.analysis : null,
+        shaders,
+      }
+    }
+
     function readSceneSnapshot(sessionId) {
       if (typeof sessionId !== 'string' || sessionId === '') return null
       const store = sceneStorage()
@@ -649,20 +903,7 @@ window.__ModuleLoader__.load({
       try {
         const raw = store.getItem(sceneStoreKey(sessionId))
         if (typeof raw !== 'string' || raw === '') return null
-        const snapshot = JSON.parse(raw)
-        if (snapshot === null || typeof snapshot !== 'object' || snapshot.v !== SCENE_STORE_VERSION) return null
-        const layers = (Array.isArray(snapshot.layers) ? snapshot.layers : [])
-          .filter(isSnapshotLayer)
-          .map((layer) => ({ name: layer.name, source: layer.source, visible: layer.visible !== false }))
-        const draw = Array.isArray(snapshot.annotations?.draw)
-          ? snapshot.annotations.draw.filter((command) => command !== null && typeof command === 'object' && command.geojson !== undefined)
-          : []
-        const measure = Array.isArray(snapshot.annotations?.measure)
-          ? snapshot.annotations.measure.filter(
-              (command) => command !== null && typeof command === 'object' && typeof command.mode === 'string' && Array.isArray(command.points),
-            )
-          : []
-        return { view: isSnapshotView(snapshot.view) ? snapshot.view : null, layers, annotations: { draw, measure } }
+        return normalizeSceneSnapshot(JSON.parse(raw))
       } catch {
         return null
       }
@@ -692,34 +933,43 @@ window.__ModuleLoader__.load({
       }
     }
 
+    /**
+     * Persist the snapshot body to the local cache and return the body so the
+     * caller can also hand it to the host store. Returns null only when the
+     * snapshot cannot be serialized.
+     */
     function writeSceneSnapshot(sessionId, snapshot) {
-      if (typeof sessionId !== 'string' || sessionId === '') return
-      const store = sceneStorage()
-      if (!store) return
+      if (typeof sessionId !== 'string' || sessionId === '') return null
       const body = { v: SCENE_STORE_VERSION, savedAt: new Date().toISOString(), ...snapshot }
       let text = ''
       try {
         text = JSON.stringify(body)
       } catch {
-        return
+        return null
       }
-      // Overlays are reconstructible from the conversation, so drop them first
-      // rather than lose the camera and layer list to the quota.
+      // Overlays and analyses are reconstructible from the conversation, so drop
+      // them first rather than lose the camera and layer list to the quota.
       if (text.length > SCENE_STORE_MAX_BYTES) {
         body.annotations = { draw: [], measure: [] }
+        body.analysis = null
         try {
           text = JSON.stringify(body)
         } catch {
-          return
+          return null
         }
-        if (text.length > SCENE_STORE_MAX_BYTES) return
+        if (text.length > SCENE_STORE_MAX_BYTES) return null
       }
-      try {
-        store.setItem(sceneStoreKey(sessionId), text)
-      } catch {
-        return
+      const store = sceneStorage()
+      if (store) {
+        try {
+          store.setItem(sceneStoreKey(sessionId), text)
+          trimSceneSnapshots(store, sceneStoreKey(sessionId))
+        } catch {
+          // Quota or privacy mode: the local cache stays best effort; the host
+          // store below still gets the body.
+        }
       }
-      trimSceneSnapshots(store, sceneStoreKey(sessionId))
+      return body
     }
     //#endregion scene persistence
 
@@ -765,6 +1015,34 @@ window.__ModuleLoader__.load({
           : `${squareMeters.toFixed(1)} m²`
     const formatHeight = (meters) =>
       Math.abs(meters) >= 1000 ? `${(meters / 1000).toFixed(2)} km` : `${meters.toFixed(1)} m`
+
+    /** Escape user/scene text for the self-contained report HTML. */
+    const escapeHtml = (value) =>
+      String(value).replace(/[&<>"']/g, (character) => {
+        switch (character) {
+          case '&':
+            return '&amp;'
+          case '<':
+            return '&lt;'
+          case '>':
+            return '&gt;'
+          case '"':
+            return '&quot;'
+          default:
+            return '&#39;'
+        }
+      })
+
+    /** Base64-encode a binary screenshot for embedding in the report HTML. */
+    const arrayBufferToBase64 = (buffer) => {
+      const bytes = new Uint8Array(buffer)
+      let binary = ''
+      const chunk = 0x8000
+      for (let index = 0; index < bytes.length; index += chunk) {
+        binary += String.fromCharCode.apply(null, bytes.subarray(index, index + chunk))
+      }
+      return btoa(binary)
+    }
 
     function geodesicLength(Cesium, points) {
       let total = 0
@@ -887,6 +1165,28 @@ window.__ModuleLoader__.load({
     }
 
     /** Map a stored imagery source onto a Cesium imagery provider. */
+    /**
+     * Register a local folder with the Host scan endpoint so its files can be
+     * served same-origin. `x-dsh-panel` is required: it proves the request comes
+     * from the panel, not from arbitrary page script.
+     */
+    const scanLocalDirectory = async (meta, directory) => {
+      const response = await fetch(
+        `${meta.scanUrl}?token=${encodeURIComponent(meta.token)}&dir=${encodeURIComponent(directory)}`,
+        { credentials: 'same-origin', headers: { 'x-dsh-panel': '1' } },
+      )
+      if (!response.ok) throw new Error(`HTTP ${response.status}`)
+      return response.json().catch(() => ({}))
+    }
+
+    /**
+     * Client-side cleanup deadline for the authorisation dialog. The Host times the
+     * request out at 30 s and maps it to `access_timeout`; this timer only keeps the
+     * panel's serialised command chain from waiting forever after that, and the Host
+     * ignores the late ack.
+     */
+    const ACCESS_TIMEOUT_MS = 32000
+
     async function imageryProvider(Cesium, source) {
       const options = {}
       if (source.credit) options.credit = source.credit
@@ -922,27 +1222,27 @@ window.__ModuleLoader__.load({
 
     //#region cursor sampling --------------------------------------------------
 
-    /** True when a pick result describes geometry above the globe (tiles, models). */
-    function isModelPick(Cesium, picked) {
-      if (!Cesium.defined(picked)) return false
-      if (picked instanceof Cesium.Cesium3DTileFeature) return true
-      const primitive = picked.primitive ?? picked
-      if (primitive instanceof Cesium.Cesium3DTileset) return true
-      if (primitive instanceof Cesium.Model) return true
-      return false
-    }
+    /** Above this camera height the depth buffer is too coarse to trust. */
+    const PICK_POSITION_MAX_CAMERA_HEIGHT = 100000
+    /** Steady HUD refresh cadence while the pointer moves (5–6 Hz is plenty). */
+    const HUD_SAMPLE_INTERVAL_MS = 180
+    /** Quiet time after the last pointer move before the one depth-buffer read. */
+    const HUD_SETTLE_MS = 180
 
     /**
      * Sample the point under the pointer.
      *
-     * The globe surface always has an answer (ray → ellipsoid), which keeps the
-     * readout alive on the bare globe with terrain disabled. When a 3D Tiles or
-     * glTF surface is under the cursor its depth is preferred, at any camera
-     * distance, so the reported elevation is the model surface instead of sea
-     * level. Terrain elevation is filled in from the globe when a terrain
-     * provider is attached and the depth buffer is too coarse to trust.
+     * The globe ray hit always has an answer (ray → ellipsoid), which keeps the
+     * readout alive on the bare globe with terrain disabled; a non-flat terrain
+     * provider fills in the surface elevation through `globe.getHeight`.
+     * `options.pickPosition` additionally reads the depth buffer so a 3D Tiles /
+     * glTF surface under the cursor reports its own elevation — that is a GPU→CPU
+     * readback, so the HUD only asks for it once the pointer settles. `scene.pick`
+     * is deliberately not used here: the pick was only needed to decide whether
+     * depth was trustworthy, and `earth_scene pick` remains the way to identify
+     * an object.
      */
-    function sampleCursor(viewer, Cesium, position) {
+    function sampleCursor(viewer, Cesium, position, options = {}) {
       const scene = viewer.scene
       const ellipsoid = scene.globe.ellipsoid
       const ray = viewer.camera.getPickRay(position)
@@ -951,10 +1251,9 @@ window.__ModuleLoader__.load({
       if (!carto) return null
       carto.height = 0
 
-      const picked = scene.pick(position)
-      const overModel = isModelPick(Cesium, picked)
       let sampled = false
-      if (scene.pickPositionSupported && (overModel || viewer.camera.positionCartographic.height < 100000)) {
+      const cameraHeight = viewer.camera.positionCartographic.height
+      if (options.pickPosition === true && scene.pickPositionSupported && cameraHeight < PICK_POSITION_MAX_CAMERA_HEIGHT) {
         try {
           const point = scene.pickPosition(position)
           if (Cesium.defined(point)) {
@@ -977,7 +1276,7 @@ window.__ModuleLoader__.load({
         } else {
           carto.height = 0
         }
-      } else if (!overModel && scene.globe.terrainProvider instanceof Cesium.EllipsoidTerrainProvider) {
+      } else if (scene.globe.terrainProvider instanceof Cesium.EllipsoidTerrainProvider) {
         // The depth buffer biases the faceted ellipsoid by up to a few
         // kilometres; report sea level instead of a fake elevation.
         if (Math.abs(carto.height) < 100) carto.height = 0
@@ -992,6 +1291,416 @@ window.__ModuleLoader__.load({
       return `${lon}, ${lat} · ${t('hud.elevation', { value: formatHeight(height) })}`
     }
     //#endregion cursor sampling
+
+    //#region analysis core ----------------------------------------------------
+    // Shared maths for the B2 analysis engine (profile / flood / sunlight). The
+    // engine itself lives inside ViewerSurface because it owns the viewer and the
+    // React card state; these helpers stay pure so the sampling/formatting rules
+    // are the same for every operation.
+
+    /** Analysis entities share this id prefix so clear() never touches agent overlays. */
+    const ANALYSIS_ENTITY_PREFIX = 'analysis-'
+    /** At least this many elevation samples are required for a surface statistic. */
+    const ANALYSIS_MIN_SAMPLES = 2
+    /** Elevation colour band: blue (low) → green → yellow → orange → red (high). */
+    const ANALYSIS_ELEVATION_STOPS = ['#3b82f6', '#22c55e', '#eab308', '#f97316', '#ef4444']
+
+    const analysisRound = (value, digits = 1) => {
+      const factor = 10 ** digits
+      return Math.round(value * factor) / factor
+    }
+
+    const analysisInteger = (value, fallback, minimum, maximum) => {
+      const number = Number(value)
+      if (!Number.isFinite(number)) return fallback
+      return Math.min(maximum, Math.max(minimum, Math.round(number)))
+    }
+
+    const analysisLonLat = (value) => {
+      if (!Array.isArray(value) || value.length < 2) return null
+      const lon = Number(value[0])
+      const lat = Number(value[1])
+      if (!Number.isFinite(lon) || !Number.isFinite(lat)) return null
+      if (lon < -180 || lon > 180 || lat < -90 || lat > 90) return null
+      return [lon, lat]
+    }
+
+    const analysisRegion = (value) => {
+      if (value === null || typeof value !== 'object') return null
+      const west = Number(value.west)
+      const south = Number(value.south)
+      const east = Number(value.east)
+      const north = Number(value.north)
+      if (![west, south, east, north].every((item) => Number.isFinite(item))) return null
+      if (west < -180 || east > 180 || south < -90 || north > 90 || west >= east || south >= north) return null
+      return { west, south, east, north }
+    }
+
+    /** Interpolate the profile colour band for a 0..1 elevation ratio. */
+    const analysisColorAt = (Cesium, ratio) => {
+      const clamped = Math.min(1, Math.max(0, Number.isFinite(ratio) ? ratio : 0))
+      const scaled = clamped * (ANALYSIS_ELEVATION_STOPS.length - 1)
+      const index = Math.min(ANALYSIS_ELEVATION_STOPS.length - 2, Math.floor(scaled))
+      const local = scaled - index
+      try {
+        const from = Cesium.Color.fromCssColorString(ANALYSIS_ELEVATION_STOPS[index])
+        const to = Cesium.Color.fromCssColorString(ANALYSIS_ELEVATION_STOPS[index + 1])
+        return Cesium.Color.lerp(from, to, local, new Cesium.Color())
+      } catch {
+        return Cesium.Color.DODGERBLUE
+      }
+    }
+
+    /**
+     * Elevation probe used by profile/flood. A visible 3D Tiles layer may expose
+     * `getHeight` (some providers return a Promise), terrain is the fallback, and
+     * a missing value stays `null` — never a fake zero.
+     */
+    const analysisElevation = async (Cesium, viewer, layer, carto) => {
+      const scene = viewer.scene
+      const tileset = layer && layer.visible ? layer.tileset : null
+      if (tileset && typeof tileset.getHeight === 'function') {
+        try {
+          const value = tileset.getHeight(carto, scene)
+          const height = value && typeof value.then === 'function' ? await value : value
+          if (typeof height === 'number' && Number.isFinite(height)) return height
+        } catch {
+          /* fall back to the globe */
+        }
+      }
+      try {
+        const height = scene.globe.getHeight(carto)
+        if (typeof height === 'number' && Number.isFinite(height)) return height
+      } catch {
+        /* no terrain provider: leave the sample empty */
+      }
+      return null
+    }
+
+    /**
+     * Sun altitude/azimuth at an observer for a date, using Cesium's built-in
+     * ephemeris (Simon1994) plus an inertial→fixed rotation. Altitude is 0 at the
+     * horizon; azimuth is degrees clockwise from north.
+     *
+     * `computeIcrfToFixedMatrix` needs Cesium's IAU2006 XYS assets and returns
+     * undefined until they are loaded, so that rotation is preferred when it is
+     * available and the synchronous TEME→pseudo-fixed rotation (GMST-based, no
+     * assets, ~0.01° difference for a sun direction) is used as a fallback.
+     * The date has to be a `JulianDate`; Cesium's ephemeris reads Julian fields.
+     */
+    const analysisSunAngles = (Cesium, date, observer) => {
+      try {
+        if (!Cesium.Simon1994PlanetaryPositions || !Cesium.Transforms) return null
+        const julianDate = Cesium.JulianDate.fromDate(date)
+        const sunInertial =
+          Cesium.Simon1994PlanetaryPositions.computeSunPositionInEarthInertialFrame(julianDate)
+        if (!sunInertial) return null
+        let icrfToFixed = null
+        try {
+          icrfToFixed = Cesium.Transforms.computeIcrfToFixedMatrix(julianDate)
+        } catch {
+          icrfToFixed = null
+        }
+        if (!icrfToFixed) {
+          icrfToFixed = Cesium.Transforms.computeTemeToPseudoFixedMatrix(julianDate)
+        }
+        if (!icrfToFixed) return null
+        const sunFixed = Cesium.Matrix3.multiplyByVector(icrfToFixed, sunInertial, new Cesium.Cartesian3())
+        const sunDirection = Cesium.Cartesian3.normalize(sunFixed, new Cesium.Cartesian3())
+        // Cesium 1.147: geodeticSurfaceNormal takes a Cartesian, the Cartographic
+        // sugar is geodeticSurfaceNormalCartographic.
+        const ellipsoid = Cesium.Ellipsoid.WGS84
+        const up =
+          typeof ellipsoid.geodeticSurfaceNormalCartographic === 'function'
+            ? ellipsoid.geodeticSurfaceNormalCartographic(observer, new Cesium.Cartesian3())
+            : Cesium.Cartesian3.normalize(
+                ellipsoid.cartographicToCartesian(observer, new Cesium.Cartesian3()),
+                new Cesium.Cartesian3(),
+              )
+        const sine = Cesium.Math.clamp(Cesium.Cartesian3.dot(sunDirection, up), -1, 1)
+        const altitude = Cesium.Math.toDegrees(Math.asin(sine))
+        if (!Number.isFinite(altitude)) return null
+        const enu = Cesium.Transforms.eastNorthUpToFixedFrame(
+          Cesium.Cartesian3.fromRadians(observer.longitude, observer.latitude, 0),
+        )
+        const east = Cesium.Matrix4.getColumn(enu, 0, new Cesium.Cartesian4())
+        const north = Cesium.Matrix4.getColumn(enu, 1, new Cesium.Cartesian4())
+        const eastDirection = new Cesium.Cartesian3(east.x, east.y, east.z)
+        const northDirection = new Cesium.Cartesian3(north.x, north.y, north.z)
+        const azimuth = (
+          Cesium.Math.toDegrees(
+            Math.atan2(
+              Cesium.Cartesian3.dot(sunDirection, eastDirection),
+              Cesium.Cartesian3.dot(sunDirection, northDirection),
+            ),
+          ) + 360
+        ) % 360
+        if (!Number.isFinite(azimuth)) return null
+        return { altitude: analysisRound(altitude, 2), azimuth: analysisRound(azimuth, 2) }
+      } catch {
+        return null
+      }
+    }
+
+    /** Sun angles describe the dataset centre when known, otherwise the camera. */
+    const analysisObserver = (Cesium, viewer, layer) => {
+      const tileset = layer ? layer.tileset : null
+      if (tileset && tileset.boundingSphere) {
+        try {
+          const carto = Cesium.Cartographic.fromCartesian(tileset.boundingSphere.center)
+          if (carto) return carto
+        } catch {
+          /* use the camera position */
+        }
+      }
+      return viewer.camera.positionCartographic
+    }
+    //#endregion analysis core
+
+    //#region shader core ------------------------------------------------------
+    // B3 shader presets. The model and the workbench can only pick from this
+    // white list; no arbitrary GLSL ever reaches Cesium. Every preset modifies
+    // only the fragment material (diffuse/alpha), so lighting and geometry stay
+    // untouched and a broken shader cannot corrupt the scene.
+    const SHADER_PRESETS = ['height-false-color', 'contour', 'scan', 'water']
+    /** Hard cap from the B3 contract: one preset source stays well under 8 KB. */
+    const SHADER_SOURCE_LIMIT = 8 * 1024
+    const SHADER_HEIGHT_FLOOR = -1000
+    const SHADER_HEIGHT_CEILING = 9000
+    const SHADER_PARAM_LIMITS = {
+      min_height: [-1000, 9000],
+      max_height: [-1000, 9000],
+      interval: [1, 500],
+      speed: [0.1, 10],
+      amplitude: [0.1, 5],
+      opacity: [0.05, 1],
+    }
+    const SHADER_PRESET_PARAMS = {
+      'height-false-color': ['min_height', 'max_height'],
+      contour: ['interval'],
+      scan: ['speed'],
+      water: ['speed', 'amplitude', 'opacity'],
+    }
+    const SHADER_PRESET_DEFAULTS = {
+      'height-false-color': {},
+      contour: { interval: 20 },
+      scan: { speed: 1 },
+      water: { speed: 1, amplitude: 1, opacity: 0.75 },
+    }
+
+    const shaderClamp = (value, minimum, maximum) => Math.min(Math.max(value, minimum), maximum)
+    const shaderFinite = (value) => typeof value === 'number' && Number.isFinite(value)
+    /** All failures are model-facing: one `shader:` prefix and one actionable `next:`. */
+    const shaderFail = (message, next) => new Error(`shader: ${message} next: ${next}`)
+
+    /**
+     * Normalise bridge arguments against the frozen B3 contract. Returns either a
+     * request object or an Error carrying the model-facing message (never throws),
+     * so both runCommand and the workbench share exactly one validation path.
+     */
+    function shaderValidateRequest(args = {}) {
+      const raw = args && typeof args === 'object' && !Array.isArray(args) ? args : {}
+      const action = typeof raw.action === 'string' ? raw.action.trim() : ''
+      if (action !== 'apply' && action !== 'reset' && action !== 'list') {
+        return shaderFail(`不支持的操作 "${String(raw.action)}"。`, '使用 apply / reset / list。')
+      }
+      if (raw.layer !== undefined && raw.layer !== null && typeof raw.layer !== 'string') {
+        return shaderFail('layer 必须是图层名或 id 字符串。', '传入字符串后重试。')
+      }
+      const layer = typeof raw.layer === 'string' && raw.layer.trim() !== '' ? raw.layer.trim() : null
+      const keys = Object.keys(raw).filter((key) => key !== 'action')
+
+      if (action === 'list') {
+        if (keys.length > 0) return shaderFail(`list 不接受参数 "${keys[0]}"。`, '只传 action: "list"。')
+        return { operation: 'list' }
+      }
+      if (action === 'reset') {
+        const extra = keys.filter((key) => key !== 'layer')
+        if (extra.length > 0) return shaderFail(`reset 不接受参数 "${extra[0]}"。`, 'reset 只接受 action 与可选的 layer。')
+        return { operation: 'reset', layer }
+      }
+
+      const preset = typeof raw.preset === 'string' ? raw.preset.trim() : ''
+      if (!SHADER_PRESETS.includes(preset)) {
+        return shaderFail(
+          `不支持的预设 "${String(raw.preset)}"。`,
+          '使用 height-false-color / contour / scan / water。',
+        )
+      }
+      const allowed = new Set(['preset', 'layer', ...SHADER_PRESET_PARAMS[preset]])
+      const extra = keys.filter((key) => !allowed.has(key))
+      if (extra.length > 0) {
+        return shaderFail(
+          `预设 ${preset} 不接受参数 "${extra[0]}"。`,
+          `只使用 ${['preset', 'layer', ...SHADER_PRESET_PARAMS[preset]].join(', ')}。`,
+        )
+      }
+      const params = { ...SHADER_PRESET_DEFAULTS[preset] }
+      for (const key of SHADER_PRESET_PARAMS[preset]) {
+        const value = raw[key]
+        if (value === undefined || value === null) continue
+        if (!shaderFinite(value)) return shaderFail(`参数 ${key} 必须是有限数字。`, '传入数字后重试。')
+        const [minimum, maximum] = SHADER_PARAM_LIMITS[key]
+        if (value < minimum || value > maximum) {
+          return shaderFail(`参数 ${key}=${value} 超出 ${minimum}..${maximum}。`, '调整到合法范围后重试。')
+        }
+        params[key] = value
+      }
+      if (
+        preset === 'height-false-color' &&
+        params.min_height !== undefined &&
+        params.max_height !== undefined &&
+        !(params.min_height < params.max_height)
+      ) {
+        return shaderFail('min_height 必须小于 max_height。', '调整两个高度后重试。')
+      }
+      return { operation: 'apply', preset, layer, params }
+    }
+
+    /** ext list detection: Cesium 1.147 keeps tileset JSON extensions in `_extensionsUsed`. */
+    function shaderTilesetExtensions(tileset) {
+      const lists = [tileset?.extensionsUsed, tileset?._extensionsUsed, tileset?.root?.extensionsUsed]
+      const values = []
+      for (const list of lists) {
+        if (!Array.isArray(list)) continue
+        for (const item of list) {
+          if (typeof item === 'string' && !values.includes(item)) values.push(item)
+        }
+      }
+      return values
+    }
+
+    /** 3DGS splats have no per-vertex GLSL material Cesium.CustomShader can edit. */
+    function shaderGaussianLayer(tileset) {
+      if (shaderTilesetExtensions(tileset).includes('KHR_gaussian_splatting')) return true
+      if (typeof tileset?.hasExtension === 'function') {
+        try {
+          return tileset.hasExtension('KHR_gaussian_splatting') === true
+        } catch {
+          return false
+        }
+      }
+      return false
+    }
+
+    /**
+     * Relative height on the dataset: |positionWC| - |centre| + centreHeight is a
+     * tangent-plane approximation that works for any tileset orientation. The
+     * default range comes from the bounding sphere; the contract fallback is 0..200.
+     */
+    function shaderHeightRange(Cesium, tileset, fallbackCenter) {
+      let center =
+        tileset?.boundingSphere?.center ?? tileset?.root?.boundingSphere?.center ?? fallbackCenter ?? null
+      if (!center) center = Cesium.Cartesian3.fromDegrees(0, 0, 0)
+      let centerHeight = 0
+      try {
+        const carto = Cesium.Cartographic.fromCartesian(center)
+        if (carto && shaderFinite(carto.height)) centerHeight = carto.height
+      } catch {
+        centerHeight = 0
+      }
+      const rawRadius = Number(tileset?.boundingSphere?.radius ?? tileset?.root?.boundingSphere?.radius)
+      const radius = shaderFinite(rawRadius) ? Math.abs(rawRadius) : 0
+      let minimum = 0
+      let maximum = 0
+      if (radius > 0) {
+        minimum = shaderClamp(centerHeight - radius, SHADER_HEIGHT_FLOOR, SHADER_HEIGHT_CEILING)
+        maximum = shaderClamp(centerHeight + radius, SHADER_HEIGHT_FLOOR, SHADER_HEIGHT_CEILING)
+      }
+      // Contract fallback when there is no usable bounding volume: a zero-radius
+      // (point-like) sphere also uses 0..200, exactly as the frozen contract says.
+      // User-supplied min_height/max_height still override this range later.
+      if (!(maximum > minimum)) {
+        minimum = 0
+        maximum = 200
+      }
+      return { center, centerHeight, minimum, maximum, estimated: radius > 0 }
+    }
+
+    /** Per-preset uniform map; every value is finite and inside the contract bounds. */
+    function shaderUniforms(Cesium, preset, params, range) {
+      const uniforms = {
+        u_center: { type: Cesium.UniformType.VEC3, value: range.center },
+        u_centerHeight: { type: Cesium.UniformType.FLOAT, value: range.centerHeight },
+      }
+      if (preset === 'height-false-color' || preset === 'scan') {
+        uniforms.u_minHeight = { type: Cesium.UniformType.FLOAT, value: range.minimum }
+        uniforms.u_maxHeight = { type: Cesium.UniformType.FLOAT, value: range.maximum }
+      }
+      if (preset === 'contour') {
+        uniforms.u_interval = { type: Cesium.UniformType.FLOAT, value: params.interval ?? 20 }
+      }
+      if (preset === 'scan' || preset === 'water') {
+        uniforms.u_speed = { type: Cesium.UniformType.FLOAT, value: params.speed ?? 1 }
+        uniforms.u_time = { type: Cesium.UniformType.FLOAT, value: 0 }
+      }
+      if (preset === 'water') {
+        uniforms.u_amplitude = { type: Cesium.UniformType.FLOAT, value: params.amplitude ?? 1 }
+        uniforms.u_opacity = { type: Cesium.UniformType.FLOAT, value: params.opacity ?? 0.75 }
+      }
+      return uniforms
+    }
+
+    function shaderFragmentSource(preset) {
+      const source = SHADER_FRAGMENT_SOURCES[preset]
+      if (typeof source !== 'string' || source.length === 0 || source.length > SHADER_SOURCE_LIMIT) {
+        throw shaderFail(`预设 ${String(preset)} 的着色器源码无效。`, '联系面板维护者检查预设定义。')
+      }
+      return source
+    }
+
+    // Fragments only touch `material.diffuse` / `material.alpha`. Cesium declares
+    // the uniforms from the CustomShader uniform map, so they are never re-declared
+    // here; `fsInput.attributes.positionWC` is auto-wired by Cesium when referenced.
+    const SHADER_FRAGMENT_SOURCES = {
+      'height-false-color': `void fragmentMain(FragmentInput fsInput, inout czm_modelMaterial material) {
+  float height = length(fsInput.attributes.positionWC) - length(u_center) + u_centerHeight;
+  float span = max(u_maxHeight - u_minHeight, 1.0);
+  float t = clamp((height - u_minHeight) / span, 0.0, 1.0);
+  vec3 low = vec3(0.16, 0.36, 0.86);
+  vec3 midLow = vec3(0.20, 0.78, 0.36);
+  vec3 mid = vec3(0.96, 0.90, 0.22);
+  vec3 midHigh = vec3(0.98, 0.56, 0.14);
+  vec3 high = vec3(0.92, 0.18, 0.16);
+  vec3 ramp = t < 0.25
+    ? mix(low, midLow, t / 0.25)
+    : t < 0.5
+      ? mix(midLow, mid, (t - 0.25) / 0.25)
+      : t < 0.75
+        ? mix(mid, midHigh, (t - 0.5) / 0.25)
+        : mix(midHigh, high, (t - 0.75) / 0.25);
+  material.diffuse = mix(material.diffuse, ramp, 0.85);
+}`,
+      contour: `void fragmentMain(FragmentInput fsInput, inout czm_modelMaterial material) {
+  float height = length(fsInput.attributes.positionWC) - length(u_center) + u_centerHeight;
+  float spacing = max(u_interval, 1.0);
+  float band = fract(height / spacing);
+  float edge = min(band, 1.0 - band);
+  float line = 1.0 - smoothstep(0.0, 0.08, edge);
+  vec3 contourColor = vec3(0.98, 0.84, 0.28);
+  material.diffuse = mix(material.diffuse, contourColor, line);
+}`,
+      scan: `void fragmentMain(FragmentInput fsInput, inout czm_modelMaterial material) {
+  float height = length(fsInput.attributes.positionWC) - length(u_center) + u_centerHeight;
+  float span = max(u_maxHeight - u_minHeight, 1.0);
+  float t = clamp((height - u_minHeight) / span, 0.0, 1.0);
+  float sweep = fract(u_time * max(u_speed, 0.1) * 0.12);
+  float distanceToBand = abs(t - sweep);
+  float band = 1.0 - smoothstep(0.0, 0.05, distanceToBand);
+  vec3 scanColor = vec3(0.32, 0.95, 1.0);
+  material.diffuse = mix(material.diffuse * 0.6, scanColor, band);
+}`,
+      water: `void fragmentMain(FragmentInput fsInput, inout czm_modelMaterial material) {
+  float height = length(fsInput.attributes.positionWC) - length(u_center) + u_centerHeight;
+  float waveA = sin(height * 0.35 + u_time * u_speed * 1.6);
+  float waveB = sin(height * 0.72 - u_time * u_speed * 2.4);
+  float ripple = clamp(0.5 + (waveA * 0.35 + waveB * 0.15) * u_amplitude, 0.0, 1.0);
+  vec3 waterColor = mix(vec3(0.03, 0.16, 0.38), vec3(0.24, 0.62, 0.92), ripple);
+  material.diffuse = mix(material.diffuse, waterColor, u_opacity);
+  material.alpha = mix(material.alpha, 0.92, u_opacity * 0.5);
+}`,
+    }
+    //#endregion shader core
 
     function ViewerIcon({ size = 18 }) {
       return h(
@@ -1026,6 +1735,46 @@ window.__ModuleLoader__.load({
       )
 
     /** Crisp 16px action icons for the layer rows (Unicode glyphs rendered unevenly). */
+    /** Four-corner expand glyph: the docked toolbar's fullscreen toggle. */
+    const FullscreenIcon = ({ size = 15 }) =>
+      h(
+        'svg',
+        { viewBox: '0 0 24 24', width: size, height: size, 'aria-hidden': true, style: { display: 'block' } },
+        h(
+          'g',
+          { stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round', fill: 'none' },
+          h('path', { d: 'M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5' }),
+        ),
+      )
+
+    /** Coordinate crosshair used by the HUD visibility toggle. */
+    const HudIcon = ({ size = 16 }) =>
+      h(
+        'svg',
+        { viewBox: '0 0 24 24', width: size, height: size, 'aria-hidden': true, style: { display: 'block' } },
+        h(
+          'g',
+          { stroke: 'currentColor', strokeWidth: 1.7, strokeLinecap: 'round', fill: 'none' },
+          h('circle', { cx: 12, cy: 12, r: 5.2 }),
+          h('path', { d: 'M12 2.8v3.4M12 17.8v3.4M2.8 12h3.4M17.8 12h3.4' }),
+        ),
+      )
+
+    /** Chevron used by the floating layer-card header to collapse itself. */
+    const CollapseIcon = ({ size = 13 }) =>
+      h(
+        'svg',
+        { viewBox: '0 0 24 24', width: size, height: size, 'aria-hidden': true, style: { display: 'block' } },
+        h('path', {
+          d: 'M5 15l7-7 7 7',
+          fill: 'none',
+          stroke: 'currentColor',
+          strokeWidth: 2,
+          strokeLinecap: 'round',
+          strokeLinejoin: 'round',
+        }),
+      )
+
     function LayerActionIcon({ kind, size = 16 }) {
       const stroke = { stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round', fill: 'none' }
       let shapes
@@ -1055,9 +1804,21 @@ window.__ModuleLoader__.load({
       return h('svg', { viewBox: '0 0 24 24', width: size, height: size, 'aria-hidden': true, style: { display: 'block' } }, shapes)
     }
 
+    /** B3: workbench toggle icon (three sliders), matches the stroke icon family. */
+    function ShaderIcon({ size = 16 }) {
+      const stroke = { stroke: 'currentColor', strokeWidth: 1.7, strokeLinecap: 'round', strokeLinejoin: 'round', fill: 'none' }
+      return h(
+        'svg',
+        { viewBox: '0 0 24 24', width: size, height: size, 'aria-hidden': true, style: { display: 'block' } },
+        h('path', { d: 'M3 7h6.5M13.5 7H21M3 17h4M11 17h10', ...stroke }),
+        h('circle', { cx: 11.5, cy: 7, r: 2.4, ...stroke }),
+        h('circle', { cx: 8.5, cy: 17, r: 2.4, ...stroke }),
+      )
+    }
+
     /** Bottom-left HUD: FPS, pointer position/elevation, camera and per-layer statistics. */
     function StatusHud({ fps, stats, viewerRef, cesiumRef, labels, readoutRef }) {
-      // The cursor readout is written straight into the DOM: it updates up to eight
+      // The cursor readout is written straight into the DOM: it updates around five
       // times a second, so keeping it out of React avoids re-renders while busy.
       const cursorRef = React.useRef(null)
 
@@ -1066,19 +1827,8 @@ window.__ModuleLoader__.load({
         const Cesium = cesiumRef.current
         if (!viewer || !Cesium) return undefined
         const canvas = viewer.scene.canvas
-        const pointer = { x: 0, y: 0, inside: false, dirty: false }
-        const onMove = (event) => {
-          pointer.x = event.offsetX
-          pointer.y = event.offsetY
-          pointer.inside = true
-          pointer.dirty = true
-        }
-        const onLeave = () => {
-          pointer.inside = false
-          pointer.dirty = true
-        }
-        canvas.addEventListener('pointermove', onMove, { passive: true })
-        canvas.addEventListener('pointerleave', onLeave, { passive: true })
+        const pointer = { x: 0, y: 0, inside: false, dirty: false, dragging: false }
+        let settleTimer = 0
         let shown = null
         const paint = (value) => {
           if (value === shown) return
@@ -1086,23 +1836,78 @@ window.__ModuleLoader__.load({
           if (cursorRef.current) cursorRef.current.textContent = value ?? t('hud.empty')
           if (readoutRef) readoutRef.current = value
         }
-        // Pick at ~8 Hz and only while the pointer keeps moving: one depth read per
-        // update keeps this cheap even on multi-million-triangle tilesets.
-        const timer = setInterval(() => {
-          if (!pointer.dirty) return
-          pointer.dirty = false
+        const sampleInto = (allowPickPosition) => {
           let next = null
           if (pointer.inside) {
             const position = new Cesium.Cartesian2(pointer.x, pointer.y)
-            const carto = sampleCursor(viewer, Cesium, position)
+            const carto = sampleCursor(viewer, Cesium, position, { pickPosition: allowPickPosition === true })
             if (carto) next = formatCursor(Cesium, carto)
           }
           paint(next)
-        }, 120)
+        }
+        const clearSettle = () => {
+          if (settleTimer) clearTimeout(settleTimer)
+          settleTimer = 0
+        }
+        // One sample shortly after the pointer stops, allowed to read the depth
+        // buffer: this is the only place the HUD pays for that GPU readback, and a
+        // single read is enough because the camera is no longer moving.
+        const armSettle = () => {
+          clearSettle()
+          settleTimer = setTimeout(() => {
+            settleTimer = 0
+            if (pointer.dragging) return
+            pointer.dirty = false
+            sampleInto(true)
+          }, HUD_SETTLE_MS)
+        }
+        const onMove = (event) => {
+          pointer.x = event.offsetX
+          pointer.y = event.offsetY
+          pointer.inside = true
+          pointer.dirty = true
+          // While the camera is being dragged the readout would be stale anyway;
+          // skip sampling and let the pointer-up settle produce one update.
+          if (!pointer.dragging) armSettle()
+        }
+        const onLeave = () => {
+          pointer.inside = false
+          pointer.dirty = true
+          clearSettle()
+        }
+        const onPointerDown = () => {
+          pointer.dragging = true
+          clearSettle()
+        }
+        const onPointerUp = () => {
+          if (!pointer.dragging) return
+          pointer.dragging = false
+          pointer.dirty = true
+          armSettle()
+        }
+        canvas.addEventListener('pointermove', onMove, { passive: true })
+        canvas.addEventListener('pointerleave', onLeave, { passive: true })
+        canvas.addEventListener('pointerdown', onPointerDown, { passive: true })
+        window.addEventListener('pointerup', onPointerUp, { passive: true })
+        window.addEventListener('pointercancel', onPointerUp, { passive: true })
+        // Steady cadence while the pointer moves: ray + terrain height only, so the
+        // periodic path never touches the depth buffer and stays smooth on
+        // multi-million-triangle tilesets.
+        const timer = setInterval(() => {
+          if (pointer.dragging || !pointer.dirty) return
+          pointer.dirty = false
+          sampleInto(false)
+        }, HUD_SAMPLE_INTERVAL_MS)
         return () => {
+          clearSettle()
+          clearInterval(timer)
           canvas.removeEventListener('pointermove', onMove)
           canvas.removeEventListener('pointerleave', onLeave)
-          clearInterval(timer)
+          canvas.removeEventListener('pointerdown', onPointerDown)
+          window.removeEventListener('pointerup', onPointerUp)
+          window.removeEventListener('pointercancel', onPointerUp)
+          // Drop the stale readout so a later capture cannot reuse an old coordinate.
+          if (readoutRef) readoutRef.current = null
         }
       }, [])
 
@@ -1161,7 +1966,8 @@ window.__ModuleLoader__.load({
 .mv-btn{appearance:none;border:0;background:transparent;color:var(--mv-dim);font:inherit;font-size:12px;line-height:1;padding:7px 9px;border-radius:7px;cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;gap:6px}
 .mv-btn:hover{background:color-mix(in srgb,var(--mv-lift) 72%,transparent);color:var(--mv-text)}
 .mv-btn.on{background:color-mix(in srgb,var(--mv-accent) 26%,transparent);color:var(--mv-text)}
-.mv-btn.icon{padding:7px 8px}
+.mv-btn.icon{padding:7px 8px;flex:none}
+.mv-btn:focus-visible{outline:2px solid var(--mv-accent);outline-offset:1px}
 .mv-sep{width:1px;height:17px;background:var(--mv-line);margin:0 3px}
 .mv-menu{position:relative;display:inline-flex}
 .mv-menu-panel{position:absolute;top:calc(100% + 6px);right:0;min-width:206px;padding:4px;border-radius:11px;z-index:20;display:flex;flex-direction:column;gap:1px}
@@ -1176,9 +1982,50 @@ window.__ModuleLoader__.load({
 .mv-urlbar input:focus{border-color:var(--mv-accent)}
 .mv-urlbar button{appearance:none;border:.5px solid var(--mv-line);background:var(--mv-lift);color:var(--mv-text);font:inherit;font-size:12px;padding:7px 13px;border-radius:7px;cursor:pointer}
 .mv-urlbar button:hover{border-color:var(--mv-accent)}
-.mv-layers{position:absolute;top:60px;right:10px;width:284px;max-height:calc(100% - 214px);display:flex;flex-direction:column;border-radius:13px;z-index:9;overflow:hidden}
+/* Right-hand floating column: the analysis card (Agent result) and the layer
+   card share one stack so a new analysis never overlaps the layers list. */
+.mv-right{position:absolute;top:60px;right:10px;width:min(300px,calc(100% - 20px));max-height:calc(100% - 150px);display:flex;flex-direction:column;gap:10px;z-index:9;pointer-events:none}
+.mv-right>*{pointer-events:auto}
+.mv-card{background:var(--mv-glass);border:.5px solid var(--mv-line);box-shadow:var(--mv-shadow);border-radius:13px}
+.mv-layers{width:100%;min-height:0;flex:1 1 auto;display:flex;flex-direction:column;border-radius:13px;overflow:hidden}
+.mv-analysis{flex:0 1 auto;min-height:0;max-height:min(62%,380px);width:100%;max-width:300px;display:flex;flex-direction:column;overflow:hidden}
+.mv-analysis>header{display:flex;align-items:center;gap:2px;padding:7px 7px 7px 11px;border-bottom:.5px solid var(--mv-line)}
+.mv-analysis>header .title{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;font-weight:600}
+.mv-analysis .body{padding:8px 11px 10px;overflow:auto;display:flex;flex-direction:column;gap:5px;min-height:0}
+.mv-analysis .layer{color:var(--mv-dim);font-size:10.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mv-analysis .stat{display:flex;align-items:baseline;justify-content:space-between;gap:10px;font-size:11.5px;line-height:1.5}
+.mv-analysis .stat span{flex:none;color:var(--mv-dim)}
+.mv-analysis .stat b{text-align:right;font-weight:600;font-variant-numeric:tabular-nums;word-break:break-word}
+.mv-analysis .chart{width:100%;height:auto;display:block;margin-top:2px;border:.5px solid var(--mv-line);border-radius:8px;background:color-mix(in srgb,var(--mv-bg) 45%,transparent)}
+.mv-analysis .chart text{fill:var(--mv-dim);font-size:8px}
+.mv-analysis .hint{margin:2px 0 0;color:var(--mv-dim);font-size:10px;line-height:1.5}
+/* Shader workbench (B3): one compact card on the left, never wider than 320px. */
+.mv-shader{position:absolute;top:60px;left:10px;width:min(320px,calc(100% - 20px));max-height:calc(100% - 150px);z-index:14;display:flex;flex-direction:column;overflow:hidden;border-radius:13px}
+.mv-shader>header{display:flex;align-items:center;gap:4px;padding:7px 7px 7px 11px;border-bottom:.5px solid var(--mv-line)}
+.mv-shader>header .title{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;font-weight:600}
+.mv-shader .body{padding:8px 11px 10px;overflow:auto;display:flex;flex-direction:column;gap:8px;min-height:0}
+.mv-shader .field{display:flex;flex-direction:column;gap:3px;min-width:0}
+.mv-shader .field label{font-size:10.5px;color:var(--mv-dim)}
+.mv-shader .field select,.mv-shader .field input{background:var(--mv-input);border:.5px solid var(--mv-line);color:var(--mv-text);border-radius:6px;padding:6px 8px;font:inherit;font-size:11.5px;outline:none;min-width:0}
+.mv-shader .field select:focus,.mv-shader .field input:focus{border-color:var(--mv-accent)}
+.mv-shader .params{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.mv-shader .presets{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+.mv-shader .preset{appearance:none;border:.5px solid var(--mv-line);background:var(--mv-input);color:var(--mv-dim);font:inherit;font-size:11px;padding:6px 8px;border-radius:7px;cursor:pointer;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mv-shader .preset.on{background:color-mix(in srgb,var(--mv-accent) 22%,transparent);color:var(--mv-text);border-color:color-mix(in srgb,var(--mv-accent) 45%,transparent)}
+.mv-shader .preset:focus-visible,.mv-shader .mv-cta:focus-visible,.mv-shader .mv-icon-btn:focus-visible{outline:2px solid var(--mv-accent);outline-offset:1px}
+.mv-shader .row{display:flex;gap:6px}
+.mv-shader .row .mv-cta{flex:1;min-width:0;padding:6px 8px;font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mv-shader .row .mv-cta:disabled{opacity:.45;cursor:not-allowed}
+.mv-shader .active{display:flex;flex-direction:column;gap:4px;border-top:.5px solid var(--mv-line);padding-top:7px}
+.mv-shader .active b{font-size:10.5px;letter-spacing:.04em;color:var(--mv-dim);font-weight:600}
+.mv-shader .active .item{display:flex;align-items:baseline;justify-content:space-between;gap:8px;font-size:11px;line-height:1.4}
+.mv-shader .active .item span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--mv-dim)}
+.mv-shader .active .item em{flex:none;font-style:normal;color:var(--mv-text)}
+.mv-shader .empty{color:var(--mv-dim);font-size:10.5px}
+.mv-shader .hint{margin:0;color:var(--mv-dim);font-size:10px;line-height:1.5}
 .mv-layers>header{display:flex;align-items:center;justify-content:space-between;padding:9px 11px;font-size:11px;letter-spacing:.06em;color:var(--mv-dim);border-bottom:.5px solid var(--mv-line)}
-.mv-layer-list{overflow:auto;padding:4px}
+.mv-layers>header .mv-icon-btn{width:22px;height:22px;font-size:12px}
+.mv-layer-list{overflow:auto;padding:4px;min-height:0}
 .mv-layer{display:flex;align-items:center;gap:2px;padding:5px 6px;border-radius:8px}
 .mv-layer:hover{background:color-mix(in srgb,var(--mv-lift) 64%,transparent)}
 .mv-layer .name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;cursor:pointer}
@@ -1210,6 +2057,7 @@ window.__ModuleLoader__.load({
 .mv-cta{appearance:none;border:.5px solid var(--mv-line);background:var(--mv-lift);color:var(--mv-text);font:inherit;font-size:12px;padding:8px 16px;border-radius:9px;cursor:pointer;transition:background .15s ease,border-color .15s ease}
 .mv-cta.primary{background:color-mix(in srgb,var(--mv-accent) 20%,transparent);border-color:color-mix(in srgb,var(--mv-accent) 45%,transparent)}
 .mv-cta:hover{border-color:var(--mv-accent);background:color-mix(in srgb,var(--mv-accent) 26%,transparent)}
+.mv-cta:focus-visible{outline:2px solid var(--mv-accent);outline-offset:1px}
 .mv-spinner{width:24px;height:24px;border-radius:50%;border:2px solid rgba(120,160,255,.22);border-top-color:var(--mv-accent);animation:mv-spin .9s linear infinite}
 @keyframes mv-spin{to{transform:rotate(360deg)}}
 .mv-modal{position:absolute;inset:0;z-index:30;display:flex;align-items:center;justify-content:center;background:var(--mv-scrim);padding:20px}
@@ -1219,6 +2067,7 @@ window.__ModuleLoader__.load({
 .mv-tab{appearance:none;border:0;background:transparent;color:var(--mv-dim);font:inherit;font-size:12px;padding:8px 12px;border-radius:8px 8px 0 0;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
 .mv-tab:hover{color:var(--mv-text)}
 .mv-tab.on{color:var(--mv-text);border-bottom-color:var(--mv-accent)}
+.mv-tab:focus-visible{outline:2px solid var(--mv-accent);outline-offset:1px}
 .mv-dialog .body{padding:12px 14px;overflow:auto;display:flex;flex-direction:column;gap:8px}
 .mv-note{margin:0 0 2px;color:var(--mv-dim);font-size:11px;line-height:1.65}
 .mv-src{display:flex;align-items:center;gap:8px;padding:8px 10px;border:.5px solid var(--mv-line);border-radius:9px;background:color-mix(in srgb,var(--mv-bg) 55%,transparent)}
@@ -1244,6 +2093,7 @@ window.__ModuleLoader__.load({
 .mv-seg{display:flex;gap:2px;padding:3px;border:.5px solid var(--mv-line);border-radius:9px;background:var(--mv-input)}
 .mv-seg button{appearance:none;border:0;background:transparent;color:var(--mv-dim);font:inherit;font-size:11.5px;padding:6px 12px;border-radius:6px;cursor:pointer;flex:1}
 .mv-seg button.on{background:color-mix(in srgb,var(--mv-accent) 22%,transparent);color:var(--mv-text)}
+.mv-seg button:focus-visible,.mv-icon-btn:focus-visible{outline:2px solid var(--mv-accent);outline-offset:1px}
 /* Docked inside the session right sidebar: fill the tab body, tighten chrome. */
 /* The host already draws the tab strip right above this body, so the floating
    toolbar keeps a visible gap instead of hugging it; the layer card follows the
@@ -1252,7 +2102,8 @@ window.__ModuleLoader__.load({
 .mv-root.mv-docked .mv-top{top:20px;left:20px;right:20px;gap:8px}
 .mv-root.mv-docked .mv-brand{padding:6px 10px;flex:none;gap:6px}
 .mv-root.mv-docked .mv-actions{gap:0;padding:3px;flex:0 1 auto;max-width:100%;margin-left:auto;min-width:0;row-gap:2px}
-.mv-root.mv-docked .mv-layers{top:96px;right:20px;width:min(284px,calc(100% - 40px));max-height:calc(100% - 250px)}
+.mv-root.mv-docked .mv-right{top:96px;right:20px;width:min(300px,calc(100% - 40px));max-height:calc(100% - 250px)}
+.mv-root.mv-docked .mv-shader{top:96px;left:20px;width:min(320px,calc(100% - 40px));max-height:calc(100% - 250px)}
 .mv-root.mv-docked .mv-dialog{width:min(680px,96%)}
 /* Narrow docked panes: the host tab already shows the panel title, so drop the
    duplicated brand title, then the status text, then the whole brand, keeping
@@ -1273,8 +2124,21 @@ window.__ModuleLoader__.load({
   .mv-root.mv-docked .mv-brand{display:none}
   .mv-root.mv-docked .mv-actions{justify-content:flex-end}
 }
+/* 320px-wide docks: drop the separators and extra padding so the action row
+   wraps cleanly instead of overflowing the pane. */
+@container (max-width: 420px){
+  .mv-root.mv-docked .mv-top{left:12px;right:12px;gap:6px}
+  .mv-root.mv-docked .mv-actions .mv-btn{padding:6px 7px}
+  .mv-root.mv-docked .mv-actions .mv-sep{display:none}
+  .mv-root.mv-docked .mv-actions .mv-btn.icon{padding:7px 6px}
+  .mv-root.mv-docked .mv-layers{top:92px;right:12px;width:min(284px,calc(100% - 24px))}
+  .mv-root.mv-docked .mv-right{top:92px;right:12px;width:min(300px,calc(100% - 24px));max-height:calc(100% - 236px)}
+  .mv-root.mv-docked .mv-right .mv-layers{position:static;top:auto;right:auto;width:100%;max-height:none}
+  .mv-root.mv-docked .mv-right .mv-analysis{max-width:100%}
+  .mv-root.mv-docked .mv-shader{top:92px;left:12px;width:min(320px,calc(100% - 24px));max-height:calc(100% - 236px)}
+}
 /* Snapshot mode: the picture is meant to be clean, so every overlay is hidden. */
-.mv-root.mv-capturing .mv-top,.mv-root.mv-capturing .mv-urlbar,.mv-root.mv-capturing .mv-layers,.mv-root.mv-capturing .mv-hud,.mv-root.mv-capturing .mv-attr,.mv-root.mv-capturing .mv-credits,.mv-root.mv-capturing .mv-pick,.mv-root.mv-capturing .mv-measure,.mv-root.mv-capturing .mv-toast,.mv-root.mv-capturing .mv-overlay,.mv-root.mv-capturing .mv-modal{visibility:hidden!important}
+.mv-root.mv-capturing .mv-top,.mv-root.mv-capturing .mv-urlbar,.mv-root.mv-capturing .mv-right,.mv-root.mv-capturing .mv-shader,.mv-root.mv-capturing .mv-layers,.mv-root.mv-capturing .mv-analysis,.mv-root.mv-capturing .mv-hud,.mv-root.mv-capturing .mv-attr,.mv-root.mv-capturing .mv-credits,.mv-root.mv-capturing .mv-pick,.mv-root.mv-capturing .mv-measure,.mv-root.mv-capturing .mv-toast,.mv-root.mv-capturing .mv-overlay,.mv-root.mv-capturing .mv-modal{visibility:hidden!important}
 .mv-about{display:flex;flex-direction:column;gap:12px;padding:2px 0;font-size:12px}
 .mv-about .intro{margin:0;color:var(--mv-dim);line-height:1.75}
 .mv-about .row{display:flex;gap:12px;align-items:baseline}
@@ -1288,6 +2152,15 @@ window.__ModuleLoader__.load({
 .mv-toggle .text b{font-size:12px;font-weight:600}
 .mv-toggle .text span{color:var(--mv-dim);font-size:10.5px;line-height:1.5}
 .mv-toggle input{appearance:auto;width:15px;height:15px;flex:none;margin:0;cursor:pointer}
+/* Local path authorisation dialog: narrower than the settings dialog, with
+   labelled path rows so the user sees exactly which folder is granted. */
+.mv-access{width:min(560px,94%)}
+.mv-access-path{display:flex;flex-direction:column;gap:6px;border:.5px solid var(--mv-line);border-radius:9px;padding:9px 11px;background:color-mix(in srgb,var(--mv-bg) 42%,transparent)}
+.mv-access-path .row{display:flex;gap:10px;align-items:baseline;min-width:0}
+.mv-access-path .key{flex:none;width:54px;font-size:10.5px;color:var(--mv-dim)}
+.mv-access-path code{flex:1;min-width:0;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:11px;line-height:1.55;color:var(--mv-text);word-break:break-all;user-select:text}
+.mv-access .mv-note b{color:var(--mv-text);font-weight:600}
+.mv-access .footer .right{margin-left:auto}
 .mv-health{width:min(680px,94%)}
 .mv-health-loading{display:flex;flex-direction:column;align-items:center;gap:12px;padding:18px 0}
 .mv-health-rows{display:flex;flex-direction:column;gap:5px}
@@ -1650,6 +2523,44 @@ window.__ModuleLoader__.load({
               })),
           }),
         ),
+        h(
+          'label',
+          { className: 'mv-toggle' },
+          h(
+            'span',
+            { className: 'text' },
+            h('b', null, t('settings.showLayers')),
+            h('span', null, t('settings.showLayersHint')),
+          ),
+          h('input', {
+            type: 'checkbox',
+            checked: draft.settings.showLayers !== false,
+            onChange: (event) =>
+              setDraft((current) => ({
+                ...current,
+                settings: { ...current.settings, showLayers: event.target.checked },
+              })),
+          }),
+        ),
+        h(
+          'label',
+          { className: 'mv-toggle' },
+          h(
+            'span',
+            { className: 'text' },
+            h('b', null, t('settings.showHud')),
+            h('span', null, t('settings.showHudHint')),
+          ),
+          h('input', {
+            type: 'checkbox',
+            checked: draft.settings.showHud !== false,
+            onChange: (event) =>
+              setDraft((current) => ({
+                ...current,
+                settings: { ...current.settings, showHud: event.target.checked },
+              })),
+          }),
+        ),
       )
 
       const homepage = meta?.homepage ?? FALLBACK_ABOUT.homepage
@@ -1886,6 +2797,382 @@ window.__ModuleLoader__.load({
     }
     //#endregion data health dialog
 
+    //#region local path authorisation -----------------------------------------
+
+    /**
+     * Modal shown by the internal `authorize` bridge command before the Host may
+     * read a local folder. It only presents the request and wires its buttons:
+     * the actual `/scan` registration runs in the surface handler, so the bridge
+     * ack is sent only after that request succeeded.
+     */
+    function PathAccessDialog({ request, busy, t, onAllow, onDeny }) {
+      const denyRef = React.useRef(null)
+      React.useEffect(() => {
+        denyRef.current?.focus?.()
+      }, [])
+      React.useEffect(() => {
+        const onKey = (event) => {
+          if (event.key !== 'Escape') return
+          event.preventDefault()
+          onDeny()
+        }
+        document.addEventListener('keydown', onKey)
+        return () => document.removeEventListener('keydown', onKey)
+      }, [onDeny])
+      const action =
+        request.request === 'load'
+          ? t('access.request.load')
+          : request.request === 'inspect'
+            ? t('access.request.inspect')
+            : t('access.request.generic')
+      const row = (key, value) =>
+        value
+          ? h('div', { key, className: 'row' }, h('span', { className: 'key' }, t(key)), h('code', { title: value }, value))
+          : null
+      return h(
+        'div',
+        { className: 'mv-modal', onPointerDown: (event) => event.target === event.currentTarget && !busy && onDeny() },
+        h(
+          'div',
+          { className: 'mv-dialog mv-access', role: 'dialog', 'aria-modal': true, 'aria-labelledby': 'mv-access-title' },
+          h(
+            'header',
+            null,
+            h('b', { id: 'mv-access-title' }, `${t('access.title')} · ${action}`),
+            h('button', { type: 'button', className: 'mv-icon-btn', onClick: onDeny, disabled: busy, title: t('btn.close') }, '✕'),
+          ),
+          h(
+            'div',
+            { className: 'body' },
+            h('p', { className: 'mv-note' }, t('access.body')),
+            h(
+              'div',
+              { className: 'mv-access-path' },
+              row('access.path', request.path),
+              row('access.dir', request.directory),
+              request.resolved ? row('access.target', request.target) : null,
+            ),
+            request.kind === 'missing' ? h('p', { className: 'mv-note' }, t('access.missing')) : null,
+            request.resolved ? h('p', { className: 'mv-note' }, t('access.resolved')) : null,
+          ),
+          h(
+            'div',
+            { className: 'footer' },
+            h(
+              'div',
+              { className: 'right' },
+              h('button', { ref: denyRef, type: 'button', className: 'mv-cta', onClick: onDeny, disabled: busy }, t('access.cancel')),
+              h(
+                'button',
+                { type: 'button', className: 'mv-cta primary', onClick: onAllow, disabled: busy },
+                busy ? t('access.allowing') : t('access.allow'),
+              ),
+            ),
+          ),
+        ),
+      )
+    }
+    //#endregion local path authorisation
+
+    //#region analysis card ----------------------------------------------------
+
+    const analysisMetric = (value, digits = 1) =>
+      typeof value === 'number' && Number.isFinite(value) ? value.toFixed(digits) : '—'
+
+    /** SVG distance–elevation chart; gaps in the sampled data stay visible. */
+    function AnalysisProfileChart({ points, t }) {
+      if (!Array.isArray(points) || points.length < 2) return null
+      const width = 260
+      const height = 92
+      const padX = 10
+      const padY = 12
+      const valid = points.filter(
+        (point) => point && typeof point.height_m === 'number' && Number.isFinite(point.height_m),
+      )
+      if (valid.length < 2) return null
+      const maxDistance = Math.max(...points.map((point) => Number(point.distance_m) || 0), 1)
+      const minimum = Math.min(...valid.map((point) => point.height_m))
+      const maximum = Math.max(...valid.map((point) => point.height_m))
+      const range = maximum - minimum || 1
+      const x = (distance) => padX + (width - padX * 2) * Math.min(1, Math.max(0, distance / maxDistance))
+      const y = (value) => height - padY - (height - padY * 2) * ((value - minimum) / range)
+      const segments = []
+      let current = []
+      for (const point of points) {
+        const heightValue = point ? point.height_m : null
+        if (typeof heightValue === 'number' && Number.isFinite(heightValue)) {
+          const distance = Number(point.distance_m) || 0
+          current.push(`${x(distance).toFixed(1)},${y(heightValue).toFixed(1)}`)
+        } else if (current.length > 0) {
+          segments.push(current.join(' '))
+          current = []
+        }
+      }
+      if (current.length > 0) segments.push(current.join(' '))
+      return h(
+        'svg',
+        {
+          className: 'chart',
+          viewBox: `0 0 ${width} ${height}`,
+          role: 'img',
+          'aria-label': t('analysis.chart'),
+        },
+        h('line', {
+          x1: padX,
+          y1: height - padY,
+          x2: width - padX,
+          y2: height - padY,
+          stroke: 'var(--mv-line)',
+        }),
+        ...segments.map((pointsText, index) =>
+          h('polyline', {
+            key: `segment-${index}`,
+            points: pointsText,
+            fill: 'none',
+            stroke: 'var(--mv-accent)',
+            strokeWidth: 1.7,
+            strokeLinejoin: 'round',
+            strokeLinecap: 'round',
+          }),
+        ),
+        h('text', { x: padX, y: padY - 3 }, formatHeight(maximum)),
+        h('text', { x: padX, y: height - 2 }, formatHeight(minimum)),
+        h('text', { x: width - padX, y: height - 2, textAnchor: 'end' }, formatDistance(maxDistance)),
+      )
+    }
+
+    /** Floating result card for the single active analysis. */
+    function AnalysisCard({ state, t, onClose }) {
+      const [open, setOpen] = React.useState(true)
+      if (!state || !state.result) return null
+      const result = state.result
+      const operation = state.operation
+      const rows = []
+      const row = (key, label, value) =>
+        rows.push(h('div', { key, className: 'stat' }, h('span', null, label), h('b', null, value)))
+      if (operation === 'profile') {
+        const stats = result.stats ?? {}
+        row('length', t('analysis.length'), formatDistance(result.length_m ?? 0))
+        row('min', t('analysis.minHeight'), formatHeight(stats.min_height ?? 0))
+        row('max', t('analysis.maxHeight'), formatHeight(stats.max_height ?? 0))
+        row('relief', t('analysis.relief'), formatHeight(stats.relief_m ?? 0))
+        row('gain', t('analysis.gain'), formatHeight(stats.gain_m ?? 0))
+        row('loss', t('analysis.loss'), formatHeight(stats.loss_m ?? 0))
+        row('samples', t('analysis.samples'), `${result.samples ?? 0}`)
+      } else if (operation === 'flood') {
+        row('water', t('analysis.waterHeight'), formatHeight(result.water_height ?? 0))
+        row('area', t('analysis.area'), `${analysisMetric(result.area_km2, 3)} km²`)
+        row('inundated', t('analysis.inundated'), `${analysisMetric(result.inundated_km2, 3)} km²`)
+        row('ratio', t('analysis.inundatedRatio'), `${analysisMetric((result.inundated_ratio ?? 0) * 100, 1)}%`)
+        row('depthMax', t('analysis.depthMax'), formatHeight(result.depth_max_m ?? 0))
+        row('depthMean', t('analysis.depthMean'), formatHeight(result.depth_mean_m ?? 0))
+        row(
+          'samples',
+          t('analysis.inundatedSamples'),
+          `${result.samples_inundated ?? 0} / ${result.samples_with_data ?? 0}`,
+        )
+        const region = result.region ?? {}
+        row(
+          'region',
+          t('analysis.region'),
+          `${analysisMetric(region.west, 2)}, ${analysisMetric(region.south, 2)} – ${analysisMetric(region.east, 2)}, ${analysisMetric(region.north, 2)}`,
+        )
+      } else if (operation === 'sunlight') {
+        let dateText = String(result.datetime ?? '')
+        try {
+          dateText = new Date(result.datetime).toLocaleString()
+        } catch {
+          /* keep the raw ISO text */
+        }
+        row('datetime', t('analysis.datetime'), dateText)
+        row('altitude', t('analysis.altitude'), `${analysisMetric(result.sun?.altitude_deg, 2)}°`)
+        row('azimuth', t('analysis.azimuth'), `${analysisMetric(result.sun?.azimuth_deg, 2)}°`)
+        row('shadows', t('analysis.shadows'), result.shadows_enabled ? t('analysis.shadowsOn') : t('analysis.shadowsOff'))
+        row('daylight', t('analysis.daylight'), result.night ? t('analysis.night') : t('analysis.day'))
+      }
+      return h(
+        'div',
+        { className: 'mv-card mv-analysis', role: 'region', 'aria-label': t(`analysis.title.${operation}`) },
+        h(
+          'header',
+          null,
+          h('span', { className: 'title' }, t(`analysis.title.${operation}`)),
+          h(
+            'button',
+            {
+              type: 'button',
+              className: 'mv-icon-btn',
+              title: open ? t('analysis.collapse') : t('analysis.expand'),
+              'aria-label': open ? t('analysis.collapse') : t('analysis.expand'),
+              'aria-expanded': open,
+              onClick: () => setOpen(!open),
+            },
+            open ? '▾' : '▸',
+          ),
+          h(
+            'button',
+            { type: 'button', className: 'mv-icon-btn', title: t('analysis.close'), 'aria-label': t('analysis.close'), onClick: onClose },
+            '✕',
+          ),
+        ),
+        open
+          ? h(
+              'div',
+              { className: 'body' },
+              state.layerName
+                ? h('div', { className: 'layer', title: state.layerName }, `${t('analysis.layer')}: ${state.layerName}`)
+                : null,
+              ...rows,
+              operation === 'profile' ? h(AnalysisProfileChart, { points: result.points, t }) : null,
+              h('p', { className: 'hint' }, t('analysis.hint')),
+            )
+          : null,
+      )
+    }
+    //#endregion analysis card
+
+    //#region shader workbench ------------------------------------------------
+    /**
+     * B3 workbench: a compact floating card. It can pick a visible layer, one of
+     * the four presets and that preset's bounded parameters; it never edits GLSL.
+     */
+    function ShaderWorkbench({
+      t,
+      layers,
+      form,
+      active,
+      onClose,
+      onLayer,
+      onPreset,
+      onField,
+      onApply,
+      onResetLayer,
+      onResetAll,
+    }) {
+      const visibleLayers = layers.filter((layer) => layer.visible)
+      const numberField = (key, labelKey, placeholder) =>
+        h(
+          'div',
+          { className: 'field', key },
+          h('label', { htmlFor: `mv-shader-${key}` }, t(labelKey)),
+          h('input', {
+            id: `mv-shader-${key}`,
+            type: 'number',
+            inputMode: 'decimal',
+            step: 'any',
+            value: form[key],
+            placeholder: placeholder ?? '',
+            onChange: (event) => onField(key, event.target.value),
+          }),
+        )
+
+      let params = null
+      if (form.preset === 'height-false-color') {
+        const auto = t('shader.param.auto')
+        params = h(
+          'div',
+          { className: 'params' },
+          numberField('minHeight', 'shader.param.minHeight', auto),
+          numberField('maxHeight', 'shader.param.maxHeight', auto),
+        )
+      } else if (form.preset === 'contour') {
+        params = h('div', { className: 'params' }, numberField('interval', 'shader.param.interval'))
+      } else if (form.preset === 'scan') {
+        params = h('div', { className: 'params' }, numberField('speed', 'shader.param.speed'))
+      } else {
+        params = h(
+          'div',
+          { className: 'params' },
+          numberField('speed', 'shader.param.speed'),
+          numberField('amplitude', 'shader.param.amplitude'),
+          numberField('opacity', 'shader.param.opacity'),
+        )
+      }
+
+      return h(
+        'div',
+        { className: 'mv-card mv-shader', role: 'region', 'aria-label': t('shader.title') },
+        h(
+          'header',
+          null,
+          h('span', { className: 'title' }, t('shader.title')),
+          h(
+            'button',
+            { type: 'button', className: 'mv-icon-btn', title: t('shader.close'), 'aria-label': t('shader.close'), onClick: onClose },
+            '✕',
+          ),
+        ),
+        h(
+          'div',
+          { className: 'body' },
+          h(
+            'div',
+            { className: 'field' },
+            h('label', { htmlFor: 'mv-shader-layer' }, t('shader.layerLabel')),
+            h(
+              'select',
+              {
+                id: 'mv-shader-layer',
+                value: form.layerId,
+                disabled: visibleLayers.length === 0,
+                onChange: (event) => onLayer(event.target.value),
+              },
+              h('option', { value: '' }, t('shader.layerAuto')),
+              ...visibleLayers.map((layer) => h('option', { key: layer.id, value: layer.id }, layer.name)),
+            ),
+          ),
+          h(
+            'div',
+            { className: 'field' },
+            h('label', null, t('shader.presetLabel')),
+            h(
+              'div',
+              { className: 'presets' },
+              ...SHADER_PRESETS.map((preset) =>
+                h(
+                  'button',
+                  {
+                    key: preset,
+                    type: 'button',
+                    className: `preset${form.preset === preset ? ' on' : ''}`,
+                    title: t(`shader.preset.${preset}`),
+                    'aria-pressed': form.preset === preset,
+                    onClick: () => onPreset(preset),
+                  },
+                  t(`shader.preset.${preset}`),
+                ),
+              ),
+            ),
+          ),
+          params,
+          h(
+            'div',
+            { className: 'row' },
+            h('button', { type: 'button', className: 'mv-cta primary', disabled: visibleLayers.length === 0, onClick: onApply }, t('shader.apply')),
+            h('button', { type: 'button', className: 'mv-cta', onClick: onResetLayer }, t('shader.resetLayer')),
+            h('button', { type: 'button', className: 'mv-cta', disabled: active.length === 0, onClick: onResetAll }, t('shader.resetAll')),
+          ),
+          h(
+            'div',
+            { className: 'active' },
+            h('b', null, t('shader.active')),
+            active.length === 0
+              ? h('span', { className: 'empty' }, t('shader.activeEmpty'))
+              : active.map((entry) =>
+                  h(
+                    'div',
+                    { key: entry.layer, className: 'item' },
+                    h('span', { title: entry.layer }, entry.layer),
+                    h('em', null, t(`shader.preset.${entry.preset}`)),
+                  ),
+                ),
+          ),
+          visibleLayers.length === 0 ? h('p', { className: 'hint' }, t('shader.noLayers')) : null,
+        ),
+      )
+    }
+    //#endregion shader workbench
+
     /** Immersive `main` panel: no Session, so the Agent bridge stays off. */
     function ViewerPanel(props) {
       return h(ViewerSurface, { t: props.t, sessionId: null, docked: false })
@@ -1924,6 +3211,17 @@ window.__ModuleLoader__.load({
       const captureReadoutRef = React.useRef(null)
       const commandChainRef = React.useRef(Promise.resolve())
       const commandRef = React.useRef(null)
+      const accessRef = React.useRef(null)
+      // Single active analysis: owns its entities plus the scene state sunlight
+      // changed (lighting, shadows, clock) so clear() can restore it exactly.
+      const analysisRef = React.useRef({ operation: null, layerId: null, layerName: null, entities: [], restore: null })
+      // The last analysis command (not its entities): a remounted panel replays it
+      // so the profile/flood/sunlight result comes back with the scene.
+      const analysisCommandRef = React.useRef(null)
+      // B3 shader: one active preset per layer, plus the single preRender u_time
+      // tick that is registered only while at least one preset is active.
+      const shaderEntriesRef = React.useRef(new Map())
+      const shaderTickRef = React.useRef(null)
       // Resolves when the Cesium viewer is fully ready. The bridge connects before
       // that (right after meta arrives) so a cold panel mount does not eat the
       // Host's attach grace; commands wait on this gate instead.
@@ -1953,7 +3251,21 @@ window.__ModuleLoader__.load({
       const [toast, setToast] = React.useState('')
       const [openMenu, setOpenMenu] = React.useState(null)
       const [recentDirs, setRecentDirs] = React.useState([])
-      const [layersOpen, setLayersOpen] = React.useState(true)
+      const [accessRequest, setAccessRequest] = React.useState(null)
+      const [accessBusy, setAccessBusy] = React.useState(false)
+      const [analysis, setAnalysis] = React.useState(null)
+      const [shaderOpen, setShaderOpen] = React.useState(false)
+      const [shaderActive, setShaderActive] = React.useState([])
+      const [shaderForm, setShaderForm] = React.useState({
+        layerId: '',
+        preset: 'height-false-color',
+        minHeight: '',
+        maxHeight: '',
+        interval: '20',
+        speed: '1',
+        amplitude: '1',
+        opacity: '0.75',
+      })
       const [settingsOpen, setSettingsOpen] = React.useState(false)
       const [health, setHealth] = React.useState(null)
       const [terrainBusy, setTerrainBusy] = React.useState(false)
@@ -1965,6 +3277,10 @@ window.__ModuleLoader__.load({
 
       const themeMode = sources?.settings?.theme ?? 'auto'
       const resolvedDark = themeMode === 'auto' ? environmentDark : themeMode === 'dark'
+      // Chrome visibility is persisted through `settings`: an older Host config may
+      // not have written these keys yet, so a missing value means "visible".
+      const showLayers = sources?.settings?.showLayers !== false
+      const showHud = sources?.settings?.showHud !== false
       const activeImageryId = sources?.settings?.imagery ?? null
       const activeTerrainId = sources?.settings?.terrain ?? null
       const activeImagery = sources?.imagery?.find((source) => source.id === activeImageryId) ?? null
@@ -2066,6 +3382,71 @@ window.__ModuleLoader__.load({
         commitSources({ ...current, settings: { ...current.settings, ...patch } }, notify)
       }
 
+      /**
+       * Map the frozen Host `authorize` args onto what the dialog renders. The Host
+       * resolves the target before asking, so `directory` and `target` are normally
+       * present; the fallbacks keep older/partial payloads working.
+       */
+      const normalizeAccessRequest = (args = {}) => {
+        const rawPath = typeof args.path === 'string' ? args.path.trim() : ''
+        const rawTarget = typeof args.target === 'string' ? args.target.trim() : ''
+        const target = rawTarget || rawPath
+        const explicitDir = typeof args.directory === 'string' ? args.directory.trim() : ''
+        const normalized = target.replace(/\\/g, '/')
+        const index = normalized.lastIndexOf('/')
+        return {
+          request: typeof args.request === 'string' ? args.request : 'load',
+          path: rawPath,
+          target,
+          directory: explicitDir || (index > 0 ? target.slice(0, index) : ''),
+          kind: typeof args.kind === 'string' ? args.kind : 'file',
+          resolved: args.resolved === true || (rawTarget !== '' && rawTarget !== rawPath),
+        }
+      }
+
+      /**
+       * Settle the open authorisation dialog exactly once. A late settle (e.g. the
+       * cleanup timer firing after the Host already timed out) is ignored.
+       */
+      const settleAccess = (outcome) => {
+        const current = accessRef.current
+        if (!current) return
+        accessRef.current = null
+        clearTimeout(current.timer)
+        setAccessRequest(null)
+        setAccessBusy(false)
+        current.resolve(outcome)
+      }
+
+      /**
+       * Open the dialog and wait for the user. The 32 s cleanup timer unblocks this
+       * panel's serialised command chain after the Host's own 30 s deadline; the
+       * late ack is ignored by the Host and never retried.
+       */
+      const askPathAccess = (request) =>
+        new Promise((resolve) => {
+          if (accessRef.current) settleAccess({ allowed: false, message: t('access.denied') })
+          const timer = setTimeout(() => settleAccess({ allowed: false, message: t('access.denied') }), ACCESS_TIMEOUT_MS)
+          accessRef.current = { resolve, timer }
+          setAccessBusy(false)
+          setAccessRequest(request)
+        })
+
+      /** Allow: register the folder via /scan first; only then does the bridge ack. */
+      const allowPathAccess = async () => {
+        const request = accessRequest
+        if (!request || accessBusy || !accessRef.current) return
+        setAccessBusy(true)
+        try {
+          await scanLocalDirectory(metaRef.current, request.directory)
+          settleAccess({ allowed: true, directory: request.directory })
+        } catch (error) {
+          const detail = message(error)
+          settleAccess({ allowed: false, message: t('access.scanFailed', { message: detail }) })
+          showToast(t('access.scanFailed', { message: detail }))
+        }
+      }
+
       const pickSurface = (position) => {
         const viewer = viewerRef.current
         if (!viewer) return null
@@ -2101,13 +3482,10 @@ window.__ModuleLoader__.load({
         if (index <= 0) throw new Error(t('toast.invalidPath'))
         const dir = normalized.slice(0, index)
         const rel = normalized.slice(index + 1)
-        // The host only serves tile files from directories opened through /scan;
-        // the Agent path is validated by the Host bridge before it reaches us.
-        const response = await fetch(
-          `${meta.scanUrl}?token=${encodeURIComponent(meta.token)}&dir=${encodeURIComponent(dir)}`,
-          { credentials: 'same-origin', headers: { 'x-dsh-panel': '1' } },
-        )
-        if (!response.ok) throw new Error(`HTTP ${response.status}`)
+        // The host only serves tile files from directories registered through /scan;
+        // the Agent path was validated and authorised by the Host bridge beforehand,
+        // so this call normally confirms an already-registered folder.
+        await scanLocalDirectory(meta, dir)
         return `${meta.tilesBase}${encodeURIComponent(b64url(dir))}/${encodeURIComponent(rel)}`
       }
 
@@ -2872,13 +4250,668 @@ window.__ModuleLoader__.load({
         // count in `overlays`; a numeric-only measurement adds no overlay.
         if (draw) {
           state.measuredCount += points.length
-          state.measureCommands.push({ mode, points, draw: true })
+          state.measureCommands.push({ mode, points, draw: true, result })
           markSceneDirty()
         }
         syncAgentOverlayCount()
         return result
       }
       //#endregion Agent overlays
+
+      //#region analysis engine ---------------------------------------------------
+      // B2 `analyze` bridge command: profile / flood / sunlight / clear. Only one
+      // analysis is active at a time; every entity carries the `analysis-` id
+      // prefix so clear() can never remove Agent annotations or user measurements.
+
+      const analysisAdd = (Cesium, viewer, options) => {
+        const state = analysisRef.current
+        const entity = viewer.entities.add({ ...options, id: `${ANALYSIS_ENTITY_PREFIX}${options.id}` })
+        state.entities.push(entity)
+        return entity
+      }
+
+      const analysisLabel = (Cesium, text) => ({
+        text,
+        font: '12px -apple-system,"Segoe UI","PingFang SC",sans-serif',
+        style: Cesium.LabelStyle.FILL,
+        fillColor: Cesium.Color.WHITE,
+        showBackground: true,
+        backgroundColor: new Cesium.Color(0.06, 0.09, 0.15, 0.85),
+        backgroundPadding: new Cesium.Cartesian2(8, 5),
+        pixelOffset: new Cesium.Cartesian2(0, -18),
+        disableDepthTestDistance: Number.POSITIVE_INFINITY,
+      })
+
+      /** Restore whatever the sunlight operation changed in the scene. */
+      const restoreAnalysisScene = () => {
+        const viewer = viewerRef.current
+        const restore = analysisRef.current.restore
+        if (!viewer || !restore) return
+        try {
+          if (typeof restore.enableLighting === 'boolean') viewer.scene.globe.enableLighting = restore.enableLighting
+          if (typeof restore.shadowMapEnabled === 'boolean') viewer.scene.shadowMap.enabled = restore.shadowMapEnabled
+          if (typeof restore.shouldAnimate === 'boolean') viewer.clock.shouldAnimate = restore.shouldAnimate
+          if (restore.currentTime) viewer.clock.currentTime = restore.currentTime
+          for (const saved of restore.tilesets ?? []) {
+            const layer = layersRef.current.find((item) => item.id === saved.id)
+            if (layer && layer.tileset) layer.tileset.shadows = saved.shadows
+          }
+        } catch {
+          /* the viewer may be mid-teardown; state restoration is best-effort */
+        }
+        analysisRef.current.restore = null
+      }
+
+      /** Remove every analysis entity and restore the pre-analysis scene state. */
+      function clearAnalysis() {
+        const viewer = viewerRef.current
+        const state = analysisRef.current
+        const cleared = state.operation ? [state.operation] : []
+        if (viewer) {
+          for (const entity of state.entities) {
+            try {
+              viewer.entities.remove(entity)
+            } catch {
+              /* already detached */
+            }
+          }
+        }
+        state.entities = []
+        restoreAnalysisScene()
+        state.operation = null
+        state.layerId = null
+        state.layerName = null
+        analysisCommandRef.current = null
+        setAnalysis(null)
+        markSceneDirty()
+        return cleared
+      }
+
+      const beginAnalysis = (operation, layer) => {
+        const state = analysisRef.current
+        state.operation = operation
+        state.layerId = layer ? layer.id : null
+        state.layerName = layer ? layer.name : null
+      }
+
+      const analyzeProfile = async (Cesium, viewer, layer, args) => {
+        const from = analysisLonLat(args.from)
+        const to = analysisLonLat(args.to)
+        if (!from || !to) {
+          throw new Error('analysis: `from`/`to` must be [lon, lat] pairs. next: pass two legal WGS84 [lon, lat] arrays.')
+        }
+        const samples = analysisInteger(args.samples, 32, 8, 64)
+        const ellipsoid = viewer.scene.globe.ellipsoid
+        const geodesic = new Cesium.EllipsoidGeodesic(
+          Cesium.Cartographic.fromDegrees(from[0], from[1]),
+          Cesium.Cartographic.fromDegrees(to[0], to[1]),
+          ellipsoid,
+        )
+        const length = Number.isFinite(geodesic.surfaceDistance) ? geodesic.surfaceDistance : 0
+        const points = []
+        let withData = 0
+        for (let index = 0; index < samples; index += 1) {
+          const fraction = samples === 1 ? 0 : index / (samples - 1)
+          const carto = geodesic.interpolateUsingFraction(fraction, new Cesium.Cartographic())
+          const height = carto ? await analysisElevation(Cesium, viewer, layer, carto) : null
+          if (height !== null) withData += 1
+          points.push({
+            distance_m: analysisRound(length * fraction, 1),
+            height_m: height === null ? null : analysisRound(height, 1),
+          })
+        }
+        if (withData < ANALYSIS_MIN_SAMPLES) {
+          throw new Error(
+            'analysis: 当前视图中没有可采样的高程数据，先加载 3D Tiles 或地形再试。next: 用 earth_scene 的 list 查看可见图层，或先 load 3D Tiles / 地形后重试。',
+          )
+        }
+        const heights = points.filter((point) => point.height_m !== null).map((point) => point.height_m)
+        const minimum = Math.min(...heights)
+        const maximum = Math.max(...heights)
+        let gain = 0
+        let loss = 0
+        let previous = null
+        // Adjacent valid samples define ascent/descent; a data gap bridges the last
+        // known height so a hole neither invents nor removes relief.
+        for (const point of points) {
+          if (point.height_m === null) continue
+          if (previous !== null) {
+            const delta = point.height_m - previous
+            if (delta > 0) gain += delta
+            else loss -= delta
+          }
+          previous = point.height_m
+        }
+        const relief = maximum - minimum
+        const stats = {
+          min_height: analysisRound(minimum, 1),
+          max_height: analysisRound(maximum, 1),
+          relief_m: analysisRound(relief, 1),
+          gain_m: analysisRound(gain, 1),
+          loss_m: analysisRound(loss, 1),
+        }
+        beginAnalysis('profile', layer)
+        const positionAt = (fraction, height) => {
+          const carto = geodesic.interpolateUsingFraction(fraction, new Cesium.Cartographic())
+          return Cesium.Cartesian3.fromRadians(carto.longitude, carto.latitude, height + 2)
+        }
+        const step = samples > 1 ? 1 / (samples - 1) : 0
+        for (let index = 1; index < points.length; index += 1) {
+          const left = points[index - 1]
+          const right = points[index]
+          if (left.height_m === null || right.height_m === null) continue
+          const ratio = relief > 0 ? ((left.height_m + right.height_m) / 2 - minimum) / relief : 0
+          const color = analysisColorAt(Cesium, ratio)
+          analysisAdd(Cesium, viewer, {
+            id: `profile-line-${index}`,
+            polyline: {
+              positions: [
+                positionAt((index - 1) * step, left.height_m),
+                positionAt(index * step, right.height_m),
+              ],
+              width: 3.5,
+              arcType: Cesium.ArcType.NONE,
+              material: color,
+              depthFailMaterial: color.withAlpha(0.35),
+            },
+          })
+        }
+        const endpointHeight = (point) => (point.height_m === null ? 0 : point.height_m)
+        const endpointText = (point) => (point.height_m === null ? t('hud.empty') : formatHeight(point.height_m))
+        const marker = (id, fraction, point, color) => {
+          analysisAdd(Cesium, viewer, {
+            id,
+            position: positionAt(fraction, endpointHeight(point)),
+            point: {
+              pixelSize: 9,
+              color,
+              disableDepthTestDistance: Number.POSITIVE_INFINITY,
+            },
+            label: analysisLabel(
+              Cesium,
+              id === 'profile-start'
+                ? t('analysis.start', { value: endpointText(point) })
+                : t('analysis.end', { value: endpointText(point) }),
+            ),
+          })
+        }
+        marker('profile-start', 0, points[0], analysisColorAt(Cesium, 0))
+        marker('profile-end', 1, points[points.length - 1], analysisColorAt(Cesium, 1))
+        const result = {
+          operation: 'profile',
+          layer: layer ? layer.name : null,
+          from,
+          to,
+          samples,
+          length_m: analysisRound(length, 1),
+          stats,
+          points,
+        }
+        setAnalysis({ operation: 'profile', layerName: result.layer, result })
+        markSceneDirty()
+        return result
+      }
+
+      const analyzeFlood = async (Cesium, viewer, layer, args) => {
+        const region = analysisRegion(args.region)
+        if (!region) {
+          throw new Error('analysis: `region` must be {west, south, east, north} with west < east and south < north. next: pass a legal WGS84 bounding box.')
+        }
+        const waterHeight = Number(args.water_height)
+        if (!Number.isFinite(waterHeight)) {
+          throw new Error('analysis: `water_height` must be a finite number in metres. next: pass the water level to test.')
+        }
+        const grid = analysisInteger(args.grid, 12, 4, 24)
+        const ellipsoid = viewer.scene.globe.ellipsoid
+        const span = (lon1, lat1, lon2, lat2) =>
+          new Cesium.EllipsoidGeodesic(
+            Cesium.Cartographic.fromDegrees(lon1, lat1),
+            Cesium.Cartographic.fromDegrees(lon2, lat2),
+            ellipsoid,
+          ).surfaceDistance
+        const middleLat = (region.south + region.north) / 2
+        const middleLon = (region.west + region.east) / 2
+        // Cell size from the region centre: the mean width/height of one grid cell,
+        // so the area is finite even when the region is a tiny sliver.
+        const cellWidth = span(region.west, middleLat, region.east, middleLat) / grid
+        const cellHeight = span(middleLon, region.south, middleLon, region.north) / grid
+        const cellArea = Math.abs(cellWidth * cellHeight)
+        if (!Number.isFinite(cellArea) || cellArea <= 0) {
+          throw new Error('analysis: 分析范围过小，无法计算格元面积。next: 扩大 region 后重试。')
+        }
+        const probes = []
+        for (let row = 0; row < grid; row += 1) {
+          const lat = region.south + ((region.north - region.south) * (row + 0.5)) / grid
+          for (let column = 0; column < grid; column += 1) {
+            const lon = region.west + ((region.east - region.west) * (column + 0.5)) / grid
+            probes.push(Cesium.Cartographic.fromDegrees(lon, lat))
+          }
+        }
+        const heights = await Promise.all(probes.map((carto) => analysisElevation(Cesium, viewer, layer, carto)))
+        let withData = 0
+        let inundated = 0
+        let depthMaximum = 0
+        let depthSum = 0
+        for (const height of heights) {
+          if (height === null) continue
+          withData += 1
+          if (waterHeight > height) {
+            const depth = waterHeight - height
+            inundated += 1
+            depthSum += depth
+            if (depth > depthMaximum) depthMaximum = depth
+          }
+        }
+        if (withData === 0) {
+          throw new Error(
+            'analysis: 当前视图中没有可采样的高程数据，先加载 3D Tiles 或地形再试。next: 用 earth_scene 的 list 查看可见图层，或先 load 3D Tiles / 地形后重试。',
+          )
+        }
+        beginAnalysis('flood', layer)
+        const waterColor = Cesium.Color.fromCssColorString('#2f7fe0').withAlpha(0.38)
+        const borderColor = Cesium.Color.fromCssColorString('#9fc7ff')
+        analysisAdd(Cesium, viewer, {
+          id: 'flood-water',
+          rectangle: {
+            coordinates: Cesium.Rectangle.fromDegrees(region.west, region.south, region.east, region.north),
+            height: waterHeight,
+            material: waterColor,
+            outline: true,
+            outlineColor: borderColor,
+          },
+        })
+        const corners = [
+          [region.west, region.south],
+          [region.east, region.south],
+          [region.east, region.north],
+          [region.west, region.north],
+          [region.west, region.south],
+        ]
+        analysisAdd(Cesium, viewer, {
+          id: 'flood-border',
+          polyline: {
+            positions: corners.map(([lon, lat]) => Cesium.Cartesian3.fromDegrees(lon, lat, waterHeight)),
+            width: 2,
+            arcType: Cesium.ArcType.NONE,
+            material: borderColor,
+          },
+        })
+        analysisAdd(Cesium, viewer, {
+          id: 'flood-label',
+          position: Cesium.Cartesian3.fromDegrees(middleLon, middleLat, waterHeight + 2),
+          label: analysisLabel(Cesium, t('analysis.waterLabel', { value: formatHeight(waterHeight) })),
+        })
+        const regionArea = grid * grid * cellArea
+        const result = {
+          operation: 'flood',
+          layer: layer ? layer.name : null,
+          region,
+          water_height: analysisRound(waterHeight, 2),
+          grid,
+          cell_area_m2: analysisRound(cellArea, 1),
+          area_km2: analysisRound(regionArea / 1e6, 6),
+          inundated_km2: analysisRound((inundated * cellArea) / 1e6, 6),
+          inundated_ratio: analysisRound(withData > 0 ? inundated / withData : 0, 4),
+          depth_max_m: analysisRound(depthMaximum, 2),
+          depth_mean_m: analysisRound(inundated > 0 ? depthSum / inundated : 0, 2),
+          samples_with_data: withData,
+          samples_inundated: inundated,
+        }
+        setAnalysis({ operation: 'flood', layerName: result.layer, result })
+        markSceneDirty()
+        return result
+      }
+
+      const analyzeSunlight = (Cesium, viewer, layer, args) => {
+        const date = args.datetime === undefined || args.datetime === null ? new Date() : new Date(args.datetime)
+        if (Number.isNaN(date.getTime())) {
+          throw new Error('analysis: `datetime` must be a valid ISO 8601 date. next: pass an ISO timestamp, or omit it for the current time.')
+        }
+        const showShadows = args.show_shadows !== false
+        const observer = analysisObserver(Cesium, viewer, layer)
+        const sun = analysisSunAngles(Cesium, date, observer)
+        if (!sun) {
+          throw new Error('analysis: 无法计算太阳位置（Cesium 星历不可用）。next: 检查浏览器控制台后重试，或先执行 clear。')
+        }
+        const scene = viewer.scene
+        const restore = {
+          enableLighting: scene.globe.enableLighting,
+          shadowMapEnabled: scene.shadowMap ? scene.shadowMap.enabled : null,
+          shouldAnimate: viewer.clock.shouldAnimate,
+          currentTime: viewer.clock.currentTime ? viewer.clock.currentTime.clone() : null,
+          tilesets: layersRef.current
+            .filter((item) => item.visible && item.tileset)
+            .map((item) => ({ id: item.id, shadows: item.tileset.shadows })),
+        }
+        beginAnalysis('sunlight', layer)
+        analysisRef.current.restore = restore
+        scene.globe.enableLighting = true
+        if (scene.shadowMap) {
+          // Sunlight always turns the shadow pipeline on; show_shadows=false only
+          // keeps the shadows themselves from being rendered.
+          scene.shadowMap.enabled = true
+          scene.shadowMap.softShadows = true
+          scene.shadowMap.darkness = 0.35
+          if (!showShadows) scene.shadowMap.enabled = false
+        }
+        viewer.clock.currentTime = Cesium.JulianDate.fromDate(date)
+        viewer.clock.shouldAnimate = false
+        for (const saved of restore.tilesets) {
+          const item = layersRef.current.find((entry) => entry.id === saved.id)
+          if (item && item.tileset) {
+            item.tileset.shadows = Cesium.ShadowMode.ENABLED
+            if (!showShadows) item.tileset.shadows = Cesium.ShadowMode.DISABLED
+          }
+        }
+        analysisAdd(Cesium, viewer, {
+          id: 'sun-label',
+          position: Cesium.Cartesian3.fromDegrees(
+            Cesium.Math.toDegrees(observer.longitude),
+            Cesium.Math.toDegrees(observer.latitude),
+            (observer.height || 0) + 30,
+          ),
+          label: analysisLabel(
+            Cesium,
+            t('analysis.sunLabel', { altitude: sun.altitude, azimuth: sun.azimuth }),
+          ),
+        })
+        const result = {
+          operation: 'sunlight',
+          layer: layer ? layer.name : null,
+          datetime: date.toISOString(),
+          sun: { altitude_deg: sun.altitude, azimuth_deg: sun.azimuth },
+          shadows_enabled: showShadows,
+          night: sun.altitude < 0,
+        }
+        setAnalysis({ operation: 'sunlight', layerName: result.layer, result })
+        markSceneDirty()
+        return result
+      }
+
+      async function analyzeCommand(args = {}) {
+        const Cesium = cesiumRef.current
+        const viewer = viewerRef.current
+        if (!Cesium || !viewer) {
+          throw new Error('analysis: 三维引擎尚未就绪。next: 打开数字地球面板后重试。')
+        }
+        const operation = typeof args.action === 'string' ? args.action.trim() : ''
+        if (operation === 'clear') {
+          const cleared = clearAnalysis()
+          return { operation: 'clear', layer: null, cleared }
+        }
+        if (operation !== 'profile' && operation !== 'flood' && operation !== 'sunlight') {
+          throw new Error(
+            `analysis: 不支持的分析类型 "${String(args.action)}"。next: 使用 profile / flood / sunlight / clear。`,
+          )
+        }
+        // Resolve the layer before clearing the previous result, so a typo does not
+        // destroy a valid analysis that is already on screen.
+        let layer = null
+        const requested = typeof args.layer === 'string' ? args.layer.trim() : ''
+        if (requested !== '') {
+          layer = findLayer(requested)
+          if (!layer) {
+            throw new Error(`analysis: 未找到图层 "${requested}"。next: 用 earth_scene 的 list 动作查看当前图层名。`)
+          }
+        } else {
+          for (let index = layersRef.current.length - 1; index >= 0; index -= 1) {
+            if (layersRef.current[index].visible) {
+              layer = layersRef.current[index]
+              break
+            }
+          }
+        }
+        // Single active analysis: the new result replaces the previous one.
+        clearAnalysis()
+        let result
+        if (operation === 'profile') result = await analyzeProfile(Cesium, viewer, layer, args)
+        else if (operation === 'flood') result = await analyzeFlood(Cesium, viewer, layer, args)
+        else result = analyzeSunlight(Cesium, viewer, layer, args)
+        // Remember the command (not its entities) so a remounted panel can replay
+        // it. The layer is stored by name because restored layers get new ids.
+        analysisCommandRef.current = {
+          action: operation,
+          ...args,
+          ...(layer ? { layer: layer.name } : {}),
+        }
+        markSceneDirty()
+        return result
+      }
+      //#endregion analysis engine
+
+      //#region shader engine ----------------------------------------------------
+      // One active preset per layer. The active presets are part of the persisted
+      // scene snapshot so a remounted panel redraws them; the original customShader
+      // (usually null) is saved per layer and put back on reset / layer removal.
+      const shaderResult = (operation, preset, layer) => ({
+        operation,
+        preset: preset ?? null,
+        layer: layer ?? null,
+        active: shaderActiveList(),
+        presets: SHADER_PRESETS.slice(),
+      })
+
+      const shaderActiveList = () => {
+        const order = new Map(layersRef.current.map((layer, index) => [layer.id, index]))
+        return [...shaderEntriesRef.current.values()]
+          .sort((left, right) => (order.get(left.layer.id) ?? 0) - (order.get(right.layer.id) ?? 0))
+          .map((entry) => ({ layer: entry.layerName, preset: entry.preset }))
+      }
+
+      const refreshShaderActive = () => setShaderActive(shaderActiveList())
+
+      /** Register the single u_time tick only when the first preset becomes active. */
+      function ensureShaderTick() {
+        const viewer = viewerRef.current
+        if (!viewer || shaderTickRef.current) return
+        const tick = () => {
+          const seconds = (typeof performance !== 'undefined' ? performance.now() : Date.now()) / 1000
+          for (const entry of shaderEntriesRef.current.values()) {
+            const shader = entry.shader
+            if (!shader || !shader.uniforms || !('u_time' in shader.uniforms)) continue
+            try {
+              shader.setUniform('u_time', seconds)
+            } catch {
+              /* an already replaced shader is detached from the tileset */
+            }
+          }
+        }
+        try {
+          viewer.scene.preRender.addEventListener(tick)
+          shaderTickRef.current = { viewer, tick }
+        } catch {
+          shaderTickRef.current = null
+        }
+      }
+
+      function releaseShaderTick() {
+        const handle = shaderTickRef.current
+        shaderTickRef.current = null
+        if (!handle) return
+        try {
+          handle.viewer.scene.preRender.removeEventListener(handle.tick)
+        } catch {
+          /* the viewer may already be destroyed */
+        }
+      }
+
+      function restoreShaderEntry(entry) {
+        try {
+          entry.layer.tileset.customShader = entry.previous ?? undefined
+          return null
+        } catch (error) {
+          return error
+        }
+      }
+
+      /** Layer removal: drop its preset and the tick when nothing is left. */
+      function detachShaderForLayer(id, restore) {
+        const entries = shaderEntriesRef.current
+        const entry = entries.get(id)
+        if (!entry) return false
+        entries.delete(id)
+        if (restore) restoreShaderEntry(entry)
+        refreshShaderActive()
+        if (entries.size === 0) releaseShaderTick()
+        return true
+      }
+
+      function resolveShaderLayer(token) {
+        if (token) {
+          const layer = findLayer(token)
+          if (!layer) {
+            throw shaderFail(`未找到图层 "${token}"。`, '用 earth_scene 的 list 动作查看当前图层名。')
+          }
+          return layer
+        }
+        let gaussianOnly = false
+        for (let index = layersRef.current.length - 1; index >= 0; index -= 1) {
+          const layer = layersRef.current[index]
+          if (!layer.visible) continue
+          // Auto-selection skips 3DGS so a splat layer on top cannot shadow a usable
+          // 3D Tiles layer below; an explicit layer still gets the exact 3DGS error.
+          if (shaderGaussianLayer(layer.tileset)) {
+            gaussianOnly = true
+            continue
+          }
+          return layer
+        }
+        if (gaussianOnly) {
+          throw shaderFail(
+            '当前视图没有可用的 3D Tiles 图层（可见图层均为 3DGS）。',
+            '加载或显示普通 3D Tiles 图层后重试。',
+          )
+        }
+        throw shaderFail('当前视图没有可见的 3D Tiles 图层。', '先加载或显示 3D Tiles 图层后重试。')
+      }
+
+      function applyShader(request) {
+        const Cesium = cesiumRef.current
+        const viewer = viewerRef.current
+        if (!Cesium || !viewer) throw shaderFail('三维引擎尚未就绪。', '打开数字地球面板后重试。')
+        if (typeof Cesium.CustomShader !== 'function') {
+          throw shaderFail('当前 Cesium 不支持 CustomShader。', '升级 Cesium 版本或换用其他可视化方式。')
+        }
+        const layer = resolveShaderLayer(request.layer)
+        if (shaderGaussianLayer(layer.tileset)) {
+          // Exact wording from the frozen B3 contract (used by QA and the model).
+          throw new Error('shader: 3DGS 图层不支持该预设。next: 换 3D Tiles 图层。')
+        }
+        // The contract fallback for a not-yet-loaded tileset is 0..200, not the
+        // camera altitude: the dataset centre must not depend on where we look.
+        const range = shaderHeightRange(Cesium, layer.tileset, null)
+        if (request.params.min_height !== undefined) range.minimum = request.params.min_height
+        if (request.params.max_height !== undefined) range.maximum = request.params.max_height
+        if (!(range.maximum > range.minimum)) {
+          throw shaderFail(`高程范围无效（${range.minimum}..${range.maximum}）。`, '传入 min_height < max_height。')
+        }
+        const options = {
+          uniforms: shaderUniforms(Cesium, request.preset, request.params, range),
+          fragmentShaderText: shaderFragmentSource(request.preset),
+        }
+        if (request.preset === 'water' && Cesium.CustomShaderTranslucencyMode?.TRANSLUCENT !== undefined) {
+          options.translucencyMode = Cesium.CustomShaderTranslucencyMode.TRANSLUCENT
+        }
+        let shader = null
+        try {
+          shader = new Cesium.CustomShader(options)
+        } catch (error) {
+          throw shaderFail(`预设着色器构造失败（${message(error)}）。`, '换一个预设或重置后重试。')
+        }
+        // Re-applying on the same layer keeps the very first saved shader so reset
+        // never restores a preset we applied ourselves.
+        const existing = shaderEntriesRef.current.get(layer.id)
+        const previous = existing ? existing.previous : (layer.tileset.customShader ?? null)
+        try {
+          layer.tileset.customShader = shader
+          if (layer.tileset.customShader !== shader) throw new Error('图层拒绝了 customShader 赋值')
+        } catch (error) {
+          // Restore the preset that is still active (not the layer's original shader)
+          // so the entries, shader list and workbench keep matching the scene. Only
+          // when even that restore fails do we drop the stale entry.
+          let restored = false
+          try {
+            if (existing) {
+              layer.tileset.customShader = existing.shader ?? undefined
+              restored = layer.tileset.customShader === (existing.shader ?? undefined)
+            } else {
+              layer.tileset.customShader = previous ?? undefined
+              restored = layer.tileset.customShader === (previous ?? undefined)
+            }
+          } catch {
+            restored = false
+          }
+          if (!restored) {
+            if (existing) {
+              shaderEntriesRef.current.delete(layer.id)
+              if (shaderEntriesRef.current.size === 0) releaseShaderTick()
+              refreshShaderActive()
+            }
+            throw shaderFail(
+              `预设应用失败（${message(error)}），且原有着色器恢复失败。`,
+              '重新加载该图层或刷新面板后重试。',
+            )
+          }
+          throw shaderFail(`预设应用失败（${message(error)}）。`, '换一个预设或重置后重试。')
+        }
+        shaderEntriesRef.current.set(layer.id, {
+          layer,
+          layerName: layer.name,
+          preset: request.preset,
+          params: { ...request.params },
+          previous,
+          shader,
+        })
+        ensureShaderTick()
+        refreshShaderActive()
+        return shaderResult('apply', request.preset, layer.name)
+      }
+
+      function resetShader(layerToken) {
+        const entries = shaderEntriesRef.current
+        let targetLayerName = null
+        let targets = []
+        if (layerToken) {
+          const layer = findLayer(layerToken)
+          if (!layer) {
+            throw shaderFail(`未找到图层 "${layerToken}"。`, '用 earth_scene 的 list 动作查看当前图层名。')
+          }
+          targetLayerName = layer.name
+          const entry = entries.get(layer.id)
+          if (entry) targets = [entry]
+        } else {
+          targets = [...entries.values()]
+        }
+        let failure = null
+        for (const entry of targets) {
+          entries.delete(entry.layer.id)
+          const error = restoreShaderEntry(entry)
+          if (error && !failure) failure = error
+        }
+        if (entries.size === 0) releaseShaderTick()
+        refreshShaderActive()
+        if (failure) {
+          throw shaderFail(`恢复原有着色器失败（${message(failure)}）。`, '重试 reset，或换一个预设后重置。')
+        }
+        return shaderResult('reset', null, targetLayerName)
+      }
+
+      /**
+       * Bridge entry for the B3 `shader` command: apply / reset / list. Argument
+       * validation runs before the viewer check so a malformed call gets the same
+       * actionable message even on a cold panel.
+       */
+      async function shaderCommand(args = {}) {
+        const request = shaderValidateRequest(args)
+        if (request instanceof Error) throw request
+        if (request.operation === 'list') return shaderResult('list', null, null)
+        const Cesium = cesiumRef.current
+        const viewer = viewerRef.current
+        if (!Cesium || !viewer) throw shaderFail('三维引擎尚未就绪。', '打开数字地球面板后重试。')
+        if (request.operation === 'reset') return resetShader(request.layer)
+        return applyShader(request)
+      }
+      //#endregion shader engine
 
       //#region scene snapshot ---------------------------------------------------
       // Camera, layers (by their original source) and Agent overlays survive the
@@ -2889,6 +4922,71 @@ window.__ModuleLoader__.load({
       // Whether a restore decision was already made for this mount; a session id
       // that arrives after the viewer is ready gets exactly one late restore.
       const sceneRestoredRef = React.useRef(false)
+      const HOST_SCENE_TIMEOUT_MS = 3000
+      const lastHostSceneSaveRef = React.useRef(0)
+
+      /** Read the host-persisted snapshot; null when absent or unreachable. */
+      async function readHostSceneSnapshot(session) {
+        const meta = metaRef.current ?? (await loadMeta().catch(() => null))
+        if (!meta?.sceneUrl) return null
+        const controller = new AbortController()
+        const timer = setTimeout(() => controller.abort(), HOST_SCENE_TIMEOUT_MS)
+        try {
+          const response = await fetch(
+            `${meta.sceneUrl}?token=${encodeURIComponent(meta.token)}&session=${encodeURIComponent(session)}`,
+            { credentials: 'same-origin', signal: controller.signal },
+          )
+          if (!response.ok) return null
+          const data = await response.json()
+          return normalizeSceneSnapshot(data?.snapshot)
+        } catch {
+          return null
+        } finally {
+          clearTimeout(timer)
+        }
+      }
+
+      /** Push one snapshot body to the host store, throttled unless forced. */
+      function saveHostSceneSnapshot(session, body, force = false) {
+        const meta = metaRef.current
+        if (!meta?.sceneUrl) return
+        const now = Date.now()
+        if (!force && now - lastHostSceneSaveRef.current < 10000) return
+        lastHostSceneSaveRef.current = now
+        let text = ''
+        try {
+          text = JSON.stringify({ session, snapshot: body })
+        } catch {
+          return
+        }
+        // Mirror the host body limit so an oversized scene stays local-only.
+        if (text.length > 512 * 1024) return
+        try {
+          void fetch(meta.sceneUrl, {
+            method: 'PUT',
+            credentials: 'same-origin',
+            headers: { 'content-type': 'application/json' },
+            body: text,
+            keepalive: true,
+          }).catch(() => {})
+        } catch {
+          // The host store is best effort; the local cache already has the scene.
+        }
+      }
+
+      /** Prefer the host snapshot (survives origin changes), fall back to local. */
+      async function loadSceneSnapshot(session) {
+        const hostSnapshot = await readHostSceneSnapshot(session)
+        if (hostSnapshot !== null) {
+          try {
+            writeSceneSnapshot(session, hostSnapshot)
+          } catch {
+            // Keeping the local cache warm is a convenience, not a requirement.
+          }
+          return hostSnapshot
+        }
+        return readSceneSnapshot(session)
+      }
 
       const markSceneDirty = () => {
         sceneDirtyRef.current = true
@@ -2921,17 +5019,24 @@ window.__ModuleLoader__.load({
             draw: agentOverlayRef.current.drawCommands,
             measure: agentOverlayRef.current.measureCommands,
           },
+          analysis: analysisCommandRef.current,
+          shaders: [...shaderEntriesRef.current.values()].map((entry) => ({
+            layer: entry.layerName,
+            preset: entry.preset,
+            params: { ...entry.params },
+          })),
         }
       }
 
-      /** Persist the current scene for this session (best effort, never throws). */
-      const saveSceneSnapshot = () => {
+      /** Persist the current scene locally and hand the body to the host store. */
+      const saveSceneSnapshot = (forceHost = false) => {
         const session = sessionRef.current
         if (typeof session !== 'string' || session === '') return
         try {
           const snapshot = currentSceneSnapshot()
           if (snapshot === null) return
-          writeSceneSnapshot(session, snapshot)
+          const body = writeSceneSnapshot(session, snapshot)
+          if (body !== null) saveHostSceneSnapshot(session, body, forceHost)
           sceneDirtyRef.current = false
         } catch {
           // Persistence must never take the panel down.
@@ -2978,6 +5083,20 @@ window.__ModuleLoader__.load({
               measureAgentOverlay(Cesium, viewer, command)
             } catch {
               // Same for a stale measurement.
+            }
+          }
+          for (const item of snapshot.shaders) {
+            try {
+              await shaderCommand({ action: 'apply', preset: item.preset, layer: item.layer, ...(item.params ?? {}) })
+            } catch {
+              // A stale preset (3DGS layer, changed tileset) is skipped.
+            }
+          }
+          if (snapshot.analysis !== null) {
+            try {
+              await analyzeCommand(snapshot.analysis)
+            } catch {
+              // The saved analysis may no longer have usable height data.
             }
           }
           if (snapshot.view !== null) {
@@ -3152,7 +5271,7 @@ window.__ModuleLoader__.load({
             Math.round(viewer.canvas.clientWidth / 2),
             Math.round(viewer.canvas.clientHeight / 2),
           )
-          const carto = sampleCursor(viewer, Cesium, center)
+          const carto = sampleCursor(viewer, Cesium, center, { pickPosition: true })
           if (carto) pointerText = formatCursor(Cesium, carto)
         }
         const visibleCount = layersRef.current.filter((layer) => layer.visible).length
@@ -3314,6 +5433,301 @@ window.__ModuleLoader__.load({
         return { ...saved, hud: shot.includeHud }
       }
 
+      /**
+       * "Ask Agent": capture the current scene as context and inject it into the
+       * live conversation, so the user can simply type the follow-up question.
+       * Injection never wakes an idle agent; the context lands on the next step.
+       */
+      async function askAgent() {
+        const meta = metaRef.current
+        const session = sessionRef.current
+        if (!meta?.injectUrl || typeof session !== 'string' || session === '') {
+          showToast(t('toast.askAgentNoSession'))
+          return
+        }
+        let snapshotPath = ''
+        try {
+          const saved = await captureScene({}, session)
+          snapshotPath = typeof saved.path === 'string' ? saved.path : ''
+        } catch {
+          // A fresh image is a bonus; the textual summary still helps.
+        }
+        let status = null
+        try {
+          status = await collectSceneStatus()
+        } catch {
+          status = null
+        }
+        const lines = [
+          '[Digital Earth scene context] The user is looking at this scene and will ask a follow-up about it.',
+        ]
+        if (status !== null) {
+          const view = status.view ?? {}
+          if (Number.isFinite(view.lon) && Number.isFinite(view.lat)) {
+            lines.push(
+              `Camera: lon=${view.lon}, lat=${view.lat}, height=${view.height} m, heading=${view.heading}°, pitch=${view.pitch}°.`,
+            )
+          }
+          const layerText =
+            Array.isArray(status.layers) && status.layers.length > 0
+              ? status.layers.map((layer) => `${layer.name}${layer.visible === false ? ' (hidden)' : ''}`).join(', ')
+              : 'none'
+          lines.push(`Layers: ${layerText}.`)
+          lines.push(`Imagery: ${status.imagery?.name ?? 'none'}; terrain: ${status.terrain?.name ?? 'none'}.`)
+          const annotations = status.annotations ?? {}
+          lines.push(
+            `Agent overlays: ${annotations.drawn_features ?? 0} annotated features, ${annotations.measured_points ?? 0} measured points.`,
+          )
+        }
+        if (analysis !== null && analysis.result) {
+          const result = analysis.result
+          if (result.operation === 'profile' && result.stats) {
+            lines.push(
+              `Analysis (profile): length=${result.length_m} m, relief=${result.stats.relief_m} m, min=${result.stats.min_height} m, max=${result.stats.max_height} m, samples=${result.samples}.`,
+            )
+          } else if (result.operation === 'flood') {
+            lines.push(
+              `Analysis (flood): water=${result.water_height} m, area=${result.area_km2} km², inundated=${result.inundated_km2} km², ratio=${result.inundated_ratio}, max depth=${result.depth_max_m} m.`,
+            )
+          } else if (result.operation === 'sunlight') {
+            lines.push(
+              `Analysis (sunlight): datetime=${result.datetime}, altitude=${result.sun?.altitude_deg}°, azimuth=${result.sun?.azimuth_deg}°, shadows=${result.shadows_enabled === true ? 'on' : 'off'}.`,
+            )
+          }
+        }
+        const shaders = shaderActiveList()
+        if (shaders.length > 0) {
+          lines.push(`Shaders: ${shaders.map((item) => `${item.layer}=${item.preset}`).join(', ')}.`)
+        }
+        if (snapshotPath !== '') lines.push(`Snapshot: ${snapshotPath}`)
+        lines.push('Answer from the scene state above; do not invent data that is not in it.')
+        try {
+          const response = await fetch(meta.injectUrl, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ session, text: lines.join('\n') }),
+          })
+          const data = await response.json().catch(() => null)
+          if (!response.ok || data?.ok !== true) throw new Error(data?.message ?? `HTTP ${response.status}`)
+          showToast(t('toast.askAgentSent'))
+        } catch (error) {
+          showToast(t('toast.askAgentFailed', { message: message(error) }))
+        }
+      }
+
+      /**
+       * Build a scene report (self-contained HTML or Markdown) from the live
+       * scene: camera, layers, basemap/terrain, Agent overlays and measured
+       * values, the active analysis, shader presets and a best-effort snapshot.
+       */
+      async function buildSceneReport(args = {}) {
+        const format = args.format === 'markdown' ? 'markdown' : 'html'
+        const chinese = isChinese()
+        const L = chinese
+          ? {
+              title: '数字地球场景报告',
+              generated: '生成时间',
+              camera: '相机',
+              layers: '图层',
+              name: '名称',
+              visibility: '可见性',
+              imagery: '影像底图',
+              terrain: '地形',
+              overlays: 'Agent 叠加',
+              annotatedFeatures: '标注要素',
+              measuredPoints: '量测点数',
+              measurements: '量测结果',
+              analysis: '地形分析',
+              shaders: '着色器预设',
+              snapshot: '当前画面',
+              none: '无',
+              visible: '显示',
+              hidden: '隐藏',
+              distance: '距离',
+              area: '面积',
+              height: '高差',
+              slope: '坡度',
+              profile: '剖面',
+              relief: '起伏',
+              flood: '淹没',
+              inundated: '淹没面积',
+              sunlight: '日照',
+              generatedBy: '由 DSH 数字地球插件生成',
+            }
+          : {
+              title: 'Digital Earth scene report',
+              generated: 'Generated',
+              camera: 'Camera',
+              layers: 'Layers',
+              name: 'Name',
+              visibility: 'Visibility',
+              imagery: 'Imagery',
+              terrain: 'Terrain',
+              overlays: 'Agent overlays',
+              annotatedFeatures: 'Annotated features',
+              measuredPoints: 'Measured points',
+              measurements: 'Measurements',
+              analysis: 'Terrain analysis',
+              shaders: 'Shader presets',
+              snapshot: 'Current view',
+              none: 'none',
+              visible: 'visible',
+              hidden: 'hidden',
+              distance: 'Distance',
+              area: 'Area',
+              height: 'Height difference',
+              slope: 'slope',
+              profile: 'Profile',
+              relief: 'relief',
+              flood: 'Flood',
+              inundated: 'inundated',
+              sunlight: 'Sunlight',
+              generatedBy: 'Generated by the DSH Digital Earth plugin',
+            }
+        const title = typeof args.title === 'string' && args.title.trim() !== '' ? args.title.trim().slice(0, 120) : L.title
+        const generatedAt = new Date().toISOString()
+        const sections = []
+        const failed = []
+        let capture = null
+        if (args.include_capture !== false) {
+          try {
+            const saved = await captureScene({}, sessionRef.current)
+            capture = {
+              path: typeof saved.path === 'string' ? saved.path : '',
+              width: saved.width,
+              height: saved.height,
+              mime: 'image/jpeg',
+              base64: '',
+            }
+            if (typeof saved.url === 'string' && saved.url !== '') {
+              try {
+                const response = await fetch(saved.url, { credentials: 'same-origin' })
+                if (response.ok) {
+                  const blob = await response.blob()
+                  capture.mime = blob.type || 'image/jpeg'
+                  capture.base64 = arrayBufferToBase64(await blob.arrayBuffer())
+                }
+              } catch {
+                // Keeping the path still makes the report useful.
+              }
+            }
+            if (capture.path !== '') sections.push('snapshot')
+          } catch (error) {
+            failed.push(`snapshot: ${message(error)}`)
+          }
+        }
+        const status = await collectSceneStatus().catch(() => null)
+        const view = status?.view ?? null
+        const layers = Array.isArray(status?.layers) ? status.layers : []
+        const annotations = status?.annotations ?? {}
+        const measurements = agentOverlayRef.current.measureCommands
+          .map((command) => command?.result)
+          .filter((result) => result !== null && typeof result === 'object')
+          .map((result) => {
+            if (result.mode === 'distance') return `${L.distance}: ${formatDistance(result.distance_m)}`
+            if (result.mode === 'area') return `${L.area}: ${formatArea(result.area_m2)}`
+            if (result.mode === 'height') {
+              return `${L.height}: ${result.height_m} m (${formatDistance(result.horizontal_m)} ${L.slope} ${result.slope_deg}°)`
+            }
+            return ''
+          })
+          .filter((line) => line !== '')
+        if (measurements.length > 0) sections.push('measurements')
+        let analysisText = ''
+        if (analysis !== null && analysis.result) {
+          const result = analysis.result
+          if (result.operation === 'profile') {
+            analysisText = `${L.profile}: ${formatDistance(result.length_m)}, ${L.relief} ${result.stats?.relief_m} m`
+          } else if (result.operation === 'flood') {
+            analysisText = `${L.flood}: ${formatDistance(result.water_height)} water, ${L.inundated} ${result.inundated_km2} km² (${result.inundated_ratio})`
+          } else if (result.operation === 'sunlight') {
+            analysisText = `${L.sunlight}: ${result.datetime}, altitude ${result.sun?.altitude_deg}°, azimuth ${result.sun?.azimuth_deg}°`
+          }
+        }
+        if (analysisText !== '') sections.push('analysis')
+        const shaders = shaderActiveList()
+        if (shaders.length > 0) sections.push('shaders')
+        sections.unshift('camera', 'layers')
+        if (status !== null) sections.splice(2, 0, 'basemap & terrain')
+
+        const cameraLine =
+          view !== null
+            ? `lon ${view.lon}, lat ${view.lat}, height ${view.height} m, heading ${view.heading}°, pitch ${view.pitch}°`
+            : L.none
+        const layerRows = layers.map((layer) => ({
+          name: layer.name,
+          visible: layer.visible === false ? L.hidden : L.visible,
+        }))
+        const environment = `${L.imagery}: ${status?.imagery?.name ?? L.none}; ${L.terrain}: ${status?.terrain?.name ?? L.none}`
+        const overlayLine = `${L.annotatedFeatures}: ${annotations.drawn_features ?? 0}; ${L.measuredPoints}: ${annotations.measured_points ?? 0}`
+        const shaderLines = shaders.map((item) => `${item.layer} — ${item.preset}`)
+
+        let content = ''
+        if (format === 'markdown') {
+          const lines = [`# ${title}`, '', `${L.generated}: ${generatedAt}`, '', `## ${L.camera}`, '', `- ${cameraLine}`, '']
+          lines.push(`## ${L.layers}`, '')
+          if (layerRows.length === 0) lines.push(`- ${L.none}`)
+          else {
+            lines.push(`| ${L.name} | ${L.visibility} |`, '| --- | --- |')
+            for (const row of layerRows) lines.push(`| ${row.name} | ${row.visible} |`)
+          }
+          lines.push('', `## ${L.imagery} / ${L.terrain}`, '', `- ${environment}`, '', `## ${L.overlays}`, '', `- ${overlayLine}`, '')
+          if (measurements.length > 0) lines.push(`## ${L.measurements}`, '', ...measurements.map((line) => `- ${line}`), '')
+          if (analysisText !== '') lines.push(`## ${L.analysis}`, '', `- ${analysisText}`, '')
+          if (shaderLines.length > 0) lines.push(`## ${L.shaders}`, '', ...shaderLines.map((line) => `- ${line}`), '')
+          if (capture !== null && capture.path !== '') lines.push(`## ${L.snapshot}`, '', `![${L.snapshot}](${capture.path})`, '')
+          lines.push('---', L.generatedBy)
+          content = lines.join('\n')
+        } else {
+          const table = layerRows.length === 0
+            ? `<p>${escapeHtml(L.none)}</p>`
+            : `<table><thead><tr><th>${escapeHtml(L.name)}</th><th>${escapeHtml(L.visibility)}</th></tr></thead><tbody>${layerRows
+                .map((row) => `<tr><td>${escapeHtml(row.name)}</td><td>${escapeHtml(row.visible)}</td></tr>`)
+                .join('')}</tbody></table>`
+          const image = capture !== null && capture.base64 !== ''
+            ? `<img alt="${escapeHtml(L.snapshot)}" src="data:${escapeHtml(capture.mime)};base64,${capture.base64}">`
+            : capture !== null && capture.path !== ''
+              ? `<p>${escapeHtml(capture.path)}</p>`
+              : ''
+          const list = (items) => items.map((item) => `<li>${escapeHtml(item)}</li>`).join('')
+          content = `<!doctype html>
+<html lang="${chinese ? 'zh-CN' : 'en'}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${escapeHtml(title)}</title>
+<style>
+body{margin:0;padding:32px;background:#f5f7fa;color:#1b1f24;font:14px/1.65 -apple-system,"Segoe UI","PingFang SC",sans-serif}
+main{max-width:900px;margin:0 auto;background:#fff;padding:32px 36px;border-radius:14px;box-shadow:0 8px 32px rgba(20,30,50,.08)}
+h1{margin:0 0 4px;font-size:24px}
+h2{margin:28px 0 10px;font-size:16px;border-bottom:1px solid #e6eaf0;padding-bottom:6px}
+.meta{color:#6b7280;font-size:12px}
+table{border-collapse:collapse;width:100%}
+th,td{border:1px solid #e6eaf0;padding:7px 10px;text-align:left}
+th{background:#f8fafc}
+ul{margin:0;padding-left:20px}
+img{max-width:100%;border-radius:10px;border:1px solid #e6eaf0}
+footer{margin-top:32px;color:#9aa1ab;font-size:12px}
+</style>
+</head>
+<body><main>
+<h1>${escapeHtml(title)}</h1>
+<p class="meta">${escapeHtml(L.generated)}: ${escapeHtml(generatedAt)}</p>
+<h2>${escapeHtml(L.camera)}</h2><p>${escapeHtml(cameraLine)}</p>
+<h2>${escapeHtml(L.layers)}</h2>${table}
+<h2>${escapeHtml(L.imagery)} / ${escapeHtml(L.terrain)}</h2><p>${escapeHtml(environment)}</p>
+<h2>${escapeHtml(L.overlays)}</h2><p>${escapeHtml(overlayLine)}</p>
+${measurements.length > 0 ? `<h2>${escapeHtml(L.measurements)}</h2><ul>${list(measurements)}</ul>` : ''}
+${analysisText !== '' ? `<h2>${escapeHtml(L.analysis)}</h2><p>${escapeHtml(analysisText)}</p>` : ''}
+${shaderLines.length > 0 ? `<h2>${escapeHtml(L.shaders)}</h2><ul>${list(shaderLines)}</ul>` : ''}
+${image !== '' ? `<h2>${escapeHtml(L.snapshot)}</h2>${image}` : ''}
+<footer>${escapeHtml(L.generatedBy)}</footer>
+</main></body></html>`
+        }
+        return { format, title, content, label: 'scene', sections, failed }
+      }
+
       function setLayerVisible(id, visible) {
         const layer = layersRef.current.find((item) => item.id === id)
         if (!layer) return null
@@ -3350,6 +5764,12 @@ window.__ModuleLoader__.load({
         const viewer = viewerRef.current
         const index = layersRef.current.findIndex((item) => item.id === id)
         if (index < 0 || !viewer) return null
+        // An analysis that targeted this layer loses its data source: clear it
+        // before the tileset detaches so the card never points at a removed layer.
+        if (analysisRef.current.layerId === id) clearAnalysis()
+        // B3: a removed layer must not keep a dangling shader entry (or the u_time
+        // tick alive); no restore is needed because the tileset is being detached.
+        detachShaderForLayer(id, false)
         const [layer] = layersRef.current.splice(index, 1)
         try {
           viewer.scene.primitives.remove(layer.tileset)
@@ -3545,6 +5965,17 @@ window.__ModuleLoader__.load({
           return layer
         }
 
+        // Internal bridge action (not part of the earth_scene tool schema): the Host
+        // resolved a local path but the whitelist rejected it, so ask the user in
+        // the panel. Allow only after /scan registered the folder; the Host then
+        // re-validates and sends the real `load` with the resolved target path.
+        if (action === 'authorize') {
+          const request = normalizeAccessRequest(args)
+          if (!request.directory) throw new Error(`access_denied: ${t('access.badPath')}`)
+          const decision = await askPathAccess(request)
+          if (!decision.allowed) throw new Error(`access_denied: ${decision.message || t('access.denied')}`)
+          return { authorized: true, directory: decision.directory }
+        }
         if (action === 'status') return collectSceneStatus()
         if (action === 'capture') {
           const saved = await captureScene(
@@ -3565,6 +5996,32 @@ window.__ModuleLoader__.load({
             hud_hidden: saved.hud !== true,
             layers_visible: layersRef.current.filter((layer) => layer.visible).length,
             view: (await collectSceneStatus()).view,
+          }
+        }
+        // B2 analysis bridge: profile / flood / sunlight / clear (Host tool
+        // `earth_analyze`); the Host validates the operation before sending it.
+        // Checked before the generic readiness guard so every analysis failure
+        // (including a cold viewer) carries an actionable "next:" step.
+        if (action === 'analyze') {
+          try {
+            return await analyzeCommand(args)
+          } catch (error) {
+            const text = message(error)
+            // Every analysis failure must end in an actionable next step.
+            if (text.includes('next:')) throw error
+            throw new Error(`${text} next: 用 earth_scene 检查面板与数据状态后重试，或先执行 analyze clear。`)
+          }
+        }
+        // B3 shader bridge: apply / reset / list (Host tool `earth_shader`). Like
+        // analysis, it is checked before the generic readiness guard so a cold
+        // viewer still produces a model-facing "next:" instead of a dead end.
+        if (action === 'shader') {
+          try {
+            return await shaderCommand(args)
+          } catch (error) {
+            const text = message(error)
+            if (text.includes('next:')) throw error
+            throw new Error(`${text} next: 用 earth_scene 的 list 动作确认图层后，先 shader reset 再重试。`)
           }
         }
         if (!Cesium || !viewer) throw new Error(t('agent.notReady'))
@@ -3591,7 +6048,13 @@ window.__ModuleLoader__.load({
               throw new Error(t('agent.dirDenied', { message: message(error) }))
             }
           }
-          if (!/^https?:\/\//i.test(url)) throw new Error(t('agent.missingUrl'))
+          // Local tiles are served through the Host's own token route, which is a
+          // same-origin path (`/api/3dviewer/tiles/...`) rather than an absolute
+          // http(s) URL. Accepting only http(s) here made every `path` load fail
+          // with "agent.missingUrl" even after the folder was authorised.
+          const localTilesBase = typeof metaRef.current?.tilesBase === 'string' ? metaRef.current.tilesBase : ''
+          const isHostTilesUrl = localTilesBase !== '' && url.startsWith(localTilesBase)
+          if (!/^https?:\/\//i.test(url) && !isHostTilesUrl) throw new Error(t('agent.missingUrl'))
           const label = rawPath
             ? rawPath.replace(/\\/g, '/').split('/').filter(Boolean).slice(-2).join('/')
             : undefined
@@ -3599,7 +6062,12 @@ window.__ModuleLoader__.load({
             ? { kind: 'local', path: rawPath }
             : { kind: 'remote', url: rawPath || url }
           const layer = await loadTileset(url, label, source)
-          return { loaded: true, layer: { id: layer.id, name: layer.name, url: redactUrl(layer.url) } }
+          return {
+            loaded: true,
+            layer: { id: layer.id, name: layer.name, url: redactUrl(layer.url) },
+            view: (await collectSceneStatus()).view,
+            layers_count: layersRef.current.length,
+          }
         }
         if (action === 'remove') {
           const layer = requireLayer()
@@ -3709,6 +6177,28 @@ window.__ModuleLoader__.load({
           value.overlays = agentOverlayRef.current.draw.length + agentOverlayRef.current.measure.length
           return value
         }
+        if (action === 'report') {
+          const meta = metaRef.current
+          if (!meta?.reportUrl) throw new Error(t('agent.notReady'))
+          const report = await buildSceneReport(args)
+          const response = await fetch(meta.reportUrl, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify(report),
+          })
+          if (!response.ok) throw new Error(`HTTP ${response.status}`)
+          const saved = await response.json()
+          return {
+            operation: 'report',
+            path: saved.path,
+            format: saved.format ?? report.format,
+            bytes: saved.bytes,
+            title: report.title,
+            sections: report.sections,
+            failed: report.failed,
+          }
+        }
         throw new Error(t('agent.badAction', { action: String(action) }))
       }
       commandRef.current = runCommand
@@ -3760,7 +6250,10 @@ window.__ModuleLoader__.load({
           commandChainRef.current = commandChainRef.current
             .then(async () => {
               try {
-                await waitForPanelReady()
+                // The authorisation dialog only needs meta + DOM: answer it while
+                // Cesium is still booting so the Host's 30 s deadline is not spent
+                // waiting for the engine.
+                if (payload.action !== 'authorize') await waitForPanelReady()
                 const result = await commandRef.current(payload.action, payload.args ?? {}, bridgeSession)
                 await ack({ session: bridgeSession, id: payload.id, ok: true, result })
               } catch (error) {
@@ -3810,6 +6303,19 @@ window.__ModuleLoader__.load({
         }
       }, [sessionId, meta, bridgeEpoch])
 
+      // A panel that goes away must not leave a pending authorisation promise or
+      // its cleanup timer behind: settle it as denied so the command chain ends.
+      React.useEffect(
+        () => () => {
+          const current = accessRef.current
+          if (!current) return
+          accessRef.current = null
+          clearTimeout(current.timer)
+          current.resolve({ allowed: false, message: t('access.denied') })
+        },
+        [],
+      )
+
       React.useEffect(() => {
         let cancelled = false
         ;(async () => {
@@ -3854,8 +6360,10 @@ window.__ModuleLoader__.load({
             // let the short timer batch the localStorage write.
             viewer.camera.moveEnd.addEventListener(markSceneDirty)
             // Rebuild the scene this session had when its tab body was disposed;
-            // commands wait for this so they cannot race the restored camera.
-            const savedScene = typeof sessionId === 'string' && sessionId !== '' ? readSceneSnapshot(sessionId) : null
+            // commands wait for this so they cannot race the restored camera. The
+            // host store is tried first (it survives origin changes), then the
+            // localStorage cache.
+            const savedScene = typeof sessionId === 'string' && sessionId !== '' ? await loadSceneSnapshot(sessionId) : null
             if (savedScene !== null) {
               await restoreSceneSnapshot(savedScene)
               if (cancelled) return
@@ -3874,7 +6382,7 @@ window.__ModuleLoader__.load({
         return () => {
           cancelled = true
           // Capture the last scene before the viewer is destroyed.
-          saveSceneSnapshot()
+          saveSceneSnapshot(true)
           readyGateRef.current.ready = false
           settleReadyWaiters(new Error(t('agent.notReady')))
           clearTimeout(toastTimer.current)
@@ -3884,6 +6392,10 @@ window.__ModuleLoader__.load({
             /* ignore */
           }
           handlerRef.current = null
+          // B3: detach the u_time tick and forget per-layer shader entries before
+          // the viewer goes away; the tilesets themselves are destroyed with it.
+          releaseShaderTick()
+          shaderEntriesRef.current.clear()
           try {
             viewerRef.current?.destroy()
           } catch {
@@ -3902,10 +6414,14 @@ window.__ModuleLoader__.load({
         if (phase !== 'ready' || sceneRestoredRef.current) return undefined
         if (typeof sessionId !== 'string' || sessionId === '') return undefined
         sceneRestoredRef.current = true
-        const snapshot = readSceneSnapshot(sessionId)
-        if (snapshot === null) return undefined
-        void restoreSceneSnapshot(snapshot)
-        return undefined
+        let cancelled = false
+        void (async () => {
+          const snapshot = await loadSceneSnapshot(sessionId)
+          if (!cancelled && snapshot !== null) await restoreSceneSnapshot(snapshot)
+        })().catch(() => {})
+        return () => {
+          cancelled = true
+        }
         // eslint-disable-next-line react-hooks/exhaustive-deps
       }, [phase, sessionId])
 
@@ -3917,7 +6433,7 @@ window.__ModuleLoader__.load({
           if (sceneDirtyRef.current) saveSceneSnapshot()
         }, 3000)
         const flush = () => {
-          if (sceneDirtyRef.current) saveSceneSnapshot()
+          if (sceneDirtyRef.current) saveSceneSnapshot(true)
         }
         const onVisibility = () => {
           if (document.visibilityState === 'hidden') flush()
@@ -4009,11 +6525,24 @@ window.__ModuleLoader__.load({
         viewer.scene.requestRender?.()
       }, [phase, resolvedDark])
 
-      const button = (label, onClick, active, extra) =>
+      const button = (label, onClick, active, extra, title) =>
         h(
           'button',
-          { type: 'button', className: `mv-btn${active ? ' on' : ''}${extra ? ` ${extra}` : ''}`, onClick },
+          { type: 'button', className: `mv-btn${active ? ' on' : ''}${extra ? ` ${extra}` : ''}`, onClick, title },
           label,
+        )
+      const iconButton = (icon, title, onClick, active) =>
+        h(
+          'button',
+          {
+            type: 'button',
+            className: `mv-btn icon${active ? ' on' : ''}`,
+            title,
+            'aria-label': title,
+            'aria-pressed': active === undefined ? undefined : active,
+            onClick,
+          },
+          icon,
         )
       const menu = (id, label, items, active) =>
         h(
@@ -4032,6 +6561,66 @@ window.__ModuleLoader__.load({
         pending: t('hud.pending'),
         triangles: t('hud.triangles'),
         cache: t('hud.cache'),
+      }
+
+      // B3 workbench wiring: the card only builds bridge-shaped apply/reset calls;
+      // shaderCommand owns validation, layer resolution and the active list.
+      const shaderField = (key, value) => setShaderForm((form) => ({ ...form, [key]: value }))
+      const shaderFormLayer = () => layers.find((layer) => layer.id === shaderForm.layerId) ?? null
+      const shaderFormArgs = () => {
+        const args = { action: 'apply', preset: shaderForm.preset }
+        if (shaderForm.layerId) args.layer = shaderForm.layerId
+        const readNumber = (key) => (shaderForm[key] === '' ? undefined : Number(shaderForm[key]))
+        if (shaderForm.preset === 'height-false-color') {
+          const minimum = readNumber('minHeight')
+          const maximum = readNumber('maxHeight')
+          if (minimum !== undefined) args.min_height = minimum
+          if (maximum !== undefined) args.max_height = maximum
+        } else if (shaderForm.preset === 'contour') {
+          const interval = readNumber('interval')
+          if (interval !== undefined) args.interval = interval
+        } else if (shaderForm.preset === 'scan') {
+          const speed = readNumber('speed')
+          if (speed !== undefined) args.speed = speed
+        } else {
+          const speed = readNumber('speed')
+          const amplitude = readNumber('amplitude')
+          const opacity = readNumber('opacity')
+          if (speed !== undefined) args.speed = speed
+          if (amplitude !== undefined) args.amplitude = amplitude
+          if (opacity !== undefined) args.opacity = opacity
+        }
+        return args
+      }
+      const applyShaderFromWorkbench = async () => {
+        try {
+          const result = await shaderCommand(shaderFormArgs())
+          showToast(t('toast.shaderApplied', { preset: t(`shader.preset.${result.preset}`), layer: result.layer }))
+        } catch (error) {
+          showToast(message(error))
+        }
+      }
+      const resetShaderFromWorkbench = async () => {
+        try {
+          const visible = layers.filter((layer) => layer.visible)
+          const target = shaderFormLayer() ?? visible[visible.length - 1] ?? null
+          if (!target) {
+            showToast(t('shader.noLayers'))
+            return
+          }
+          const result = await shaderCommand({ action: 'reset', layer: target.id })
+          showToast(result.layer ? t('toast.shaderReset', { layer: result.layer }) : t('toast.shaderResetAll'))
+        } catch (error) {
+          showToast(message(error))
+        }
+      }
+      const resetAllShadersFromWorkbench = async () => {
+        try {
+          await shaderCommand({ action: 'reset' })
+          showToast(t('toast.shaderResetAll'))
+        } catch (error) {
+          showToast(message(error))
+        }
       }
 
       return h(
@@ -4105,6 +6694,22 @@ window.__ModuleLoader__.load({
                   },
                   t('btn.openUrl'),
                 ),
+                h(
+                  MenuItem,
+                  {
+                    key: 'report',
+                    onClick: async () => {
+                      setOpenMenu(null)
+                      try {
+                        const value = await runCommand('report', { format: 'html' })
+                        showToast(t('toast.reportSaved', { path: value.path }))
+                      } catch (error) {
+                        showToast(t('toast.reportFailed', { message: message(error) }))
+                      }
+                    },
+                  },
+                  t('menu.report'),
+                ),
                 h('i', { key: 'sep', className: 'mv-sep', style: { width: 'auto', height: '.5px', margin: '4px 8px' } }),
                 h(
                   MenuItem,
@@ -4168,10 +6773,31 @@ window.__ModuleLoader__.load({
               tool !== null,
             ),
             h('i', { key: 's2', className: 'mv-sep' }),
-            button(`${t('btn.layers')}${layers.length ? ` ${layers.length}` : ''}`, () => setLayersOpen((value) => !value), layersOpen && layers.length > 0),
+            button(
+              `${t('btn.layers')}${layers.length ? ` ${layers.length}` : ''}`,
+              () => updateSettings({ showLayers: !showLayers }),
+              showLayers && layers.length > 0,
+              undefined,
+              showLayers ? t('btn.layersHide') : t('btn.layersShow'),
+            ),
+            iconButton(
+              h(HudIcon),
+              showHud ? t('btn.hudHide') : t('btn.hudShow'),
+              () => updateSettings({ showHud: !showHud }),
+              showHud,
+            ),
+            iconButton(
+              h(ShaderIcon),
+              shaderOpen ? t('btn.shaderHide') : t('btn.shaderShow'),
+              () => setShaderOpen((value) => !value),
+              shaderOpen,
+            ),
             button(t('btn.screenshot'), screenshot),
+            sessionId ? button(t('btn.askAgent'), askAgent) : null,
             button(t('btn.reset'), resetView),
-            docked ? button(t('btn.immersive'), togglePaneFullscreen) : button(t('btn.beside'), openBeside),
+            docked
+              ? iconButton(h(FullscreenIcon), t('btn.immersiveTitle'), togglePaneFullscreen)
+              : button(t('btn.beside'), openBeside),
             h('i', { key: 's3', className: 'mv-sep' }),
             h(
               'div',
@@ -4246,57 +6872,93 @@ window.__ModuleLoader__.load({
               h('button', { type: 'button', onClick: submitUrl }, t('urlbar.submit')),
             )
           : null,
-        layersOpen && layers.length > 0
+        shaderOpen
+          ? h(ShaderWorkbench, {
+              key: 'shader',
+              t,
+              layers,
+              form: shaderForm,
+              active: shaderActive,
+              onClose: () => setShaderOpen(false),
+              onLayer: (layerId) => shaderField('layerId', layerId),
+              onPreset: (preset) => shaderField('preset', preset),
+              onField: shaderField,
+              onApply: applyShaderFromWorkbench,
+              onResetLayer: resetShaderFromWorkbench,
+              onResetAll: resetAllShadersFromWorkbench,
+            })
+          : null,
+        analysis || (showLayers && layers.length > 0)
           ? h(
               'div',
-              { key: 'layers', className: 'mv-layers mv-glass' },
-              h(
-                'header',
-                null,
-                h('span', null, `${t('layers.title')} · ${layers.length}`),
-              ),
-              h(
-                'div',
-                { className: 'mv-layer-list' },
-                layers.map((layer) =>
-                  h(
+              { key: 'right', className: 'mv-right' },
+              analysis
+                ? h(AnalysisCard, { key: 'analysis', state: analysis, t, onClose: () => clearAnalysis() })
+                : null,
+              showLayers && layers.length > 0
+                ? h(
                     'div',
-                    { key: layer.id, className: `mv-layer${layer.visible ? '' : ' off'}` },
-                    h('span', { className: 'name', title: layer.name, onClick: () => flyToLayer(layer.id) }, layer.name),
+                    { key: 'layers', className: 'mv-layers mv-glass' },
                     h(
-                      'button',
-                      {
-                        type: 'button',
-                        className: `mv-icon-btn${layer.visible ? '' : ' on'}`,
-                        title: layer.visible ? t('btn.visible') : t('btn.hidden'),
-                        onClick: () => toggleLayer(layer.id),
-                      },
-                      layer.visible ? h(LayerActionIcon, { key: 'v', kind: 'visible' }) : h(LayerActionIcon, { key: 'v', kind: 'hidden' }),
+                      'header',
+                      null,
+                      h('span', null, `${t('layers.title')} · ${layers.length}`),
+                      h(
+                        'button',
+                        {
+                          type: 'button',
+                          className: 'mv-icon-btn',
+                          title: t('layers.collapse'),
+                          'aria-label': t('layers.collapse'),
+                          onClick: () => updateSettings({ showLayers: false }),
+                        },
+                        h(CollapseIcon),
+                      ),
                     ),
                     h(
-                      'button',
-                      { type: 'button', className: 'mv-icon-btn', title: t('btn.flyTo'), 'aria-label': t('btn.flyTo'), onClick: () => flyToLayer(layer.id) },
-                      h(LayerActionIcon, { kind: 'locate' }),
+                      'div',
+                      { className: 'mv-layer-list' },
+                      layers.map((layer) =>
+                        h(
+                          'div',
+                          { key: layer.id, className: `mv-layer${layer.visible ? '' : ' off'}` },
+                          h('span', { className: 'name', title: layer.name, onClick: () => flyToLayer(layer.id) }, layer.name),
+                          h(
+                            'button',
+                            {
+                              type: 'button',
+                              className: `mv-icon-btn${layer.visible ? '' : ' on'}`,
+                              title: layer.visible ? t('btn.visible') : t('btn.hidden'),
+                              onClick: () => toggleLayer(layer.id),
+                            },
+                            layer.visible ? h(LayerActionIcon, { key: 'v', kind: 'visible' }) : h(LayerActionIcon, { key: 'v', kind: 'hidden' }),
+                          ),
+                          h(
+                            'button',
+                            { type: 'button', className: 'mv-icon-btn', title: t('btn.flyTo'), 'aria-label': t('btn.flyTo'), onClick: () => flyToLayer(layer.id) },
+                            h(LayerActionIcon, { kind: 'locate' }),
+                          ),
+                          h(
+                            'button',
+                            {
+                              type: 'button',
+                              className: 'mv-icon-btn',
+                              title: t('btn.health'),
+                              'aria-label': t('btn.health'),
+                              onClick: () => inspectLayer(layer.id),
+                            },
+                            h(LayerActionIcon, { kind: 'inspect' }),
+                          ),
+                          h(
+                            'button',
+                            { type: 'button', className: 'mv-icon-btn', title: t('btn.delete'), 'aria-label': t('btn.delete'), onClick: () => removeLayer(layer.id) },
+                            h(LayerActionIcon, { kind: 'delete' }),
+                          ),
+                        ),
+                      ),
                     ),
-                    h(
-                      'button',
-                      {
-                        type: 'button',
-                        className: 'mv-icon-btn',
-                        title: t('btn.health'),
-                        'aria-label': t('btn.health'),
-                        onClick: () => inspectLayer(layer.id),
-                      },
-                      h(LayerActionIcon, { kind: 'inspect' }),
-                    ),
-                    h(
-                      'button',
-                      { type: 'button', className: 'mv-icon-btn', title: t('btn.delete'), 'aria-label': t('btn.delete'), onClick: () => removeLayer(layer.id) },
-                      h(LayerActionIcon, { kind: 'delete' }),
-                    ),
-                  ),
-                ),
-              ),
+                  )
+                : null,
             )
           : null,
         phase === 'ready' && layers.length === 0 && !emptyDismissed && !restoringScene
@@ -4345,7 +7007,7 @@ window.__ModuleLoader__.load({
               ),
             )
           : null,
-        stats
+        stats && showHud
           ? h(StatusHud, { key: 'hud', fps, stats, viewerRef, cesiumRef, labels: hudLabels, readoutRef: captureReadoutRef })
           : null,
         measureInfo ? h('div', { key: 'measure', className: 'mv-measure mv-glass' }, measureInfo.text) : null,
@@ -4447,6 +7109,16 @@ window.__ModuleLoader__.load({
               onClose: () => setSettingsOpen(false),
             })
           : null,
+        accessRequest
+          ? h(PathAccessDialog, {
+              key: 'access',
+              request: accessRequest,
+              busy: accessBusy,
+              t,
+              onAllow: allowPathAccess,
+              onDeny: () => settleAccess({ allowed: false, message: t('access.denied') }),
+            })
+          : null,
         imageryBusy || terrainBusy
           ? h('div', { key: 'busy', className: 'mv-measure mv-glass', style: { bottom: '44px' } }, t('toast.loadingData'))
           : null,
@@ -4506,6 +7178,8 @@ window.__ModuleLoader__.load({
 .mv-toolrow .open{appearance:none;flex:none;margin-left:8px;border:.5px solid var(--dsw-alias-border-l1,#d0d4da);border-radius:999px;background:var(--dsw-alias-bg-base,transparent);color:var(--dsw-alias-label-secondary,#5b6068);font:inherit;font-size:11px;line-height:16px;padding:2px 9px;cursor:pointer;opacity:.72;transition:opacity .1s,background .1s}
 .mv-toolrow .open:hover,.mv-toolrow .open:focus-visible{opacity:1;background:var(--dsw-alias-interactive-bg-hover-solid,rgba(127,127,127,.16));color:var(--dsw-alias-label-primary,#0f1115)}
 .mv-toolrow .open:focus-visible{outline:2px solid var(--dsw-alias-state-business-primary,#4176e6);outline-offset:1px}
+.mv-toolrow .thumb{flex:none;display:inline-flex;margin-left:8px;width:40px;height:24px;overflow:hidden;border-radius:4px;border:.5px solid var(--dsw-alias-border-l1,#d0d4da);background:var(--dsw-alias-bg-base,transparent)}
+.mv-toolrow .thumb img{display:block;width:100%;height:100%;object-fit:cover}
 `
 
     /** Inject the chat-row stylesheet once; a hot reload may re-run `apply`. */
@@ -4564,6 +7238,7 @@ window.__ModuleLoader__.load({
       reset: 'tool.action.reset',
       pick: 'tool.action.pick',
       inspect: 'tool.action.inspect',
+      report: 'tool.action.report',
     }
 
     /** Fixed summary keys for the tools that carry no `action` argument. */
@@ -4571,6 +7246,8 @@ window.__ModuleLoader__.load({
       earth_capture: 'tool.action.capture',
       earth_draw: 'tool.action.draw',
       earth_measure: 'tool.action.measure',
+      earth_analyze: 'tool.action.analyze',
+      earth_shader: 'tool.action.shader',
     }
 
     /**
@@ -4581,7 +7258,7 @@ window.__ModuleLoader__.load({
     const AUTO_OPENED_CALLS = new Set()
 
     /**
-     * Chat row for the four Agent wire tools. It keeps the transcript compact,
+     * Chat row for the six Agent wire tools. It keeps the transcript compact,
      * offers a way back into the panel, and is the client's auto-open trigger: a
      * live call opens the docked tab so the Host tool call finds a panel to drive.
      */
@@ -4613,6 +7290,33 @@ window.__ModuleLoader__.load({
         }
       }, [phase, callId])
 
+      // earth_capture rows show the saved snapshot as a small preview. The file
+      // path comes from the rendered result text; the token-bearing URL is built
+      // from page metadata and never enters the model-facing result.
+      const [thumbUrl, setThumbUrl] = React.useState('')
+      React.useEffect(() => {
+        if (toolName !== 'earth_capture' || phase !== 'result' || block?.isError === true) return undefined
+        const content = Array.isArray(block?.content) ? block.content : []
+        const text = content
+          .filter((part) => part?.type === 'text' && typeof part.text === 'string')
+          .map((part) => part.text)
+          .join('\n')
+        const match = /Captured image:\s*(.+)/.exec(text)
+        const file = match === null ? '' : String(match[1]).trim().split(/[\\/]/).pop()
+        if (file === '') return undefined
+        let cancelled = false
+        loadMeta()
+          .then((meta) => {
+            if (cancelled) return
+            if (typeof meta?.filesUrl !== 'string' || meta.filesUrl === '') return
+            setThumbUrl(`${meta.filesUrl}${encodeURIComponent(file)}`)
+          })
+          .catch(() => {})
+        return () => {
+          cancelled = true
+        }
+      }, [toolName, phase, block])
+
       const action = toolName === 'earth_scene' ? toolArg(block, 'action') : ''
       const state = phase === 'result' ? (block?.isError === true ? 'error' : 'ok') : 'live'
       const failure = state === 'error' ? resultFirstLine(block) : ''
@@ -4627,6 +7331,19 @@ window.__ModuleLoader__.load({
         h('span', { className: 'title' }, t('panel.title')),
         h('span', { className: 'sep', 'aria-hidden': true }),
         h('span', { className: 'summary', title: failure !== '' ? failure : undefined }, summary),
+        thumbUrl === ''
+          ? null
+          : h(
+              'a',
+              {
+                className: 'thumb',
+                href: thumbUrl,
+                target: '_blank',
+                rel: 'noopener noreferrer',
+                title: t('tool.thumbOpen'),
+              },
+              h('img', { src: thumbUrl, alt: '', loading: 'lazy' }),
+            ),
         h(
           'button',
           { type: 'button', className: 'open', title: t('tool.openTip'), onClick: openEarthPanel },
@@ -4694,13 +7411,15 @@ window.__ModuleLoader__.load({
             (props) => h(HeaderButton, { ...props, onOpen: openEarthPanel }),
           ),
         )
-        // The Agent drives the same panel through these two wire tools, so their
+        // The Agent drives the same panel through these six wire tools, so their
         // rows own the auto-open: the Host tool call waits for this tab to attach.
         ctx.slots.inject('tool.call.toolview', function* () {
           yield ctx.slots.register({ name: 'tool.call.toolview', key: 'earth_scene', locale: NS }, EarthToolRow)
           yield ctx.slots.register({ name: 'tool.call.toolview', key: 'earth_capture', locale: NS }, EarthToolRow)
           yield ctx.slots.register({ name: 'tool.call.toolview', key: 'earth_draw', locale: NS }, EarthToolRow)
           yield ctx.slots.register({ name: 'tool.call.toolview', key: 'earth_measure', locale: NS }, EarthToolRow)
+          yield ctx.slots.register({ name: 'tool.call.toolview', key: 'earth_analyze', locale: NS }, EarthToolRow)
+          yield ctx.slots.register({ name: 'tool.call.toolview', key: 'earth_shader', locale: NS }, EarthToolRow)
         })
       },
     }

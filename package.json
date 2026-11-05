@@ -1,8 +1,8 @@
 {
   "name": "@cveo/dsh-digital-earth",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "type": "module",
-  "description": "数字地球：在 CesiumJS 地球上叠加 3D Tiles / 3DGS 图层，可与对话同屏并由 Agent 读写场景（earth_scene / earth_capture / earth_draw / earth_measure），内置数据体检、Agent 标注与量测，支持双语、浅深主题、自管影像与地形数据源、坐标 HUD",
+  "description": "数字地球：在 CesiumJS 地球上叠加 3D Tiles / 3DGS 图层，与对话同屏并由 Agent 读写场景（earth_scene / earth_capture / earth_draw / earth_measure / earth_analyze / earth_shader）；支持地形分析、着色器预设、数据体检、Agent 标注与量测、/earth 命令、问 Agent 场景注入、HTML/Markdown 报告导出与按会话场景恢复，双语、浅深主题、自管影像 / 地形数据源与坐标 HUD",
   "icon": "./icon.svg",
   "license": "MIT",
   "engines": {

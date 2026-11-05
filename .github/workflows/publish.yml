@@ -1,16 +1,16 @@
 name: Publish
 
 # 发布链路（维护文档不随插件仓库分发，流程约定只写在本注释里）：
-#   - push 到 main（develop 合并上来的正式版）→ package.json 的版本还没上 npm 就自动发布；
-#   - push v* tag → 同上，且 tag 必须严格等于 v<package.json 的 version>，不一致直接失败；
-#   - workflow_dispatch → 手动补发 / 重试。
+#   - 只在 push v* tag 或手动 workflow_dispatch 时发布；**push 到 main 不触发发布**，
+#     合并到 main 只是代码合入，什么时候发版由维护者打 tag 决定；
+#   - push v* tag → tag 必须严格等于 v<package.json 的 version>，不一致直接失败；
+#   - workflow_dispatch → 手动发版 / 补发 / 重试（在选中的分支上运行，不做 tag 一致性硬校验）。
 # 认证走 npm Trusted Publishing（OIDC），不需要 NPM_TOKEN secret；npm 版本须 ≥ 11.5.1，故这里升级 npm。
-# 版本已存在时跳过而不是失败，所以「改代码但没升版本」的合并不会把发布链路变红。
+# 版本已存在时跳过而不是失败，所以「改代码但没升版本」的重复发布不会把流水线变红。
 # 发布前的校验必须在本工作流里重跑一遍：CI 可能跑的是旧提交 / 被跳过，发布不能只信 CI 的结论。
 
 on:
   push:
-    branches: [main]
     tags: ['v*']
   workflow_dispatch:
 
@@ -80,7 +80,7 @@ jobs:
 
       - name: Check tag / package.json version consistency
         # tag 发布：tag 必须精确等于 v<version>，否则一定是打错版本或忘记改 package.json，直接失败。
-        # main / 手动发布：没有 tag 可比，只对比最新 tag 并给出警告，不阻塞发布。
+        # 手动发布：没有 tag 可比，只对比最新 tag 并给出警告，不阻塞发布。
         env:
           REF_TYPE: ${{ github.ref_type }}
           REF_NAME: ${{ github.ref_name }}
@@ -100,9 +100,9 @@ jobs:
 
           LATEST_TAG="$(git tag --list 'v*' --sort=-v:refname | head -n 1 || true)"
           if [ -n "$LATEST_TAG" ] && [ "$LATEST_TAG" != "v$VERSION" ]; then
-            echo "::warning::package.json version 为 $VERSION，但最新 tag 是 $LATEST_TAG；建议发布成功后补打 tag v$VERSION 便于追溯（main 分支发布不因此失败）"
+            echo "::warning::package.json version 为 $VERSION，但最新 tag 是 $LATEST_TAG；建议发布成功后补打 tag v$VERSION 便于追溯（手动发布不因此失败）"
           else
-            echo "::notice::分支 / 手动发布：当前 version 与最新 tag 一致或仓库尚无 tag，继续"
+            echo "::notice::手动发布：当前 version 与最新 tag 一致或仓库尚无 tag，继续"
           fi
 
       - name: Check whether this version is already on npm

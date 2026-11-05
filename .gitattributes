@@ -1,0 +1,25 @@
+# Normalise line endings to LF in the repository and in every checkout.
+#
+# Git for Windows defaults to core.autocrlf=true, which rewrites the working
+# tree to CRLF. The structural tests assert source text with "\n", so a CRLF
+# checkout fails them even though the committed blobs are LF. Attributes win
+# over core.autocrlf, and `text=auto` keeps real binaries untouched.
+* text=auto eol=lf
+
+# Source and text assets that must always stay LF, on every platform.
+*.js   text eol=lf
+*.mjs  text eol=lf
+*.cjs  text eol=lf
+*.json text eol=lf
+*.md   text eol=lf
+*.yml  text eol=lf
+*.yaml text eol=lf
+*.css  text eol=lf
+*.html text eol=lf
+*.svg  text eol=lf
+
+# Binary assets: never diff or convert their bytes.
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.tgz  binary
