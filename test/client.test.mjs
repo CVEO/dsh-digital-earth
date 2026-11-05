@@ -7,11 +7,13 @@
  */
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)))
+const readText = (name) => readFileSync(join(root, name), 'utf8')
 const client = await readFile(join(root, 'client.js'), 'utf8')
 
 test('两个地球工具都注册了自定义工具行', () => {
@@ -71,5 +73,28 @@ test('场景按会话快照持久化，重新挂载时恢复', () => {
   assert.match(client, /saveSceneSnapshot\(\)/)
   assert.match(client, /addEventListener\('pagehide', flush\)/)
   // 恢复在 ready 之前完成，Agent 命令才不会和恢复的相机竞争。
-  assert.match(client, /const savedScene = .*readSceneSnapshot\(sessionId\)/)
+  assert.match(client, /const savedScene = .*await loadSceneSnapshot\(sessionId\)/)
+  // 宿主侧场景库优先（跨重启/换端口可恢复），localStorage 只是回退与缓存。
+  assert.match(client, /async function readHostSceneSnapshot/)
+  assert.match(client, /function saveHostSceneSnapshot/)
+  assert.match(client, /async function loadSceneSnapshot/)
+  assert.match(client, /hostSnapshot = await readHostSceneSnapshot\(session\)/)
+  // 卸载 / 页面隐藏时必须强制写一次宿主，否则最后几秒的场景会丢。
+  assert.match(client, /saveSceneSnapshot\(true\)/)
+})
+
+test('report 工具行与商店描述覆盖新能力', () => {
+  // earth_scene action=report 的聊天工具行必须有自己的摘要，不能回退成通用文案。
+  assert.match(client, /report: 'tool\.action\.report'/)
+  assert.ok(client.includes("'tool.action.report': '导出报告'"))
+  assert.ok(client.includes("'tool.action.report': 'Export report'"))
+  // 商店简介要提到 1.4–1.7 新增能力，避免 npm 页面信息过时。
+  const zh = JSON.parse(readText('locale/zh.json'))
+  const en = JSON.parse(readText('locale/en.json'))
+  for (const phrase of ['地形分析', '着色器', '/earth', '问 Agent', '报告']) {
+    assert.ok(zh.meta.description.includes(phrase), `locale/zh.json 简介缺少：${phrase}`)
+  }
+  for (const phrase of ['terrain', 'shader', '/earth', 'Ask Agent', 'report']) {
+    assert.ok(en.meta.description.toLowerCase().includes(phrase.toLowerCase()), `locale/en.json 简介缺少：${phrase}`)
+  }
 })

@@ -408,12 +408,12 @@ test('系统提示词：≤1600 字符、五工具名、analyze 一句，且不�
   assert.doesNotMatch(prompt, /必须先|强制先/)
 })
 
-test('earth_scene 契约未被 B2 扩改：仍 11 个 action，模型面不出现 authorize/skyline', () => {
+test('earth_scene 契约：12 个 action（含 report），模型面不出现 authorize/skyline', () => {
   const scene = block(host, 'const SCENE_ACTIONS = {', '\n}')
   const names = [...scene.matchAll(/^  ([a-z]+): \[/gm)].map((match) => match[1])
-  assert.equal(names.length, 11)
+  assert.equal(names.length, 12)
   assert.deepEqual(names, [
-    'status', 'list', 'load', 'remove', 'visible', 'basemap', 'terrain', 'fly', 'reset', 'pick', 'inspect',
+    'status', 'list', 'load', 'remove', 'visible', 'basemap', 'terrain', 'fly', 'reset', 'pick', 'inspect', 'report',
   ])
   assert.doesNotMatch(scene, /authorize|skyline/)
   assert.match(host, /const SCENE_ACTION_NAMES = Object\.keys\(SCENE_ACTIONS\)/)
@@ -458,9 +458,11 @@ test('client analyze 桥分支：先于就绪守卫，失败强制带 next:，cl
   assert.match(command, /if \(layersRef\.current\[index\]\.visible\)/)
   assert.match(command, /\/\/ Single active analysis: the new result replaces the previous one\./)
   assert.match(command, /clearAnalysis\(\)/)
-  assert.match(command, /if \(operation === 'profile'\) return analyzeProfile\(Cesium, viewer, layer, args\)/)
-  assert.match(command, /if \(operation === 'flood'\) return analyzeFlood\(Cesium, viewer, layer, args\)/)
-  assert.match(command, /return analyzeSunlight\(Cesium, viewer, layer, args\)/)
+  assert.match(command, /if \(operation === 'profile'\) result = await analyzeProfile\(Cesium, viewer, layer, args\)/)
+  assert.match(command, /else if \(operation === 'flood'\) result = await analyzeFlood\(Cesium, viewer, layer, args\)/)
+  assert.match(command, /else result = analyzeSunlight\(Cesium, viewer, layer, args\)/)
+  // 分析命令本身进入快照，重新挂载时可重放；图层按名称记录，避免 id 变化。
+  assert.match(command, /analysisCommandRef\.current = \{/)
 
   // 引擎内每个 throw new Error(...) 的消息都自带 next:（面板侧兜底之外的第二道保证）。
   const engine = block(client, '//#region analysis engine', '//#endregion analysis engine')

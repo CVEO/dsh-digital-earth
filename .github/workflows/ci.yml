@@ -22,11 +22,19 @@ concurrency:
 
 jobs:
   verify:
-    name: verify (Node ${{ matrix.node }})
-    runs-on: ubuntu-latest
+    name: verify (Node ${{ matrix.node }}, ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    # Windows 腿是行尾/path 回归的保险：Git for Windows 的 core.autocrlf 若把
+    # 结构测试读到的源码写成 CRLF，或任务里出现 POSIX-only 写法，这里会先红。
+    # 两个平台统一用 bash（Windows 上是 Git Bash），让下面的 POSIX 冒烟脚本
+    # 成为同一份实现，而不是平台分支。
+    defaults:
+      run:
+        shell: bash
     strategy:
       fail-fast: false
       matrix:
+        os: [ubuntu-latest, windows-latest]
         node: [22, 24]
     steps:
       - uses: actions/checkout@v6
@@ -51,7 +59,10 @@ jobs:
         # 入口路径写错、vendor 未随包分发这类「装得上但加载不了」的问题。
         run: |
           set -euo pipefail
-          DEST="$(mktemp -d)"
+          # 相对路径：Git Bash 在 Windows 上把 mktemp 的 /tmp 路径交给原生
+          # tar/node 时不一定转换，工作区内的相对目录在两个平台都稳定。
+          DEST=".package-smoke-$$"
+          mkdir -p "$DEST"
           TARBALL=""
           cleanup() {
             rm -rf "$DEST"
@@ -67,5 +78,6 @@ jobs:
           done
 
           ENTRY="$DEST/package/index.js"
-          node --input-type=module -e "const m = await import('$ENTRY'); if (typeof m.apply !== 'function') { console.error('index.js 未导出 apply()'); process.exit(1) }"
+          # Windows 上 ESM 不能直接 import 盘符绝对路径，必须转成 file:// URL。
+          node --input-type=module -e "const { pathToFileURL } = await import('node:url'); const m = await import(pathToFileURL(process.argv[1]).href); if (typeof m.apply !== 'function') { console.error('index.js 未导出 apply()'); process.exit(1) }" "$ENTRY"
           echo "打包冒烟通过：$TARBALL"

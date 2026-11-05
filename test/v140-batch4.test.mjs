@@ -109,9 +109,8 @@ const codeFences = (text) => (text.match(/^```/gm) ?? []).length
 // 版本与包结构
 // ---------------------------------------------------------------------------
 
-test('B4 版本：package.json 为 1.4.0，未新增依赖/未改 scripts 与入口', () => {
+test('B4 版本：package.json 为合法 semver，未新增依赖/未改 scripts 与入口', () => {
   assert.equal(pkg.name, '@cveo/dsh-digital-earth')
-  assert.equal(pkg.version, '1.4.0')
   assert.match(pkg.version, /^\d+\.\d+\.\d+$/)
   assert.equal(pkg.dependencies, undefined, '不得新增 runtime dependencies')
   assert.equal(pkg.devDependencies, undefined, '不得新增 devDependencies')
@@ -129,9 +128,10 @@ test('B4 版本：package.json 为 1.4.0，未新增依赖/未改 scripts 与入
   assert.ok(!(pkg.files ?? []).some((name) => name.startsWith('.research')), 'files 不应包含 .research')
 })
 
-test('B4 README 中文：1.4.0 徽章/安装示例、六工具与新增功能行', () => {
-  assert.match(readmeZh, /!\[版本\]\(https:\/\/img\.shields\.io\/badge\/版本-1\.4\.0-4f8cff\)/)
-  assert.match(readmeZh, /cveo-dsh-digital-earth-1\.4\.0\.tgz/)
+test('B4 README 中文：版本徽章/安装示例、六工具与新增功能行', () => {
+  // 版本文档不写死具体版本号：README 必须跟随 package.json 的单一来源。
+  assert.ok(readmeZh.includes(`版本-${pkg.version}-4f8cff`), 'README.md 版本徽章未跟随 package.json')
+  assert.ok(readmeZh.includes(`cveo-dsh-digital-earth-${pkg.version}.tgz`), 'README.md 安装示例未跟随 package.json')
   assert.doesNotMatch(readmeZh, /1\.3\.0/)
   for (const name of TOOL_NAMES) assert.ok(readmeZh.includes(`\`${name}\``), `README.md 缺少工具 ${name}`)
   assert.equal((readmeZh.match(/^\| `earth_[a-z]+` \|/gm) ?? []).length, 6, 'README.md 工具表应为 6 行')
@@ -141,9 +141,9 @@ test('B4 README 中文：1.4.0 徽章/安装示例、六工具与新增功能行
   assert.match(readmeZh, /3DGS 不支持，不接受自定义 GLSL/)
 })
 
-test('B4 README 英文：1.4.0 徽章/安装示例、六工具与对应功能行', () => {
-  assert.match(readmeEn, /!\[version\]\(https:\/\/img\.shields\.io\/badge\/version-1\.4\.0-4f8cff\)/)
-  assert.match(readmeEn, /cveo-dsh-digital-earth-1\.4\.0\.tgz/)
+test('B4 README 英文：版本徽章/安装示例、六工具与对应功能行', () => {
+  assert.ok(readmeEn.includes(`version-${pkg.version}-4f8cff`), 'README.en.md version badge does not follow package.json')
+  assert.ok(readmeEn.includes(`cveo-dsh-digital-earth-${pkg.version}.tgz`), 'README.en.md install example does not follow package.json')
   assert.doesNotMatch(readmeEn, /1\.3\.0/)
   for (const name of TOOL_NAMES) assert.ok(readmeEn.includes(`\`${name}\``), `README.en.md 缺少工具 ${name}`)
   assert.equal((readmeEn.match(/^\| `earth_[a-z]+` \|/gm) ?? []).length, 6, 'README.en.md 工具表应为 6 行')
@@ -206,7 +206,6 @@ test('B4 版本单一来源：Host/Client FALLBACK_ABOUT 与 package 一致，�
   const clientAbout = evalObjectLiteral(client, 'const FALLBACK_ABOUT = {', '\n    }')
   assert.equal(hostAbout.version, pkg.version)
   assert.equal(clientAbout.version, pkg.version)
-  assert.equal(pkg.version, '1.4.0')
 
   // Host 以 package.json 为单一来源；常量只是文件缺失/损坏时的兜底。
   const readAbout = block(host, 'function readAbout() {', '\nconst ABOUT = readAbout()')
@@ -222,8 +221,11 @@ test('B4 版本单一来源：Host/Client FALLBACK_ABOUT 与 package 一致，�
   }
   const versions = [...changelog.matchAll(/^## (\d+\.\d+\.\d+)$/gm)].map((match) => match[1])
   assert.ok(versions.length >= 3, 'CHANGELOG 版本条目过少')
-  assert.equal(versions[0], '1.4.0', 'CHANGELOG 最新版本必须是 1.4.0')
-  assert.equal(versions[1], '1.3.0')
+  // 最新 CHANGELOG 条目必须等于 package.json 版本，而不是写死某个发布号。
+  assert.equal(versions[0], pkg.version, 'CHANGELOG 最新版本必须与 package.json 一致')
+  assert.ok(versions.includes('1.3.0'), 'CHANGELOG 必须保留历史版本条目')
+  // 1.4.0 现在是合并版（未发布前吸收了 1.5–1.7 的功能），因此只需保证历史顺序从新到旧。
+  assert.ok(versions.indexOf('1.3.0') > versions.indexOf('1.4.0'), 'CHANGELOG 版本条目必须从新到旧排列')
   assert.ok(changelog.indexOf('## 1.4.0') < changelog.indexOf('## 1.3.0'))
 })
 

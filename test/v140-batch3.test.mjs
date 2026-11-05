@@ -324,12 +324,12 @@ test('系统提示词：≤1600、六工具名齐全、shader 一句，且无 sk
   assert.doesNotMatch(prompt, /必须先|强制先/)
 })
 
-test('回归：earth_scene 仍 11 action，earth_analyze 契约与注册未被 B3 改动', () => {
+test('回归：earth_scene 12 action（含 report），earth_analyze 契约与注册未被 B3 改动', () => {
   const scene = block(host, 'const SCENE_ACTIONS = {', '\n}')
   const names = [...scene.matchAll(/^  ([a-z]+): \[/gm)].map((match) => match[1])
-  assert.equal(names.length, 11)
+  assert.equal(names.length, 12)
   assert.deepEqual(names, [
-    'status', 'list', 'load', 'remove', 'visible', 'basemap', 'terrain', 'fly', 'reset', 'pick', 'inspect',
+    'status', 'list', 'load', 'remove', 'visible', 'basemap', 'terrain', 'fly', 'reset', 'pick', 'inspect', 'report',
   ])
   assert.doesNotMatch(scene, /authorize|skyline|shader/)
 
@@ -553,7 +553,6 @@ test('client 工作台：可见图层/四预设/按预设参数/应用与重置/
   assert.match(card, /t\('shader\.resetAll'\)/)
   assert.match(card, /t\('shader\.active'\)/)
   assert.match(card, /t\('shader\.activeEmpty'\)/)
-  assert.match(card, /t\('shader\.hint'\)/)
   // 工作台不提供 textarea/contentEditable 或原始 GLSL 编辑。
   assert.doesNotMatch(card, /textarea|contentEditable|<input[^>]*type: 'text'/i)
   assert.doesNotMatch(card, /glsl/i)
@@ -616,7 +615,7 @@ test('client 接线与 i18n：六 toolview 含 earth_shader、摘要键、shader
   assert.deepEqual(zhKeys, enKeys, '中英字典键集合/顺序必须完全一致')
 
   const shaderKeys = zhKeys.filter((key) => key.startsWith('shader.'))
-  assert.equal(shaderKeys.length, 23)
+  assert.equal(shaderKeys.length, 22)
   for (const key of [
     'shader.title',
     'shader.close',
@@ -639,7 +638,6 @@ test('client 接线与 i18n：六 toolview 含 earth_shader、摘要键、shader
     'shader.resetAll',
     'shader.active',
     'shader.activeEmpty',
-    'shader.hint',
     'shader.noLayers',
   ]) {
     assert.ok(shaderKeys.includes(key), `缺少 i18n 键 ${key}`)
@@ -654,7 +652,7 @@ test('client 接线与 i18n：六 toolview 含 earth_shader、摘要键、shader
 // QA 边界
 // ---------------------------------------------------------------------------
 
-test('QA 边界：不新增依赖，shader 状态不进入持久化场景快照', () => {
+test('QA 边界：不新增依赖，分析/着色器状态进入持久化场景快照', () => {
   const pkg = JSON.parse(packageText)
   assert.equal(pkg.dependencies, undefined)
   assert.equal(pkg.devDependencies, undefined)
@@ -662,9 +660,14 @@ test('QA 边界：不新增依赖，shader 状态不进入持久化场景快照'
   assert.match(pkg.scripts.check, /node --check index\.js/)
   assert.match(pkg.scripts.check, /node --check client\.js/)
 
-  // shader 是瞬时状态：不进 snapshot，重新挂载从原始材质开始。
+  // P0: the active analysis command and shader presets are part of the snapshot
+  // so a remounted panel redraws them; only the command, never the entities.
   const snapshot = block(client, 'const currentSceneSnapshot = () => {', 'const saveSceneSnapshot')
-  assert.doesNotMatch(snapshot, /shader/i)
-  assert.match(client, /const saveSceneSnapshot = \(\) => \{/)
+  assert.match(snapshot, /analysis: analysisCommandRef\.current/)
+  assert.match(snapshot, /shaders: \[\.\.\.shaderEntriesRef\.current\.values\(\)\]/)
+  assert.match(snapshot, /preset: entry\.preset/)
+  assert.match(client, /const saveSceneSnapshot = \(forceHost = false\) => \{/)
   assert.match(client, /restoreSceneSnapshot\(snapshot\)/)
+  assert.match(client, /await shaderCommand\(\{ action: 'apply', preset: item\.preset, layer: item\.layer/)
+  assert.match(client, /await analyzeCommand\(snapshot\.analysis\)/)
 })

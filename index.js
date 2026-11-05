@@ -8,7 +8,7 @@
  * - a directory scan for `tileset.json` and a small CORS-bypass proxy for
  *   online tilesets whose server does not send CORS headers.
  */
-import { randomBytes } from 'node:crypto'
+import { createHash, randomBytes, randomUUID } from 'node:crypto'
 import { createReadStream, readFileSync, promises as fs } from 'node:fs'
 import { homedir } from 'node:os'
 import { basename, dirname, extname, isAbsolute, join, parse, relative, resolve, sep } from 'node:path'
@@ -31,6 +31,23 @@ const FILES_ROUTE = `${API}/files`
 // Remembered-folder list for the panel's data menu. This is page-only data: the
 // page opened those folders itself, and no tool result ever exposes them.
 const DIRECTORIES_ROUTE = `${API}/directories`
+// Per-session scene snapshots. The panel writes them to the host so a remounted
+// tab (or a DSH restart that changes the page origin) can restore camera, layers
+// and overlays; the response is page-only data and never reaches a tool result.
+const SCENE_ROUTE = `${API}/scene`
+// The panel's "ask Agent" button injects a scene summary into the running
+// conversation agent. Bound both directions: the page can only push text, and
+// the host caps how much of it can ever enter the model context.
+const INJECT_ROUTE = `${API}/inject`
+const MAX_INJECT_BODY = 16 * 1024
+const MAX_INJECT_TEXT = 4000
+// Scene reports are whole documents (optionally with an embedded screenshot).
+const REPORT_ROUTE = `${API}/report`
+const REPORT_FORMATS = new Set(['html', 'markdown'])
+const MAX_REPORT_BODY = 16 * 1024 * 1024
+const MAX_EXPORT_FILES = 200
+const MAX_SCENE_BODY = 512 * 1024
+const MAX_SCENE_FILES = 50
 // Opening a local folder registers it in the agent allowlist. Only the panel's
 // own fetch can send a custom header, so /scan requires this header: a model
 // that makes Cesium request a same-origin GET (for example load url=...) cannot
@@ -47,6 +64,8 @@ const SOURCES_FILE = join(STATE_DIR, 'sources.json')
 const DIRECTORIES_FILE = join(STATE_DIR, 'directories.json')
 const MAX_RECENT_DIRECTORIES = 20
 const CAPTURES_DIR = resolve(STATE_DIR, 'captures')
+const EXPORTS_DIR = resolve(STATE_DIR, 'exports')
+const SCENES_DIR = resolve(STATE_DIR, 'scenes')
 const PACKAGE_FILE = join(ROOT_DIR, 'package.json')
 const MAX_SOURCES_BODY = 128 * 1024
 const MAX_BRIDGE_BODY = 256 * 1024
@@ -82,6 +101,9 @@ const CAPTURE_TIMEOUT_MS = 40000
 // the only slow case; 15 s leaves room for a first frame without holding a turn.
 const DRAW_TIMEOUT_MS = 15000
 const MEASURE_TIMEOUT_MS = 15000
+// A report may capture a screenshot and build a document before the host writes
+// it, so it gets a longer budget than a plain scene action.
+const REPORT_TIMEOUT_MS = 45000
 // Bounded model input: one call may add at most this many annotations and
 // coordinates, so a runaway GeoJSON cannot freeze the panel.
 const MAX_DRAW_FEATURES = 500
@@ -532,9 +554,192 @@ async function directoriesHandler(getDirectories, req, res) {
   sendJson(res, 200, { directories })
 }
 
+// ---------------------------------------------------------------------------
+// Per-session scene snapshots: the panel persists camera, layers and overlays so
+// a remounted tab restores them. The JSON is page-only data and never enters a
+// tool result; the session id is hashed into the file name.
+// ---------------------------------------------------------------------------
+
+/** Deterministic, filesystem-safe file name for one session id. */
+export function sceneSnapshotFile(sessionId) {
+  return join(SCENES_DIR, `${createHash('sha256').update(sessionId).digest('hex')}.json`)
+}
+
+/** GET/PUT one session's scene snapshot. */
+export async function sceneSnapshotHandler(req, res) {
+  let parsed
+  try {
+    parsed = new URL(req.url ?? '/', 'http://localhost')
+  } catch {
+    return sendText(res, 400, 'bad request')
+  }
+  const session = parsed.searchParams.get('session') ?? ''
+  if (!validSessionId(session)) return sendText(res, 400, 'missing or invalid session')
+  const file = sceneSnapshotFile(session)
+  if (req.method === 'GET') {
+    try {
+      const stored = JSON.parse(await fs.readFile(file, 'utf8'))
+      if (
+        stored === null ||
+        typeof stored !== 'object' ||
+        stored.session !== session ||
+        stored.snapshot === null ||
+        typeof stored.snapshot !== 'object'
+      ) {
+        return sendJson(res, 200, { snapshot: null })
+      }
+      return sendJson(res, 200, {
+        snapshot: stored.snapshot,
+        savedAt: typeof stored.savedAt === 'string' ? stored.savedAt : null,
+      })
+    } catch {
+      // Missing, unreadable or corrupt: the page falls back to its local cache.
+      return sendJson(res, 200, { snapshot: null })
+    }
+  }
+  if (req.method !== 'PUT') return sendText(res, 405, 'method not allowed')
+  let body = ''
+  try {
+    for await (const chunk of req) {
+      body += chunk
+      if (body.length > MAX_SCENE_BODY) {
+        req.destroy()
+        return sendText(res, 413, 'payload too large')
+      }
+    }
+  } catch {
+    return sendText(res, 400, 'bad request')
+  }
+  let payload
+  try {
+    payload = JSON.parse(body)
+  } catch {
+    return sendText(res, 400, 'invalid json')
+  }
+  const snapshot = payload?.snapshot
+  if (snapshot === null || typeof snapshot !== 'object' || Array.isArray(snapshot)) {
+    return sendText(res, 400, 'invalid snapshot')
+  }
+  const stored = { version: 1, session, savedAt: new Date().toISOString(), snapshot }
+  try {
+    await fs.mkdir(SCENES_DIR, { recursive: true })
+    const temporary = `${file}.tmp-${randomBytes(6).toString('hex')}`
+    try {
+      await fs.writeFile(temporary, JSON.stringify(stored), 'utf8')
+      await renameWithRetry(temporary, file)
+    } catch (error) {
+      await fs.rm(temporary, { force: true }).catch(() => {})
+      throw error
+    }
+  } catch (error) {
+    return sendText(res, 500, `save failed: ${error instanceof Error ? error.message : String(error)}`)
+  }
+  void pruneSceneSnapshots().catch(() => {})
+  return sendJson(res, 200, { ok: true, savedAt: stored.savedAt })
+}
+
+/** Keep the newest MAX_SCENE_FILES snapshots; older sessions are dropped. */
+async function pruneSceneSnapshots() {
+  let entries
+  try {
+    entries = await fs.readdir(SCENES_DIR, { withFileTypes: true })
+  } catch {
+    return
+  }
+  const files = []
+  for (const entry of entries) {
+    if (!entry.isFile() || !entry.name.endsWith('.json')) continue
+    try {
+      const info = await fs.stat(join(SCENES_DIR, entry.name))
+      files.push({ name: entry.name, mtime: info.mtimeMs })
+    } catch {
+      // The file disappeared while listing; nothing to prune.
+    }
+  }
+  if (files.length <= MAX_SCENE_FILES) return
+  files.sort((left, right) => left.mtime - right.mtime)
+  for (let index = 0; index < files.length - MAX_SCENE_FILES; index += 1) {
+    await fs.rm(join(SCENES_DIR, files[index].name), { force: true }).catch(() => {})
+  }
+}
+
+/**
+ * POST: put the panel's scene summary into the live conversation agent's inbox.
+ *
+ * The message is injected into the next admitted step, so the user can press
+ * "Ask Agent" and then simply type the question. The page is trusted (token +
+ * same-origin route), but the text is still bounded and stripped of control
+ * characters so a buggy or hostile page cannot flood the model context.
+ */
+export async function injectHandler(ctx, req, res) {
+  if (req.method !== 'POST') return sendText(res, 405, 'method not allowed')
+  let body = ''
+  try {
+    for await (const chunk of req) {
+      body += chunk
+      if (body.length > MAX_INJECT_BODY) {
+        req.destroy()
+        return sendText(res, 413, 'payload too large')
+      }
+    }
+  } catch {
+    return sendText(res, 400, 'bad request')
+  }
+  let payload
+  try {
+    payload = JSON.parse(body)
+  } catch {
+    return sendText(res, 400, 'invalid json')
+  }
+  const session = typeof payload?.session === 'string' ? payload.session : ''
+  if (!validSessionId(session)) return sendText(res, 400, 'missing or invalid session')
+  const text = String(payload?.text ?? '')
+    // Drop every C0 control character except tab and newline; keep the two
+    // whitespace controls the model can actually use (CR included in the strip).
+    .replace(/[\u0000-\u0008\u000b-\u001f]/g, '')
+    .trim()
+    .slice(0, MAX_INJECT_TEXT)
+  if (text === '') return sendText(res, 400, 'missing text')
+  let agents
+  try {
+    agents = ctx.get('agents') ?? ctx.agents
+  } catch {
+    agents = null
+  }
+  if (!agents || typeof agents.get !== 'function') {
+    return sendJson(res, 503, {
+      ok: false,
+      error: 'agent_unavailable',
+      message: 'The Agent runtime is unavailable in this DSH build.',
+    })
+  }
+  const agent = agents.get(session)
+  if (!agent || typeof agent.inject !== 'function') {
+    return sendJson(res, 409, {
+      ok: false,
+      error: 'agent_not_running',
+      message: 'This conversation has no running agent. Send a message first, then retry.',
+    })
+  }
+  try {
+    agent.inject({
+      id: randomUUID(),
+      role: 'user',
+      content: [{ type: 'text', text }],
+      source: { kind: 'digital-earth', form: 'notice', summary: 'Digital Earth scene context' },
+    })
+  } catch (error) {
+    return sendJson(res, 500, {
+      ok: false,
+      error: 'inject_failed',
+      message: error instanceof Error ? error.message : String(error),
+    })
+  }
+  return sendJson(res, 200, { ok: true })
+}
+
 /** Hosts the proxy must never reach: loopback, private ranges and link-local. */
-function blockedHost(origin) {
-  let hostname
+function blockedHost(origin) {  let hostname
   try {
     hostname = new URL(origin).hostname.toLowerCase().replace(/\.+$/, '')
   } catch {
@@ -816,6 +1021,265 @@ export function isLocalResolutionAllowed(resolution, allowedDirs) {
     if (isWithinDirectory(resolution.path, folder)) return true
   }
   return false
+}
+
+// ---------------------------------------------------------------------------
+// Local tileset georeferencing (v1.4.0 fix for OSGB-derived data).
+//
+// Some OSGB -> 3D Tiles converters write a tileset whose root tile has no
+// `transform` and whose bounding volume is a plain local box: the GLB vertices
+// are metres in an east-north-up frame, and the frame origin is recorded in a
+// sibling `tileset_info.json` (`srs` + `srs_origin`). Cesium reads those metres
+// as ECEF, so the whole scene collapses to within a few kilometres of the earth's
+// centre: `flyTo` dives to the core (the globe then looks off-centre) and the
+// tiles flicker in and out of the frustum as the camera moves through them.
+//
+// The host already serves every byte of a local tileset, so it derives the
+// missing root transform from that sibling file instead of asking the user to
+// rebuild the dataset. Nothing on disk is modified, and a tileset that already
+// carries a world placement (`transform` or `region`) passes through untouched.
+// ---------------------------------------------------------------------------
+
+const GEOREF_INFO_FILE = 'tileset_info.json'
+const MAX_GEOREF_JSON = 16 * 1024 * 1024
+// CGCS2000 ellipsoid; WGS84 and CGCS2000 differ by well under a millimetre here.
+const GEOREF_SEMI_MAJOR = 6378137
+const GEOREF_FLATTENING = 1 / 298.257222101
+
+/**
+ * Gauss-Krueger frame of a CGCS2000 EPSG code, or null when the plugin cannot
+ * place it without a projection database. The four Chinese families are
+ * contiguous, so the central meridian and the false easting follow from the code
+ * alone: 6-degree zones 13-23 (EPSG 4491-4501), 6-degree central meridians
+ * 75E-135E (4502-4512), 3-degree zones 25-45 (4513-4533) and 3-degree central
+ * meridians 75E-135E (4534-4554). EPSG:4547 is the 3-degree 114E frame.
+ */
+export function gaussKrugerFrame(srs) {
+  const match = /^epsg:(\d+)$/i.exec(String(srs ?? '').trim())
+  if (match === null) return null
+  const code = Number(match[1])
+  // Zone-numbered variants carry the zone as an easting prefix, so the false
+  // easting is zone * 1e6 + 500 km rather than a flat 500 km.
+  if (code >= 4491 && code <= 4501) {
+    const zone = code - 4478
+    return { centralMeridian: zone * 6, falseEasting: zone * 1e6 + 500000 }
+  }
+  if (code >= 4502 && code <= 4512) return { centralMeridian: 75 + (code - 4502) * 6, falseEasting: 500000 }
+  if (code >= 4513 && code <= 4533) {
+    const zone = code - 4488
+    return { centralMeridian: zone * 3, falseEasting: zone * 1e6 + 500000 }
+  }
+  if (code >= 4534 && code <= 4554) return { centralMeridian: 75 + (code - 4534) * 3, falseEasting: 500000 }
+  return null
+}
+
+/** Inverse transverse Mercator (Snyder series), accurate to about a millimetre in China. */
+function gaussKrugerToGeodetic(easting, northing, frame) {
+  const a = GEOREF_SEMI_MAJOR
+  const e2 = GEOREF_FLATTENING * (2 - GEOREF_FLATTENING)
+  const ep2 = e2 / (1 - e2)
+  const rectifying = a * (1 - e2 / 4 - (3 * e2 * e2) / 64 - (5 * e2 * e2 * e2) / 256)
+  const mu = northing / rectifying
+  const e1 = (1 - Math.sqrt(1 - e2)) / (1 + Math.sqrt(1 - e2))
+  const foot =
+    mu +
+    ((3 * e1) / 2 - (27 * e1 ** 3) / 32) * Math.sin(2 * mu) +
+    ((21 * e1 * e1) / 16 - (55 * e1 ** 4) / 32) * Math.sin(4 * mu) +
+    ((151 * e1 ** 3) / 96) * Math.sin(6 * mu) +
+    ((1097 * e1 ** 4) / 512) * Math.sin(8 * mu)
+  const sin = Math.sin(foot)
+  const cos = Math.cos(foot)
+  const tan = Math.tan(foot)
+  const n1 = a / Math.sqrt(1 - e2 * sin * sin)
+  const r1 = (a * (1 - e2)) / (1 - e2 * sin * sin) ** 1.5
+  const t1 = tan * tan
+  const c1 = ep2 * cos * cos
+  const d = (easting - frame.falseEasting) / n1
+  const lat =
+    foot -
+    ((n1 * tan) / r1) *
+      ((d * d) / 2 -
+        ((5 + 3 * t1 + 10 * c1 - 4 * c1 * c1 - 9 * ep2) * d ** 4) / 24 +
+        ((61 + 90 * t1 + 298 * c1 + 45 * t1 * t1 - 252 * ep2 - 3 * c1 * c1) * d ** 6) / 720)
+  const lon =
+    (frame.centralMeridian * Math.PI) / 180 +
+    (d -
+      ((1 + 2 * t1 + c1) * d ** 3) / 6 +
+      ((5 - 2 * c1 + 28 * t1 - 3 * c1 * c1 + 8 * ep2 + 24 * t1 * t1) * d ** 5) / 120) /
+      cos
+  return { lon: (lon * 180) / Math.PI, lat: (lat * 180) / Math.PI }
+}
+
+function geodeticToEcef(lon, lat, height) {
+  const a = GEOREF_SEMI_MAJOR
+  const e2 = GEOREF_FLATTENING * (2 - GEOREF_FLATTENING)
+  const lambda = (lon * Math.PI) / 180
+  const phi = (lat * Math.PI) / 180
+  const sin = Math.sin(phi)
+  const cos = Math.cos(phi)
+  const n = a / Math.sqrt(1 - e2 * sin * sin)
+  return [(n + height) * cos * Math.cos(lambda), (n + height) * cos * Math.sin(lambda), (n * (1 - e2) + height) * sin]
+}
+
+/** East-north-up -> ECEF, packed the way a 3D Tiles root `transform` wants it. */
+function eastNorthUpTransform(lon, lat, height) {
+  const lambda = (lon * Math.PI) / 180
+  const phi = (lat * Math.PI) / 180
+  const sinLambda = Math.sin(lambda)
+  const cosLambda = Math.cos(lambda)
+  const sinPhi = Math.sin(phi)
+  const cosPhi = Math.cos(phi)
+  const origin = geodeticToEcef(lon, lat, height)
+  return [
+    -sinLambda,
+    cosLambda,
+    0,
+    0,
+    -sinPhi * cosLambda,
+    -sinPhi * sinLambda,
+    cosPhi,
+    0,
+    cosPhi * cosLambda,
+    cosPhi * sinLambda,
+    sinPhi,
+    0,
+    origin[0],
+    origin[1],
+    origin[2],
+    1,
+  ]
+}
+
+/**
+ * Derive the missing root transform of an OSGB-derived local tileset from its
+ * `tileset_info.json`. Returns null when the metadata is absent, incomplete or
+ * names a CRS this plugin cannot place without a projection database.
+ */
+export function deriveLocalGeoreference(tilesetInfo) {
+  if (tilesetInfo === null || typeof tilesetInfo !== 'object') return null
+  const origin = tilesetInfo.srs_origin
+  if (!Array.isArray(origin) || origin.length < 2) return null
+  // `srs_origin` is [easting, northing, height] in the projected CRS; the third
+  // value is the ellipsoid height of the local frame origin.
+  const easting = Number(origin[0])
+  const northing = Number(origin[1])
+  const height = origin.length > 2 ? Number(origin[2]) : 0
+  if (!Number.isFinite(easting) || !Number.isFinite(northing) || !Number.isFinite(height)) return null
+  const frame = gaussKrugerFrame(tilesetInfo.srs)
+  if (frame === null) return null
+  const { lon, lat } = gaussKrugerToGeodetic(easting, northing, frame)
+  if (!Number.isFinite(lon) || !Number.isFinite(lat)) return null
+  if (Math.abs(lon) > 180 || Math.abs(lat) > 90) return null
+  return {
+    crs: String(tilesetInfo.srs).toUpperCase(),
+    lon,
+    lat,
+    height,
+    transform: eastNorthUpTransform(lon, lat, height),
+  }
+}
+
+/** True when the root already carries a world placement Cesium can use as-is. */
+export function tilesetRootIsGeoreferenced(root) {
+  if (root === null || typeof root !== 'object') return false
+  if (Array.isArray(root.transform) && root.transform.length === 16) return true
+  const volume = root.boundingVolume
+  return volume !== null && typeof volume === 'object' && volume.region !== undefined
+}
+
+/**
+ * Add the derived root transform to a parsed tileset document.
+ * Returns `{ document, georeference }`, or null when the document is already
+ * georeferenced or no transform can be derived from the metadata.
+ */
+export function georeferenceTilesetDocument(document, tilesetInfo) {
+  if (document === null || typeof document !== 'object') return null
+  const root = document.root
+  if (root === null || typeof root !== 'object') return null
+  if (tilesetRootIsGeoreferenced(root)) return null
+  const georeference = deriveLocalGeoreference(tilesetInfo)
+  if (georeference === null) return null
+  const transform = georeference.transform
+  // `root.transform` is prepended to the tile hierarchy, so it lifts every child
+  // out of local metres without touching the per-tile bounding volumes.
+  return { document: { ...document, root: { ...root, transform } }, georeference }
+}
+
+/** Read `tileset_info.json` next to a local tileset; null when absent or invalid. */
+async function readTilesetInfoFile(directory) {
+  try {
+    const text = await fs.readFile(join(directory, GEOREF_INFO_FILE), 'utf8')
+    if (text.length > MAX_GEOREF_JSON) return null
+    return JSON.parse(text.replace(/^\uFEFF/, ''))
+  } catch {
+    return null
+  }
+}
+
+/**
+ * True when a directory between `directory` and the opened root already holds a
+ * `tileset.json`. Such a document is most likely an external tileset referenced
+ * from that ancestor: the ancestor's root transform already applies to it, so a
+ * second ENU transform would place it twice as far from the origin.
+ */
+async function hasAncestorTileset(rootDir, directory) {
+  if (pathKey(directory) === pathKey(rootDir)) return false
+  let current = dirname(directory)
+  for (;;) {
+    try {
+      if ((await fs.stat(join(current, 'tileset.json'))).isFile()) return true
+    } catch {
+      // A missing ancestor document is the normal case; keep walking.
+    }
+    if (pathKey(current) === pathKey(rootDir)) return false
+    const parent = dirname(current)
+    if (!isWithinDirectory(parent, rootDir)) return false
+    current = parent
+  }
+}
+
+/**
+ * Serve a local `tileset.json` with a derived root transform when the sibling
+ * metadata says the document is still in local metres. Returns false when the
+ * request should fall through to the plain file server, so an ordinary tileset
+ * (or any read failure) keeps the old byte-for-byte behaviour.
+ */
+export async function serveGeoreferencedTileset(req, res, rootDir, relPath, cacheControl) {
+  if (relPath === '' || basename(relPath).toLowerCase() !== 'tileset.json') return false
+  const target = resolve(rootDir, relPath)
+  if (!within(rootDir, target)) return false
+  if (!isWithinDirectory(await realPathOr(target), await realPathOr(rootDir))) return false
+  let stat
+  try {
+    stat = await fs.stat(target)
+  } catch {
+    return false
+  }
+  if (!stat.isFile() || stat.size > MAX_GEOREF_JSON) return false
+  let document
+  try {
+    document = JSON.parse((await fs.readFile(target, 'utf8')).replace(/^\uFEFF/, ''))
+  } catch {
+    return false
+  }
+  if (tilesetRootIsGeoreferenced(document?.root)) return false
+  // A nested document that hangs off an ancestor tileset is already transformed
+  // by that ancestor; only a dataset's own top-level document needs the patch.
+  if (await hasAncestorTileset(rootDir, dirname(target))) return false
+  const patched = georeferenceTilesetDocument(document, await readTilesetInfoFile(dirname(target)))
+  if (patched === null) return false
+  const body = Buffer.from(JSON.stringify(patched.document), 'utf8')
+  res.writeHead(200, {
+    'content-type': 'application/json; charset=utf-8',
+    'content-length': String(body.length),
+    'cache-control': cacheControl,
+  })
+  if (req.method === 'HEAD') {
+    res.end()
+    return true
+  }
+  res.end(body)
+  return true
 }
 
 // ---------------------------------------------------------------------------
@@ -1317,6 +1781,7 @@ async function analyzeTileset(source, options = {}) {
       rootDoc = doc
       rootBytes = loaded.bytes
       inspectRootDocument(doc, entry.label, state)
+      await inspectRootGeoreference(doc, entry.location.kind === 'local' ? entry.location.dir : null, state, entry.label)
     }
     state.documents += 1
     if (Array.isArray(doc.extensionsUsed)) {
@@ -1420,9 +1885,52 @@ function inspectRootDocument(doc, label, state) {
   }
 }
 
+/**
+ * Report how a root document will be placed on the globe, and why it will not be
+ * when that is the case. This is the diagnostic half of the serve-time
+ * georeferencing: a document that /tiles cannot repair must never fail silently,
+ * because the visible symptom (data near the earth's centre, `flyTo` diving to
+ * the core) says nothing about the cause. `directory` is the folder of a local
+ * document, or null for a remote one (its metadata cannot be read cross-origin).
+ */
+export async function inspectRootGeoreference(doc, directory, state, label) {
+  const root = isPlainObject(doc?.root) ? doc.root : null
+  if (root === null || tilesetRootIsGeoreferenced(root)) return
+  const info = directory === null || directory === undefined ? null : await readTilesetInfoFile(directory)
+  const georeference = deriveLocalGeoreference(info)
+  if (georeference !== null) {
+    inspectIssue(
+      state.issues,
+      'info',
+      'georeference_derived',
+      `the root tile has no transform; the panel georeferences it from tileset_info.json as ${georeference.crs} (${georeference.lon.toFixed(6)}, ${georeference.lat.toFixed(6)}).`,
+      `${label}:root`,
+    )
+    return
+  }
+  if (info !== null) {
+    // The metadata exists but names a CRS this plugin cannot project. Saying so
+    // is the only honest answer: the dataset will still render at the core.
+    inspectIssue(
+      state.issues,
+      'warn',
+      'georeference_unsupported',
+      `tileset_info.json declares srs ${JSON.stringify(info.srs ?? null)}, which this panel cannot place without a projection database; its local metres are read as ECEF, so the data renders near the earth's centre. Supported: CGCS2000 Gauss-Krueger EPSG 4491-4554.`,
+      `${label}:root`,
+    )
+    return
+  }
+  inspectIssue(
+    state.issues,
+    'warn',
+    'no_georeference',
+    "the root tile has no transform or region, so its bounding volumes are read as ECEF and a dataset in local metres renders near the earth's centre. Add a root transform, or a sibling tileset_info.json with srs + srs_origin.",
+    `${label}:root`,
+  )
+}
+
 /** Write the report JSON, then keep only the newest reports. The absolute path is
- * added to the report itself as well, so the panel can copy it from either place. */
-async function writeInspectReport(report) {
+ * added to the report itself as well, so the panel can copy it from either place. */async function writeInspectReport(report) {
   await fs.mkdir(REPORT_DIR, { recursive: true })
   const base = `${inspectTimestamp()}-${inspectSlug(report.source?.label)}`
   let handle
@@ -1631,6 +2139,15 @@ function metaHandler(req, res) {
     // Page-only list of folders the user opened before (data menu); the host
     // already re-allowed them, so the page never needs to re-register them.
     directoriesUrl: `${DIRECTORIES_ROUTE}/${TOKEN}`,
+    // Captures are served back through the token route; chat tool rows use this
+    // prefix to render a thumbnail without exposing the token to the model.
+    filesUrl: `${FILES_ROUTE}/${TOKEN}/`,
+    // Page-only scene snapshot store, so a remount or restart can restore a scene.
+    sceneUrl: `${SCENE_ROUTE}/${TOKEN}`,
+    // "Ask Agent" pushes a bounded scene summary into the live conversation.
+    injectUrl: `${INJECT_ROUTE}/${TOKEN}`,
+    // Scene reports are written by the host under DSH_HOME/exports.
+    reportUrl: `${REPORT_ROUTE}/${TOKEN}`,
     version: ABOUT.version,
     homepage: ABOUT.homepage,
     issues: ABOUT.issues,
@@ -1704,8 +2221,13 @@ async function tilesHandler(req, res, allowedDirs) {
     }
     relParts.push(decoded)
   }
+  const relPath = relParts.join(sep)
+  // OSGB-derived local tilesets often ship without a root `transform`; the host
+  // derives one from the sibling tileset_info.json so Cesium places them on the
+  // globe instead of reading local metres as ECEF coordinates.
+  if (await serveGeoreferencedTileset(req, res, resolvedDir, relPath, 'public, max-age=60')) return
   // serveFile repeats the real-path containment check on the target file.
-  await serveFile(req, res, resolvedDir, relParts.join(sep), 'public, max-age=60')
+  await serveFile(req, res, resolvedDir, relPath, 'public, max-age=60')
 }
 
 async function scanHandler(req, res, allowedDirs, onOpened) {
@@ -1851,6 +2373,7 @@ const SCENE_ACTIONS = {
   reset: [],
   pick: [],
   inspect: ['layer', 'path', 'url', 'deep'],
+  report: ['format', 'title', 'include_capture'],
 }
 const SCENE_ACTION_NAMES = Object.keys(SCENE_ACTIONS)
 const CAPTURE_ARG_NAMES = new Set(['width', 'format', 'include_hud', 'label'])
@@ -1901,6 +2424,19 @@ const SCENE_PARAMETERS = {
     heading: { type: 'number', description: 'fly: heading in degrees clockwise from north; default 0.' },
     pitch: { type: 'number', description: 'fly: pitch in degrees, -90 looks straight down; default -45.' },
     duration: { type: 'number', description: 'fly: flight time in seconds; default 1.2.' },
+    format: {
+      type: 'string',
+      enum: ['html', 'markdown'],
+      description: 'report: output format. Default html (self-contained, screenshot embedded).',
+    },
+    title: {
+      type: 'string',
+      description: 'report: report title, up to 120 characters. Default "Digital Earth scene report".',
+    },
+    include_capture: {
+      type: 'boolean',
+      description: 'report: also capture the current view and embed/link it in the report. Default true.',
+    },
   },
   required: ['action'],
   additionalProperties: false,
@@ -1921,6 +2457,7 @@ const SCENE_DESCRIPTION = [
   '- reset: return to the global view.',
   '- pick: identify whatever is at the center of the view.',
   '- inspect: static data health check of a tileset without changing the scene. Pass layer (panel resolves its source, merges runtime counters), or path/url; deep checks content files. Returns a compact summary plus a host report path.',
+  '- report: write a scene report (HTML self-contained or Markdown) with camera, layers, basemap/terrain, Agent overlays and measurements, the active analysis and shader presets, plus an embedded/linked screenshot; returns the absolute host path. Call present with that path for the user.',
   '',
   'The panel JSON result is the authoritative scene state.',
 ].join('\n')
@@ -2395,6 +2932,23 @@ function normalizeSceneRequest(raw) {
       if (raw.deep !== undefined) {
         if (typeof raw.deep !== 'boolean') throw sceneError('inspect "deep" must be true or false.')
         args.deep = raw.deep
+      }
+      break
+    }
+    case 'report': {
+      const format = raw.format === undefined ? 'html' : raw.format
+      if (typeof format !== 'string' || !REPORT_FORMATS.has(format)) {
+        throw sceneError('report "format" must be "html" or "markdown".')
+      }
+      args.format = format
+      if (raw.title !== undefined) {
+        if (typeof raw.title !== 'string') throw sceneError('report "title" must be a string.')
+        const title = raw.title.trim().slice(0, 120)
+        if (title !== '') args.title = title
+      }
+      if (raw.include_capture !== undefined) {
+        if (typeof raw.include_capture !== 'boolean') throw sceneError('report "include_capture" must be true or false.')
+        args.include_capture = raw.include_capture
       }
       break
     }
@@ -3757,6 +4311,71 @@ async function pruneCaptures(keepName) {
   }
 }
 
+/**
+ * POST: write a scene report (HTML or Markdown) built by the panel and answer
+ * with its absolute path. Reports live under DSH_HOME/exports, so the page can
+ * never choose an arbitrary destination, and the folder keeps the newest names.
+ */
+export async function reportHandler(req, res) {
+  if (req.method !== 'POST') return sendText(res, 405, 'method not allowed')
+  let body = ''
+  try {
+    for await (const chunk of req) {
+      body += chunk
+      if (body.length > MAX_REPORT_BODY) {
+        req.destroy()
+        return sendText(res, 413, 'payload too large')
+      }
+    }
+  } catch {
+    return sendText(res, 400, 'bad request')
+  }
+  let payload
+  try {
+    payload = JSON.parse(body)
+  } catch {
+    return sendText(res, 400, 'invalid json')
+  }
+  const format = typeof payload?.format === 'string' ? payload.format : 'html'
+  if (!REPORT_FORMATS.has(format)) return sendText(res, 400, 'invalid format')
+  const content = typeof payload?.content === 'string' ? payload.content : ''
+  if (content.trim() === '') return sendText(res, 400, 'empty report')
+  const extension = format === 'markdown' ? 'md' : 'html'
+  const label = sanitizeLabel(payload?.label)
+  const name = `earth-report-${timeStamp()}-${randomBytes(4).toString('hex')}${label === '' ? '' : `-${label}`}.${extension}`
+  const target = join(EXPORTS_DIR, name)
+  try {
+    await fs.mkdir(EXPORTS_DIR, { recursive: true })
+    await fs.writeFile(target, content, 'utf8')
+  } catch (error) {
+    return sendText(res, 500, `report save failed: ${error instanceof Error ? error.message : String(error)}`)
+  }
+  void pruneExports(name).catch(() => {})
+  sendJson(res, 200, { path: target, format, bytes: Buffer.byteLength(content, 'utf8') })
+}
+
+/** Keep the newest reports/exports so the folder cannot grow without bound. */
+async function pruneExports(keepName) {
+  const entries = await fs.readdir(EXPORTS_DIR, { withFileTypes: true })
+  const names = entries.filter((entry) => entry.isFile()).map((entry) => entry.name)
+  if (names.length <= MAX_EXPORT_FILES) return
+  const stats = []
+  for (const name of names) {
+    try {
+      stats.push({ name, mtime: (await fs.stat(join(EXPORTS_DIR, name))).mtimeMs })
+    } catch {
+      stats.push({ name, mtime: 0 })
+    }
+  }
+  stats.sort((left, right) => right.mtime - left.mtime || (left.name < right.name ? 1 : -1))
+  let remaining = stats.length
+  for (let index = stats.length - 1; index >= 0 && remaining > MAX_EXPORT_FILES; index -= 1) {
+    if (stats[index].name === keepName) continue
+    await fs.rm(join(EXPORTS_DIR, stats[index].name), { force: true })
+    remaining -= 1
+  }
+}
+
 /** POST: the page uploads a rendered screenshot; answer with the stored file. */
 async function captureHandler(req, res) {
   if (req.method !== 'POST') return sendText(res, 405, 'method not allowed')
@@ -3865,8 +4484,19 @@ async function captureResultValue(ack, request) {
   return value
 }
 
-function renderSceneResult(value) {
-  let text
+/** Model-facing summary for `earth_scene action=report`. */
+function renderReportResult(value) {
+  const path = typeof value.path === 'string' ? value.path : ''
+  const format = typeof value.format === 'string' ? value.format : 'html'
+  const bytes = Number.isFinite(value.bytes) ? ` (${value.bytes} bytes)` : ''
+  const lines = [`Scene report written: ${path}`, `Format: ${format}${bytes}.`]
+  if (Array.isArray(value.sections) && value.sections.length > 0) lines.push(`Sections: ${value.sections.join(', ')}.`)
+  if (Array.isArray(value.failed) && value.failed.length > 0) lines.push(`Skipped: ${value.failed.join('; ')}.`)
+  lines.push('Call present with this path to show the report to the user.')
+  return lines.join('\n')
+}
+
+function renderSceneResult(value) {  let text
   try {
     text = JSON.stringify(value)
   } catch {
@@ -4049,7 +4679,11 @@ function createSceneTool(bridge, allowedDirs) {
       schema: { type: 'object' },
       render: (_args, value) => [{
         type: 'text',
-        text: isPlainObject(value) && value.operation === 'inspect' ? renderInspectResult(value) : renderSceneResult(value),
+        text: isPlainObject(value) && value.operation === 'inspect'
+          ? renderInspectResult(value)
+          : isPlainObject(value) && value.operation === 'report'
+            ? renderReportResult(value)
+            : renderSceneResult(value),
       }],
     },
     async execute(args, exec = {}) {
@@ -4057,7 +4691,8 @@ function createSceneTool(bridge, allowedDirs) {
       if (request.action === 'inspect') return inspectSceneAction(bridge, allowedDirs, request.args, exec)
       const target = resolveSessionTarget(bridge, exec)
       if (target === null) throw new Error(PANEL_CLOSED_MESSAGE)
-      const value = scrubToken(asResultObject(await bridge.run(target.sessionId, request.action, request.args, SCENE_TIMEOUT_MS, exec.signal)))
+      const timeout = request.action === 'report' ? REPORT_TIMEOUT_MS : SCENE_TIMEOUT_MS
+      const value = scrubToken(asResultObject(await bridge.run(target.sessionId, request.action, request.args, timeout, exec.signal)))
       if (target.fallback) value.session_fallback = SESSION_FALLBACK_NOTE
       return value
     },
@@ -4200,6 +4835,105 @@ function mountAgentTools(ctx, bridge, allowedDirs) {
   })
 }
 
+/** One-screen summary for the `/earth status` command result. */
+export function renderEarthCommandStatus(value) {
+  const view = isPlainObject(value.view) ? value.view : {}
+  const camera = []
+  if (Number.isFinite(view.lon) && Number.isFinite(view.lat)) camera.push(`${view.lon}, ${view.lat}`)
+  if (Number.isFinite(view.height)) camera.push(`${view.height} m`)
+  if (Number.isFinite(view.heading)) camera.push(`heading ${view.heading}°, pitch ${view.pitch}°`)
+  const layers = Array.isArray(value.layers) ? value.layers : []
+  const layerText =
+    layers.length === 0
+      ? 'none'
+      : layers.map((layer) => `${layer.name}${layer.visible === false ? ' (hidden)' : ''}`).join(', ')
+  const imagery = isPlainObject(value.imagery) ? value.imagery.name : 'none'
+  const terrain = isPlainObject(value.terrain) ? value.terrain.name : 'none'
+  const annotations = isPlainObject(value.annotations) ? value.annotations : {}
+  return [
+    'Digital earth status',
+    `Camera: ${camera.join(' · ') || 'unknown'}`,
+    `Layers: ${layerText}`,
+    `Imagery: ${imagery}; terrain: ${terrain}`,
+    `Agent overlays: ${annotations.drawn_features ?? 0} annotated features, ${annotations.measured_points ?? 0} measured points`,
+  ].join('\n')
+}
+
+/**
+ * `/earth` slash command: direct user control of the panel without a model turn.
+ * The command result stays in the command UI; nothing here enters the model
+ * context, matching the DSH command contract.
+ */
+function mountEarthCommand(ctx, bridge) {
+  ctx.inject(['commands'], (scope) => {
+    scope.effect(
+      () =>
+        scope.commands.register({
+          name: 'earth',
+          description: 'Digital earth panel: status, capture, clear annotations, or open it from the globe button.',
+          input: { hint: 'status | capture [label] | report [html|markdown] | clear | open' },
+          handler: async ({ agent, rawInput }) => {
+            const target = resolveSessionTarget(bridge, { agent })
+            if (target === null) {
+              return {
+                kind: 'error',
+                text: 'The digital earth panel is not connected for this conversation. Open it with the globe button in the chat header, then retry.',
+              }
+            }
+            const words = String(rawInput ?? '')
+              .trim()
+              .split(/\s+/)
+              .filter(Boolean)
+            const sub = (words.shift() ?? 'help').toLowerCase()
+            try {
+              if (sub === 'status') {
+                const value = asResultObject(await bridge.run(target.sessionId, 'status', {}, SCENE_TIMEOUT_MS))
+                return { kind: 'success', text: renderEarthCommandStatus(value) }
+              }
+              if (sub === 'capture') {
+                const label = words.join(' ').trim().slice(0, 80)
+                const ack = asResultObject(
+                  await bridge.run(target.sessionId, 'capture', label === '' ? {} : { label }, CAPTURE_TIMEOUT_MS),
+                )
+                const path = typeof ack.path === 'string' ? ack.path : ''
+                return { kind: 'success', text: path === '' ? 'Snapshot saved.' : `Snapshot saved: ${path}` }
+              }
+              if (sub === 'clear') {
+                await bridge.run(target.sessionId, 'draw', { clear: true }, DRAW_TIMEOUT_MS)
+                return { kind: 'success', text: 'Cleared the Agent annotations and measurements from the panel.' }
+              }
+              if (sub === 'report') {
+                const requested = (words[0] ?? 'html').toLowerCase()
+                const format = requested === 'markdown' || requested === 'md' ? 'markdown' : 'html'
+                const value = asResultObject(
+                  await bridge.run(target.sessionId, 'report', { format, include_capture: true }, REPORT_TIMEOUT_MS),
+                )
+                const path = typeof value.path === 'string' ? value.path : ''
+                return {
+                  kind: 'success',
+                  text: path === '' ? 'Scene report written.' : `Scene report written: ${path}`,
+                }
+              }
+              if (sub === 'open') {
+                return {
+                  kind: 'success',
+                  text: 'The digital earth tab opens by itself on the next earth tool call, or click the globe button in the chat header.',
+                }
+              }
+              return {
+                kind: 'success',
+                text: 'Usage: /earth status | /earth capture [label] | /earth report [html|markdown] | /earth clear | /earth open',
+              }
+            } catch (error) {
+              return { kind: 'error', text: error instanceof Error ? error.message : String(error) }
+            }
+          },
+        }),
+      'digital-earth /earth command',
+    )
+  })
+}
+
 export const inject = ['webServer', 'connection']
 
 export function apply(ctx) {
@@ -4325,6 +5059,9 @@ export function apply(ctx) {
       register('exact', `${DIRECTORIES_ROUTE}/${TOKEN}`, (req, res) =>
         req.method === 'GET' ? directoriesHandler(() => recentDirectories, req, res) : sendText(res, 405, 'method not allowed'),
       ),
+      register('exact', `${SCENE_ROUTE}/${TOKEN}`, sceneSnapshotHandler),
+      register('exact', `${INJECT_ROUTE}/${TOKEN}`, (req, res) => injectHandler(ctx, req, res)),
+      register('exact', `${REPORT_ROUTE}/${TOKEN}`, reportHandler),
       register('exact', BRIDGE_ROUTE, bridgeHandler(bridge)),
       register('exact', CAPTURE_ROUTE, captureHandler),
       register('exact', INSPECT_ROUTE, (req, res) => inspectHandler(req, res, allowedDirs)),
@@ -4339,5 +5076,6 @@ export function apply(ctx) {
   }, 'digital-earth api routes')
 
   mountAgentTools(ctx, bridge, allowedDirs)
+  mountEarthCommand(ctx, bridge)
 }
 

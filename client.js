@@ -56,6 +56,7 @@ window.__ModuleLoader__.load({
         'btn.terrain': '地形',
         'btn.measure': '量测',
         'btn.screenshot': '截图',
+        'btn.askAgent': '问 Agent',
         'btn.reset': '复位',
         'btn.settings': '数据源与外观',
         'btn.appearance': '外观',
@@ -74,6 +75,7 @@ window.__ModuleLoader__.load({
         'menu.terrainOff': '关闭地形',
         'menu.recentDirs': '最近打开',
         'menu.clearAgent': '清除 Agent 标注',
+        'menu.report': '导出场景报告',
         'tool.distance': '测距',
         'tool.area': '测面',
         'tool.height': '测高',
@@ -185,6 +187,7 @@ window.__ModuleLoader__.load({
         'tool.action.reset': '复位视角',
         'tool.action.pick': '拾取对象',
         'tool.action.inspect': '数据体检',
+        'tool.action.report': '导出报告',
         'tool.action.capture': '截图',
         'tool.action.draw': '绘制标注',
         'tool.action.measure': '量测',
@@ -194,6 +197,7 @@ window.__ModuleLoader__.load({
         'tool.action.generic': '三维场景',
         'tool.open': '打开',
         'tool.openTip': '在对话右侧打开数字地球',
+        'tool.thumbOpen': '查看截图',
         'settings.tab.about': '关于',
         'settings.autoOpenPanel': 'Agent 调用时自动打开数字地球',
         'settings.autoOpenPanelHint':
@@ -323,7 +327,7 @@ window.__ModuleLoader__.load({
         'shader.layerLabel': '目标图层',
         'shader.layerAuto': '最上可见图层（自动）',
         'shader.presetLabel': '预设',
-        'shader.preset.height-false-color': '高程假彩色',
+        'shader.preset.height-false-color': '高程渐变',
         'shader.preset.contour': '等高线',
         'shader.preset.scan': '高度扫描',
         'shader.preset.water': '水面波纹',
@@ -339,9 +343,13 @@ window.__ModuleLoader__.load({
         'shader.resetAll': '全部重置',
         'shader.active': '活动预设',
         'shader.activeEmpty': '尚未应用任何预设',
-        'shader.hint': '仅支持四个白名单预设，Agent 与界面都不能注入自定义 GLSL。',
         'shader.noLayers': '先加载 3D Tiles 图层，再应用着色器预设。',
         'toast.captureSaved': '已生成 {width}×{height} 截图：{path}',
+        'toast.askAgentSent': '当前场景已发送到对话，直接输入问题即可。',
+        'toast.askAgentFailed': '发送场景失败：{message}',
+        'toast.askAgentNoSession': '请先打开一个会话，再使用「问 Agent」。',
+        'toast.reportSaved': '场景报告已保存：{path}',
+        'toast.reportFailed': '导出报告失败：{message}',
         'toast.noSession': '请先打开一个会话，再在对话旁查看数字地球。',
         'unit.hectare': '公顷',
       },
@@ -371,6 +379,7 @@ window.__ModuleLoader__.load({
         'btn.terrain': 'Terrain',
         'btn.measure': 'Measure',
         'btn.screenshot': 'Snapshot',
+        'btn.askAgent': 'Ask Agent',
         'btn.reset': 'Reset',
         'btn.settings': 'Sources & appearance',
         'btn.appearance': 'Appearance',
@@ -389,6 +398,7 @@ window.__ModuleLoader__.load({
         'menu.terrainOff': 'Terrain off',
         'menu.recentDirs': 'Recently opened',
         'menu.clearAgent': 'Clear Agent annotations',
+        'menu.report': 'Export scene report',
         'tool.distance': 'Distance',
         'tool.area': 'Area',
         'tool.height': 'Height',
@@ -500,6 +510,7 @@ window.__ModuleLoader__.load({
         'tool.action.reset': 'Reset view',
         'tool.action.pick': 'Pick object',
         'tool.action.inspect': 'Data check',
+        'tool.action.report': 'Export report',
         'tool.action.capture': 'Snapshot',
         'tool.action.draw': 'Draw annotations',
         'tool.action.measure': 'Measure',
@@ -509,6 +520,7 @@ window.__ModuleLoader__.load({
         'tool.action.generic': '3D scene',
         'tool.open': 'Open',
         'tool.openTip': 'Open Digital Earth beside the chat',
+        'tool.thumbOpen': 'Open snapshot',
         'settings.tab.about': 'About',
         'settings.autoOpenPanel': 'Open Digital Earth automatically on Agent calls',
         'settings.autoOpenPanelHint':
@@ -642,7 +654,7 @@ window.__ModuleLoader__.load({
         'shader.layerLabel': 'Target layer',
         'shader.layerAuto': 'Top visible layer (auto)',
         'shader.presetLabel': 'Preset',
-        'shader.preset.height-false-color': 'Height false color',
+        'shader.preset.height-false-color': 'Elevation ramp',
         'shader.preset.contour': 'Contours',
         'shader.preset.scan': 'Height scan',
         'shader.preset.water': 'Water ripples',
@@ -658,9 +670,13 @@ window.__ModuleLoader__.load({
         'shader.resetAll': 'Reset all',
         'shader.active': 'Active presets',
         'shader.activeEmpty': 'No preset applied yet',
-        'shader.hint': 'Only the four white-listed presets are available; neither the Agent nor the UI can inject custom GLSL.',
         'shader.noLayers': 'Load a 3D Tiles layer before applying a shader preset.',
         'toast.captureSaved': 'Saved {width}×{height} snapshot: {path}',
+        'toast.askAgentSent': 'Scene sent to the conversation; just type your question.',
+        'toast.askAgentFailed': 'Could not send the scene: {message}',
+        'toast.askAgentNoSession': 'Open a conversation first to use Ask Agent.',
+        'toast.reportSaved': 'Scene report saved: {path}',
+        'toast.reportFailed': 'Could not export the report: {message}',
         'toast.noSession': 'Open a conversation first to view the globe beside it.',
         'unit.hectare': 'ha',
       },
@@ -839,6 +855,47 @@ window.__ModuleLoader__.load({
       typeof layer.source === 'object' &&
       (typeof layer.source.path === 'string' || typeof layer.source.url === 'string')
 
+    const SNAPSHOT_ANALYSIS_ACTIONS = ['profile', 'flood', 'sunlight']
+
+    const isSnapshotAnalysis = (analysis) =>
+      analysis !== null &&
+      typeof analysis === 'object' &&
+      typeof analysis.action === 'string' &&
+      SNAPSHOT_ANALYSIS_ACTIONS.includes(analysis.action)
+
+    const isSnapshotShader = (item) =>
+      item !== null && typeof item === 'object' && typeof item.layer === 'string' && typeof item.preset === 'string'
+
+    /** Normalize one stored snapshot body (localStorage or the host route). */
+    function normalizeSceneSnapshot(snapshot) {
+      if (snapshot === null || typeof snapshot !== 'object' || snapshot.v !== SCENE_STORE_VERSION) return null
+      const layers = (Array.isArray(snapshot.layers) ? snapshot.layers : [])
+        .filter(isSnapshotLayer)
+        .map((layer) => ({ name: layer.name, source: layer.source, visible: layer.visible !== false }))
+      const draw = Array.isArray(snapshot.annotations?.draw)
+        ? snapshot.annotations.draw.filter((command) => command !== null && typeof command === 'object' && command.geojson !== undefined)
+        : []
+      const measure = Array.isArray(snapshot.annotations?.measure)
+        ? snapshot.annotations.measure.filter(
+            (command) => command !== null && typeof command === 'object' && typeof command.mode === 'string' && Array.isArray(command.points),
+          )
+        : []
+      const shaders = Array.isArray(snapshot.shaders)
+        ? snapshot.shaders.filter(isSnapshotShader).map((item) => ({
+            layer: item.layer,
+            preset: item.preset,
+            params: item.params !== null && typeof item.params === 'object' ? item.params : {},
+          }))
+        : []
+      return {
+        view: isSnapshotView(snapshot.view) ? snapshot.view : null,
+        layers,
+        annotations: { draw, measure },
+        analysis: isSnapshotAnalysis(snapshot.analysis) ? snapshot.analysis : null,
+        shaders,
+      }
+    }
+
     function readSceneSnapshot(sessionId) {
       if (typeof sessionId !== 'string' || sessionId === '') return null
       const store = sceneStorage()
@@ -846,20 +903,7 @@ window.__ModuleLoader__.load({
       try {
         const raw = store.getItem(sceneStoreKey(sessionId))
         if (typeof raw !== 'string' || raw === '') return null
-        const snapshot = JSON.parse(raw)
-        if (snapshot === null || typeof snapshot !== 'object' || snapshot.v !== SCENE_STORE_VERSION) return null
-        const layers = (Array.isArray(snapshot.layers) ? snapshot.layers : [])
-          .filter(isSnapshotLayer)
-          .map((layer) => ({ name: layer.name, source: layer.source, visible: layer.visible !== false }))
-        const draw = Array.isArray(snapshot.annotations?.draw)
-          ? snapshot.annotations.draw.filter((command) => command !== null && typeof command === 'object' && command.geojson !== undefined)
-          : []
-        const measure = Array.isArray(snapshot.annotations?.measure)
-          ? snapshot.annotations.measure.filter(
-              (command) => command !== null && typeof command === 'object' && typeof command.mode === 'string' && Array.isArray(command.points),
-            )
-          : []
-        return { view: isSnapshotView(snapshot.view) ? snapshot.view : null, layers, annotations: { draw, measure } }
+        return normalizeSceneSnapshot(JSON.parse(raw))
       } catch {
         return null
       }
@@ -889,34 +933,43 @@ window.__ModuleLoader__.load({
       }
     }
 
+    /**
+     * Persist the snapshot body to the local cache and return the body so the
+     * caller can also hand it to the host store. Returns null only when the
+     * snapshot cannot be serialized.
+     */
     function writeSceneSnapshot(sessionId, snapshot) {
-      if (typeof sessionId !== 'string' || sessionId === '') return
-      const store = sceneStorage()
-      if (!store) return
+      if (typeof sessionId !== 'string' || sessionId === '') return null
       const body = { v: SCENE_STORE_VERSION, savedAt: new Date().toISOString(), ...snapshot }
       let text = ''
       try {
         text = JSON.stringify(body)
       } catch {
-        return
+        return null
       }
-      // Overlays are reconstructible from the conversation, so drop them first
-      // rather than lose the camera and layer list to the quota.
+      // Overlays and analyses are reconstructible from the conversation, so drop
+      // them first rather than lose the camera and layer list to the quota.
       if (text.length > SCENE_STORE_MAX_BYTES) {
         body.annotations = { draw: [], measure: [] }
+        body.analysis = null
         try {
           text = JSON.stringify(body)
         } catch {
-          return
+          return null
         }
-        if (text.length > SCENE_STORE_MAX_BYTES) return
+        if (text.length > SCENE_STORE_MAX_BYTES) return null
       }
-      try {
-        store.setItem(sceneStoreKey(sessionId), text)
-      } catch {
-        return
+      const store = sceneStorage()
+      if (store) {
+        try {
+          store.setItem(sceneStoreKey(sessionId), text)
+          trimSceneSnapshots(store, sceneStoreKey(sessionId))
+        } catch {
+          // Quota or privacy mode: the local cache stays best effort; the host
+          // store below still gets the body.
+        }
       }
-      trimSceneSnapshots(store, sceneStoreKey(sessionId))
+      return body
     }
     //#endregion scene persistence
 
@@ -962,6 +1015,34 @@ window.__ModuleLoader__.load({
           : `${squareMeters.toFixed(1)} m²`
     const formatHeight = (meters) =>
       Math.abs(meters) >= 1000 ? `${(meters / 1000).toFixed(2)} km` : `${meters.toFixed(1)} m`
+
+    /** Escape user/scene text for the self-contained report HTML. */
+    const escapeHtml = (value) =>
+      String(value).replace(/[&<>"']/g, (character) => {
+        switch (character) {
+          case '&':
+            return '&amp;'
+          case '<':
+            return '&lt;'
+          case '>':
+            return '&gt;'
+          case '"':
+            return '&quot;'
+          default:
+            return '&#39;'
+        }
+      })
+
+    /** Base64-encode a binary screenshot for embedding in the report HTML. */
+    const arrayBufferToBase64 = (buffer) => {
+      const bytes = new Uint8Array(buffer)
+      let binary = ''
+      const chunk = 0x8000
+      for (let index = 0; index < bytes.length; index += chunk) {
+        binary += String.fromCharCode.apply(null, bytes.subarray(index, index + chunk))
+      }
+      return btoa(binary)
+    }
 
     function geodesicLength(Cesium, points) {
       let total = 0
@@ -3087,7 +3168,6 @@ window.__ModuleLoader__.load({
                 ),
           ),
           visibleLayers.length === 0 ? h('p', { className: 'hint' }, t('shader.noLayers')) : null,
-          h('p', { className: 'hint' }, t('shader.hint')),
         ),
       )
     }
@@ -3135,6 +3215,9 @@ window.__ModuleLoader__.load({
       // Single active analysis: owns its entities plus the scene state sunlight
       // changed (lighting, shadows, clock) so clear() can restore it exactly.
       const analysisRef = React.useRef({ operation: null, layerId: null, layerName: null, entities: [], restore: null })
+      // The last analysis command (not its entities): a remounted panel replays it
+      // so the profile/flood/sunlight result comes back with the scene.
+      const analysisCommandRef = React.useRef(null)
       // B3 shader: one active preset per layer, plus the single preRender u_time
       // tick that is registered only while at least one preset is active.
       const shaderEntriesRef = React.useRef(new Map())
@@ -4167,7 +4250,7 @@ window.__ModuleLoader__.load({
         // count in `overlays`; a numeric-only measurement adds no overlay.
         if (draw) {
           state.measuredCount += points.length
-          state.measureCommands.push({ mode, points, draw: true })
+          state.measureCommands.push({ mode, points, draw: true, result })
           markSceneDirty()
         }
         syncAgentOverlayCount()
@@ -4238,6 +4321,7 @@ window.__ModuleLoader__.load({
         state.operation = null
         state.layerId = null
         state.layerName = null
+        analysisCommandRef.current = null
         setAnalysis(null)
         markSceneDirty()
         return cleared
@@ -4579,17 +4663,26 @@ window.__ModuleLoader__.load({
         }
         // Single active analysis: the new result replaces the previous one.
         clearAnalysis()
-        if (operation === 'profile') return analyzeProfile(Cesium, viewer, layer, args)
-        if (operation === 'flood') return analyzeFlood(Cesium, viewer, layer, args)
-        return analyzeSunlight(Cesium, viewer, layer, args)
+        let result
+        if (operation === 'profile') result = await analyzeProfile(Cesium, viewer, layer, args)
+        else if (operation === 'flood') result = await analyzeFlood(Cesium, viewer, layer, args)
+        else result = analyzeSunlight(Cesium, viewer, layer, args)
+        // Remember the command (not its entities) so a remounted panel can replay
+        // it. The layer is stored by name because restored layers get new ids.
+        analysisCommandRef.current = {
+          action: operation,
+          ...args,
+          ...(layer ? { layer: layer.name } : {}),
+        }
+        markSceneDirty()
+        return result
       }
       //#endregion analysis engine
 
       //#region shader engine ----------------------------------------------------
-      // One active preset per layer. Shader state is transient on purpose: it is
-      // not part of the persisted scene snapshot, so a remounted panel starts from
-      // the untouched tileset material. The original customShader (usually null)
-      // is saved per layer and put back on reset / layer removal.
+      // One active preset per layer. The active presets are part of the persisted
+      // scene snapshot so a remounted panel redraws them; the original customShader
+      // (usually null) is saved per layer and put back on reset / layer removal.
       const shaderResult = (operation, preset, layer) => ({
         operation,
         preset: preset ?? null,
@@ -4829,6 +4922,71 @@ window.__ModuleLoader__.load({
       // Whether a restore decision was already made for this mount; a session id
       // that arrives after the viewer is ready gets exactly one late restore.
       const sceneRestoredRef = React.useRef(false)
+      const HOST_SCENE_TIMEOUT_MS = 3000
+      const lastHostSceneSaveRef = React.useRef(0)
+
+      /** Read the host-persisted snapshot; null when absent or unreachable. */
+      async function readHostSceneSnapshot(session) {
+        const meta = metaRef.current ?? (await loadMeta().catch(() => null))
+        if (!meta?.sceneUrl) return null
+        const controller = new AbortController()
+        const timer = setTimeout(() => controller.abort(), HOST_SCENE_TIMEOUT_MS)
+        try {
+          const response = await fetch(
+            `${meta.sceneUrl}?token=${encodeURIComponent(meta.token)}&session=${encodeURIComponent(session)}`,
+            { credentials: 'same-origin', signal: controller.signal },
+          )
+          if (!response.ok) return null
+          const data = await response.json()
+          return normalizeSceneSnapshot(data?.snapshot)
+        } catch {
+          return null
+        } finally {
+          clearTimeout(timer)
+        }
+      }
+
+      /** Push one snapshot body to the host store, throttled unless forced. */
+      function saveHostSceneSnapshot(session, body, force = false) {
+        const meta = metaRef.current
+        if (!meta?.sceneUrl) return
+        const now = Date.now()
+        if (!force && now - lastHostSceneSaveRef.current < 10000) return
+        lastHostSceneSaveRef.current = now
+        let text = ''
+        try {
+          text = JSON.stringify({ session, snapshot: body })
+        } catch {
+          return
+        }
+        // Mirror the host body limit so an oversized scene stays local-only.
+        if (text.length > 512 * 1024) return
+        try {
+          void fetch(meta.sceneUrl, {
+            method: 'PUT',
+            credentials: 'same-origin',
+            headers: { 'content-type': 'application/json' },
+            body: text,
+            keepalive: true,
+          }).catch(() => {})
+        } catch {
+          // The host store is best effort; the local cache already has the scene.
+        }
+      }
+
+      /** Prefer the host snapshot (survives origin changes), fall back to local. */
+      async function loadSceneSnapshot(session) {
+        const hostSnapshot = await readHostSceneSnapshot(session)
+        if (hostSnapshot !== null) {
+          try {
+            writeSceneSnapshot(session, hostSnapshot)
+          } catch {
+            // Keeping the local cache warm is a convenience, not a requirement.
+          }
+          return hostSnapshot
+        }
+        return readSceneSnapshot(session)
+      }
 
       const markSceneDirty = () => {
         sceneDirtyRef.current = true
@@ -4861,17 +5019,24 @@ window.__ModuleLoader__.load({
             draw: agentOverlayRef.current.drawCommands,
             measure: agentOverlayRef.current.measureCommands,
           },
+          analysis: analysisCommandRef.current,
+          shaders: [...shaderEntriesRef.current.values()].map((entry) => ({
+            layer: entry.layerName,
+            preset: entry.preset,
+            params: { ...entry.params },
+          })),
         }
       }
 
-      /** Persist the current scene for this session (best effort, never throws). */
-      const saveSceneSnapshot = () => {
+      /** Persist the current scene locally and hand the body to the host store. */
+      const saveSceneSnapshot = (forceHost = false) => {
         const session = sessionRef.current
         if (typeof session !== 'string' || session === '') return
         try {
           const snapshot = currentSceneSnapshot()
           if (snapshot === null) return
-          writeSceneSnapshot(session, snapshot)
+          const body = writeSceneSnapshot(session, snapshot)
+          if (body !== null) saveHostSceneSnapshot(session, body, forceHost)
           sceneDirtyRef.current = false
         } catch {
           // Persistence must never take the panel down.
@@ -4918,6 +5083,20 @@ window.__ModuleLoader__.load({
               measureAgentOverlay(Cesium, viewer, command)
             } catch {
               // Same for a stale measurement.
+            }
+          }
+          for (const item of snapshot.shaders) {
+            try {
+              await shaderCommand({ action: 'apply', preset: item.preset, layer: item.layer, ...(item.params ?? {}) })
+            } catch {
+              // A stale preset (3DGS layer, changed tileset) is skipped.
+            }
+          }
+          if (snapshot.analysis !== null) {
+            try {
+              await analyzeCommand(snapshot.analysis)
+            } catch {
+              // The saved analysis may no longer have usable height data.
             }
           }
           if (snapshot.view !== null) {
@@ -5254,6 +5433,301 @@ window.__ModuleLoader__.load({
         return { ...saved, hud: shot.includeHud }
       }
 
+      /**
+       * "Ask Agent": capture the current scene as context and inject it into the
+       * live conversation, so the user can simply type the follow-up question.
+       * Injection never wakes an idle agent; the context lands on the next step.
+       */
+      async function askAgent() {
+        const meta = metaRef.current
+        const session = sessionRef.current
+        if (!meta?.injectUrl || typeof session !== 'string' || session === '') {
+          showToast(t('toast.askAgentNoSession'))
+          return
+        }
+        let snapshotPath = ''
+        try {
+          const saved = await captureScene({}, session)
+          snapshotPath = typeof saved.path === 'string' ? saved.path : ''
+        } catch {
+          // A fresh image is a bonus; the textual summary still helps.
+        }
+        let status = null
+        try {
+          status = await collectSceneStatus()
+        } catch {
+          status = null
+        }
+        const lines = [
+          '[Digital Earth scene context] The user is looking at this scene and will ask a follow-up about it.',
+        ]
+        if (status !== null) {
+          const view = status.view ?? {}
+          if (Number.isFinite(view.lon) && Number.isFinite(view.lat)) {
+            lines.push(
+              `Camera: lon=${view.lon}, lat=${view.lat}, height=${view.height} m, heading=${view.heading}°, pitch=${view.pitch}°.`,
+            )
+          }
+          const layerText =
+            Array.isArray(status.layers) && status.layers.length > 0
+              ? status.layers.map((layer) => `${layer.name}${layer.visible === false ? ' (hidden)' : ''}`).join(', ')
+              : 'none'
+          lines.push(`Layers: ${layerText}.`)
+          lines.push(`Imagery: ${status.imagery?.name ?? 'none'}; terrain: ${status.terrain?.name ?? 'none'}.`)
+          const annotations = status.annotations ?? {}
+          lines.push(
+            `Agent overlays: ${annotations.drawn_features ?? 0} annotated features, ${annotations.measured_points ?? 0} measured points.`,
+          )
+        }
+        if (analysis !== null && analysis.result) {
+          const result = analysis.result
+          if (result.operation === 'profile' && result.stats) {
+            lines.push(
+              `Analysis (profile): length=${result.length_m} m, relief=${result.stats.relief_m} m, min=${result.stats.min_height} m, max=${result.stats.max_height} m, samples=${result.samples}.`,
+            )
+          } else if (result.operation === 'flood') {
+            lines.push(
+              `Analysis (flood): water=${result.water_height} m, area=${result.area_km2} km², inundated=${result.inundated_km2} km², ratio=${result.inundated_ratio}, max depth=${result.depth_max_m} m.`,
+            )
+          } else if (result.operation === 'sunlight') {
+            lines.push(
+              `Analysis (sunlight): datetime=${result.datetime}, altitude=${result.sun?.altitude_deg}°, azimuth=${result.sun?.azimuth_deg}°, shadows=${result.shadows_enabled === true ? 'on' : 'off'}.`,
+            )
+          }
+        }
+        const shaders = shaderActiveList()
+        if (shaders.length > 0) {
+          lines.push(`Shaders: ${shaders.map((item) => `${item.layer}=${item.preset}`).join(', ')}.`)
+        }
+        if (snapshotPath !== '') lines.push(`Snapshot: ${snapshotPath}`)
+        lines.push('Answer from the scene state above; do not invent data that is not in it.')
+        try {
+          const response = await fetch(meta.injectUrl, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ session, text: lines.join('\n') }),
+          })
+          const data = await response.json().catch(() => null)
+          if (!response.ok || data?.ok !== true) throw new Error(data?.message ?? `HTTP ${response.status}`)
+          showToast(t('toast.askAgentSent'))
+        } catch (error) {
+          showToast(t('toast.askAgentFailed', { message: message(error) }))
+        }
+      }
+
+      /**
+       * Build a scene report (self-contained HTML or Markdown) from the live
+       * scene: camera, layers, basemap/terrain, Agent overlays and measured
+       * values, the active analysis, shader presets and a best-effort snapshot.
+       */
+      async function buildSceneReport(args = {}) {
+        const format = args.format === 'markdown' ? 'markdown' : 'html'
+        const chinese = isChinese()
+        const L = chinese
+          ? {
+              title: '数字地球场景报告',
+              generated: '生成时间',
+              camera: '相机',
+              layers: '图层',
+              name: '名称',
+              visibility: '可见性',
+              imagery: '影像底图',
+              terrain: '地形',
+              overlays: 'Agent 叠加',
+              annotatedFeatures: '标注要素',
+              measuredPoints: '量测点数',
+              measurements: '量测结果',
+              analysis: '地形分析',
+              shaders: '着色器预设',
+              snapshot: '当前画面',
+              none: '无',
+              visible: '显示',
+              hidden: '隐藏',
+              distance: '距离',
+              area: '面积',
+              height: '高差',
+              slope: '坡度',
+              profile: '剖面',
+              relief: '起伏',
+              flood: '淹没',
+              inundated: '淹没面积',
+              sunlight: '日照',
+              generatedBy: '由 DSH 数字地球插件生成',
+            }
+          : {
+              title: 'Digital Earth scene report',
+              generated: 'Generated',
+              camera: 'Camera',
+              layers: 'Layers',
+              name: 'Name',
+              visibility: 'Visibility',
+              imagery: 'Imagery',
+              terrain: 'Terrain',
+              overlays: 'Agent overlays',
+              annotatedFeatures: 'Annotated features',
+              measuredPoints: 'Measured points',
+              measurements: 'Measurements',
+              analysis: 'Terrain analysis',
+              shaders: 'Shader presets',
+              snapshot: 'Current view',
+              none: 'none',
+              visible: 'visible',
+              hidden: 'hidden',
+              distance: 'Distance',
+              area: 'Area',
+              height: 'Height difference',
+              slope: 'slope',
+              profile: 'Profile',
+              relief: 'relief',
+              flood: 'Flood',
+              inundated: 'inundated',
+              sunlight: 'Sunlight',
+              generatedBy: 'Generated by the DSH Digital Earth plugin',
+            }
+        const title = typeof args.title === 'string' && args.title.trim() !== '' ? args.title.trim().slice(0, 120) : L.title
+        const generatedAt = new Date().toISOString()
+        const sections = []
+        const failed = []
+        let capture = null
+        if (args.include_capture !== false) {
+          try {
+            const saved = await captureScene({}, sessionRef.current)
+            capture = {
+              path: typeof saved.path === 'string' ? saved.path : '',
+              width: saved.width,
+              height: saved.height,
+              mime: 'image/jpeg',
+              base64: '',
+            }
+            if (typeof saved.url === 'string' && saved.url !== '') {
+              try {
+                const response = await fetch(saved.url, { credentials: 'same-origin' })
+                if (response.ok) {
+                  const blob = await response.blob()
+                  capture.mime = blob.type || 'image/jpeg'
+                  capture.base64 = arrayBufferToBase64(await blob.arrayBuffer())
+                }
+              } catch {
+                // Keeping the path still makes the report useful.
+              }
+            }
+            if (capture.path !== '') sections.push('snapshot')
+          } catch (error) {
+            failed.push(`snapshot: ${message(error)}`)
+          }
+        }
+        const status = await collectSceneStatus().catch(() => null)
+        const view = status?.view ?? null
+        const layers = Array.isArray(status?.layers) ? status.layers : []
+        const annotations = status?.annotations ?? {}
+        const measurements = agentOverlayRef.current.measureCommands
+          .map((command) => command?.result)
+          .filter((result) => result !== null && typeof result === 'object')
+          .map((result) => {
+            if (result.mode === 'distance') return `${L.distance}: ${formatDistance(result.distance_m)}`
+            if (result.mode === 'area') return `${L.area}: ${formatArea(result.area_m2)}`
+            if (result.mode === 'height') {
+              return `${L.height}: ${result.height_m} m (${formatDistance(result.horizontal_m)} ${L.slope} ${result.slope_deg}°)`
+            }
+            return ''
+          })
+          .filter((line) => line !== '')
+        if (measurements.length > 0) sections.push('measurements')
+        let analysisText = ''
+        if (analysis !== null && analysis.result) {
+          const result = analysis.result
+          if (result.operation === 'profile') {
+            analysisText = `${L.profile}: ${formatDistance(result.length_m)}, ${L.relief} ${result.stats?.relief_m} m`
+          } else if (result.operation === 'flood') {
+            analysisText = `${L.flood}: ${formatDistance(result.water_height)} water, ${L.inundated} ${result.inundated_km2} km² (${result.inundated_ratio})`
+          } else if (result.operation === 'sunlight') {
+            analysisText = `${L.sunlight}: ${result.datetime}, altitude ${result.sun?.altitude_deg}°, azimuth ${result.sun?.azimuth_deg}°`
+          }
+        }
+        if (analysisText !== '') sections.push('analysis')
+        const shaders = shaderActiveList()
+        if (shaders.length > 0) sections.push('shaders')
+        sections.unshift('camera', 'layers')
+        if (status !== null) sections.splice(2, 0, 'basemap & terrain')
+
+        const cameraLine =
+          view !== null
+            ? `lon ${view.lon}, lat ${view.lat}, height ${view.height} m, heading ${view.heading}°, pitch ${view.pitch}°`
+            : L.none
+        const layerRows = layers.map((layer) => ({
+          name: layer.name,
+          visible: layer.visible === false ? L.hidden : L.visible,
+        }))
+        const environment = `${L.imagery}: ${status?.imagery?.name ?? L.none}; ${L.terrain}: ${status?.terrain?.name ?? L.none}`
+        const overlayLine = `${L.annotatedFeatures}: ${annotations.drawn_features ?? 0}; ${L.measuredPoints}: ${annotations.measured_points ?? 0}`
+        const shaderLines = shaders.map((item) => `${item.layer} — ${item.preset}`)
+
+        let content = ''
+        if (format === 'markdown') {
+          const lines = [`# ${title}`, '', `${L.generated}: ${generatedAt}`, '', `## ${L.camera}`, '', `- ${cameraLine}`, '']
+          lines.push(`## ${L.layers}`, '')
+          if (layerRows.length === 0) lines.push(`- ${L.none}`)
+          else {
+            lines.push(`| ${L.name} | ${L.visibility} |`, '| --- | --- |')
+            for (const row of layerRows) lines.push(`| ${row.name} | ${row.visible} |`)
+          }
+          lines.push('', `## ${L.imagery} / ${L.terrain}`, '', `- ${environment}`, '', `## ${L.overlays}`, '', `- ${overlayLine}`, '')
+          if (measurements.length > 0) lines.push(`## ${L.measurements}`, '', ...measurements.map((line) => `- ${line}`), '')
+          if (analysisText !== '') lines.push(`## ${L.analysis}`, '', `- ${analysisText}`, '')
+          if (shaderLines.length > 0) lines.push(`## ${L.shaders}`, '', ...shaderLines.map((line) => `- ${line}`), '')
+          if (capture !== null && capture.path !== '') lines.push(`## ${L.snapshot}`, '', `![${L.snapshot}](${capture.path})`, '')
+          lines.push('---', L.generatedBy)
+          content = lines.join('\n')
+        } else {
+          const table = layerRows.length === 0
+            ? `<p>${escapeHtml(L.none)}</p>`
+            : `<table><thead><tr><th>${escapeHtml(L.name)}</th><th>${escapeHtml(L.visibility)}</th></tr></thead><tbody>${layerRows
+                .map((row) => `<tr><td>${escapeHtml(row.name)}</td><td>${escapeHtml(row.visible)}</td></tr>`)
+                .join('')}</tbody></table>`
+          const image = capture !== null && capture.base64 !== ''
+            ? `<img alt="${escapeHtml(L.snapshot)}" src="data:${escapeHtml(capture.mime)};base64,${capture.base64}">`
+            : capture !== null && capture.path !== ''
+              ? `<p>${escapeHtml(capture.path)}</p>`
+              : ''
+          const list = (items) => items.map((item) => `<li>${escapeHtml(item)}</li>`).join('')
+          content = `<!doctype html>
+<html lang="${chinese ? 'zh-CN' : 'en'}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${escapeHtml(title)}</title>
+<style>
+body{margin:0;padding:32px;background:#f5f7fa;color:#1b1f24;font:14px/1.65 -apple-system,"Segoe UI","PingFang SC",sans-serif}
+main{max-width:900px;margin:0 auto;background:#fff;padding:32px 36px;border-radius:14px;box-shadow:0 8px 32px rgba(20,30,50,.08)}
+h1{margin:0 0 4px;font-size:24px}
+h2{margin:28px 0 10px;font-size:16px;border-bottom:1px solid #e6eaf0;padding-bottom:6px}
+.meta{color:#6b7280;font-size:12px}
+table{border-collapse:collapse;width:100%}
+th,td{border:1px solid #e6eaf0;padding:7px 10px;text-align:left}
+th{background:#f8fafc}
+ul{margin:0;padding-left:20px}
+img{max-width:100%;border-radius:10px;border:1px solid #e6eaf0}
+footer{margin-top:32px;color:#9aa1ab;font-size:12px}
+</style>
+</head>
+<body><main>
+<h1>${escapeHtml(title)}</h1>
+<p class="meta">${escapeHtml(L.generated)}: ${escapeHtml(generatedAt)}</p>
+<h2>${escapeHtml(L.camera)}</h2><p>${escapeHtml(cameraLine)}</p>
+<h2>${escapeHtml(L.layers)}</h2>${table}
+<h2>${escapeHtml(L.imagery)} / ${escapeHtml(L.terrain)}</h2><p>${escapeHtml(environment)}</p>
+<h2>${escapeHtml(L.overlays)}</h2><p>${escapeHtml(overlayLine)}</p>
+${measurements.length > 0 ? `<h2>${escapeHtml(L.measurements)}</h2><ul>${list(measurements)}</ul>` : ''}
+${analysisText !== '' ? `<h2>${escapeHtml(L.analysis)}</h2><p>${escapeHtml(analysisText)}</p>` : ''}
+${shaderLines.length > 0 ? `<h2>${escapeHtml(L.shaders)}</h2><ul>${list(shaderLines)}</ul>` : ''}
+${image !== '' ? `<h2>${escapeHtml(L.snapshot)}</h2>${image}` : ''}
+<footer>${escapeHtml(L.generatedBy)}</footer>
+</main></body></html>`
+        }
+        return { format, title, content, label: 'scene', sections, failed }
+      }
+
       function setLayerVisible(id, visible) {
         const layer = layersRef.current.find((item) => item.id === id)
         if (!layer) return null
@@ -5574,7 +6048,13 @@ window.__ModuleLoader__.load({
               throw new Error(t('agent.dirDenied', { message: message(error) }))
             }
           }
-          if (!/^https?:\/\//i.test(url)) throw new Error(t('agent.missingUrl'))
+          // Local tiles are served through the Host's own token route, which is a
+          // same-origin path (`/api/3dviewer/tiles/...`) rather than an absolute
+          // http(s) URL. Accepting only http(s) here made every `path` load fail
+          // with "agent.missingUrl" even after the folder was authorised.
+          const localTilesBase = typeof metaRef.current?.tilesBase === 'string' ? metaRef.current.tilesBase : ''
+          const isHostTilesUrl = localTilesBase !== '' && url.startsWith(localTilesBase)
+          if (!/^https?:\/\//i.test(url) && !isHostTilesUrl) throw new Error(t('agent.missingUrl'))
           const label = rawPath
             ? rawPath.replace(/\\/g, '/').split('/').filter(Boolean).slice(-2).join('/')
             : undefined
@@ -5696,6 +6176,28 @@ window.__ModuleLoader__.load({
           value.cleared = args.clear === true
           value.overlays = agentOverlayRef.current.draw.length + agentOverlayRef.current.measure.length
           return value
+        }
+        if (action === 'report') {
+          const meta = metaRef.current
+          if (!meta?.reportUrl) throw new Error(t('agent.notReady'))
+          const report = await buildSceneReport(args)
+          const response = await fetch(meta.reportUrl, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify(report),
+          })
+          if (!response.ok) throw new Error(`HTTP ${response.status}`)
+          const saved = await response.json()
+          return {
+            operation: 'report',
+            path: saved.path,
+            format: saved.format ?? report.format,
+            bytes: saved.bytes,
+            title: report.title,
+            sections: report.sections,
+            failed: report.failed,
+          }
         }
         throw new Error(t('agent.badAction', { action: String(action) }))
       }
@@ -5858,8 +6360,10 @@ window.__ModuleLoader__.load({
             // let the short timer batch the localStorage write.
             viewer.camera.moveEnd.addEventListener(markSceneDirty)
             // Rebuild the scene this session had when its tab body was disposed;
-            // commands wait for this so they cannot race the restored camera.
-            const savedScene = typeof sessionId === 'string' && sessionId !== '' ? readSceneSnapshot(sessionId) : null
+            // commands wait for this so they cannot race the restored camera. The
+            // host store is tried first (it survives origin changes), then the
+            // localStorage cache.
+            const savedScene = typeof sessionId === 'string' && sessionId !== '' ? await loadSceneSnapshot(sessionId) : null
             if (savedScene !== null) {
               await restoreSceneSnapshot(savedScene)
               if (cancelled) return
@@ -5878,7 +6382,7 @@ window.__ModuleLoader__.load({
         return () => {
           cancelled = true
           // Capture the last scene before the viewer is destroyed.
-          saveSceneSnapshot()
+          saveSceneSnapshot(true)
           readyGateRef.current.ready = false
           settleReadyWaiters(new Error(t('agent.notReady')))
           clearTimeout(toastTimer.current)
@@ -5910,10 +6414,14 @@ window.__ModuleLoader__.load({
         if (phase !== 'ready' || sceneRestoredRef.current) return undefined
         if (typeof sessionId !== 'string' || sessionId === '') return undefined
         sceneRestoredRef.current = true
-        const snapshot = readSceneSnapshot(sessionId)
-        if (snapshot === null) return undefined
-        void restoreSceneSnapshot(snapshot)
-        return undefined
+        let cancelled = false
+        void (async () => {
+          const snapshot = await loadSceneSnapshot(sessionId)
+          if (!cancelled && snapshot !== null) await restoreSceneSnapshot(snapshot)
+        })().catch(() => {})
+        return () => {
+          cancelled = true
+        }
         // eslint-disable-next-line react-hooks/exhaustive-deps
       }, [phase, sessionId])
 
@@ -5925,7 +6433,7 @@ window.__ModuleLoader__.load({
           if (sceneDirtyRef.current) saveSceneSnapshot()
         }, 3000)
         const flush = () => {
-          if (sceneDirtyRef.current) saveSceneSnapshot()
+          if (sceneDirtyRef.current) saveSceneSnapshot(true)
         }
         const onVisibility = () => {
           if (document.visibilityState === 'hidden') flush()
@@ -6186,6 +6694,22 @@ window.__ModuleLoader__.load({
                   },
                   t('btn.openUrl'),
                 ),
+                h(
+                  MenuItem,
+                  {
+                    key: 'report',
+                    onClick: async () => {
+                      setOpenMenu(null)
+                      try {
+                        const value = await runCommand('report', { format: 'html' })
+                        showToast(t('toast.reportSaved', { path: value.path }))
+                      } catch (error) {
+                        showToast(t('toast.reportFailed', { message: message(error) }))
+                      }
+                    },
+                  },
+                  t('menu.report'),
+                ),
                 h('i', { key: 'sep', className: 'mv-sep', style: { width: 'auto', height: '.5px', margin: '4px 8px' } }),
                 h(
                   MenuItem,
@@ -6269,6 +6793,7 @@ window.__ModuleLoader__.load({
               shaderOpen,
             ),
             button(t('btn.screenshot'), screenshot),
+            sessionId ? button(t('btn.askAgent'), askAgent) : null,
             button(t('btn.reset'), resetView),
             docked
               ? iconButton(h(FullscreenIcon), t('btn.immersiveTitle'), togglePaneFullscreen)
@@ -6653,6 +7178,8 @@ window.__ModuleLoader__.load({
 .mv-toolrow .open{appearance:none;flex:none;margin-left:8px;border:.5px solid var(--dsw-alias-border-l1,#d0d4da);border-radius:999px;background:var(--dsw-alias-bg-base,transparent);color:var(--dsw-alias-label-secondary,#5b6068);font:inherit;font-size:11px;line-height:16px;padding:2px 9px;cursor:pointer;opacity:.72;transition:opacity .1s,background .1s}
 .mv-toolrow .open:hover,.mv-toolrow .open:focus-visible{opacity:1;background:var(--dsw-alias-interactive-bg-hover-solid,rgba(127,127,127,.16));color:var(--dsw-alias-label-primary,#0f1115)}
 .mv-toolrow .open:focus-visible{outline:2px solid var(--dsw-alias-state-business-primary,#4176e6);outline-offset:1px}
+.mv-toolrow .thumb{flex:none;display:inline-flex;margin-left:8px;width:40px;height:24px;overflow:hidden;border-radius:4px;border:.5px solid var(--dsw-alias-border-l1,#d0d4da);background:var(--dsw-alias-bg-base,transparent)}
+.mv-toolrow .thumb img{display:block;width:100%;height:100%;object-fit:cover}
 `
 
     /** Inject the chat-row stylesheet once; a hot reload may re-run `apply`. */
@@ -6711,6 +7238,7 @@ window.__ModuleLoader__.load({
       reset: 'tool.action.reset',
       pick: 'tool.action.pick',
       inspect: 'tool.action.inspect',
+      report: 'tool.action.report',
     }
 
     /** Fixed summary keys for the tools that carry no `action` argument. */
@@ -6762,6 +7290,33 @@ window.__ModuleLoader__.load({
         }
       }, [phase, callId])
 
+      // earth_capture rows show the saved snapshot as a small preview. The file
+      // path comes from the rendered result text; the token-bearing URL is built
+      // from page metadata and never enters the model-facing result.
+      const [thumbUrl, setThumbUrl] = React.useState('')
+      React.useEffect(() => {
+        if (toolName !== 'earth_capture' || phase !== 'result' || block?.isError === true) return undefined
+        const content = Array.isArray(block?.content) ? block.content : []
+        const text = content
+          .filter((part) => part?.type === 'text' && typeof part.text === 'string')
+          .map((part) => part.text)
+          .join('\n')
+        const match = /Captured image:\s*(.+)/.exec(text)
+        const file = match === null ? '' : String(match[1]).trim().split(/[\\/]/).pop()
+        if (file === '') return undefined
+        let cancelled = false
+        loadMeta()
+          .then((meta) => {
+            if (cancelled) return
+            if (typeof meta?.filesUrl !== 'string' || meta.filesUrl === '') return
+            setThumbUrl(`${meta.filesUrl}${encodeURIComponent(file)}`)
+          })
+          .catch(() => {})
+        return () => {
+          cancelled = true
+        }
+      }, [toolName, phase, block])
+
       const action = toolName === 'earth_scene' ? toolArg(block, 'action') : ''
       const state = phase === 'result' ? (block?.isError === true ? 'error' : 'ok') : 'live'
       const failure = state === 'error' ? resultFirstLine(block) : ''
@@ -6776,6 +7331,19 @@ window.__ModuleLoader__.load({
         h('span', { className: 'title' }, t('panel.title')),
         h('span', { className: 'sep', 'aria-hidden': true }),
         h('span', { className: 'summary', title: failure !== '' ? failure : undefined }, summary),
+        thumbUrl === ''
+          ? null
+          : h(
+              'a',
+              {
+                className: 'thumb',
+                href: thumbUrl,
+                target: '_blank',
+                rel: 'noopener noreferrer',
+                title: t('tool.thumbOpen'),
+              },
+              h('img', { src: thumbUrl, alt: '', loading: 'lazy' }),
+            ),
         h(
           'button',
           { type: 'button', className: 'open', title: t('tool.openTip'), onClick: openEarthPanel },

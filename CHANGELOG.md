@@ -2,9 +2,22 @@
 
 ## 1.4.0
 
-本地数据、地形分析与着色器预设版本。
+对话工作区版本：本地数据、地形分析、着色器预设、场景快照、`/earth` 命令、问 Agent 与场景报告。
+
+- **场景快照更完整**：按会话保存的场景快照在相机、图层、标注 / 量测之外，新增当前活动的地形分析（`profile` / `flood` / `sunlight`，按图层名记录）与各图层的着色器预设（预设 + 参数）；恢复时按图层 → 标注 / 量测 → 着色器 → 分析 → 相机的顺序回放，未激活的分析 / 着色器不会写入快照。
+- **场景快照落盘到宿主**：快照优先存放在 `$DSH_HOME/digital-earth/scenes`（每会话一份、原子写入、单份上限 512 KB、最多保留最近 50 个会话），本机 localStorage 只作快速缓存与兜底；因此完全重启 DSH、或页面地址 / 端口变化后，重新打开面板仍能恢复同一会话的场景。保存按变更防抖，面板卸载与页面隐藏（pagehide）时强制落盘；宿主快照经面板专用带实例 token 的路由读写，不进入任何工具结果。
+- **`/earth` 斜杠命令**：聊天里直接输入 `/earth status | capture [label] | report [html|markdown] | clear | open`（裸 `/earth` 显示用法），不产生模型回合：`status` 返回相机 / 图层 / 底图 / 地形与 Agent 叠加摘要，`capture` 截图并返回宿主路径，`report` 导出场景报告，`clear` 清除 Agent 标注与量测，`open` 给出打开指引；失败以命令错误返回，不写入模型上下文。
+- **截图工具行缩略图**：对话中的 `earth_capture` 工具行显示可点击的小缩略图，链接到完整截图；图片地址由页面元数据拼装并受实例 token 保护，模型侧仍只看到文件路径。
+- **问 Agent / Ask Agent**：对话内的地球页签工具栏新增「问 Agent」按钮（仅在会话页签中显示）。点击后先尽力截取当前画面，再把场景整理成一段有长度上限的纯文本——相机经纬度 / 高度 / 朝向 / 俯仰、图层列表与隐藏标记、影像与地形名称、Agent 标注与量测数量、活动的 `earth_analyze` 剖面 / 淹没 / 日照结果统计、各图层的 `earth_shader` 预设，以及本次截图路径——经宿主新增的、带实例 token 的 `POST /api/3dviewer/inject` 路由注入当前对话的 Agent。上下文落在下一个被接纳的步骤上，用户接着直接输入问题即可。
+- **注入边界**：注入不会唤醒空闲的 Agent；请求体上限 16 KiB、文本上限 4000 字符，C0 控制字符会被剥离。Agent 未运行返回 409 `agent_not_running`，宿主缺少 Agent 运行时返回 503 `agent_unavailable`，面板以可操作的 toast 错误提示。注入内容以上下文行（`source.kind = digital-earth`、`form = notice`）进入对话，不是用户手写消息，也不包含插件 token。
+- **`earth_scene` 场景报告**：`earth_scene` 新增 `action="report"`（`format` 默认 `html` 自包含文档，或 `markdown`；`title` 上限 120 字符；`include_capture` 默认 true）。面板从当前场景生成报告：相机、图层表与显隐、影像 / 地形、Agent 标注与量测（量测现在保留计算结果）、活动的地形分析结果、各图层着色器预设，并尽力截取当前画面；HTML 把截图以 base64 内嵌并带内联样式，Markdown 用图片链接指向截图路径。宿主把文档写入 `$DSH_HOME/digital-earth/exports`（请求体上限 16 MiB、最多保留最近 200 份，经面板专用带 token 的 `POST /api/3dviewer/report` 路由），返回 `{path, format, bytes}`；工具结果会提示模型用 `present` 展示该路径。
+- **导出入口**：面板「数据」菜单新增「导出场景报告」（HTML）；聊天里也可用 `/earth report [html|markdown]` 直接导出。失败以 toast 或工具错误返回。
+- **文案与商店描述**：`earth_scene action=report` 的聊天工具行显示「导出报告 / Export report」摘要（不再回退为通用「三维场景」）；着色器工作台移除底部“仅支持四个白名单预设…”的说明行，并把 `height-false-color` 的界面名称从「高程假彩色」改为更直白的「高程渐变 / Elevation ramp」（工具 API 的 preset id 保持不变）；npm 商店的中英文简介同步覆盖地形分析、着色器预设、`/earth` 命令、问 Agent、报告导出与场景恢复。
+- **工程与发版**：新增 `.gitattributes` 统一 LF 行尾，修复 Windows checkout 下结构性测试因 CRLF 失败的问题；CI 增加 Windows 运行腿（Node 22 / 24），打包冒烟脚本同时兼容 Windows 与 Linux；发版链路改为 tag-only —— 只有 push `v*` tag 或手动 workflow_dispatch 才发版，push 到 main 不再触发，tag 仍需严格等于 `v<package.json version>`。
 
 - **本地绝对路径直接授权**：`earth_scene` 的 `load` / `inspect` 可直接接收本机绝对路径。路径不在已选目录白名单时，宿主向面板发起一次授权请求，弹窗展示请求目录与解析到的文件；用户允许后先把所在目录登记为本地数据源，再继续原操作。拒绝返回 `access_denied` 且不重试，30 秒未处理返回 `access_timeout`；白名单、真实路径与根目录校验不变，模型无法自行扩大可读范围。
+- **本地数据自动地理配准（修复「球不居中」与瓦片闪现）**：OSGB 转换产物常常只带局部坐标（根节点无 `transform`/`region`，原点写在同级 `tileset_info.json` 的 `srs` + `srs_origin`）。Cesium 会把局部米当作 ECEF，整块数据坍缩到地心附近，`flyTo` 于是钻进地核、看起来像「球不居中」，瓦片也会在视锥里反复闪现。宿主现在在 `/tiles` 上按元数据反算原点经纬度，给缺少根变换的 `tileset.json` 补一个 ENU → ECEF 的根变换；磁盘文件不改动，已带 `transform` / `region` 的数据原样通过。支持 CGCS2000 高斯-克吕格四族 EPSG 码（6 度带 4491–4501 / 4502–4512，3 度带 4513–4533 / 4534–4554，如 `EPSG:4547` = 114°E 中央经线），其他投影跳过补丁。为防止重复变换，只补数据集自身的顶层 `tileset.json`，被父级引用的嵌套外部 tileset 交给父级变换。数据体检同步给出闭环诊断：可自动配准时报 `georeference_derived`，`tileset_info.json` 的 CRS 不支持时报 `georeference_unsupported`，完全没有元数据时报 `no_georeference`——不再静默回退成「数据落在地心」。
+- **修复 `earth_scene load` 传本机 `path` 必然失败**：本地瓦片经宿主同源路由 `/api/3dviewer/tiles/...` 提供，是站点相对路径而非绝对 `http(s)` URL，却被原先的 `^https?://` 守卫判为非法地址，导致授权通过后仍报「请提供 http(s) 地址或本地 tileset.json 路径」。现在把宿主瓦片路由视为合法来源，绝对 `http(s)` 判定与代理回退逻辑不变。
 - **图层与 HUD 可折叠**：工具栏可收起 / 展开图层卡与坐标 HUD，图层卡标题栏另有收起按钮；「设置 → 外观」新增「显示图层卡」「显示坐标 HUD」开关并持久化到数据源配置。HUD 隐藏后停止指针采样，不再为不可见读数做额外工作。
 - **操作与性能**：HUD 指针采样调整为约 5–6 Hz，拖动视角时暂停采样、停手后补一次，周期采样不再触发 `scene.pick`，模型表面深度只在需要时读取；在本机真实 GPU 浏览器（非 headless / SwiftShader）中开启地形拖动视角实测约 30 FPS，帧率随显卡、窗口尺寸、地形与瓦片数据量变化，不作为固定指标。
 - **`earth_analyze` 地形分析**：新增第 5 个工具，支持 `profile`（剖面）、`flood`（淹没）、`sunlight`（日照）与 `clear`；一次只保留一个活动分析，新分析替换旧分析。剖面返回长度、起伏 / 爬升 / 下降与采样点，并在面板显示 SVG 剖面卡；淹没返回区域、水位、面积、淹没比与水深统计；日照返回太阳高度角 / 方位角并切换光照与阴影，`clear` 移除分析叠加，并在日照分析后恢复进入前的光照 / 阴影 / 时钟状态。无有效高程数据时返回可操作错误，不猜测数值。
