@@ -66,3 +66,21 @@ test('恢复：超时只 toast 一次且带中英文案', () => {
   const en = messages.indexOf("'toast.restoreTimeout'", zh + 1)
   assert.notEqual(en, -1, '中英字典都应包含该键')
 })
+
+test('网络超时：底图/地形/瓦片/叠加层请求都不会无限等待', () => {
+  assert.match(viewer, /const NETWORK_TIMEOUT_MS = 8000/)
+  assert.match(viewer, /function withNetworkTimeout\(promise, ms = NETWORK_TIMEOUT_MS\)/)
+  assert.match(viewer, /await withNetworkTimeout\(imageryProvider\(Cesium, source\)\)/)
+  assert.match(viewer, /await withNetworkTimeout\(terrainProvider\(Cesium, source\)\)/)
+  assert.match(viewer, /await withNetworkTimeout\(Cesium\.Cesium3DTileset\.fromUrl\(url, tilesetOptions\), 15000\)/)
+  assert.match(viewer, /await withNetworkTimeout\(Cesium\.Cesium3DTileset\.fromUrl\(proxyUrlFor\(url\), tilesetOptions\), 15000\)/)
+  assert.match(viewer, /withNetworkTimeout\(overlayLayersRef\.current\.sync\(/)
+
+  // 地形在初始化时后台加载：地形服务失败/卡住不能遮住面板就绪。
+  assert.match(viewer, /void applyTerrain\(catalog\.config\.settings\.terrain, false\)\.catch\(\(\) => \{\}\)/)
+  assert.doesNotMatch(viewer, /await applyTerrain\(catalog\.config\.settings\.terrain, false\)/)
+
+  for (const lang of ['请求超时', 'Request timed out']) {
+    assert.ok(messages.includes(lang), `缺少超时文案：${lang}`)
+  }
+})

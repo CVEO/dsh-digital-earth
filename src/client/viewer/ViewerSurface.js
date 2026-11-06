@@ -366,10 +366,10 @@ const h = React.createElement
         try {
           let tileset
           try {
-            tileset = await Cesium.Cesium3DTileset.fromUrl(url, tilesetOptions)
+            tileset = await withNetworkTimeout(Cesium.Cesium3DTileset.fromUrl(url, tilesetOptions), 15000)
           } catch (directError) {
             if (!/^https?:/i.test(url)) throw directError
-            tileset = await Cesium.Cesium3DTileset.fromUrl(proxyUrlFor(url), tilesetOptions)
+            tileset = await withNetworkTimeout(Cesium.Cesium3DTileset.fromUrl(proxyUrlFor(url), tilesetOptions), 15000)
             showToast(t('toast.proxyFallback'))
           }
           viewer.scene.primitives.add(tileset)
@@ -517,6 +517,22 @@ const h = React.createElement
         }
       }
 
+      /**
+       * Provider/service requests (terrain metadata, imagery capabilities, tileset
+       * JSON) can hang on a bad network or a stale host route. Every network step
+       * that gates the UI is raced against this timeout so the panel can fall back
+       * instead of leaving the loading overlay up forever.
+       */
+      const NETWORK_TIMEOUT_MS = 8000
+      function withNetworkTimeout(promise, ms = NETWORK_TIMEOUT_MS) {
+        return Promise.race([
+          promise,
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error(t('toast.requestTimeout', { seconds: Math.round(ms / 1000) }))), ms),
+          ),
+        ])
+      }
+
       async function applyImagery(id, notify) {
         const Cesium = cesiumRef.current
         const viewer = viewerRef.current
@@ -530,7 +546,7 @@ const h = React.createElement
             imageryRef.current = null
           }
           if (source) {
-            const provider = await imageryProvider(Cesium, source)
+            const provider = await withNetworkTimeout(imageryProvider(Cesium, source))
             // Index 0: the basemap is always the BOTTOM imagery layer, so switching
             // it never covers the L3 raster overlays stacked above it.
             imageryRef.current = viewer.scene.imageryLayers.addImageryProvider(provider, 0)
@@ -557,7 +573,7 @@ const h = React.createElement
         if (notify) setBusy(t('toast.terrainLoading'))
         try {
           if (source) {
-            viewer.terrainProvider = await terrainProvider(Cesium, source)
+            viewer.terrainProvider = await withNetworkTimeout(terrainProvider(Cesium, source))
             showToast(t('toast.terrainOn', { name: source.name }))
           } else {
             viewer.terrainProvider = new Cesium.EllipsoidTerrainProvider()
@@ -2008,7 +2024,10 @@ const h = React.createElement
             applyQuality(viewer, catalog.config.settings?.quality)
             viewer.camera.setView({ destination: Cesium.Cartesian3.fromDegrees(104, 31, 14000000) })
             await applyImagery(catalog.config.settings.imagery, false)
-            if (catalog.config.settings.terrain) await applyTerrain(catalog.config.settings.terrain, false)
+            // Terrain metadata can fail or hang (network/proxy); it must not hold the
+            // loading overlay. Start it in the background; the switch itself shows a
+            // toast and falls back to the ellipsoid on failure.
+            if (catalog.config.settings.terrain) void applyTerrain(catalog.config.settings.terrain, false).catch(() => {})
             applyGlobeDepthTest()
             // L3 raster overlays: created after the basemap so the stack order is
             // basemap (index 0) -> overlays (appended above). A failed overlay is a
@@ -2021,7 +2040,12 @@ const h = React.createElement
               onError: (error, source) =>
                 showToast(t('toast.overlayFailed', { name: source?.name ?? '', message: message(error) })),
             })
-            await overlayLayersRef.current.sync(catalog.config.rasterOverlays ?? [])
+            try {
+              await withNetworkTimeout(overlayLayersRef.current.sync(catalog.config.rasterOverlays ?? []), 10000)
+            } catch {
+              // A hung overlay provider keeps syncing in the background; the panel
+              // becomes ready and the failed overlay reports itself through onError.
+            }
             const handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas)
             handler.setInputAction((event) => onCanvasClick(event.position), Cesium.ScreenSpaceEventType.LEFT_CLICK)
             handler.setInputAction(

@@ -164,6 +164,7 @@ var MESSAGES = {
     "toast.proxyFallback": "直连失败，已通过本地代理加载",
     "toast.loadFailed": "加载失败：{message}",
     "toast.loadingData": "正在加载数据…",
+    "toast.requestTimeout": "请求超时（{seconds} 秒），已放弃等待",
     "toast.busyDirectory": "正在打开目录…",
     "toast.restoreTimeout": "恢复上次场景时部分图层超时，已跳过（面板可直接使用）。",
     "toast.terrainLoading": "正在加载地形…",
@@ -542,6 +543,7 @@ var MESSAGES = {
     "toast.proxyFallback": "Direct request failed; loaded through the local proxy",
     "toast.loadFailed": "Load failed: {message}",
     "toast.loadingData": "Loading dataset…",
+    "toast.requestTimeout": "Request timed out after {seconds}s",
     "toast.busyDirectory": "Opening folder…",
     "toast.restoreTimeout": "Some layers from the previous scene timed out and were skipped; the panel is ready to use.",
     "toast.terrainLoading": "Loading terrain…",
@@ -6120,10 +6122,10 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     try {
       let tileset;
       try {
-        tileset = await Cesium.Cesium3DTileset.fromUrl(url, tilesetOptions);
+        tileset = await withNetworkTimeout(Cesium.Cesium3DTileset.fromUrl(url, tilesetOptions), 15e3);
       } catch (directError) {
         if (!/^https?:/i.test(url)) throw directError;
-        tileset = await Cesium.Cesium3DTileset.fromUrl(proxyUrlFor(url), tilesetOptions);
+        tileset = await withNetworkTimeout(Cesium.Cesium3DTileset.fromUrl(proxyUrlFor(url), tilesetOptions), 15e3);
         showToast(t2("toast.proxyFallback"));
       }
       viewer.scene.primitives.add(tileset);
@@ -6250,6 +6252,15 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
       return null;
     }
   }
+  const NETWORK_TIMEOUT_MS = 8e3;
+  function withNetworkTimeout(promise, ms = NETWORK_TIMEOUT_MS) {
+    return Promise.race([
+      promise,
+      new Promise(
+        (_, reject) => setTimeout(() => reject(new Error(t2("toast.requestTimeout", { seconds: Math.round(ms / 1e3) }))), ms)
+      )
+    ]);
+  }
   async function applyImagery(id, notify) {
     const Cesium = cesiumRef.current;
     const viewer = viewerRef.current;
@@ -6263,7 +6274,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
         imageryRef.current = null;
       }
       if (source) {
-        const provider = await imageryProvider(Cesium, source);
+        const provider = await withNetworkTimeout(imageryProvider(Cesium, source));
         imageryRef.current = viewer.scene.imageryLayers.addImageryProvider(provider, 0);
         if (notify) showToast(t2("toast.basemap", { name: source.name }));
       } else if (notify) {
@@ -6287,7 +6298,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     if (notify) setBusy(t2("toast.terrainLoading"));
     try {
       if (source) {
-        viewer.terrainProvider = await terrainProvider(Cesium, source);
+        viewer.terrainProvider = await withNetworkTimeout(terrainProvider(Cesium, source));
         showToast(t2("toast.terrainOn", { name: source.name }));
       } else {
         viewer.terrainProvider = new Cesium.EllipsoidTerrainProvider();
@@ -7520,7 +7531,8 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
         applyQuality(viewer, catalog.config.settings?.quality);
         viewer.camera.setView({ destination: Cesium.Cartesian3.fromDegrees(104, 31, 14e6) });
         await applyImagery(catalog.config.settings.imagery, false);
-        if (catalog.config.settings.terrain) await applyTerrain(catalog.config.settings.terrain, false);
+        if (catalog.config.settings.terrain) void applyTerrain(catalog.config.settings.terrain, false).catch(() => {
+        });
         applyGlobeDepthTest();
         overlayLayersRef.current = createOverlayLayers({
           Cesium,
@@ -7529,7 +7541,10 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
           providerFactory: imageryProvider,
           onError: (error2, source) => showToast(t2("toast.overlayFailed", { name: source?.name ?? "", message: message(error2) }))
         });
-        await overlayLayersRef.current.sync(catalog.config.rasterOverlays ?? []);
+        try {
+          await withNetworkTimeout(overlayLayersRef.current.sync(catalog.config.rasterOverlays ?? []), 1e4);
+        } catch {
+        }
         const handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
         handler.setInputAction((event) => onCanvasClick(event.position), Cesium.ScreenSpaceEventType.LEFT_CLICK);
         handler.setInputAction(
