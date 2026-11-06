@@ -5,7 +5,8 @@
  * `npm run build:client` and client.js is never edited by hand.
  */
 import React from 'react'
-import { ANALYSIS_ENTITY_PREFIX, ANALYSIS_MIN_SAMPLES, analysisColorAt, analysisElevation, analysisInteger, analysisLonLat, analysisObserver, analysisRegion, analysisRound, analysisSunAngles } from '../analysis/math.js'
+import { ANALYSIS_ENTITY_PREFIX, ANALYSIS_MIN_SAMPLES, analysisColorAt, analysisInteger, analysisLonLat, analysisObserver, analysisRegion, analysisRound, analysisSunAngles } from '../analysis/math.js'
+import { createHeightService } from '../analysis/height-service.js'
 import { ACCESS_TIMEOUT_MS, imageryProvider, loadCesium, loadCesiumStyle, loadMeta, loadSources, persistSources, scanLocalDirectory, terrainProvider } from '../api.js'
 import { formatCursor, sampleCursor } from '../cursor.js'
 import { arrayBufferToBase64, b64url, clone, escapeHtml, formatArea, formatDistance, formatHeight, formatValue, geodesicLength, message, planarArea, redactUrl } from '../format.js'
@@ -1239,7 +1240,7 @@ const h = React.createElement
         state.layerName = layer ? layer.name : null
       }
 
-      const analyzeProfile = async (Cesium, viewer, layer, args) => {
+      const analyzeProfile = async (Cesium, viewer, layer, args, sampler) => {
         const from = analysisLonLat(args.from)
         const to = analysisLonLat(args.to)
         if (!from || !to) {
@@ -1258,7 +1259,8 @@ const h = React.createElement
         for (let index = 0; index < samples; index += 1) {
           const fraction = samples === 1 ? 0 : index / (samples - 1)
           const carto = geodesic.interpolateUsingFraction(fraction, new Cesium.Cartographic())
-          const height = carto ? await analysisElevation(Cesium, viewer, layer, carto) : null
+          const probe = carto ? await sampler.sample(carto) : null
+          const height = probe ? probe.height : null
           if (height !== null) withData += 1
           points.push({
             distance_m: analysisRound(length * fraction, 1),
@@ -1351,13 +1353,14 @@ const h = React.createElement
           length_m: analysisRound(length, 1),
           stats,
           points,
+          ...sampler.report(),
         }
         setAnalysis({ operation: 'profile', layerName: result.layer, result })
         markSceneDirty()
         return result
       }
 
-      const analyzeFlood = async (Cesium, viewer, layer, args) => {
+      const analyzeFlood = async (Cesium, viewer, layer, args, sampler) => {
         const region = analysisRegion(args.region)
         if (!region) {
           throw new Error('analysis: `region` must be {west, south, east, north} with west < east and south < north. next: pass a legal WGS84 bounding box.')
@@ -1392,13 +1395,19 @@ const h = React.createElement
             probes.push(Cesium.Cartographic.fromDegrees(lon, lat))
           }
         }
-        const heights = await Promise.all(probes.map((carto) => analysisElevation(Cesium, viewer, layer, carto)))
+        // Flood is a GROUND analysis: with a real terrain provider we must not read
+        // the 3D Tiles surface, because `getHeight` there returns roofs/foliage and
+        // the inundated area would be wrong. Without terrain we still sample the
+        // tileset surface, but the result says so (`height_source: tiles` + warning).
+        const heightMode = sampler.hasRealTerrain() ? 'ground' : 'surface'
+        const sampled = await sampler.sampleMany(probes, { mode: heightMode })
         let withData = 0
         let inundated = 0
         let depthMaximum = 0
         let depthSum = 0
-        for (const height of heights) {
-          if (height === null) continue
+        for (const sample of sampled.values) {
+          if (!sample) continue
+          const height = sample.height
           withData += 1
           if (waterHeight > height) {
             const depth = waterHeight - height
@@ -1461,6 +1470,11 @@ const h = React.createElement
           depth_mean_m: analysisRound(inundated > 0 ? depthSum / inundated : 0, 2),
           samples_with_data: withData,
           samples_inundated: inundated,
+          // Provenance is additive: old fields keep their names/semantics.
+          height_mode: heightMode,
+          height_source: sampled.height_source,
+          height_sources: sampled.height_sources,
+          warnings: sampled.warnings,
         }
         setAnalysis({ operation: 'flood', layerName: result.layer, result })
         markSceneDirty()
@@ -1568,9 +1582,12 @@ const h = React.createElement
         }
         // Single active analysis: the new result replaces the previous one.
         clearAnalysis()
+        // One sampler per run: it caches probes and reports which source the
+        // heights came from, so the tool result can warn instead of hiding it.
+        const sampler = createHeightService({ Cesium, viewer, layer })
         let result
-        if (operation === 'profile') result = await analyzeProfile(Cesium, viewer, layer, args)
-        else if (operation === 'flood') result = await analyzeFlood(Cesium, viewer, layer, args)
+        if (operation === 'profile') result = await analyzeProfile(Cesium, viewer, layer, args, sampler)
+        else if (operation === 'flood') result = await analyzeFlood(Cesium, viewer, layer, args, sampler)
         else result = analyzeSunlight(Cesium, viewer, layer, args)
         // Remember the command (not its entities) so a remounted panel can replay
         // it. The layer is stored by name because restored layers get new ids.

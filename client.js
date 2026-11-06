@@ -918,24 +918,6 @@ var analysisColorAt = (Cesium, ratio) => {
     return Cesium.Color.DODGERBLUE;
   }
 };
-var analysisElevation = async (Cesium, viewer, layer, carto) => {
-  const scene = viewer.scene;
-  const tileset = layer && layer.visible ? layer.tileset : null;
-  if (tileset && typeof tileset.getHeight === "function") {
-    try {
-      const value = tileset.getHeight(carto, scene);
-      const height = value && typeof value.then === "function" ? await value : value;
-      if (typeof height === "number" && Number.isFinite(height)) return height;
-    } catch {
-    }
-  }
-  try {
-    const height = scene.globe.getHeight(carto);
-    if (typeof height === "number" && Number.isFinite(height)) return height;
-  } catch {
-  }
-  return null;
-};
 var analysisSunAngles = (Cesium, date, observer) => {
   try {
     if (!Cesium.Simon1994PlanetaryPositions || !Cesium.Transforms) return null;
@@ -992,6 +974,114 @@ var analysisObserver = (Cesium, viewer, layer) => {
   }
   return viewer.camera.positionCartographic;
 };
+
+// src/client/analysis/height-service.js
+var CACHE_DEGREES = 1e-7;
+var DEFAULT_SAMPLE_BUDGET = 600;
+function isThenable(value) {
+  return value !== null && typeof value === "object" && typeof value.then === "function";
+}
+function createHeightService({ Cesium, viewer, layer = null } = {}) {
+  const cache = /* @__PURE__ */ new Map();
+  const warnings = /* @__PURE__ */ new Set();
+  const counts = { tiles: 0, terrain: 0, none: 0 };
+  const terrainProvider2 = () => {
+    try {
+      return viewer?.scene?.globe?.terrainProvider ?? null;
+    } catch {
+      return null;
+    }
+  };
+  const hasRealTerrain = () => {
+    const provider = terrainProvider2();
+    if (!provider) return false;
+    const Ellipsoid = Cesium?.EllipsoidTerrainProvider;
+    if (typeof Ellipsoid === "function" && provider instanceof Ellipsoid) return false;
+    return true;
+  };
+  const targetTileset = () => {
+    if (!layer || layer.visible === false) return null;
+    const tileset = layer.tileset;
+    return tileset && typeof tileset.getHeight === "function" ? tileset : null;
+  };
+  const cacheKey = (carto, mode) => `${mode}|${Math.round(carto.longitude / CACHE_DEGREES)}|${Math.round(carto.latitude / CACHE_DEGREES)}`;
+  async function fromTiles(carto) {
+    const tileset = targetTileset();
+    if (!tileset) return null;
+    try {
+      const raw = tileset.getHeight(carto, viewer.scene);
+      const value = isThenable(raw) ? await raw : raw;
+      if (typeof value === "number" && Number.isFinite(value)) return value;
+    } catch {
+    }
+    return null;
+  }
+  function fromTerrain(carto) {
+    if (!hasRealTerrain()) return null;
+    try {
+      const value = viewer.scene.globe.getHeight(carto);
+      if (typeof value === "number" && Number.isFinite(value)) return value;
+    } catch {
+    }
+    return null;
+  }
+  async function sample(carto, { mode = "surface" } = {}) {
+    if (!carto) return null;
+    const key = cacheKey(carto, mode);
+    if (cache.has(key)) return cache.get(key);
+    let result = null;
+    if (mode === "ground") {
+      const terrain = fromTerrain(carto);
+      if (terrain !== null) result = { height: terrain, source: "terrain" };
+      else warnings.add("ground_height_unavailable");
+    } else {
+      const tiles = await fromTiles(carto);
+      if (tiles !== null) {
+        result = { height: tiles, source: "tiles" };
+        warnings.add("surface_height_from_tiles");
+      } else {
+        const terrain = fromTerrain(carto);
+        if (terrain !== null) result = { height: terrain, source: "terrain" };
+      }
+    }
+    counts[result ? result.source : "none"] += 1;
+    cache.set(key, result);
+    return result;
+  }
+  async function sampleMany(cartos, { mode = "surface", budget = DEFAULT_SAMPLE_BUDGET } = {}) {
+    const list = Array.isArray(cartos) ? cartos : [];
+    const values = [];
+    for (let index = 0; index < list.length; index += 1) {
+      if (index >= budget) break;
+      values.push(await sample(list[index], { mode }));
+    }
+    if (list.length > budget) warnings.add("sample_budget_truncated");
+    return { values, ...report() };
+  }
+  function report() {
+    const source = counts.tiles >= counts.terrain && counts.tiles > 0 ? "tiles" : counts.terrain > 0 ? "terrain" : "none";
+    return {
+      height_source: source,
+      height_sources: { ...counts },
+      warnings: [...warnings]
+    };
+  }
+  return {
+    sample,
+    sampleMany,
+    report,
+    /** Whether a real (non-ellipsoid) terrain provider is installed. */
+    hasRealTerrain,
+    /** Test seam: drop the probe cache (a new run re-samples). */
+    reset() {
+      cache.clear();
+      warnings.clear();
+      counts.tiles = 0;
+      counts.terrain = 0;
+      counts.none = 0;
+    }
+  };
+}
 
 // src/client/i18n.js
 var import_react2 = __toESM(require("react"), 1);
@@ -4430,7 +4520,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     state.layerId = layer ? layer.id : null;
     state.layerName = layer ? layer.name : null;
   };
-  const analyzeProfile = async (Cesium, viewer, layer, args) => {
+  const analyzeProfile = async (Cesium, viewer, layer, args, sampler) => {
     const from = analysisLonLat(args.from);
     const to = analysisLonLat(args.to);
     if (!from || !to) {
@@ -4449,7 +4539,8 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     for (let index = 0; index < samples; index += 1) {
       const fraction = samples === 1 ? 0 : index / (samples - 1);
       const carto = geodesic.interpolateUsingFraction(fraction, new Cesium.Cartographic());
-      const height = carto ? await analysisElevation(Cesium, viewer, layer, carto) : null;
+      const probe = carto ? await sampler.sample(carto) : null;
+      const height = probe ? probe.height : null;
       if (height !== null) withData += 1;
       points.push({
         distance_m: analysisRound(length * fraction, 1),
@@ -4537,13 +4628,14 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
       samples,
       length_m: analysisRound(length, 1),
       stats: stats2,
-      points
+      points,
+      ...sampler.report()
     };
     setAnalysis({ operation: "profile", layerName: result.layer, result });
     markSceneDirty();
     return result;
   };
-  const analyzeFlood = async (Cesium, viewer, layer, args) => {
+  const analyzeFlood = async (Cesium, viewer, layer, args, sampler) => {
     const region = analysisRegion(args.region);
     if (!region) {
       throw new Error("analysis: `region` must be {west, south, east, north} with west < east and south < north. next: pass a legal WGS84 bounding box.");
@@ -4575,13 +4667,15 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
         probes.push(Cesium.Cartographic.fromDegrees(lon, lat));
       }
     }
-    const heights = await Promise.all(probes.map((carto) => analysisElevation(Cesium, viewer, layer, carto)));
+    const heightMode = sampler.hasRealTerrain() ? "ground" : "surface";
+    const sampled = await sampler.sampleMany(probes, { mode: heightMode });
     let withData = 0;
     let inundated = 0;
     let depthMaximum = 0;
     let depthSum = 0;
-    for (const height of heights) {
-      if (height === null) continue;
+    for (const sample of sampled.values) {
+      if (!sample) continue;
+      const height = sample.height;
       withData += 1;
       if (waterHeight > height) {
         const depth = waterHeight - height;
@@ -4643,7 +4737,12 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
       depth_max_m: analysisRound(depthMaximum, 2),
       depth_mean_m: analysisRound(inundated > 0 ? depthSum / inundated : 0, 2),
       samples_with_data: withData,
-      samples_inundated: inundated
+      samples_inundated: inundated,
+      // Provenance is additive: old fields keep their names/semantics.
+      height_mode: heightMode,
+      height_source: sampled.height_source,
+      height_sources: sampled.height_sources,
+      warnings: sampled.warnings
     };
     setAnalysis({ operation: "flood", layerName: result.layer, result });
     markSceneDirty();
@@ -4742,9 +4841,10 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
       }
     }
     clearAnalysis();
+    const sampler = createHeightService({ Cesium, viewer, layer });
     let result;
-    if (operation === "profile") result = await analyzeProfile(Cesium, viewer, layer, args);
-    else if (operation === "flood") result = await analyzeFlood(Cesium, viewer, layer, args);
+    if (operation === "profile") result = await analyzeProfile(Cesium, viewer, layer, args, sampler);
+    else if (operation === "flood") result = await analyzeFlood(Cesium, viewer, layer, args, sampler);
     else result = analyzeSunlight(Cesium, viewer, layer, args);
     analysisCommandRef.current = {
       action: operation,

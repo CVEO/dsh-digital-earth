@@ -463,6 +463,18 @@ function renderAnalyzeResult(value) {
     lines.push(`Analysis (${operation}) completed.`)
   }
 
+  // Provenance is part of the model-facing text: a profile measured on the 3D
+  // Tiles surface is not a bare-ground profile, and a flood that used roofs must
+  // say so instead of quietly reporting a wrong inundated area.
+  if (typeof value.height_source === 'string' && value.height_source !== '') {
+    const mode = typeof value.height_mode === 'string' ? `, ${value.height_mode} mode` : ''
+    lines.push(`Height source: ${value.height_source}${mode}.`)
+  }
+  if (Array.isArray(value.warnings) && value.warnings.length > 0) {
+    const warnings = value.warnings.filter((item) => typeof item === 'string')
+    if (warnings.length > 0) lines.push(`Warnings: ${warnings.join(', ')}.`)
+  }
+
   let json
   try {
     json = JSON.stringify(value)

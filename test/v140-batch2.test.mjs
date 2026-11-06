@@ -462,8 +462,9 @@ test('client analyze 桥分支：先于就绪守卫，失败强制带 next:，cl
   assert.match(command, /if \(layersRef\.current\[index\]\.visible\)/)
   assert.match(command, /\/\/ Single active analysis: the new result replaces the previous one\./)
   assert.match(command, /clearAnalysis\(\)/)
-  assert.match(command, /if \(operation === 'profile'\) result = await analyzeProfile\(Cesium, viewer, layer, args\)/)
-  assert.match(command, /else if \(operation === 'flood'\) result = await analyzeFlood\(Cesium, viewer, layer, args\)/)
+  assert.match(command, /const sampler = createHeightService\(\{ Cesium, viewer, layer \}\)/)
+  assert.match(command, /if \(operation === 'profile'\) result = await analyzeProfile\(Cesium, viewer, layer, args, sampler\)/)
+  assert.match(command, /else if \(operation === 'flood'\) result = await analyzeFlood\(Cesium, viewer, layer, args, sampler\)/)
   assert.match(command, /else result = analyzeSunlight\(Cesium, viewer, layer, args\)/)
   // 分析命令本身进入快照，重新挂载时可重放；图层按名称记录，避免 id 变化。
   assert.match(command, /analysisCommandRef\.current = \{/)
@@ -535,7 +536,9 @@ test('client flood 引擎：region/water_height/grid 校验、格元面积有限
   assert.match(flood, /if \(!Number\.isFinite\(cellArea\) \|\| cellArea <= 0\)/)
   assert.match(flood, /for \(let row = 0; row < grid; row \+= 1\)/)
   assert.match(flood, /for \(let column = 0; column < grid; column \+= 1\)/)
-  assert.match(flood, /Promise\.all\(probes\.map\(\(carto\) => analysisElevation/)
+  // v1.6：采样统一走 HeightService；淹没是"地面"分析，有地形时不得读 3D Tiles 屋顶。
+  assert.match(flood, /const heightMode = sampler\.hasRealTerrain\(\) \? 'ground' : 'surface'/)
+  assert.match(flood, /sampler\.sampleMany\(probes, \{ mode: heightMode \}\)/)
   assert.match(flood, /if \(withData === 0\)/)
   // 水面矩形在 water_height 处，半透明 + 边框；另有边框线与水位标签。
   assert.match(flood, /id: 'flood-water'/)
