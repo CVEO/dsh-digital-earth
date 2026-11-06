@@ -2465,6 +2465,107 @@ function flyToCartographic(viewer, Cesium, carto, duration = 0.8) {
   return true;
 }
 
+// src/client/scene/capture.js
+function createCaptureService({ getViewer, getRoot, getSettings, getMeta, getSession, t: t2, showToast, setChromeHidden, nextFrames, drawCaptureOverlay }) {
+  const MAX_CAPTURE_DATAURL = 75e5;
+  async function renderSnapshot(options = {}) {
+    const viewer = getViewer();
+    if (!viewer) throw new Error(t2("agent.noViewer"));
+    const root = getRoot();
+    const hidden = !root || root.offsetWidth < 32 || root.offsetHeight < 32 || typeof document !== "undefined" && document.visibilityState === "hidden";
+    if (hidden) throw new Error(t2("agent.hiddenPanel"));
+    const width = Math.round(Math.min(Math.max(Number(options.width) || 1280, 480), 2560));
+    const format = options.format === "png" ? "png" : "jpeg";
+    const settings = getSettings()?.settings ?? {};
+    const includeHud = typeof options.include_hud === "boolean" ? options.include_hud : settings.screenshotHud === true;
+    if (!includeHud) setChromeHidden(true);
+    try {
+      await Promise.race([
+        nextFrames(2),
+        new Promise((_, reject) => setTimeout(() => reject(new Error(t2("agent.hiddenPanel"))), 1500))
+      ]);
+      const previousResolutionScale = viewer.resolutionScale;
+      viewer.resolutionScale = 1;
+      try {
+        viewer.resize();
+        viewer.render();
+        const canvas = viewer.canvas;
+        const sourceWidth = canvas?.width ?? 0;
+        const sourceHeight = canvas?.height ?? 0;
+        if (sourceWidth < 32 || sourceHeight < 32) throw new Error(t2("agent.hiddenPanel"));
+        let scale = 1;
+        let quality = 0.9;
+        let targetWidth = 0;
+        let targetHeight = 0;
+        let dataUrl = "";
+        for (let attempt = 0; attempt < 4; attempt += 1) {
+          const drawWidth = Math.max(320, Math.round(width * scale));
+          targetWidth = Math.min(drawWidth, sourceWidth);
+          targetHeight = Math.max(1, Math.round(targetWidth * sourceHeight / sourceWidth));
+          const target = document.createElement("canvas");
+          target.width = targetWidth;
+          target.height = targetHeight;
+          const context = target.getContext("2d");
+          context.drawImage(canvas, 0, 0, targetWidth, targetHeight);
+          if (includeHud) drawCaptureOverlay(context, targetWidth, targetHeight);
+          dataUrl = format === "png" ? target.toDataURL("image/png") : target.toDataURL("image/jpeg", quality);
+          if (dataUrl.length <= MAX_CAPTURE_DATAURL) break;
+          if (format === "jpeg") quality = Math.max(0.5, quality - 0.15);
+          else scale *= 0.75;
+        }
+        if (dataUrl.length > MAX_CAPTURE_DATAURL) throw new Error(t2("agent.captureTooLarge"));
+        return { dataUrl, width: targetWidth, height: targetHeight, includeHud, format };
+      } finally {
+        viewer.resolutionScale = previousResolutionScale;
+        viewer.resize();
+      }
+    } finally {
+      if (!includeHud) setChromeHidden(false);
+    }
+  }
+  async function screenshot() {
+    try {
+      const shot = await renderSnapshot({ format: "png" });
+      const link = document.createElement("a");
+      link.href = shot.dataUrl;
+      link.download = `digital-earth-${(/* @__PURE__ */ new Date()).toISOString().replace(/[:.]/g, "-")}.png`;
+      link.click();
+      showToast(t2("toast.screenshotSaved"));
+    } catch (error) {
+      showToast(t2("toast.screenshotFailed", { message: error?.message ?? String(error) }));
+    }
+  }
+  async function captureScene(options = {}, session = null) {
+    const meta = getMeta();
+    if (!meta?.captureUrl) throw new Error(t2("agent.notReady"));
+    const shot = await renderSnapshot(options);
+    const response = await fetch(`${meta.captureUrl}?token=${encodeURIComponent(meta.token)}`, {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        session: session ?? getSession() ?? "",
+        dataUrl: shot.dataUrl,
+        width: shot.width,
+        height: shot.height,
+        hud: shot.includeHud,
+        label: typeof options.label === "string" ? options.label : ""
+      })
+    });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const saved = await response.json();
+    showToast(
+      t2("toast.captureSaved", {
+        width: saved.width,
+        height: saved.height,
+        path: saved.name ?? saved.path ?? ""
+      })
+    );
+    return { ...saved, hud: shot.includeHud };
+  }
+  return { renderSnapshot, screenshot, captureScene };
+}
+
 // src/client/scene/host-scene-store.js
 function createHostSceneStore({
   getMeta,
@@ -5942,102 +6043,19 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     };
     requestAnimationFrame(step);
   });
-  const MAX_CAPTURE_DATAURL = 75e5;
-  async function renderSnapshot(options = {}) {
-    const viewer = viewerRef.current;
-    if (!viewer) throw new Error(t2("agent.noViewer"));
-    const root = rootRef.current;
-    const hidden = !root || root.offsetWidth < 32 || root.offsetHeight < 32 || typeof document !== "undefined" && document.visibilityState === "hidden";
-    if (hidden) throw new Error(t2("agent.hiddenPanel"));
-    const width = Math.round(Math.min(Math.max(Number(options.width) || 1280, 480), 2560));
-    const format = options.format === "png" ? "png" : "jpeg";
-    const settings = sourcesRef.current?.settings ?? {};
-    const includeHud = typeof options.include_hud === "boolean" ? options.include_hud : settings.screenshotHud === true;
-    if (!includeHud) setChromeHidden(true);
-    try {
-      await Promise.race([
-        nextFrames(2),
-        new Promise((_, reject) => setTimeout(() => reject(new Error(t2("agent.hiddenPanel"))), 1500))
-      ]);
-      const previousResolutionScale = viewer.resolutionScale;
-      viewer.resolutionScale = 1;
-      try {
-        viewer.resize();
-        viewer.render();
-        const canvas = viewer.canvas;
-        const sourceWidth = canvas?.width ?? 0;
-        const sourceHeight = canvas?.height ?? 0;
-        if (sourceWidth < 32 || sourceHeight < 32) throw new Error(t2("agent.hiddenPanel"));
-        let scale = 1;
-        let quality = 0.9;
-        let targetWidth = 0;
-        let targetHeight = 0;
-        let dataUrl = "";
-        for (let attempt = 0; attempt < 4; attempt += 1) {
-          const drawWidth = Math.max(320, Math.round(width * scale));
-          targetWidth = Math.min(drawWidth, sourceWidth);
-          targetHeight = Math.max(1, Math.round(targetWidth * sourceHeight / sourceWidth));
-          const target = document.createElement("canvas");
-          target.width = targetWidth;
-          target.height = targetHeight;
-          const context = target.getContext("2d");
-          context.drawImage(canvas, 0, 0, targetWidth, targetHeight);
-          if (includeHud) drawCaptureOverlay(context, targetWidth, targetHeight);
-          dataUrl = format === "png" ? target.toDataURL("image/png") : target.toDataURL("image/jpeg", quality);
-          if (dataUrl.length <= MAX_CAPTURE_DATAURL) break;
-          if (format === "jpeg") quality = Math.max(0.5, quality - 0.15);
-          else scale *= 0.78;
-        }
-        if (dataUrl.length > MAX_CAPTURE_DATAURL) throw new Error(t2("agent.captureTooLarge"));
-        return { dataUrl, width: targetWidth, height: targetHeight, includeHud, format };
-      } finally {
-        viewer.resolutionScale = previousResolutionScale;
-        viewer.resize();
-      }
-    } finally {
-      if (!includeHud) setChromeHidden(false);
-    }
-  }
-  async function screenshot() {
-    try {
-      const shot = await renderSnapshot({ format: "png" });
-      const link = document.createElement("a");
-      link.href = shot.dataUrl;
-      link.download = `digital-earth-${(/* @__PURE__ */ new Date()).toISOString().replace(/[:.]/g, "-")}.png`;
-      link.click();
-      showToast(t2("toast.screenshotSaved"));
-    } catch (error2) {
-      showToast(t2("toast.screenshotFailed", { message: message(error2) }));
-    }
-  }
-  async function captureScene(options = {}, session = null) {
-    const meta2 = metaRef.current;
-    if (!meta2?.captureUrl) throw new Error(t2("agent.notReady"));
-    const shot = await renderSnapshot(options);
-    const response = await fetch(`${meta2.captureUrl}?token=${encodeURIComponent(meta2.token)}`, {
-      method: "POST",
-      credentials: "same-origin",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        session: session ?? sessionRef.current ?? "",
-        dataUrl: shot.dataUrl,
-        width: shot.width,
-        height: shot.height,
-        hud: shot.includeHud,
-        label: typeof options.label === "string" ? options.label : ""
-      })
-    });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const saved = await response.json();
-    showToast(
-      t2("toast.captureSaved", {
-        width: saved.width,
-        height: saved.height,
-        path: saved.name ?? saved.path ?? ""
-      })
-    );
-    return { ...saved, hud: shot.includeHud };
-  }
+  const capture = createCaptureService({
+    getViewer: () => viewerRef.current,
+    getRoot: () => rootRef.current,
+    getSettings: () => sourcesRef.current,
+    getMeta: () => metaRef.current,
+    getSession: () => sessionRef.current,
+    t: t2,
+    showToast,
+    setChromeHidden,
+    nextFrames,
+    drawCaptureOverlay
+  });
+  const { renderSnapshot, screenshot, captureScene } = capture;
   async function askAgent() {
     const meta2 = metaRef.current;
     const session = sessionRef.current;
@@ -6177,11 +6195,11 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     const generatedAt = (/* @__PURE__ */ new Date()).toISOString();
     const sections = [];
     const failed = [];
-    let capture = null;
+    let capture2 = null;
     if (args.include_capture !== false) {
       try {
         const saved = await captureScene({}, sessionRef.current);
-        capture = {
+        capture2 = {
           path: typeof saved.path === "string" ? saved.path : "",
           width: saved.width,
           height: saved.height,
@@ -6193,13 +6211,13 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
             const response = await fetch(saved.url, { credentials: "same-origin" });
             if (response.ok) {
               const blob = await response.blob();
-              capture.mime = blob.type || "image/jpeg";
-              capture.base64 = arrayBufferToBase64(await blob.arrayBuffer());
+              capture2.mime = blob.type || "image/jpeg";
+              capture2.base64 = arrayBufferToBase64(await blob.arrayBuffer());
             }
           } catch {
           }
         }
-        if (capture.path !== "") sections.push("snapshot");
+        if (capture2.path !== "") sections.push("snapshot");
       } catch (error2) {
         failed.push(`snapshot: ${message(error2)}`);
       }
@@ -6254,12 +6272,12 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
       if (measurements.length > 0) lines.push(`## ${L.measurements}`, "", ...measurements.map((line) => `- ${line}`), "");
       if (analysisText !== "") lines.push(`## ${L.analysis}`, "", `- ${analysisText}`, "");
       if (shaderLines.length > 0) lines.push(`## ${L.shaders}`, "", ...shaderLines.map((line) => `- ${line}`), "");
-      if (capture !== null && capture.path !== "") lines.push(`## ${L.snapshot}`, "", `![${L.snapshot}](${capture.path})`, "");
+      if (capture2 !== null && capture2.path !== "") lines.push(`## ${L.snapshot}`, "", `![${L.snapshot}](${capture2.path})`, "");
       lines.push("---", L.generatedBy);
       content = lines.join("\n");
     } else {
       const table = layerRows.length === 0 ? `<p>${escapeHtml(L.none)}</p>` : `<table><thead><tr><th>${escapeHtml(L.name)}</th><th>${escapeHtml(L.visibility)}</th></tr></thead><tbody>${layerRows.map((row) => `<tr><td>${escapeHtml(row.name)}</td><td>${escapeHtml(row.visible)}</td></tr>`).join("")}</tbody></table>`;
-      const image = capture !== null && capture.base64 !== "" ? `<img alt="${escapeHtml(L.snapshot)}" src="data:${escapeHtml(capture.mime)};base64,${capture.base64}">` : capture !== null && capture.path !== "" ? `<p>${escapeHtml(capture.path)}</p>` : "";
+      const image = capture2 !== null && capture2.base64 !== "" ? `<img alt="${escapeHtml(L.snapshot)}" src="data:${escapeHtml(capture2.mime)};base64,${capture2.base64}">` : capture2 !== null && capture2.path !== "" ? `<p>${escapeHtml(capture2.path)}</p>` : "";
       const list = (items) => items.map((item) => `<li>${escapeHtml(item)}</li>`).join("");
       content = `<!doctype html>
 <html lang="${chinese ? "zh-CN" : "en"}">
