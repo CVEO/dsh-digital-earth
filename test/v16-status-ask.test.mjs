@@ -184,7 +184,9 @@ test('askAgent：采集与状态都失败时仍注入文字摘要；注入失败
 
 test('拆分：ViewerSurface 只保留 status/ask 的接线', () => {
   const viewer = readRepoFile('src/client/viewer/ViewerSurface.js')
-  assert.match(viewer, /const collectSceneStatus = \(\) => sceneStatus\.collectSceneStatus\(\)/)
+  // 必须是可提升的 function（接线早于其定义；TDZ 会导致白屏）。
+  assert.match(viewer, /function collectSceneStatus\(\) \{\n\s+return sceneStatus\.collectSceneStatus\(\)/)
+  assert.doesNotMatch(viewer, /const collectSceneStatus\s*=/) 
   assert.match(viewer, /const askAgent = \(\) => askAgentService\.askAgent\(\)/)
   assert.doesNotMatch(viewer, /async function collectSceneStatus\(\) \{/)
   assert.doesNotMatch(viewer, /async function askAgent\(\) \{/)

@@ -1785,7 +1785,13 @@ const h = React.createElement
         redactUrl,
         normalizeQuality,
       })
-      const collectSceneStatus = () => sceneStatus.collectSceneStatus()
+      // Hoisted on purpose: askAgent/report wirings are created earlier in render
+      // and pass this function by reference. A `const` here would throw
+      // "Cannot access 'collectSceneStatus' before initialization" and blank the
+      // whole panel (v1.6 regression, caught by test/v16-wiring-order).
+      function collectSceneStatus() {
+        return sceneStatus.collectSceneStatus()
+      }
 
       /**
        * The single command dispatcher shared by the Agent bridge and (where it

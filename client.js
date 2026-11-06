@@ -6984,7 +6984,9 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     redactUrl,
     normalizeQuality
   });
-  const collectSceneStatus = () => sceneStatus.collectSceneStatus();
+  function collectSceneStatus() {
+    return sceneStatus.collectSceneStatus();
+  }
   const commandBridge = createCommandBridge({
     getCesium: () => cesiumRef.current,
     getViewer: () => viewerRef.current,
