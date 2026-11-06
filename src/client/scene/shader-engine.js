@@ -163,7 +163,7 @@ export function createShaderEngine(deps) {
           uniforms: shaderUniforms(Cesium, request.preset, request.params, range),
           fragmentShaderText: shaderFragmentSource(request.preset),
         }
-        if (request.preset === 'water' && Cesium.CustomShaderTranslucencyMode?.TRANSLUCENT !== undefined) {
+        if ((request.preset === 'water' || request.preset === 'water-depth') && Cesium.CustomShaderTranslucencyMode?.TRANSLUCENT !== undefined) {
           options.translucencyMode = Cesium.CustomShaderTranslucencyMode.TRANSLUCENT
         }
         let shader = null

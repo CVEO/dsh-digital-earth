@@ -10,7 +10,7 @@
     // white list; no arbitrary GLSL ever reaches Cesium. Every preset modifies
     // only the fragment material (diffuse/alpha), so lighting and geometry stay
     // untouched and a broken shader cannot corrupt the scene.
-    const SHADER_PRESETS = ['height-false-color', 'contour', 'scan', 'water']
+    const SHADER_PRESETS = ['height-false-color', 'contour', 'scan', 'water', 'water-depth']
     /** Hard cap from the B3 contract: one preset source stays well under 8 KB. */
     const SHADER_SOURCE_LIMIT = 8 * 1024
     const SHADER_HEIGHT_FLOOR = -1000
@@ -22,18 +22,22 @@
       speed: [0.1, 10],
       amplitude: [0.1, 5],
       opacity: [0.05, 1],
+      water_height: [-1000, 9000],
+      depth_max: [0.5, 500],
     }
     const SHADER_PRESET_PARAMS = {
       'height-false-color': ['min_height', 'max_height'],
       contour: ['interval'],
       scan: ['speed'],
       water: ['speed', 'amplitude', 'opacity'],
+      'water-depth': ['water_height', 'depth_max'],
     }
     const SHADER_PRESET_DEFAULTS = {
       'height-false-color': {},
       contour: { interval: 20 },
       scan: { speed: 1 },
       water: { speed: 1, amplitude: 1, opacity: 0.75 },
+      'water-depth': { water_height: 0, depth_max: 50 },
     }
 
     const shaderClamp = (value, minimum, maximum) => Math.min(Math.max(value, minimum), maximum)
@@ -72,7 +76,7 @@
       if (!SHADER_PRESETS.includes(preset)) {
         return shaderFail(
           `不支持的预设 "${String(raw.preset)}"。`,
-          '使用 height-false-color / contour / scan / water。',
+          '使用 height-false-color / contour / scan / water / water-depth。',
         )
       }
       const allowed = new Set(['preset', 'layer', ...SHADER_PRESET_PARAMS[preset]])
@@ -186,6 +190,10 @@
         uniforms.u_amplitude = { type: Cesium.UniformType.FLOAT, value: params.amplitude ?? 1 }
         uniforms.u_opacity = { type: Cesium.UniformType.FLOAT, value: params.opacity ?? 0.75 }
       }
+      if (preset === 'water-depth') {
+        uniforms.u_waterHeight = { type: Cesium.UniformType.FLOAT, value: params.water_height ?? 0 }
+        uniforms.u_depthMax = { type: Cesium.UniformType.FLOAT, value: params.depth_max ?? 50 }
+      }
       return uniforms
     }
 
@@ -246,6 +254,18 @@
   vec3 waterColor = mix(vec3(0.03, 0.16, 0.38), vec3(0.24, 0.62, 0.92), ripple);
   material.diffuse = mix(material.diffuse, waterColor, u_opacity);
   material.alpha = mix(material.alpha, 0.92, u_opacity * 0.5);
+}`,
+      // D-17: colour geometry by how deep it sits below a chosen water plane; the
+      // depth ramp is fixed (never user-supplied color) so the whitelist stays intact.
+      'water-depth': `void fragmentMain(FragmentInput fsInput, inout czm_modelMaterial material) {
+  float height = length(fsInput.attributes.positionWC) - length(u_center) + u_centerHeight;
+  float depth = u_waterHeight - height;
+  float t = clamp(depth / max(u_depthMax, 0.5), 0.0, 1.0);
+  float submerged = step(0.0, depth);
+  vec3 shallow = vec3(0.36, 0.78, 0.96);
+  vec3 deep = vec3(0.02, 0.10, 0.38);
+  material.diffuse = mix(material.diffuse, mix(shallow, deep, t), submerged * 0.9);
+  material.alpha = mix(material.alpha, 1.0, submerged * 0.35);
 }`,
     }
     //#endregion shader core

@@ -93,11 +93,11 @@ const applyPreset = (preset, extra = {}) => ({ action: 'apply', preset, ...extra
 // Host：normalizeShaderRequest
 // ---------------------------------------------------------------------------
 
-test('shader 常量：三个动作与四个预设的冻结顺序', () => {
+test('shader 常量：三个动作与五个预设的冻结顺序', () => {
   assert.deepEqual(SHADER_ACTIONS, ['apply', 'reset', 'list'])
-  assert.deepEqual(SHADER_PRESETS, ['height-false-color', 'contour', 'scan', 'water'])
+  assert.deepEqual(SHADER_PRESETS, ['height-false-color', 'contour', 'scan', 'water', 'water-depth'])
   assert.match(host, /export const SHADER_ACTIONS = \['apply', 'reset', 'list'\]/)
-  assert.match(host, /export const SHADER_PRESETS = \['height-false-color', 'contour', 'scan', 'water'\]/)
+  assert.match(host, /export const SHADER_PRESETS = \['height-false-color', 'contour', 'scan', 'water', 'water-depth'\]/)
 })
 
 test('shader：list 只返回 action，reset 缺省/指定图层且 layer 去空白', () => {
@@ -111,7 +111,7 @@ test('shader：list 只返回 action，reset 缺省/指定图层且 layer 去空
   rejectsShader({ action: 'reset', layer: 42 }, /"layer" must be a non-empty/)
 })
 
-test('shader：四预设默认值与显式边界值按契约透传', () => {
+test('shader：五预设默认值与显式边界值按契约透传', () => {
   // height-false-color 不补默认高程，交由 Client 用 boundingSphere 估算。
   assert.deepEqual(shaderArgs(applyPreset('height-false-color')), {
     action: 'apply',
@@ -145,6 +145,22 @@ test('shader：四预设默认值与显式边界值按契约透传', () => {
     amplitude: 5,
     opacity: 0.05,
   })
+  // D-17 water-depth：默认 water_height=0、depth_max=50；边界值 0.5..500。
+  assert.deepEqual(shaderArgs(applyPreset('water-depth')), {
+    action: 'apply',
+    preset: 'water-depth',
+    water_height: 0,
+    depth_max: 50,
+  })
+  assert.deepEqual(shaderArgs(applyPreset('water-depth', { water_height: 321.5, depth_max: 500 })), {
+    action: 'apply',
+    preset: 'water-depth',
+    water_height: 321.5,
+    depth_max: 500,
+  })
+  rejectsShader(applyPreset('water-depth', { water_height: 9001 }), /"water_height" 9001 is outside -1000\.\.9000/)
+  rejectsShader(applyPreset('water-depth', { depth_max: 0.4 }), /"depth_max" 0\.4 is outside 0\.5\.\.500/)
+  rejectsShader(applyPreset('water-depth', { speed: 2 }), /does not accept "speed"/)
 })
 
 test('shader：height-false-color 可只给单边界，同时给出必须 min<max', () => {
@@ -246,17 +262,17 @@ test('宿主：earth_shader 是第 6 个注册工具，execute 走 session/桥�
   assert.match(tool, /if \(target\.fallback\) value\.session_fallback = SESSION_FALLBACK_NOTE/)
 })
 
-test('宿主：earth_shader schema 9 属性、required action、additionalProperties:false、无 GLSL 字段', () => {
+test('宿主：earth_shader schema 11 属性、required action、additionalProperties:false、无 GLSL 字段', () => {
   const params = block(shaderSource, 'const SHADER_PARAMETERS = {', '\n}')
   const properties = [...params.matchAll(/^    ([a-z_]+): \{/gm)].map((match) => match[1])
   assert.deepEqual(properties, [
-    'action', 'layer', 'preset', 'min_height', 'max_height', 'interval', 'speed', 'amplitude', 'opacity',
+    'action', 'layer', 'preset', 'min_height', 'max_height', 'interval', 'speed', 'amplitude', 'opacity', 'water_height', 'depth_max',
   ])
   assert.match(params, /enum: SHADER_ACTIONS/)
   assert.match(params, /enum: SHADER_PRESETS/)
   assert.match(params, /required: \['action'\]/)
   assert.equal((params.match(/additionalProperties: false/g) ?? []).length, 1)
-  // 六个数值参数的上下界都引用常量，不在 schema 里散落魔法数。
+  // 数值参数的上下界都引用常量，不在 schema 里散落魔法数。
   for (const constant of [
     'SHADER_MIN_HEIGHT',
     'SHADER_MAX_HEIGHT',
@@ -268,6 +284,8 @@ test('宿主：earth_shader schema 9 属性、required action、additionalProper
     'SHADER_MAX_AMPLITUDE',
     'SHADER_MIN_OPACITY',
     'SHADER_MAX_OPACITY',
+    'SHADER_MIN_DEPTH_MAX',
+    'SHADER_MAX_DEPTH_MAX',
   ]) {
     assert.match(params, new RegExp(constant))
   }
@@ -276,6 +294,8 @@ test('宿主：earth_shader schema 9 属性、required action、additionalProper
   assert.match(params, /default \$\{SHADER_DEFAULT_SPEED\}/)
   assert.match(params, /default \$\{SHADER_DEFAULT_AMPLITUDE\}/)
   assert.match(params, /default \$\{SHADER_DEFAULT_OPACITY\}/)
+  assert.match(params, /default \$\{SHADER_DEFAULT_WATER_HEIGHT\}/)
+  assert.match(params, /default \$\{SHADER_DEFAULT_DEPTH_MAX\}/)
   // 模型面不得出现任意着色器源码字段。
   assert.doesNotMatch(params, /glsl|fragmentShader|vertexShader|shaderSource/i)
 })
@@ -313,7 +333,7 @@ test('系统提示词：≤1600、六工具名齐全、shader 一句，且无 sk
   assert.match(prompt, /plus earth_analyze, plus earth_shader/)
   assert.match(
     prompt,
-    /earth_shader applies whitelisted presets \(height-false-color, contour, scan, water\), lists them or resets; no custom GLSL\./,
+    /earth_shader applies whitelisted presets \(height-false-color, contour, scan, water, water-depth\), lists or resets; no custom GLSL\./,
   )
   // B1/B2 语义必须保留，B3 只追加 shader 一句。
   assert.match(prompt, /pass the absolute path directly to earth_scene load\/inspect/)
@@ -399,22 +419,25 @@ test('client shader 校验：白名单/默认值/范围/跨预设/reset/list 多
   // 校验函数返回 Error 而不是 throw，调用方统一决定桥错误包装。
   assert.doesNotMatch(validate, /\bthrow\b/)
 
-  assert.match(client, /const SHADER_PRESETS = \['height-false-color', 'contour', 'scan', 'water'\]/)
+  assert.match(client, /const SHADER_PRESETS = \['height-false-color', 'contour', 'scan', 'water', 'water-depth'\]/)
   assert.match(client, /const SHADER_PARAM_LIMITS = \{/)
   assert.match(client, /min_height: \[-1000, 9000\]/)
   assert.match(client, /interval: \[1, 500\]/)
   assert.match(client, /speed: \[0\.1, 10\]/)
   assert.match(client, /amplitude: \[0\.1, 5\]/)
   assert.match(client, /opacity: \[0\.05, 1\]/)
+  assert.match(client, /water_height: \[-1000, 9000\]/)
+  assert.match(client, /depth_max: \[0\.5, 500\]/)
   const defaults = block(client, 'const SHADER_PRESET_DEFAULTS = {', '\n    }')
   assert.match(defaults, /contour: \{ interval: 20 \}/)
   assert.match(defaults, /scan: \{ speed: 1 \}/)
   assert.match(defaults, /water: \{ speed: 1, amplitude: 1, opacity: 0\.75 \}/)
+  assert.match(defaults, /'water-depth': \{ water_height: 0, depth_max: 50 \}/)
 })
 
-test('client 四预设：仅片元 fragmentMain、只改 diffuse/alpha、源码 ≤8 KB、uniform 按预设齐全', () => {
+test('client 五预设：仅片元 fragmentMain、只改 diffuse/alpha、源码 ≤8 KB、uniform 按预设齐全', () => {
   const sources = evalObjectLiteral(client, 'const SHADER_FRAGMENT_SOURCES = {', '//#endregion shader core')
-  assert.deepEqual(Object.keys(sources), ['height-false-color', 'contour', 'scan', 'water'])
+  assert.deepEqual(Object.keys(sources), ['height-false-color', 'contour', 'scan', 'water', 'water-depth'])
   for (const preset of SHADER_PRESETS) {
     const source = sources[preset]
     assert.equal(typeof source, 'string', `${preset} 源码必须是字符串`)
@@ -445,6 +468,13 @@ test('client 四预设：仅片元 fragmentMain、只改 diffuse/alpha、源码 
   assert.match(uniforms, /uniforms\.u_time = \{ type: Cesium\.UniformType\.FLOAT, value: 0 \}/)
   assert.match(uniforms, /uniforms\.u_amplitude = \{ type: Cesium\.UniformType\.FLOAT, value: params\.amplitude \?\? 1 \}/)
   assert.match(uniforms, /uniforms\.u_opacity = \{ type: Cesium\.UniformType\.FLOAT, value: params\.opacity \?\? 0\.75 \}/)
+  // D-17 water-depth：固定深度色带，参数只有水面高程与最大映射深度。
+  assert.match(sources['water-depth'], /u_waterHeight/)
+  assert.match(sources['water-depth'], /u_depthMax/)
+  assert.match(sources['water-depth'], /submerged/)
+  assert.match(uniforms, /preset === 'water-depth'/)
+  assert.match(uniforms, /uniforms\.u_waterHeight = \{ type: Cesium\.UniformType\.FLOAT, value: params\.water_height \?\? 0 \}/)
+  assert.match(uniforms, /uniforms\.u_depthMax = \{ type: Cesium\.UniformType\.FLOAT, value: params\.depth_max \?\? 50 \}/)
 })
 
 test('client 高程：positionWC 相对数据中心 ECEF、boundingSphere 估算、0..200 回退并夹到 -1000..9000', () => {

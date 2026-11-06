@@ -105,7 +105,7 @@ test('工具契约：仍是六个工具，scene 12 个 action，analyze 4 个，
   assert.deepEqual(sceneActions, ['status', 'list', 'load', 'remove', 'visible', 'basemap', 'terrain', 'fly', 'reset', 'pick', 'inspect', 'report'])
 
   assert.deepEqual([...ANALYZE_ACTIONS], ['profile', 'flood', 'sunlight', 'clear'])
-  assert.deepEqual([...SHADER_PRESETS], ['height-false-color', 'contour', 'scan', 'water'])
+  assert.deepEqual([...SHADER_PRESETS], ['height-false-color', 'contour', 'scan', 'water', 'water-depth'])
 })
 
 // ---------------------------------------------------------------------------

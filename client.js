@@ -2174,7 +2174,7 @@ function applyQuality(viewer, value, tilesets = []) {
 }
 
 // src/client/shader/presets.js
-var SHADER_PRESETS = ["height-false-color", "contour", "scan", "water"];
+var SHADER_PRESETS = ["height-false-color", "contour", "scan", "water", "water-depth"];
 var SHADER_SOURCE_LIMIT = 8 * 1024;
 var SHADER_HEIGHT_FLOOR = -1e3;
 var SHADER_HEIGHT_CEILING = 9e3;
@@ -2184,19 +2184,23 @@ var SHADER_PARAM_LIMITS = {
   interval: [1, 500],
   speed: [0.1, 10],
   amplitude: [0.1, 5],
-  opacity: [0.05, 1]
+  opacity: [0.05, 1],
+  water_height: [-1e3, 9e3],
+  depth_max: [0.5, 500]
 };
 var SHADER_PRESET_PARAMS = {
   "height-false-color": ["min_height", "max_height"],
   contour: ["interval"],
   scan: ["speed"],
-  water: ["speed", "amplitude", "opacity"]
+  water: ["speed", "amplitude", "opacity"],
+  "water-depth": ["water_height", "depth_max"]
 };
 var SHADER_PRESET_DEFAULTS = {
   "height-false-color": {},
   contour: { interval: 20 },
   scan: { speed: 1 },
-  water: { speed: 1, amplitude: 1, opacity: 0.75 }
+  water: { speed: 1, amplitude: 1, opacity: 0.75 },
+  "water-depth": { water_height: 0, depth_max: 50 }
 };
 var shaderClamp = (value, minimum, maximum) => Math.min(Math.max(value, minimum), maximum);
 var shaderFinite = (value) => typeof value === "number" && Number.isFinite(value);
@@ -2225,7 +2229,7 @@ function shaderValidateRequest(args = {}) {
   if (!SHADER_PRESETS.includes(preset)) {
     return shaderFail(
       `不支持的预设 "${String(raw.preset)}"。`,
-      "使用 height-false-color / contour / scan / water。"
+      "使用 height-false-color / contour / scan / water / water-depth。"
     );
   }
   const allowed = /* @__PURE__ */ new Set(["preset", "layer", ...SHADER_PRESET_PARAMS[preset]]);
@@ -2318,6 +2322,10 @@ function shaderUniforms(Cesium, preset, params, range) {
     uniforms.u_amplitude = { type: Cesium.UniformType.FLOAT, value: params.amplitude ?? 1 };
     uniforms.u_opacity = { type: Cesium.UniformType.FLOAT, value: params.opacity ?? 0.75 };
   }
+  if (preset === "water-depth") {
+    uniforms.u_waterHeight = { type: Cesium.UniformType.FLOAT, value: params.water_height ?? 0 };
+    uniforms.u_depthMax = { type: Cesium.UniformType.FLOAT, value: params.depth_max ?? 50 };
+  }
   return uniforms;
 }
 function shaderFragmentSource(preset) {
@@ -2373,6 +2381,18 @@ var SHADER_FRAGMENT_SOURCES = {
   vec3 waterColor = mix(vec3(0.03, 0.16, 0.38), vec3(0.24, 0.62, 0.92), ripple);
   material.diffuse = mix(material.diffuse, waterColor, u_opacity);
   material.alpha = mix(material.alpha, 0.92, u_opacity * 0.5);
+}`,
+  // D-17: colour geometry by how deep it sits below a chosen water plane; the
+  // depth ramp is fixed (never user-supplied color) so the whitelist stays intact.
+  "water-depth": `void fragmentMain(FragmentInput fsInput, inout czm_modelMaterial material) {
+  float height = length(fsInput.attributes.positionWC) - length(u_center) + u_centerHeight;
+  float depth = u_waterHeight - height;
+  float t = clamp(depth / max(u_depthMax, 0.5), 0.0, 1.0);
+  float submerged = step(0.0, depth);
+  vec3 shallow = vec3(0.36, 0.78, 0.96);
+  vec3 deep = vec3(0.02, 0.10, 0.38);
+  material.diffuse = mix(material.diffuse, mix(shallow, deep, t), submerged * 0.9);
+  material.alpha = mix(material.alpha, 1.0, submerged * 0.35);
 }`
 };
 
@@ -2498,7 +2518,7 @@ function createShaderEngine(deps) {
       uniforms: shaderUniforms(Cesium, request.preset, request.params, range),
       fragmentShaderText: shaderFragmentSource(request.preset)
     };
-    if (request.preset === "water" && Cesium.CustomShaderTranslucencyMode?.TRANSLUCENT !== void 0) {
+    if ((request.preset === "water" || request.preset === "water-depth") && Cesium.CustomShaderTranslucencyMode?.TRANSLUCENT !== void 0) {
       options.translucencyMode = Cesium.CustomShaderTranslucencyMode.TRANSLUCENT;
     }
     let shader = null;

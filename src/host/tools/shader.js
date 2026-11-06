@@ -16,7 +16,7 @@ const SHADER_TOOL_NAME = 'earth_shader'
 // ---------------------------------------------------------------------------
 
 export const SHADER_ACTIONS = ['apply', 'reset', 'list']
-export const SHADER_PRESETS = ['height-false-color', 'contour', 'scan', 'water']
+export const SHADER_PRESETS = ['height-false-color', 'contour', 'scan', 'water', 'water-depth']
 const SHADER_PARAMETER_NAMES = new Set([
   'action',
   'layer',
@@ -27,12 +27,15 @@ const SHADER_PARAMETER_NAMES = new Set([
   'speed',
   'amplitude',
   'opacity',
+  'water_height',
+  'depth_max',
 ])
 const SHADER_PRESET_PARAMETERS = {
   'height-false-color': new Set(['min_height', 'max_height']),
   contour: new Set(['interval']),
   scan: new Set(['speed']),
   water: new Set(['speed', 'amplitude', 'opacity']),
+  'water-depth': new Set(['water_height', 'depth_max']),
 }
 const SHADER_MIN_HEIGHT = -1000
 const SHADER_MAX_HEIGHT = 9000
@@ -48,6 +51,10 @@ const SHADER_DEFAULT_AMPLITUDE = 1
 const SHADER_MIN_OPACITY = 0.05
 const SHADER_MAX_OPACITY = 1
 const SHADER_DEFAULT_OPACITY = 0.75
+const SHADER_MIN_DEPTH_MAX = 0.5
+const SHADER_MAX_DEPTH_MAX = 500
+const SHADER_DEFAULT_DEPTH_MAX = 50
+const SHADER_DEFAULT_WATER_HEIGHT = 0
 
 const SHADER_PARAMETERS = {
   type: 'object',
@@ -102,16 +109,28 @@ const SHADER_PARAMETERS = {
       maximum: SHADER_MAX_OPACITY,
       description: `water: surface opacity, ${SHADER_MIN_OPACITY}..${SHADER_MAX_OPACITY}; default ${SHADER_DEFAULT_OPACITY}.`,
     },
+    water_height: {
+      type: 'number',
+      minimum: SHADER_MIN_HEIGHT,
+      maximum: SHADER_MAX_HEIGHT,
+      description: `water-depth: water plane height in meters, ${SHADER_MIN_HEIGHT}..${SHADER_MAX_HEIGHT}; default ${SHADER_DEFAULT_WATER_HEIGHT}.`,
+    },
+    depth_max: {
+      type: 'number',
+      minimum: SHADER_MIN_DEPTH_MAX,
+      maximum: SHADER_MAX_DEPTH_MAX,
+      description: `water-depth: depth in meters mapped to the deepest colour, ${SHADER_MIN_DEPTH_MAX}..${SHADER_MAX_DEPTH_MAX}; default ${SHADER_DEFAULT_DEPTH_MAX}.`,
+    },
   },
   required: ['action'],
   additionalProperties: false,
 }
 
 const SHADER_DESCRIPTION = [
-  'Apply one of four whitelisted look presets to a loaded 3D Tiles layer: height-false-color (elevation color ramp), contour (height isolines), scan (moving height band) and water (translucent animated water surface).',
+  'Apply one of five whitelisted look presets to a loaded 3D Tiles layer: height-false-color (elevation color ramp), contour (height isolines), scan (moving height band), water (translucent animated water surface) and water-depth (fixed depth ramp below a chosen water plane).',
   'apply adds or replaces the single shader on the chosen layer; different layers can show different presets, but applying again to the same layer replaces its shader. reset clears one layer or every active shader; list reports active shaders and presets.',
   'No custom GLSL is accepted; only these presets exist, so the model cannot inject shader source. Load 3D Tiles first: with no loaded 3D Tiles layer, or on 3DGS splats and layers without Cesium.CustomShader support, apply returns an error instead of a partial shader.',
-  'Parameters use meters and seconds: height-false-color takes optional min_height/max_height, contour interval (default 20), scan speed (default 1), water speed/amplitude/opacity (defaults 1/1/0.75).',
+  'Parameters use meters and seconds: height-false-color takes optional min_height/max_height, contour interval (default 20), scan speed (default 1), water speed/amplitude/opacity (defaults 1/1/0.75), water-depth water_height/depth_max (defaults 0/50).',
   'Returns compact text plus JSON with operation, preset, layer, active and presets; call earth_capture if the user should see the shaded view.',
 ].join('\n')
 
@@ -165,6 +184,8 @@ function rejectShaderKeys(input, action, allowed) {
       next = 'use preset "scan" or "water" for speed.'
     } else if (key === 'amplitude' || key === 'opacity') {
       next = 'use preset "water" for this parameter.'
+    } else if (key === 'water_height' || key === 'depth_max') {
+      next = 'use preset "water-depth" for this parameter.'
     } else {
       next = `remove "${key}" or choose the action that accepts it.`
     }
@@ -206,7 +227,7 @@ export function normalizeShaderRequest(raw) {
   if (typeof preset !== 'string' || !SHADER_PRESETS.includes(preset)) {
     throw shaderError(
       `apply needs "preset"; "preset" must be one of ${SHADER_PRESETS.join(', ')}.`,
-      'choose height-false-color, contour, scan or water.',
+      'choose height-false-color, contour, scan, water or water-depth.',
     )
   }
   rejectShaderKeys(input, 'apply', new Set(['layer', 'preset', ...SHADER_PRESET_PARAMETERS[preset]]))
@@ -234,7 +255,7 @@ export function normalizeShaderRequest(raw) {
     args.speed = input.speed === undefined
       ? SHADER_DEFAULT_SPEED
       : normalizeShaderNumber(input.speed, 'speed', SHADER_MIN_SPEED, SHADER_MAX_SPEED)
-  } else {
+  } else if (preset === 'water') {
     args.speed = input.speed === undefined
       ? SHADER_DEFAULT_SPEED
       : normalizeShaderNumber(input.speed, 'speed', SHADER_MIN_SPEED, SHADER_MAX_SPEED)
@@ -244,6 +265,14 @@ export function normalizeShaderRequest(raw) {
     args.opacity = input.opacity === undefined
       ? SHADER_DEFAULT_OPACITY
       : normalizeShaderNumber(input.opacity, 'opacity', SHADER_MIN_OPACITY, SHADER_MAX_OPACITY)
+  } else {
+    // water-depth: a fixed depth ramp below a chosen water plane (no animation).
+    args.water_height = input.water_height === undefined
+      ? SHADER_DEFAULT_WATER_HEIGHT
+      : normalizeShaderNumber(input.water_height, 'water_height', SHADER_MIN_HEIGHT, SHADER_MAX_HEIGHT)
+    args.depth_max = input.depth_max === undefined
+      ? SHADER_DEFAULT_DEPTH_MAX
+      : normalizeShaderNumber(input.depth_max, 'depth_max', SHADER_MIN_DEPTH_MAX, SHADER_MAX_DEPTH_MAX)
   }
   return { args }
 }
