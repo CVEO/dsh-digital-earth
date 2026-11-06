@@ -1,0 +1,488 @@
+/**
+ * analysis/engine.js — the profile / flood / sunlight engine.
+ *
+ * Extracted verbatim from ViewerSurface in v1.6 (Phase 2 of the client split):
+ * ViewerSurface was at its line budget and the engine is the one large block that
+ * only needs the viewer, the layer list and a handful of callbacks. Keeping the
+ * code text unchanged keeps the existing structural tests honest: the same
+ * \`//#region analysis engine\` block, the same function names and the same
+ * error messages still exist — they just live in a module now.
+ *
+ * The factory receives lazy ref getters instead of the refs themselves so the
+ * module never holds a stale viewer/layer list across panel remounts.
+ */
+import { createHeightService } from './height-service.js'
+import { ANALYSIS_ENTITY_PREFIX, ANALYSIS_MIN_SAMPLES, analysisColorAt, analysisInteger, analysisLonLat, analysisObserver, analysisRegion, analysisRound, analysisSunAngles } from './math.js'
+import { formatHeight } from '../format.js'
+
+/**
+ * @param {object} deps
+ * @param {Function} deps.getCesium  () => Cesium namespace
+ * @param {Function} deps.getViewer  () => current Cesium.Viewer
+ * @param {Function} deps.getLayers  () => current 3D Tiles layer list
+ * @param {Function} deps.findLayer  (token) => layer | null (id or exact name)
+ * @param {object}   deps.state      the analysis state ref object
+ * @param {object}   deps.commandRef the "replay this analysis after remount" ref
+ * @param {Function} deps.setAnalysis React state setter for the analysis card
+ * @param {Function} deps.markSceneDirty mark the scene snapshot dirty
+ * @param {Function} deps.t          translate function
+ */
+export function createAnalysisEngine(deps) {
+  // Local shims with the same names the extracted code used, so the block below is
+  // byte-for-byte the old implementation (only the surrounding closure changed).
+  const analysisRef = deps.state
+  const analysisCommandRef = deps.commandRef
+  const viewerRef = { get current() { return deps.getViewer() } }
+  const layersRef = { get current() { return deps.getLayers() } }
+  const cesiumRef = { get current() { return deps.getCesium() } }
+  const setAnalysis = deps.setAnalysis
+  const markSceneDirty = () => deps.markSceneDirty()
+  const t = deps.t
+  const findLayer = deps.findLayer
+
+      //#region analysis engine ---------------------------------------------------
+      // B2 `analyze` bridge command: profile / flood / sunlight / clear. Only one
+      // analysis is active at a time; every entity carries the `analysis-` id
+      // prefix so clear() can never remove Agent annotations or user measurements.
+
+      const analysisAdd = (Cesium, viewer, options) => {
+        const state = analysisRef.current
+        const entity = viewer.entities.add({ ...options, id: `${ANALYSIS_ENTITY_PREFIX}${options.id}` })
+        state.entities.push(entity)
+        return entity
+      }
+
+      const analysisLabel = (Cesium, text) => ({
+        text,
+        font: '12px -apple-system,"Segoe UI","PingFang SC",sans-serif',
+        style: Cesium.LabelStyle.FILL,
+        fillColor: Cesium.Color.WHITE,
+        showBackground: true,
+        backgroundColor: new Cesium.Color(0.06, 0.09, 0.15, 0.85),
+        backgroundPadding: new Cesium.Cartesian2(8, 5),
+        pixelOffset: new Cesium.Cartesian2(0, -18),
+        disableDepthTestDistance: Number.POSITIVE_INFINITY,
+      })
+
+      /** Restore whatever the sunlight operation changed in the scene. */
+      const restoreAnalysisScene = () => {
+        const viewer = viewerRef.current
+        const restore = analysisRef.current.restore
+        if (!viewer || !restore) return
+        try {
+          if (typeof restore.enableLighting === 'boolean') viewer.scene.globe.enableLighting = restore.enableLighting
+          if (typeof restore.shadowMapEnabled === 'boolean') viewer.scene.shadowMap.enabled = restore.shadowMapEnabled
+          if (typeof restore.shouldAnimate === 'boolean') viewer.clock.shouldAnimate = restore.shouldAnimate
+          if (restore.currentTime) viewer.clock.currentTime = restore.currentTime
+          for (const saved of restore.tilesets ?? []) {
+            const layer = layersRef.current.find((item) => item.id === saved.id)
+            if (layer && layer.tileset) layer.tileset.shadows = saved.shadows
+          }
+        } catch {
+          /* the viewer may be mid-teardown; state restoration is best-effort */
+        }
+        analysisRef.current.restore = null
+      }
+
+      /** Remove every analysis entity and restore the pre-analysis scene state. */
+      function clearAnalysis() {
+        const viewer = viewerRef.current
+        const state = analysisRef.current
+        const cleared = state.operation ? [state.operation] : []
+        if (viewer) {
+          for (const entity of state.entities) {
+            try {
+              viewer.entities.remove(entity)
+            } catch {
+              /* already detached */
+            }
+          }
+        }
+        state.entities = []
+        restoreAnalysisScene()
+        state.operation = null
+        state.layerId = null
+        state.layerName = null
+        analysisCommandRef.current = null
+        setAnalysis(null)
+        markSceneDirty()
+        return cleared
+      }
+
+      const beginAnalysis = (operation, layer) => {
+        const state = analysisRef.current
+        state.operation = operation
+        state.layerId = layer ? layer.id : null
+        state.layerName = layer ? layer.name : null
+      }
+
+      const analyzeProfile = async (Cesium, viewer, layer, args, sampler) => {
+        const from = analysisLonLat(args.from)
+        const to = analysisLonLat(args.to)
+        if (!from || !to) {
+          throw new Error('analysis: `from`/`to` must be [lon, lat] pairs. next: pass two legal WGS84 [lon, lat] arrays.')
+        }
+        const samples = analysisInteger(args.samples, 32, 8, 64)
+        const ellipsoid = viewer.scene.globe.ellipsoid
+        const geodesic = new Cesium.EllipsoidGeodesic(
+          Cesium.Cartographic.fromDegrees(from[0], from[1]),
+          Cesium.Cartographic.fromDegrees(to[0], to[1]),
+          ellipsoid,
+        )
+        const length = Number.isFinite(geodesic.surfaceDistance) ? geodesic.surfaceDistance : 0
+        const points = []
+        let withData = 0
+        for (let index = 0; index < samples; index += 1) {
+          const fraction = samples === 1 ? 0 : index / (samples - 1)
+          const carto = geodesic.interpolateUsingFraction(fraction, new Cesium.Cartographic())
+          const probe = carto ? await sampler.sample(carto) : null
+          const height = probe ? probe.height : null
+          if (height !== null) withData += 1
+          points.push({
+            distance_m: analysisRound(length * fraction, 1),
+            height_m: height === null ? null : analysisRound(height, 1),
+          })
+        }
+        if (withData < ANALYSIS_MIN_SAMPLES) {
+          throw new Error(
+            'analysis: 当前视图中没有可采样的高程数据，先加载 3D Tiles 或地形再试。next: 用 earth_scene 的 list 查看可见图层，或先 load 3D Tiles / 地形后重试。',
+          )
+        }
+        const heights = points.filter((point) => point.height_m !== null).map((point) => point.height_m)
+        const minimum = Math.min(...heights)
+        const maximum = Math.max(...heights)
+        let gain = 0
+        let loss = 0
+        let previous = null
+        // Adjacent valid samples define ascent/descent; a data gap bridges the last
+        // known height so a hole neither invents nor removes relief.
+        for (const point of points) {
+          if (point.height_m === null) continue
+          if (previous !== null) {
+            const delta = point.height_m - previous
+            if (delta > 0) gain += delta
+            else loss -= delta
+          }
+          previous = point.height_m
+        }
+        const relief = maximum - minimum
+        const stats = {
+          min_height: analysisRound(minimum, 1),
+          max_height: analysisRound(maximum, 1),
+          relief_m: analysisRound(relief, 1),
+          gain_m: analysisRound(gain, 1),
+          loss_m: analysisRound(loss, 1),
+        }
+        beginAnalysis('profile', layer)
+        const positionAt = (fraction, height) => {
+          const carto = geodesic.interpolateUsingFraction(fraction, new Cesium.Cartographic())
+          return Cesium.Cartesian3.fromRadians(carto.longitude, carto.latitude, height + 2)
+        }
+        const step = samples > 1 ? 1 / (samples - 1) : 0
+        for (let index = 1; index < points.length; index += 1) {
+          const left = points[index - 1]
+          const right = points[index]
+          if (left.height_m === null || right.height_m === null) continue
+          const ratio = relief > 0 ? ((left.height_m + right.height_m) / 2 - minimum) / relief : 0
+          const color = analysisColorAt(Cesium, ratio)
+          analysisAdd(Cesium, viewer, {
+            id: `profile-line-${index}`,
+            polyline: {
+              positions: [
+                positionAt((index - 1) * step, left.height_m),
+                positionAt(index * step, right.height_m),
+              ],
+              width: 3.5,
+              arcType: Cesium.ArcType.NONE,
+              material: color,
+              depthFailMaterial: color.withAlpha(0.35),
+            },
+          })
+        }
+        const endpointHeight = (point) => (point.height_m === null ? 0 : point.height_m)
+        const endpointText = (point) => (point.height_m === null ? t('hud.empty') : formatHeight(point.height_m))
+        const marker = (id, fraction, point, color) => {
+          analysisAdd(Cesium, viewer, {
+            id,
+            position: positionAt(fraction, endpointHeight(point)),
+            point: {
+              pixelSize: 9,
+              color,
+              disableDepthTestDistance: Number.POSITIVE_INFINITY,
+            },
+            label: analysisLabel(
+              Cesium,
+              id === 'profile-start'
+                ? t('analysis.start', { value: endpointText(point) })
+                : t('analysis.end', { value: endpointText(point) }),
+            ),
+          })
+        }
+        marker('profile-start', 0, points[0], analysisColorAt(Cesium, 0))
+        marker('profile-end', 1, points[points.length - 1], analysisColorAt(Cesium, 1))
+        const result = {
+          operation: 'profile',
+          layer: layer ? layer.name : null,
+          from,
+          to,
+          samples,
+          length_m: analysisRound(length, 1),
+          stats,
+          points,
+          ...sampler.report(),
+        }
+        setAnalysis({ operation: 'profile', layerName: result.layer, result })
+        markSceneDirty()
+        return result
+      }
+
+      const analyzeFlood = async (Cesium, viewer, layer, args, sampler) => {
+        const region = analysisRegion(args.region)
+        if (!region) {
+          throw new Error('analysis: `region` must be {west, south, east, north} with west < east and south < north. next: pass a legal WGS84 bounding box.')
+        }
+        const waterHeight = Number(args.water_height)
+        if (!Number.isFinite(waterHeight)) {
+          throw new Error('analysis: `water_height` must be a finite number in metres. next: pass the water level to test.')
+        }
+        const grid = analysisInteger(args.grid, 12, 4, 24)
+        const ellipsoid = viewer.scene.globe.ellipsoid
+        const span = (lon1, lat1, lon2, lat2) =>
+          new Cesium.EllipsoidGeodesic(
+            Cesium.Cartographic.fromDegrees(lon1, lat1),
+            Cesium.Cartographic.fromDegrees(lon2, lat2),
+            ellipsoid,
+          ).surfaceDistance
+        const middleLat = (region.south + region.north) / 2
+        const middleLon = (region.west + region.east) / 2
+        // Cell size from the region centre: the mean width/height of one grid cell,
+        // so the area is finite even when the region is a tiny sliver.
+        const cellWidth = span(region.west, middleLat, region.east, middleLat) / grid
+        const cellHeight = span(middleLon, region.south, middleLon, region.north) / grid
+        const cellArea = Math.abs(cellWidth * cellHeight)
+        if (!Number.isFinite(cellArea) || cellArea <= 0) {
+          throw new Error('analysis: 分析范围过小，无法计算格元面积。next: 扩大 region 后重试。')
+        }
+        const probes = []
+        for (let row = 0; row < grid; row += 1) {
+          const lat = region.south + ((region.north - region.south) * (row + 0.5)) / grid
+          for (let column = 0; column < grid; column += 1) {
+            const lon = region.west + ((region.east - region.west) * (column + 0.5)) / grid
+            probes.push(Cesium.Cartographic.fromDegrees(lon, lat))
+          }
+        }
+        // Flood is a GROUND analysis: with a real terrain provider we must not read
+        // the 3D Tiles surface, because `getHeight` there returns roofs/foliage and
+        // the inundated area would be wrong. Without terrain we still sample the
+        // tileset surface, but the result says so (`height_source: tiles` + warning).
+        const heightMode = sampler.hasRealTerrain() ? 'ground' : 'surface'
+        const sampled = await sampler.sampleMany(probes, { mode: heightMode })
+        let withData = 0
+        let inundated = 0
+        let depthMaximum = 0
+        let depthSum = 0
+        for (const sample of sampled.values) {
+          if (!sample) continue
+          const height = sample.height
+          withData += 1
+          if (waterHeight > height) {
+            const depth = waterHeight - height
+            inundated += 1
+            depthSum += depth
+            if (depth > depthMaximum) depthMaximum = depth
+          }
+        }
+        if (withData === 0) {
+          throw new Error(
+            'analysis: 当前视图中没有可采样的高程数据，先加载 3D Tiles 或地形再试。next: 用 earth_scene 的 list 查看可见图层，或先 load 3D Tiles / 地形后重试。',
+          )
+        }
+        beginAnalysis('flood', layer)
+        const waterColor = Cesium.Color.fromCssColorString('#2f7fe0').withAlpha(0.38)
+        const borderColor = Cesium.Color.fromCssColorString('#9fc7ff')
+        analysisAdd(Cesium, viewer, {
+          id: 'flood-water',
+          rectangle: {
+            coordinates: Cesium.Rectangle.fromDegrees(region.west, region.south, region.east, region.north),
+            height: waterHeight,
+            material: waterColor,
+            outline: true,
+            outlineColor: borderColor,
+          },
+        })
+        const corners = [
+          [region.west, region.south],
+          [region.east, region.south],
+          [region.east, region.north],
+          [region.west, region.north],
+          [region.west, region.south],
+        ]
+        analysisAdd(Cesium, viewer, {
+          id: 'flood-border',
+          polyline: {
+            positions: corners.map(([lon, lat]) => Cesium.Cartesian3.fromDegrees(lon, lat, waterHeight)),
+            width: 2,
+            arcType: Cesium.ArcType.NONE,
+            material: borderColor,
+          },
+        })
+        analysisAdd(Cesium, viewer, {
+          id: 'flood-label',
+          position: Cesium.Cartesian3.fromDegrees(middleLon, middleLat, waterHeight + 2),
+          label: analysisLabel(Cesium, t('analysis.waterLabel', { value: formatHeight(waterHeight) })),
+        })
+        const regionArea = grid * grid * cellArea
+        const result = {
+          operation: 'flood',
+          layer: layer ? layer.name : null,
+          region,
+          water_height: analysisRound(waterHeight, 2),
+          grid,
+          cell_area_m2: analysisRound(cellArea, 1),
+          area_km2: analysisRound(regionArea / 1e6, 6),
+          inundated_km2: analysisRound((inundated * cellArea) / 1e6, 6),
+          inundated_ratio: analysisRound(withData > 0 ? inundated / withData : 0, 4),
+          depth_max_m: analysisRound(depthMaximum, 2),
+          depth_mean_m: analysisRound(inundated > 0 ? depthSum / inundated : 0, 2),
+          samples_with_data: withData,
+          samples_inundated: inundated,
+          // Provenance is additive: old fields keep their names/semantics.
+          height_mode: heightMode,
+          height_source: sampled.height_source,
+          height_sources: sampled.height_sources,
+          warnings: sampled.warnings,
+        }
+        setAnalysis({ operation: 'flood', layerName: result.layer, result })
+        markSceneDirty()
+        return result
+      }
+
+      const analyzeSunlight = (Cesium, viewer, layer, args) => {
+        const date = args.datetime === undefined || args.datetime === null ? new Date() : new Date(args.datetime)
+        if (Number.isNaN(date.getTime())) {
+          throw new Error('analysis: `datetime` must be a valid ISO 8601 date. next: pass an ISO timestamp, or omit it for the current time.')
+        }
+        const showShadows = args.show_shadows !== false
+        const observer = analysisObserver(Cesium, viewer, layer)
+        const sun = analysisSunAngles(Cesium, date, observer)
+        if (!sun) {
+          throw new Error('analysis: 无法计算太阳位置（Cesium 星历不可用）。next: 检查浏览器控制台后重试，或先执行 clear。')
+        }
+        const scene = viewer.scene
+        const restore = {
+          enableLighting: scene.globe.enableLighting,
+          shadowMapEnabled: scene.shadowMap ? scene.shadowMap.enabled : null,
+          shouldAnimate: viewer.clock.shouldAnimate,
+          currentTime: viewer.clock.currentTime ? viewer.clock.currentTime.clone() : null,
+          tilesets: layersRef.current
+            .filter((item) => item.visible && item.tileset)
+            .map((item) => ({ id: item.id, shadows: item.tileset.shadows })),
+        }
+        beginAnalysis('sunlight', layer)
+        analysisRef.current.restore = restore
+        scene.globe.enableLighting = true
+        if (scene.shadowMap) {
+          // Sunlight always turns the shadow pipeline on; show_shadows=false only
+          // keeps the shadows themselves from being rendered.
+          scene.shadowMap.enabled = true
+          scene.shadowMap.softShadows = true
+          scene.shadowMap.darkness = 0.35
+          if (!showShadows) scene.shadowMap.enabled = false
+        }
+        viewer.clock.currentTime = Cesium.JulianDate.fromDate(date)
+        viewer.clock.shouldAnimate = false
+        for (const saved of restore.tilesets) {
+          const item = layersRef.current.find((entry) => entry.id === saved.id)
+          if (item && item.tileset) {
+            item.tileset.shadows = Cesium.ShadowMode.ENABLED
+            if (!showShadows) item.tileset.shadows = Cesium.ShadowMode.DISABLED
+          }
+        }
+        analysisAdd(Cesium, viewer, {
+          id: 'sun-label',
+          position: Cesium.Cartesian3.fromDegrees(
+            Cesium.Math.toDegrees(observer.longitude),
+            Cesium.Math.toDegrees(observer.latitude),
+            (observer.height || 0) + 30,
+          ),
+          label: analysisLabel(
+            Cesium,
+            t('analysis.sunLabel', { altitude: sun.altitude, azimuth: sun.azimuth }),
+          ),
+        })
+        const result = {
+          operation: 'sunlight',
+          layer: layer ? layer.name : null,
+          datetime: date.toISOString(),
+          sun: { altitude_deg: sun.altitude, azimuth_deg: sun.azimuth },
+          shadows_enabled: showShadows,
+          night: sun.altitude < 0,
+        }
+        setAnalysis({ operation: 'sunlight', layerName: result.layer, result })
+        markSceneDirty()
+        return result
+      }
+
+      async function analyzeCommand(args = {}) {
+        const Cesium = cesiumRef.current
+        const viewer = viewerRef.current
+        if (!Cesium || !viewer) {
+          throw new Error('analysis: 三维引擎尚未就绪。next: 打开数字地球面板后重试。')
+        }
+        const operation = typeof args.action === 'string' ? args.action.trim() : ''
+        if (operation === 'clear') {
+          const cleared = clearAnalysis()
+          return { operation: 'clear', layer: null, cleared }
+        }
+        if (operation !== 'profile' && operation !== 'flood' && operation !== 'sunlight') {
+          throw new Error(
+            `analysis: 不支持的分析类型 "${String(args.action)}"。next: 使用 profile / flood / sunlight / clear。`,
+          )
+        }
+        // Resolve the layer before clearing the previous result, so a typo does not
+        // destroy a valid analysis that is already on screen.
+        let layer = null
+        const requested = typeof args.layer === 'string' ? args.layer.trim() : ''
+        if (requested !== '') {
+          layer = findLayer(requested)
+          if (!layer) {
+            throw new Error(`analysis: 未找到图层 "${requested}"。next: 用 earth_scene 的 list 动作查看当前图层名。`)
+          }
+        } else {
+          for (let index = layersRef.current.length - 1; index >= 0; index -= 1) {
+            if (layersRef.current[index].visible) {
+              layer = layersRef.current[index]
+              break
+            }
+          }
+        }
+        // Single active analysis: the new result replaces the previous one.
+        clearAnalysis()
+        // One sampler per run: it caches probes and reports which source the
+        // heights came from, so the tool result can warn instead of hiding it.
+        const sampler = createHeightService({ Cesium, viewer, layer })
+        let result
+        if (operation === 'profile') result = await analyzeProfile(Cesium, viewer, layer, args, sampler)
+        else if (operation === 'flood') result = await analyzeFlood(Cesium, viewer, layer, args, sampler)
+        else result = analyzeSunlight(Cesium, viewer, layer, args)
+        // Remember the command (not its entities) so a remounted panel can replay
+        // it. The layer is stored by name because restored layers get new ids.
+        analysisCommandRef.current = {
+          action: operation,
+          ...args,
+          ...(layer ? { layer: layer.name } : {}),
+        }
+        markSceneDirty()
+        return result
+      }
+      //#endregion analysis engine
+
+  return {
+    /** Run one analyze command (profile / flood / sunlight / clear). */
+    command: (args = {}) => analyzeCommand(args),
+    /** Remove the active analysis and restore whatever sunlight changed. */
+    clear: () => clearAnalysis(),
+    /** Re-apply a saved sunlight restore state (used by scene restore). */
+    restoreScene: () => restoreAnalysisScene(),
+  }
+}

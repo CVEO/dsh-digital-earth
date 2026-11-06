@@ -32,9 +32,10 @@ const FILE_BUDGETS = [
  * as a warning so it cannot be forgotten.
  */
 const EXCEPTIONS = new Map([
-  // M3 phase 2 (scene runtime extraction) splits this into scene/* modules; until
-  // that lands the React shell is allowed to stay large but must not grow.
-  ['src/client/viewer/ViewerSurface.js', 4200],
+  // M3 phase 2 (scene runtime extraction) is in progress: the analysis engine and
+  // other scene modules are being moved out. The number is lowered every time a
+  // slice lands, so the file can only shrink.
+  ['src/client/viewer/ViewerSurface.js', 3800],
 ])
 
 async function walk(dir) {
