@@ -579,14 +579,27 @@ test('client 工作台：可见图层/五预设可叠加/按预设并集参数/�
   assert.match(card, /const selectedPresets = Array\.isArray\(form\.preset\) \? form\.preset : \[form\.preset\]/)
   assert.match(card, /\.\.\.SHADER_PRESETS\.map\(/)
   assert.match(card, /t\(`shader\.preset\.\$\{preset\}`\)/)
-  assert.match(card, /numberField\('minHeight'/)
-  assert.match(card, /numberField\('maxHeight'/)
-  assert.match(card, /numberField\('interval'/)
-  assert.match(card, /numberField\('speed'/)
-  assert.match(card, /numberField\('amplitude'/)
-  assert.match(card, /numberField\('opacity'/)
-  assert.match(card, /numberField\('waterHeight'/)
-  assert.match(card, /numberField\('depthMax'/)
+  // v1.6 工作台 2.0：滑杆 + 缩略图 + 目标图层 + 顺序 + 实时预览 + 原图对比。
+  for (const key of ['minHeight', 'maxHeight', 'interval', 'speed', 'amplitude', 'opacity', 'waterHeight', 'depthMax']) {
+    assert.match(card, new RegExp(`sliderField\\('${key}'`))
+  }
+  assert.match(card, /const thumb = \(preset\) =>/)
+  assert.match(card, /className: 'thumb-svg'/)
+  assert.match(card, /t\('shader\.targetAuto'/)
+  assert.match(card, /t\('shader\.layerAutoNamed'/)
+  assert.match(card, /t\('shader\.orderLabel'\)/)
+  assert.match(card, /onPresetMove\(preset, -1\)/)
+  assert.match(card, /onPresetMove\(preset, 1\)/)
+  assert.match(card, /t\('shader\.livePreview'\)/)
+  assert.match(card, /onPreview\(\)/)
+  assert.match(card, /t\('shader\.compare'\)/)
+  assert.match(card, /t\('shader\.appliedTag'\)/)
+  assert.match(card, /t\('shader\.stackHint'\)/)
+  assert.match(card, /t\('shader\.apply'\)/)
+  assert.match(card, /t\('shader\.resetLayer'\)/)
+  assert.match(card, /t\('shader\.resetAll'\)/)
+  assert.match(card, /t\('shader\.active'\)/)
+  assert.match(card, /t\('shader\.activeEmpty'\)/)
   assert.match(card, /t\('shader\.stackHint'\)/)
   assert.match(card, /t\('shader\.apply'\)/)
   assert.match(card, /t\('shader\.resetLayer'\)/)
@@ -615,13 +628,17 @@ test('client 工作台：可见图层/五预设可叠加/按预设并集参数/�
   assert.match(wiring, /if \(has\('height-false-color'\)\)/)
   assert.match(wiring, /if \(has\('water-depth'\)\)/)
   assert.match(wiring, /const result = await shaderCommand\(buildShaderFormArgs\(getForm\(\)\)\)/)
-  assert.match(wiring, /shaderCommand\(\{ action: 'reset', layer: target\.id \}\)/)
+  assert.match(wiring, /shaderCommand\(\{ action: 'reset', layer: resolved\.id \}\)/)
+  assert.match(wiring, /export function moveShaderPreset\(form, preset, delta\)/)
+  assert.match(wiring, /export function resolveWorkbenchTarget\(layers, form\)/)
+  assert.match(wiring, /const target = \(\) => resolveWorkbenchTarget\(getLayers\(\), getForm\(\)\)/)
+  assert.match(wiring, /shaderCompare\(resolved\.layer\.id, enabled\)/)
   assert.match(wiring, /await shaderCommand\(\{ action: 'reset' \}\)/)
   assert.match(client, /const workbench = createWorkbenchWiring\(\{/)
   assert.match(client, /onPreset: workbench\.toggle,/)
 })
 
-test('client 工作台 UI：工具栏按钮、≤320px 浮动卡、窄宽可滚动、截图隐藏', () => {
+test('client 工作台 UI：工具栏按钮、可读卡片、三列缩略图、窄宽可滚动、截图隐藏', () => {
   assert.match(client, /function ShaderIcon\(/)
   assert.match(client, /h\(ShaderIcon\)/)
   assert.match(client, /shaderOpen \? t\('btn\.shaderHide'\) : t\('btn\.shaderShow'\)/)
@@ -630,20 +647,26 @@ test('client 工作台 UI：工具栏按钮、≤320px 浮动卡、窄宽可滚�
   const rule = block(client, '.mv-shader{', '}')
   assert.match(rule, /position:absolute/)
   assert.match(rule, /top:60px/)
-  assert.match(rule, /width:min\(320px,calc\(100% - 20px\)\)/)
+  // 2.0 卡片加宽到 340px 并改为实底磨砂，提升可读性。
+  assert.match(rule, /width:min\(340px,calc\(100% - 20px\)\)/)
+  assert.match(rule, /backdrop-filter:blur\(14px\)/)
+  assert.match(rule, /--shader-mint:#3ddc97/)
   assert.match(rule, /max-height:calc\(100% - 150px\)/)
   assert.match(rule, /overflow:hidden/)
   assert.match(client, /\.mv-shader \.body\{[^}]*overflow:auto/)
-  assert.match(client, /\.mv-shader \.presets\{[^}]*grid-template-columns:1fr 1fr/)
+  assert.match(client, /\.mv-shader \.presets\{[^}]*grid-template-columns:repeat\(3,1fr\)/)
+  assert.match(client, /\.mv-shader \.preset \.thumb\{/)
+  assert.match(client, /\.mv-shader \.param \.slider\{/)
+  assert.match(client, /\.mv-shader \.order-badge\{/)
   const docked = block(client, '.mv-root.mv-docked .mv-shader{', '}')
   assert.match(docked, /width:min\(320px,calc\(100% - 40px\)\)/)
   assert.match(client, /\.mv-root\.mv-capturing[^{]*\.mv-shader/)
   // 工作台挂载由 shaderOpen 控制，关闭走 onClose。
   assert.match(client, /shaderOpen\n\s+\? h\(ShaderWorkbench, \{/)
-  assert.match(client, /onClose: \(\) => setShaderOpen\(false\)/)
+  assert.match(client, /onClose: \(\) => \{\n\s+void workbench\.compare\(false\)/)
 })
 
-test('client 接线与 i18n：六 toolview 含 earth_shader、摘要键、shader.* 26 键中英对齐', () => {
+test('client 接线与 i18n：六 toolview 含 earth_shader、摘要键、shader.* 40 键中英对齐', () => {
   const toolviews = [...client.matchAll(/name: 'tool\.call\.toolview', key: '([a-z_]+)'/g)].map((match) => match[1])
   assert.deepEqual(toolviews, [
     'earth_scene', 'earth_capture', 'earth_draw', 'earth_measure', 'earth_analyze', 'earth_shader',
@@ -664,7 +687,7 @@ test('client 接线与 i18n：六 toolview 含 earth_shader、摘要键、shader
   assert.deepEqual(zhKeys, enKeys, '中英字典键集合/顺序必须完全一致')
 
   const shaderKeys = zhKeys.filter((key) => key.startsWith('shader.'))
-  assert.equal(shaderKeys.length, 26)
+  assert.equal(shaderKeys.length, 40)
   for (const key of [
     'shader.title',
     'shader.close',

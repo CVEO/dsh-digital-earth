@@ -182,19 +182,25 @@ const h = React.createElement
 
     //#region shader workbench ------------------------------------------------
     /**
-     * B3 workbench: a compact floating card. It can pick a visible layer, one or
-     * up to three of the five presets (D-17 stacking) and their bounded parameters;
-     * it never edits GLSL.
+     * B3 workbench: a compact floating card. It can pick a visible layer, one or up
+     * to three of the five presets (D-17 stacking) and their bounded parameters; it
+     * never edits GLSL. v1.6 second pass: readable solid card, at-a-glance preset
+     * thumbnails, explicit target layer, ordered stack controls, sliders with an
+     * optional live preview and a press-to-compare original view.
      */
     function ShaderWorkbench({
       t,
       layers,
       form,
       active,
+      target,
       onClose,
       onLayer,
       onPreset,
+      onPresetMove,
       onField,
+      onPreview,
+      onCompare,
       onApply,
       onResetLayer,
       onResetAll,
@@ -205,40 +211,236 @@ const h = React.createElement
       const selectedPresets = Array.isArray(form.preset) ? form.preset : [form.preset]
       const presetLabel = (value) =>
         (Array.isArray(value) ? value : [value]).map((item) => t(`shader.preset.${item}`)).join(' + ')
-      const numberField = (key, labelKey, placeholder) =>
+      const [live, setLive] = React.useState(false)
+      const [comparing, setComparing] = React.useState(false)
+      const comparingRef = React.useRef(false)
+      // Leaving the card must never leave the layer in "original look" mode.
+      React.useEffect(
+        () => () => {
+          if (comparingRef.current) onCompare(false)
+        },
+        [],
+      )
+      const targetName = target?.layer?.name ?? ''
+      const changeField = (key, value) => {
+        onField(key, value)
+        if (live) onPreview()
+      }
+      const toggleCompare = () => {
+        const next = !comparing
+        setComparing(next)
+        comparingRef.current = next
+        onCompare(next)
+      }
+      // Applying/resetting while the original is shown would leave the button in the
+      // wrong state (the engine ends the comparison by itself), so close it first.
+      const stopCompare = () => {
+        if (!comparingRef.current) return
+        comparingRef.current = false
+        setComparing(false)
+        onCompare(false)
+      }
+      const runApply = () => {
+        stopCompare()
+        onApply()
+      }
+      const runResetLayer = () => {
+        stopCompare()
+        onResetLayer()
+      }
+      const runResetAll = () => {
+        stopCompare()
+        onResetAll()
+      }
+
+      const sliderField = (key, labelKey, min, max, step, fallback = '') =>
         h(
           'div',
-          { className: 'field', key },
-          h('label', { htmlFor: `mv-shader-${key}` }, t(labelKey)),
-          h('input', {
-            id: `mv-shader-${key}`,
-            type: 'number',
-            inputMode: 'decimal',
-            step: 'any',
-            value: form[key],
-            placeholder: placeholder ?? '',
-            onChange: (event) => onField(key, event.target.value),
-          }),
+          { className: 'param', key },
+          h('div', { className: 'param-head' }, h('label', { htmlFor: `mv-shader-${key}` }, t(labelKey))),
+          h(
+            'div',
+            { className: 'param-controls' },
+            h('input', {
+              className: 'slider',
+              type: 'range',
+              min,
+              max,
+              step,
+              value: form[key] === '' ? fallback : form[key],
+              'aria-label': t(labelKey),
+              onChange: (event) => changeField(key, event.target.value),
+            }),
+            h('input', {
+              className: 'number',
+              id: `mv-shader-${key}`,
+              type: 'number',
+              inputMode: 'decimal',
+              step: 'any',
+              value: form[key],
+              placeholder: t('shader.param.auto'),
+              onChange: (event) => changeField(key, event.target.value),
+            }),
+          ),
         )
 
       // Parameters are the union of the selected presets (each preset contributes
       // its own bounded fields, shown in selection order).
       const paramRows = []
       if (selectedPresets.includes('height-false-color')) {
-        const auto = t('shader.param.auto')
-        paramRows.push(numberField('minHeight', 'shader.param.minHeight', auto), numberField('maxHeight', 'shader.param.maxHeight', auto))
+        paramRows.push(
+          sliderField('minHeight', 'shader.param.minHeight', -1000, 9000, 1, '0'),
+          sliderField('maxHeight', 'shader.param.maxHeight', -1000, 9000, 1, '200'),
+        )
       }
-      if (selectedPresets.includes('contour')) paramRows.push(numberField('interval', 'shader.param.interval'))
+      if (selectedPresets.includes('contour')) paramRows.push(sliderField('interval', 'shader.param.interval', 1, 500, 1, '20'))
       if (selectedPresets.includes('scan') || selectedPresets.includes('water')) {
-        paramRows.push(numberField('speed', 'shader.param.speed'))
+        paramRows.push(sliderField('speed', 'shader.param.speed', 0.1, 10, 0.1, '1'))
       }
       if (selectedPresets.includes('water')) {
-        paramRows.push(numberField('amplitude', 'shader.param.amplitude'), numberField('opacity', 'shader.param.opacity'))
+        paramRows.push(sliderField('amplitude', 'shader.param.amplitude', 0.1, 5, 0.1, '1'), sliderField('opacity', 'shader.param.opacity', 0.05, 1, 0.05, '0.75'))
       }
       if (selectedPresets.includes('water-depth')) {
-        paramRows.push(numberField('waterHeight', 'shader.param.waterHeight'), numberField('depthMax', 'shader.param.depthMax'))
+        paramRows.push(sliderField('waterHeight', 'shader.param.waterHeight', -1000, 9000, 1, '0'), sliderField('depthMax', 'shader.param.depthMax', 0.5, 500, 0.5, '50'))
       }
       const params = paramRows.length > 0 ? h('div', { className: 'params' }, ...paramRows) : null
+
+      // At-a-glance previews: colour ramp / isolines / moving band / ripples / depth.
+      const thumb = (preset) => {
+        const viewBox = '0 0 96 40'
+        const common = { viewBox, preserveAspectRatio: 'none', className: 'thumb-svg', 'aria-hidden': true }
+        if (preset === 'height-false-color') {
+          return h(
+            'svg',
+            common,
+            h(
+              'defs',
+              null,
+              h(
+                'linearGradient',
+                { id: 'mv-thumb-ramp', x1: '0', y1: '0', x2: '1', y2: '0' },
+                h('stop', { offset: '0', stopColor: '#2a60d8' }),
+                h('stop', { offset: '0.3', stopColor: '#33c26a' }),
+                h('stop', { offset: '0.55', stopColor: '#f2df3a' }),
+                h('stop', { offset: '0.8', stopColor: '#ef8a2a' }),
+                h('stop', { offset: '1', stopColor: '#e0473f' }),
+              ),
+            ),
+            h('rect', { width: '96', height: '40', fill: 'url(#mv-thumb-ramp)', opacity: '0.9' }),
+            h('path', { d: 'M0 34 L18 22 L34 28 L52 12 L70 18 L96 6 L96 40 L0 40 Z', fill: 'rgba(8,14,24,.35)' }),
+          )
+        }
+        if (preset === 'contour') {
+          return h(
+            'svg',
+            common,
+            h('rect', { width: '96', height: '40', fill: '#0e1620' }),
+            ...[0, 1, 2, 3].map((index) =>
+              h('path', {
+                key: index,
+                d: `M0 ${10 + index * 7} C 16 ${4 + index * 8}, 32 ${18 + index * 6}, 48 ${10 + index * 7} S 80 ${2 + index * 9}, 96 ${12 + index * 6}`,
+                fill: 'none',
+                stroke: '#f4d24a',
+                strokeWidth: '1.4',
+                opacity: 0.85 - index * 0.12,
+              }),
+            ),
+          )
+        }
+        if (preset === 'scan') {
+          return h(
+            'svg',
+            common,
+            h('rect', { width: '96', height: '40', fill: '#0b1119' }),
+            ...[0, 1, 2, 3, 4].map((index) =>
+              h('line', { key: index, x1: '0', y1: 8 + index * 8, x2: '96', y2: 8 + index * 8, stroke: '#243244', strokeWidth: '0.5' }),
+            ),
+            h(
+              'defs',
+              null,
+              h(
+                'linearGradient',
+                { id: 'mv-thumb-scan', x1: '0', y1: '0', x2: '1', y2: '0' },
+                h('stop', { offset: '0', stopColor: 'rgba(55,230,255,0)' }),
+                h('stop', { offset: '0.5', stopColor: 'rgba(55,230,255,.85)' }),
+                h('stop', { offset: '1', stopColor: 'rgba(55,230,255,0)' }),
+              ),
+            ),
+            h('rect', { x: '30', y: '14', width: '36', height: '12', fill: 'url(#mv-thumb-scan)' }),
+          )
+        }
+        if (preset === 'water') {
+          return h(
+            'svg',
+            common,
+            h(
+              'defs',
+              null,
+              h(
+                'linearGradient',
+                { id: 'mv-thumb-water', x1: '0', y1: '0', x2: '0', y2: '1' },
+                h('stop', { offset: '0', stopColor: '#0b2b52' }),
+                h('stop', { offset: '1', stopColor: '#1b6fae' }),
+              ),
+            ),
+            h('rect', { width: '96', height: '40', fill: 'url(#mv-thumb-water)' }),
+            ...[0, 1, 2].map((index) =>
+              h('path', {
+                key: index,
+                d: `M0 ${14 + index * 8} Q 12 ${8 + index * 8}, 24 ${14 + index * 8} T 48 ${14 + index * 8} T 72 ${14 + index * 8} T 96 ${14 + index * 8}`,
+                fill: 'none',
+                stroke: '#9fd7ff',
+                strokeWidth: '1.3',
+                opacity: 0.5,
+              }),
+            ),
+          )
+        }
+        return h(
+          'svg',
+          common,
+          h(
+            'defs',
+            null,
+            h(
+              'linearGradient',
+              { id: 'mv-thumb-depth', x1: '0', y1: '0', x2: '0', y2: '1' },
+              h('stop', { offset: '0', stopColor: '#67e8f9' }),
+              h('stop', { offset: '0.55', stopColor: '#0e7490' }),
+              h('stop', { offset: '1', stopColor: '#0b1e4b' }),
+            ),
+          ),
+          h('rect', { width: '96', height: '40', fill: 'url(#mv-thumb-depth)' }),
+          h('line', { x1: '0', y1: '16', x2: '96', y2: '16', stroke: 'rgba(255,255,255,.65)', strokeWidth: '0.8' }),
+        )
+      }
+
+      const orderList =
+        selectedPresets.length > 1
+          ? h(
+              'div',
+              { className: 'order', role: 'list', 'aria-label': t('shader.orderLabel') },
+              ...selectedPresets.map((preset, index) =>
+                h(
+                  'div',
+                  { key: preset, className: 'order-item', role: 'listitem' },
+                  h('span', { className: 'index' }, `${index + 1}`),
+                  h('span', { className: 'order-name', title: t(`shader.preset.${preset}`) }, t(`shader.preset.${preset}`)),
+                  h(
+                    'button',
+                    { type: 'button', className: 'mv-icon-btn', title: t('shader.moveUp'), disabled: index === 0, onClick: () => onPresetMove(preset, -1) },
+                    '↑',
+                  ),
+                  h(
+                    'button',
+                    { type: 'button', className: 'mv-icon-btn', title: t('shader.moveDown'), disabled: index === selectedPresets.length - 1, onClick: () => onPresetMove(preset, 1) },
+                    '↓',
+                  ),
+                  h('button', { type: 'button', className: 'mv-icon-btn', title: t('shader.removePreset'), onClick: () => onPreset(preset) }, '✕'),
+                ),
+              ),
+            )
+          : null
 
       return h(
         'div',
@@ -247,6 +449,7 @@ const h = React.createElement
           'header',
           null,
           h('span', { className: 'title' }, t('shader.title')),
+          h('span', { className: 'subtitle' }, targetName !== '' ? t('shader.targetChip', { name: targetName }) : t('shader.targetNone')),
           h(
             'button',
             { type: 'button', className: 'mv-icon-btn', title: t('shader.close'), 'aria-label': t('shader.close'), onClick: onClose },
@@ -268,8 +471,17 @@ const h = React.createElement
                 disabled: visibleLayers.length === 0,
                 onChange: (event) => onLayer(event.target.value),
               },
-              h('option', { value: '' }, t('shader.layerAuto')),
+              h('option', { value: '' }, targetName !== '' ? t('shader.layerAutoNamed', { name: targetName }) : t('shader.layerAuto')),
               ...visibleLayers.map((layer) => h('option', { key: layer.id, value: layer.id }, layer.name)),
+            ),
+            h(
+              'p',
+              { className: 'target-line' },
+              targetName === ''
+                ? t('shader.targetNone')
+                : target?.auto
+                  ? t('shader.targetAuto', { name: targetName })
+                  : t('shader.targetFixed', { name: targetName }),
             ),
           ),
           h(
@@ -279,30 +491,64 @@ const h = React.createElement
             h(
               'div',
               { className: 'presets' },
-              ...SHADER_PRESETS.map((preset) =>
-                h(
+              ...SHADER_PRESETS.map((preset) => {
+                const selected = selectedPresets.includes(preset)
+                const order = selected ? selectedPresets.indexOf(preset) + 1 : 0
+                return h(
                   'button',
                   {
                     key: preset,
                     type: 'button',
-                    className: `preset${selectedPresets.includes(preset) ? ' on' : ''}`,
+                    className: `preset${selected ? ' on' : ''}`,
                     title: t(`shader.preset.${preset}`),
-                    'aria-pressed': selectedPresets.includes(preset),
+                    'aria-pressed': selected,
                     onClick: () => onPreset(preset),
                   },
-                  t(`shader.preset.${preset}`),
-                ),
-              ),
+                  h('span', { className: 'thumb' }, thumb(preset)),
+                  h('span', { className: 'preset-name' }, t(`shader.preset.${preset}`)),
+                  order > 0 ? h('span', { className: 'order-badge', 'aria-hidden': true }, `${order}`) : null,
+                )
+              }),
             ),
             h('p', { className: 'hint' }, t('shader.stackHint')),
           ),
+          orderList,
           params,
+          h(
+            'label',
+            { className: 'live-row' },
+            h('input', {
+              type: 'checkbox',
+              checked: live,
+              onChange: (event) => {
+                setLive(event.target.checked)
+                if (event.target.checked) onPreview()
+              },
+            }),
+            h('span', null, t('shader.livePreview')),
+          ),
           h(
             'div',
             { className: 'row' },
-            h('button', { type: 'button', className: 'mv-cta primary', disabled: visibleLayers.length === 0, onClick: onApply }, t('shader.apply')),
-            h('button', { type: 'button', className: 'mv-cta', onClick: onResetLayer }, t('shader.resetLayer')),
-            h('button', { type: 'button', className: 'mv-cta', disabled: active.length === 0, onClick: onResetAll }, t('shader.resetAll')),
+            h('button', { type: 'button', className: 'mv-cta primary', disabled: visibleLayers.length === 0, onClick: runApply }, t('shader.apply')),
+            h(
+              'button',
+              {
+                type: 'button',
+                className: `mv-cta${comparing ? ' on' : ''}`,
+                disabled: visibleLayers.length === 0,
+                'aria-pressed': comparing,
+                title: t('shader.compareHint'),
+                onClick: toggleCompare,
+              },
+              comparing ? t('shader.compareOn') : t('shader.compare'),
+            ),
+          ),
+          h(
+            'div',
+            { className: 'row' },
+            h('button', { type: 'button', className: 'mv-cta', onClick: runResetLayer }, t('shader.resetLayer')),
+            h('button', { type: 'button', className: 'mv-cta', disabled: active.length === 0, onClick: runResetAll }, t('shader.resetAll')),
           ),
           h(
             'div',
@@ -315,6 +561,7 @@ const h = React.createElement
                     'div',
                     { key: entry.layer, className: 'item' },
                     h('span', { title: entry.layer }, entry.layer),
+                    h('span', { className: 'applied-tag' }, t('shader.appliedTag')),
                     h('em', null, presetLabel(entry.preset)),
                   ),
                 ),

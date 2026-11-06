@@ -134,6 +134,19 @@
       }
     }
 
+    /**
+     * Whether two preset selections (string or ordered array) are the same stack.
+     * Used by the engine to update uniforms of an already-compiled CustomShader
+     * instead of rebuilding it while the user drags a slider.
+     */
+    function samePresetStack(left, right) {
+      const a = Array.isArray(left) ? left : left === null || left === undefined ? [] : [left]
+      const b = Array.isArray(right) ? right : right === null || right === undefined ? [] : [right]
+      if (a.length !== b.length) return false
+      for (let index = 0; index < a.length; index += 1) if (a[index] !== b[index]) return false
+      return true
+    }
+
     /** ext list detection: Cesium 1.147 keeps tileset JSON extensions in `_extensionsUsed`. */
     function shaderTilesetExtensions(tileset) {
       const lists = [tileset?.extensionsUsed, tileset?._extensionsUsed, tileset?.root?.extensionsUsed]
@@ -320,4 +333,4 @@
     }
     //#endregion shader core
 
-export { SHADER_PRESETS, SHADER_MAX_STACK, SHADER_SOURCE_LIMIT, SHADER_HEIGHT_FLOOR, SHADER_HEIGHT_CEILING, SHADER_PARAM_LIMITS, SHADER_PRESET_PARAMS, SHADER_PRESET_DEFAULTS, shaderClamp, shaderFinite, shaderFail, shaderValidateRequest, shaderTilesetExtensions, shaderGaussianLayer, shaderHeightRange, shaderUniforms, shaderFragmentSource, SHADER_FRAGMENT_SOURCES }
+export { SHADER_PRESETS, SHADER_MAX_STACK, samePresetStack, SHADER_SOURCE_LIMIT, SHADER_HEIGHT_FLOOR, SHADER_HEIGHT_CEILING, SHADER_PARAM_LIMITS, SHADER_PRESET_PARAMS, SHADER_PRESET_DEFAULTS, shaderClamp, shaderFinite, shaderFail, shaderValidateRequest, shaderTilesetExtensions, shaderGaussianLayer, shaderHeightRange, shaderUniforms, shaderFragmentSource, SHADER_FRAGMENT_SOURCES }

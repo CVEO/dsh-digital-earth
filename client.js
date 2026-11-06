@@ -403,6 +403,20 @@ var MESSAGES = {
     "shader.preset.scan": "高度扫描",
     "shader.preset.water": "水面波纹",
     "shader.preset.water-depth": "水深着色",
+    "shader.targetChip": "作用于 {name}",
+    "shader.targetNone": "暂无可作用图层",
+    "shader.layerAutoNamed": "自动选择（{name}）",
+    "shader.targetAuto": "自动目标：{name}（最上层的可见 3D Tiles）",
+    "shader.targetFixed": "已固定：{name}",
+    "shader.orderLabel": "叠加顺序",
+    "shader.moveUp": "上移一层",
+    "shader.moveDown": "下移一层",
+    "shader.removePreset": "从叠加中移除",
+    "shader.livePreview": "实时预览（拖动滑杆立即生效）",
+    "shader.compare": "原图对比",
+    "shader.compareOn": "正在看原图",
+    "shader.compareHint": "按住对比：临时切回图层原始外观，松开或关闭面板后恢复",
+    "shader.appliedTag": "已应用",
     "shader.param.waterHeight": "水面高程 (m)",
     "shader.param.depthMax": "最大映射深度 (m)",
     "shader.stackHint": "点选预设可叠加，最多 3 个（按点选顺序合成）；再点一次取消。",
@@ -782,6 +796,20 @@ var MESSAGES = {
     "shader.preset.scan": "Height scan",
     "shader.preset.water": "Water ripples",
     "shader.preset.water-depth": "Water depth",
+    "shader.targetChip": "on {name}",
+    "shader.targetNone": "No usable layer",
+    "shader.layerAutoNamed": "Auto select ({name})",
+    "shader.targetAuto": "Auto target: {name} (topmost visible 3D Tiles)",
+    "shader.targetFixed": "Pinned: {name}",
+    "shader.orderLabel": "Stack order",
+    "shader.moveUp": "Move up",
+    "shader.moveDown": "Move down",
+    "shader.removePreset": "Remove from stack",
+    "shader.livePreview": "Live preview (sliders apply immediately)",
+    "shader.compare": "Compare original",
+    "shader.compareOn": "Showing original",
+    "shader.compareHint": "Hold to compare: temporarily show the layer without the preset; release or close to restore",
+    "shader.appliedTag": "Applied",
     "shader.param.waterHeight": "Water height (m)",
     "shader.param.depthMax": "Max depth (m)",
     "shader.stackHint": "Click presets to stack up to 3 (composed in click order); click again to remove.",
@@ -3671,6 +3699,13 @@ function shaderValidateRequest(args = {}) {
     params
   };
 }
+function samePresetStack(left, right) {
+  const a = Array.isArray(left) ? left : left === null || left === void 0 ? [] : [left];
+  const b = Array.isArray(right) ? right : right === null || right === void 0 ? [] : [right];
+  if (a.length !== b.length) return false;
+  for (let index = 0; index < a.length; index += 1) if (a[index] !== b[index]) return false;
+  return true;
+}
 function shaderTilesetExtensions(tileset) {
   const lists = [tileset?.extensionsUsed, tileset?._extensionsUsed, tileset?.root?.extensionsUsed];
   const values = [];
@@ -3847,6 +3882,7 @@ function createShaderEngine(deps) {
   const shaderEntriesRef = deps.entries;
   const shaderTickRef = deps.tickRef;
   const setShaderActive = deps.setShaderActive;
+  const comparisons = /* @__PURE__ */ new Map();
   const shaderResult = (operation, preset, layer) => ({
     operation,
     preset: preset ?? null,
@@ -3891,6 +3927,18 @@ function createShaderEngine(deps) {
     } catch {
     }
   }
+  function finishCompare(layerId) {
+    if (!comparisons.has(layerId)) return false;
+    comparisons.delete(layerId);
+    const entry = shaderEntriesRef.current.get(layerId);
+    if (entry && entry.layer && entry.layer.tileset) {
+      try {
+        entry.layer.tileset.customShader = entry.shader;
+      } catch {
+      }
+    }
+    return true;
+  }
   function restoreShaderEntry(entry) {
     try {
       entry.layer.tileset.customShader = entry.previous ?? void 0;
@@ -3904,6 +3952,7 @@ function createShaderEngine(deps) {
     const entry = entries.get(id);
     if (!entry) return false;
     entries.delete(id);
+    finishCompare(id);
     if (restore) restoreShaderEntry(entry);
     refreshShaderActive();
     if (entries.size === 0) releaseShaderTick();
@@ -3946,11 +3995,23 @@ function createShaderEngine(deps) {
     if (shaderGaussianLayer(layer.tileset)) {
       throw new Error("shader: 3DGS 图层不支持该预设。next: 换 3D Tiles 图层。");
     }
+    finishCompare(layer.id);
     const range = shaderHeightRange(Cesium, layer.tileset, null);
     if (request.params.min_height !== void 0) range.minimum = request.params.min_height;
     if (request.params.max_height !== void 0) range.maximum = request.params.max_height;
     if (!(range.maximum > range.minimum)) {
       throw shaderFail(`高程范围无效（${range.minimum}..${range.maximum}）。`, "传入 min_height < max_height。");
+    }
+    const existing = shaderEntriesRef.current.get(layer.id);
+    if (existing && samePresetStack(existing.preset, request.preset) && typeof existing.shader?.setUniform === "function") {
+      const uniforms = shaderUniforms(Cesium, request.presets ?? request.preset, request.params, range);
+      try {
+        for (const [name, uniform] of Object.entries(uniforms)) existing.shader.setUniform(name, uniform.value);
+      } catch (error) {
+        throw shaderFail(`更新着色器参数失败（${message(error)}）。`, "换一个预设或重置后重试。");
+      }
+      existing.params = { ...request.params };
+      return shaderResult("apply", request.preset, layer.name);
     }
     const options = {
       uniforms: shaderUniforms(Cesium, request.presets ?? request.preset, request.params, range),
@@ -3966,7 +4027,6 @@ function createShaderEngine(deps) {
     } catch (error) {
       throw shaderFail(`预设着色器构造失败（${message(error)}）。`, "换一个预设或重置后重试。");
     }
-    const existing = shaderEntriesRef.current.get(layer.id);
     const previous = existing ? existing.previous : layer.tileset.customShader ?? null;
     try {
       layer.tileset.customShader = shader;
@@ -4026,6 +4086,7 @@ function createShaderEngine(deps) {
     }
     let failure = null;
     for (const entry of targets) {
+      finishCompare(entry.layer.id);
       entries.delete(entry.layer.id);
       const error = restoreShaderEntry(entry);
       if (error && !failure) failure = error;
@@ -4036,6 +4097,27 @@ function createShaderEngine(deps) {
       throw shaderFail(`恢复原有着色器失败（${message(failure)}）。`, "重试 reset，或换一个预设后重置。");
     }
     return shaderResult("reset", null, targetLayerName);
+  }
+  function compareShader(layerToken, enabled) {
+    const layer = resolveShaderLayer(layerToken);
+    const entry = shaderEntriesRef.current.get(layer.id);
+    if (enabled) {
+      if (!entry) {
+        throw shaderFail("当前图层还没有应用着色器，无法对比。", "先应用一个预设，再点「原图对比」。");
+      }
+      if (!comparisons.has(layer.id)) {
+        comparisons.set(layer.id, { original: entry.previous ?? null });
+        try {
+          layer.tileset.customShader = entry.previous ?? void 0;
+        } catch (error) {
+          comparisons.delete(layer.id);
+          throw shaderFail(`原图对比失败（${message(error)}）。`, "重试，或先重置该图层再对比。");
+        }
+      }
+      return { compared: true, layer: layer.name };
+    }
+    finishCompare(layer.id);
+    return { compared: false, layer: layer.name };
   }
   async function shaderCommand(args = {}) {
     const request = shaderValidateRequest(args);
@@ -4055,7 +4137,9 @@ function createShaderEngine(deps) {
     /** Layer removal / teardown: forget the preset and stop the tick when idle. */
     detachForLayer: (id, restore) => detachShaderForLayer(id, restore),
     /** Detach the u_time tick without touching the entries (viewer teardown). */
-    releaseTick: () => releaseShaderTick()
+    releaseTick: () => releaseShaderTick(),
+    /** Workbench: temporarily swap to the layer's original look / restore. */
+    compare: (layer, enabled) => compareShader(layer, enabled)
   };
 }
 
@@ -4255,10 +4339,14 @@ function ShaderWorkbench({
   layers,
   form,
   active,
+  target,
   onClose,
   onLayer,
   onPreset,
+  onPresetMove,
   onField,
+  onPreview,
+  onCompare,
   onApply,
   onResetLayer,
   onResetAll
@@ -4266,36 +4354,222 @@ function ShaderWorkbench({
   const visibleLayers = layers.filter((layer) => layer.visible);
   const selectedPresets = Array.isArray(form.preset) ? form.preset : [form.preset];
   const presetLabel = (value) => (Array.isArray(value) ? value : [value]).map((item) => t2(`shader.preset.${item}`)).join(" + ");
-  const numberField = (key, labelKey, placeholder) => h2(
+  const [live, setLive] = import_react4.default.useState(false);
+  const [comparing, setComparing] = import_react4.default.useState(false);
+  const comparingRef = import_react4.default.useRef(false);
+  import_react4.default.useEffect(
+    () => () => {
+      if (comparingRef.current) onCompare(false);
+    },
+    []
+  );
+  const targetName = target?.layer?.name ?? "";
+  const changeField = (key, value) => {
+    onField(key, value);
+    if (live) onPreview();
+  };
+  const toggleCompare = () => {
+    const next = !comparing;
+    setComparing(next);
+    comparingRef.current = next;
+    onCompare(next);
+  };
+  const stopCompare = () => {
+    if (!comparingRef.current) return;
+    comparingRef.current = false;
+    setComparing(false);
+    onCompare(false);
+  };
+  const runApply = () => {
+    stopCompare();
+    onApply();
+  };
+  const runResetLayer = () => {
+    stopCompare();
+    onResetLayer();
+  };
+  const runResetAll = () => {
+    stopCompare();
+    onResetAll();
+  };
+  const sliderField = (key, labelKey, min, max, step, fallback = "") => h2(
     "div",
-    { className: "field", key },
-    h2("label", { htmlFor: `mv-shader-${key}` }, t2(labelKey)),
-    h2("input", {
-      id: `mv-shader-${key}`,
-      type: "number",
-      inputMode: "decimal",
-      step: "any",
-      value: form[key],
-      placeholder: placeholder ?? "",
-      onChange: (event) => onField(key, event.target.value)
-    })
+    { className: "param", key },
+    h2("div", { className: "param-head" }, h2("label", { htmlFor: `mv-shader-${key}` }, t2(labelKey))),
+    h2(
+      "div",
+      { className: "param-controls" },
+      h2("input", {
+        className: "slider",
+        type: "range",
+        min,
+        max,
+        step,
+        value: form[key] === "" ? fallback : form[key],
+        "aria-label": t2(labelKey),
+        onChange: (event) => changeField(key, event.target.value)
+      }),
+      h2("input", {
+        className: "number",
+        id: `mv-shader-${key}`,
+        type: "number",
+        inputMode: "decimal",
+        step: "any",
+        value: form[key],
+        placeholder: t2("shader.param.auto"),
+        onChange: (event) => changeField(key, event.target.value)
+      })
+    )
   );
   const paramRows = [];
   if (selectedPresets.includes("height-false-color")) {
-    const auto = t2("shader.param.auto");
-    paramRows.push(numberField("minHeight", "shader.param.minHeight", auto), numberField("maxHeight", "shader.param.maxHeight", auto));
+    paramRows.push(
+      sliderField("minHeight", "shader.param.minHeight", -1e3, 9e3, 1, "0"),
+      sliderField("maxHeight", "shader.param.maxHeight", -1e3, 9e3, 1, "200")
+    );
   }
-  if (selectedPresets.includes("contour")) paramRows.push(numberField("interval", "shader.param.interval"));
+  if (selectedPresets.includes("contour")) paramRows.push(sliderField("interval", "shader.param.interval", 1, 500, 1, "20"));
   if (selectedPresets.includes("scan") || selectedPresets.includes("water")) {
-    paramRows.push(numberField("speed", "shader.param.speed"));
+    paramRows.push(sliderField("speed", "shader.param.speed", 0.1, 10, 0.1, "1"));
   }
   if (selectedPresets.includes("water")) {
-    paramRows.push(numberField("amplitude", "shader.param.amplitude"), numberField("opacity", "shader.param.opacity"));
+    paramRows.push(sliderField("amplitude", "shader.param.amplitude", 0.1, 5, 0.1, "1"), sliderField("opacity", "shader.param.opacity", 0.05, 1, 0.05, "0.75"));
   }
   if (selectedPresets.includes("water-depth")) {
-    paramRows.push(numberField("waterHeight", "shader.param.waterHeight"), numberField("depthMax", "shader.param.depthMax"));
+    paramRows.push(sliderField("waterHeight", "shader.param.waterHeight", -1e3, 9e3, 1, "0"), sliderField("depthMax", "shader.param.depthMax", 0.5, 500, 0.5, "50"));
   }
   const params = paramRows.length > 0 ? h2("div", { className: "params" }, ...paramRows) : null;
+  const thumb = (preset) => {
+    const viewBox = "0 0 96 40";
+    const common = { viewBox, preserveAspectRatio: "none", className: "thumb-svg", "aria-hidden": true };
+    if (preset === "height-false-color") {
+      return h2(
+        "svg",
+        common,
+        h2(
+          "defs",
+          null,
+          h2(
+            "linearGradient",
+            { id: "mv-thumb-ramp", x1: "0", y1: "0", x2: "1", y2: "0" },
+            h2("stop", { offset: "0", stopColor: "#2a60d8" }),
+            h2("stop", { offset: "0.3", stopColor: "#33c26a" }),
+            h2("stop", { offset: "0.55", stopColor: "#f2df3a" }),
+            h2("stop", { offset: "0.8", stopColor: "#ef8a2a" }),
+            h2("stop", { offset: "1", stopColor: "#e0473f" })
+          )
+        ),
+        h2("rect", { width: "96", height: "40", fill: "url(#mv-thumb-ramp)", opacity: "0.9" }),
+        h2("path", { d: "M0 34 L18 22 L34 28 L52 12 L70 18 L96 6 L96 40 L0 40 Z", fill: "rgba(8,14,24,.35)" })
+      );
+    }
+    if (preset === "contour") {
+      return h2(
+        "svg",
+        common,
+        h2("rect", { width: "96", height: "40", fill: "#0e1620" }),
+        ...[0, 1, 2, 3].map(
+          (index) => h2("path", {
+            key: index,
+            d: `M0 ${10 + index * 7} C 16 ${4 + index * 8}, 32 ${18 + index * 6}, 48 ${10 + index * 7} S 80 ${2 + index * 9}, 96 ${12 + index * 6}`,
+            fill: "none",
+            stroke: "#f4d24a",
+            strokeWidth: "1.4",
+            opacity: 0.85 - index * 0.12
+          })
+        )
+      );
+    }
+    if (preset === "scan") {
+      return h2(
+        "svg",
+        common,
+        h2("rect", { width: "96", height: "40", fill: "#0b1119" }),
+        ...[0, 1, 2, 3, 4].map(
+          (index) => h2("line", { key: index, x1: "0", y1: 8 + index * 8, x2: "96", y2: 8 + index * 8, stroke: "#243244", strokeWidth: "0.5" })
+        ),
+        h2(
+          "defs",
+          null,
+          h2(
+            "linearGradient",
+            { id: "mv-thumb-scan", x1: "0", y1: "0", x2: "1", y2: "0" },
+            h2("stop", { offset: "0", stopColor: "rgba(55,230,255,0)" }),
+            h2("stop", { offset: "0.5", stopColor: "rgba(55,230,255,.85)" }),
+            h2("stop", { offset: "1", stopColor: "rgba(55,230,255,0)" })
+          )
+        ),
+        h2("rect", { x: "30", y: "14", width: "36", height: "12", fill: "url(#mv-thumb-scan)" })
+      );
+    }
+    if (preset === "water") {
+      return h2(
+        "svg",
+        common,
+        h2(
+          "defs",
+          null,
+          h2(
+            "linearGradient",
+            { id: "mv-thumb-water", x1: "0", y1: "0", x2: "0", y2: "1" },
+            h2("stop", { offset: "0", stopColor: "#0b2b52" }),
+            h2("stop", { offset: "1", stopColor: "#1b6fae" })
+          )
+        ),
+        h2("rect", { width: "96", height: "40", fill: "url(#mv-thumb-water)" }),
+        ...[0, 1, 2].map(
+          (index) => h2("path", {
+            key: index,
+            d: `M0 ${14 + index * 8} Q 12 ${8 + index * 8}, 24 ${14 + index * 8} T 48 ${14 + index * 8} T 72 ${14 + index * 8} T 96 ${14 + index * 8}`,
+            fill: "none",
+            stroke: "#9fd7ff",
+            strokeWidth: "1.3",
+            opacity: 0.5
+          })
+        )
+      );
+    }
+    return h2(
+      "svg",
+      common,
+      h2(
+        "defs",
+        null,
+        h2(
+          "linearGradient",
+          { id: "mv-thumb-depth", x1: "0", y1: "0", x2: "0", y2: "1" },
+          h2("stop", { offset: "0", stopColor: "#67e8f9" }),
+          h2("stop", { offset: "0.55", stopColor: "#0e7490" }),
+          h2("stop", { offset: "1", stopColor: "#0b1e4b" })
+        )
+      ),
+      h2("rect", { width: "96", height: "40", fill: "url(#mv-thumb-depth)" }),
+      h2("line", { x1: "0", y1: "16", x2: "96", y2: "16", stroke: "rgba(255,255,255,.65)", strokeWidth: "0.8" })
+    );
+  };
+  const orderList = selectedPresets.length > 1 ? h2(
+    "div",
+    { className: "order", role: "list", "aria-label": t2("shader.orderLabel") },
+    ...selectedPresets.map(
+      (preset, index) => h2(
+        "div",
+        { key: preset, className: "order-item", role: "listitem" },
+        h2("span", { className: "index" }, `${index + 1}`),
+        h2("span", { className: "order-name", title: t2(`shader.preset.${preset}`) }, t2(`shader.preset.${preset}`)),
+        h2(
+          "button",
+          { type: "button", className: "mv-icon-btn", title: t2("shader.moveUp"), disabled: index === 0, onClick: () => onPresetMove(preset, -1) },
+          "↑"
+        ),
+        h2(
+          "button",
+          { type: "button", className: "mv-icon-btn", title: t2("shader.moveDown"), disabled: index === selectedPresets.length - 1, onClick: () => onPresetMove(preset, 1) },
+          "↓"
+        ),
+        h2("button", { type: "button", className: "mv-icon-btn", title: t2("shader.removePreset"), onClick: () => onPreset(preset) }, "✕")
+      )
+    )
+  ) : null;
   return h2(
     "div",
     { className: "mv-card mv-shader", role: "region", "aria-label": t2("shader.title") },
@@ -4303,6 +4577,7 @@ function ShaderWorkbench({
       "header",
       null,
       h2("span", { className: "title" }, t2("shader.title")),
+      h2("span", { className: "subtitle" }, targetName !== "" ? t2("shader.targetChip", { name: targetName }) : t2("shader.targetNone")),
       h2(
         "button",
         { type: "button", className: "mv-icon-btn", title: t2("shader.close"), "aria-label": t2("shader.close"), onClick: onClose },
@@ -4324,8 +4599,13 @@ function ShaderWorkbench({
             disabled: visibleLayers.length === 0,
             onChange: (event) => onLayer(event.target.value)
           },
-          h2("option", { value: "" }, t2("shader.layerAuto")),
+          h2("option", { value: "" }, targetName !== "" ? t2("shader.layerAutoNamed", { name: targetName }) : t2("shader.layerAuto")),
           ...visibleLayers.map((layer) => h2("option", { key: layer.id, value: layer.id }, layer.name))
+        ),
+        h2(
+          "p",
+          { className: "target-line" },
+          targetName === "" ? t2("shader.targetNone") : target?.auto ? t2("shader.targetAuto", { name: targetName }) : t2("shader.targetFixed", { name: targetName })
         )
       ),
       h2(
@@ -4335,30 +4615,64 @@ function ShaderWorkbench({
         h2(
           "div",
           { className: "presets" },
-          ...SHADER_PRESETS.map(
-            (preset) => h2(
+          ...SHADER_PRESETS.map((preset) => {
+            const selected = selectedPresets.includes(preset);
+            const order = selected ? selectedPresets.indexOf(preset) + 1 : 0;
+            return h2(
               "button",
               {
                 key: preset,
                 type: "button",
-                className: `preset${selectedPresets.includes(preset) ? " on" : ""}`,
+                className: `preset${selected ? " on" : ""}`,
                 title: t2(`shader.preset.${preset}`),
-                "aria-pressed": selectedPresets.includes(preset),
+                "aria-pressed": selected,
                 onClick: () => onPreset(preset)
               },
-              t2(`shader.preset.${preset}`)
-            )
-          )
+              h2("span", { className: "thumb" }, thumb(preset)),
+              h2("span", { className: "preset-name" }, t2(`shader.preset.${preset}`)),
+              order > 0 ? h2("span", { className: "order-badge", "aria-hidden": true }, `${order}`) : null
+            );
+          })
         ),
         h2("p", { className: "hint" }, t2("shader.stackHint"))
       ),
+      orderList,
       params,
+      h2(
+        "label",
+        { className: "live-row" },
+        h2("input", {
+          type: "checkbox",
+          checked: live,
+          onChange: (event) => {
+            setLive(event.target.checked);
+            if (event.target.checked) onPreview();
+          }
+        }),
+        h2("span", null, t2("shader.livePreview"))
+      ),
       h2(
         "div",
         { className: "row" },
-        h2("button", { type: "button", className: "mv-cta primary", disabled: visibleLayers.length === 0, onClick: onApply }, t2("shader.apply")),
-        h2("button", { type: "button", className: "mv-cta", onClick: onResetLayer }, t2("shader.resetLayer")),
-        h2("button", { type: "button", className: "mv-cta", disabled: active.length === 0, onClick: onResetAll }, t2("shader.resetAll"))
+        h2("button", { type: "button", className: "mv-cta primary", disabled: visibleLayers.length === 0, onClick: runApply }, t2("shader.apply")),
+        h2(
+          "button",
+          {
+            type: "button",
+            className: `mv-cta${comparing ? " on" : ""}`,
+            disabled: visibleLayers.length === 0,
+            "aria-pressed": comparing,
+            title: t2("shader.compareHint"),
+            onClick: toggleCompare
+          },
+          comparing ? t2("shader.compareOn") : t2("shader.compare")
+        )
+      ),
+      h2(
+        "div",
+        { className: "row" },
+        h2("button", { type: "button", className: "mv-cta", onClick: runResetLayer }, t2("shader.resetLayer")),
+        h2("button", { type: "button", className: "mv-cta", disabled: active.length === 0, onClick: runResetAll }, t2("shader.resetAll"))
       ),
       h2(
         "div",
@@ -4369,6 +4683,7 @@ function ShaderWorkbench({
             "div",
             { key: entry.layer, className: "item" },
             h2("span", { title: entry.layer }, entry.layer),
+            h2("span", { className: "applied-tag" }, t2("shader.appliedTag")),
             h2("em", null, presetLabel(entry.preset))
           )
         )
@@ -4437,29 +4752,53 @@ var CSS = `
 .mv-analysis .chart text{fill:var(--mv-dim);font-size:8px}
 .mv-analysis .hint{margin:2px 0 0;color:var(--mv-dim);font-size:10px;line-height:1.5}
 /* Shader workbench (B3): one compact card on the left, never wider than 320px. */
-.mv-shader{position:absolute;top:60px;left:10px;width:min(320px,calc(100% - 20px));max-height:calc(100% - 150px);z-index:14;display:flex;flex-direction:column;overflow:hidden;border-radius:13px}
-.mv-shader>header{display:flex;align-items:center;gap:4px;padding:7px 7px 7px 11px;border-bottom:.5px solid var(--mv-line)}
-.mv-shader>header .title{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;font-weight:600}
-.mv-shader .body{padding:8px 11px 10px;overflow:auto;display:flex;flex-direction:column;gap:8px;min-height:0}
-.mv-shader .field{display:flex;flex-direction:column;gap:3px;min-width:0}
-.mv-shader .field label{font-size:10.5px;color:var(--mv-dim)}
-.mv-shader .field select,.mv-shader .field input{background:var(--mv-input);border:.5px solid var(--mv-line);color:var(--mv-text);border-radius:6px;padding:6px 8px;font:inherit;font-size:11.5px;outline:none;min-width:0}
-.mv-shader .field select:focus,.mv-shader .field input:focus{border-color:var(--mv-accent)}
-.mv-shader .params{display:grid;grid-template-columns:1fr 1fr;gap:6px}
-.mv-shader .presets{display:grid;grid-template-columns:1fr 1fr;gap:5px}
-.mv-shader .preset{appearance:none;border:.5px solid var(--mv-line);background:var(--mv-input);color:var(--mv-dim);font:inherit;font-size:11px;padding:6px 8px;border-radius:7px;cursor:pointer;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.mv-shader .preset.on{background:color-mix(in srgb,var(--mv-accent) 22%,transparent);color:var(--mv-text);border-color:color-mix(in srgb,var(--mv-accent) 45%,transparent)}
-.mv-shader .preset:focus-visible,.mv-shader .mv-cta:focus-visible,.mv-shader .mv-icon-btn:focus-visible{outline:2px solid var(--mv-accent);outline-offset:1px}
-.mv-shader .row{display:flex;gap:6px}
-.mv-shader .row .mv-cta{flex:1;min-width:0;padding:6px 8px;font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mv-shader{position:absolute;top:60px;left:10px;width:min(340px,calc(100% - 20px));max-height:calc(100% - 150px);z-index:14;display:flex;flex-direction:column;overflow:hidden;border-radius:14px;--shader-mint:#3ddc97;background:color-mix(in srgb,var(--mv-glass-strong) 94%,#0a0f15 6%);backdrop-filter:blur(14px) saturate(1.08);-webkit-backdrop-filter:blur(14px) saturate(1.08);border:.5px solid color-mix(in srgb,var(--mv-line) 65%,transparent);box-shadow:0 24px 64px rgba(2,8,20,.35)}
+.mv-shader>header{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:.5px solid var(--mv-line);background:linear-gradient(180deg,color-mix(in srgb,var(--shader-mint) 7%,transparent),transparent)}
+.mv-shader>header .title{flex:none;font-size:13px;font-weight:650;letter-spacing:.01em}
+.mv-shader>header .subtitle{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;color:var(--mv-dim)}
+.mv-shader .body{padding:12px 13px 14px;overflow:auto;display:flex;flex-direction:column;gap:11px;min-height:0}
+.mv-shader .field{display:flex;flex-direction:column;gap:5px;min-width:0}
+.mv-shader .field label{font-size:10.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:color-mix(in srgb,var(--mv-dim) 88%,var(--mv-text))}
+.mv-shader .field select,.mv-shader .field input{background:var(--mv-input);border:.5px solid var(--mv-line);color:var(--mv-text);border-radius:8px;padding:7px 9px;font:inherit;font-size:12.5px;outline:none;min-width:0}
+.mv-shader .field select:focus,.mv-shader .field input:focus{border-color:var(--shader-mint);box-shadow:0 0 0 2px color-mix(in srgb,var(--shader-mint) 18%,transparent)}
+.mv-shader .target-line{margin:0;font-size:11px;line-height:1.45;color:var(--mv-dim)}
+.mv-shader .params{display:grid;grid-template-columns:1fr;gap:9px}
+.mv-shader .param{display:flex;flex-direction:column;gap:4px}
+.mv-shader .param-head label{font-size:11px;color:var(--mv-dim)}
+.mv-shader .param-controls{display:grid;grid-template-columns:1fr 62px;gap:7px;align-items:center}
+.mv-shader .param .slider{appearance:none;-webkit-appearance:none;width:100%;height:4px;border-radius:3px;background:linear-gradient(90deg,color-mix(in srgb,var(--shader-mint) 55%,transparent),color-mix(in srgb,var(--shader-mint) 18%,transparent));outline:none;margin:0}
+.mv-shader .param .slider::-webkit-slider-thumb{appearance:none;-webkit-appearance:none;width:13px;height:13px;border-radius:50%;background:var(--shader-mint);border:2px solid #0b1512;box-shadow:0 1px 4px rgba(0,0,0,.35);cursor:pointer}
+.mv-shader .param .slider::-moz-range-thumb{width:12px;height:12px;border-radius:50%;background:var(--shader-mint);border:2px solid #0b1512;cursor:pointer}
+.mv-shader .param .number{padding:5px 6px;text-align:right;font-size:11.5px}
+.mv-shader .presets{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
+.mv-shader .preset{position:relative;display:flex;flex-direction:column;gap:5px;appearance:none;border:.5px solid var(--mv-line);background:color-mix(in srgb,var(--mv-input) 82%,transparent);color:var(--mv-dim);font:inherit;font-size:11px;padding:5px;border-radius:9px;cursor:pointer;text-align:left;min-width:0}
+.mv-shader .preset .thumb{display:block;height:36px;border-radius:6px;overflow:hidden;background:#0a1018;border:.5px solid color-mix(in srgb,var(--mv-line) 60%,transparent)}
+.mv-shader .preset .thumb-svg{display:block;width:100%;height:100%}
+.mv-shader .preset .preset-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10.5px;color:var(--mv-dim)}
+.mv-shader .preset:hover{border-color:color-mix(in srgb,var(--shader-mint) 40%,var(--mv-line));color:var(--mv-text)}
+.mv-shader .preset.on{border-color:var(--shader-mint);background:color-mix(in srgb,var(--shader-mint) 12%,transparent);box-shadow:0 0 0 1px color-mix(in srgb,var(--shader-mint) 55%,transparent),0 6px 18px rgba(0,0,0,.25);color:var(--mv-text)}
+.mv-shader .preset.on .preset-name{color:var(--mv-text);font-weight:600}
+.mv-shader .order-badge{position:absolute;top:6px;right:6px;min-width:16px;height:16px;padding:0 3px;border-radius:5px;background:var(--shader-mint);color:#04241a;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+.mv-shader .order{display:flex;flex-direction:column;gap:3px;border:.5px dashed color-mix(in srgb,var(--mv-line) 70%,transparent);border-radius:9px;padding:6px 7px}
+.mv-shader .order-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--mv-text)}
+.mv-shader .order-item .index{width:15px;height:15px;border-radius:4px;background:color-mix(in srgb,var(--shader-mint) 22%,transparent);color:var(--shader-mint);font-size:10px;display:flex;align-items:center;justify-content:center;flex:none}
+.mv-shader .order-item .order-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mv-shader .order-item .mv-icon-btn{width:22px;height:22px;font-size:12px}
+.mv-shader .order-item .mv-icon-btn:disabled{opacity:.3;cursor:default}
+.mv-shader .live-row{display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--mv-dim);cursor:pointer;user-select:none}
+.mv-shader .live-row input{accent-color:var(--shader-mint);width:14px;height:14px;margin:0}
+.mv-shader .row{display:flex;gap:7px}
+.mv-shader .row .mv-cta{flex:1;min-width:0;padding:7px 8px;font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mv-shader .row .mv-cta.on{border-color:var(--shader-mint);color:var(--shader-mint);background:color-mix(in srgb,var(--shader-mint) 12%,transparent)}
 .mv-shader .row .mv-cta:disabled{opacity:.45;cursor:not-allowed}
-.mv-shader .active{display:flex;flex-direction:column;gap:4px;border-top:.5px solid var(--mv-line);padding-top:7px}
-.mv-shader .active b{font-size:10.5px;letter-spacing:.04em;color:var(--mv-dim);font-weight:600}
-.mv-shader .active .item{display:flex;align-items:baseline;justify-content:space-between;gap:8px;font-size:11px;line-height:1.4}
-.mv-shader .active .item span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--mv-dim)}
-.mv-shader .active .item em{flex:none;font-style:normal;color:var(--mv-text)}
-.mv-shader .empty{color:var(--mv-dim);font-size:10.5px}
-.mv-shader .hint{margin:0;color:var(--mv-dim);font-size:10px;line-height:1.5}
+.mv-shader .active{display:flex;flex-direction:column;gap:5px;border-top:.5px solid var(--mv-line);padding-top:9px}
+.mv-shader .active b{font-size:10px;letter-spacing:.06em;color:var(--mv-dim);font-weight:600;text-transform:uppercase}
+.mv-shader .active .item{display:flex;align-items:baseline;gap:6px;font-size:11px;line-height:1.4;min-width:0}
+.mv-shader .active .item span:first-child{min-width:0;max-width:42%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--mv-text)}
+.mv-shader .applied-tag{flex:none;font-size:9px;letter-spacing:.04em;color:#04241a;background:color-mix(in srgb,var(--shader-mint) 80%,transparent);border-radius:4px;padding:1px 4px}
+.mv-shader .active .item em{flex:1;min-width:0;font-style:normal;color:var(--mv-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right}
+.mv-shader .empty{color:var(--mv-dim);font-size:11px}
+.mv-shader .hint{margin:0;color:var(--mv-dim);font-size:10.5px;line-height:1.5}
 .mv-layers>header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;font-size:13px;font-weight:600;letter-spacing:0;color:var(--mv-text);border-bottom:.5px solid var(--mv-line)}
 .mv-layers>header .mv-icon-btn{width:26px;height:26px;font-size:13px}
 .mv-layer-list{overflow:auto;padding:4px 10px 12px;min-height:0;overscroll-behavior:contain;scrollbar-width:thin}
@@ -5815,34 +6154,102 @@ function buildShaderFormArgs(form) {
   }
   return args;
 }
+function moveShaderPreset(form, preset, delta) {
+  const current = Array.isArray(form.preset) ? [...form.preset] : [form.preset];
+  const from = current.indexOf(preset);
+  const to = from + delta;
+  if (from < 0 || to < 0 || to >= current.length) return form;
+  current.splice(from, 1);
+  current.splice(to, 0, preset);
+  return { ...form, preset: current.length === 1 ? current[0] : current };
+}
+function resolveWorkbenchTarget(layers, form) {
+  const list = Array.isArray(layers) ? layers : [];
+  const explicit = form.layerId ? list.find((layer) => layer.id === form.layerId) ?? null : null;
+  if (explicit) return { layer: explicit, auto: false };
+  let gaussianOnly = false;
+  for (let index = list.length - 1; index >= 0; index -= 1) {
+    const layer = list[index];
+    if (!layer.visible) continue;
+    if (shaderGaussianLayer(layer.tileset)) {
+      gaussianOnly = true;
+      continue;
+    }
+    return { layer, auto: true };
+  }
+  return { layer: null, auto: true, gaussianOnly };
+}
 function shaderStackLabel(t2, preset) {
   return (Array.isArray(preset) ? preset : [preset]).map((item) => t2(`shader.preset.${item}`)).join(" + ");
 }
-function createWorkbenchWiring({ getForm, getLayers, setShaderForm, shaderCommand, showToast, t: t2 }) {
+function createWorkbenchWiring({ getForm, getLayers, setShaderForm, shaderCommand, showToast, t: t2, shaderCompare }) {
   const field2 = (key, value) => setShaderForm((form) => ({ ...form, [key]: value }));
   const formLayer = () => getLayers().find((layer) => layer.id === getForm().layerId) ?? null;
+  const target = () => resolveWorkbenchTarget(getLayers(), getForm());
+  let applyTimer = null;
+  let applying = false;
+  let queued = false;
+  let lastSilentError = "";
+  const runApply = async (silent) => {
+    try {
+      const result = await shaderCommand(buildShaderFormArgs(getForm()));
+      if (!silent) showToast(t2("toast.shaderApplied", { preset: shaderStackLabel(t2, result.preset), layer: result.layer }));
+      lastSilentError = "";
+      return result;
+    } catch (error) {
+      const text = messageOf(error);
+      if (!silent || text !== lastSilentError) showToast(text);
+      lastSilentError = silent ? text : "";
+      return null;
+    }
+  };
   return {
     /** Set one form field (layerId / numeric inputs). */
     field: field2,
     /** Toggle a preset chip in the stack. */
     toggle: (preset) => setShaderForm((form) => toggleShaderPreset(form, preset)),
+    /** Reorder one preset inside the stack (the array order is the compose order). */
+    move: (preset, delta) => setShaderForm((form) => moveShaderPreset(form, preset, delta)),
+    /** The layer the card should show under "automatic selection". */
+    target,
+    /** Debounced silent apply for slider previews; repeated calls merge into one. */
+    preview: () => {
+      if (applyTimer !== null) clearTimeout(applyTimer);
+      applyTimer = setTimeout(() => {
+        applyTimer = null;
+        void applyInternal(true);
+      }, 180);
+    },
     async apply() {
+      if (applyTimer !== null) {
+        clearTimeout(applyTimer);
+        applyTimer = null;
+      }
+      await applyInternal(false);
+    },
+    /** Hold/release the original-look comparison. Closes itself if it cannot run. */
+    async compare(enabled) {
       try {
-        const result = await shaderCommand(buildShaderFormArgs(getForm()));
-        showToast(t2("toast.shaderApplied", { preset: shaderStackLabel(t2, result.preset), layer: result.layer }));
+        const resolved = target();
+        if (!resolved.layer) {
+          showToast(t2("shader.noLayers"));
+          return null;
+        }
+        return await shaderCompare(resolved.layer.id, enabled);
       } catch (error) {
         showToast(messageOf(error));
+        return null;
       }
     },
     async resetLayer() {
       try {
         const visible = getLayers().filter((layer) => layer.visible);
-        const target = formLayer() ?? visible[visible.length - 1] ?? null;
-        if (!target) {
+        const resolved = target().layer ?? formLayer() ?? visible[visible.length - 1] ?? null;
+        if (!resolved) {
           showToast(t2("shader.noLayers"));
           return;
         }
-        const result = await shaderCommand({ action: "reset", layer: target.id });
+        const result = await shaderCommand({ action: "reset", layer: resolved.id });
         showToast(result.layer ? t2("toast.shaderReset", { layer: result.layer }) : t2("toast.shaderResetAll"));
       } catch (error) {
         showToast(messageOf(error));
@@ -5857,6 +6264,22 @@ function createWorkbenchWiring({ getForm, getLayers, setShaderForm, shaderComman
       }
     }
   };
+  async function applyInternal(silent) {
+    if (applying) {
+      queued = true;
+      return;
+    }
+    applying = true;
+    try {
+      await runApply(silent);
+    } finally {
+      applying = false;
+    }
+    if (queued) {
+      queued = false;
+      await applyInternal(silent);
+    }
+  }
 }
 function messageOf(error) {
   return error && typeof error.message === "string" && error.message !== "" ? error.message : String(error);
@@ -7790,7 +8213,8 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     setShaderForm,
     shaderCommand,
     showToast,
-    t: t2
+    t: t2,
+    shaderCompare: (layer, enabled) => shaderEngine.compare(layer, enabled)
   });
   return h7(
     "div",
@@ -8015,11 +8439,18 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
       layers,
       form: shaderForm,
       active: shaderActive,
-      onClose: () => setShaderOpen(false),
+      onClose: () => {
+        void workbench.compare(false);
+        setShaderOpen(false);
+      },
       onLayer: (layerId) => workbench.field("layerId", layerId),
       onPreset: workbench.toggle,
       onField: workbench.field,
       onApply: workbench.apply,
+      onPreview: workbench.preview,
+      target: workbench.target(),
+      onPresetMove: workbench.move,
+      onCompare: workbench.compare,
       onResetLayer: workbench.resetLayer,
       onResetAll: workbench.resetAll
     }) : null,

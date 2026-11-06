@@ -298,7 +298,8 @@ test('B4 About：源码/Issues/团队与 URL 正确，客户端 meta 优先且�
 // ---------------------------------------------------------------------------
 
 test('B4 F1：同层 re-apply 失败恢复活动预设且 entries 不变，恢复失败才删 entry', () => {
-  const apply = block(client, 'function applyShader(request) {', 'return shaderResult(\'apply\', request.preset, layer.name)')
+  // v1.6：同预设滑杆更新走 fast-path，先返回一次 shaderResult，因此用下一个函数作为边界。
+  const apply = block(client, 'function applyShader(request) {', '      function resetShader(layerToken) {')
   assert.match(apply, /const existing = shaderEntriesRef\.current\.get\(layer\.id\)/)
   assert.match(apply, /const previous = existing \? existing\.previous : \(layer\.tileset\.customShader \?\? null\)/)
 
@@ -361,7 +362,8 @@ test('B4 F2：自动选层从最上层向下跳过 3DGS，显式图层与全 3DG
   const nextCounts = [...resolve.matchAll(/shaderFail\(([\s\S]*?)\)\n/g)].map((match) => (match[1].match(/next: /g) ?? []).length)
   assert.ok(nextCounts.every((count) => count === 0), 'next: 必须由 shaderFail 统一追加')
 
-  const apply = block(client, 'function applyShader(request) {', 'return shaderResult(\'apply\', request.preset, layer.name)')
+  // v1.6：同预设滑杆更新走 fast-path，先返回一次 shaderResult，因此用下一个函数作为边界。
+  const apply = block(client, 'function applyShader(request) {', '      function resetShader(layerToken) {')
   assert.ok(apply.indexOf('const layer = resolveShaderLayer(request.layer)') < apply.indexOf("throw new Error('shader: 3DGS 图层不支持该预设。next: 换 3D Tiles 图层。')"))
   assert.match(apply, /throw new Error\('shader: 3DGS 图层不支持该预设。next: 换 3D Tiles 图层。'\)/)
 })
@@ -378,7 +380,8 @@ test('B4 F3：radius=0 一律回退 0..200，无 centerHeight±50 分支，显�
   assert.match(range, /zero-radius/)
   assert.match(range, /0\.\.200/)
 
-  const apply = block(client, 'function applyShader(request) {', 'return shaderResult(\'apply\', request.preset, layer.name)')
+  // v1.6：同预设滑杆更新走 fast-path，先返回一次 shaderResult，因此用下一个函数作为边界。
+  const apply = block(client, 'function applyShader(request) {', '      function resetShader(layerToken) {')
   const call = apply.indexOf('const range = shaderHeightRange(Cesium, layer.tileset, null)')
   assert.ok(call > 0, 'applyShader 必须调用 shaderHeightRange')
   assert.ok(apply.indexOf('if (request.params.min_height !== undefined) range.minimum = request.params.min_height') > call)

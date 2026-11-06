@@ -2358,6 +2358,7 @@ const h = React.createElement
         shaderCommand,
         showToast,
         t,
+        shaderCompare: (layer, enabled) => shaderEngine.compare(layer, enabled),
       })
 
       return h(
@@ -2592,11 +2593,18 @@ const h = React.createElement
               layers,
               form: shaderForm,
               active: shaderActive,
-              onClose: () => setShaderOpen(false),
+              onClose: () => {
+                void workbench.compare(false)
+                setShaderOpen(false)
+              },
               onLayer: (layerId) => workbench.field('layerId', layerId),
               onPreset: workbench.toggle,
               onField: workbench.field,
               onApply: workbench.apply,
+              onPreview: workbench.preview,
+              target: workbench.target(),
+              onPresetMove: workbench.move,
+              onCompare: workbench.compare,
               onResetLayer: workbench.resetLayer,
               onResetAll: workbench.resetAll,
             })

@@ -10,7 +10,7 @@
  * Dependencies are injected (lazy ref getters + the two state refs + the layer
  * resolver), so the module never holds a stale viewer across panel remounts.
  */
-import { shaderFail, shaderFragmentSource, shaderHeightRange, SHADER_PRESETS, shaderGaussianLayer, shaderUniforms, shaderValidateRequest } from '../shader/presets.js'
+import { samePresetStack, shaderFail, shaderFragmentSource, shaderHeightRange, SHADER_PRESETS, shaderGaussianLayer, shaderUniforms, shaderValidateRequest } from '../shader/presets.js'
 import { message } from '../format.js'
 
 /**
@@ -32,6 +32,8 @@ export function createShaderEngine(deps) {
   const shaderEntriesRef = deps.entries
   const shaderTickRef = deps.tickRef
   const setShaderActive = deps.setShaderActive
+  /** layer id -> { original } while the workbench previews the un-shaded look. */
+  const comparisons = new Map()
 
       //#region shader engine ----------------------------------------------------
       // One active preset per layer. The active presets are part of the persisted
@@ -91,6 +93,21 @@ export function createShaderEngine(deps) {
         }
       }
 
+      /** End the original-look comparison on one layer and put the preset back. */
+      function finishCompare(layerId) {
+        if (!comparisons.has(layerId)) return false
+        comparisons.delete(layerId)
+        const entry = shaderEntriesRef.current.get(layerId)
+        if (entry && entry.layer && entry.layer.tileset) {
+          try {
+            entry.layer.tileset.customShader = entry.shader
+          } catch {
+            /* the layer may be detached mid-comparison */
+          }
+        }
+        return true
+      }
+
       function restoreShaderEntry(entry) {
         try {
           entry.layer.tileset.customShader = entry.previous ?? undefined
@@ -106,6 +123,7 @@ export function createShaderEngine(deps) {
         const entry = entries.get(id)
         if (!entry) return false
         entries.delete(id)
+        finishCompare(id)
         if (restore) restoreShaderEntry(entry)
         refreshShaderActive()
         if (entries.size === 0) releaseShaderTick()
@@ -153,6 +171,8 @@ export function createShaderEngine(deps) {
           // Exact wording from the frozen B3 contract (used by QA and the model).
           throw new Error('shader: 3DGS 图层不支持该预设。next: 换 3D Tiles 图层。')
         }
+        // Applying a look ends any original-look comparison on this layer.
+        finishCompare(layer.id)
         // The contract fallback for a not-yet-loaded tileset is 0..200, not the
         // camera altitude: the dataset centre must not depend on where we look.
         const range = shaderHeightRange(Cesium, layer.tileset, null)
@@ -160,6 +180,20 @@ export function createShaderEngine(deps) {
         if (request.params.max_height !== undefined) range.maximum = request.params.max_height
         if (!(range.maximum > range.minimum)) {
           throw shaderFail(`高程范围无效（${range.minimum}..${range.maximum}）。`, '传入 min_height < max_height。')
+        }
+        const existing = shaderEntriesRef.current.get(layer.id)
+        // Slider previews re-apply the same stack constantly. Updating the uniforms
+        // of the compiled CustomShader avoids a GLSL recompile per keystroke and
+        // keeps the original shader saved for reset unchanged.
+        if (existing && samePresetStack(existing.preset, request.preset) && typeof existing.shader?.setUniform === 'function') {
+          const uniforms = shaderUniforms(Cesium, request.presets ?? request.preset, request.params, range)
+          try {
+            for (const [name, uniform] of Object.entries(uniforms)) existing.shader.setUniform(name, uniform.value)
+          } catch (error) {
+            throw shaderFail(`更新着色器参数失败（${message(error)}）。`, '换一个预设或重置后重试。')
+          }
+          existing.params = { ...request.params }
+          return shaderResult('apply', request.preset, layer.name)
         }
         const options = {
           uniforms: shaderUniforms(Cesium, request.presets ?? request.preset, request.params, range),
@@ -177,7 +211,6 @@ export function createShaderEngine(deps) {
         }
         // Re-applying on the same layer keeps the very first saved shader so reset
         // never restores a preset we applied ourselves.
-        const existing = shaderEntriesRef.current.get(layer.id)
         const previous = existing ? existing.previous : (layer.tileset.customShader ?? null)
         try {
           layer.tileset.customShader = shader
@@ -241,6 +274,7 @@ export function createShaderEngine(deps) {
         }
         let failure = null
         for (const entry of targets) {
+          finishCompare(entry.layer.id)
           entries.delete(entry.layer.id)
           const error = restoreShaderEntry(entry)
           if (error && !failure) failure = error
@@ -251,6 +285,33 @@ export function createShaderEngine(deps) {
           throw shaderFail(`恢复原有着色器失败（${message(failure)}）。`, '重试 reset，或换一个预设后重置。')
         }
         return shaderResult('reset', null, targetLayerName)
+      }
+
+      /**
+       * Workbench "original look" comparison: temporarily put the layer's original
+       * shader back without forgetting the applied preset, so releasing the toggle
+       * (or applying/resetting/closing) restores the shaded view exactly.
+       */
+      function compareShader(layerToken, enabled) {
+        const layer = resolveShaderLayer(layerToken)
+        const entry = shaderEntriesRef.current.get(layer.id)
+        if (enabled) {
+          if (!entry) {
+            throw shaderFail('当前图层还没有应用着色器，无法对比。', '先应用一个预设，再点「原图对比」。')
+          }
+          if (!comparisons.has(layer.id)) {
+            comparisons.set(layer.id, { original: entry.previous ?? null })
+            try {
+              layer.tileset.customShader = entry.previous ?? undefined
+            } catch (error) {
+              comparisons.delete(layer.id)
+              throw shaderFail(`原图对比失败（${message(error)}）。`, '重试，或先重置该图层再对比。')
+            }
+          }
+          return { compared: true, layer: layer.name }
+        }
+        finishCompare(layer.id)
+        return { compared: false, layer: layer.name }
       }
 
       /**
@@ -279,5 +340,7 @@ export function createShaderEngine(deps) {
     detachForLayer: (id, restore) => detachShaderForLayer(id, restore),
     /** Detach the u_time tick without touching the entries (viewer teardown). */
     releaseTick: () => releaseShaderTick(),
+    /** Workbench: temporarily swap to the layer's original look / restore. */
+    compare: (layer, enabled) => compareShader(layer, enabled),
   }
 }
