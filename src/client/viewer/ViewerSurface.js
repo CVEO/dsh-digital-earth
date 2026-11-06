@@ -20,7 +20,7 @@ import { AnalysisCard, ShaderWorkbench } from '../ui/cards.js'
 import { CSS } from '../ui/css.js'
 import { HealthDialog, PathAccessDialog, SourcesDialog } from '../ui/dialogs.js'
 import { StatusHud } from '../ui/hud.js'
-import { CollapseIcon, FullscreenIcon, HudIcon, LayerActionIcon, ShaderIcon, ThemeIcon, ViewerIcon } from '../ui/icons.js'
+import { AskAgentIcon, CollapseIcon, FullscreenIcon, HudIcon, LayerActionIcon, ResetIcon, ScreenshotIcon, ShaderIcon, ThemeIcon, ViewerIcon } from '../ui/icons.js'
 import { MenuItem } from '../ui/menu-item.js'
 
 const h = React.createElement
@@ -3458,7 +3458,19 @@ ${image !== '' ? `<h2>${escapeHtml(L.snapshot)}</h2>${image}` : ''}
 
       React.useEffect(() => {
         if (phase !== 'ready') return undefined
-        const timer = setInterval(() => setStats(collectStats()), 500)
+        // The camera/layer readout only needs ~1 Hz, and every state update
+        // re-renders the whole panel (the toolbar, menus and layer card), which
+        // competes with the globe's frame budget while the user is dragging. A
+        // 500 ms cadence doubled that cost for no visible gain, so: 1 Hz plus a
+        // value check that makes an idle scene cost zero React work.
+        let lastKey = ''
+        const timer = setInterval(() => {
+          const next = collectStats()
+          const key = next === null ? 'null' : JSON.stringify(next)
+          if (key === lastKey) return
+          lastKey = key
+          setStats(next)
+        }, 1000)
         return () => clearInterval(timer)
         // eslint-disable-next-line react-hooks/exhaustive-deps
       }, [phase])
@@ -3742,9 +3754,13 @@ ${image !== '' ? `<h2>${escapeHtml(L.snapshot)}</h2>${image}` : ''}
               () => setShaderOpen((value) => !value),
               shaderOpen,
             ),
-            button(t('btn.screenshot'), screenshot),
-            sessionId ? button(t('btn.askAgent'), askAgent) : null,
-            button(t('btn.reset'), resetView),
+            // Action buttons are icon-only with a tooltip/aria-label: in the docked
+            // narrow panel the text labels were what wrapped the toolbar onto a
+            // second row. The four dropdown menus keep their text labels because a
+            // bare icon does not tell the user what the menu contains.
+            iconButton(h(ScreenshotIcon), t('btn.screenshot'), screenshot),
+            sessionId ? iconButton(h(AskAgentIcon), t('btn.askAgent'), askAgent) : null,
+            iconButton(h(ResetIcon), t('btn.reset'), resetView),
             docked
               ? iconButton(h(FullscreenIcon), t('btn.maximizeTitle'), togglePaneFullscreen)
               : button(t('btn.beside'), openBeside),

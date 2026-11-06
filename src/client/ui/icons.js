@@ -122,4 +122,38 @@ const h = React.createElement
       )
     }
 
-export { ViewerIcon, ThemeIcon, FullscreenIcon, HudIcon, CollapseIcon, LayerActionIcon, ShaderIcon }
+    /** Camera glyph: screenshot / capture. */
+    function ScreenshotIcon({ size = 16 }) {
+      const stroke = { stroke: 'currentColor', strokeWidth: 1.7, strokeLinecap: 'round', strokeLinejoin: 'round', fill: 'none' }
+      return h(
+        'svg',
+        { viewBox: '0 0 24 24', width: size, height: size, 'aria-hidden': true, style: { display: 'block' } },
+        h('path', { d: 'M3.5 8.5h3l1.4-2.2h8.2l1.4 2.2h3v10h-17z', ...stroke }),
+        h('circle', { cx: 12, cy: 13, r: 3.4, ...stroke }),
+      )
+    }
+
+    /** Home glyph: reset the camera to the home view. */
+    function ResetIcon({ size = 16 }) {
+      const stroke = { stroke: 'currentColor', strokeWidth: 1.7, strokeLinecap: 'round', strokeLinejoin: 'round', fill: 'none' }
+      return h(
+        'svg',
+        { viewBox: '0 0 24 24', width: size, height: size, 'aria-hidden': true, style: { display: 'block' } },
+        h('path', { d: 'M4 11.5 12 4l8 7.5', ...stroke }),
+        h('path', { d: 'M6.5 10.5V20h11v-9.5', ...stroke }),
+        h('path', { d: 'M10 20v-5h4v5', ...stroke }),
+      )
+    }
+
+    /** Speech bubble glyph: ask the conversation Agent about the scene. */
+    function AskAgentIcon({ size = 16 }) {
+      const stroke = { stroke: 'currentColor', strokeWidth: 1.7, strokeLinecap: 'round', strokeLinejoin: 'round', fill: 'none' }
+      return h(
+        'svg',
+        { viewBox: '0 0 24 24', width: size, height: size, 'aria-hidden': true, style: { display: 'block' } },
+        h('path', { d: 'M4 5.5h16v10.5H9.5L5 20v-4H4z', ...stroke }),
+        h('path', { d: 'M8.5 9.5h7M8.5 12.5h4.5', ...stroke }),
+      )
+    }
+
+export { ViewerIcon, ThemeIcon, FullscreenIcon, HudIcon, CollapseIcon, LayerActionIcon, ShaderIcon, ScreenshotIcon, ResetIcon, AskAgentIcon }

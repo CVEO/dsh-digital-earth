@@ -821,6 +821,34 @@ function ShaderIcon({ size = 16 }) {
     h("circle", { cx: 8.5, cy: 17, r: 2.4, ...stroke })
   );
 }
+function ScreenshotIcon({ size = 16 }) {
+  const stroke = { stroke: "currentColor", strokeWidth: 1.7, strokeLinecap: "round", strokeLinejoin: "round", fill: "none" };
+  return h(
+    "svg",
+    { viewBox: "0 0 24 24", width: size, height: size, "aria-hidden": true, style: { display: "block" } },
+    h("path", { d: "M3.5 8.5h3l1.4-2.2h8.2l1.4 2.2h3v10h-17z", ...stroke }),
+    h("circle", { cx: 12, cy: 13, r: 3.4, ...stroke })
+  );
+}
+function ResetIcon({ size = 16 }) {
+  const stroke = { stroke: "currentColor", strokeWidth: 1.7, strokeLinecap: "round", strokeLinejoin: "round", fill: "none" };
+  return h(
+    "svg",
+    { viewBox: "0 0 24 24", width: size, height: size, "aria-hidden": true, style: { display: "block" } },
+    h("path", { d: "M4 11.5 12 4l8 7.5", ...stroke }),
+    h("path", { d: "M6.5 10.5V20h11v-9.5", ...stroke }),
+    h("path", { d: "M10 20v-5h4v5", ...stroke })
+  );
+}
+function AskAgentIcon({ size = 16 }) {
+  const stroke = { stroke: "currentColor", strokeWidth: 1.7, strokeLinecap: "round", strokeLinejoin: "round", fill: "none" };
+  return h(
+    "svg",
+    { viewBox: "0 0 24 24", width: size, height: size, "aria-hidden": true, style: { display: "block" } },
+    h("path", { d: "M4 5.5h16v10.5H9.5L5 20v-4H4z", ...stroke }),
+    h("path", { d: "M8.5 9.5h7M8.5 12.5h4.5", ...stroke })
+  );
+}
 
 // src/client/ui/layout.js
 var import_react9 = __toESM(require("react"), 1);
@@ -5850,7 +5878,14 @@ ${image !== "" ? `<h2>${escapeHtml(L.snapshot)}</h2>${image}` : ""}
   }, [scan]);
   import_react8.default.useEffect(() => {
     if (phase !== "ready") return void 0;
-    const timer = setInterval(() => setStats(collectStats()), 500);
+    let lastKey = "";
+    const timer = setInterval(() => {
+      const next = collectStats();
+      const key = next === null ? "null" : JSON.stringify(next);
+      if (key === lastKey) return;
+      lastKey = key;
+      setStats(next);
+    }, 1e3);
     return () => clearInterval(timer);
   }, [phase]);
   import_react8.default.useEffect(() => {
@@ -6115,9 +6150,13 @@ ${image !== "" ? `<h2>${escapeHtml(L.snapshot)}</h2>${image}` : ""}
           () => setShaderOpen((value) => !value),
           shaderOpen
         ),
-        button(t2("btn.screenshot"), screenshot),
-        sessionId ? button(t2("btn.askAgent"), askAgent) : null,
-        button(t2("btn.reset"), resetView),
+        // Action buttons are icon-only with a tooltip/aria-label: in the docked
+        // narrow panel the text labels were what wrapped the toolbar onto a
+        // second row. The four dropdown menus keep their text labels because a
+        // bare icon does not tell the user what the menu contains.
+        iconButton(h6(ScreenshotIcon), t2("btn.screenshot"), screenshot),
+        sessionId ? iconButton(h6(AskAgentIcon), t2("btn.askAgent"), askAgent) : null,
+        iconButton(h6(ResetIcon), t2("btn.reset"), resetView),
         docked ? iconButton(h6(FullscreenIcon), t2("btn.maximizeTitle"), togglePaneFullscreen) : button(t2("btn.beside"), openBeside),
         // Real fullscreen works from both mounts; the sidebar-maximize button
         // above is a docked-only layout action, not fullscreen.

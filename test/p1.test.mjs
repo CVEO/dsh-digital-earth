@@ -517,8 +517,11 @@ test('P1 askAgent 汇总相机/图层/叠加层、profile/flood/sunlight 分析�
   assert.ok(askAgentSource.includes('Shaders:'))
 })
 
-test('P1 工具栏仅在存在会话时渲染 Ask Agent 按钮，且依赖的采集/状态/分析函数都在', () => {
-  assert.ok(clientSource.includes("sessionId ? button(t('btn.askAgent'), askAgent) : null"))
+test('P1 工具栏仅在存在会话时渲染 Ask Agent 按钮（图标 + tooltip），且依赖的采集/状态/分析函数都在', () => {
+  assert.ok(
+    clientSource.includes("sessionId ? iconButton(h(AskAgentIcon), t('btn.askAgent'), askAgent) : null"),
+    'Ask Agent 按钮应仅为会话页签渲染，并使用图标按钮',
+  )
   // askAgent 依赖的三个基础设施仍然存在。
   assert.ok(clientSource.includes('async function captureScene(options = {}, session = null)'))
   assert.ok(clientSource.includes('async function collectSceneStatus()'))
