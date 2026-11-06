@@ -3736,6 +3736,32 @@ function shaderGaussianLayer(tileset) {
   }
   return false;
 }
+function shaderTilesetExtent(Cesium, tileset) {
+  const root = tileset?.root;
+  const volume = root?.boundingVolume;
+  if (!volume) return null;
+  if (shaderFinite(volume.minimumHeight) && shaderFinite(volume.maximumHeight) && volume.maximumHeight > volume.minimumHeight) {
+    return { minimum: volume.minimumHeight, maximum: volume.maximumHeight };
+  }
+  const obb = volume.obb ?? root?._boundingVolume?.obb;
+  if (obb?.center && obb?.halfAxes && typeof Cesium?.Matrix3?.getColumn === "function") {
+    try {
+      const up = Cesium.Cartesian3.normalize(Cesium.Cartesian3.clone(obb.center), new Cesium.Cartesian3());
+      const column = new Cesium.Cartesian3();
+      let support = 0;
+      for (let index = 0; index < 3; index += 1) {
+        Cesium.Matrix3.getColumn(obb.halfAxes, index, column);
+        support += Math.abs(Cesium.Cartesian3.dot(column, up));
+      }
+      const centerHeight = Cesium.Cartographic.fromCartesian(obb.center)?.height;
+      if (shaderFinite(centerHeight) && support > 0.5) {
+        return { minimum: centerHeight - support, maximum: centerHeight + support };
+      }
+    } catch {
+    }
+  }
+  return null;
+}
 function shaderHeightRange(Cesium, tileset, fallbackCenter) {
   let center = tileset?.boundingSphere?.center ?? tileset?.root?.boundingSphere?.center ?? fallbackCenter ?? null;
   if (!center) center = Cesium.Cartesian3.fromDegrees(0, 0, 0);
@@ -3745,6 +3771,12 @@ function shaderHeightRange(Cesium, tileset, fallbackCenter) {
     if (carto && shaderFinite(carto.height)) centerHeight = carto.height;
   } catch {
     centerHeight = 0;
+  }
+  const extent = shaderTilesetExtent(Cesium, tileset);
+  if (extent) {
+    const minimum2 = shaderClamp(extent.minimum, SHADER_HEIGHT_FLOOR, SHADER_HEIGHT_CEILING);
+    const maximum2 = shaderClamp(extent.maximum, SHADER_HEIGHT_FLOOR, SHADER_HEIGHT_CEILING);
+    if (maximum2 > minimum2) return { center, centerHeight, minimum: minimum2, maximum: maximum2, estimated: true, bounds: true };
   }
   const rawRadius = Number(tileset?.boundingSphere?.radius ?? tileset?.root?.boundingSphere?.radius);
   const radius = shaderFinite(rawRadius) ? Math.abs(rawRadius) : 0;
@@ -3819,47 +3851,77 @@ var SHADER_FRAGMENT_SOURCES = {
   float height = length(fsInput.attributes.positionWC) - length(u_center) + u_centerHeight;
   float span = max(u_maxHeight - u_minHeight, 1.0);
   float t = clamp((height - u_minHeight) / span, 0.0, 1.0);
-  vec3 low = vec3(0.16, 0.36, 0.86);
-  vec3 midLow = vec3(0.20, 0.78, 0.36);
-  vec3 mid = vec3(0.96, 0.90, 0.22);
-  vec3 midHigh = vec3(0.98, 0.56, 0.14);
-  vec3 high = vec3(0.92, 0.18, 0.16);
+  // Deep indigo -> cyan -> mint -> amber -> coral: a modern elevation ramp that
+  // stays legible on both dark and light imagery.
+  vec3 c0 = vec3(0.09, 0.14, 0.40);
+  vec3 c1 = vec3(0.08, 0.49, 0.70);
+  vec3 c2 = vec3(0.24, 0.80, 0.60);
+  vec3 c3 = vec3(0.99, 0.79, 0.32);
+  vec3 c4 = vec3(0.94, 0.36, 0.30);
   vec3 ramp = t < 0.25
-    ? mix(low, midLow, t / 0.25)
+    ? mix(c0, c1, t / 0.25)
     : t < 0.5
-      ? mix(midLow, mid, (t - 0.25) / 0.25)
+      ? mix(c1, c2, (t - 0.25) / 0.25)
       : t < 0.75
-        ? mix(mid, midHigh, (t - 0.5) / 0.25)
-        : mix(midHigh, high, (t - 0.75) / 0.25);
-  material.diffuse = mix(material.diffuse, ramp, 0.85);
+        ? mix(c2, c3, (t - 0.5) / 0.25)
+        : mix(c3, c4, (t - 0.75) / 0.25);
+  // Photogrammetry textures already bake in roof/wall shading; reusing their
+  // luminance keeps the volume that a flat colour would erase.
+  float lum = clamp(dot(material.diffuse, vec3(0.2126, 0.7152, 0.0722)), 0.0, 1.0);
+  ramp *= 0.74 + 0.52 * lum;
+  // Faint topographic bands: readable as elevation without looking like a poster.
+  float shade = abs(fract(t * 8.0) - 0.5) * 2.0;
+  ramp *= 0.95 + 0.05 * shade;
+  material.diffuse = mix(material.diffuse, ramp, 0.72);
 }`,
   contour: `void fragmentMain(FragmentInput fsInput, inout czm_modelMaterial material) {
   float height = length(fsInput.attributes.positionWC) - length(u_center) + u_centerHeight;
   float spacing = max(u_interval, 1.0);
   float band = fract(height / spacing);
   float edge = min(band, 1.0 - band);
-  float line = 1.0 - smoothstep(0.0, 0.08, edge);
-  vec3 contourColor = vec3(0.98, 0.84, 0.28);
-  material.diffuse = mix(material.diffuse, contourColor, line);
+  // Two line weights: a crisp 1x grid plus a brighter 5x "major" contour.
+  float minor = 1.0 - smoothstep(0.0, 0.050, edge);
+  float majorBand = fract(height / (spacing * 5.0));
+  float majorEdge = min(majorBand, 1.0 - majorBand);
+  float major = 1.0 - smoothstep(0.0, 0.022, majorEdge);
+  // Cool instrument tint instead of a yellow wash; imagery detail stays visible.
+  float tint = 0.5 + 0.5 * sin(height * 0.0026);
+  vec3 base = mix(vec3(0.07, 0.15, 0.26), vec3(0.13, 0.30, 0.40), tint);
+  vec3 lineColor = mix(vec3(0.62, 0.86, 1.0), vec3(0.97, 1.0, 1.0), major);
+  material.diffuse = mix(material.diffuse, base, 0.22);
+  material.diffuse = mix(material.diffuse, lineColor, clamp(minor * 0.5 + major * 0.5, 0.0, 1.0));
 }`,
   scan: `void fragmentMain(FragmentInput fsInput, inout czm_modelMaterial material) {
   float height = length(fsInput.attributes.positionWC) - length(u_center) + u_centerHeight;
   float span = max(u_maxHeight - u_minHeight, 1.0);
   float t = clamp((height - u_minHeight) / span, 0.0, 1.0);
-  float sweep = fract(u_time * max(u_speed, 0.1) * 0.12);
+  float sweep = fract(u_time * max(u_speed, 0.1) * 0.09);
   float distanceToBand = abs(t - sweep);
-  float band = 1.0 - smoothstep(0.0, 0.05, distanceToBand);
-  vec3 scanColor = vec3(0.32, 0.95, 1.0);
-  material.diffuse = mix(material.diffuse * 0.6, scanColor, band);
+  // A soft wide glow with a thin bright core reads as a live instrument sweep;
+  // the rest of the surface is only slightly dimmed so context stays visible.
+  float glow = exp(-distanceToBand * 22.0);
+  float core = 1.0 - smoothstep(0.0, 0.012, distanceToBand);
+  vec3 scanTint = mix(vec3(0.12, 0.62, 0.86), vec3(0.72, 1.0, 0.94), glow);
+  material.diffuse *= 0.88;
+  material.diffuse = mix(material.diffuse, scanTint, clamp(glow * 0.8 + core * 0.2, 0.0, 1.0));
 }`,
   water: `void fragmentMain(FragmentInput fsInput, inout czm_modelMaterial material) {
-  float height = length(fsInput.attributes.positionWC) - length(u_center) + u_centerHeight;
-  float waveA = sin(height * 0.35 + u_time * u_speed * 1.6);
-  float waveB = sin(height * 0.72 - u_time * u_speed * 2.4);
-  float ripple = clamp(0.5 + (waveA * 0.35 + waveB * 0.15) * u_amplitude, 0.0, 1.0);
-  vec3 waterColor = mix(vec3(0.03, 0.16, 0.38), vec3(0.24, 0.62, 0.92), ripple);
-  material.diffuse = mix(material.diffuse, waterColor, u_opacity);
-  material.alpha = mix(material.alpha, 0.92, u_opacity * 0.5);
+  // World-space waves keep ripples moving across the surface instead of sliding
+  // up and down with altitude (the old height-only sine looked like stripes).
+  vec3 world = fsInput.attributes.positionWC;
+  float speed = max(u_speed, 0.1) * 1.15;
+  float w1 = sin(world.x * 0.055 + world.z * 0.021 + u_time * speed);
+  float w2 = sin(world.y * 0.043 - world.z * 0.031 - u_time * speed * 1.35);
+  float w3 = sin((world.x + world.y) * 0.028 + u_time * speed * 0.72);
+  float ripple = clamp(0.5 + (w1 * 0.5 + w2 * 0.32 + w3 * 0.18) * u_amplitude * 0.6, 0.0, 1.0);
+  vec3 deep = vec3(0.02, 0.09, 0.22);
+  vec3 shallow = vec3(0.09, 0.42, 0.60);
+  vec3 crest = vec3(0.62, 0.97, 1.0);
+  vec3 waterColor = mix(deep, shallow, ripple);
+  float sparkle = pow(ripple, 7.0);
+  waterColor = mix(waterColor, crest, sparkle * 0.55);
+  material.diffuse = mix(material.diffuse, waterColor, u_opacity * 0.85);
+  material.alpha = mix(material.alpha, 0.94, u_opacity * 0.55);
 }`,
   // D-17: colour geometry by how deep it sits below a chosen water plane; the
   // depth ramp is fixed (never user-supplied color) so the whitelist stays intact.
@@ -3867,10 +3929,17 @@ var SHADER_FRAGMENT_SOURCES = {
   float height = length(fsInput.attributes.positionWC) - length(u_center) + u_centerHeight;
   float depth = u_waterHeight - height;
   float t = clamp(depth / max(u_depthMax, 0.5), 0.0, 1.0);
-  float submerged = step(0.0, depth);
-  vec3 shallow = vec3(0.36, 0.78, 0.96);
-  vec3 deep = vec3(0.02, 0.10, 0.38);
-  material.diffuse = mix(material.diffuse, mix(shallow, deep, t), submerged * 0.9);
+  float submerged = smoothstep(-0.8, 0.8, depth);
+  vec3 shallow = vec3(0.46, 0.94, 0.93);
+  vec3 mid = vec3(0.10, 0.52, 0.72);
+  vec3 deep = vec3(0.02, 0.07, 0.22);
+  vec3 ramp = t < 0.5 ? mix(shallow, mid, t / 0.5) : mix(mid, deep, (t - 0.5) / 0.5);
+  // Faint depth bands every 20% of the ramp plus a brighter shoreline edge.
+  float bands = abs(fract(t * 5.0) - 0.5) * 2.0;
+  ramp *= 0.93 + 0.07 * bands;
+  float shore = 1.0 - smoothstep(0.0, 0.035, abs(depth) / max(u_depthMax, 0.5));
+  ramp = mix(ramp, vec3(0.86, 1.0, 1.0), shore * 0.5);
+  material.diffuse = mix(material.diffuse, ramp, submerged * 0.86);
   material.alpha = mix(material.alpha, 1.0, submerged * 0.35);
 }`
 };
@@ -4460,11 +4529,11 @@ function ShaderWorkbench({
           h2(
             "linearGradient",
             { id: "mv-thumb-ramp", x1: "0", y1: "0", x2: "1", y2: "0" },
-            h2("stop", { offset: "0", stopColor: "#2a60d8" }),
-            h2("stop", { offset: "0.3", stopColor: "#33c26a" }),
-            h2("stop", { offset: "0.55", stopColor: "#f2df3a" }),
-            h2("stop", { offset: "0.8", stopColor: "#ef8a2a" }),
-            h2("stop", { offset: "1", stopColor: "#e0473f" })
+            h2("stop", { offset: "0", stopColor: "#172466" }),
+            h2("stop", { offset: "0.28", stopColor: "#157db3" }),
+            h2("stop", { offset: "0.52", stopColor: "#3dcc99" }),
+            h2("stop", { offset: "0.78", stopColor: "#fcc951" }),
+            h2("stop", { offset: "1", stopColor: "#f05c4d" })
           )
         ),
         h2("rect", { width: "96", height: "40", fill: "url(#mv-thumb-ramp)", opacity: "0.9" }),
@@ -4481,7 +4550,7 @@ function ShaderWorkbench({
             key: index,
             d: `M0 ${10 + index * 7} C 16 ${4 + index * 8}, 32 ${18 + index * 6}, 48 ${10 + index * 7} S 80 ${2 + index * 9}, 96 ${12 + index * 6}`,
             fill: "none",
-            stroke: "#f4d24a",
+            stroke: "#9fdcff",
             strokeWidth: "1.4",
             opacity: 0.85 - index * 0.12
           })
