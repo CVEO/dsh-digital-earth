@@ -5698,7 +5698,14 @@ ${image !== "" ? `<h2>${escapeHtml(L.snapshot)}</h2>${image}` : ""}
           fullscreenButton: false,
           vrButton: false,
           creditContainer: creditRef.current,
-          contextOptions: { webgl: { preserveDrawingBuffer: true } }
+          // No `preserveDrawingBuffer`: it forces a full-resolution framebuffer
+          // copy and disqualifies the compositor fast path on EVERY frame, which
+          // is exactly the kind of millisecond that pushes a 60 FPS frame past the
+          // 16.7 ms vsync and makes it render at 30. Captures still work because
+          // renderSnapshot() calls viewer.render() and reads the canvas in the
+          // SAME synchronous task (see renderSnapshot: no await between them) —
+          // keep that invariant if you touch either site.
+          contextOptions: { webgl: { preserveDrawingBuffer: false } }
         });
         viewerRef.current = viewer;
         viewer.scene.globe.baseColor = Cesium.Color.fromCssColorString("#060a12");
