@@ -1,7 +1,7 @@
 /**
  * Response writers, request path/query parsing and the contained static file server.
  *
- * v2.0 host split: implementation moved verbatim from the index.js monolith.
+ * v1.5 host split: implementation moved verbatim from the index.js monolith.
  */
 import { promises as fs, createReadStream } from 'node:fs'
 import { extname, resolve } from 'node:path'

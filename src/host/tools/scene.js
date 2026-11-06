@@ -1,7 +1,7 @@
 /**
  * earth_scene: schema, validation, renderers and the tool factory.
  *
- * v2.0 host split: implementation moved verbatim from the index.js monolith.
+ * v1.5 host split: implementation moved verbatim from the index.js monolith.
  */
 import { PANEL_CLOSED_MESSAGE, SESSION_FALLBACK_NOTE, asResultObject, resolveSessionTarget, sceneError, scrubToken } from '../session.js'
 import { REPORT_FORMATS, REPORT_TIMEOUT_MS, SCENE_TIMEOUT_MS } from '../constants.js'

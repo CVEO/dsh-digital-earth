@@ -1,7 +1,7 @@
 /**
  * Process token, route prefixes, limits, state paths and static MIME/catalog constants.
  *
- * v2.0 host split: implementation moved verbatim from the index.js monolith.
+ * v1.5 host split: implementation moved verbatim from the index.js monolith.
  */
 import { randomBytes } from 'node:crypto'
 import { homedir } from 'node:os'

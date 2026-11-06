@@ -2,7 +2,7 @@
  * Source access helpers for the structural tests.
  *
  * v1.x tests read `index.js` / `client.js` directly and asserted on strings. After
- * the v2.0 split those files are either an entry (host) or a build artifact
+ * the v1.5 split those files are either an entry (host) or a build artifact
  * (client), so the structural tests read the AUTHORED SOURCE instead:
  *
  *   hostSource()    -> every module under src/host, or index.js before the split
@@ -36,7 +36,7 @@ function sourceOf(dirName, fallbackFile) {
           .filter((file) => /\.(m?js)$/.test(file))
           .sort((a, b) => a.localeCompare(b, 'en'))
       : []
-  // During the v2.0 migration the directory may exist but still be empty, so an
+  // During the v1.5 migration the directory may exist but still be empty, so an
   // empty authored tree must fall back to the monolith as well.
   if (files.length === 0) return readFileSync(join(ROOT, fallbackFile), 'utf8')
   return files.map((file) => `\n// ---- ${file.slice(ROOT.length)} ----\n${readFileSync(file, 'utf8')}`).join('\n')

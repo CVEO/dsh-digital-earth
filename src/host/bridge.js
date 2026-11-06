@@ -1,7 +1,7 @@
 /**
  * Session-scoped SSE command bridge between host tools and the panel.
  *
- * v2.0 host split: implementation moved verbatim from the index.js monolith.
+ * v1.5 host split: implementation moved verbatim from the index.js monolith.
  */
 import { BRIDGE_HEARTBEAT_MS, MAX_BRIDGE_BODY, PANEL_ATTACH_GRACE_MS, TOKEN } from './constants.js'
 import { LOCAL_ACCESS_TIMEOUT_MS, isLocalResolutionAllowed, localPathError, resolveLocalTileset } from './local-resolve.js'

@@ -1,7 +1,7 @@
 /**
  * Every HTTP route plus the DSH-connection rejection fence.
  *
- * v2.0 host split: implementation moved verbatim from the index.js monolith.
+ * v1.5 host split: implementation moved verbatim from the index.js monolith.
  */
 import { resolve, sep } from 'node:path'
 import { Readable } from 'node:stream'

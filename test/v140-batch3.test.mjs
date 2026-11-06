@@ -661,7 +661,7 @@ test('client 接线与 i18n：六 toolview 含 earth_shader、摘要键、shader
 test('QA 边界：不新增依赖，分析/着色器状态进入持久化场景快照', () => {
   const pkg = JSON.parse(packageText)
   assert.equal(pkg.dependencies, undefined)
-  // v2.0：client.js 由 src/client 构建为单一产物，esbuild 是唯一的构建期依赖。
+  // v1.5：client.js 由 src/client 构建为单一产物，esbuild 是唯一的构建期依赖。
   assert.deepEqual(Object.keys(pkg.devDependencies ?? {}), ['esbuild'])
   assert.equal(pkg.scripts.test, 'node --test')
   assert.match(pkg.scripts.check, /node --check index\.js/)

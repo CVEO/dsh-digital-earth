@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.0.0
+## 1.5.0
 
 架构与契约版本：把 1.x 的单文件巨石拆成模块、清掉隐式改写数据的兼容层、修掉错误的性能度量，并把未验证的功能移出主线。**有破坏性变更，升级前请读「不兼容变更」一节。**
 
@@ -8,7 +8,7 @@
 
 - **删除 `tileset_info.json` 地理配准兼容层**：以前宿主会在 `/tiles` 上读同级 `tileset_info.json` 的 `srs` + `srs_origin`，给缺少根 `transform` 的 `tileset.json` 补一个 ENU→ECEF 根变换。现在**只接受标准 3D Tiles 1.0 / 1.1**：根瓦片必须自带 `root.transform`（16 个数）或 `root.boundingVolume.region`，否则按 ECEF 读局部米、数据会落在地心附近。插件不再猜测、不再改写要发给 Cesium 的 JSON——`/tiles` 恢复为纯静态文件服务，「渲染的字节」永远等于「磁盘的字节」。
 - **替代方案**：数据体检（`earth_scene action=inspect`）在根文档缺世界定位时报 **error 级 `tileset_not_georeferenced`**，说明症状与修法（重新导出时写入根 `transform` / `region`）。OSGB 转换链请把世界定位写进 `tileset.json`，不要依赖 sidecar 文件。
-- **1.5 实验功能包未随本版发布**：自动找目标 / 视觉锚定、第一人称巡检 `earth_camera`、双期卷帘对比、单体化量测、视域 / 通视 / 控高 / 天际线 / 剖切、巡游录制、接触表、QA 清单、照片叠合、属性查询、覆盖网格、取景框、GeoJSON 导出、场景召回等 19 项**已整体移出主线**，代码保留在分支 / tag `wip/v1.5-feature-bomb`。解冻条件见 `docs/DIRECTION.md` §7 与 `docs/spec/SPEC-v2.0.md` §7（先有 `HeightService`、多数据集图层模型或属性语义层，再逐个回归）。
+- **实验功能包未随本版发布**：自动找目标 / 视觉锚定、第一人称巡检 `earth_camera`、双期卷帘对比、单体化量测、视域 / 通视 / 控高 / 天际线 / 剖切、巡游录制、接触表、QA 清单、照片叠合、属性查询、覆盖网格、取景框、GeoJSON 导出、场景召回等 19 项**已整体移出主线**，代码保留在分支 / tag `wip/feature-bomb`（该分支是 1.5 开发期堆出来的功能爆炸，不代表已发布能力）。解冻条件见 `docs/DIRECTION.md` §7 与 `docs/spec/SPEC-v1.5.md` §7（先有 `HeightService`、多数据集图层模型或属性语义层，再逐个回归）。
 
 ### 修复
 
@@ -28,7 +28,7 @@
 
 ### 文档
 
-- 新增 `docs/AUDIT.md`（证据化审计）、`docs/spec/SPEC-v2.0.md`（冻结需求与决策记录）、`docs/DIRECTION.md`（方向、四层图层模型、路线图、工程准则）、`docs/audit/{host,client,release}.md`（逐行审计明细）、`docs/research/layers.md`（公开 XYZ / WMS / WMTS / ArcGIS / MVT 端点的实测结果与能力矩阵）、`docs/DELIVERY.md`（重装验证清单）。
+- 新增 `docs/AUDIT.md`（证据化审计）、`docs/spec/SPEC-v1.5.md`（冻结需求与决策记录）、`docs/DIRECTION.md`（方向、四层图层模型、路线图、工程准则）、`docs/audit/{host,client,release}.md`（逐行审计明细）、`docs/research/layers.md`（公开 XYZ / WMS / WMTS / ArcGIS / MVT 端点的实测结果与能力矩阵）、`docs/DELIVERY.md`（重装验证清单）。
 
 ## 1.4.0
 

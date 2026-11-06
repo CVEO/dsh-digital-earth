@@ -1,7 +1,7 @@
 /**
  * The /earth slash command and its one-screen status summary.
  *
- * v2.0 host split: implementation moved verbatim from the index.js monolith.
+ * v1.5 host split: implementation moved verbatim from the index.js monolith.
  */
 import { CAPTURE_TIMEOUT_MS, DRAW_TIMEOUT_MS, REPORT_TIMEOUT_MS, SCENE_TIMEOUT_MS } from './constants.js'
 import { asResultObject, resolveSessionTarget } from './session.js'

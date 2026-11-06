@@ -1,7 +1,7 @@
 /**
  * "Ask Agent": push a bounded scene summary into the live conversation agent.
  *
- * v2.0 host split: implementation moved verbatim from the index.js monolith.
+ * v1.5 host split: implementation moved verbatim from the index.js monolith.
  */
 import { randomUUID } from 'node:crypto'
 import { MAX_INJECT_BODY, MAX_INJECT_TEXT } from './constants.js'

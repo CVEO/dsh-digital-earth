@@ -1,7 +1,7 @@
 /**
  * Host entry of the Digital Earth plugin.
  *
- * v2.0 split: every implementation module lives under src/host/. This file only
+ * v1.5 split: every implementation module lives under src/host/. This file only
  * injects the DSH services, wires the plugin at startup, and re-exports the
  * public seams the test suite imports from the package root.
  */

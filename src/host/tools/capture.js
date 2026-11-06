@@ -1,7 +1,7 @@
 /**
  * earth_capture: schema, validation, disk-verified result and the tool factory.
  *
- * v2.0 host split: implementation moved verbatim from the index.js monolith.
+ * v1.5 host split: implementation moved verbatim from the index.js monolith.
  */
 import { promises as fs } from 'node:fs'
 import { resolve } from 'node:path'

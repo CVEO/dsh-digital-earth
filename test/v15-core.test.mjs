@@ -1,11 +1,11 @@
 /**
- * v2.0 core contract tests (SPEC-v2.0 §3/§S5/§S6/§A6).
+ * v1.5 core contract tests (SPEC-v1.5 §3/§S5/§S6/§A6).
  *
  * These are STRUCTURAL guards on purpose: they assert that a deleted or replaced
  * mechanism cannot come back (the rAF FPS meter, the tileset_info.json rewrite,
  * the sidebar "fullscreen" misnomer) and that the new contracts exist where the
  * host and the panel meet. Behaviour tests for the same areas live next to the
- * module they exercise once the v2.0 split lands.
+ * module they exercise once the v1.5 split lands.
  *
  * Source access goes through test/helpers/source.mjs, so this file keeps working
  * while index.js/client.js are still monoliths and after they become barrels.

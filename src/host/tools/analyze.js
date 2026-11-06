@@ -1,7 +1,7 @@
 /**
  * earth_analyze: action schema, argument enforcement, renderer and factory.
  *
- * v2.0 host split: implementation moved verbatim from the index.js monolith.
+ * v1.5 host split: implementation moved verbatim from the index.js monolith.
  */
 import { ANALYZE_TIMEOUT_MS } from '../constants.js'
 import { PANEL_CLOSED_MESSAGE, SESSION_FALLBACK_NOTE, asResultObject, resolveSessionTarget, scrubToken } from '../session.js'

@@ -1,7 +1,7 @@
 /**
  * Per-session scene snapshot store and retention.
  *
- * v2.0 host split: implementation moved verbatim from the index.js monolith.
+ * v1.5 host split: implementation moved verbatim from the index.js monolith.
  */
 import { createHash } from 'node:crypto'
 import { promises as fs } from 'node:fs'

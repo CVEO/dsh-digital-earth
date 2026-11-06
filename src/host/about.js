@@ -1,14 +1,14 @@
 /**
  * About-tab facts with package.json as the single version source.
  *
- * v2.0 host split: implementation moved verbatim from the index.js monolith.
+ * v1.5 host split: implementation moved verbatim from the index.js monolith.
  */
 import { readFileSync } from 'node:fs'
 import { PACKAGE_FILE } from './constants.js'
 import { cleanText, cleanUrl } from './sanitize.js'
 
 const FALLBACK_ABOUT = {
-  version: '2.0.0',
+  version: '1.5.0',
   homepage: 'https://github.com/CVEO/dsh-digital-earth',
   issues: 'https://github.com/CVEO/dsh-digital-earth/issues',
   team: { name: '武汉大学 CVEO 课题组', url: 'https://www.whu-cveo.com/' },

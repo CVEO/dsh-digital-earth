@@ -4,7 +4,7 @@
  * 只读源码与文档，不碰实现：
  *   - 版本单一来源：package.json 1.4.0、Host/Client FALLBACK_ABOUT、README/CHANGELOG；
  *   - README 中英：1.4.0 徽章/安装示例、六工具名与功能行、结构与链接离线自查；
- *   - CHANGELOG：1.4.0 段落完整（本地路径/分析/着色器/HUD/性能），2.0.0 段落覆盖破坏性变更与架构；
+ *   - CHANGELOG：1.4.0 段落完整（本地路径/分析/着色器/HUD/性能），1.5.0 段落覆盖破坏性变更与架构；
  *   - About：宿主元数据（homepage/issues/team）与客户端兜底、团队与源码 URL；
  *   - Client B4 修复静态断言：F1 re-apply 失败恢复活动预设且不动 entries、
  *     F2 自动选层跳过 3DGS、F3 radius=0 一律回退 0..200；
@@ -122,7 +122,7 @@ test('B4 版本：package.json 为合法 semver，未新增依赖/未改 scripts
   assert.equal(pkg.name, '@cveo/dsh-digital-earth')
   assert.match(pkg.version, /^\d+\.\d+\.\d+$/)
   assert.equal(pkg.dependencies, undefined, '不得新增 runtime dependencies')
-  // v2.0：只允许构建期 esbuild（client.js 由 src/client 构建）。
+  // v1.5：只允许构建期 esbuild（client.js 由 src/client 构建）。
   assert.deepEqual(Object.keys(pkg.devDependencies ?? {}), ['esbuild'], 'devDependencies 只允许 esbuild')
   assert.equal(pkg.optionalDependencies, undefined)
   assert.equal(pkg.peerDependencies, undefined)
@@ -242,7 +242,7 @@ test('B4 版本单一来源：Host/Client FALLBACK_ABOUT 与 package 一致，�
   assert.ok(changelog.indexOf('## 1.4.0') < changelog.indexOf('## 1.3.0'))
 })
 
-test('B4 CHANGELOG：1.4.0 段落完整，且 2.0.0 段落覆盖破坏性变更与架构改动', () => {
+test('B4 CHANGELOG：1.4.0 段落完整，且 1.5.0 段落覆盖破坏性变更与架构改动', () => {
   const section = changelog.slice(changelog.indexOf('## 1.4.0'), changelog.indexOf('## 1.3.0'))
   assert.ok(section.length > 500, `CHANGELOG 1.4.0 段落过短：${section.length}`)
   for (const phrase of [
@@ -258,15 +258,15 @@ test('B4 CHANGELOG：1.4.0 段落完整，且 2.0.0 段落覆盖破坏性变更�
   assert.doesNotMatch(section, /发布|release|上线|天际线|skyline/i)
   assert.doesNotMatch(changelog, /\bTODO\b/)
 
-  // v2.0.0 段落必须写清破坏性变更与架构改动（升级者只看这一节）。
-  const v2 = changelog.slice(changelog.indexOf('## 2.0.0'), changelog.indexOf('## 1.4.0'))
-  assert.ok(v2.length > 800, `CHANGELOG 2.0.0 段落过短：${v2.length}`)
+  // v1.5.0 段落必须写清破坏性变更与架构改动（升级者只看这一节）。
+  const v15 = changelog.slice(changelog.indexOf('## 1.5.0'), changelog.indexOf('## 1.4.0'))
+  assert.ok(v15.length > 800, `CHANGELOG 1.5.0 段落过短：${v15.length}`)
   for (const phrase of [
     '不兼容变更', 'tileset_info.json', 'tileset_not_georeferenced',
     'scene.postRender', 'DOM Fullscreen', 'terrainDepthTest',
     'src/host/**', 'src/client/**', 'build:client', 'check-size',
   ]) {
-    assert.ok(v2.includes(phrase), `CHANGELOG 2.0.0 缺少：${phrase}`)
+    assert.ok(v15.includes(phrase), `CHANGELOG 1.5.0 缺少：${phrase}`)
   }
 })
 

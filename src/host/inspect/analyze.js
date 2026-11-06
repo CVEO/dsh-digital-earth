@@ -1,7 +1,7 @@
 /**
  * Static 3D Tiles analysis: walk the tree, fold statistics, build the report.
  *
- * v2.0 host split: implementation moved verbatim from the index.js monolith.
+ * v1.5 host split: implementation moved verbatim from the index.js monolith.
  */
 import { dirname } from 'node:path'
 import { INSPECT_FETCH_TIMEOUT_MS, MAX_INSPECT_TILESETS } from '../constants.js'

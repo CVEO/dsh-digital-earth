@@ -27,7 +27,7 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)))
 const readSource = async (name) => (await readFile(join(root, name), 'utf8')).replace(/\r\n/g, '\n')
 
 const indexSource = await readSource('index.js')
-// v2.0 split: implementation lives in src/host; `host` is the concatenated
+// v1.5 split: implementation lives in src/host; `host` is the concatenated
 // authored host source (safe for top-level function extraction), while
 // adjacency-sensitive slices read the owning module on purpose.
 const hostAll = hostSource()

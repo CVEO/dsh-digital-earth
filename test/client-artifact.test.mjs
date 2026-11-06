@@ -4,7 +4,7 @@
  * plugin shape the harness consumes (`{ inject, apply }`).
  *
  * This is the only test that executes the artifact rather than reading source
- * text, so it keeps working across the v2.0 split (monolith -> esbuild bundle)
+ * text, so it keeps working across the v1.5 split (monolith -> esbuild bundle)
  * and catches the two failure modes that a source-only test cannot:
  *   - a stale/empty artifact (build not run, or source moved but not rebuilt);
  *   - an entry-shape regression introduced by the bundler (default export,

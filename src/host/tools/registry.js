@@ -1,7 +1,7 @@
 /**
  * System-prompt section and the exactly-six-tool agent registration.
  *
- * v2.0 host split: implementation moved verbatim from the index.js monolith.
+ * v1.5 host split: implementation moved verbatim from the index.js monolith.
  */
 import { createAnalyzeTool } from './analyze.js'
 import { createCaptureTool } from './capture.js'

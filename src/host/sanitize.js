@@ -1,7 +1,7 @@
 /**
  * Small validators shared by the catalogs, the schemas and the inspector.
  *
- * v2.0 host split: implementation moved verbatim from the index.js monolith.
+ * v1.5 host split: implementation moved verbatim from the index.js monolith.
  */
 
 export const cleanText = (value, max) => (typeof value === 'string' ? value.trim().slice(0, max) : '')

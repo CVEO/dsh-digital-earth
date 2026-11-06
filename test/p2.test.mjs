@@ -27,7 +27,7 @@ const MAX_EXPORT_FILES = 200
 /** 源码断言必须换行无关：Windows 检出可能是 CRLF。 */
 const readSource = async (name) => (await readFile(join(root, name), 'utf8')).replace(/\r\n/g, '\n')
 const clientSource = readClientSource()
-// v2.0 split: implementation lives in src/host; source assertions read the
+// v1.5 split: implementation lives in src/host; source assertions read the
 // owning module, `hostAll` is only used to extract top-level functions.
 const hostAll = hostSource()
 const readHostModule = (rel) => readFileSync(join(root, 'src/host', rel), 'utf8').replace(/\r\n/g, '\n')

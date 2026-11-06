@@ -732,7 +732,7 @@ test('client i18n：analysis.* 37 个键中英对齐，关键文案都在', () =
 test('QA 不引入运行时依赖：dependencies 必须为空，devDependencies 只允许构建期 esbuild', () => {
   const pkg = JSON.parse(packageText)
   assert.equal(pkg.dependencies, undefined)
-  // v2.0：client.js 由 src/client 构建为单一产物，esbuild 是唯一的构建期依赖。
+  // v1.5：client.js 由 src/client 构建为单一产物，esbuild 是唯一的构建期依赖。
   assert.deepEqual(Object.keys(pkg.devDependencies ?? {}), ['esbuild'])
   assert.equal(pkg.scripts.test, 'node --test')
   assert.match(pkg.scripts.check, /node --check index\.js/)

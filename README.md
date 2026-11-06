@@ -6,7 +6,7 @@
 
 [中文](README.md) · [English](README.en.md)
 
-![版本](https://img.shields.io/badge/版本-2.0.0-4f8cff)
+![版本](https://img.shields.io/badge/版本-1.5.0-4f8cff)
 ![许可](https://img.shields.io/badge/许可-MIT-2ea44f)
 ![平台](https://img.shields.io/badge/平台-Web-8b5cf6)
 ![DSH](https://img.shields.io/badge/DSH-%3E%3D0.2.1--rc.1-0ea5e9)
@@ -58,7 +58,7 @@ dsh plugin --profile <profile> add @cveo/dsh-digital-earth
 
 # 从本地目录 / 打包文件安装
 dsh plugin --profile <profile> add "<path-to-plugin>"
-dsh plugin --profile <profile> add "./cveo-dsh-digital-earth-2.0.0.tgz"
+dsh plugin --profile <profile> add "./cveo-dsh-digital-earth-1.5.0.tgz"
 ```
 
 安装或更新后请**完全退出并重新打开 DSH** 一次：客户端 bundle 在宿主启动时注册，仅刷新页面不会重新注册。随后左侧栏出现「数字地球 / Digital Earth」入口，对话标题栏也会出现地球按钮。
@@ -109,7 +109,7 @@ Agent 调用地球工具时，插件会自动在对话右侧打开地球页签�
 - **场景保持**：切换会话 / 窗口或面板被右侧栏回收后，重新打开地球页签（或下一次 Agent 调用自动打开）会按会话恢复相机视角、已加载图层（按原始本地路径或在线地址重新加载）、图层显隐、Agent 标注 / 量测、当前地形分析结果与各图层的着色器预设；快照优先存放在宿主的 `$DSH_HOME/digital-earth/scenes`（每会话一份、原子写入、单份上限约 512 KB、最多保留最近 50 个会话，经面板专用带 token 路由读写，不进入任何工具结果），本机浏览器 localStorage 只作快速缓存与兜底，因此重启 DSH 或页面地址 / 端口变化后仍能恢复；底图与地形沿用数据源设置。
 - **截图叠加信息**：面板工具栏与 HUD 是网页 DOM 元素，本身无法与 WebGL 画面一起导出；截图默认只保留干净三维画面，Agent 截图可按次传 `include_hud=true`，或打开「设置 → 截图时叠加坐标 HUD 与署名」作为默认，插件会把光标坐标、相机参数和团队署名重绘到图片画布上，手动截图与 Agent 截图都生效。
 - **本地数据**：Agent 可直接加载面板「数据 → 打开本地目录」里选过的目录，也可直接传本机绝对路径。路径越出白名单时，宿主会先向面板发起一次授权请求；用户允许后先把所在目录登记为本地数据源，再继续原加载 / 体检。拒绝返回 `access_denied` 且不自动重试，30 秒未处理返回 `access_timeout`；白名单、真实路径与根目录校验不变，命令桥与工具结果不暴露实例 token，模型无法自行扩大可读范围。选过的目录会记入 `$DSH_HOME/digital-earth/directories.json`，重启 DSH 后仍可直接加载。
-- **标准数据契约**：只接受标准 3D Tiles 1.0 / 1.1，根瓦片必须自带世界定位（`root.transform` 或 `root.boundingVolume.region`）。不少 OSGB 转换工具只写局部坐标——根节点没有 `transform`/`region`，原点写在同级 `tileset_info.json` 里；这类数据在 v2.0 起**不再被插件代偿**：宿主原样返回文件字节，数据体检会报 `tileset_not_georeferenced` 错误并说明症状（数据坍缩到地心附近、`flyTo` 钻进地核、瓦片在视锥里反复闪现）。修复方式是在转换时写入根 `transform` 或 `region`，插件不做隐式改写，因此「Cesium 拿到的字节」永远等于「磁盘上的字节」。嵌套外部 tileset 由父级 `tileset.json` 的根变换负责，插件不重复叠加。
+- **标准数据契约**：只接受标准 3D Tiles 1.0 / 1.1，根瓦片必须自带世界定位（`root.transform` 或 `root.boundingVolume.region`）。不少 OSGB 转换工具只写局部坐标——根节点没有 `transform`/`region`，原点写在同级 `tileset_info.json` 里；这类数据在 v1.5 起**不再被插件代偿**：宿主原样返回文件字节，数据体检会报 `tileset_not_georeferenced` 错误并说明症状（数据坍缩到地心附近、`flyTo` 钻进地核、瓦片在视锥里反复闪现）。修复方式是在转换时写入根 `transform` 或 `region`，插件不做隐式改写，因此「Cesium 拿到的字节」永远等于「磁盘上的字节」。嵌套外部 tileset 由父级 `tileset.json` 的根变换负责，插件不重复叠加。
 - **地形分析**：`earth_analyze` 一次只保留一个活动分析，新分析替换旧分析；剖面返回长度、起伏 / 爬升 / 下降与采样点并显示 SVG 剖面卡，淹没返回面积、淹没比与水深，日照切换光照与阴影，`clear` 移除分析叠加并在日照分析后恢复进入前的光照 / 阴影 / 时钟状态。没有有效高程数据时返回可操作错误，不猜测数值。
 - **着色器预设**：`earth_shader` 的预设固定为高程渐变、等高线、扫描、水面四种，按图层应用 / 重置 / 列出；同一图层只保留一个 shader，参数按预设严格校验。3DGS 图层不支持该能力，模型与面板都不能注入自定义 GLSL。
 - **场景报告**：直接说「导出当前场景报告」即可调用 `earth_scene` 的 `report`；面板「数据 ▾ → 导出场景报告」或聊天里的 `/earth report [html|markdown]` 也能导出。报告包含相机、图层与显隐、底图 / 地形、Agent 标注与量测数值、活动地形分析、着色器预设和尽力截取的截图：HTML 是单文件（截图 base64 内嵌、内联样式），Markdown 以图片链接引用截图；文件写入 `$DSH_HOME/digital-earth/exports`（保留最近 200 份），工具会返回绝对路径并提示用 `present` 打开。
@@ -138,7 +138,7 @@ Agent 调用地球工具时，插件会自动在对话右侧打开地球页签�
 
 ## 工作原理
 
-- **宿主侧**（`index.js` 入口 + `src/host/**`）：注册 `/api/3dviewer/*` 路由，负责 Cesium 静态资源、本地目录扫描与白名单、最近打开目录记录、会话场景快照（`$DSH_HOME/digital-earth/scenes`）、瓦片服务、跨域代理、数据源配置读写，以及六个 Agent 工具、`/earth` 斜杠命令和 session 级命令桥。v2.0 起入口只有 `inject`/`apply` 与公开 re-export，实现按职责拆在 27 个模块里（路由、桥、体检、存储、工具各自独立）。
+- **宿主侧**（`index.js` 入口 + `src/host/**`）：注册 `/api/3dviewer/*` 路由，负责 Cesium 静态资源、本地目录扫描与白名单、最近打开目录记录、会话场景快照（`$DSH_HOME/digital-earth/scenes`）、瓦片服务、跨域代理、数据源配置读写，以及六个 Agent 工具、`/earth` 斜杠命令和 session 级命令桥。v1.5 起入口只有 `inject`/`apply` 与公开 re-export，实现按职责拆在 27 个模块里（路由、桥、体检、存储、工具各自独立）。
 - **客户端**（`src/client/**` → `client.js` 产物）：作为 DSH 客户端模块加载，声明 `sidebar.panellist`、`main` 与右侧边栏页签，按需动态 `import()` 自托管 CesiumJS；页签内面板用 `EventSource` 连接命令桥，串行执行 Agent 指令并回执。源码拆在 22 个模块，由 esbuild 打包成单一 `window.__ModuleLoader__` 产物（`npm run build:client`）；`client.js` 是构建产物，CI 会校验它与源码一致，请勿手改。
 - **Agent 命令桥**：`GET /api/3dviewer/bridge?session=…` 推送命令，`POST /api/3dviewer/bridge` 回执；同一会话只由最新打开的那个地球页签执行命令，避免重复加载；截图经 `POST /api/3dviewer/capture` 落盘，再由 `/api/3dviewer/files` 回读；数据体检经 `POST /api/3dviewer/inspect` 分析并写入报告目录。
 - **安全**：所有路由绑定 DSH `connection` 会话与同源校验，并带插件实例 token（只下发给页面，不出现在任何工具结果里）；`/tiles` 仅服务经文件选择器加入白名单的目录，Agent 加载本地路径同样受该白名单约束，且会校验真实路径；白名单注册端点 `/scan` 只接受面板自身的请求头，模型无法借 Cesium 发同源 GET 间接触发；`/inspect` 同样要求面板请求头，本地路径走白名单 + 真实路径，远程 URL 复用 `/remote` 规则；`/remote` 代理拒绝字面量 loopback / 私网地址与 3xx 重定向，避免直接 SSRF；代理不做 DNS 解析，若域名解析到内网可能绕过（见已知限制）。插件不上传数据、不主动外联。

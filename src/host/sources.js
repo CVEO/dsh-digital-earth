@@ -1,7 +1,7 @@
 /**
  * Imagery/terrain source catalog: defaults, normalization, persistence and routes.
  *
- * v2.0 host split: implementation moved verbatim from the index.js monolith.
+ * v1.5 host split: implementation moved verbatim from the index.js monolith.
  */
 import { promises as fs } from 'node:fs'
 import { IMAGERY_TYPES, MAX_IMAGERY_SOURCES, MAX_SOURCES_BODY, MAX_TERRAIN_SOURCES, SOURCES_FILE, TERRAIN_TYPES, THEME_MODES } from './constants.js'

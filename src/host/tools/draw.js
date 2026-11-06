@@ -1,7 +1,7 @@
 /**
  * earth_draw: GeoJSON validation, schema, renderer and the tool factory.
  *
- * v2.0 host split: implementation moved verbatim from the index.js monolith.
+ * v1.5 host split: implementation moved verbatim from the index.js monolith.
  */
 import { DRAW_TIMEOUT_MS, MAX_DRAW_COORDINATES, MAX_DRAW_FEATURES } from '../constants.js'
 import { PANEL_CLOSED_MESSAGE, SESSION_FALLBACK_NOTE, asResultObject, resolveSessionTarget, scrubToken } from '../session.js'

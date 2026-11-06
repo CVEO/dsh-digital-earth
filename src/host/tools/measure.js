@@ -1,7 +1,7 @@
 /**
  * earth_measure: point validation, schema, renderer and the tool factory.
  *
- * v2.0 host split: implementation moved verbatim from the index.js monolith.
+ * v1.5 host split: implementation moved verbatim from the index.js monolith.
  */
 import { MAX_MEASURE_POINTS, MEASURE_TIMEOUT_MS, MIN_MEASURE_POINTS } from '../constants.js'
 import { PANEL_CLOSED_MESSAGE, SESSION_FALLBACK_NOTE, asResultObject, resolveSessionTarget, scrubToken } from '../session.js'

@@ -1,7 +1,7 @@
 /**
  * Remembered-folder merge/read/persist plus the page-only directory route.
  *
- * v2.0 host split: implementation moved verbatim from the index.js monolith.
+ * v1.5 host split: implementation moved verbatim from the index.js monolith.
  */
 import { promises as fs } from 'node:fs'
 import { basename, resolve } from 'node:path'

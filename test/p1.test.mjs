@@ -26,7 +26,7 @@ const MAX_INJECT_TEXT = 4000
 /** 源码断言必须换行无关：Windows 检出可能是 CRLF。 */
 const readSource = async (name) => (await readFile(join(root, name), 'utf8')).replace(/\r\n/g, '\n')
 const clientSource = readClientSource()
-// v2.0 split: read the owning module for source assertions; `hostAll` is the
+// v1.5 split: read the owning module for source assertions; `hostAll` is the
 // concatenated authored host source and is only used for top-level extraction.
 const hostAll = hostSource()
 const readHostModule = (rel) => readFileSync(join(root, 'src/host', rel), 'utf8').replace(/\r\n/g, '\n')

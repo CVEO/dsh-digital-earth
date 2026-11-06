@@ -5,7 +5,7 @@ name: CI
 #   → 打包清单 → 真实打包冒烟（解包后 import 宿主入口）。
 # publish.yml 会在发布前独立重跑同一组校验，不依赖本工作流的结论。
 #
-# v2.0 起 client.js 由 src/client 经 esbuild 构建（唯一 devDependency，仅构建期使用），
+# v1.5 起 client.js 由 src/client 经 esbuild 构建（唯一 devDependency，仅构建期使用），
 # 所以这里需要 npm ci；运行期依赖仍然是零。`build:client --check` 保证「源码改了
 # 但产物没重建」的提交无法通过 CI，`scripts/check-size.mjs` 阻止单文件重新长成巨石。
 

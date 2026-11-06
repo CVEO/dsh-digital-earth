@@ -1,7 +1,7 @@
 /**
  * earth_scene inspect: host-side action plus its model-facing value and renderer.
  *
- * v2.0 host split: implementation moved verbatim from the index.js monolith.
+ * v1.5 host split: implementation moved verbatim from the index.js monolith.
  */
 import { INSPECT_BRIDGE_TIMEOUT_MS, MAX_INSPECT_ISSUES } from '../constants.js'
 import { InspectError, normalizeInspectRuntime, normalizeInspectSource } from '../inspect/fetch.js'

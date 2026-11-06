@@ -1,7 +1,7 @@
 /**
  * Report file writing/retention and the POST /inspect route handler.
  *
- * v2.0 host split: implementation moved verbatim from the index.js monolith.
+ * v1.5 host split: implementation moved verbatim from the index.js monolith.
  */
 import { promises as fs } from 'node:fs'
 import { join } from 'node:path'

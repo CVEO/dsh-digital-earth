@@ -1,7 +1,7 @@
 /**
  * Token-free path helpers: host blocking, filesystem-safe labels and timestamps.
  *
- * v2.0 host split: implementation moved verbatim from the index.js monolith.
+ * v1.5 host split: implementation moved verbatim from the index.js monolith.
  */
 import { promises as fs } from 'node:fs'
 import { parse, resolve, sep } from 'node:path'

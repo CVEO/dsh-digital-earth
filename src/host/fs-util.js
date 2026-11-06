@@ -1,7 +1,7 @@
 /**
  * Filesystem primitives shared by the persistence modules.
  *
- * v2.0 host split: implementation moved verbatim from the index.js monolith.
+ * v1.5 host split: implementation moved verbatim from the index.js monolith.
  */
 import { randomBytes } from 'node:crypto'
 import { promises as fs } from 'node:fs'

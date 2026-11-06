@@ -364,7 +364,7 @@ const h = React.createElement
           h('input', {
             type: 'checkbox',
             // Missing/false = off: underground content stays visible, matching the
-            // Cesium default and the documented behaviour before v2.0.
+            // Cesium default and the documented behaviour before v1.5.
             checked: draft.settings.terrainDepthTest === true,
             onChange: (event) =>
               setDraft((current) => ({

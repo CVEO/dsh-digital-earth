@@ -1,7 +1,7 @@
 /**
  * Session targeting, token redaction and the shared bridge/tool protocol strings.
  *
- * v2.0 host split: implementation moved verbatim from the index.js monolith.
+ * v1.5 host split: implementation moved verbatim from the index.js monolith.
  */
 import { TOKEN } from './constants.js'
 

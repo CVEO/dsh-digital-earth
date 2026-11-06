@@ -705,7 +705,7 @@ var MESSAGES = {
   }
 };
 var FALLBACK_ABOUT = {
-  version: "2.0.0",
+  version: "1.5.0",
   homepage: "https://github.com/CVEO/dsh-digital-earth",
   teamUrl: "https://www.whu-cveo.com/"
 };
@@ -744,7 +744,7 @@ var ThemeIcon = ({ mode, size = 16 }) => h(
     "g",
     { stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round", fill: "none" },
     h("circle", { cx: 12, cy: 12, r: 4.1 }),
-    h("path", { d: "M12 2.6v2.2M12 19.2v2.2M2.6 12h2.2M19.2 12h2.2M5.4 5.4l1.6 1.6M17 17l1.6 1.6M18.6 5.4L17 7M7 17l-1.6 1.6" })
+    h("path", { d: "M12 2.6v1.7M12 19.2v1.7M2.6 12h2.2M19.2 12h2.2M5.4 5.4l1.6 1.6M17 17l1.6 1.6M18.6 5.4L17 7M7 17l-1.6 1.6" })
   ) : h(
     "g",
     { stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round", fill: "none" },
@@ -2454,7 +2454,7 @@ function SourcesDialog({ config, defaults, environmentDark, themeMode, onPickLoc
       h3("input", {
         type: "checkbox",
         // Missing/false = off: underground content stays visible, matching the
-        // Cesium default and the documented behaviour before v2.0.
+        // Cesium default and the documented behaviour before v1.5.
         checked: draft.settings.terrainDepthTest === true,
         onChange: (event) => setDraft((current) => ({
           ...current,
