@@ -50,6 +50,7 @@
     "test": "node --test",
     "build:client": "node scripts/build-client.mjs",
     "check": "node --check index.js && node --check client.js && npm run build:client -- --check && node scripts/check-size.mjs && node --test",
+    "release:check": "node scripts/release-check.mjs",
     "prepublishOnly": "npm run check"
   },
   "dsh": {
