@@ -359,7 +359,7 @@ test('回归：earth_scene 12 action（含 report），earth_analyze 契约与�
   ])
   assert.doesNotMatch(scene, /authorize|skyline|shader/)
 
-  assert.deepEqual(ANALYZE_ACTIONS, ['profile', 'flood', 'sunlight', 'clip', 'clear'])
+  assert.deepEqual(ANALYZE_ACTIONS, ['profile', 'flood', 'sunlight', 'clip', 'skyline', 'clear'])
   assert.equal(normalizeAnalyzeRequest({ action: 'clear' }).args.action, 'clear')
   assert.throws(
     () => normalizeAnalyzeRequest({ action: 'shader' }),

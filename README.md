@@ -34,7 +34,7 @@
 | 渲染质量档 | 设置 → 外观可选「均衡（默认，流畅优先）」或「高清（画质优先）」：均衡降低渲染分辨率与地形 / 瓦片 LOD、加大地形缓存，拖动更稳；高清回到满分辨率与 Cesium 默认 LOD。切换即时生效，抗锯齿档位在重新打开面板后完全生效；当前档位与有效分辨率进 `earth_scene status` 的 `render` |
 | 坐标 HUD | 光标经纬度 + 高程；裸地球、地形、模型三种情形均可用，约 5–6 Hz 采样，拖动时暂停、停手后补一次，不触发重渲染；FPS 取 Cesium 真实渲染帧（`scene.postRender`），场景静止 2 秒显示 `—` 而不是假的 0 |
 | 量测与工具 | 测距、测面、测高、拾取 3D Tiles 属性、截图、复位视角 |
-| 地形分析 | `earth_analyze`：剖面（含 SVG 剖面卡）、淹没、日照、剖切四类分析一次只保留一个；结果以地图叠加与数值返回，清除时移除叠加，日照分析还会恢复进入前的光照 / 阴影状态，剖切会恢复图层原有的裁剪面 |
+| 地形分析 | `earth_analyze`：剖面（含 SVG 剖面卡）、淹没、日照、剖切、天际线五类分析一次只保留一个；结果以地图叠加与数值返回，清除时移除叠加，日照分析还会恢复进入前的光照 / 阴影状态，剖切会恢复图层原有的裁剪面 |
 | 着色器预设 | `earth_shader`：高程渐变、等高线、扫描、水面四个白名单预设，按图层应用 / 重置 / 列出；3DGS 不支持，不接受自定义 GLSL |
 | 可折叠面板 | 图层面板与坐标 HUD 可从工具栏收起 / 展开，图层卡标题栏也可收起；设置中的显示开关持久化 |
 | 干净截图 | 手动与 Agent 截图默认只保留三维画面；需要时按次传 `include_hud` 或打开设置开关，把坐标 HUD 与团队署名绘入图片 |
@@ -91,7 +91,7 @@ Agent 调用地球工具时，插件会自动在对话右侧打开地球页签�
 | `earth_capture` | `width`、`format`、`include_hud`、`label` | 生成截图并返回宿主绝对路径；默认只保留干净三维画面，`include_hud=true` 时把坐标 HUD 与团队署名直接绘入图片 |
 | `earth_draw` | `features`（GeoJSON 字符串：要素集合、单个要素或裸几何）、`style`（`accent` / `alert` / `success` / `warm` / `violet`）、`label`、`clear` | 绘制点 / 多点、线 / 多线、面 / 多面与文字标签，要素 `properties.name` 作为逐要素标签；单次最多 500 个要素 / 20000 个坐标，`clear=true` 清除此前 Agent 绘制的全部叠加；返回要素数与包围盒 |
 | `earth_measure` | `mode`（`distance` / `area` / `height`）、`points`（`[lon,lat]` 或 `[lon,lat,height]`，最多 200 个）、`draw`、`clear` | 大地线距离、平面面积（含周长）、高差（含水平距离与坡度）；默认把量测绘到地球上，`draw=false` 只返回数值；结果 JSON 以米 / 千米给出 |
-| `earth_analyze` | `action`（`profile` / `flood` / `sunlight` / `clip` / `clear`）、`layer`、`from` / `to`、`samples`、`region`、`water_height`、`grid`、`datetime`、`show_shadows`、`height`（剖切高程）、`keep`（`below` / `above`） | 地形分析：剖面（长度、起伏 / 爬升 / 下降与采样点，面板显示 SVG 剖面卡）、淹没（面积、淹没比与水深）、日照（太阳高度角 / 方位角，切换光照与阴影）与清除；一次只保留一个活动分析，默认取最上面的可见 3D Tiles 图层；无可用高程时返回错误，不猜测数值 |
+| `earth_analyze` | `action`（`profile` / `flood` / `sunlight` / `clip` / `skyline` / `clear`）、`layer`、`from` / `to`（剖面；天际线为观察点/方向目标）、`samples`、`region`、`water_height`、`grid`、`datetime`、`show_shadows`、`height`（剖切高程）、`keep`（`below` / `above`） | 地形分析：剖面（长度、起伏 / 爬升 / 下降与采样点，面板显示 SVG 剖面卡）、淹没（面积、淹没比与水深）、日照（太阳高度角 / 方位角，切换光照与阴影）与清除；一次只保留一个活动分析，默认取最上面的可见 3D Tiles 图层；无可用高程时返回错误，不猜测数值 |
 | `earth_shader` | `action`（`apply` / `reset` / `list`）、`layer`、`preset`（`height-false-color` / `contour` / `scan` / `water`）、`min_height` / `max_height`、`interval`、`speed`、`amplitude`、`opacity` | 为单个 3D Tiles 图层应用 / 重置白名单着色器预设，或列出当前活动预设；同一图层只保留一个 shader，参数按预设严格校验；3DGS 图层不支持，也不接受自定义 GLSL |
 
 | `/earth` 命令 | 作用 |

@@ -241,6 +241,131 @@ export function createAnalysisEngine(deps) {
         return result
       }
 
+      /**
+       * D-16 skyline: sample the terrain along the from→to direction and report the
+       * maximum elevation angle seen from the observer (eye height 1.7 m). A skyline
+       * is a terrain horizon, so it samples GROUND when a real terrain provider is
+       * installed and falls back to the 3D Tiles surface (with a warning) otherwise.
+       */
+      const analyzeSkyline = async (Cesium, viewer, layer, args, sampler) => {
+        const from = analysisLonLat(args.from)
+        const to = analysisLonLat(args.to)
+        if (!from || !to) {
+          throw new Error(
+            'analysis: `from`/`to` must be [lon, lat] pairs. next: pass the observer and a direction target.',
+          )
+        }
+        const samples = analysisInteger(args.samples, 32, 8, 64)
+        const ellipsoid = viewer.scene.globe.ellipsoid
+        const geodesic = new Cesium.EllipsoidGeodesic(
+          Cesium.Cartographic.fromDegrees(from[0], from[1]),
+          Cesium.Cartographic.fromDegrees(to[0], to[1]),
+          ellipsoid,
+        )
+        const length = Number.isFinite(geodesic.surfaceDistance) ? geodesic.surfaceDistance : 0
+        if (length <= 0) {
+          throw new Error('analysis: skyline 起终点重合或距离为 0。next: 给出两个不同的位置。')
+        }
+        const heightMode = sampler.hasRealTerrain() ? 'ground' : 'surface'
+        const fractions = []
+        const probes = []
+        for (let index = 0; index < samples; index += 1) {
+          const fraction = samples === 1 ? 0 : index / (samples - 1)
+          fractions.push(fraction)
+          probes.push(geodesic.interpolateUsingFraction(fraction, new Cesium.Cartographic()))
+        }
+        const sampled = await sampler.sampleMany(probes, { mode: heightMode })
+        const eyeSample = sampled.values[0]
+        if (!eyeSample) {
+          throw new Error('analysis: 观察点没有可采样的高程。next: 换一个观察位置，或先加载地形 / 3D Tiles 后重试。')
+        }
+        // 1.7 m eye height keeps the angle meaningful for a person-sized observer.
+        const eyeHeight = eyeSample.height + 1.7
+        const points = []
+        let withData = 0
+        for (let index = 0; index < sampled.values.length; index += 1) {
+          const sample = sampled.values[index]
+          if (!sample) continue
+          withData += 1
+          const distance = length * fractions[index]
+          const angle = distance > 0 ? (Math.atan2(sample.height - eyeHeight, distance) * 180) / Math.PI : -90
+          points.push({
+            distance_m: analysisRound(distance, 1),
+            height_m: analysisRound(sample.height, 1),
+            angle_deg: analysisRound(angle, 3),
+          })
+        }
+        if (withData < ANALYSIS_MIN_SAMPLES) {
+          throw new Error(
+            'analysis: 当前视图中没有可采样的高程数据，先加载 3D Tiles 或地形再试。next: 用 earth_scene 的 list 查看可见图层，或先 load 3D Tiles / 地形后重试。',
+          )
+        }
+        let maxPoint = points[0]
+        for (const point of points) if (point.angle_deg > maxPoint.angle_deg) maxPoint = point
+        beginAnalysis('skyline', layer)
+        const positionAt = (fraction, height) => {
+          const carto = geodesic.interpolateUsingFraction(fraction, new Cesium.Cartographic())
+          return Cesium.Cartesian3.fromRadians(carto.longitude, carto.latitude, height + 2)
+        }
+        for (let index = 1; index < points.length; index += 1) {
+          const ratio = points.length > 1 ? index / (points.length - 1) : 0
+          analysisAdd(Cesium, viewer, {
+            id: `skyline-line-${index}`,
+            polyline: {
+              positions: [positionAt(fractions[index - 1], points[index - 1].height_m), positionAt(fractions[index], points[index].height_m)],
+              width: 3,
+              arcType: Cesium.ArcType.NONE,
+              material: analysisColorAt(Cesium, ratio),
+              depthFailMaterial: analysisColorAt(Cesium, ratio).withAlpha(0.35),
+            },
+          })
+        }
+        const maxIndex = points.indexOf(maxPoint)
+        analysisAdd(Cesium, viewer, {
+          id: 'skyline-max',
+          position: positionAt(fractions[maxIndex], maxPoint.height_m),
+          point: {
+            pixelSize: 10,
+            color: Cesium.Color.fromCssColorString('#ffd166'),
+            disableDepthTestDistance: Number.POSITIVE_INFINITY,
+          },
+          label: analysisLabel(
+            Cesium,
+            t('analysis.skylineMax', { value: formatHeight(maxPoint.height_m), angle: `${maxPoint.angle_deg.toFixed(2)}°` }),
+          ),
+        })
+        analysisAdd(Cesium, viewer, {
+          id: 'skyline-eye',
+          position: positionAt(0, eyeHeight),
+          point: {
+            pixelSize: 8,
+            color: Cesium.Color.fromCssColorString('#7fd4ff'),
+            disableDepthTestDistance: Number.POSITIVE_INFINITY,
+          },
+          label: analysisLabel(Cesium, t('analysis.skylineEyeValue', { value: formatHeight(eyeHeight) })),
+        })
+        const result = {
+          operation: 'skyline',
+          layer: layer ? layer.name : null,
+          from,
+          to,
+          samples,
+          length_m: analysisRound(length, 1),
+          height_mode: heightMode,
+          eye_height_m: analysisRound(eyeHeight, 2),
+          max_angle_deg: maxPoint.angle_deg,
+          max_distance_m: maxPoint.distance_m,
+          max_height_m: maxPoint.height_m,
+          points,
+          height_source: sampled.height_source,
+          height_sources: sampled.height_sources,
+          warnings: sampled.warnings,
+        }
+        setAnalysis({ operation: 'skyline', layerName: result.layer, result })
+        markSceneDirty()
+        return result
+      }
+
       const analyzeFlood = async (Cesium, viewer, layer, args, sampler) => {
         const region = analysisRegion(args.region)
         if (!region) {
@@ -498,9 +623,9 @@ export function createAnalysisEngine(deps) {
           const cleared = clearAnalysis()
           return { operation: 'clear', layer: null, cleared }
         }
-        if (operation !== 'profile' && operation !== 'flood' && operation !== 'sunlight' && operation !== 'clip') {
+        if (operation !== 'profile' && operation !== 'flood' && operation !== 'sunlight' && operation !== 'clip' && operation !== 'skyline') {
           throw new Error(
-            `analysis: 不支持的分析类型 "${String(args.action)}"。next: 使用 profile / flood / sunlight / clip / clear。`,
+            `analysis: 不支持的分析类型 "${String(args.action)}"。next: 使用 profile / flood / skyline / sunlight / clip / clear。`,
           )
         }
         // Resolve the layer before clearing the previous result, so a typo does not
@@ -528,6 +653,7 @@ export function createAnalysisEngine(deps) {
         let result
         if (operation === 'profile') result = await analyzeProfile(Cesium, viewer, layer, args, sampler)
         else if (operation === 'flood') result = await analyzeFlood(Cesium, viewer, layer, args, sampler)
+        else if (operation === 'skyline') result = await analyzeSkyline(Cesium, viewer, layer, args, sampler)
         else if (operation === 'sunlight') result = analyzeSunlight(Cesium, viewer, layer, args)
         else result = await analyzeClip(Cesium, viewer, layer, args)
         // Remember the command (not its entities) so a remounted panel can replay

@@ -406,7 +406,10 @@ test('B4 模型面回归：提示词 ≤1600 六工具名，描述区无 authori
   const analyzeDesc = descriptionOf(analyzeSource, 'ANALYZE')
   assert.ok(shaderDesc.length <= 1200, `earth_shader 描述超预算：${shaderDesc.length}`)
   assert.ok(analyzeDesc.length <= 1200, `earth_analyze 描述超预算：${analyzeDesc.length}`)
-  for (const desc of [shaderDesc, analyzeDesc]) assert.doesNotMatch(desc, /authorize|skyline|天际线/i)
+  assert.doesNotMatch(shaderDesc, /authorize|skyline|天际线/i)
+  // D-16：skyline 已是 1.6 的正式分析，analyze 描述必须提到它；未批准的能力仍禁止。
+  assert.match(analyzeDesc, /skyline elevation-angle profile/)
+  assert.doesNotMatch(analyzeDesc, /天际线|authorize|viewshed|line of sight/i)
 })
 
 test('B4 回归：六工具注册/六条描述/六 toolview 未被文档任务破坏', () => {

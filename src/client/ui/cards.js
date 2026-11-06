@@ -125,6 +125,11 @@ const h = React.createElement
         row('azimuth', t('analysis.azimuth'), `${analysisMetric(result.sun?.azimuth_deg, 2)}°`)
         row('shadows', t('analysis.shadows'), result.shadows_enabled ? t('analysis.shadowsOn') : t('analysis.shadowsOff'))
         row('daylight', t('analysis.daylight'), result.night ? t('analysis.night') : t('analysis.day'))
+      } else if (operation === 'skyline') {
+        row('angle', t('analysis.skylineAngle'), `${analysisMetric(result.max_angle_deg, 2)}°`)
+        row('distance', t('analysis.skylineDistance'), formatDistance(result.max_distance_m ?? 0))
+        row('eye', t('analysis.skylineEye'), formatHeight(result.eye_height_m ?? 0))
+        row('samples', t('analysis.samples'), `${result.samples ?? 0}`)
       } else if (operation === 'clip') {
         row('height', t('analysis.clipHeight'), formatHeight(result.height ?? 0))
         row(

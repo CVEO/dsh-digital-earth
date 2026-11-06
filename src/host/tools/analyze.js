@@ -20,7 +20,7 @@ const ANALYZE_RENDER_LIMIT = 8 * 1024
 // the panel owns sampling, Cesium entities and the analysis card.
 // ---------------------------------------------------------------------------
 
-export const ANALYZE_ACTIONS = ['profile', 'flood', 'sunlight', 'clip', 'clear']
+export const ANALYZE_ACTIONS = ['profile', 'flood', 'sunlight', 'clip', 'skyline', 'clear']
 const ANALYZE_PARAMETER_NAMES = new Set([
   'action',
   'layer',
@@ -55,7 +55,7 @@ const ANALYZE_PARAMETERS = {
     action: {
       type: 'string',
       enum: ANALYZE_ACTIONS,
-      description: 'profile: elevation along the from→to line; flood: water height over a region; sunlight: sun position and shadows at a time; clip: cut the 3D Tiles with a horizontal plane at a height; clear: remove the active analysis.',
+      description: 'profile: elevation along the from→to line; flood: water height over a region; sunlight: sun position and shadows at a time; clip: cut the 3D Tiles with a horizontal plane at a height; skyline: elevation-angle profile from an observer along a direction; clear: remove the active analysis.',
     },
     layer: {
       type: 'string',
@@ -64,18 +64,18 @@ const ANALYZE_PARAMETERS = {
     from: {
       type: 'array',
       items: { type: 'number' },
-      description: 'profile start as [lon, lat] WGS84 degrees (-180..180, -90..90), without a height. Required for profile.',
+      description: 'profile/skyline start (observer for skyline) as [lon, lat] WGS84 degrees (-180..180, -90..90), without a height. Required for profile and skyline.',
     },
     to: {
       type: 'array',
       items: { type: 'number' },
-      description: 'profile end as [lon, lat] WGS84 degrees (-180..180, -90..90), without a height. Required for profile.',
+      description: 'profile end / skyline direction target as [lon, lat] WGS84 degrees (-180..180, -90..90), without a height. Required for profile and skyline.',
     },
     samples: {
       type: 'integer',
       minimum: ANALYZE_MIN_SAMPLES,
       maximum: ANALYZE_MAX_SAMPLES,
-      description: `profile sample count, ${ANALYZE_MIN_SAMPLES}..${ANALYZE_MAX_SAMPLES}; default ${ANALYZE_DEFAULT_SAMPLES}.`,
+      description: `profile/skyline sample count, ${ANALYZE_MIN_SAMPLES}..${ANALYZE_MAX_SAMPLES}; default ${ANALYZE_DEFAULT_SAMPLES}.`,
     },
     region: {
       type: 'object',
@@ -126,8 +126,8 @@ const ANALYZE_PARAMETERS = {
 }
 
 const ANALYZE_DESCRIPTION = [
-  'Analyze the digital earth panel: profile elevation along a line, flood a region at a water height, check sunlight and shadows, clip the 3D Tiles with a horizontal plane, or clear the active analysis.',
-  'One analysis at a time: profile, flood, sunlight and clip replace the previous active analysis; clear removes it and reports what was cleared.',
+  'Analyze the digital earth panel: profile elevation along a line, flood a region at a water height, check sunlight and shadows, clip the 3D Tiles with a horizontal plane, build a skyline elevation-angle profile from an observer, or clear the active analysis.',
+  'One analysis at a time: profile, flood, sunlight, clip and skyline replace the previous active analysis; clear removes it and reports what was cleared.',
   'Elevations and depths come from loaded 3D Tiles or terrain heights, so load data first and never guess missing values; the panel returns an error when it has no height data.',
   'Take coordinates from the user, from earth_scene status/pick, or from loaded data; never guess. The layer is optional and defaults to the topmost visible 3D Tiles layer.',
   'Returns compact metrics, not a full sampling grid; call earth_capture if the user should see the drawn result.',
@@ -277,7 +277,7 @@ function rejectAnalyzeKeys(input, action, allowed) {
     } else if (key === 'datetime' || key === 'show_shadows') {
       next = 'use action "sunlight" for these arguments.'
     } else if (key === 'from' || key === 'to' || key === 'samples') {
-      next = 'use action "profile" for these arguments.'
+      next = 'use action "profile" or "skyline" for these arguments.'
     } else if (key === 'height' || key === 'keep') {
       next = 'use action "clip" for these arguments.'
     } else if (action === 'clear') {
@@ -330,6 +330,32 @@ export function normalizeAnalyzeRequest(raw) {
       throw analyzeError(
         'profile "from" and "to" are the same point.',
         'choose two distinct positions along the profile line.',
+      )
+    }
+    args.samples = normalizeAnalyzeInteger(
+      input.samples,
+      'samples',
+      ANALYZE_MIN_SAMPLES,
+      ANALYZE_MAX_SAMPLES,
+      ANALYZE_DEFAULT_SAMPLES,
+    )
+    return { args }
+  }
+
+  if (action === 'skyline') {
+    rejectAnalyzeKeys(input, 'skyline', new Set(['layer', 'from', 'to', 'samples']))
+    if (!Object.hasOwn(input, 'from')) {
+      throw analyzeError('skyline needs "from" as the observer [lon, lat].', 'send the observer position and a direction target.')
+    }
+    if (!Object.hasOwn(input, 'to')) {
+      throw analyzeError('skyline needs "to" as the direction target [lon, lat].', 'send the observer position and a direction target.')
+    }
+    args.from = normalizeAnalyzeCoordinate(input.from, 'from')
+    args.to = normalizeAnalyzeCoordinate(input.to, 'to')
+    if (args.from[0] === args.to[0] && args.from[1] === args.to[1]) {
+      throw analyzeError(
+        'skyline "from" and "to" are the same point.',
+        'choose a direction target away from the observer.',
       )
     }
     args.samples = normalizeAnalyzeInteger(
@@ -493,6 +519,13 @@ function renderAnalyzeResult(value) {
     details.push(value.shadows_enabled === true ? 'shadows on' : 'shadows off')
     lines.push(`Sunlight${layer}: ${details.join(', ')}.`)
     lines.push('Call earth_capture if the user should see the sun position or shadows.')
+  } else if (operation === 'skyline') {
+    const details = []
+    if (Number.isFinite(value.max_angle_deg)) details.push(`max elevation angle ${value.max_angle_deg.toFixed(2)}°`)
+    if (Number.isFinite(value.max_distance_m)) details.push(`at ${formatMeasureDistance(value.max_distance_m)}`)
+    if (Number.isInteger(value.samples)) details.push(`${value.samples} samples`)
+    lines.push(`Skyline${layer}${details.length > 0 ? `: ${details.join(', ')}` : ' completed'}.`)
+    lines.push('Call earth_capture if the user should see the skyline profile.')
   } else if (operation === 'clip') {
     const height = Number.isFinite(value.height) ? `${value.height} m` : 'unknown height'
     const keep = value.keep === 'above' ? 'above' : 'below'

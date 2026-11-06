@@ -31,7 +31,7 @@ const rejects = (raw, pattern) => {
 }
 
 test('clip：动作枚举包含 clip，默认 keep=below，height 透传', () => {
-  assert.deepEqual([...ANALYZE_ACTIONS], ['profile', 'flood', 'sunlight', 'clip', 'clear'])
+  assert.deepEqual([...ANALYZE_ACTIONS], ['profile', 'flood', 'sunlight', 'clip', 'skyline', 'clear'])
   assert.deepEqual(args({ action: 'clip', height: 320 }), { action: 'clip', height: 320, keep: 'below' })
   assert.deepEqual(args({ action: 'clip', height: -12.5, keep: 'above' }), { action: 'clip', height: -12.5, keep: 'above' })
   assert.deepEqual(args({ action: 'clip', height: 0, layer: '  A  ' }), { action: 'clip', height: 0, keep: 'below', layer: 'A' })
@@ -44,7 +44,7 @@ test('clip：缺 height / 非法 keep / 越界 / 多余参数都被拒绝且带 
   rejects({ action: 'clip', height: 10, keep: 'sideways' }, /"keep" must be "below" or "above"/)
   rejects({ action: 'clip', height: 10, water_height: 20 }, /does not accept "water_height"/)
   rejects({ action: 'profile', from: [0, 0], to: [1, 1], height: 10 }, /use action "clip" for these arguments/)
-  rejects({ action: 'nope' }, /"action" must be one of profile, flood, sunlight, clip, clear/)
+  rejects({ action: 'nope' }, /"action" must be one of profile, flood, sunlight, clip, skyline, clear/)
 })
 
 test('clip：模型面文本含裁剪结果与下一步', () => {

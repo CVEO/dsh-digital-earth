@@ -80,7 +80,7 @@ const floodBase = () => ({ action: 'flood', region: regionBase(), water_height: 
 
 test('normalizeAnalyzeRequest：导出、五动作枚举、返回对象只有 args 且字段与契约一致', () => {
   assert.equal(typeof normalizeAnalyzeRequest, 'function')
-  assert.deepEqual(ANALYZE_ACTIONS, ['profile', 'flood', 'sunlight', 'clip', 'clear'])
+  assert.deepEqual(ANALYZE_ACTIONS, ['profile', 'flood', 'sunlight', 'clip', 'skyline', 'clear'])
 
   const profile = normalizeAnalyzeRequest(profileBase())
   assert.deepEqual(Object.keys(profile), ['args'])
@@ -245,8 +245,8 @@ test('normalizeAnalyzeRequest：clear 不接受其他参数，未知参数/缺�
     assert.match(unknown, new RegExp(name))
   }
 
-  for (const raw of [{}, null, undefined, { action: 'PROFILE' }, { action: 'skyline' }]) {
-    rejectsAnalyze(raw, /"action" must be one of profile, flood, sunlight, clip, clear/)
+  for (const raw of [{}, null, undefined, { action: 'PROFILE' }, { action: 'UNKNOWN' }]) {
+    rejectsAnalyze(raw, /"action" must be one of profile, flood, sunlight, clip, skyline, clear/)
   }
   for (const raw of ['x', 42, [], true, 0]) {
     rejectsAnalyze(raw, /the arguments must be an object/)
@@ -328,7 +328,7 @@ test('earth_analyze 工具描述 ≤1200 字符，覆盖单活动/clear/坐标�
   assert.ok(description.length <= 1200, `earth_analyze 描述超预算：${description.length} 字符`)
   assert.ok(description.length >= 500, `earth_analyze 描述过短：${description.length} 字符`)
 
-  assert.match(description, /One analysis at a time: profile, flood, sunlight and clip replace the previous active analysis; clear removes it/)
+  assert.match(description, /One analysis at a time: profile, flood, sunlight, clip and skyline replace the previous active analysis; clear removes it/)
   assert.match(description, /reports what was cleared/)
   assert.match(description, /load data first/)
   assert.match(description, /never guess missing values/)
@@ -337,7 +337,9 @@ test('earth_analyze 工具描述 ≤1200 字符，覆盖单活动/clear/坐标�
   assert.match(description, /topmost visible 3D Tiles layer/)
   assert.match(description, /compact metrics, not a full sampling grid/)
   assert.match(description, /earth_capture/)
-  assert.doesNotMatch(description, /skyline|天际线/i)
+  // D-16：skyline 是 1.6 的正式分析，描述里出现是预期；只禁止未批准的能力话术。
+  assert.match(description, /skyline elevation-angle profile/)
+  assert.doesNotMatch(description, /天际线|viewshed|line of sight/i)
 })
 
 test('earth_analyze 执行：30 s 超时、analyze 桥命令、scrubToken/asResultObject、会话回退', () => {
@@ -423,7 +425,9 @@ test('earth_scene 契约：12 个 action（含 report），模型面不出现 au
   assert.match(host, /const SCENE_ACTION_NAMES = Object\.keys\(SCENE_ACTIONS\)/)
 
   const params = block(analyzeSource, 'const ANALYZE_PARAMETERS = {', '\n}')
-  assert.doesNotMatch(params, /authorize|skyline|天际线/)
+  assert.doesNotMatch(params, /authorize|天际线/)
+  // D-16 的 clip/skyline 参数是契约的一部分，schema 里不出现源码级字段即可。
+  assert.doesNotMatch(params, /glsl|fragmentShader/i)
 })
 
 // ---------------------------------------------------------------------------
@@ -453,7 +457,7 @@ test('client analyze 桥分支：先于就绪守卫，失败强制带 next:，cl
   assert.match(command, /const cleared = clearAnalysis\(\)/)
   assert.match(command, /return \{ operation: 'clear', layer: null, cleared \}/)
   assert.match(command, /不支持的分析类型/)
-  assert.match(command, /next: 使用 profile \/ flood \/ sunlight \/ clip \/ clear/)
+  assert.match(command, /next: 使用 profile \/ flood \/ skyline \/ sunlight \/ clip \/ clear/)
   // 先解析图层再清旧分析：图层写错不会破坏屏幕上的有效分析。
   assert.match(command, /const requested = typeof args\.layer === 'string' \? args\.layer\.trim\(\) : ''/)
   assert.match(command, /layer = findLayer\(requested\)/)
@@ -698,7 +702,7 @@ test('client 分析卡与布局：右上方浮动卡、SVG 剖面、折叠/关�
   assert.match(client, /h\(AnalysisCard, \{ key: 'analysis', state: analysis, t, onClose: \(\) => clearAnalysis\(\) \}\)/)
 })
 
-test('client i18n：analysis.* 43 个键中英对齐，关键文案都在', () => {
+test('client i18n：analysis.* 49 个键中英对齐，关键文案都在', () => {
   const zhStart = client.indexOf('\n      zh: {')
   const enStart = client.indexOf('\n      en: {', zhStart)
   const end = client.indexOf('\n    }', enStart)
@@ -710,12 +714,15 @@ test('client i18n：analysis.* 43 个键中英对齐，关键文案都在', () =
   assert.deepEqual(zhKeys, enKeys, '中英字典键集合/顺序必须完全一致')
 
   const analysisKeys = zhKeys.filter((key) => key.startsWith('analysis.'))
-  assert.equal(analysisKeys.length, 43)
+  assert.equal(analysisKeys.length, 49)
   for (const key of [
     'analysis.title.profile',
     'analysis.title.flood',
     'analysis.title.sunlight',
     'analysis.title.clip',
+    'analysis.title.skyline',
+    'analysis.skylineAngle',
+    'analysis.skylineDistance',
     'analysis.clipHeight',
     'analysis.clipKeep',
     'analysis.clipKeepAbove',

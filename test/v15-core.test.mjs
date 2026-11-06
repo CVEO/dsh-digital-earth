@@ -137,7 +137,7 @@ test('v2 工具面冻结：六个工具，earth_scene 十二个 action，分析�
   assert.ok(analyzeActions, '找不到 ANALYZE_ACTIONS')
   assert.deepEqual(
     analyzeActions[1].split(',').map((item) => item.trim().replaceAll("'", '')).filter(Boolean),
-    ['profile', 'flood', 'sunlight', 'clip', 'clear'],
+    ['profile', 'flood', 'sunlight', 'clip', 'skyline', 'clear'],
   )
   // D-16 approved clip for 1.6; the rest of the parked analyses stay unreachable
   // until their own release (skyline is next on the v1.6 list).
