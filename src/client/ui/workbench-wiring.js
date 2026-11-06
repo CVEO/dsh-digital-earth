@@ -96,6 +96,67 @@ export function resolveWorkbenchTarget(layers, form) {
   return { layer: null, auto: true, gaussianOnly }
 }
 
+/** Bridge param names -> workbench form fields. */
+export const SHADER_PARAM_FORM_KEYS = {
+  min_height: 'minHeight',
+  max_height: 'maxHeight',
+  interval: 'interval',
+  speed: 'speed',
+  amplitude: 'amplitude',
+  opacity: 'opacity',
+  water_height: 'waterHeight',
+  depth_max: 'depthMax',
+}
+
+/** Blank form values, shared by the component state and the "edit existing" loader. */
+export const SHADER_FORM_DEFAULTS = {
+  layerId: '',
+  preset: 'height-false-color',
+  minHeight: '',
+  maxHeight: '',
+  interval: '20',
+  speed: '1',
+  amplitude: '1',
+  opacity: '0.75',
+  waterHeight: '',
+  depthMax: '',
+}
+
+/**
+ * Turn an active shader entry (layer + ordered presets + saved params) back into the
+ * workbench form, so clicking a shader row in the layer panel edits that exact effect.
+ */
+export function formFromShaderEntry(entry) {
+  const selected = Array.isArray(entry?.preset) ? [...entry.preset] : entry?.preset ? [entry.preset] : []
+  const preset = selected.length > 0 ? (selected.length === 1 ? selected[0] : selected) : SHADER_FORM_DEFAULTS.preset
+  const form = { ...SHADER_FORM_DEFAULTS, layerId: typeof entry?.layerId === 'string' ? entry.layerId : '', preset }
+  for (const [param, key] of Object.entries(SHADER_PARAM_FORM_KEYS)) {
+    const value = entry?.params?.[param]
+    if (typeof value === 'number' && Number.isFinite(value)) form[key] = String(value)
+  }
+  return form
+}
+
+/**
+ * Human-readable parameter summary for the layer-panel hover tooltip.
+ * Unknown/absent params are skipped, so the tooltip matches the applied stack.
+ */
+export function shaderEntrySummary(t, entry) {
+  const presets = Array.isArray(entry?.preset) ? entry.preset : entry?.preset ? [entry.preset] : []
+  const parts = []
+  for (const [param, key] of Object.entries(SHADER_PARAM_FORM_KEYS)) {
+    const value = entry?.params?.[param]
+    if (typeof value !== 'number' || !Number.isFinite(value)) continue
+    parts.push(`${t(`shader.param.${key}`)} ${value}`)
+  }
+  const presetText = presets.map((item) => t(`shader.preset.${item}`)).join(' + ')
+  return t('shader.entryTooltip', {
+    layer: entry?.layer ?? '',
+    presets: presetText,
+    params: parts.join(' · ') || t('shader.entryNoParams'),
+  })
+}
+
 /** `contour + scan` style label for a preset or a stack. */
 export function shaderStackLabel(t, preset) {
   return (Array.isArray(preset) ? preset : [preset]).map((item) => t(`shader.preset.${item}`)).join(' + ')
@@ -144,6 +205,17 @@ export function createWorkbenchWiring({ getForm, getLayers, setShaderForm, shade
     move: (preset, delta) => setShaderForm((form) => moveShaderPreset(form, preset, delta)),
     /** The layer the card should show under "automatic selection". */
     target,
+    /** Load an applied shader row into the form (edit-in-place). */
+    loadEntry: (entry) => setShaderForm(formFromShaderEntry(entry)),
+    /** Reset one specific layer's shader (used by the layer-panel row ✕). */
+    async resetLayerFor(token) {
+      try {
+        const result = await shaderCommand({ action: 'reset', layer: token })
+        showToast(result.layer ? t('toast.shaderReset', { layer: result.layer }) : t('toast.shaderResetAll'))
+      } catch (error) {
+        showToast(messageOf(error))
+      }
+    },
     /** Debounced silent apply for slider previews; repeated calls merge into one. */
     preview: () => {
       if (applyTimer !== null) clearTimeout(applyTimer)

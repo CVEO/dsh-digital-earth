@@ -403,7 +403,7 @@ test('client shader 桥分支：先于通用就绪守卫、失败补 next:、统
   const active = block(client, 'const shaderActiveList = () => {', '\n      }')
   assert.match(active, /new Map\(layersRef\.current\.map\(\(layer, index\) => \[layer\.id, index\]\)\)/)
   assert.match(active, /\.sort\(\(left, right\) =>/)
-  assert.match(active, /\.map\(\(entry\) => \(\{ layer: entry\.layerName, preset: entry\.preset \}\)\)/)
+  assert.match(active, /\.map\(\(entry\) => \(\{ layer: entry\.layerName, layerId: entry\.layer\.id, preset: entry\.preset, params: \{ \.\.\.entry\.params \} \}\)\)/)
 })
 
 test('client shader 校验：白名单/默认值/范围/跨预设/reset/list 多余参数都由唯一入口拒绝', () => {
@@ -666,7 +666,7 @@ test('client 工作台 UI：工具栏按钮、可读卡片、三列缩略图、�
   assert.match(client, /onClose: \(\) => \{\n\s+void workbench\.compare\(false\)/)
 })
 
-test('client 接线与 i18n：六 toolview 含 earth_shader、摘要键、shader.* 40 键中英对齐', () => {
+test('client 接线与 i18n：六 toolview 含 earth_shader、摘要键、shader.* 44 键中英对齐', () => {
   const toolviews = [...client.matchAll(/name: 'tool\.call\.toolview', key: '([a-z_]+)'/g)].map((match) => match[1])
   assert.deepEqual(toolviews, [
     'earth_scene', 'earth_capture', 'earth_draw', 'earth_measure', 'earth_analyze', 'earth_shader',
@@ -687,7 +687,7 @@ test('client 接线与 i18n：六 toolview 含 earth_shader、摘要键、shader
   assert.deepEqual(zhKeys, enKeys, '中英字典键集合/顺序必须完全一致')
 
   const shaderKeys = zhKeys.filter((key) => key.startsWith('shader.'))
-  assert.equal(shaderKeys.length, 40)
+  assert.equal(shaderKeys.length, 44)
   for (const key of [
     'shader.title',
     'shader.close',

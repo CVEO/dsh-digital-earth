@@ -53,7 +53,7 @@ export function createShaderEngine(deps) {
         const order = new Map(layersRef.current.map((layer, index) => [layer.id, index]))
         return [...shaderEntriesRef.current.values()]
           .sort((left, right) => (order.get(left.layer.id) ?? 0) - (order.get(right.layer.id) ?? 0))
-          .map((entry) => ({ layer: entry.layerName, preset: entry.preset }))
+          .map((entry) => ({ layer: entry.layerName, layerId: entry.layer.id, preset: entry.preset, params: { ...entry.params } }))
       }
 
       const refreshShaderActive = () => setShaderActive(shaderActiveList())

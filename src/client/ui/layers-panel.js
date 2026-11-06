@@ -18,6 +18,7 @@ import React from 'react'
 
 import { normalizeOverlayDraft } from '../scene/overlay-layers.js'
 import { addBookmark, loadBookmarks, removeBookmark, saveBookmarks } from '../scene/bookmarks.js'
+import { shaderEntrySummary } from './workbench-wiring.js'
 
 const h = React.createElement
 
@@ -51,6 +52,10 @@ export function LayersPanel({
   onRemoveAgentOverlay,
   analysis,
   onClearAnalysis,
+  shaderActive,
+  shaderForm,
+  onSelectShaderEntry,
+  onResetShaderEntry,
   getCurrentView,
   onFlyView,
 }) {
@@ -294,6 +299,67 @@ export function LayersPanel({
           h('button', { type: 'button', className: 'mv-icon-btn', title: t('btn.delete'), 'aria-label': t('btn.delete'), onClick: () => onRemoveLayer(layer.id) }, '✕'),
         ),
       ),
+      // ---- shader effects: one selectable row per applied preset stack ----------
+      h(
+        'div',
+        { key: 'g7', className: 'mv-group' },
+        h('div', { className: 'mv-group-title' }, `${t('layers.shader')}${(shaderActive ?? []).length > 0 ? ` · ${shaderActive.length}` : ''}`),
+      ),
+      (shaderActive ?? []).length === 0
+        ? h('div', { key: 'shader-empty', className: 'mv-none' }, t('layers.shaderEmpty'))
+        : (shaderActive ?? []).map((entry) => {
+            const selected = entry.layerId !== undefined && shaderForm?.layerId === entry.layerId
+            const presetText = (Array.isArray(entry.preset) ? entry.preset : [entry.preset])
+              .map((item) => t(`shader.preset.${item}`))
+              .join(' + ')
+            return h(
+              'div',
+              {
+                key: entry.layerId ?? entry.layer,
+                className: `mv-layer mv-shader-layer${selected ? ' on' : ''}`,
+                title: shaderEntrySummary(t, entry),
+                role: 'button',
+                tabIndex: 0,
+                onClick: () => onSelectShaderEntry(entry),
+                onKeyDown: (event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault()
+                    onSelectShaderEntry(entry)
+                  }
+                },
+              },
+              h('span', { className: 'name', title: entry.layer }, entry.layer),
+              h('span', { className: 'mv-shader-chip' }, presetText),
+              h(
+                'button',
+                {
+                  type: 'button',
+                  className: 'mv-icon-btn',
+                  title: t('shader.editEntry'),
+                  'aria-label': t('shader.editEntry'),
+                  onClick: (event) => {
+                    event.stopPropagation()
+                    onSelectShaderEntry(entry)
+                  },
+                },
+                '✎',
+              ),
+              h(
+                'button',
+                {
+                  type: 'button',
+                  className: 'mv-icon-btn',
+                  title: t('shader.removeEntry'),
+                  'aria-label': t('shader.removeEntry'),
+                  onClick: (event) => {
+                    event.stopPropagation()
+                    onResetShaderEntry(entry)
+                  },
+                },
+                '✕',
+              ),
+            )
+          }),
     ),
   )
 }

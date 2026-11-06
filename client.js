@@ -147,6 +147,12 @@ var MESSAGES = {
     "layers.analysis": "空间分析",
     "layers.analysisHint": "剖面 / 淹没 / 日照分析由对话 Agent 执行（例如：「对当前图层做一条从 A 到 B 的剖面」）；结果会显示在这里，可一键清除。",
     "layers.analysisClear": "清除分析",
+    "layers.shader": "着色器效果",
+    "layers.shaderEmpty": "暂无着色器效果；在着色器工作台应用预设后会出现在这里。",
+    "shader.editEntry": "选中并编辑该效果",
+    "shader.removeEntry": "移除该效果",
+    "shader.entryTooltip": "{layer} · {presets}｜参数：{params}",
+    "shader.entryNoParams": "默认参数",
     "bookmarks.title": "视角收藏",
     "bookmarks.save": "＋ 保存当前视角",
     "bookmarks.empty": "暂无收藏视角",
@@ -544,6 +550,12 @@ var MESSAGES = {
     "layers.analysis": "Spatial analysis",
     "layers.analysisHint": "Profile / flood / sunlight analyses are run by the conversation Agent (e.g. “profile the current layer from A to B”); results appear here and can be cleared in one click.",
     "layers.analysisClear": "Clear analysis",
+    "layers.shader": "Shader effects",
+    "layers.shaderEmpty": "No shader effects yet; applying a preset in the workbench lists it here.",
+    "shader.editEntry": "Select and edit this effect",
+    "shader.removeEntry": "Remove this effect",
+    "shader.entryTooltip": "{layer} · {presets} | params: {params}",
+    "shader.entryNoParams": "defaults",
     "bookmarks.title": "View bookmarks",
     "bookmarks.save": "+ Save current view",
     "bookmarks.empty": "No saved views yet",
@@ -3971,7 +3983,7 @@ function createShaderEngine(deps) {
   });
   const shaderActiveList = () => {
     const order = new Map(layersRef.current.map((layer, index) => [layer.id, index]));
-    return [...shaderEntriesRef.current.values()].sort((left, right) => (order.get(left.layer.id) ?? 0) - (order.get(right.layer.id) ?? 0)).map((entry) => ({ layer: entry.layerName, preset: entry.preset }));
+    return [...shaderEntriesRef.current.values()].sort((left, right) => (order.get(left.layer.id) ?? 0) - (order.get(right.layer.id) ?? 0)).map((entry) => ({ layer: entry.layerName, layerId: entry.layer.id, preset: entry.preset, params: { ...entry.params } }));
   };
   const refreshShaderActive = () => setShaderActive(shaderActiveList());
   function ensureShaderTick() {
@@ -4883,6 +4895,11 @@ var CSS = `
 .mv-layer:hover{background:color-mix(in srgb,var(--mv-lift) 64%,transparent)}
 .mv-layer .name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;cursor:pointer}
 .mv-layer.off .name{color:var(--mv-dim);text-decoration:line-through}
+.mv-shader-layer{cursor:pointer;border:.5px solid transparent}
+.mv-shader-layer:hover{border-color:color-mix(in srgb,#3ddc97 35%,transparent)}
+.mv-shader-layer.on{border-color:color-mix(in srgb,#3ddc97 65%,transparent);background:color-mix(in srgb,#3ddc97 10%,transparent)}
+.mv-shader-layer .mv-shader-chip{flex:none;max-width:46%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:9.5px;letter-spacing:.02em;color:#04241a;background:color-mix(in srgb,#3ddc97 72%,transparent);border-radius:4px;padding:1px 5px}
+.mv-shader-layer .mv-icon-btn{width:22px;height:22px;font-size:12px}
 .mv-icon-btn{appearance:none;border:0;background:transparent;color:var(--mv-dim);width:26px;height:26px;border-radius:7px;cursor:pointer;font:inherit;font-size:14px;line-height:1;display:inline-flex;align-items:center;justify-content:center;flex:none}
 .mv-layer{gap:3px;padding:5px 7px}
 .mv-layer .mv-icon-btn{font-size:15px}
@@ -5837,6 +5854,238 @@ function StatusHud({ fps, stats, viewerRef, cesiumRef, labels, readoutRef }) {
 
 // src/client/ui/layers-panel.js
 var import_react7 = __toESM(require("react"), 1);
+
+// src/client/ui/workbench-wiring.js
+function toggleShaderPreset(form, preset) {
+  const current = Array.isArray(form.preset) ? form.preset : [form.preset];
+  const next = current.includes(preset) ? current.filter((item) => item !== preset) : current.length >= 3 ? current : [...current, preset];
+  if (next.length === 0) return form;
+  return { ...form, preset: next.length === 1 ? next[0] : next };
+}
+function buildShaderFormArgs(form) {
+  const selected = Array.isArray(form.preset) ? form.preset : [form.preset];
+  const args = { action: "apply", preset: selected.length === 1 ? selected[0] : selected };
+  if (form.layerId) args.layer = form.layerId;
+  const readNumber = (key) => form[key] === "" ? void 0 : Number(form[key]);
+  const has = (preset) => selected.includes(preset);
+  if (has("height-false-color")) {
+    const minimum = readNumber("minHeight");
+    const maximum = readNumber("maxHeight");
+    if (minimum !== void 0) args.min_height = minimum;
+    if (maximum !== void 0) args.max_height = maximum;
+  }
+  if (has("contour")) {
+    const interval = readNumber("interval");
+    if (interval !== void 0) args.interval = interval;
+  }
+  if (has("scan") || has("water")) {
+    const speed = readNumber("speed");
+    if (speed !== void 0) args.speed = speed;
+  }
+  if (has("water")) {
+    const amplitude = readNumber("amplitude");
+    const opacity = readNumber("opacity");
+    if (amplitude !== void 0) args.amplitude = amplitude;
+    if (opacity !== void 0) args.opacity = opacity;
+  }
+  if (has("water-depth")) {
+    const waterHeight = readNumber("waterHeight");
+    const depthMax = readNumber("depthMax");
+    if (waterHeight !== void 0) args.water_height = waterHeight;
+    if (depthMax !== void 0) args.depth_max = depthMax;
+  }
+  return args;
+}
+function moveShaderPreset(form, preset, delta) {
+  const current = Array.isArray(form.preset) ? [...form.preset] : [form.preset];
+  const from = current.indexOf(preset);
+  const to = from + delta;
+  if (from < 0 || to < 0 || to >= current.length) return form;
+  current.splice(from, 1);
+  current.splice(to, 0, preset);
+  return { ...form, preset: current.length === 1 ? current[0] : current };
+}
+function resolveWorkbenchTarget(layers, form) {
+  const list = Array.isArray(layers) ? layers : [];
+  const explicit = form.layerId ? list.find((layer) => layer.id === form.layerId) ?? null : null;
+  if (explicit) return { layer: explicit, auto: false };
+  let gaussianOnly = false;
+  for (let index = list.length - 1; index >= 0; index -= 1) {
+    const layer = list[index];
+    if (!layer.visible) continue;
+    if (shaderGaussianLayer(layer.tileset)) {
+      gaussianOnly = true;
+      continue;
+    }
+    return { layer, auto: true };
+  }
+  return { layer: null, auto: true, gaussianOnly };
+}
+var SHADER_PARAM_FORM_KEYS = {
+  min_height: "minHeight",
+  max_height: "maxHeight",
+  interval: "interval",
+  speed: "speed",
+  amplitude: "amplitude",
+  opacity: "opacity",
+  water_height: "waterHeight",
+  depth_max: "depthMax"
+};
+var SHADER_FORM_DEFAULTS = {
+  layerId: "",
+  preset: "height-false-color",
+  minHeight: "",
+  maxHeight: "",
+  interval: "20",
+  speed: "1",
+  amplitude: "1",
+  opacity: "0.75",
+  waterHeight: "",
+  depthMax: ""
+};
+function formFromShaderEntry(entry) {
+  const selected = Array.isArray(entry?.preset) ? [...entry.preset] : entry?.preset ? [entry.preset] : [];
+  const preset = selected.length > 0 ? selected.length === 1 ? selected[0] : selected : SHADER_FORM_DEFAULTS.preset;
+  const form = { ...SHADER_FORM_DEFAULTS, layerId: typeof entry?.layerId === "string" ? entry.layerId : "", preset };
+  for (const [param, key] of Object.entries(SHADER_PARAM_FORM_KEYS)) {
+    const value = entry?.params?.[param];
+    if (typeof value === "number" && Number.isFinite(value)) form[key] = String(value);
+  }
+  return form;
+}
+function shaderEntrySummary(t2, entry) {
+  const presets = Array.isArray(entry?.preset) ? entry.preset : entry?.preset ? [entry.preset] : [];
+  const parts = [];
+  for (const [param, key] of Object.entries(SHADER_PARAM_FORM_KEYS)) {
+    const value = entry?.params?.[param];
+    if (typeof value !== "number" || !Number.isFinite(value)) continue;
+    parts.push(`${t2(`shader.param.${key}`)} ${value}`);
+  }
+  const presetText = presets.map((item) => t2(`shader.preset.${item}`)).join(" + ");
+  return t2("shader.entryTooltip", {
+    layer: entry?.layer ?? "",
+    presets: presetText,
+    params: parts.join(" · ") || t2("shader.entryNoParams")
+  });
+}
+function shaderStackLabel(t2, preset) {
+  return (Array.isArray(preset) ? preset : [preset]).map((item) => t2(`shader.preset.${item}`)).join(" + ");
+}
+function createWorkbenchWiring({ getForm, getLayers, setShaderForm, shaderCommand, showToast, t: t2, shaderCompare }) {
+  const field2 = (key, value) => setShaderForm((form) => ({ ...form, [key]: value }));
+  const formLayer = () => getLayers().find((layer) => layer.id === getForm().layerId) ?? null;
+  const target = () => resolveWorkbenchTarget(getLayers(), getForm());
+  let applyTimer = null;
+  let applying = false;
+  let queued = false;
+  let lastSilentError = "";
+  const runApply = async (silent) => {
+    try {
+      const result = await shaderCommand(buildShaderFormArgs(getForm()));
+      if (!silent) showToast(t2("toast.shaderApplied", { preset: shaderStackLabel(t2, result.preset), layer: result.layer }));
+      lastSilentError = "";
+      return result;
+    } catch (error) {
+      const text = messageOf(error);
+      if (!silent || text !== lastSilentError) showToast(text);
+      lastSilentError = silent ? text : "";
+      return null;
+    }
+  };
+  return {
+    /** Set one form field (layerId / numeric inputs). */
+    field: field2,
+    /** Toggle a preset chip in the stack. */
+    toggle: (preset) => setShaderForm((form) => toggleShaderPreset(form, preset)),
+    /** Reorder one preset inside the stack (the array order is the compose order). */
+    move: (preset, delta) => setShaderForm((form) => moveShaderPreset(form, preset, delta)),
+    /** The layer the card should show under "automatic selection". */
+    target,
+    /** Load an applied shader row into the form (edit-in-place). */
+    loadEntry: (entry) => setShaderForm(formFromShaderEntry(entry)),
+    /** Reset one specific layer's shader (used by the layer-panel row ✕). */
+    async resetLayerFor(token) {
+      try {
+        const result = await shaderCommand({ action: "reset", layer: token });
+        showToast(result.layer ? t2("toast.shaderReset", { layer: result.layer }) : t2("toast.shaderResetAll"));
+      } catch (error) {
+        showToast(messageOf(error));
+      }
+    },
+    /** Debounced silent apply for slider previews; repeated calls merge into one. */
+    preview: () => {
+      if (applyTimer !== null) clearTimeout(applyTimer);
+      applyTimer = setTimeout(() => {
+        applyTimer = null;
+        void applyInternal(true);
+      }, 180);
+    },
+    async apply() {
+      if (applyTimer !== null) {
+        clearTimeout(applyTimer);
+        applyTimer = null;
+      }
+      await applyInternal(false);
+    },
+    /** Hold/release the original-look comparison. Closes itself if it cannot run. */
+    async compare(enabled) {
+      try {
+        const resolved = target();
+        if (!resolved.layer) {
+          showToast(t2("shader.noLayers"));
+          return null;
+        }
+        return await shaderCompare(resolved.layer.id, enabled);
+      } catch (error) {
+        showToast(messageOf(error));
+        return null;
+      }
+    },
+    async resetLayer() {
+      try {
+        const visible = getLayers().filter((layer) => layer.visible);
+        const resolved = target().layer ?? formLayer() ?? visible[visible.length - 1] ?? null;
+        if (!resolved) {
+          showToast(t2("shader.noLayers"));
+          return;
+        }
+        const result = await shaderCommand({ action: "reset", layer: resolved.id });
+        showToast(result.layer ? t2("toast.shaderReset", { layer: result.layer }) : t2("toast.shaderResetAll"));
+      } catch (error) {
+        showToast(messageOf(error));
+      }
+    },
+    async resetAll() {
+      try {
+        await shaderCommand({ action: "reset" });
+        showToast(t2("toast.shaderResetAll"));
+      } catch (error) {
+        showToast(messageOf(error));
+      }
+    }
+  };
+  async function applyInternal(silent) {
+    if (applying) {
+      queued = true;
+      return;
+    }
+    applying = true;
+    try {
+      await runApply(silent);
+    } finally {
+      applying = false;
+    }
+    if (queued) {
+      queued = false;
+      await applyInternal(silent);
+    }
+  }
+}
+function messageOf(error) {
+  return error && typeof error.message === "string" && error.message !== "" ? error.message : String(error);
+}
+
+// src/client/ui/layers-panel.js
 var h5 = import_react7.default.createElement;
 var OVERLAY_TYPES2 = ["wms", "xyz", "arcgis"];
 function LayersPanel({
@@ -5865,6 +6114,10 @@ function LayersPanel({
   onRemoveAgentOverlay,
   analysis,
   onClearAnalysis,
+  shaderActive,
+  shaderForm,
+  onSelectShaderEntry,
+  onResetShaderEntry,
   getCurrentView,
   onFlyView
 }) {
@@ -6082,7 +6335,64 @@ function LayersPanel({
           h5("button", { type: "button", className: "mv-icon-btn", title: t2("btn.health"), "aria-label": t2("btn.health"), onClick: () => onInspectLayer(layer.id) }, "⌕"),
           h5("button", { type: "button", className: "mv-icon-btn", title: t2("btn.delete"), "aria-label": t2("btn.delete"), onClick: () => onRemoveLayer(layer.id) }, "✕")
         )
-      )
+      ),
+      // ---- shader effects: one selectable row per applied preset stack ----------
+      h5(
+        "div",
+        { key: "g7", className: "mv-group" },
+        h5("div", { className: "mv-group-title" }, `${t2("layers.shader")}${(shaderActive ?? []).length > 0 ? ` · ${shaderActive.length}` : ""}`)
+      ),
+      (shaderActive ?? []).length === 0 ? h5("div", { key: "shader-empty", className: "mv-none" }, t2("layers.shaderEmpty")) : (shaderActive ?? []).map((entry) => {
+        const selected = entry.layerId !== void 0 && shaderForm?.layerId === entry.layerId;
+        const presetText = (Array.isArray(entry.preset) ? entry.preset : [entry.preset]).map((item) => t2(`shader.preset.${item}`)).join(" + ");
+        return h5(
+          "div",
+          {
+            key: entry.layerId ?? entry.layer,
+            className: `mv-layer mv-shader-layer${selected ? " on" : ""}`,
+            title: shaderEntrySummary(t2, entry),
+            role: "button",
+            tabIndex: 0,
+            onClick: () => onSelectShaderEntry(entry),
+            onKeyDown: (event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                onSelectShaderEntry(entry);
+              }
+            }
+          },
+          h5("span", { className: "name", title: entry.layer }, entry.layer),
+          h5("span", { className: "mv-shader-chip" }, presetText),
+          h5(
+            "button",
+            {
+              type: "button",
+              className: "mv-icon-btn",
+              title: t2("shader.editEntry"),
+              "aria-label": t2("shader.editEntry"),
+              onClick: (event) => {
+                event.stopPropagation();
+                onSelectShaderEntry(entry);
+              }
+            },
+            "✎"
+          ),
+          h5(
+            "button",
+            {
+              type: "button",
+              className: "mv-icon-btn",
+              title: t2("shader.removeEntry"),
+              "aria-label": t2("shader.removeEntry"),
+              onClick: (event) => {
+                event.stopPropagation();
+                onResetShaderEntry(entry);
+              }
+            },
+            "✕"
+          )
+        );
+      })
     )
   );
 }
@@ -6199,178 +6509,6 @@ function LoadingGlobe() {
     { className: "mv-spinner", "aria-hidden": true },
     import_react8.default.createElement("canvas", { ref: canvasRef, className: "mv-loading-globe" })
   );
-}
-
-// src/client/ui/workbench-wiring.js
-function toggleShaderPreset(form, preset) {
-  const current = Array.isArray(form.preset) ? form.preset : [form.preset];
-  const next = current.includes(preset) ? current.filter((item) => item !== preset) : current.length >= 3 ? current : [...current, preset];
-  if (next.length === 0) return form;
-  return { ...form, preset: next.length === 1 ? next[0] : next };
-}
-function buildShaderFormArgs(form) {
-  const selected = Array.isArray(form.preset) ? form.preset : [form.preset];
-  const args = { action: "apply", preset: selected.length === 1 ? selected[0] : selected };
-  if (form.layerId) args.layer = form.layerId;
-  const readNumber = (key) => form[key] === "" ? void 0 : Number(form[key]);
-  const has = (preset) => selected.includes(preset);
-  if (has("height-false-color")) {
-    const minimum = readNumber("minHeight");
-    const maximum = readNumber("maxHeight");
-    if (minimum !== void 0) args.min_height = minimum;
-    if (maximum !== void 0) args.max_height = maximum;
-  }
-  if (has("contour")) {
-    const interval = readNumber("interval");
-    if (interval !== void 0) args.interval = interval;
-  }
-  if (has("scan") || has("water")) {
-    const speed = readNumber("speed");
-    if (speed !== void 0) args.speed = speed;
-  }
-  if (has("water")) {
-    const amplitude = readNumber("amplitude");
-    const opacity = readNumber("opacity");
-    if (amplitude !== void 0) args.amplitude = amplitude;
-    if (opacity !== void 0) args.opacity = opacity;
-  }
-  if (has("water-depth")) {
-    const waterHeight = readNumber("waterHeight");
-    const depthMax = readNumber("depthMax");
-    if (waterHeight !== void 0) args.water_height = waterHeight;
-    if (depthMax !== void 0) args.depth_max = depthMax;
-  }
-  return args;
-}
-function moveShaderPreset(form, preset, delta) {
-  const current = Array.isArray(form.preset) ? [...form.preset] : [form.preset];
-  const from = current.indexOf(preset);
-  const to = from + delta;
-  if (from < 0 || to < 0 || to >= current.length) return form;
-  current.splice(from, 1);
-  current.splice(to, 0, preset);
-  return { ...form, preset: current.length === 1 ? current[0] : current };
-}
-function resolveWorkbenchTarget(layers, form) {
-  const list = Array.isArray(layers) ? layers : [];
-  const explicit = form.layerId ? list.find((layer) => layer.id === form.layerId) ?? null : null;
-  if (explicit) return { layer: explicit, auto: false };
-  let gaussianOnly = false;
-  for (let index = list.length - 1; index >= 0; index -= 1) {
-    const layer = list[index];
-    if (!layer.visible) continue;
-    if (shaderGaussianLayer(layer.tileset)) {
-      gaussianOnly = true;
-      continue;
-    }
-    return { layer, auto: true };
-  }
-  return { layer: null, auto: true, gaussianOnly };
-}
-function shaderStackLabel(t2, preset) {
-  return (Array.isArray(preset) ? preset : [preset]).map((item) => t2(`shader.preset.${item}`)).join(" + ");
-}
-function createWorkbenchWiring({ getForm, getLayers, setShaderForm, shaderCommand, showToast, t: t2, shaderCompare }) {
-  const field2 = (key, value) => setShaderForm((form) => ({ ...form, [key]: value }));
-  const formLayer = () => getLayers().find((layer) => layer.id === getForm().layerId) ?? null;
-  const target = () => resolveWorkbenchTarget(getLayers(), getForm());
-  let applyTimer = null;
-  let applying = false;
-  let queued = false;
-  let lastSilentError = "";
-  const runApply = async (silent) => {
-    try {
-      const result = await shaderCommand(buildShaderFormArgs(getForm()));
-      if (!silent) showToast(t2("toast.shaderApplied", { preset: shaderStackLabel(t2, result.preset), layer: result.layer }));
-      lastSilentError = "";
-      return result;
-    } catch (error) {
-      const text = messageOf(error);
-      if (!silent || text !== lastSilentError) showToast(text);
-      lastSilentError = silent ? text : "";
-      return null;
-    }
-  };
-  return {
-    /** Set one form field (layerId / numeric inputs). */
-    field: field2,
-    /** Toggle a preset chip in the stack. */
-    toggle: (preset) => setShaderForm((form) => toggleShaderPreset(form, preset)),
-    /** Reorder one preset inside the stack (the array order is the compose order). */
-    move: (preset, delta) => setShaderForm((form) => moveShaderPreset(form, preset, delta)),
-    /** The layer the card should show under "automatic selection". */
-    target,
-    /** Debounced silent apply for slider previews; repeated calls merge into one. */
-    preview: () => {
-      if (applyTimer !== null) clearTimeout(applyTimer);
-      applyTimer = setTimeout(() => {
-        applyTimer = null;
-        void applyInternal(true);
-      }, 180);
-    },
-    async apply() {
-      if (applyTimer !== null) {
-        clearTimeout(applyTimer);
-        applyTimer = null;
-      }
-      await applyInternal(false);
-    },
-    /** Hold/release the original-look comparison. Closes itself if it cannot run. */
-    async compare(enabled) {
-      try {
-        const resolved = target();
-        if (!resolved.layer) {
-          showToast(t2("shader.noLayers"));
-          return null;
-        }
-        return await shaderCompare(resolved.layer.id, enabled);
-      } catch (error) {
-        showToast(messageOf(error));
-        return null;
-      }
-    },
-    async resetLayer() {
-      try {
-        const visible = getLayers().filter((layer) => layer.visible);
-        const resolved = target().layer ?? formLayer() ?? visible[visible.length - 1] ?? null;
-        if (!resolved) {
-          showToast(t2("shader.noLayers"));
-          return;
-        }
-        const result = await shaderCommand({ action: "reset", layer: resolved.id });
-        showToast(result.layer ? t2("toast.shaderReset", { layer: result.layer }) : t2("toast.shaderResetAll"));
-      } catch (error) {
-        showToast(messageOf(error));
-      }
-    },
-    async resetAll() {
-      try {
-        await shaderCommand({ action: "reset" });
-        showToast(t2("toast.shaderResetAll"));
-      } catch (error) {
-        showToast(messageOf(error));
-      }
-    }
-  };
-  async function applyInternal(silent) {
-    if (applying) {
-      queued = true;
-      return;
-    }
-    applying = true;
-    try {
-      await runApply(silent);
-    } finally {
-      applying = false;
-    }
-    if (queued) {
-      queued = false;
-      await applyInternal(silent);
-    }
-  }
-}
-function messageOf(error) {
-  return error && typeof error.message === "string" && error.message !== "" ? error.message : String(error);
 }
 
 // src/client/ui/menu-item.js
@@ -8572,6 +8710,17 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
         onFrameAll: () => frameAllLayers(viewerRef.current, cesiumRef.current, layersRef.current),
         analysis,
         onClearAnalysis: () => clearAnalysis(),
+        // Shader effects behave like selectable rows: click loads that
+        // effect into the workbench, ✕ resets only that layer.
+        shaderActive,
+        shaderForm,
+        onSelectShaderEntry: (entry) => {
+          workbench.loadEntry(entry);
+          setShaderOpen(true);
+        },
+        onResetShaderEntry: (entry) => {
+          void workbench.resetLayerFor(entry.layer);
+        },
         onToggleLayer: toggleLayer,
         onInspectLayer: inspectLayer,
         onRemoveLayer: removeLayer,

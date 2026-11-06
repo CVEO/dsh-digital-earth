@@ -2648,6 +2648,17 @@ const h = React.createElement
                     onFrameAll: () => frameAllLayers(viewerRef.current, cesiumRef.current, layersRef.current),
                     analysis,
                     onClearAnalysis: () => clearAnalysis(),
+                    // Shader effects behave like selectable rows: click loads that
+                    // effect into the workbench, ✕ resets only that layer.
+                    shaderActive,
+                    shaderForm,
+                    onSelectShaderEntry: (entry) => {
+                      workbench.loadEntry(entry)
+                      setShaderOpen(true)
+                    },
+                    onResetShaderEntry: (entry) => {
+                      void workbench.resetLayerFor(entry.layer)
+                    },
                     onToggleLayer: toggleLayer,
                     onInspectLayer: inspectLayer,
                     onRemoveLayer: removeLayer,

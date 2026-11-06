@@ -117,6 +117,11 @@
 .mv-layer:hover{background:color-mix(in srgb,var(--mv-lift) 64%,transparent)}
 .mv-layer .name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;cursor:pointer}
 .mv-layer.off .name{color:var(--mv-dim);text-decoration:line-through}
+.mv-shader-layer{cursor:pointer;border:.5px solid transparent}
+.mv-shader-layer:hover{border-color:color-mix(in srgb,#3ddc97 35%,transparent)}
+.mv-shader-layer.on{border-color:color-mix(in srgb,#3ddc97 65%,transparent);background:color-mix(in srgb,#3ddc97 10%,transparent)}
+.mv-shader-layer .mv-shader-chip{flex:none;max-width:46%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:9.5px;letter-spacing:.02em;color:#04241a;background:color-mix(in srgb,#3ddc97 72%,transparent);border-radius:4px;padding:1px 5px}
+.mv-shader-layer .mv-icon-btn{width:22px;height:22px;font-size:12px}
 .mv-icon-btn{appearance:none;border:0;background:transparent;color:var(--mv-dim);width:26px;height:26px;border-radius:7px;cursor:pointer;font:inherit;font-size:14px;line-height:1;display:inline-flex;align-items:center;justify-content:center;flex:none}
 .mv-layer{gap:3px;padding:5px 7px}
 .mv-layer .mv-icon-btn{font-size:15px}
