@@ -72,6 +72,10 @@
         'hud.fpsTitle': '每秒真实渲染帧数（场景静止 2 秒后显示 —）',
         'settings.terrainDepthTest': '地形遮挡三维图层（深度测试）',
         'settings.terrainDepthTestHint': '关闭（默认）：地下管网、埋在地形下的模型都能看见；开启：地形会挡住埋在下面的内容，天际线更干净。',
+        'settings.quality': '渲染质量',
+        'settings.qualityHint': '均衡（默认）略微降低分辨率与地形 / 瓦片细节，拖动更流畅；高清使用满分辨率与 4× MSAA。抗锯齿档位在重新打开面板后完全生效。',
+        'settings.qualityBalanced': '均衡（流畅优先）',
+        'settings.qualityHigh': '高清（画质优先）',
         'layers.title': '图层',
         'layers.collapse': '收起图层卡',
         'urlbar.placeholder': 'tileset.json 的 http(s) 地址，或本地绝对路径',
@@ -403,6 +407,10 @@
         'hud.fpsTitle': 'Real rendered frames per second (— after 2 s without a render)',
         'settings.terrainDepthTest': 'Terrain occludes 3D layers (depth test)',
         'settings.terrainDepthTestHint': 'Off (default): underground pipes and models buried under the terrain stay visible. On: terrain hides what is below it and the skyline reads cleaner.',
+        'settings.quality': 'Render quality',
+        'settings.qualityHint': 'Balanced (default) trims resolution and terrain / 3D Tiles detail to stay smooth while dragging; High keeps full resolution and 4× MSAA. The anti-aliasing tier applies after the panel is reopened.',
+        'settings.qualityBalanced': 'Balanced (smoother)',
+        'settings.qualityHigh': 'High (sharper)',
         'layers.title': 'Layers',
         'layers.collapse': 'Collapse layer card',
         'urlbar.placeholder': 'http(s) URL of tileset.json, or an absolute local path',
@@ -676,7 +684,7 @@
 
     /** About-tab fallbacks used before the Host meta payload arrives. */
     const FALLBACK_ABOUT = {
-      version: '1.5.0',
+      version: '1.6.0',
       homepage: 'https://github.com/CVEO/dsh-digital-earth',
       teamUrl: 'https://www.whu-cveo.com/',
     }

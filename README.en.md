@@ -6,7 +6,7 @@
 
 [中文](README.md) · [English](README.en.md)
 
-![version](https://img.shields.io/badge/version-1.5.0-4f8cff)
+![version](https://img.shields.io/badge/version-1.6.0-4f8cff)
 ![license](https://img.shields.io/badge/license-MIT-2ea44f)
 ![platform](https://img.shields.io/badge/platform-Web-8b5cf6)
 ![DSH](https://img.shields.io/badge/DSH-%3E%3D0.2.1--rc.1-0ea5e9)
@@ -36,6 +36,7 @@ Digital Earth adds a CesiumJS globe to DSH. It opens beside the conversation so 
 | Shader presets | `earth_shader`: four white-listed presets (elevation ramp, contour, scan, water) per 3D Tiles layer — apply, reset or list; 3DGS is unsupported and custom GLSL is not accepted |
 | Collapsible panels | The layer card and coordinate HUD can be collapsed / expanded from the toolbar, and the layer card can also be closed from its header; the show switches persist |
 | Display modes & terrain occlusion | Docked sidebar / main area / **real fullscreen** (DOM Fullscreen, Esc exits); the “Terrain occludes 3D layers (depth test)” switch is off by default so underground pipes and buried models stay visible, and on it lets terrain hide what is below it |
+| Render quality tiers | Settings → Appearance offers “Balanced” (default, smoother) or “High” (sharper): Balanced lowers the render resolution and the terrain / 3D Tiles LOD and enlarges the terrain cache so dragging stays smooth; High restores full resolution and Cesium’s default LOD. Switching applies live (the anti-aliasing tier takes effect after the panel is reopened); the active tier and effective scale are reported in `earth_scene status` → `render` |
 | Clean snapshots | Manual and Agent snapshots keep only the 3D view by default; pass `include_hud` per call or enable the settings switch to burn the coordinate HUD and team credit into the image |
 | Layer statistics | Tiles, pending tiles, triangles and cache per layer; global FPS and camera height / heading |
 | Data health check | One click per layer inspects the `tileset.json`: asset version, root geometric error, LOD depth, tile / content counts, external tilesets, `extensionsUsed`, missing content and bounding-volume problems; the report is persisted and the Agent can run the same check through `earth_scene` |
@@ -58,7 +59,7 @@ dsh plugin --profile <profile> add @cveo/dsh-digital-earth
 
 # from a local folder or tarball
 dsh plugin --profile <profile> add "<path-to-plugin>"
-dsh plugin --profile <profile> add "./cveo-dsh-digital-earth-1.5.0.tgz"
+dsh plugin --profile <profile> add "./cveo-dsh-digital-earth-1.6.0.tgz"
 ```
 
 Fully quit and reopen DSH after installing or updating: client bundles are registered when the host starts, so reloading the page alone is not enough. The “Digital Earth” entry then appears in the sidebar, and a globe button appears in the conversation header.

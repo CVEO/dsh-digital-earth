@@ -14,6 +14,7 @@ import { FALLBACK_ABOUT } from '../messages.js'
 import { folderName } from '../preferences.js'
 import { service } from '../runtime.js'
 import { normalizeSceneSnapshot, readSceneSnapshot, writeSceneSnapshot } from '../scene-store.js'
+import { applyQuality, normalizeQuality, qualityProfile } from '../scene/quality.js'
 import { SHADER_PRESETS, shaderFail, shaderFragmentSource, shaderGaussianLayer, shaderHeightRange, shaderUniforms, shaderValidateRequest } from '../shader/presets.js'
 import { useEnvironmentDark } from '../theme.js'
 import { AnalysisCard, ShaderWorkbench } from '../ui/cards.js'
@@ -337,14 +338,20 @@ const h = React.createElement
         const viewer = viewerRef.current
         if (!Cesium || !viewer) throw new Error(t('agent.notReady'))
         const label = name || decodeURIComponent(url.split('/').filter(Boolean).slice(-2).join('/'))
+        // The tier decides the photogrammetry LOD; both the direct and the proxy
+        // path must use the same option, otherwise a proxied load silently
+        // reverts to Cesium's default 16 and looks heavier than the direct one.
+        const tilesetOptions = {
+          maximumScreenSpaceError: qualityProfile(sourcesRef.current?.settings?.quality).tilesetMaximumScreenSpaceError,
+        }
         setBusy(t('toast.loadingData'))
         try {
           let tileset
           try {
-            tileset = await Cesium.Cesium3DTileset.fromUrl(url)
+            tileset = await Cesium.Cesium3DTileset.fromUrl(url, tilesetOptions)
           } catch (directError) {
             if (!/^https?:/i.test(url)) throw directError
-            tileset = await Cesium.Cesium3DTileset.fromUrl(proxyUrlFor(url))
+            tileset = await Cesium.Cesium3DTileset.fromUrl(proxyUrlFor(url), tilesetOptions)
             showToast(t('toast.proxyFallback'))
           }
           viewer.scene.primitives.add(tileset)
@@ -649,6 +656,13 @@ const h = React.createElement
         setSettingsOpen(false)
         if (current?.settings?.imagery !== next.settings.imagery) applyImagery(next.settings.imagery, false)
         if (current?.settings?.terrain !== next.settings.terrain) applyTerrain(next.settings.terrain, false)
+        if (normalizeQuality(current?.settings?.quality) !== normalizeQuality(next.settings.quality)) {
+          applyQuality(
+            viewerRef.current,
+            next.settings.quality,
+            layersRef.current.map((layer) => layer.tileset),
+          )
+        }
         applyGlobeDepthTest()
       }
 
@@ -2239,34 +2253,44 @@ const h = React.createElement
             nextFrames(2),
             new Promise((_, reject) => setTimeout(() => reject(new Error(t('agent.hiddenPanel'))), 1500)),
           ])
-          viewer.resize()
-          viewer.render()
-          const canvas = viewer.canvas
-          const sourceWidth = canvas?.width ?? 0
-          const sourceHeight = canvas?.height ?? 0
-          if (sourceWidth < 32 || sourceHeight < 32) throw new Error(t('agent.hiddenPanel'))
-          let scale = 1
-          let quality = 0.9
-          let targetWidth = 0
-          let targetHeight = 0
-          let dataUrl = ''
-          for (let attempt = 0; attempt < 4; attempt += 1) {
-            const drawWidth = Math.max(320, Math.round(width * scale))
-            targetWidth = Math.min(drawWidth, sourceWidth)
-            targetHeight = Math.max(1, Math.round((targetWidth * sourceHeight) / sourceWidth))
-            const target = document.createElement('canvas')
-            target.width = targetWidth
-            target.height = targetHeight
-            const context = target.getContext('2d')
-            context.drawImage(canvas, 0, 0, targetWidth, targetHeight)
-            if (includeHud) drawCaptureOverlay(context, targetWidth, targetHeight)
-            dataUrl = format === 'png' ? target.toDataURL('image/png') : target.toDataURL('image/jpeg', quality)
-            if (dataUrl.length <= MAX_CAPTURE_DATAURL) break
-            if (format === 'jpeg') quality = Math.max(0.5, quality - 0.15)
-            else scale *= 0.78
+          // Captures always use the full-quality buffer: the balanced tier trades
+          // sharpness for motion, and the user asked for a picture, not a frame
+          // budget. The tier's scale is restored afterwards.
+          const previousResolutionScale = viewer.resolutionScale
+          viewer.resolutionScale = 1
+          try {
+            viewer.resize()
+            viewer.render()
+            const canvas = viewer.canvas
+            const sourceWidth = canvas?.width ?? 0
+            const sourceHeight = canvas?.height ?? 0
+            if (sourceWidth < 32 || sourceHeight < 32) throw new Error(t('agent.hiddenPanel'))
+            let scale = 1
+            let quality = 0.9
+            let targetWidth = 0
+            let targetHeight = 0
+            let dataUrl = ''
+            for (let attempt = 0; attempt < 4; attempt += 1) {
+              const drawWidth = Math.max(320, Math.round(width * scale))
+              targetWidth = Math.min(drawWidth, sourceWidth)
+              targetHeight = Math.max(1, Math.round((targetWidth * sourceHeight) / sourceWidth))
+              const target = document.createElement('canvas')
+              target.width = targetWidth
+              target.height = targetHeight
+              const context = target.getContext('2d')
+              context.drawImage(canvas, 0, 0, targetWidth, targetHeight)
+              if (includeHud) drawCaptureOverlay(context, targetWidth, targetHeight)
+              dataUrl = format === 'png' ? target.toDataURL('image/png') : target.toDataURL('image/jpeg', quality)
+              if (dataUrl.length <= MAX_CAPTURE_DATAURL) break
+              if (format === 'jpeg') quality = Math.max(0.5, quality - 0.15)
+              else scale *= 0.78
+            }
+            if (dataUrl.length > MAX_CAPTURE_DATAURL) throw new Error(t('agent.captureTooLarge'))
+            return { dataUrl, width: targetWidth, height: targetHeight, includeHud, format }
+          } finally {
+            viewer.resolutionScale = previousResolutionScale
+            viewer.resize()
           }
-          if (dataUrl.length > MAX_CAPTURE_DATAURL) throw new Error(t('agent.captureTooLarge'))
-          return { dataUrl, width: targetWidth, height: targetHeight, includeHud, format }
         } finally {
           if (!includeHud) setChromeHidden(false)
         }
@@ -2827,6 +2851,11 @@ ${image !== '' ? `<h2>${escapeHtml(L.snapshot)}</h2>${image}` : ''}
             fps: fps === null ? null : Math.round(fps),
             idle: fps === null,
             terrain_depth_test: viewer.scene.globe.depthTestAgainstTerrain === true,
+            // Quality tier + the effective scale, so "why is it blurry / slow"
+            // has an answer in the scene state instead of a guess.
+            quality: normalizeQuality(config.settings.quality),
+            resolution_scale: viewer.resolutionScale,
+            globe_maximum_screen_space_error: viewer.scene.globe.maximumScreenSpaceError,
           },
           snapshot: { includeHud: config.settings.screenshotHud === true },
           measureTool: toolRef.current,
@@ -3236,6 +3265,10 @@ ${image !== '' ? `<h2>${escapeHtml(L.snapshot)}</h2>${image}` : ''}
               fullscreenButton: false,
               vrButton: false,
               creditContainer: creditRef.current,
+              // `msaaSamples` is a context-creation option, so the tier is read
+              // here and applied live by applyQuality() right after construction;
+              // switching tiers later re-applies everything except this one.
+              msaaSamples: qualityProfile(catalog.config.settings?.quality).msaaSamples,
               // No `preserveDrawingBuffer`: it forces a full-resolution framebuffer
             // copy and disqualifies the compositor fast path on EVERY frame, which
             // is exactly the kind of millisecond that pushes a 60 FPS frame past the
@@ -3247,6 +3280,9 @@ ${image !== '' ? `<h2>${escapeHtml(L.snapshot)}</h2>${image}` : ''}
             })
             viewerRef.current = viewer
             viewer.scene.globe.baseColor = Cesium.Color.fromCssColorString('#060a12')
+            // Apply the persisted render tier before the first frame: resolution
+            // scale and terrain LOD are the two biggest per-frame costs.
+            applyQuality(viewer, catalog.config.settings?.quality)
             viewer.camera.setView({ destination: Cesium.Cartesian3.fromDegrees(104, 31, 14000000) })
             await applyImagery(catalog.config.settings.imagery, false)
             if (catalog.config.settings.terrain) await applyTerrain(catalog.config.settings.terrain, false)

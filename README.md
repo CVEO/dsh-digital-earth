@@ -6,7 +6,7 @@
 
 [中文](README.md) · [English](README.en.md)
 
-![版本](https://img.shields.io/badge/版本-1.5.0-4f8cff)
+![版本](https://img.shields.io/badge/版本-1.6.0-4f8cff)
 ![许可](https://img.shields.io/badge/许可-MIT-2ea44f)
 ![平台](https://img.shields.io/badge/平台-Web-8b5cf6)
 ![DSH](https://img.shields.io/badge/DSH-%3E%3D0.2.1--rc.1-0ea5e9)
@@ -31,6 +31,7 @@
 | 本地瓦片 | 直接把本地 XYZ / TMS 瓦片目录添加为底图，离线可用 |
 | 数据源管理 | 设置面板内增删改、单选启用、恢复默认，配置持久化到 `$DSH_HOME/digital-earth/sources.json` |
 | 显示三态与地形遮挡 | 停靠侧栏 / 主区域 / **真全屏**（DOM Fullscreen，Esc 退出）三态；「地形遮挡三维图层（深度测试）」开关默认关闭，地下管网与埋在地形下的模型都能看见，开启后地形会遮挡埋在下面的内容 |
+| 渲染质量档 | 设置 → 外观可选「均衡（默认，流畅优先）」或「高清（画质优先）」：均衡降低渲染分辨率与地形 / 瓦片 LOD、加大地形缓存，拖动更稳；高清回到满分辨率与 Cesium 默认 LOD。切换即时生效，抗锯齿档位在重新打开面板后完全生效；当前档位与有效分辨率进 `earth_scene status` 的 `render` |
 | 坐标 HUD | 光标经纬度 + 高程；裸地球、地形、模型三种情形均可用，约 5–6 Hz 采样，拖动时暂停、停手后补一次，不触发重渲染；FPS 取 Cesium 真实渲染帧（`scene.postRender`），场景静止 2 秒显示 `—` 而不是假的 0 |
 | 量测与工具 | 测距、测面、测高、拾取 3D Tiles 属性、截图、复位视角 |
 | 地形分析 | `earth_analyze`：剖面（含 SVG 剖面卡）、淹没、日照三类分析一次只保留一个；结果以地图叠加与数值返回，清除时移除叠加，日照分析还会恢复进入前的光照 / 阴影状态 |
@@ -58,7 +59,7 @@ dsh plugin --profile <profile> add @cveo/dsh-digital-earth
 
 # 从本地目录 / 打包文件安装
 dsh plugin --profile <profile> add "<path-to-plugin>"
-dsh plugin --profile <profile> add "./cveo-dsh-digital-earth-1.5.0.tgz"
+dsh plugin --profile <profile> add "./cveo-dsh-digital-earth-1.6.0.tgz"
 ```
 
 安装或更新后请**完全退出并重新打开 DSH** 一次：客户端 bundle 在宿主启动时注册，仅刷新页面不会重新注册。随后左侧栏出现「数字地球 / Digital Earth」入口，对话标题栏也会出现地球按钮。

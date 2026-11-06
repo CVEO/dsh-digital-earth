@@ -352,6 +352,23 @@ const h = React.createElement
               })),
           }),
         ),
+        field(
+          t('settings.quality'),
+          h(
+            'select',
+            {
+              value: draft.settings.quality === 'high' ? 'high' : 'balanced',
+              onChange: (event) =>
+                setDraft((current) => ({
+                  ...current,
+                  settings: { ...current.settings, quality: event.target.value },
+                })),
+            },
+            h('option', { value: 'balanced' }, t('settings.qualityBalanced')),
+            h('option', { value: 'high' }, t('settings.qualityHigh')),
+          ),
+        ),
+        h('p', { className: 'mv-note' }, t('settings.qualityHint')),
         h(
           'label',
           { className: 'mv-toggle' },

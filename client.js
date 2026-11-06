@@ -116,6 +116,10 @@ var MESSAGES = {
     "hud.fpsTitle": "每秒真实渲染帧数（场景静止 2 秒后显示 —）",
     "settings.terrainDepthTest": "地形遮挡三维图层（深度测试）",
     "settings.terrainDepthTestHint": "关闭（默认）：地下管网、埋在地形下的模型都能看见；开启：地形会挡住埋在下面的内容，天际线更干净。",
+    "settings.quality": "渲染质量",
+    "settings.qualityHint": "均衡（默认）略微降低分辨率与地形 / 瓦片细节，拖动更流畅；高清使用满分辨率与 4× MSAA。抗锯齿档位在重新打开面板后完全生效。",
+    "settings.qualityBalanced": "均衡（流畅优先）",
+    "settings.qualityHigh": "高清（画质优先）",
     "layers.title": "图层",
     "layers.collapse": "收起图层卡",
     "urlbar.placeholder": "tileset.json 的 http(s) 地址，或本地绝对路径",
@@ -442,6 +446,10 @@ var MESSAGES = {
     "hud.fpsTitle": "Real rendered frames per second (— after 2 s without a render)",
     "settings.terrainDepthTest": "Terrain occludes 3D layers (depth test)",
     "settings.terrainDepthTestHint": "Off (default): underground pipes and models buried under the terrain stay visible. On: terrain hides what is below it and the skyline reads cleaner.",
+    "settings.quality": "Render quality",
+    "settings.qualityHint": "Balanced (default) trims resolution and terrain / 3D Tiles detail to stay smooth while dragging; High keeps full resolution and 4× MSAA. The anti-aliasing tier applies after the panel is reopened.",
+    "settings.qualityBalanced": "Balanced (smoother)",
+    "settings.qualityHigh": "High (sharper)",
     "layers.title": "Layers",
     "layers.collapse": "Collapse layer card",
     "urlbar.placeholder": "http(s) URL of tileset.json, or an absolute local path",
@@ -705,7 +713,7 @@ var MESSAGES = {
   }
 };
 var FALLBACK_ABOUT = {
-  version: "1.5.0",
+  version: "1.6.0",
   homepage: "https://github.com/CVEO/dsh-digital-earth",
   teamUrl: "https://www.whu-cveo.com/"
 };
@@ -1387,6 +1395,51 @@ function writeSceneSnapshot(sessionId, snapshot) {
     }
   }
   return body;
+}
+
+// src/client/scene/quality.js
+var QUALITY_MODES = ["balanced", "high"];
+var DEFAULT_QUALITY = "balanced";
+var PROFILES = {
+  /**
+   * Balanced (default): ~28 % fewer pixels, coarser terrain/photogrammetry LOD.
+   * The visual difference is mostly at silhouettes; motion stays smooth.
+   */
+  balanced: {
+    resolutionScale: 0.85,
+    msaaSamples: 2,
+    globeMaximumScreenSpaceError: 3,
+    globeTileCacheSize: 200,
+    tilesetMaximumScreenSpaceError: 20
+  },
+  /** High: full resolution at the Cesium defaults, for screenshots and reviews. */
+  high: {
+    resolutionScale: 1,
+    msaaSamples: 4,
+    globeMaximumScreenSpaceError: 2,
+    globeTileCacheSize: 100,
+    tilesetMaximumScreenSpaceError: 16
+  }
+};
+function normalizeQuality(value) {
+  return QUALITY_MODES.includes(value) ? value : DEFAULT_QUALITY;
+}
+function qualityProfile(value) {
+  return { ...PROFILES[normalizeQuality(value)] };
+}
+function applyQuality(viewer, value, tilesets = []) {
+  if (!viewer) return qualityProfile(value);
+  const profile = qualityProfile(value);
+  viewer.resolutionScale = profile.resolutionScale;
+  const globe = viewer.scene?.globe;
+  if (globe) {
+    globe.maximumScreenSpaceError = profile.globeMaximumScreenSpaceError;
+    globe.tileCacheSize = profile.globeTileCacheSize;
+  }
+  for (const tileset of tilesets) {
+    if (tileset) tileset.maximumScreenSpaceError = profile.tilesetMaximumScreenSpaceError;
+  }
+  return profile;
 }
 
 // src/client/shader/presets.js
@@ -2178,7 +2231,7 @@ var emptySource = (kind) => ({
 });
 function SourceForm({ kind, source, onPickLocal, onChange, onCancel, t: t2 }) {
   const set = (patch) => onChange({ ...source, ...patch });
-  const field = (label, input) => h3("div", { className: "mv-field" }, h3("label", null, label), input);
+  const field2 = (label, input) => h3("div", { className: "mv-field" }, h3("label", null, label), input);
   const pickTiles = async () => {
     if (typeof onPickLocal !== "function") return;
     const url = await onPickLocal();
@@ -2196,8 +2249,8 @@ function SourceForm({ kind, source, onPickLocal, onChange, onCancel, t: t2 }) {
     h3(
       "div",
       { className: "grid" },
-      field(t2("settings.field.name"), text("name")),
-      field(
+      field2(t2("settings.field.name"), text("name")),
+      field2(
         t2("settings.field.type"),
         h3(
           "select",
@@ -2206,12 +2259,12 @@ function SourceForm({ kind, source, onPickLocal, onChange, onCancel, t: t2 }) {
         )
       )
     ),
-    field(t2("settings.field.url"), text("url", source.url, kind === "imagery" ? "https://…/{z}/{x}/{y}.png" : "https://…")),
-    field(t2("settings.field.credit"), text("credit", source.credit)),
+    field2(t2("settings.field.url"), text("url", source.url, kind === "imagery" ? "https://…/{z}/{x}/{y}.png" : "https://…")),
+    field2(t2("settings.field.credit"), text("credit", source.credit)),
     kind === "imagery" && source.type === "xyz" ? h3(
       "div",
       { className: "grid" },
-      field(
+      field2(
         t2("settings.field.maxLevel"),
         h3("input", {
           type: "number",
@@ -2221,7 +2274,7 @@ function SourceForm({ kind, source, onPickLocal, onChange, onCancel, t: t2 }) {
           onChange: (event) => set({ maximumLevel: event.target.value === "" ? void 0 : Number(event.target.value) })
         })
       ),
-      field(
+      field2(
         t2("settings.field.tilingScheme"),
         h3(
           "select",
@@ -2233,7 +2286,7 @@ function SourceForm({ kind, source, onPickLocal, onChange, onCancel, t: t2 }) {
           h3("option", { value: "geographic" }, t2("settings.tiling.geographic"))
         )
       ),
-      field(
+      field2(
         t2("settings.field.subdomains"),
         h3("input", {
           value: (source.subdomains ?? []).join(","),
@@ -2267,7 +2320,7 @@ function SourceForm({ kind, source, onPickLocal, onChange, onCancel, t: t2 }) {
         )
       )
     ) : null,
-    kind === "imagery" && source.type === "wms" ? field(t2("settings.field.layers"), text("layers", source.layers)) : null,
+    kind === "imagery" && source.type === "wms" ? field2(t2("settings.field.layers"), text("layers", source.layers)) : null,
     kind === "terrain" ? h3(
       "div",
       { className: "grid" },
@@ -2470,6 +2523,22 @@ function SourcesDialog({ config, defaults, environmentDark, themeMode, onPickLoc
         }))
       })
     ),
+    field(
+      t2("settings.quality"),
+      h3(
+        "select",
+        {
+          value: draft.settings.quality === "high" ? "high" : "balanced",
+          onChange: (event) => setDraft((current) => ({
+            ...current,
+            settings: { ...current.settings, quality: event.target.value }
+          }))
+        },
+        h3("option", { value: "balanced" }, t2("settings.qualityBalanced")),
+        h3("option", { value: "high" }, t2("settings.qualityHigh"))
+      )
+    ),
+    h3("p", { className: "mv-note" }, t2("settings.qualityHint")),
     h3(
       "label",
       { className: "mv-toggle" },
@@ -3147,14 +3216,17 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     const viewer = viewerRef.current;
     if (!Cesium || !viewer) throw new Error(t2("agent.notReady"));
     const label = name || decodeURIComponent(url.split("/").filter(Boolean).slice(-2).join("/"));
+    const tilesetOptions = {
+      maximumScreenSpaceError: qualityProfile(sourcesRef.current?.settings?.quality).tilesetMaximumScreenSpaceError
+    };
     setBusy(t2("toast.loadingData"));
     try {
       let tileset;
       try {
-        tileset = await Cesium.Cesium3DTileset.fromUrl(url);
+        tileset = await Cesium.Cesium3DTileset.fromUrl(url, tilesetOptions);
       } catch (directError) {
         if (!/^https?:/i.test(url)) throw directError;
-        tileset = await Cesium.Cesium3DTileset.fromUrl(proxyUrlFor(url));
+        tileset = await Cesium.Cesium3DTileset.fromUrl(proxyUrlFor(url), tilesetOptions);
         showToast(t2("toast.proxyFallback"));
       }
       viewer.scene.primitives.add(tileset);
@@ -3407,6 +3479,13 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     setSettingsOpen(false);
     if (current?.settings?.imagery !== next.settings.imagery) applyImagery(next.settings.imagery, false);
     if (current?.settings?.terrain !== next.settings.terrain) applyTerrain(next.settings.terrain, false);
+    if (normalizeQuality(current?.settings?.quality) !== normalizeQuality(next.settings.quality)) {
+      applyQuality(
+        viewerRef.current,
+        next.settings.quality,
+        layersRef.current.map((layer) => layer.tileset)
+      );
+    }
     applyGlobeDepthTest();
   };
   function setToolMode(mode) {
@@ -4822,34 +4901,41 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
         nextFrames(2),
         new Promise((_, reject) => setTimeout(() => reject(new Error(t2("agent.hiddenPanel"))), 1500))
       ]);
-      viewer.resize();
-      viewer.render();
-      const canvas = viewer.canvas;
-      const sourceWidth = canvas?.width ?? 0;
-      const sourceHeight = canvas?.height ?? 0;
-      if (sourceWidth < 32 || sourceHeight < 32) throw new Error(t2("agent.hiddenPanel"));
-      let scale = 1;
-      let quality = 0.9;
-      let targetWidth = 0;
-      let targetHeight = 0;
-      let dataUrl = "";
-      for (let attempt = 0; attempt < 4; attempt += 1) {
-        const drawWidth = Math.max(320, Math.round(width * scale));
-        targetWidth = Math.min(drawWidth, sourceWidth);
-        targetHeight = Math.max(1, Math.round(targetWidth * sourceHeight / sourceWidth));
-        const target = document.createElement("canvas");
-        target.width = targetWidth;
-        target.height = targetHeight;
-        const context = target.getContext("2d");
-        context.drawImage(canvas, 0, 0, targetWidth, targetHeight);
-        if (includeHud) drawCaptureOverlay(context, targetWidth, targetHeight);
-        dataUrl = format === "png" ? target.toDataURL("image/png") : target.toDataURL("image/jpeg", quality);
-        if (dataUrl.length <= MAX_CAPTURE_DATAURL) break;
-        if (format === "jpeg") quality = Math.max(0.5, quality - 0.15);
-        else scale *= 0.78;
+      const previousResolutionScale = viewer.resolutionScale;
+      viewer.resolutionScale = 1;
+      try {
+        viewer.resize();
+        viewer.render();
+        const canvas = viewer.canvas;
+        const sourceWidth = canvas?.width ?? 0;
+        const sourceHeight = canvas?.height ?? 0;
+        if (sourceWidth < 32 || sourceHeight < 32) throw new Error(t2("agent.hiddenPanel"));
+        let scale = 1;
+        let quality = 0.9;
+        let targetWidth = 0;
+        let targetHeight = 0;
+        let dataUrl = "";
+        for (let attempt = 0; attempt < 4; attempt += 1) {
+          const drawWidth = Math.max(320, Math.round(width * scale));
+          targetWidth = Math.min(drawWidth, sourceWidth);
+          targetHeight = Math.max(1, Math.round(targetWidth * sourceHeight / sourceWidth));
+          const target = document.createElement("canvas");
+          target.width = targetWidth;
+          target.height = targetHeight;
+          const context = target.getContext("2d");
+          context.drawImage(canvas, 0, 0, targetWidth, targetHeight);
+          if (includeHud) drawCaptureOverlay(context, targetWidth, targetHeight);
+          dataUrl = format === "png" ? target.toDataURL("image/png") : target.toDataURL("image/jpeg", quality);
+          if (dataUrl.length <= MAX_CAPTURE_DATAURL) break;
+          if (format === "jpeg") quality = Math.max(0.5, quality - 0.15);
+          else scale *= 0.78;
+        }
+        if (dataUrl.length > MAX_CAPTURE_DATAURL) throw new Error(t2("agent.captureTooLarge"));
+        return { dataUrl, width: targetWidth, height: targetHeight, includeHud, format };
+      } finally {
+        viewer.resolutionScale = previousResolutionScale;
+        viewer.resize();
       }
-      if (dataUrl.length > MAX_CAPTURE_DATAURL) throw new Error(t2("agent.captureTooLarge"));
-      return { dataUrl, width: targetWidth, height: targetHeight, includeHud, format };
     } finally {
       if (!includeHud) setChromeHidden(false);
     }
@@ -5343,7 +5429,12 @@ ${image !== "" ? `<h2>${escapeHtml(L.snapshot)}</h2>${image}` : ""}
       render: {
         fps: fps === null ? null : Math.round(fps),
         idle: fps === null,
-        terrain_depth_test: viewer.scene.globe.depthTestAgainstTerrain === true
+        terrain_depth_test: viewer.scene.globe.depthTestAgainstTerrain === true,
+        // Quality tier + the effective scale, so "why is it blurry / slow"
+        // has an answer in the scene state instead of a guess.
+        quality: normalizeQuality(config.settings.quality),
+        resolution_scale: viewer.resolutionScale,
+        globe_maximum_screen_space_error: viewer.scene.globe.maximumScreenSpaceError
       },
       snapshot: { includeHud: config.settings.screenshotHud === true },
       measureTool: toolRef.current,
@@ -5698,6 +5789,10 @@ ${image !== "" ? `<h2>${escapeHtml(L.snapshot)}</h2>${image}` : ""}
           fullscreenButton: false,
           vrButton: false,
           creditContainer: creditRef.current,
+          // `msaaSamples` is a context-creation option, so the tier is read
+          // here and applied live by applyQuality() right after construction;
+          // switching tiers later re-applies everything except this one.
+          msaaSamples: qualityProfile(catalog.config.settings?.quality).msaaSamples,
           // No `preserveDrawingBuffer`: it forces a full-resolution framebuffer
           // copy and disqualifies the compositor fast path on EVERY frame, which
           // is exactly the kind of millisecond that pushes a 60 FPS frame past the
@@ -5709,6 +5804,7 @@ ${image !== "" ? `<h2>${escapeHtml(L.snapshot)}</h2>${image}` : ""}
         });
         viewerRef.current = viewer;
         viewer.scene.globe.baseColor = Cesium.Color.fromCssColorString("#060a12");
+        applyQuality(viewer, catalog.config.settings?.quality);
         viewer.camera.setView({ destination: Cesium.Cartesian3.fromDegrees(104, 31, 14e6) });
         await applyImagery(catalog.config.settings.imagery, false);
         if (catalog.config.settings.terrain) await applyTerrain(catalog.config.settings.terrain, false);

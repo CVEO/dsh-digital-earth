@@ -10,6 +10,12 @@ import { sendJson, sendText } from './http.js'
 import { writeJsonAtomic } from './fs-util.js'
 
 /**
+ * Render-quality tiers accepted from the catalog. Kept in sync with
+ * src/client/scene/quality.js by test/v16-quality.test.mjs.
+ */
+const QUALITY_MODES = new Set(['balanced', 'high'])
+
+/**
  * Built-in catalogs, used for a first run and for the "restore defaults"
  * action. Names are brand names rather than translated UI copy, so the same
  * value reads correctly in both locales.
@@ -76,7 +82,20 @@ const DEFAULT_SOURCES = {
       credit: 'Esri, CGIAR, USGS',
     },
   ],
-  settings: { theme: 'auto', imagery: 'esri-world-imagery', terrain: null, screenshotHud: false, showLayers: true, showHud: true },
+  settings: {
+    theme: 'auto',
+    imagery: 'esri-world-imagery',
+    terrain: null,
+    screenshotHud: false,
+    showLayers: true,
+    showHud: true,
+    // Render quality tier: 'balanced' trades a little sharpness for smoothness,
+    // 'high' uses full resolution and Cesium's default LOD. See
+    // src/client/scene/quality.js for the knob table.
+    quality: 'balanced',
+    // Off by default: underground pipes and buried models stay visible.
+    terrainDepthTest: false,
+  },
 }
 
 const cloneDefaults = () => JSON.parse(JSON.stringify(DEFAULT_SOURCES))
@@ -154,6 +173,11 @@ export function normalizeConfig(raw) {
   // them, so catalogs written by older versions keep both controls visible.
   const showLayers = input.settings?.showLayers !== false
   const showHud = input.settings?.showHud !== false
+  // Render quality and terrain occlusion are client-side render choices, but the
+  // catalog is the single persisted copy of the settings, so they must survive
+  // normalization (dropping them here silently reset the user's choice).
+  const quality = QUALITY_MODES.has(input.settings?.quality) ? input.settings.quality : 'balanced'
+  const terrainDepthTest = input.settings?.terrainDepthTest === true
   const imagery = withBuiltins(
     normalizeSourceList('imagery', input.imagery, DEFAULT_SOURCES.imagery),
     DEFAULT_SOURCES.imagery,
@@ -178,6 +202,8 @@ export function normalizeConfig(raw) {
       screenshotHud: input.settings?.screenshotHud === true,
       showLayers,
       showHud,
+      quality,
+      terrainDepthTest,
     },
   }
 }
