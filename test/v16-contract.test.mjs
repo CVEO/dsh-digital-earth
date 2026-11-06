@@ -109,7 +109,7 @@ test('工具契约：仍是六个工具，scene 12 个 action，analyze 4 个，
 })
 
 // ---------------------------------------------------------------------------
-// Version single-source (1.6.0)
+// Version single-source (1.5.0, kept stable on purpose)
 // ---------------------------------------------------------------------------
 
 test('版本单源：package / Host About / Client About / README / CHANGELOG 顶部一致', async () => {

@@ -31,7 +31,7 @@ import {
   normalizeAnalyzeRequest,
   normalizeShaderRequest,
 } from '../index.js'
-import { clientSource, hostSource } from './helpers/source.mjs'
+import { clientSource, hostSource, readRepoFile } from './helpers/source.mjs'
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)))
 const readText = (name) => readFile(join(root, name), 'utf8').then((text) => text.replace(/\r\n/g, '\n'))
@@ -607,15 +607,18 @@ test('client 工作台：可见图层/五预设可叠加/按预设并集参数/�
   assert.match(form, /waterHeight: ''/)
   assert.match(form, /depthMax: ''/)
   // 工作台只拼 bridge 形状参数，校验/图层解析统一由 shaderCommand 承担；D-17 起按叠加并集拼参数。
-  assert.match(client, /const shaderFormArgs = \(\) => \{/)
-  assert.match(client, /const selected = Array\.isArray\(shaderForm\.preset\) \? shaderForm\.preset : \[shaderForm\.preset\]/)
-  assert.match(client, /const has = \(preset\) => selected\.includes\(preset\)/)
-  assert.match(client, /if \(has\('height-false-color'\)\)/)
-  assert.match(client, /if \(has\('water-depth'\)\)/)
-  assert.match(client, /const toggleShaderPreset = \(preset\) =>/)
-  assert.match(client, /const result = await shaderCommand\(shaderFormArgs\(\)\)/)
-  assert.match(client, /shaderCommand\(\{ action: 'reset', layer: target\.id \}\)/)
-  assert.match(client, /await shaderCommand\(\{ action: 'reset' \}\)/)
+  // 这些映射在 v1.6 Phase 2 抽到 src/client/ui/workbench-wiring.js。
+  const wiring = readRepoFile('src/client/ui/workbench-wiring.js')
+  assert.ok(wiring.includes('export function toggleShaderPreset(form, preset)'), '缺少 toggleShaderPreset')
+  assert.match(wiring, /const selected = Array\.isArray\(form\.preset\) \? form\.preset : \[form\.preset\]/)
+  assert.match(wiring, /const has = \(preset\) => selected\.includes\(preset\)/)
+  assert.match(wiring, /if \(has\('height-false-color'\)\)/)
+  assert.match(wiring, /if \(has\('water-depth'\)\)/)
+  assert.match(wiring, /const result = await shaderCommand\(buildShaderFormArgs\(getForm\(\)\)\)/)
+  assert.match(wiring, /shaderCommand\(\{ action: 'reset', layer: target\.id \}\)/)
+  assert.match(wiring, /await shaderCommand\(\{ action: 'reset' \}\)/)
+  assert.match(client, /const workbench = createWorkbenchWiring\(\{/)
+  assert.match(client, /onPreset: workbench\.toggle,/)
 })
 
 test('client 工作台 UI：工具栏按钮、≤320px 浮动卡、窄宽可滚动、截图隐藏', () => {

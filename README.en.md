@@ -6,7 +6,7 @@
 
 [中文](README.md) · [English](README.en.md)
 
-![version](https://img.shields.io/badge/version-1.6.0-4f8cff)
+![version](https://img.shields.io/badge/version-1.5.0-4f8cff)
 ![license](https://img.shields.io/badge/license-MIT-2ea44f)
 ![platform](https://img.shields.io/badge/platform-Web-8b5cf6)
 ![DSH](https://img.shields.io/badge/DSH-%3E%3D0.2.1--rc.1-0ea5e9)
@@ -59,7 +59,7 @@ dsh plugin --profile <profile> add @cveo/dsh-digital-earth
 
 # from a local folder or tarball
 dsh plugin --profile <profile> add "<path-to-plugin>"
-dsh plugin --profile <profile> add "./cveo-dsh-digital-earth-1.6.0.tgz"
+dsh plugin --profile <profile> add "./cveo-dsh-digital-earth-1.5.0.tgz"
 ```
 
 Fully quit and reopen DSH after installing or updating: client bundles are registered when the host starts, so reloading the page alone is not enough. The “Digital Earth” entry then appears in the sidebar, and a globe button appears in the conversation header.

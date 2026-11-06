@@ -795,7 +795,7 @@ var MESSAGES = {
   }
 };
 var FALLBACK_ABOUT = {
-  version: "1.6.0",
+  version: "1.5.0",
   homepage: "https://github.com/CVEO/dsh-digital-earth",
   teamUrl: "https://www.whu-cveo.com/"
 };
@@ -7018,79 +7018,14 @@ ${image !== "" ? `<h2>${escapeHtml(L.snapshot)}</h2>${image}` : ""}
     triangles: t2("hud.triangles"),
     cache: t2("hud.cache")
   };
-  const shaderField = (key, value) => setShaderForm((form) => ({ ...form, [key]: value }));
-  const toggleShaderPreset = (preset) => setShaderForm((form) => {
-    const current = Array.isArray(form.preset) ? form.preset : [form.preset];
-    const next = current.includes(preset) ? current.filter((item) => item !== preset) : current.length >= 3 ? current : [...current, preset];
-    if (next.length === 0) return form;
-    return { ...form, preset: next.length === 1 ? next[0] : next };
+  const workbench = createWorkbenchWiring({
+    getForm: () => shaderForm,
+    getLayers: () => layers,
+    setShaderForm,
+    shaderCommand,
+    showToast,
+    t: t2
   });
-  const shaderFormLayer = () => layers.find((layer) => layer.id === shaderForm.layerId) ?? null;
-  const shaderFormArgs = () => {
-    const selected = Array.isArray(shaderForm.preset) ? shaderForm.preset : [shaderForm.preset];
-    const args = { action: "apply", preset: selected.length === 1 ? selected[0] : selected };
-    if (shaderForm.layerId) args.layer = shaderForm.layerId;
-    const readNumber = (key) => shaderForm[key] === "" ? void 0 : Number(shaderForm[key]);
-    const has = (preset) => selected.includes(preset);
-    if (has("height-false-color")) {
-      const minimum = readNumber("minHeight");
-      const maximum = readNumber("maxHeight");
-      if (minimum !== void 0) args.min_height = minimum;
-      if (maximum !== void 0) args.max_height = maximum;
-    }
-    if (has("contour")) {
-      const interval = readNumber("interval");
-      if (interval !== void 0) args.interval = interval;
-    }
-    if (has("scan") || has("water")) {
-      const speed = readNumber("speed");
-      if (speed !== void 0) args.speed = speed;
-    }
-    if (has("water")) {
-      const amplitude = readNumber("amplitude");
-      const opacity = readNumber("opacity");
-      if (amplitude !== void 0) args.amplitude = amplitude;
-      if (opacity !== void 0) args.opacity = opacity;
-    }
-    if (has("water-depth")) {
-      const waterHeight = readNumber("waterHeight");
-      const depthMax = readNumber("depthMax");
-      if (waterHeight !== void 0) args.water_height = waterHeight;
-      if (depthMax !== void 0) args.depth_max = depthMax;
-    }
-    return args;
-  };
-  const shaderStackLabel = (preset) => (Array.isArray(preset) ? preset : [preset]).map((item) => t2(`shader.preset.${item}`)).join(" + ");
-  const applyShaderFromWorkbench = async () => {
-    try {
-      const result = await shaderCommand(shaderFormArgs());
-      showToast(t2("toast.shaderApplied", { preset: shaderStackLabel(result.preset), layer: result.layer }));
-    } catch (error2) {
-      showToast(message(error2));
-    }
-  };
-  const resetShaderFromWorkbench = async () => {
-    try {
-      const visible = layers.filter((layer) => layer.visible);
-      const target = shaderFormLayer() ?? visible[visible.length - 1] ?? null;
-      if (!target) {
-        showToast(t2("shader.noLayers"));
-        return;
-      }
-      const result = await shaderCommand({ action: "reset", layer: target.id });
-      showToast(result.layer ? t2("toast.shaderReset", { layer: result.layer }) : t2("toast.shaderResetAll"));
-    } catch (error2) {
-      showToast(message(error2));
-    }
-  };
-  const resetAllShadersFromWorkbench = async () => {
-    try {
-      await shaderCommand({ action: "reset" });
-      showToast(t2("toast.shaderResetAll"));
-    } catch (error2) {
-      showToast(message(error2));
-    }
-  };
   return h7(
     "div",
     {
@@ -7312,12 +7247,12 @@ ${image !== "" ? `<h2>${escapeHtml(L.snapshot)}</h2>${image}` : ""}
       form: shaderForm,
       active: shaderActive,
       onClose: () => setShaderOpen(false),
-      onLayer: (layerId) => shaderField("layerId", layerId),
-      onPreset: toggleShaderPreset,
-      onField: shaderField,
-      onApply: applyShaderFromWorkbench,
-      onResetLayer: resetShaderFromWorkbench,
-      onResetAll: resetAllShadersFromWorkbench
+      onLayer: (layerId) => workbench.field("layerId", layerId),
+      onPreset: workbench.toggle,
+      onField: workbench.field,
+      onApply: workbench.apply,
+      onResetLayer: workbench.resetLayer,
+      onResetAll: workbench.resetAll
     }) : null,
     analysis || showLayers ? h7(
       "div",

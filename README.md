@@ -6,7 +6,7 @@
 
 [中文](README.md) · [English](README.en.md)
 
-![版本](https://img.shields.io/badge/版本-1.6.0-4f8cff)
+![版本](https://img.shields.io/badge/版本-1.5.0-4f8cff)
 ![许可](https://img.shields.io/badge/许可-MIT-2ea44f)
 ![平台](https://img.shields.io/badge/平台-Web-8b5cf6)
 ![DSH](https://img.shields.io/badge/DSH-%3E%3D0.2.1--rc.1-0ea5e9)
@@ -59,7 +59,7 @@ dsh plugin --profile <profile> add @cveo/dsh-digital-earth
 
 # 从本地目录 / 打包文件安装
 dsh plugin --profile <profile> add "<path-to-plugin>"
-dsh plugin --profile <profile> add "./cveo-dsh-digital-earth-1.6.0.tgz"
+dsh plugin --profile <profile> add "./cveo-dsh-digital-earth-1.5.0.tgz"
 ```
 
 安装或更新后请**完全退出并重新打开 DSH** 一次：客户端 bundle 在宿主启动时注册，仅刷新页面不会重新注册。随后左侧栏出现「数字地球 / Digital Earth」入口，对话标题栏也会出现地球按钮。
