@@ -137,10 +137,11 @@ test('v2 工具面冻结：六个工具，earth_scene 十二个 action，分析�
   assert.ok(analyzeActions, '找不到 ANALYZE_ACTIONS')
   assert.deepEqual(
     analyzeActions[1].split(',').map((item) => item.trim().replaceAll("'", '')).filter(Boolean),
-    ['profile', 'flood', 'sunlight', 'clear'],
+    ['profile', 'flood', 'sunlight', 'clip', 'clear'],
   )
-  // Parked analysis actions must not be reachable from the frozen surface.
-  for (const parked of ['viewshed', 'los', 'envelope', 'skyline', 'compare', 'clip', 'tour', 'highlight']) {
+  // D-16 approved clip for 1.6; the rest of the parked analyses stay unreachable
+  // until their own release (skyline is next on the v1.6 list).
+  for (const parked of ['viewshed', 'los', 'envelope', 'compare', 'tour', 'highlight']) {
     assert.doesNotMatch(host, new RegExp(`(action|ACTIONS)[^\\n]{0,80}'${parked}'`), `已 park 的动作复活：${parked}`)
   }
 })

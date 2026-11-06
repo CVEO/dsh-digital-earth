@@ -339,6 +339,12 @@ var MESSAGES = {
     "analysis.title.profile": "地形剖面",
     "analysis.title.flood": "淹没分析",
     "analysis.title.sunlight": "日照分析",
+    "analysis.title.clip": "剖切分析",
+    "analysis.clipHeight": "剖切高程",
+    "analysis.clipKeep": "保留侧",
+    "analysis.clipKeepAbove": "平面以上",
+    "analysis.clipKeepBelow": "平面以下",
+    "analysis.clipPlanes": "剖切面",
     "analysis.layer": "图层",
     "analysis.collapse": "折叠分析卡",
     "analysis.expand": "展开分析卡",
@@ -694,6 +700,12 @@ var MESSAGES = {
     "analysis.title.profile": "Terrain profile",
     "analysis.title.flood": "Flood analysis",
     "analysis.title.sunlight": "Sunlight analysis",
+    "analysis.title.clip": "Clip analysis",
+    "analysis.clipHeight": "Clip height",
+    "analysis.clipKeep": "Keeps",
+    "analysis.clipKeepAbove": "Above the plane",
+    "analysis.clipKeepBelow": "Below the plane",
+    "analysis.clipPlanes": "Clipping planes",
     "analysis.layer": "Layer",
     "analysis.collapse": "Collapse analysis card",
     "analysis.expand": "Expand analysis card",
@@ -1082,6 +1094,34 @@ var analysisObserver = (Cesium, viewer, layer) => {
   }
   return viewer.camera.positionCartographic;
 };
+var analysisClipPlane = (Cesium, center, height, keep = "below") => {
+  if (!Cesium?.Cartesian3 || !center) return null;
+  let carto = null;
+  try {
+    carto = Cesium.Cartographic.fromCartesian(center);
+  } catch {
+    return null;
+  }
+  if (!carto || !Number.isFinite(carto.height)) return null;
+  let up;
+  try {
+    up = Cesium.Ellipsoid.WGS84.geodeticSurfaceNormal(center, new Cesium.Cartesian3());
+  } catch {
+    return null;
+  }
+  if (!up) return null;
+  const offset = Cesium.Cartesian3.multiplyByScalar(up, height - carto.height, new Cesium.Cartesian3());
+  const pointOnPlane = Cesium.Cartesian3.add(center, offset, new Cesium.Cartesian3());
+  const dot = Cesium.Cartesian3.dot(up, pointOnPlane);
+  const keepBelow = keep !== "above";
+  const normal = keepBelow ? Cesium.Cartesian3.negate(up, new Cesium.Cartesian3()) : Cesium.Cartesian3.clone(up, new Cesium.Cartesian3());
+  return {
+    normal,
+    distance: keepBelow ? dot : -dot,
+    pointOnPlane,
+    keep: keepBelow ? "below" : "above"
+  };
+};
 
 // src/client/i18n.js
 var import_react2 = __toESM(require("react"), 1);
@@ -1230,6 +1270,10 @@ function createAnalysisEngine(deps) {
       for (const saved of restore.tilesets ?? []) {
         const layer = layersRef.current.find((item) => item.id === saved.id);
         if (layer && layer.tileset) layer.tileset.shadows = saved.shadows;
+      }
+      if (restore.clipping) {
+        const target = restore.clipping.layer;
+        if (target && target.tileset) target.tileset.clippingPlanes = restore.clipping.previous ?? void 0;
       }
     } catch {
     }
@@ -1552,6 +1596,57 @@ function createAnalysisEngine(deps) {
     markSceneDirty();
     return result;
   };
+  const analyzeClip = async (Cesium, viewer, layer, args) => {
+    const height = Number(args.height);
+    if (!Number.isFinite(height)) {
+      throw new Error("analysis: `height` must be a finite number in metres. next: pass the clip plane height.");
+    }
+    if (!layer || layer.visible === false || !layer.tileset) {
+      throw new Error("analysis: clip 需要可见的 3D Tiles 图层。next: 先加载或显示 3D Tiles 图层后重试。");
+    }
+    const tileset = layer.tileset;
+    const center = tileset.boundingSphere && tileset.boundingSphere.center;
+    if (!center) {
+      throw new Error("analysis: 图层缺少包围球，无法建立剖切面。next: 重新加载该图层后重试。");
+    }
+    const plane = analysisClipPlane(Cesium, center, height, args.keep);
+    if (!plane) {
+      throw new Error("analysis: 无法计算剖切面。next: 重新加载图层后重试，或改用其他分析。");
+    }
+    if (typeof Cesium.ClippingPlaneCollection !== "function" || typeof Cesium.ClippingPlane !== "function") {
+      throw new Error("analysis: 当前 Cesium 不支持剖切（ClippingPlane）。next: 升级 Cesium 后重试。");
+    }
+    const previous = tileset.clippingPlanes ?? null;
+    const collection = new Cesium.ClippingPlaneCollection({
+      planes: [new Cesium.ClippingPlane(plane.normal, plane.distance)],
+      enabled: true,
+      edgeWidth: 1,
+      edgeColor: Cesium.Color.fromCssColorString("#7fd4ff")
+    });
+    try {
+      tileset.clippingPlanes = collection;
+      if (tileset.clippingPlanes !== collection) throw new Error("图层拒绝了 clippingPlanes 赋值");
+    } catch {
+      try {
+        tileset.clippingPlanes = previous ?? void 0;
+      } catch {
+      }
+      throw new Error("analysis: 该图层不支持剖切（clippingPlanes 赋值失败）。next: 换 3D Tiles 图层或重新加载后重试。");
+    }
+    beginAnalysis("clip", layer);
+    analysisRef.current.restore = { clipping: { layer, previous } };
+    const result = {
+      operation: "clip",
+      layer: layer.name,
+      height: analysisRound(height, 2),
+      keep: plane.keep,
+      planes: 1,
+      layer_center_height: analysisRound(Cesium.Cartographic.fromCartesian(center).height, 1)
+    };
+    setAnalysis({ operation: "clip", layerName: result.layer, result });
+    markSceneDirty();
+    return result;
+  };
   async function analyzeCommand(args = {}) {
     const Cesium = cesiumRef.current;
     const viewer = viewerRef.current;
@@ -1563,9 +1658,9 @@ function createAnalysisEngine(deps) {
       const cleared = clearAnalysis();
       return { operation: "clear", layer: null, cleared };
     }
-    if (operation !== "profile" && operation !== "flood" && operation !== "sunlight") {
+    if (operation !== "profile" && operation !== "flood" && operation !== "sunlight" && operation !== "clip") {
       throw new Error(
-        `analysis: 不支持的分析类型 "${String(args.action)}"。next: 使用 profile / flood / sunlight / clear。`
+        `analysis: 不支持的分析类型 "${String(args.action)}"。next: 使用 profile / flood / sunlight / clip / clear。`
       );
     }
     let layer = null;
@@ -1588,7 +1683,8 @@ function createAnalysisEngine(deps) {
     let result;
     if (operation === "profile") result = await analyzeProfile(Cesium, viewer, layer, args, sampler);
     else if (operation === "flood") result = await analyzeFlood(Cesium, viewer, layer, args, sampler);
-    else result = analyzeSunlight(Cesium, viewer, layer, args);
+    else if (operation === "sunlight") result = analyzeSunlight(Cesium, viewer, layer, args);
+    else result = await analyzeClip(Cesium, viewer, layer, args);
     analysisCommandRef.current = {
       action: operation,
       ...args,
@@ -2762,6 +2858,14 @@ function AnalysisCard({ state, t: t2, onClose }) {
     row("azimuth", t2("analysis.azimuth"), `${analysisMetric(result.sun?.azimuth_deg, 2)}°`);
     row("shadows", t2("analysis.shadows"), result.shadows_enabled ? t2("analysis.shadowsOn") : t2("analysis.shadowsOff"));
     row("daylight", t2("analysis.daylight"), result.night ? t2("analysis.night") : t2("analysis.day"));
+  } else if (operation === "clip") {
+    row("height", t2("analysis.clipHeight"), formatHeight(result.height ?? 0));
+    row(
+      "keep",
+      t2("analysis.clipKeep"),
+      result.keep === "above" ? t2("analysis.clipKeepAbove") : t2("analysis.clipKeepBelow")
+    );
+    row("planes", t2("analysis.clipPlanes"), `${result.planes ?? 1}`);
   }
   return h2(
     "div",

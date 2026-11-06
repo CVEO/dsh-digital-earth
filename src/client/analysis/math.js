@@ -168,6 +168,47 @@
       }
       return viewer.camera.positionCartographic
     }
+    /**
+     * D-16 clip: build the Hessian plane that cuts a tileset at an ellipsoid
+     * height along the local vertical. Cesium clips the NEGATIVE side of the
+     * plane, so "keep below" needs the inverted normal (everything above the
+     * plane becomes the clipped side) and "keep above" uses the up normal.
+     *
+     * Pure geometry so the normal/distance sign rules are unit-testable without
+     * a real Cesium viewer.
+     *
+     * @returns {{ normal: object, distance: number, pointOnPlane: object, keep: 'below'|'above' } | null}
+     */
+    const analysisClipPlane = (Cesium, center, height, keep = 'below') => {
+      if (!Cesium?.Cartesian3 || !center) return null
+      let carto = null
+      try {
+        carto = Cesium.Cartographic.fromCartesian(center)
+      } catch {
+        return null
+      }
+      if (!carto || !Number.isFinite(carto.height)) return null
+      let up
+      try {
+        up = Cesium.Ellipsoid.WGS84.geodeticSurfaceNormal(center, new Cesium.Cartesian3())
+      } catch {
+        return null
+      }
+      if (!up) return null
+      const offset = Cesium.Cartesian3.multiplyByScalar(up, height - carto.height, new Cesium.Cartesian3())
+      const pointOnPlane = Cesium.Cartesian3.add(center, offset, new Cesium.Cartesian3())
+      const dot = Cesium.Cartesian3.dot(up, pointOnPlane)
+      const keepBelow = keep !== 'above'
+      const normal = keepBelow
+        ? Cesium.Cartesian3.negate(up, new Cesium.Cartesian3())
+        : Cesium.Cartesian3.clone(up, new Cesium.Cartesian3())
+      return {
+        normal,
+        distance: keepBelow ? dot : -dot,
+        pointOnPlane,
+        keep: keepBelow ? 'below' : 'above',
+      }
+    }
     //#endregion analysis core
 
-export { ANALYSIS_ENTITY_PREFIX, ANALYSIS_MIN_SAMPLES, ANALYSIS_ELEVATION_STOPS, analysisRound, analysisInteger, analysisLonLat, analysisRegion, analysisColorAt, analysisElevation, analysisSunAngles, analysisObserver }
+export { ANALYSIS_ENTITY_PREFIX, ANALYSIS_MIN_SAMPLES, ANALYSIS_ELEVATION_STOPS, analysisRound, analysisInteger, analysisLonLat, analysisRegion, analysisColorAt, analysisElevation, analysisSunAngles, analysisObserver, analysisClipPlane }

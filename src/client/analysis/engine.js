@@ -12,7 +12,7 @@
  * module never holds a stale viewer/layer list across panel remounts.
  */
 import { createHeightService } from './height-service.js'
-import { ANALYSIS_ENTITY_PREFIX, ANALYSIS_MIN_SAMPLES, analysisColorAt, analysisInteger, analysisLonLat, analysisObserver, analysisRegion, analysisRound, analysisSunAngles } from './math.js'
+import { ANALYSIS_ENTITY_PREFIX, ANALYSIS_MIN_SAMPLES, analysisClipPlane, analysisColorAt, analysisInteger, analysisLonLat, analysisObserver, analysisRegion, analysisRound, analysisSunAngles } from './math.js'
 import { formatHeight } from '../format.js'
 
 /**
@@ -64,7 +64,7 @@ export function createAnalysisEngine(deps) {
         disableDepthTestDistance: Number.POSITIVE_INFINITY,
       })
 
-      /** Restore whatever the sunlight operation changed in the scene. */
+      /** Restore whatever the sunlight or clip operation changed in the scene. */
       const restoreAnalysisScene = () => {
         const viewer = viewerRef.current
         const restore = analysisRef.current.restore
@@ -77,6 +77,11 @@ export function createAnalysisEngine(deps) {
           for (const saved of restore.tilesets ?? []) {
             const layer = layersRef.current.find((item) => item.id === saved.id)
             if (layer && layer.tileset) layer.tileset.shadows = saved.shadows
+          }
+          // clip: put the tileset's previous clipping planes back (usually none).
+          if (restore.clipping) {
+            const target = restore.clipping.layer
+            if (target && target.tileset) target.tileset.clippingPlanes = restore.clipping.previous ?? undefined
           }
         } catch {
           /* the viewer may be mid-teardown; state restoration is best-effort */
@@ -423,6 +428,65 @@ export function createAnalysisEngine(deps) {
         return result
       }
 
+      /**
+       * D-16 clip: cut the tileset with one horizontal plane along the local
+       * vertical. `keep: 'below'` removes everything above the plane (revealing
+       * the horizontal section); `keep: 'above'` removes everything below it.
+       * The tileset's previous clippingPlanes are restored by clear().
+       */
+      const analyzeClip = async (Cesium, viewer, layer, args) => {
+        const height = Number(args.height)
+        if (!Number.isFinite(height)) {
+          throw new Error('analysis: `height` must be a finite number in metres. next: pass the clip plane height.')
+        }
+        if (!layer || layer.visible === false || !layer.tileset) {
+          throw new Error('analysis: clip 需要可见的 3D Tiles 图层。next: 先加载或显示 3D Tiles 图层后重试。')
+        }
+        const tileset = layer.tileset
+        const center = tileset.boundingSphere && tileset.boundingSphere.center
+        if (!center) {
+          throw new Error('analysis: 图层缺少包围球，无法建立剖切面。next: 重新加载该图层后重试。')
+        }
+        const plane = analysisClipPlane(Cesium, center, height, args.keep)
+        if (!plane) {
+          throw new Error('analysis: 无法计算剖切面。next: 重新加载图层后重试，或改用其他分析。')
+        }
+        if (typeof Cesium.ClippingPlaneCollection !== 'function' || typeof Cesium.ClippingPlane !== 'function') {
+          throw new Error('analysis: 当前 Cesium 不支持剖切（ClippingPlane）。next: 升级 Cesium 后重试。')
+        }
+        const previous = tileset.clippingPlanes ?? null
+        const collection = new Cesium.ClippingPlaneCollection({
+          planes: [new Cesium.ClippingPlane(plane.normal, plane.distance)],
+          enabled: true,
+          edgeWidth: 1.0,
+          edgeColor: Cesium.Color.fromCssColorString('#7fd4ff'),
+        })
+        try {
+          tileset.clippingPlanes = collection
+          if (tileset.clippingPlanes !== collection) throw new Error('图层拒绝了 clippingPlanes 赋值')
+        } catch {
+          try {
+            tileset.clippingPlanes = previous ?? undefined
+          } catch {
+            /* detach is best-effort */
+          }
+          throw new Error('analysis: 该图层不支持剖切（clippingPlanes 赋值失败）。next: 换 3D Tiles 图层或重新加载后重试。')
+        }
+        beginAnalysis('clip', layer)
+        analysisRef.current.restore = { clipping: { layer, previous } }
+        const result = {
+          operation: 'clip',
+          layer: layer.name,
+          height: analysisRound(height, 2),
+          keep: plane.keep,
+          planes: 1,
+          layer_center_height: analysisRound(Cesium.Cartographic.fromCartesian(center).height, 1),
+        }
+        setAnalysis({ operation: 'clip', layerName: result.layer, result })
+        markSceneDirty()
+        return result
+      }
+
       async function analyzeCommand(args = {}) {
         const Cesium = cesiumRef.current
         const viewer = viewerRef.current
@@ -434,9 +498,9 @@ export function createAnalysisEngine(deps) {
           const cleared = clearAnalysis()
           return { operation: 'clear', layer: null, cleared }
         }
-        if (operation !== 'profile' && operation !== 'flood' && operation !== 'sunlight') {
+        if (operation !== 'profile' && operation !== 'flood' && operation !== 'sunlight' && operation !== 'clip') {
           throw new Error(
-            `analysis: 不支持的分析类型 "${String(args.action)}"。next: 使用 profile / flood / sunlight / clear。`,
+            `analysis: 不支持的分析类型 "${String(args.action)}"。next: 使用 profile / flood / sunlight / clip / clear。`,
           )
         }
         // Resolve the layer before clearing the previous result, so a typo does not
@@ -464,7 +528,8 @@ export function createAnalysisEngine(deps) {
         let result
         if (operation === 'profile') result = await analyzeProfile(Cesium, viewer, layer, args, sampler)
         else if (operation === 'flood') result = await analyzeFlood(Cesium, viewer, layer, args, sampler)
-        else result = analyzeSunlight(Cesium, viewer, layer, args)
+        else if (operation === 'sunlight') result = analyzeSunlight(Cesium, viewer, layer, args)
+        else result = await analyzeClip(Cesium, viewer, layer, args)
         // Remember the command (not its entities) so a remounted panel can replay
         // it. The layer is stored by name because restored layers get new ids.
         analysisCommandRef.current = {

@@ -78,9 +78,9 @@ const floodBase = () => ({ action: 'flood', region: regionBase(), water_height: 
 // Host：normalizeAnalyzeRequest
 // ---------------------------------------------------------------------------
 
-test('normalizeAnalyzeRequest：导出、四动作枚举、返回对象只有 args 且字段与契约一致', () => {
+test('normalizeAnalyzeRequest：导出、五动作枚举、返回对象只有 args 且字段与契约一致', () => {
   assert.equal(typeof normalizeAnalyzeRequest, 'function')
-  assert.deepEqual(ANALYZE_ACTIONS, ['profile', 'flood', 'sunlight', 'clear'])
+  assert.deepEqual(ANALYZE_ACTIONS, ['profile', 'flood', 'sunlight', 'clip', 'clear'])
 
   const profile = normalizeAnalyzeRequest(profileBase())
   assert.deepEqual(Object.keys(profile), ['args'])
@@ -246,7 +246,7 @@ test('normalizeAnalyzeRequest：clear 不接受其他参数，未知参数/缺�
   }
 
   for (const raw of [{}, null, undefined, { action: 'PROFILE' }, { action: 'skyline' }]) {
-    rejectsAnalyze(raw, /"action" must be one of profile, flood, sunlight, clear/)
+    rejectsAnalyze(raw, /"action" must be one of profile, flood, sunlight, clip, clear/)
   }
   for (const raw of ['x', 42, [], true, 0]) {
     rejectsAnalyze(raw, /the arguments must be an object/)
@@ -282,11 +282,11 @@ test('normalizeAnalyzeRequest：所有拒绝都走统一 earth_analyze 错误前
 // Host：工具 schema / 描述 / 桥接 / 渲染 / 提示词
 // ---------------------------------------------------------------------------
 
-test('earth_analyze schema：注册于六工具集，10 个参数、required action、两处 additionalProperties:false', () => {
+test('earth_analyze schema：注册于六工具集，12 个参数、required action、两处 additionalProperties:false', () => {
   const params = block(analyzeSource, 'const ANALYZE_PARAMETERS = {', '\n}')
   const properties = [...params.matchAll(/^    ([a-z_]+): \{/gm)].map((match) => match[1])
   assert.deepEqual(properties, [
-    'action', 'layer', 'from', 'to', 'samples', 'region', 'water_height', 'grid', 'datetime', 'show_shadows',
+    'action', 'layer', 'from', 'to', 'samples', 'region', 'water_height', 'grid', 'datetime', 'show_shadows', 'height', 'keep',
   ])
   assert.match(params, /enum: ANALYZE_ACTIONS/)
   assert.match(params, /required: \['action'\]/)
@@ -328,7 +328,7 @@ test('earth_analyze 工具描述 ≤1200 字符，覆盖单活动/clear/坐标�
   assert.ok(description.length <= 1200, `earth_analyze 描述超预算：${description.length} 字符`)
   assert.ok(description.length >= 500, `earth_analyze 描述过短：${description.length} 字符`)
 
-  assert.match(description, /One analysis at a time: profile, flood and sunlight replace the previous active analysis; clear removes it/)
+  assert.match(description, /One analysis at a time: profile, flood, sunlight and clip replace the previous active analysis; clear removes it/)
   assert.match(description, /reports what was cleared/)
   assert.match(description, /load data first/)
   assert.match(description, /never guess missing values/)
@@ -396,7 +396,7 @@ test('系统提示词：≤1600 字符、五工具名、analyze 一句，且不�
     assert.match(prompt, new RegExp(name))
   }
   assert.match(prompt, /plus earth_analyze/)
-  assert.match(prompt, /earth_analyze runs one analysis at a time \(profile, flood, sunlight\), or clear removes it; it needs loaded height data\./)
+  assert.match(prompt, /earth_analyze runs one analysis at a time \(profile, flood, sunlight, clip\), clear removes it; needs loaded height data./)
   // B1 语义保留。
   assert.match(prompt, /pass the absolute path directly to earth_scene load\/inspect/)
   assert.match(prompt, /one confirmation dialog/)
@@ -453,7 +453,7 @@ test('client analyze 桥分支：先于就绪守卫，失败强制带 next:，cl
   assert.match(command, /const cleared = clearAnalysis\(\)/)
   assert.match(command, /return \{ operation: 'clear', layer: null, cleared \}/)
   assert.match(command, /不支持的分析类型/)
-  assert.match(command, /next: 使用 profile \/ flood \/ sunlight \/ clear/)
+  assert.match(command, /next: 使用 profile \/ flood \/ sunlight \/ clip \/ clear/)
   // 先解析图层再清旧分析：图层写错不会破坏屏幕上的有效分析。
   assert.match(command, /const requested = typeof args\.layer === 'string' \? args\.layer\.trim\(\) : ''/)
   assert.match(command, /layer = findLayer\(requested\)/)
@@ -465,7 +465,7 @@ test('client analyze 桥分支：先于就绪守卫，失败强制带 next:，cl
   assert.match(command, /const sampler = createHeightService\(\{ Cesium, viewer, layer \}\)/)
   assert.match(command, /if \(operation === 'profile'\) result = await analyzeProfile\(Cesium, viewer, layer, args, sampler\)/)
   assert.match(command, /else if \(operation === 'flood'\) result = await analyzeFlood\(Cesium, viewer, layer, args, sampler\)/)
-  assert.match(command, /else result = analyzeSunlight\(Cesium, viewer, layer, args\)/)
+  assert.match(command, /else if \(operation === 'sunlight'\) result = analyzeSunlight\(Cesium, viewer, layer, args\)/)
   // 分析命令本身进入快照，重新挂载时可重放；图层按名称记录，避免 id 变化。
   assert.match(command, /analysisCommandRef\.current = \{/)
 
@@ -698,7 +698,7 @@ test('client 分析卡与布局：右上方浮动卡、SVG 剖面、折叠/关�
   assert.match(client, /h\(AnalysisCard, \{ key: 'analysis', state: analysis, t, onClose: \(\) => clearAnalysis\(\) \}\)/)
 })
 
-test('client i18n：analysis.* 37 个键中英对齐，关键文案都在', () => {
+test('client i18n：analysis.* 43 个键中英对齐，关键文案都在', () => {
   const zhStart = client.indexOf('\n      zh: {')
   const enStart = client.indexOf('\n      en: {', zhStart)
   const end = client.indexOf('\n    }', enStart)
@@ -710,11 +710,17 @@ test('client i18n：analysis.* 37 个键中英对齐，关键文案都在', () =
   assert.deepEqual(zhKeys, enKeys, '中英字典键集合/顺序必须完全一致')
 
   const analysisKeys = zhKeys.filter((key) => key.startsWith('analysis.'))
-  assert.equal(analysisKeys.length, 37)
+  assert.equal(analysisKeys.length, 43)
   for (const key of [
     'analysis.title.profile',
     'analysis.title.flood',
     'analysis.title.sunlight',
+    'analysis.title.clip',
+    'analysis.clipHeight',
+    'analysis.clipKeep',
+    'analysis.clipKeepAbove',
+    'analysis.clipKeepBelow',
+    'analysis.clipPlanes',
     'analysis.layer',
     'analysis.collapse',
     'analysis.expand',

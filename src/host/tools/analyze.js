@@ -20,7 +20,7 @@ const ANALYZE_RENDER_LIMIT = 8 * 1024
 // the panel owns sampling, Cesium entities and the analysis card.
 // ---------------------------------------------------------------------------
 
-export const ANALYZE_ACTIONS = ['profile', 'flood', 'sunlight', 'clear']
+export const ANALYZE_ACTIONS = ['profile', 'flood', 'sunlight', 'clip', 'clear']
 const ANALYZE_PARAMETER_NAMES = new Set([
   'action',
   'layer',
@@ -32,6 +32,8 @@ const ANALYZE_PARAMETER_NAMES = new Set([
   'grid',
   'datetime',
   'show_shadows',
+  'height',
+  'keep',
 ])
 const ANALYZE_REGION_KEYS = ['west', 'south', 'east', 'north']
 const ANALYZE_MIN_SAMPLES = 8
@@ -43,6 +45,7 @@ const ANALYZE_DEFAULT_GRID = 12
 const ANALYZE_MIN_WATER_HEIGHT = -1000
 const ANALYZE_MAX_WATER_HEIGHT = 9000
 const ANALYZE_MAX_REGION_SPAN = 10
+const ANALYZE_CLIP_KEEP = ['below', 'above']
 const ANALYZE_MIN_YEAR = 1900
 const ANALYZE_MAX_YEAR = 2200
 
@@ -52,7 +55,7 @@ const ANALYZE_PARAMETERS = {
     action: {
       type: 'string',
       enum: ANALYZE_ACTIONS,
-      description: 'profile: elevation along the from→to line; flood: water height over a region; sunlight: sun position and shadows at a time; clear: remove the active analysis.',
+      description: 'profile: elevation along the from→to line; flood: water height over a region; sunlight: sun position and shadows at a time; clip: cut the 3D Tiles with a horizontal plane at a height; clear: remove the active analysis.',
     },
     layer: {
       type: 'string',
@@ -106,14 +109,25 @@ const ANALYZE_PARAMETERS = {
       type: 'boolean',
       description: 'sunlight shadows on or off; default true.',
     },
+    height: {
+      type: 'number',
+      minimum: ANALYZE_MIN_WATER_HEIGHT,
+      maximum: ANALYZE_MAX_WATER_HEIGHT,
+      description: `clip plane height in meters along the local vertical, ${ANALYZE_MIN_WATER_HEIGHT}..${ANALYZE_MAX_WATER_HEIGHT}; required for clip.`,
+    },
+    keep: {
+      type: 'string',
+      enum: ANALYZE_CLIP_KEEP,
+      description: 'clip: which side to keep. below (default) cuts off everything above the plane; above cuts off everything below it.',
+    },
   },
   required: ['action'],
   additionalProperties: false,
 }
 
 const ANALYZE_DESCRIPTION = [
-  'Analyze the digital earth panel: profile elevation along a line, flood a region at a water height, check sunlight and shadows, or clear the active analysis.',
-  'One analysis at a time: profile, flood and sunlight replace the previous active analysis; clear removes it and reports what was cleared.',
+  'Analyze the digital earth panel: profile elevation along a line, flood a region at a water height, check sunlight and shadows, clip the 3D Tiles with a horizontal plane, or clear the active analysis.',
+  'One analysis at a time: profile, flood, sunlight and clip replace the previous active analysis; clear removes it and reports what was cleared.',
   'Elevations and depths come from loaded 3D Tiles or terrain heights, so load data first and never guess missing values; the panel returns an error when it has no height data.',
   'Take coordinates from the user, from earth_scene status/pick, or from loaded data; never guess. The layer is optional and defaults to the topmost visible 3D Tiles layer.',
   'Returns compact metrics, not a full sampling grid; call earth_capture if the user should see the drawn result.',
@@ -264,6 +278,8 @@ function rejectAnalyzeKeys(input, action, allowed) {
       next = 'use action "sunlight" for these arguments.'
     } else if (key === 'from' || key === 'to' || key === 'samples') {
       next = 'use action "profile" for these arguments.'
+    } else if (key === 'height' || key === 'keep') {
+      next = 'use action "clip" for these arguments.'
     } else if (action === 'clear') {
       next = 'clear takes no other arguments and removes the active analysis.'
     } else {
@@ -289,7 +305,7 @@ export function normalizeAnalyzeRequest(raw) {
   if (typeof action !== 'string' || !ANALYZE_ACTIONS.includes(action)) {
     throw analyzeError(
       `"action" must be one of ${ANALYZE_ACTIONS.join(', ')}.`,
-      'choose profile, flood, sunlight or clear.',
+      'choose profile, flood, sunlight, clip or clear.',
     )
   }
   if (action === 'clear') {
@@ -342,6 +358,27 @@ export function normalizeAnalyzeRequest(raw) {
       ANALYZE_MAX_WATER_HEIGHT,
     )
     args.grid = normalizeAnalyzeInteger(input.grid, 'grid', ANALYZE_MIN_GRID, ANALYZE_MAX_GRID, ANALYZE_DEFAULT_GRID)
+    return { args }
+  }
+
+  if (action === 'clip') {
+    rejectAnalyzeKeys(input, 'clip', new Set(['layer', 'height', 'keep']))
+    if (!Object.hasOwn(input, 'height')) {
+      throw analyzeError('clip needs "height" in meters.', 'send the clip plane height along the local vertical.')
+    }
+    args.height = normalizeAnalyzeNumber(
+      input.height,
+      'height',
+      ANALYZE_MIN_WATER_HEIGHT,
+      ANALYZE_MAX_WATER_HEIGHT,
+    )
+    if (input.keep !== undefined && !ANALYZE_CLIP_KEEP.includes(input.keep)) {
+      throw analyzeError(
+        '"keep" must be "below" or "above".',
+        'pass below to cut off everything above the plane, or above to cut off everything below it.',
+      )
+    }
+    args.keep = input.keep ?? 'below'
     return { args }
   }
 
@@ -456,6 +493,12 @@ function renderAnalyzeResult(value) {
     details.push(value.shadows_enabled === true ? 'shadows on' : 'shadows off')
     lines.push(`Sunlight${layer}: ${details.join(', ')}.`)
     lines.push('Call earth_capture if the user should see the sun position or shadows.')
+  } else if (operation === 'clip') {
+    const height = Number.isFinite(value.height) ? `${value.height} m` : 'unknown height'
+    const keep = value.keep === 'above' ? 'above' : 'below'
+    const planes = Number.isInteger(value.planes) ? value.planes : 1
+    lines.push(`Clip${layer}: plane at ${height}, keeping ${keep} it (${planes} clipping plane${planes === 1 ? '' : 's'}).`)
+    lines.push('Call earth_capture if the user should see the section, or earth_analyze action=clear to remove the clip.')
   } else if (operation === 'clear') {
     const cleared = Array.isArray(value.cleared) ? value.cleared.filter((item) => typeof item === 'string') : []
     lines.push(cleared.length > 0 ? `Cleared the active analysis (${cleared.join(', ')}).` : 'No active analysis was cleared.')

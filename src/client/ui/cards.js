@@ -125,6 +125,14 @@ const h = React.createElement
         row('azimuth', t('analysis.azimuth'), `${analysisMetric(result.sun?.azimuth_deg, 2)}°`)
         row('shadows', t('analysis.shadows'), result.shadows_enabled ? t('analysis.shadowsOn') : t('analysis.shadowsOff'))
         row('daylight', t('analysis.daylight'), result.night ? t('analysis.night') : t('analysis.day'))
+      } else if (operation === 'clip') {
+        row('height', t('analysis.clipHeight'), formatHeight(result.height ?? 0))
+        row(
+          'keep',
+          t('analysis.clipKeep'),
+          result.keep === 'above' ? t('analysis.clipKeepAbove') : t('analysis.clipKeepBelow'),
+        )
+        row('planes', t('analysis.clipPlanes'), `${result.planes ?? 1}`)
       }
       return h(
         'div',

@@ -359,7 +359,7 @@ test('回归：earth_scene 12 action（含 report），earth_analyze 契约与�
   ])
   assert.doesNotMatch(scene, /authorize|skyline|shader/)
 
-  assert.deepEqual(ANALYZE_ACTIONS, ['profile', 'flood', 'sunlight', 'clear'])
+  assert.deepEqual(ANALYZE_ACTIONS, ['profile', 'flood', 'sunlight', 'clip', 'clear'])
   assert.equal(normalizeAnalyzeRequest({ action: 'clear' }).args.action, 'clear')
   assert.throws(
     () => normalizeAnalyzeRequest({ action: 'shader' }),
@@ -368,7 +368,7 @@ test('回归：earth_scene 12 action（含 report），earth_analyze 契约与�
   assert.match(host, /const ANALYZE_TIMEOUT_MS = 30000/)
   assert.match(host, /scope\.tools\.register\(createAnalyzeTool\(bridge\)\)/)
   const analyzeParams = block(analyzeSource, 'const ANALYZE_PARAMETERS = {', '\n}')
-  assert.equal([...analyzeParams.matchAll(/^    ([a-z_]+): \{/gm)].length, 10)
+  assert.equal([...analyzeParams.matchAll(/^    ([a-z_]+): \{/gm)].length, 12)
   assert.doesNotMatch(analyzeParams, /preset|min_height|interval|amplitude|opacity/)
 })
 

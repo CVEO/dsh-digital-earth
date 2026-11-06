@@ -19,7 +19,7 @@ export const SYSTEM_PROMPT_SECTION = [
   '- earth_scene actions: status, list, load, remove, visible, basemap, terrain, fly, reset, pick, inspect; its JSON is authoritative.',
   '- earth_capture saves an image and returns its path; read it with read_image if supported, else use the JSON. Call present to show a file; never embed a local path in Markdown.',
   '- earth_draw adds GeoJSON annotations and earth_measure returns distance/area/height numbers, both draw by default. Coordinates: from the user, status/pick or loaded data; never guess.',
-  '- earth_analyze runs one analysis at a time (profile, flood, sunlight), or clear removes it; it needs loaded height data.',
+  '- earth_analyze runs one analysis at a time (profile, flood, sunlight, clip), clear removes it; needs loaded height data.',
   '- earth_shader applies whitelisted presets (height-false-color, contour, scan, water, water-depth), lists or resets; no custom GLSL.',
   '- Report only state the tools returned; never claim unverified data.',
   '- Errors start with a [code] and one next: step; follow it; never retry access_denied or access_timeout.',
