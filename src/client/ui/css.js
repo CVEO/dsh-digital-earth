@@ -143,6 +143,12 @@
 .mv-cta:focus-visible{outline:2px solid var(--mv-accent);outline-offset:1px}
 .mv-spinner{width:24px;height:24px;border-radius:50%;border:2px solid rgba(120,160,255,.22);border-top-color:var(--mv-accent);animation:mv-spin .9s linear infinite}
 @keyframes mv-spin{to{transform:rotate(360deg)}}
+.mv-overlay.dim:has(>.mv-empty>.mv-spinner){background:color-mix(in srgb,var(--mv-scrim) 42%,transparent)}
+.mv-overlay.dim>.mv-empty:has(>.mv-spinner){box-sizing:border-box;width:min(290px,100%);padding:30px 24px 26px;gap:22px;border-radius:22px;background:color-mix(in srgb,var(--mv-glass-strong) 94%,transparent);border-color:color-mix(in srgb,#8bb6dc 20%,transparent);box-shadow:0 12px 40px rgba(62,103,143,.1);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
+.mv-overlay.dim>.mv-empty:has(>.mv-spinner) p{font-family:"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;font-size:12px;font-weight:500;line-height:1.6;letter-spacing:.02em;color:var(--mv-dim)}
+.mv-overlay.dim>.mv-empty>.mv-spinner{position:relative;box-sizing:border-box;flex:0 0 80px;width:80px!important;height:80px!important;min-width:80px;min-height:80px;max-width:80px;max-height:80px;aspect-ratio:1;overflow:hidden;isolation:isolate;border:0;border-radius:50%!important;corner-shape:round!important;clip-path:circle(50%);background:#e2f2fd;box-shadow:none;animation:none}
+.mv-overlay.dim>.mv-empty>.mv-spinner::before,.mv-overlay.dim>.mv-empty>.mv-spinner::after{content:none}
+.mv-loading-globe{display:block;width:80px!important;height:80px!important;border:0;border-radius:50%!important;corner-shape:round!important;clip-path:circle(50%)}
 .mv-modal{position:absolute;inset:0;z-index:30;display:flex;align-items:center;justify-content:center;background:var(--mv-scrim);padding:20px}
 .mv-dialog{width:min(740px,94%);max-height:86%;display:flex;flex-direction:column;border-radius:14px;overflow:hidden;background:var(--mv-glass-strong);border:.5px solid var(--mv-line);box-shadow:0 24px 64px var(--mv-shadow)}
 .mv-dialog>header{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 14px;border-bottom:.5px solid var(--mv-line);font-size:13px;font-weight:600}

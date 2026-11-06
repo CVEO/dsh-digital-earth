@@ -34,6 +34,7 @@ import { HealthDialog, PathAccessDialog, SourcesDialog } from '../ui/dialogs.js'
 import { StatusHud } from '../ui/hud.js'
 import { AskAgentIcon, FullscreenIcon, HudIcon, ResetIcon, ScreenshotIcon, ShaderIcon, ThemeIcon, ViewerIcon } from '../ui/icons.js'
 import { LayersPanel } from '../ui/layers-panel.js'
+import { LoadingGlobe } from '../ui/loading-globe.js'
 import { createWorkbenchWiring } from '../ui/workbench-wiring.js'
 import { MenuItem } from '../ui/menu-item.js'
 
@@ -1261,6 +1262,17 @@ const h = React.createElement
         }
       }
 
+      /**
+       * A saved layer may point at a folder the host no longer serves, or a remote
+       * URL whose request never settles. Restoring must never keep the panel behind
+       * the loading overlay, so every layer load is raced against a timeout and the
+       * restore itself runs after the panel is already interactive.
+       */
+      const RESTORE_LAYER_TIMEOUT_MS = 8000
+      const restoreTimedOut = Symbol('restore-timeout')
+      const withRestoreTimeout = (promise, ms = RESTORE_LAYER_TIMEOUT_MS) =>
+        Promise.race([promise, new Promise((resolve) => setTimeout(() => resolve(restoreTimedOut), ms))])
+
       /** Rebuild a saved scene into the freshly created viewer. Best effort per item. */
       async function restoreSceneSnapshot(snapshot) {
         const Cesium = cesiumRef.current
@@ -1268,14 +1280,32 @@ const h = React.createElement
         if (!Cesium || !viewer || snapshot === null) return
         setRestoringScene(snapshot.layers.length > 0)
         try {
+          // Camera first: the saved viewpoint is local data, so applying it before
+          // any network load makes the restore feel immediate and avoids snapping
+          // the camera back after the user has already started moving it.
+          if (snapshot.view !== null) {
+            viewer.camera.setView({
+              destination: Cesium.Cartesian3.fromDegrees(snapshot.view.lon, snapshot.view.lat, snapshot.view.height),
+              orientation: {
+                heading: Cesium.Math.toRadians(snapshot.view.heading),
+                pitch: Cesium.Math.toRadians(snapshot.view.pitch),
+                roll: 0,
+              },
+            })
+          }
+          let timedOut = false
           for (const item of snapshot.layers) {
             const source = item.source
             let url = ''
             if (typeof source.path === 'string' && source.path !== '') {
               try {
-                url = await localPathToUrl(source.path)
+                url = await withRestoreTimeout(localPathToUrl(source.path), 3000)
               } catch {
                 // The folder may not be authorised any more: skip that layer.
+                continue
+              }
+              if (url === restoreTimedOut) {
+                timedOut = true
                 continue
               }
             } else if (typeof source.url === 'string' && /^https?:\/\//i.test(source.url)) {
@@ -1283,11 +1313,19 @@ const h = React.createElement
             }
             if (url === '') continue
             try {
-              const layer = await loadTileset(url, item.name, source, { fly: false })
+              const layer = await withRestoreTimeout(loadTileset(url, item.name, source, { fly: false }))
+              if (layer === restoreTimedOut) {
+                timedOut = true
+                continue
+              }
               if (item.visible === false) setLayerVisible(layer.id, false)
             } catch {
               // One missing or moved source must not abort the other layers.
             }
+          }
+          if (timedOut) {
+            setBusy('')
+            showToast(t('toast.restoreTimeout'))
           }
           for (const command of snapshot.annotations.draw) {
             try {
@@ -1316,16 +1354,6 @@ const h = React.createElement
             } catch {
               // The saved analysis may no longer have usable height data.
             }
-          }
-          if (snapshot.view !== null) {
-            viewer.camera.setView({
-              destination: Cesium.Cartesian3.fromDegrees(snapshot.view.lon, snapshot.view.lat, snapshot.view.height),
-              orientation: {
-                heading: Cesium.Math.toRadians(snapshot.view.heading),
-                pitch: Cesium.Math.toRadians(snapshot.view.pitch),
-                roll: 0,
-              },
-            })
           }
         } finally {
           setRestoringScene(false)
@@ -2021,13 +2049,16 @@ const h = React.createElement
             // host store is tried first (it survives origin changes), then the
             // localStorage cache.
             const savedScene = typeof sessionId === 'string' && sessionId !== '' ? await loadSceneSnapshot(sessionId) : null
-            if (savedScene !== null) {
-              await restoreSceneSnapshot(savedScene)
-              if (cancelled) return
-            }
+            // Mark the restore decision before phase becomes ready so the late-restore
+            // effect does not start a second one. The restore itself runs in the
+            // background: a stale or hanging layer load must never keep the loading
+            // overlay up (each layer load is timeout-guarded inside restore).
             sceneRestoredRef.current = typeof sessionId === 'string' && sessionId !== ''
             settleReadyWaiters()
             setPhase('ready')
+            if (savedScene !== null && !cancelled) {
+              void restoreSceneSnapshot(savedScene).catch(() => {})
+            }
           } catch (error) {
             if (!cancelled) {
               settleReadyWaiters(error instanceof Error ? error : new Error(String(error)))
@@ -2624,7 +2655,7 @@ const h = React.createElement
             )
           : null,
         phase === 'loading'
-          ? h('div', { key: 'loading', className: 'mv-overlay dim' }, h('div', { className: 'mv-empty' }, h('div', { className: 'mv-spinner' }), h('p', null, t('panel.status.loading'))))
+          ? h('div', { key: 'loading', className: 'mv-overlay dim', role: 'status' }, h('div', { className: 'mv-empty' }, h(LoadingGlobe), h('p', null, t('panel.status.loading'))))
           : null,
         phase === 'error'
           ? h(

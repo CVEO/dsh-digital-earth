@@ -47,7 +47,7 @@ __export(index_exports, {
 module.exports = __toCommonJS(index_exports);
 
 // src/client/plugin.js
-var import_react12 = __toESM(require("react"), 1);
+var import_react13 = __toESM(require("react"), 1);
 
 // src/client/messages.js
 var MESSAGES = {
@@ -165,6 +165,7 @@ var MESSAGES = {
     "toast.loadFailed": "加载失败：{message}",
     "toast.loadingData": "正在加载数据…",
     "toast.busyDirectory": "正在打开目录…",
+    "toast.restoreTimeout": "恢复上次场景时部分图层超时，已跳过（面板可直接使用）。",
     "toast.terrainLoading": "正在加载地形…",
     "toast.terrainOn": "已开启地形：{name}",
     "toast.terrainOff": "已关闭地形，恢复椭球",
@@ -542,6 +543,7 @@ var MESSAGES = {
     "toast.loadFailed": "Load failed: {message}",
     "toast.loadingData": "Loading dataset…",
     "toast.busyDirectory": "Opening folder…",
+    "toast.restoreTimeout": "Some layers from the previous scene timed out and were skipped; the panel is ready to use.",
     "toast.terrainLoading": "Loading terrain…",
     "toast.terrainOn": "Terrain enabled: {name}",
     "toast.terrainOff": "Terrain off; ellipsoid restored",
@@ -913,10 +915,10 @@ function AskAgentIcon({ size = 16 }) {
 }
 
 // src/client/ui/layout.js
-var import_react10 = __toESM(require("react"), 1);
+var import_react11 = __toESM(require("react"), 1);
 
 // src/client/viewer/ViewerSurface.js
-var import_react9 = __toESM(require("react"), 1);
+var import_react10 = __toESM(require("react"), 1);
 
 // src/client/analysis/height-service.js
 var CACHE_DEGREES = 1e-7;
@@ -4513,6 +4515,12 @@ var CSS = `
 .mv-cta:focus-visible{outline:2px solid var(--mv-accent);outline-offset:1px}
 .mv-spinner{width:24px;height:24px;border-radius:50%;border:2px solid rgba(120,160,255,.22);border-top-color:var(--mv-accent);animation:mv-spin .9s linear infinite}
 @keyframes mv-spin{to{transform:rotate(360deg)}}
+.mv-overlay.dim:has(>.mv-empty>.mv-spinner){background:color-mix(in srgb,var(--mv-scrim) 42%,transparent)}
+.mv-overlay.dim>.mv-empty:has(>.mv-spinner){box-sizing:border-box;width:min(290px,100%);padding:30px 24px 26px;gap:22px;border-radius:22px;background:color-mix(in srgb,var(--mv-glass-strong) 94%,transparent);border-color:color-mix(in srgb,#8bb6dc 20%,transparent);box-shadow:0 12px 40px rgba(62,103,143,.1);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
+.mv-overlay.dim>.mv-empty:has(>.mv-spinner) p{font-family:"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;font-size:12px;font-weight:500;line-height:1.6;letter-spacing:.02em;color:var(--mv-dim)}
+.mv-overlay.dim>.mv-empty>.mv-spinner{position:relative;box-sizing:border-box;flex:0 0 80px;width:80px!important;height:80px!important;min-width:80px;min-height:80px;max-width:80px;max-height:80px;aspect-ratio:1;overflow:hidden;isolation:isolate;border:0;border-radius:50%!important;corner-shape:round!important;clip-path:circle(50%);background:#e2f2fd;box-shadow:none;animation:none}
+.mv-overlay.dim>.mv-empty>.mv-spinner::before,.mv-overlay.dim>.mv-empty>.mv-spinner::after{content:none}
+.mv-loading-globe{display:block;width:80px!important;height:80px!important;border:0;border-radius:50%!important;corner-shape:round!important;clip-path:circle(50%)}
 .mv-modal{position:absolute;inset:0;z-index:30;display:flex;align-items:center;justify-content:center;background:var(--mv-scrim);padding:20px}
 .mv-dialog{width:min(740px,94%);max-height:86%;display:flex;flex-direction:column;border-radius:14px;overflow:hidden;background:var(--mv-glass-strong);border:.5px solid var(--mv-line);box-shadow:0 24px 64px var(--mv-shadow)}
 .mv-dialog>header{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 14px;border-bottom:.5px solid var(--mv-line);font-size:13px;font-weight:600}
@@ -5650,6 +5658,120 @@ function LayersPanel({
   );
 }
 
+// src/client/ui/loading-globe.js
+var import_react8 = __toESM(require("react"), 1);
+
+// src/client/ui/earth-mask.js
+var EARTH_MASK = "data:image/png;base64,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";
+
+// src/client/ui/loading-globe-renderer.js
+var TURN_DURATION = 24e3;
+function buildGlobeProjection(size, textureWidth, textureHeight) {
+  const longitude = new Float32Array(size * size);
+  const latitude = new Float32Array(size * size);
+  const light = new Float32Array(size * size);
+  const pixels = new Uint8ClampedArray(size * size * 4);
+  const tilt = 15 * Math.PI / 180;
+  for (let pixelY = 0; pixelY < size; pixelY++) {
+    for (let pixelX = 0; pixelX < size; pixelX++) {
+      const east = (2 * pixelX + 1) / size - 1;
+      const north = 1 - (2 * pixelY + 1) / size;
+      const radiusSquared = east * east + north * north;
+      if (radiusSquared >= 1) continue;
+      const depth = Math.sqrt(1 - radiusSquared);
+      const index = pixelY * size + pixelX;
+      longitude[index] = Math.atan2(east, depth * Math.cos(tilt) - north * Math.sin(tilt)) / (2 * Math.PI) * textureWidth;
+      latitude[index] = (0.5 - Math.asin(north * Math.cos(tilt) + depth * Math.sin(tilt)) / Math.PI) * (textureHeight - 1);
+      light[index] = 0.87 + 0.13 * Math.max(0, -0.35 * east + 0.45 * north + 0.8 * depth);
+      pixels[index * 4 + 3] = 255 * Math.min(1, (1 - Math.sqrt(radiusSquared)) * size / 2);
+    }
+  }
+  return { size, textureWidth, textureHeight, longitude, latitude, light, pixels };
+}
+function renderGlobePixels(projection, texture, elapsed = 0) {
+  const { size, textureWidth, textureHeight, longitude, latitude, light, pixels } = projection;
+  const offset = (elapsed % TURN_DURATION / TURN_DURATION + 295 / 360) * textureWidth;
+  for (let index = 0; index < size * size; index++) {
+    if (!pixels[index * 4 + 3]) continue;
+    const textureX = ((longitude[index] + offset) % textureWidth + textureWidth) % textureWidth;
+    const textureY = latitude[index];
+    const left = Math.floor(textureX);
+    const right = (left + 1) % textureWidth;
+    const top = Math.floor(textureY);
+    const bottom = Math.min(top + 1, textureHeight - 1);
+    const fractionX = textureX - left;
+    const fractionY = textureY - top;
+    const upper = texture[(top * textureWidth + left) * 4] * (1 - fractionX) + texture[(top * textureWidth + right) * 4] * fractionX;
+    const lower = texture[(bottom * textureWidth + left) * 4] * (1 - fractionX) + texture[(bottom * textureWidth + right) * 4] * fractionX;
+    const land = (upper * (1 - fractionY) + lower * fractionY) / 255;
+    pixels[index * 4] = (226 - 102 * land) * light[index];
+    pixels[index * 4 + 1] = (242 - 70 * land) * light[index];
+    pixels[index * 4 + 2] = (253 - 38 * land) * light[index];
+  }
+  return pixels;
+}
+
+// src/client/ui/loading-globe.js
+function LoadingGlobe() {
+  const canvasRef = import_react8.default.useRef(null);
+  import_react8.default.useEffect(() => {
+    const canvas = canvasRef.current;
+    const context = canvas?.getContext("2d");
+    if (!context) return;
+    const size = Math.round(80 * Math.min(window.devicePixelRatio || 1, 2));
+    canvas.width = size;
+    canvas.height = size;
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const image = new Image();
+    let frame = 0;
+    let texture = null;
+    let projection = null;
+    let lastDraw = -Infinity;
+    const started = performance.now();
+    const output = context.createImageData(size, size);
+    const draw = (now) => {
+      frame = 0;
+      if (!texture || document.hidden) return;
+      if (reducedMotion.matches || now - lastDraw >= 1e3 / 30) {
+        output.data.set(renderGlobePixels(projection, texture, reducedMotion.matches ? 0 : now - started));
+        context.putImageData(output, 0, 0);
+        lastDraw = now;
+      }
+      if (!reducedMotion.matches) frame = requestAnimationFrame(draw);
+    };
+    const resume = () => {
+      cancelAnimationFrame(frame);
+      lastDraw = -Infinity;
+      draw(performance.now());
+    };
+    image.onload = () => {
+      const map = document.createElement("canvas");
+      map.width = image.width;
+      map.height = image.height;
+      const mapContext = map.getContext("2d");
+      if (!mapContext) return;
+      mapContext.drawImage(image, 0, 0);
+      texture = mapContext.getImageData(0, 0, image.width, image.height).data;
+      projection = buildGlobeProjection(size, image.width, image.height);
+      resume();
+    };
+    image.src = EARTH_MASK;
+    reducedMotion.addEventListener("change", resume);
+    document.addEventListener("visibilitychange", resume);
+    return () => {
+      cancelAnimationFrame(frame);
+      image.onload = null;
+      reducedMotion.removeEventListener("change", resume);
+      document.removeEventListener("visibilitychange", resume);
+    };
+  }, []);
+  return import_react8.default.createElement(
+    "div",
+    { className: "mv-spinner", "aria-hidden": true },
+    import_react8.default.createElement("canvas", { ref: canvasRef, className: "mv-loading-globe" })
+  );
+}
+
 // src/client/ui/workbench-wiring.js
 function toggleShaderPreset(form, preset) {
   const current = Array.isArray(form.preset) ? form.preset : [form.preset];
@@ -5739,8 +5861,8 @@ function messageOf(error) {
 }
 
 // src/client/ui/menu-item.js
-var import_react8 = __toESM(require("react"), 1);
-var h6 = import_react8.default.createElement;
+var import_react9 = __toESM(require("react"), 1);
+var h6 = import_react9.default.createElement;
 function MenuItem({ onClick, children, active, title }) {
   return h6(
     "button",
@@ -5751,64 +5873,64 @@ function MenuItem({ onClick, children, active, title }) {
 }
 
 // src/client/viewer/ViewerSurface.js
-var h7 = import_react9.default.createElement;
+var h7 = import_react10.default.createElement;
 function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
   const fallbackT = useTranslation();
   const t2 = typeof injectedT === "function" ? injectedT : fallbackT;
   const environmentDark = useEnvironmentDark();
-  const rootRef = import_react9.default.useRef(null);
-  const globeRef = import_react9.default.useRef(null);
-  const creditRef = import_react9.default.useRef(null);
-  const menuRef = import_react9.default.useRef(null);
-  const viewerRef = import_react9.default.useRef(null);
-  const cesiumRef = import_react9.default.useRef(null);
-  const metaRef = import_react9.default.useRef(null);
-  const layersRef = import_react9.default.useRef([]);
-  const toolRef = import_react9.default.useRef(null);
-  const measureRef = import_react9.default.useRef({ points: [], entities: [] });
-  const handlerRef = import_react9.default.useRef(null);
-  const imageryRef = import_react9.default.useRef(null);
-  const overlayLayersRef = import_react9.default.useRef(null);
-  const sourcesRef = import_react9.default.useRef(null);
-  const toastTimer = import_react9.default.useRef(0);
-  const captureReadoutRef = import_react9.default.useRef(null);
-  const commandChainRef = import_react9.default.useRef(Promise.resolve());
-  const commandRef = import_react9.default.useRef(null);
-  const accessRef = import_react9.default.useRef(null);
-  const analysisRef = import_react9.default.useRef({ operation: null, layerId: null, layerName: null, entities: [], restore: null });
-  const analysisCommandRef = import_react9.default.useRef(null);
-  const shaderEntriesRef = import_react9.default.useRef(/* @__PURE__ */ new Map());
-  const shaderTickRef = import_react9.default.useRef(null);
-  const readyGateRef = import_react9.default.useRef({ ready: false, error: null, waiters: [] });
-  const healthSeqRef = import_react9.default.useRef(0);
-  const sessionRef = import_react9.default.useRef(sessionId);
+  const rootRef = import_react10.default.useRef(null);
+  const globeRef = import_react10.default.useRef(null);
+  const creditRef = import_react10.default.useRef(null);
+  const menuRef = import_react10.default.useRef(null);
+  const viewerRef = import_react10.default.useRef(null);
+  const cesiumRef = import_react10.default.useRef(null);
+  const metaRef = import_react10.default.useRef(null);
+  const layersRef = import_react10.default.useRef([]);
+  const toolRef = import_react10.default.useRef(null);
+  const measureRef = import_react10.default.useRef({ points: [], entities: [] });
+  const handlerRef = import_react10.default.useRef(null);
+  const imageryRef = import_react10.default.useRef(null);
+  const overlayLayersRef = import_react10.default.useRef(null);
+  const sourcesRef = import_react10.default.useRef(null);
+  const toastTimer = import_react10.default.useRef(0);
+  const captureReadoutRef = import_react10.default.useRef(null);
+  const commandChainRef = import_react10.default.useRef(Promise.resolve());
+  const commandRef = import_react10.default.useRef(null);
+  const accessRef = import_react10.default.useRef(null);
+  const analysisRef = import_react10.default.useRef({ operation: null, layerId: null, layerName: null, entities: [], restore: null });
+  const analysisCommandRef = import_react10.default.useRef(null);
+  const shaderEntriesRef = import_react10.default.useRef(/* @__PURE__ */ new Map());
+  const shaderTickRef = import_react10.default.useRef(null);
+  const readyGateRef = import_react10.default.useRef({ ready: false, error: null, waiters: [] });
+  const healthSeqRef = import_react10.default.useRef(0);
+  const sessionRef = import_react10.default.useRef(sessionId);
   sessionRef.current = sessionId;
-  const [phase, setPhase] = import_react9.default.useState("loading");
-  const [error, setError] = import_react9.default.useState("");
-  const [layers, setLayers] = import_react9.default.useState([]);
-  const [sources, setSources] = import_react9.default.useState(null);
-  const [defaults, setDefaults] = import_react9.default.useState(null);
-  const [tool, setTool] = import_react9.default.useState(null);
-  const [fps, setFps] = import_react9.default.useState(null);
-  const [fullscreen, setFullscreen] = import_react9.default.useState(false);
-  const [stats, setStats] = import_react9.default.useState(null);
-  const [pickInfo, setPickInfo] = import_react9.default.useState(null);
-  const [measureInfo, setMeasureInfo] = import_react9.default.useState(null);
-  const [scan, setScan] = import_react9.default.useState(null);
-  const [emptyDismissed, setEmptyDismissed] = import_react9.default.useState(false);
-  const [restoringScene, setRestoringScene] = import_react9.default.useState(false);
-  const [urlBar, setUrlBar] = import_react9.default.useState(false);
-  const [urlInput, setUrlInput] = import_react9.default.useState("");
-  const [busy, setBusy] = import_react9.default.useState("");
-  const [toast, setToast] = import_react9.default.useState("");
-  const [openMenu, setOpenMenu] = import_react9.default.useState(null);
-  const [recentDirs, setRecentDirs] = import_react9.default.useState([]);
-  const [accessRequest, setAccessRequest] = import_react9.default.useState(null);
-  const [accessBusy, setAccessBusy] = import_react9.default.useState(false);
-  const [analysis, setAnalysis] = import_react9.default.useState(null);
-  const [shaderOpen, setShaderOpen] = import_react9.default.useState(false);
-  const [shaderActive, setShaderActive] = import_react9.default.useState([]);
-  const [shaderForm, setShaderForm] = import_react9.default.useState({
+  const [phase, setPhase] = import_react10.default.useState("loading");
+  const [error, setError] = import_react10.default.useState("");
+  const [layers, setLayers] = import_react10.default.useState([]);
+  const [sources, setSources] = import_react10.default.useState(null);
+  const [defaults, setDefaults] = import_react10.default.useState(null);
+  const [tool, setTool] = import_react10.default.useState(null);
+  const [fps, setFps] = import_react10.default.useState(null);
+  const [fullscreen, setFullscreen] = import_react10.default.useState(false);
+  const [stats, setStats] = import_react10.default.useState(null);
+  const [pickInfo, setPickInfo] = import_react10.default.useState(null);
+  const [measureInfo, setMeasureInfo] = import_react10.default.useState(null);
+  const [scan, setScan] = import_react10.default.useState(null);
+  const [emptyDismissed, setEmptyDismissed] = import_react10.default.useState(false);
+  const [restoringScene, setRestoringScene] = import_react10.default.useState(false);
+  const [urlBar, setUrlBar] = import_react10.default.useState(false);
+  const [urlInput, setUrlInput] = import_react10.default.useState("");
+  const [busy, setBusy] = import_react10.default.useState("");
+  const [toast, setToast] = import_react10.default.useState("");
+  const [openMenu, setOpenMenu] = import_react10.default.useState(null);
+  const [recentDirs, setRecentDirs] = import_react10.default.useState([]);
+  const [accessRequest, setAccessRequest] = import_react10.default.useState(null);
+  const [accessBusy, setAccessBusy] = import_react10.default.useState(false);
+  const [analysis, setAnalysis] = import_react10.default.useState(null);
+  const [shaderOpen, setShaderOpen] = import_react10.default.useState(false);
+  const [shaderActive, setShaderActive] = import_react10.default.useState([]);
+  const [shaderForm, setShaderForm] = import_react10.default.useState({
     layerId: "",
     preset: "height-false-color",
     minHeight: "",
@@ -5820,14 +5942,14 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     waterHeight: "",
     depthMax: ""
   });
-  const [settingsOpen, setSettingsOpen] = import_react9.default.useState(false);
-  const [health, setHealth] = import_react9.default.useState(null);
-  const [terrainBusy, setTerrainBusy] = import_react9.default.useState(false);
-  const [imageryBusy, setImageryBusy] = import_react9.default.useState(false);
-  const [meta, setMeta] = import_react9.default.useState(null);
-  const [bridgeOn, setBridgeOn] = import_react9.default.useState(false);
-  const [bridgeReload, setBridgeReload] = import_react9.default.useState(false);
-  const [bridgeEpoch, setBridgeEpoch] = import_react9.default.useState(0);
+  const [settingsOpen, setSettingsOpen] = import_react10.default.useState(false);
+  const [health, setHealth] = import_react10.default.useState(null);
+  const [terrainBusy, setTerrainBusy] = import_react10.default.useState(false);
+  const [imageryBusy, setImageryBusy] = import_react10.default.useState(false);
+  const [meta, setMeta] = import_react10.default.useState(null);
+  const [bridgeOn, setBridgeOn] = import_react10.default.useState(false);
+  const [bridgeReload, setBridgeReload] = import_react10.default.useState(false);
+  const [bridgeEpoch, setBridgeEpoch] = import_react10.default.useState(0);
   const themeMode = sources?.settings?.theme ?? "auto";
   const resolvedDark = themeMode === "auto" ? environmentDark : themeMode === "dark";
   const showLayers = sources?.settings?.showLayers !== false;
@@ -5884,8 +6006,8 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     setLayers(layersRef.current.map((layer) => ({ id: layer.id, name: layer.name, visible: layer.visible })));
     markSceneDirty();
   };
-  const saveChainRef = import_react9.default.useRef(Promise.resolve());
-  const saveSeqRef = import_react9.default.useRef(0);
+  const saveChainRef = import_react10.default.useRef(Promise.resolve());
+  const saveSeqRef = import_react10.default.useRef(0);
   const commitSources = (next, notify) => {
     const previous = sourcesRef.current;
     sourcesRef.current = next;
@@ -6352,7 +6474,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
       setMeasureInfo({ text: t2("measure.start") });
     }
   }
-  const agentOverlayRef = import_react9.default.useRef({
+  const agentOverlayRef = import_react10.default.useRef({
     draw: [],
     measure: [],
     drawnFeatures: 0,
@@ -6363,7 +6485,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     // Entities per command (WeakMap keeps snapshots JSON-clean).
     entityGroups: /* @__PURE__ */ new WeakMap()
   });
-  const [agentOverlayCount, setAgentOverlayCount] = import_react9.default.useState(0);
+  const [agentOverlayCount, setAgentOverlayCount] = import_react10.default.useState(0);
   const syncAgentOverlayCount = () => {
     const state = agentOverlayRef.current;
     setAgentOverlayCount(state.draw.length + state.measure.length);
@@ -6722,8 +6844,8 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
   const shaderActiveList = () => shaderEngine.activeList();
   const detachShaderForLayer = (id, restore) => shaderEngine.detachForLayer(id, restore);
   const releaseShaderTick = () => shaderEngine.releaseTick();
-  const sceneDirtyRef = import_react9.default.useRef(false);
-  const sceneRestoredRef = import_react9.default.useRef(false);
+  const sceneDirtyRef = import_react10.default.useRef(false);
+  const sceneRestoredRef = import_react10.default.useRef(false);
   const hostSceneStore = createHostSceneStore({
     getMeta: () => metaRef.current,
     loadMeta,
@@ -6776,19 +6898,37 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     } catch {
     }
   };
+  const RESTORE_LAYER_TIMEOUT_MS = 8e3;
+  const restoreTimedOut = /* @__PURE__ */ Symbol("restore-timeout");
+  const withRestoreTimeout = (promise, ms = RESTORE_LAYER_TIMEOUT_MS) => Promise.race([promise, new Promise((resolve) => setTimeout(() => resolve(restoreTimedOut), ms))]);
   async function restoreSceneSnapshot(snapshot) {
     const Cesium = cesiumRef.current;
     const viewer = viewerRef.current;
     if (!Cesium || !viewer || snapshot === null) return;
     setRestoringScene(snapshot.layers.length > 0);
     try {
+      if (snapshot.view !== null) {
+        viewer.camera.setView({
+          destination: Cesium.Cartesian3.fromDegrees(snapshot.view.lon, snapshot.view.lat, snapshot.view.height),
+          orientation: {
+            heading: Cesium.Math.toRadians(snapshot.view.heading),
+            pitch: Cesium.Math.toRadians(snapshot.view.pitch),
+            roll: 0
+          }
+        });
+      }
+      let timedOut = false;
       for (const item of snapshot.layers) {
         const source = item.source;
         let url = "";
         if (typeof source.path === "string" && source.path !== "") {
           try {
-            url = await localPathToUrl(source.path);
+            url = await withRestoreTimeout(localPathToUrl(source.path), 3e3);
           } catch {
+            continue;
+          }
+          if (url === restoreTimedOut) {
+            timedOut = true;
             continue;
           }
         } else if (typeof source.url === "string" && /^https?:\/\//i.test(source.url)) {
@@ -6796,10 +6936,18 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
         }
         if (url === "") continue;
         try {
-          const layer = await loadTileset(url, item.name, source, { fly: false });
+          const layer = await withRestoreTimeout(loadTileset(url, item.name, source, { fly: false }));
+          if (layer === restoreTimedOut) {
+            timedOut = true;
+            continue;
+          }
           if (item.visible === false) setLayerVisible(layer.id, false);
         } catch {
         }
+      }
+      if (timedOut) {
+        setBusy("");
+        showToast(t2("toast.restoreTimeout"));
       }
       for (const command of snapshot.annotations.draw) {
         try {
@@ -6824,16 +6972,6 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
           await analyzeCommand(snapshot.analysis);
         } catch {
         }
-      }
-      if (snapshot.view !== null) {
-        viewer.camera.setView({
-          destination: Cesium.Cartesian3.fromDegrees(snapshot.view.lon, snapshot.view.lat, snapshot.view.height),
-          orientation: {
-            heading: Cesium.Math.toRadians(snapshot.view.heading),
-            pitch: Cesium.Math.toRadians(snapshot.view.pitch),
-            roll: 0
-          }
-        });
       }
     } finally {
       setRestoringScene(false);
@@ -7245,7 +7383,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
   });
   const runCommand = (action, args = {}, session = null) => commandBridge.runCommand(action, args, session);
   commandRef.current = runCommand;
-  import_react9.default.useEffect(() => {
+  import_react10.default.useEffect(() => {
     if (!sessionId || !meta?.bridgeUrl) return void 0;
     const bridgeSession = sessionId;
     const endpoint = `${meta.bridgeUrl}?token=${encodeURIComponent(meta.token)}&session=${encodeURIComponent(bridgeSession)}`;
@@ -7325,7 +7463,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
       }
     };
   }, [sessionId, meta, bridgeEpoch]);
-  import_react9.default.useEffect(
+  import_react10.default.useEffect(
     () => () => {
       const current = accessRef.current;
       if (!current) return;
@@ -7335,7 +7473,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     },
     []
   );
-  import_react9.default.useEffect(() => {
+  import_react10.default.useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
@@ -7411,13 +7549,13 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
         handlerRef.current = handler;
         viewer.camera.moveEnd.addEventListener(markSceneDirty);
         const savedScene = typeof sessionId === "string" && sessionId !== "" ? await loadSceneSnapshot(sessionId) : null;
-        if (savedScene !== null) {
-          await restoreSceneSnapshot(savedScene);
-          if (cancelled) return;
-        }
         sceneRestoredRef.current = typeof sessionId === "string" && sessionId !== "";
         settleReadyWaiters();
         setPhase("ready");
+        if (savedScene !== null && !cancelled) {
+          void restoreSceneSnapshot(savedScene).catch(() => {
+          });
+        }
       } catch (error2) {
         if (!cancelled) {
           settleReadyWaiters(error2 instanceof Error ? error2 : new Error(String(error2)));
@@ -7449,7 +7587,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
       layersRef.current = [];
     };
   }, []);
-  import_react9.default.useEffect(() => {
+  import_react10.default.useEffect(() => {
     if (phase !== "ready" || sceneRestoredRef.current) return void 0;
     if (typeof sessionId !== "string" || sessionId === "") return void 0;
     sceneRestoredRef.current = true;
@@ -7463,7 +7601,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
       cancelled = true;
     };
   }, [phase, sessionId]);
-  import_react9.default.useEffect(() => {
+  import_react10.default.useEffect(() => {
     const timer = setInterval(() => {
       if (sceneDirtyRef.current) saveSceneSnapshot();
     }, 3e3);
@@ -7481,7 +7619,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
       document.removeEventListener("visibilitychange", onVisibility);
     };
   }, []);
-  import_react9.default.useEffect(() => {
+  import_react10.default.useEffect(() => {
     if (!openMenu) return void 0;
     const close = (event) => {
       if (!menuRef.current?.contains(event.target)) setOpenMenu(null);
@@ -7489,10 +7627,10 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     document.addEventListener("pointerdown", close, true);
     return () => document.removeEventListener("pointerdown", close, true);
   }, [openMenu]);
-  import_react9.default.useEffect(() => {
+  import_react10.default.useEffect(() => {
     if (openMenu === "data") refreshRecentDirs();
   }, [openMenu, meta?.directoriesUrl]);
-  import_react9.default.useEffect(() => {
+  import_react10.default.useEffect(() => {
     if (phase !== "ready") return void 0;
     const element = globeRef.current;
     if (!element || typeof ResizeObserver === "undefined") return void 0;
@@ -7505,7 +7643,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     observer.observe(element);
     return () => observer.disconnect();
   }, [phase]);
-  import_react9.default.useEffect(() => {
+  import_react10.default.useEffect(() => {
     const onChange = () => {
       setFullscreen(document.fullscreenElement === rootRef.current);
       try {
@@ -7516,7 +7654,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     document.addEventListener("fullscreenchange", onChange);
     return () => document.removeEventListener("fullscreenchange", onChange);
   }, []);
-  import_react9.default.useEffect(() => {
+  import_react10.default.useEffect(() => {
     if (phase !== "ready") return void 0;
     const viewer = viewerRef.current;
     if (!viewer) return void 0;
@@ -7569,7 +7707,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
       canvas.removeEventListener("webglcontextrestored", onRestored);
     };
   }, [phase]);
-  import_react9.default.useEffect(() => {
+  import_react10.default.useEffect(() => {
     if (!scan) return void 0;
     const onKey = (event) => {
       if (event.key === "Escape") setScan(null);
@@ -7577,7 +7715,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [scan]);
-  import_react9.default.useEffect(() => {
+  import_react10.default.useEffect(() => {
     if (phase !== "ready") return void 0;
     let lastKey = "";
     const timer = setInterval(() => {
@@ -7589,7 +7727,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     }, 1e3);
     return () => clearInterval(timer);
   }, [phase]);
-  import_react9.default.useEffect(() => {
+  import_react10.default.useEffect(() => {
     const viewer = viewerRef.current;
     const Cesium = cesiumRef.current;
     if (phase !== "ready" || !viewer || !Cesium) return;
@@ -7670,7 +7808,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
           [
             h7(MenuItem, { key: "local", onClick: pickLocal }, t2("btn.openLocal")),
             recentDirs.length ? h7(
-              import_react9.default.Fragment,
+              import_react10.default.Fragment,
               { key: "recent" },
               h7("span", { className: "mv-menu-label" }, t2("menu.recentDirs")),
               ...recentDirs.map(
@@ -7939,7 +8077,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
         )
       )
     ) : null,
-    phase === "loading" ? h7("div", { key: "loading", className: "mv-overlay dim" }, h7("div", { className: "mv-empty" }, h7("div", { className: "mv-spinner" }), h7("p", null, t2("panel.status.loading")))) : null,
+    phase === "loading" ? h7("div", { key: "loading", className: "mv-overlay dim", role: "status" }, h7("div", { className: "mv-empty" }, h7(LoadingGlobe), h7("p", null, t2("panel.status.loading")))) : null,
     phase === "error" ? h7(
       "div",
       { key: "error", className: "mv-overlay dim" },
@@ -8055,7 +8193,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
 }
 
 // src/client/ui/layout.js
-var h8 = import_react10.default.createElement;
+var h8 = import_react11.default.createElement;
 function ViewerPanel(props) {
   return h8(ViewerSurface, { t: props.t, sessionId: null, docked: false });
 }
@@ -8066,12 +8204,12 @@ function EarthTabBody(props) {
 }
 
 // src/client/ui/tool-row.js
-var import_react11 = __toESM(require("react"), 1);
-var h9 = import_react11.default.createElement;
+var import_react12 = __toESM(require("react"), 1);
+var h9 = import_react12.default.createElement;
 function HeaderButton(props) {
   const fallbackT = useTranslation();
   const t2 = typeof props.t === "function" ? props.t : fallbackT;
-  const [hover, setHover] = import_react11.default.useState(false);
+  const [hover, setHover] = import_react12.default.useState(false);
   return h9(
     "button",
     {
@@ -8156,8 +8294,8 @@ var TOOL_SUMMARY_KEYS = {
 var AUTO_OPENED_CALLS = /* @__PURE__ */ new Set();
 function EarthToolRow({ toolName, phase, block, callId }) {
   const t2 = useTranslation();
-  const openedRef = import_react11.default.useRef(false);
-  import_react11.default.useEffect(() => {
+  const openedRef = import_react12.default.useRef(false);
+  import_react12.default.useEffect(() => {
     if (phase === "result" || openedRef.current) return;
     if (typeof callId === "string" && AUTO_OPENED_CALLS.has(callId)) return;
     if (!readAutoOpen()) return;
@@ -8171,8 +8309,8 @@ function EarthToolRow({ toolName, phase, block, callId }) {
     } catch {
     }
   }, [phase, callId]);
-  const [thumbUrl, setThumbUrl] = import_react11.default.useState("");
-  import_react11.default.useEffect(() => {
+  const [thumbUrl, setThumbUrl] = import_react12.default.useState("");
+  import_react12.default.useEffect(() => {
     if (toolName !== "earth_capture" || phase !== "result" || block?.isError === true) return void 0;
     const content = Array.isArray(block?.content) ? block.content : [];
     const text = content.filter((part) => part?.type === "text" && typeof part.text === "string").map((part) => part.text).join("\n");
@@ -8222,7 +8360,7 @@ function EarthToolRow({ toolName, phase, block, callId }) {
 }
 
 // src/client/plugin.js
-var h10 = import_react12.default.createElement;
+var h10 = import_react13.default.createElement;
 var plugin = {
   inject: ["slots", "uiWorkspace", "locale", "theme"],
   apply(ctx) {

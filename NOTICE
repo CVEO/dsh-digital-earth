@@ -11,3 +11,7 @@ affiliated with or endorsed by Cesium GS, Inc.
 
 Imagery and elevation are streamed at runtime from public ArcGIS services and
 remain subject to Esri's terms of use.
+
+The loading globe's bundled land mask is derived from the Natural Earth II
+textures included with CesiumJS (vendor/cesium/Assets/Textures/NaturalEarthII).
+Natural Earth raster data is in the public domain: https://www.naturalearthdata.com/
