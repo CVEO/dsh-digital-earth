@@ -17,6 +17,7 @@
 import React from 'react'
 
 import { normalizeOverlayDraft } from '../scene/overlay-layers.js'
+import { addBookmark, loadBookmarks, removeBookmark, saveBookmarks } from '../scene/bookmarks.js'
 
 const h = React.createElement
 
@@ -48,10 +49,16 @@ export function LayersPanel({
   onRemoveAgentOverlay,
   analysis,
   onClearAnalysis,
+  getCurrentView,
+  onFlyView,
 }) {
   const [adding, setAdding] = React.useState(false)
   const [draft, setDraft] = React.useState({ type: 'wms', name: '', url: '', layers: '', opacity: 0.7 })
   const [error, setError] = React.useState('')
+  // Camera bookmarks (视角收藏) are client-only: stored in localStorage, no Agent
+  // contract involved. The panel owns the list; flying is a callback.
+  const [bookmarks, setBookmarks] = React.useState(() => loadBookmarks())
+  const [bookmarkNotice, setBookmarkNotice] = React.useState('')
 
   const sourceName = (list, id) => list?.find((item) => item.id === id)?.name ?? null
   const terrainActive = sourceName(config?.terrain, settings?.terrain)
@@ -87,6 +94,24 @@ export function LayersPanel({
   }
 
   const field = (label, input) => h('div', { className: 'mv-field' }, h('label', null, label), input)
+
+  const saveCurrentBookmark = () => {
+    const view = typeof getCurrentView === 'function' ? getCurrentView() : null
+    if (!view) {
+      setBookmarkNotice(t('bookmarks.noView'))
+      return
+    }
+    const result = addBookmark(bookmarks, view, null)
+    if (!result.bookmark) return
+    setBookmarks(result.list)
+    setBookmarkNotice(saveBookmarks(result.list) ? '' : t('bookmarks.saveFailed'))
+  }
+
+  const deleteBookmark = (id) => {
+    const next = removeBookmark(bookmarks, id)
+    setBookmarks(next)
+    saveBookmarks(next)
+  }
 
   return h(
     'div',
@@ -228,6 +253,24 @@ export function LayersPanel({
             h('button', { type: 'button', className: 'mv-icon-btn', title: t('layers.analysisClear'), onClick: onClearAnalysis }, '✕'),
           )
         : h('div', { key: 'analysis-hint', className: 'mv-none' }, t('layers.analysisHint')),
+      // ---- camera bookmarks (client-only, localStorage) ----------------------
+      h(
+        'div',
+        { key: 'g6b', className: 'mv-group' },
+        h('div', { className: 'mv-group-title' }, `${t('bookmarks.title')}${bookmarks.length > 0 ? ` · ${bookmarks.length}` : ''}`),
+        h('button', { type: 'button', className: 'mv-cta', onClick: saveCurrentBookmark }, t('bookmarks.save')),
+      ),
+      bookmarkNotice !== '' ? h('div', { key: 'bm-notice', className: 'mv-none' }, bookmarkNotice) : null,
+      bookmarks.length === 0
+        ? h('div', { key: 'bm-empty', className: 'mv-none' }, t('bookmarks.empty'))
+        : bookmarks.map((item) =>
+            h(
+              'div',
+              { key: item.id, className: 'mv-layer' },
+              h('span', { className: 'name', title: t('bookmarks.flyHint'), onClick: () => onFlyView(item.view) }, item.name),
+              h('button', { type: 'button', className: 'mv-icon-btn', title: t('bookmarks.remove'), onClick: () => deleteBookmark(item.id) }, '✕'),
+            ),
+          ),
       // ---- 3D Tiles content --------------------------------------------------
       h('div', { key: 'g6', className: 'mv-group' }, h('div', { className: 'mv-group-title' }, `${t('layers.content')} · ${layers.length}`)),
       ...layers.map((layer) =>

@@ -16,6 +16,7 @@ import { folderName } from '../preferences.js'
 import { service } from '../runtime.js'
 import { normalizeSceneSnapshot, readSceneSnapshot, writeSceneSnapshot } from '../scene-store.js'
 import { createOverlayLayers } from '../scene/overlay-layers.js'
+import { flyToBookmark } from '../scene/bookmarks.js'
 import { flyToCartographic, frameAllLayers } from '../scene/frame.js'
 import { createAskAgent } from '../scene/ask-agent.js'
 import { createCaptureService } from '../scene/capture.js'
@@ -621,30 +622,10 @@ const h = React.createElement
       }
 
       /**
-       * Docked tab: expand the sidebar column to fullscreen so the globe gets the
-       * room while the Session (and the Agent bridge) stay mounted. Falls back to
-       * the immersive main panel when the column cannot report a target.
-       */
-      const togglePaneFullscreen = () => {
-        const rightbar = service('sidebarRight')
-        try {
-          const target =
-            rightbar?.focusedTarget?.(rootRef.current) ?? rightbar?.commandTarget?.(rootRef.current)
-          if (target !== undefined) {
-            rightbar.toggleFullscreen(target)
-            return
-          }
-        } catch {
-          /* fall through to the immersive panel */
-        }
-        service('layout')?.selectPanel?.('digital-earth')
-      }
-
-      /**
        * Real fullscreen: the panel root element goes to OS-level fullscreen
        * (DOM Fullscreen API), so the whole screen shows the globe and no DSH
-       * chrome remains. Distinct from togglePaneFullscreen, which only expands the
-       * sidebar column and is labelled "maximize sidebar".
+       * chrome remains. This is the only fullscreen entry point in the panel —
+       * expanding the sidebar column is DSH's own layout feature, not ours.
        */
       const toggleDomFullscreen = () => {
         const root = rootRef.current
@@ -2468,11 +2449,12 @@ const h = React.createElement
             iconButton(h(ScreenshotIcon), t('btn.screenshot'), screenshot),
             sessionId ? iconButton(h(AskAgentIcon), t('btn.askAgent'), askAgent) : null,
             iconButton(h(ResetIcon), t('btn.reset'), resetView),
-            docked
-              ? iconButton(h(FullscreenIcon), t('btn.maximizeTitle'), togglePaneFullscreen)
-              : button(t('btn.beside'), openBeside),
-            // Real fullscreen works from both mounts; the sidebar-maximize button
-            // above is a docked-only layout action, not fullscreen.
+            // Only the main panel offers "open beside chat"; the docked tab is
+            // already beside the conversation.
+            docked ? null : button(t('btn.beside'), openBeside),
+            // Single fullscreen entry point for both mounts (DOM Fullscreen API).
+            // Expanding the sidebar is DSH's own feature, so the duplicate
+            // "maximize sidebar" action is gone.
             iconButton(h(FullscreenIcon), fullscreen ? t('btn.fullscreenExit') : t('btn.fullscreenTitle'), toggleDomFullscreen, fullscreen),
             h('i', { key: 's3', className: 'mv-sep' }),
             h(
@@ -2598,6 +2580,9 @@ const h = React.createElement
                     onOverlayVisible: setOverlayVisible,
                     onOverlayMove: moveOverlay,
                     onClearVector: () => clearAgentOverlays('all'),
+                    // Camera bookmarks: panel-managed list, storage in localStorage.
+                    getCurrentView: () => currentSceneSnapshot()?.view ?? null,
+                    onFlyView: (view) => flyToBookmark(viewerRef.current, cesiumRef.current, view),
                     agentOverlays: buildAgentOverlayList(agentOverlayRef.current),
                     onRemoveAgentOverlay: (kind, index) => {
                       if (!removeAgentOverlay(agentOverlayRef.current, viewerRef.current, kind, index)) return

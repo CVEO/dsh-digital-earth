@@ -399,20 +399,19 @@ test('client HUD 采样：拖动不采样、停手一次 depth read、周期不 
   assert.match(client, /sampleCursor\(viewer, Cesium, center, \{ pickPosition: true \}\)/)
 })
 
-test('client 显示三态：停靠 / 最大化侧栏 / 真全屏（DOM Fullscreen API）', () => {
+test('client 显示：停靠 / 真全屏（DOM Fullscreen API），不再重复“最大化侧栏”', () => {
   assert.match(client, /const FullscreenIcon = \(\{ size = 15 \}\) =>/)
   assert.match(client, /M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5/)
   assert.match(client, /const iconButton = \(icon, title, onClick, active\)/)
   assert.match(client, /className: `mv-btn icon\$\{active \? ' on' : ''\}`/)
   assert.match(client, /'aria-label': title/)
   assert.match(client, /'aria-pressed': active === undefined \? undefined : active/)
-  // docked 走“最大化侧栏”图标按钮，非 docked 仍保留“在对话旁打开”的文字按钮。
-  assert.match(
-    client,
-    /docked\s*\n\s*\? iconButton\(h\(FullscreenIcon\), t\('btn\.maximizeTitle'\), togglePaneFullscreen\)\s*\n\s*: button\(t\('btn\.beside'\), openBeside\)/,
-  )
-  // 真全屏：面板根节点调用 DOM Fullscreen API，并在 fullscreenchange 里同步状态；
-  // 旧把“最大化侧栏”叫成全屏的文案已删除。
+  // v1.6：全屏只有一个入口；dock 不再有“最大化侧栏”（DSH 自带侧栏布局）。
+  assert.doesNotMatch(client, /togglePaneFullscreen/)
+  assert.doesNotMatch(client, /btn\.maximize/)
+  assert.match(client, /docked \? null : button\(t\('btn\.beside'\), openBeside\)/)
+  assert.match(client, /iconButton\(h\(FullscreenIcon\), fullscreen \? t\('btn\.fullscreenExit'\) : t\('btn\.fullscreenTitle'\), toggleDomFullscreen, fullscreen\)/)
+  // 真全屏：面板根节点调用 DOM Fullscreen API，并在 fullscreenchange 里同步状态。
   assert.match(client, /const toggleDomFullscreen = \(\) => \{/)
   assert.match(client, /root\.requestFullscreen\(\{ navigationUI: 'hide' \}\)/)
   assert.match(client, /document\.exitFullscreen\(\)/)

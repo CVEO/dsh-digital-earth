@@ -147,6 +147,13 @@ var MESSAGES = {
     "layers.analysis": "空间分析",
     "layers.analysisHint": "剖面 / 淹没 / 日照分析由对话 Agent 执行（例如：「对当前图层做一条从 A 到 B 的剖面」）；结果会显示在这里，可一键清除。",
     "layers.analysisClear": "清除分析",
+    "bookmarks.title": "视角收藏",
+    "bookmarks.save": "＋ 保存当前视角",
+    "bookmarks.empty": "暂无收藏视角",
+    "bookmarks.remove": "删除该视角",
+    "bookmarks.flyHint": "点击飞到该视角",
+    "bookmarks.noView": "面板尚未就绪，无法读取当前视角。",
+    "bookmarks.saveFailed": "本地存储不可用，收藏只保留在本次会话。",
     "urlbar.placeholder": "tileset.json 的 http(s) 地址，或本地绝对路径",
     "urlbar.submit": "加载",
     "toast.scanEmpty": "该目录下没有找到 tileset.json",
@@ -227,8 +234,6 @@ var MESSAGES = {
     "tab.title": "数字地球",
     "header.open": "在对话旁打开数字地球",
     "btn.beside": "在对话旁打开",
-    "btn.maximize": "最大化侧栏",
-    "btn.maximizeTitle": "最大化侧栏（再次点击返回停靠）",
     "btn.fullscreen": "全屏",
     "btn.fullscreenTitle": "全屏（按 Esc 退出）",
     "btn.fullscreenExit": "退出全屏",
@@ -519,6 +524,13 @@ var MESSAGES = {
     "layers.analysis": "Spatial analysis",
     "layers.analysisHint": "Profile / flood / sunlight analyses are run by the conversation Agent (e.g. “profile the current layer from A to B”); results appear here and can be cleared in one click.",
     "layers.analysisClear": "Clear analysis",
+    "bookmarks.title": "View bookmarks",
+    "bookmarks.save": "+ Save current view",
+    "bookmarks.empty": "No saved views yet",
+    "bookmarks.remove": "Remove this view",
+    "bookmarks.flyHint": "Click to fly to this view",
+    "bookmarks.noView": "The panel is not ready, so the current view cannot be read.",
+    "bookmarks.saveFailed": "Local storage is unavailable; bookmarks last for this session only.",
     "urlbar.placeholder": "http(s) URL of tileset.json, or an absolute local path",
     "urlbar.submit": "Load",
     "toast.scanEmpty": "No tileset.json found in that folder",
@@ -599,8 +611,6 @@ var MESSAGES = {
     "tab.title": "Digital Earth",
     "header.open": "Open Digital Earth beside the chat",
     "btn.beside": "Open beside chat",
-    "btn.maximize": "Maximize sidebar",
-    "btn.maximizeTitle": "Maximize sidebar (click again to dock)",
     "btn.fullscreen": "Fullscreen",
     "btn.fullscreenTitle": "Fullscreen (Esc exits)",
     "btn.fullscreenExit": "Exit fullscreen",
@@ -2427,6 +2437,100 @@ function createOverlayLayers({ Cesium, viewer, providerFactory, onError = () => 
       });
     }
   };
+}
+
+// src/client/scene/bookmarks.js
+var BOOKMARK_STORAGE_KEY = "dsh-de:bookmarks:v1";
+var MAX_BOOKMARKS = 20;
+var finite = (value) => typeof value === "number" && Number.isFinite(value);
+function normalizeBookmarkView(raw) {
+  if (raw === null || typeof raw !== "object") return null;
+  const view = { lon: Number(raw.lon), lat: Number(raw.lat), height: Number(raw.height), heading: Number(raw.heading), pitch: Number(raw.pitch) };
+  if (!finite(view.lon) || !finite(view.lat) || !finite(view.height)) return null;
+  if (!finite(view.heading)) view.heading = 0;
+  if (!finite(view.pitch)) view.pitch = -45;
+  if (view.lon < -180 || view.lon > 180 || view.lat < -90 || view.lat > 90) return null;
+  if (view.height < 0 || view.height > 4e7) return null;
+  return view;
+}
+function normalizeBookmarks(raw, max = MAX_BOOKMARKS) {
+  const list = Array.isArray(raw) ? raw : [];
+  const seen = /* @__PURE__ */ new Set();
+  const bookmarks = [];
+  for (const item of list) {
+    if (item === null || typeof item !== "object") continue;
+    const id = typeof item.id === "string" && item.id !== "" ? item.id : null;
+    if (id === null || seen.has(id)) continue;
+    const view = normalizeBookmarkView(item.view);
+    if (view === null) continue;
+    seen.add(id);
+    bookmarks.push({
+      id,
+      name: typeof item.name === "string" && item.name.trim() !== "" ? item.name.trim().slice(0, 60) : "视角",
+      view,
+      createdAt: finite(item.createdAt) ? item.createdAt : 0
+    });
+    if (bookmarks.length >= max) break;
+  }
+  return bookmarks;
+}
+function defaultStorage() {
+  try {
+    return globalThis.localStorage ?? null;
+  } catch {
+    return null;
+  }
+}
+function loadBookmarks(storage = defaultStorage()) {
+  if (!storage || typeof storage.getItem !== "function") return [];
+  try {
+    return normalizeBookmarks(JSON.parse(storage.getItem(BOOKMARK_STORAGE_KEY) ?? "[]"));
+  } catch {
+    return [];
+  }
+}
+function saveBookmarks(list, storage = defaultStorage()) {
+  if (!storage || typeof storage.setItem !== "function") return false;
+  try {
+    storage.setItem(BOOKMARK_STORAGE_KEY, JSON.stringify(normalizeBookmarks(list)));
+    return true;
+  } catch {
+    return false;
+  }
+}
+function addBookmark(list, view, name, { now = Date.now(), idFactory } = {}) {
+  const normalized = normalizeBookmarkView(view);
+  if (normalized === null) return { list: normalizeBookmarks(list), bookmark: null };
+  const bookmarks = normalizeBookmarks(list);
+  const id = typeof idFactory === "function" ? String(idFactory()) : `bm-${now.toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+  const bookmark = {
+    id,
+    name: typeof name === "string" && name.trim() !== "" ? name.trim().slice(0, 60) : `视角 ${bookmarks.length + 1}`,
+    view: normalized,
+    createdAt: now
+  };
+  return { list: [bookmark, ...bookmarks].slice(0, MAX_BOOKMARKS), bookmark };
+}
+function removeBookmark(list, id) {
+  return normalizeBookmarks(list).filter((item) => item.id !== id);
+}
+function flyToBookmark(viewer, Cesium, view, duration = 1.2) {
+  const normalized = normalizeBookmarkView(view);
+  if (!viewer?.camera || !Cesium?.Cartesian3 || normalized === null) return false;
+  try {
+    viewer.camera.flyTo({
+      destination: Cesium.Cartesian3.fromDegrees(normalized.lon, normalized.lat, normalized.height),
+      orientation: {
+        heading: Cesium.Math.toRadians(normalized.heading),
+        pitch: Cesium.Math.toRadians(normalized.pitch),
+        roll: 0
+      },
+      duration
+    });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 // src/client/scene/frame.js
@@ -4352,9 +4456,9 @@ var CSS = `
 .mv-shader .active .item em{flex:none;font-style:normal;color:var(--mv-text)}
 .mv-shader .empty{color:var(--mv-dim);font-size:10.5px}
 .mv-shader .hint{margin:0;color:var(--mv-dim);font-size:10px;line-height:1.5}
-.mv-layers>header{display:flex;align-items:center;justify-content:space-between;padding:9px 11px;font-size:11px;letter-spacing:.06em;color:var(--mv-dim);border-bottom:.5px solid var(--mv-line)}
-.mv-layers>header .mv-icon-btn{width:22px;height:22px;font-size:12px}
-.mv-layer-list{overflow:auto;padding:4px;min-height:0}
+.mv-layers>header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;font-size:13px;font-weight:600;letter-spacing:0;color:var(--mv-text);border-bottom:.5px solid var(--mv-line)}
+.mv-layers>header .mv-icon-btn{width:26px;height:26px;font-size:13px}
+.mv-layer-list{overflow:auto;padding:4px 10px 12px;min-height:0;overscroll-behavior:contain;scrollbar-width:thin}
 .mv-layer{display:flex;align-items:center;gap:2px;padding:5px 6px;border-radius:8px}
 .mv-layer:hover{background:color-mix(in srgb,var(--mv-lift) 64%,transparent)}
 .mv-layer .name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;cursor:pointer}
@@ -4363,16 +4467,21 @@ var CSS = `
 .mv-layer{gap:3px;padding:5px 7px}
 .mv-layer .mv-icon-btn{font-size:15px}
 /* Layer panel v1.6: four groups (L1 terrain / L2 basemap / L3 raster / L4 vector)
-   plus the 3D Tiles list. Group titles are sticky so a long overlay list keeps
-   the current section readable. */
-.mv-group{padding:6px 6px 2px;margin-top:2px}
-.mv-group-title{font-size:10px;letter-spacing:.04em;text-transform:uppercase;color:var(--mv-dim);padding:0 2px 4px;position:sticky;top:0;background:var(--mv-glass-strong)}
-.mv-choice{width:100%;text-align:left;border:0;background:transparent;color:var(--mv-text);font:inherit;font-size:12px;cursor:pointer}
-.mv-choice .tick{color:var(--mv-accent);font-size:11px;flex:none}
-.mv-choice.on{background:color-mix(in srgb,var(--mv-accent) 10%,transparent)}
+   plus the 3D Tiles list. */
+.mv-group{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:13px 4px 5px;margin-top:3px;border-top:.5px solid var(--mv-line)}
+.mv-group:first-child{border-top:0;margin-top:0;padding-top:9px}
+.mv-group-title{min-width:0;font-size:11px;line-height:1.4;font-weight:600;letter-spacing:0;color:var(--mv-dim)}
+.mv-layers .mv-layer{min-height:30px;box-sizing:border-box;padding:5px 8px}
+.mv-layers .mv-layer .name{font-size:12px;line-height:1.45;font-weight:400}
+.mv-choice{appearance:none;width:100%;text-align:left;border:1px solid transparent;background:transparent;color:var(--mv-text);font:inherit;cursor:pointer}
+.mv-choice .tick{color:var(--mv-accent);font-size:12px;font-weight:600;flex:none}
+.mv-choice.on{background:color-mix(in srgb,var(--mv-accent) 10%,transparent);border-color:color-mix(in srgb,var(--mv-accent) 18%,transparent)}
+.mv-choice.on .name{font-weight:600}
+.mv-choice:focus-visible,.mv-layers .mv-cta:focus-visible,.mv-layers .mv-icon-btn:focus-visible{outline:2px solid var(--mv-accent);outline-offset:1px}
+.mv-group .mv-cta{flex:none;font-size:11px;padding:5px 8px}
 .mv-opacity{width:64px;flex:none;accent-color:var(--mv-accent)}
 .mv-overlay-row{gap:2px}
-.mv-none{padding:6px 8px;font-size:11px;color:var(--mv-dim)}
+.mv-none{padding:6px 8px 8px;font-size:11px;line-height:1.5;color:var(--mv-dim)}
 .mv-overlay-form{border:.5px solid var(--mv-line);border-radius:8px;padding:8px;margin:2px 4px 6px;display:flex;flex-direction:column;gap:6px;background:color-mix(in srgb,var(--mv-lift) 40%,transparent)}
 .mv-overlay-form .mv-field{display:flex;flex-direction:column;gap:3px}
 .mv-overlay-form .mv-field label{font-size:10px;color:var(--mv-dim)}
@@ -5324,11 +5433,15 @@ function LayersPanel({
   agentOverlays,
   onRemoveAgentOverlay,
   analysis,
-  onClearAnalysis
+  onClearAnalysis,
+  getCurrentView,
+  onFlyView
 }) {
   const [adding, setAdding] = import_react7.default.useState(false);
   const [draft, setDraft] = import_react7.default.useState({ type: "wms", name: "", url: "", layers: "", opacity: 0.7 });
   const [error, setError] = import_react7.default.useState("");
+  const [bookmarks, setBookmarks] = import_react7.default.useState(() => loadBookmarks());
+  const [bookmarkNotice, setBookmarkNotice] = import_react7.default.useState("");
   const sourceName = (list, id) => list?.find((item) => item.id === id)?.name ?? null;
   const terrainActive = sourceName(config?.terrain, settings?.terrain);
   const imageryActive = sourceName(config?.imagery, settings?.imagery);
@@ -5359,6 +5472,22 @@ function LayersPanel({
     setDraft({ type: "wms", name: "", url: "", layers: "", opacity: 0.7 });
   };
   const field2 = (label, input) => h5("div", { className: "mv-field" }, h5("label", null, label), input);
+  const saveCurrentBookmark = () => {
+    const view = typeof getCurrentView === "function" ? getCurrentView() : null;
+    if (!view) {
+      setBookmarkNotice(t2("bookmarks.noView"));
+      return;
+    }
+    const result = addBookmark(bookmarks, view, null);
+    if (!result.bookmark) return;
+    setBookmarks(result.list);
+    setBookmarkNotice(saveBookmarks(result.list) ? "" : t2("bookmarks.saveFailed"));
+  };
+  const deleteBookmark = (id) => {
+    const next = removeBookmark(bookmarks, id);
+    setBookmarks(next);
+    saveBookmarks(next);
+  };
   return h5(
     "div",
     { className: "mv-layers mv-glass" },
@@ -5488,6 +5617,22 @@ function LayersPanel({
         ),
         h5("button", { type: "button", className: "mv-icon-btn", title: t2("layers.analysisClear"), onClick: onClearAnalysis }, "✕")
       ) : h5("div", { key: "analysis-hint", className: "mv-none" }, t2("layers.analysisHint")),
+      // ---- camera bookmarks (client-only, localStorage) ----------------------
+      h5(
+        "div",
+        { key: "g6b", className: "mv-group" },
+        h5("div", { className: "mv-group-title" }, `${t2("bookmarks.title")}${bookmarks.length > 0 ? ` · ${bookmarks.length}` : ""}`),
+        h5("button", { type: "button", className: "mv-cta", onClick: saveCurrentBookmark }, t2("bookmarks.save"))
+      ),
+      bookmarkNotice !== "" ? h5("div", { key: "bm-notice", className: "mv-none" }, bookmarkNotice) : null,
+      bookmarks.length === 0 ? h5("div", { key: "bm-empty", className: "mv-none" }, t2("bookmarks.empty")) : bookmarks.map(
+        (item) => h5(
+          "div",
+          { key: item.id, className: "mv-layer" },
+          h5("span", { className: "name", title: t2("bookmarks.flyHint"), onClick: () => onFlyView(item.view) }, item.name),
+          h5("button", { type: "button", className: "mv-icon-btn", title: t2("bookmarks.remove"), onClick: () => deleteBookmark(item.id) }, "✕")
+        )
+      ),
       // ---- 3D Tiles content --------------------------------------------------
       h5("div", { key: "g6", className: "mv-group" }, h5("div", { className: "mv-group-title" }, `${t2("layers.content")} · ${layers.length}`)),
       ...layers.map(
@@ -6067,18 +6212,6 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
         showToast(t2("toast.noSession"));
         return;
       }
-    }
-    service("layout")?.selectPanel?.("digital-earth");
-  };
-  const togglePaneFullscreen = () => {
-    const rightbar = service("sidebarRight");
-    try {
-      const target = rightbar?.focusedTarget?.(rootRef.current) ?? rightbar?.commandTarget?.(rootRef.current);
-      if (target !== void 0) {
-        rightbar.toggleFullscreen(target);
-        return;
-      }
-    } catch {
     }
     service("layout")?.selectPanel?.("digital-earth");
   };
@@ -7644,9 +7777,12 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
         iconButton(h7(ScreenshotIcon), t2("btn.screenshot"), screenshot),
         sessionId ? iconButton(h7(AskAgentIcon), t2("btn.askAgent"), askAgent) : null,
         iconButton(h7(ResetIcon), t2("btn.reset"), resetView),
-        docked ? iconButton(h7(FullscreenIcon), t2("btn.maximizeTitle"), togglePaneFullscreen) : button(t2("btn.beside"), openBeside),
-        // Real fullscreen works from both mounts; the sidebar-maximize button
-        // above is a docked-only layout action, not fullscreen.
+        // Only the main panel offers "open beside chat"; the docked tab is
+        // already beside the conversation.
+        docked ? null : button(t2("btn.beside"), openBeside),
+        // Single fullscreen entry point for both mounts (DOM Fullscreen API).
+        // Expanding the sidebar is DSH's own feature, so the duplicate
+        // "maximize sidebar" action is gone.
         iconButton(h7(FullscreenIcon), fullscreen ? t2("btn.fullscreenExit") : t2("btn.fullscreenTitle"), toggleDomFullscreen, fullscreen),
         h7("i", { key: "s3", className: "mv-sep" }),
         h7(
@@ -7764,6 +7900,9 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
         onOverlayVisible: setOverlayVisible,
         onOverlayMove: moveOverlay,
         onClearVector: () => clearAgentOverlays2("all"),
+        // Camera bookmarks: panel-managed list, storage in localStorage.
+        getCurrentView: () => currentSceneSnapshot()?.view ?? null,
+        onFlyView: (view) => flyToBookmark(viewerRef.current, cesiumRef.current, view),
         agentOverlays: buildAgentOverlayList(agentOverlayRef.current),
         onRemoveAgentOverlay: (kind, index) => {
           if (!removeAgentOverlay(agentOverlayRef.current, viewerRef.current, kind, index)) return;
