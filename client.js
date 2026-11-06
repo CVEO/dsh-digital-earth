@@ -142,6 +142,10 @@ var MESSAGES = {
     "layers.emptyRaster": "暂无叠加层",
     "layers.vectorDrawn": "标注要素",
     "layers.vectorMeasured": "量测点",
+    "layers.frameAll": "框全所有可见图层",
+    "layers.analysis": "空间分析",
+    "layers.analysisHint": "剖面 / 淹没 / 日照分析由对话 Agent 执行（例如：「对当前图层做一条从 A 到 B 的剖面」）；结果会显示在这里，可一键清除。",
+    "layers.analysisClear": "清除分析",
     "urlbar.placeholder": "tileset.json 的 http(s) 地址，或本地绝对路径",
     "urlbar.submit": "加载",
     "toast.scanEmpty": "该目录下没有找到 tileset.json",
@@ -493,6 +497,10 @@ var MESSAGES = {
     "layers.emptyRaster": "No overlays yet",
     "layers.vectorDrawn": "drawn features",
     "layers.vectorMeasured": "measured points",
+    "layers.frameAll": "Frame all visible layers",
+    "layers.analysis": "Spatial analysis",
+    "layers.analysisHint": "Profile / flood / sunlight analyses are run by the conversation Agent (e.g. “profile the current layer from A to B”); results appear here and can be cleared in one click.",
+    "layers.analysisClear": "Clear analysis",
     "urlbar.placeholder": "http(s) URL of tileset.json, or an absolute local path",
     "urlbar.submit": "Load",
     "toast.scanEmpty": "No tileset.json found in that folder",
@@ -1569,6 +1577,42 @@ function createOverlayLayers({ Cesium, viewer, providerFactory, onError = () => 
       });
     }
   };
+}
+
+// src/client/scene/frame.js
+function combinedBoundingSphere(Cesium, layers) {
+  const spheres = (Array.isArray(layers) ? layers : []).filter((layer) => layer && layer.visible !== false && layer.tileset && layer.tileset.boundingSphere).map((layer) => layer.tileset.boundingSphere);
+  if (spheres.length === 0) return null;
+  if (spheres.length === 1) return spheres[0];
+  const sum = new Cesium.Cartesian3(0, 0, 0);
+  for (const sphere of spheres) Cesium.Cartesian3.add(sum, sphere.center, sum);
+  const center = Cesium.Cartesian3.divideByScalar(sum, spheres.length, new Cesium.Cartesian3());
+  let radius = 0;
+  for (const sphere of spheres) {
+    const distance = Cesium.Cartesian3.distance(center, sphere.center);
+    radius = Math.max(radius, distance + sphere.radius);
+  }
+  return new Cesium.BoundingSphere(center, radius);
+}
+function frameAllLayers(viewer, Cesium, layers, duration = 1.2) {
+  if (!viewer || !Cesium) return false;
+  const sphere = combinedBoundingSphere(Cesium, layers);
+  if (sphere === null) return false;
+  const target = new Cesium.BoundingSphere(sphere.center, sphere.radius * 1.15);
+  viewer.camera.flyToBoundingSphere(target, { duration });
+  return true;
+}
+function flyToCartographic(viewer, Cesium, carto, duration = 0.8) {
+  const camera = viewer?.camera;
+  if (!camera || !Cesium || !carto) return false;
+  if (!Number.isFinite(carto.longitude) || !Number.isFinite(carto.latitude)) return false;
+  const height = camera.positionCartographic.height;
+  viewer.camera.flyTo({
+    destination: Cesium.Cartesian3.fromRadians(carto.longitude, carto.latitude, height),
+    orientation: { heading: camera.heading, pitch: camera.pitch, roll: 0 },
+    duration
+  });
+  return true;
 }
 
 // src/client/scene/quality.js
@@ -3169,6 +3213,7 @@ function LayersPanel({
   onSelectTerrain,
   onSelectImagery,
   onFlyLayer,
+  onFrameAll,
   onToggleLayer,
   onInspectLayer,
   onRemoveLayer,
@@ -3177,7 +3222,9 @@ function LayersPanel({
   onOverlayOpacity,
   onOverlayVisible,
   onOverlayMove,
-  onClearVector
+  onClearVector,
+  analysis,
+  onClearAnalysis
 }) {
   const [adding, setAdding] = import_react7.default.useState(false);
   const [draft, setDraft] = import_react7.default.useState({ type: "wms", name: "", url: "", layers: "", opacity: 0.7 });
@@ -3220,9 +3267,14 @@ function LayersPanel({
       null,
       h5("span", null, t2("layers.title")),
       h5(
-        "button",
-        { type: "button", className: "mv-icon-btn", title: t2("layers.collapse"), "aria-label": t2("layers.collapse"), onClick: onCollapse },
-        "✕"
+        "div",
+        { className: "mv-head-actions" },
+        layers.length > 0 ? h5("button", { type: "button", className: "mv-icon-btn", title: t2("layers.frameAll"), "aria-label": t2("layers.frameAll"), onClick: onFrameAll }, "⛶") : null,
+        h5(
+          "button",
+          { type: "button", className: "mv-icon-btn", title: t2("layers.collapse"), "aria-label": t2("layers.collapse"), onClick: onCollapse },
+          "✕"
+        )
       )
     ),
     h5(
@@ -3312,8 +3364,20 @@ function LayersPanel({
         h5("span", { className: "name" }, `${t2("layers.vectorDrawn")} ${drawn} · ${t2("layers.vectorMeasured")} ${measured}`),
         h5("button", { type: "button", className: "mv-icon-btn", title: t2("tool.clear"), onClick: onClearVector }, "✕")
       ),
+      // ---- analysis (Agent-driven; the panel owns the entry + the clear) ------
+      h5("div", { key: "g5", className: "mv-group" }, h5("div", { className: "mv-group-title" }, t2("layers.analysis"))),
+      analysis ? h5(
+        "div",
+        { key: "analysis-row", className: "mv-layer" },
+        h5(
+          "span",
+          { className: "name" },
+          `${analysis.operation ?? t2("layers.analysis")}${typeof analysis.layer === "string" && analysis.layer !== "" ? ` · ${analysis.layer}` : ""}`
+        ),
+        h5("button", { type: "button", className: "mv-icon-btn", title: t2("layers.analysisClear"), onClick: onClearAnalysis }, "✕")
+      ) : h5("div", { key: "analysis-hint", className: "mv-none" }, t2("layers.analysisHint")),
       // ---- 3D Tiles content --------------------------------------------------
-      h5("div", { key: "g5", className: "mv-group" }, h5("div", { className: "mv-group-title" }, `${t2("layers.content")} · ${layers.length}`)),
+      h5("div", { key: "g6", className: "mv-group" }, h5("div", { className: "mv-group-title" }, `${t2("layers.content")} · ${layers.length}`)),
       ...layers.map(
         (layer) => h5(
           "div",
@@ -6226,7 +6290,20 @@ ${image !== "" ? `<h2>${escapeHtml(L.snapshot)}</h2>${image}` : ""}
         await overlayLayersRef.current.sync(catalog.config.rasterOverlays ?? []);
         const handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
         handler.setInputAction((event) => onCanvasClick(event.position), Cesium.ScreenSpaceEventType.LEFT_CLICK);
-        handler.setInputAction(() => finishMeasure(), Cesium.ScreenSpaceEventType.LEFT_DOUBLE_CLICK);
+        handler.setInputAction(
+          (event) => {
+            if (toolRef.current) {
+              finishMeasure();
+              return;
+            }
+            const viewerNow = viewerRef.current;
+            const scene = viewerNow?.scene;
+            if (!viewerNow || !scene) return;
+            const carto = sampleCursor(viewerNow, Cesium, event.position, { pickPosition: true });
+            if (carto) flyToCartographic(viewerNow, Cesium, carto);
+          },
+          Cesium.ScreenSpaceEventType.LEFT_DOUBLE_CLICK
+        );
         handlerRef.current = handler;
         viewer.camera.moveEnd.addEventListener(markSceneDirty);
         const savedScene = typeof sessionId === "string" && sessionId !== "" ? await loadSceneSnapshot(sessionId) : null;
@@ -6753,6 +6830,9 @@ ${image !== "" ? `<h2>${escapeHtml(L.snapshot)}</h2>${image}` : ""}
         onSelectTerrain: changeTerrain,
         onSelectImagery: changeImagery,
         onFlyLayer: flyToLayer,
+        onFrameAll: () => frameAllLayers(viewerRef.current, cesiumRef.current, layersRef.current),
+        analysis,
+        onClearAnalysis: () => clearAnalysis(),
         onToggleLayer: toggleLayer,
         onInspectLayer: inspectLayer,
         onRemoveLayer: removeLayer,

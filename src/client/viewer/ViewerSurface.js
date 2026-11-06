@@ -15,6 +15,7 @@ import { folderName } from '../preferences.js'
 import { service } from '../runtime.js'
 import { normalizeSceneSnapshot, readSceneSnapshot, writeSceneSnapshot } from '../scene-store.js'
 import { createOverlayLayers } from '../scene/overlay-layers.js'
+import { flyToCartographic, frameAllLayers } from '../scene/frame.js'
 import { applyQuality, normalizeQuality, qualityProfile } from '../scene/quality.js'
 import { SHADER_PRESETS, shaderFail, shaderFragmentSource, shaderGaussianLayer, shaderHeightRange, shaderUniforms, shaderValidateRequest } from '../shader/presets.js'
 import { useEnvironmentDark } from '../theme.js'
@@ -3357,7 +3358,22 @@ ${image !== '' ? `<h2>${escapeHtml(L.snapshot)}</h2>${image}` : ''}
             await overlayLayersRef.current.sync(catalog.config.rasterOverlays ?? [])
             const handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas)
             handler.setInputAction((event) => onCanvasClick(event.position), Cesium.ScreenSpaceEventType.LEFT_CLICK)
-            handler.setInputAction(() => finishMeasure(), Cesium.ScreenSpaceEventType.LEFT_DOUBLE_CLICK)
+            handler.setInputAction(
+              (event) => {
+                // A double click finishes a measurement when a tool is active;
+                // otherwise it is a "bring that spot here" gesture.
+                if (toolRef.current) {
+                  finishMeasure()
+                  return
+                }
+                const viewerNow = viewerRef.current
+                const scene = viewerNow?.scene
+                if (!viewerNow || !scene) return
+                const carto = sampleCursor(viewerNow, Cesium, event.position, { pickPosition: true })
+                if (carto) flyToCartographic(viewerNow, Cesium, carto)
+              },
+              Cesium.ScreenSpaceEventType.LEFT_DOUBLE_CLICK,
+            )
             handlerRef.current = handler
             // A camera move is the most frequent scene change: mark it dirty and
             // let the short timer batch the localStorage write.
@@ -3962,6 +3978,9 @@ ${image !== '' ? `<h2>${escapeHtml(L.snapshot)}</h2>${image}` : ''}
                     onSelectTerrain: changeTerrain,
                     onSelectImagery: changeImagery,
                     onFlyLayer: flyToLayer,
+                    onFrameAll: () => frameAllLayers(viewerRef.current, cesiumRef.current, layersRef.current),
+                    analysis,
+                    onClearAnalysis: () => clearAnalysis(),
                     onToggleLayer: toggleLayer,
                     onInspectLayer: inspectLayer,
                     onRemoveLayer: removeLayer,

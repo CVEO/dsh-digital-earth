@@ -34,6 +34,7 @@ export function LayersPanel({
   onSelectTerrain,
   onSelectImagery,
   onFlyLayer,
+  onFrameAll,
   onToggleLayer,
   onInspectLayer,
   onRemoveLayer,
@@ -43,6 +44,8 @@ export function LayersPanel({
   onOverlayVisible,
   onOverlayMove,
   onClearVector,
+  analysis,
+  onClearAnalysis,
 }) {
   const [adding, setAdding] = React.useState(false)
   const [draft, setDraft] = React.useState({ type: 'wms', name: '', url: '', layers: '', opacity: 0.7 })
@@ -91,9 +94,16 @@ export function LayersPanel({
       null,
       h('span', null, t('layers.title')),
       h(
-        'button',
-        { type: 'button', className: 'mv-icon-btn', title: t('layers.collapse'), 'aria-label': t('layers.collapse'), onClick: onCollapse },
-        '✕',
+        'div',
+        { className: 'mv-head-actions' },
+        layers.length > 0
+          ? h('button', { type: 'button', className: 'mv-icon-btn', title: t('layers.frameAll'), 'aria-label': t('layers.frameAll'), onClick: onFrameAll }, '⛶')
+          : null,
+        h(
+          'button',
+          { type: 'button', className: 'mv-icon-btn', title: t('layers.collapse'), 'aria-label': t('layers.collapse'), onClick: onCollapse },
+          '✕',
+        ),
       ),
     ),
     h(
@@ -189,8 +199,22 @@ export function LayersPanel({
         h('span', { className: 'name' }, `${t('layers.vectorDrawn')} ${drawn} · ${t('layers.vectorMeasured')} ${measured}`),
         h('button', { type: 'button', className: 'mv-icon-btn', title: t('tool.clear'), onClick: onClearVector }, '✕'),
       ),
+      // ---- analysis (Agent-driven; the panel owns the entry + the clear) ------
+      h('div', { key: 'g5', className: 'mv-group' }, h('div', { className: 'mv-group-title' }, t('layers.analysis'))),
+      analysis
+        ? h(
+            'div',
+            { key: 'analysis-row', className: 'mv-layer' },
+            h(
+              'span',
+              { className: 'name' },
+              `${analysis.operation ?? t('layers.analysis')}${typeof analysis.layer === 'string' && analysis.layer !== '' ? ` · ${analysis.layer}` : ''}`,
+            ),
+            h('button', { type: 'button', className: 'mv-icon-btn', title: t('layers.analysisClear'), onClick: onClearAnalysis }, '✕'),
+          )
+        : h('div', { key: 'analysis-hint', className: 'mv-none' }, t('layers.analysisHint')),
       // ---- 3D Tiles content --------------------------------------------------
-      h('div', { key: 'g5', className: 'mv-group' }, h('div', { className: 'mv-group-title' }, `${t('layers.content')} · ${layers.length}`)),
+      h('div', { key: 'g6', className: 'mv-group' }, h('div', { className: 'mv-group-title' }, `${t('layers.content')} · ${layers.length}`)),
       ...layers.map((layer) =>
         h(
           'div',

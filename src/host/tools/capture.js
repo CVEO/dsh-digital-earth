@@ -138,6 +138,9 @@ function renderCaptureResult(value) {
   if (Number.isInteger(value.layers_visible)) context.push(`layers_visible=${value.layers_visible}`)
   if (context.length > 0) lines.push(`Camera and scene context: ${context.join(', ')}.`)
   if (typeof value.note === 'string') lines.push(value.note)
+  // C1: every successful tool result should end with one actionable next step so
+  // a model plans the follow-up instead of stopping after a bare file path.
+  lines.push('Next: read the image with read_image when the model supports vision; otherwise use earth_scene action=status for the numbers.')
   return lines.join('\n')
 }
 
