@@ -572,10 +572,11 @@ test('client 错误：3DGS/无 CustomShader/无可见图层/未知图层都是 s
 // Client：工作台 UI / 接线 / i18n
 // ---------------------------------------------------------------------------
 
-test('client 工作台：可见图层/四预设/按预设参数/应用与重置/活动列表/无 GLSL 编辑入口', () => {
+test('client 工作台：可见图层/五预设可叠加/按预设并集参数/应用与重置/活动列表/无 GLSL 编辑入口', () => {
   const card = block(client, 'function ShaderWorkbench({', '//#endregion shader workbench')
   assert.match(card, /const visibleLayers = layers\.filter\(\(layer\) => layer\.visible\)/)
   assert.match(card, /t\('shader\.layerAuto'\)/)
+  assert.match(card, /const selectedPresets = Array\.isArray\(form\.preset\) \? form\.preset : \[form\.preset\]/)
   assert.match(card, /\.\.\.SHADER_PRESETS\.map\(/)
   assert.match(card, /t\(`shader\.preset\.\$\{preset\}`\)/)
   assert.match(card, /numberField\('minHeight'/)
@@ -584,6 +585,9 @@ test('client 工作台：可见图层/四预设/按预设参数/应用与重置/
   assert.match(card, /numberField\('speed'/)
   assert.match(card, /numberField\('amplitude'/)
   assert.match(card, /numberField\('opacity'/)
+  assert.match(card, /numberField\('waterHeight'/)
+  assert.match(card, /numberField\('depthMax'/)
+  assert.match(card, /t\('shader\.stackHint'\)/)
   assert.match(card, /t\('shader\.apply'\)/)
   assert.match(card, /t\('shader\.resetLayer'\)/)
   assert.match(card, /t\('shader\.resetAll'\)/)
@@ -600,9 +604,15 @@ test('client 工作台：可见图层/四预设/按预设参数/应用与重置/
   assert.match(form, /speed: '1'/)
   assert.match(form, /amplitude: '1'/)
   assert.match(form, /opacity: '0\.75'/)
-  // 工作台只拼 bridge 形状参数，校验/图层解析统一由 shaderCommand 承担。
+  assert.match(form, /waterHeight: ''/)
+  assert.match(form, /depthMax: ''/)
+  // 工作台只拼 bridge 形状参数，校验/图层解析统一由 shaderCommand 承担；D-17 起按叠加并集拼参数。
   assert.match(client, /const shaderFormArgs = \(\) => \{/)
-  assert.match(client, /if \(shaderForm\.preset === 'height-false-color'\)/)
+  assert.match(client, /const selected = Array\.isArray\(shaderForm\.preset\) \? shaderForm\.preset : \[shaderForm\.preset\]/)
+  assert.match(client, /const has = \(preset\) => selected\.includes\(preset\)/)
+  assert.match(client, /if \(has\('height-false-color'\)\)/)
+  assert.match(client, /if \(has\('water-depth'\)\)/)
+  assert.match(client, /const toggleShaderPreset = \(preset\) =>/)
   assert.match(client, /const result = await shaderCommand\(shaderFormArgs\(\)\)/)
   assert.match(client, /shaderCommand\(\{ action: 'reset', layer: target\.id \}\)/)
   assert.match(client, /await shaderCommand\(\{ action: 'reset' \}\)/)
@@ -630,7 +640,7 @@ test('client 工作台 UI：工具栏按钮、≤320px 浮动卡、窄宽可滚�
   assert.match(client, /onClose: \(\) => setShaderOpen\(false\)/)
 })
 
-test('client 接线与 i18n：六 toolview 含 earth_shader、摘要键、shader.* 23 键中英对齐', () => {
+test('client 接线与 i18n：六 toolview 含 earth_shader、摘要键、shader.* 26 键中英对齐', () => {
   const toolviews = [...client.matchAll(/name: 'tool\.call\.toolview', key: '([a-z_]+)'/g)].map((match) => match[1])
   assert.deepEqual(toolviews, [
     'earth_scene', 'earth_capture', 'earth_draw', 'earth_measure', 'earth_analyze', 'earth_shader',
@@ -651,7 +661,7 @@ test('client 接线与 i18n：六 toolview 含 earth_shader、摘要键、shader
   assert.deepEqual(zhKeys, enKeys, '中英字典键集合/顺序必须完全一致')
 
   const shaderKeys = zhKeys.filter((key) => key.startsWith('shader.'))
-  assert.equal(shaderKeys.length, 22)
+  assert.equal(shaderKeys.length, 26)
   for (const key of [
     'shader.title',
     'shader.close',

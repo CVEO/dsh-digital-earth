@@ -182,8 +182,9 @@ const h = React.createElement
 
     //#region shader workbench ------------------------------------------------
     /**
-     * B3 workbench: a compact floating card. It can pick a visible layer, one of
-     * the four presets and that preset's bounded parameters; it never edits GLSL.
+     * B3 workbench: a compact floating card. It can pick a visible layer, one or
+     * up to three of the five presets (D-17 stacking) and their bounded parameters;
+     * it never edits GLSL.
      */
     function ShaderWorkbench({
       t,
@@ -199,6 +200,11 @@ const h = React.createElement
       onResetAll,
     }) {
       const visibleLayers = layers.filter((layer) => layer.visible)
+      // form.preset is a string for one preset or an ordered array for a stack;
+      // the helper keeps the rest of the card stack-agnostic.
+      const selectedPresets = Array.isArray(form.preset) ? form.preset : [form.preset]
+      const presetLabel = (value) =>
+        (Array.isArray(value) ? value : [value]).map((item) => t(`shader.preset.${item}`)).join(' + ')
       const numberField = (key, labelKey, placeholder) =>
         h(
           'div',
@@ -215,28 +221,24 @@ const h = React.createElement
           }),
         )
 
-      let params = null
-      if (form.preset === 'height-false-color') {
+      // Parameters are the union of the selected presets (each preset contributes
+      // its own bounded fields, shown in selection order).
+      const paramRows = []
+      if (selectedPresets.includes('height-false-color')) {
         const auto = t('shader.param.auto')
-        params = h(
-          'div',
-          { className: 'params' },
-          numberField('minHeight', 'shader.param.minHeight', auto),
-          numberField('maxHeight', 'shader.param.maxHeight', auto),
-        )
-      } else if (form.preset === 'contour') {
-        params = h('div', { className: 'params' }, numberField('interval', 'shader.param.interval'))
-      } else if (form.preset === 'scan') {
-        params = h('div', { className: 'params' }, numberField('speed', 'shader.param.speed'))
-      } else {
-        params = h(
-          'div',
-          { className: 'params' },
-          numberField('speed', 'shader.param.speed'),
-          numberField('amplitude', 'shader.param.amplitude'),
-          numberField('opacity', 'shader.param.opacity'),
-        )
+        paramRows.push(numberField('minHeight', 'shader.param.minHeight', auto), numberField('maxHeight', 'shader.param.maxHeight', auto))
       }
+      if (selectedPresets.includes('contour')) paramRows.push(numberField('interval', 'shader.param.interval'))
+      if (selectedPresets.includes('scan') || selectedPresets.includes('water')) {
+        paramRows.push(numberField('speed', 'shader.param.speed'))
+      }
+      if (selectedPresets.includes('water')) {
+        paramRows.push(numberField('amplitude', 'shader.param.amplitude'), numberField('opacity', 'shader.param.opacity'))
+      }
+      if (selectedPresets.includes('water-depth')) {
+        paramRows.push(numberField('waterHeight', 'shader.param.waterHeight'), numberField('depthMax', 'shader.param.depthMax'))
+      }
+      const params = paramRows.length > 0 ? h('div', { className: 'params' }, ...paramRows) : null
 
       return h(
         'div',
@@ -283,15 +285,16 @@ const h = React.createElement
                   {
                     key: preset,
                     type: 'button',
-                    className: `preset${form.preset === preset ? ' on' : ''}`,
+                    className: `preset${selectedPresets.includes(preset) ? ' on' : ''}`,
                     title: t(`shader.preset.${preset}`),
-                    'aria-pressed': form.preset === preset,
+                    'aria-pressed': selectedPresets.includes(preset),
                     onClick: () => onPreset(preset),
                   },
                   t(`shader.preset.${preset}`),
                 ),
               ),
             ),
+            h('p', { className: 'hint' }, t('shader.stackHint')),
           ),
           params,
           h(
@@ -312,7 +315,7 @@ const h = React.createElement
                     'div',
                     { key: entry.layer, className: 'item' },
                     h('span', { title: entry.layer }, entry.layer),
-                    h('em', null, t(`shader.preset.${entry.preset}`)),
+                    h('em', null, presetLabel(entry.preset)),
                   ),
                 ),
           ),

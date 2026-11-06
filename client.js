@@ -394,6 +394,10 @@ var MESSAGES = {
     "shader.preset.contour": "等高线",
     "shader.preset.scan": "高度扫描",
     "shader.preset.water": "水面波纹",
+    "shader.preset.water-depth": "水深着色",
+    "shader.param.waterHeight": "水面高程 (m)",
+    "shader.param.depthMax": "最大映射深度 (m)",
+    "shader.stackHint": "点选预设可叠加，最多 3 个（按点选顺序合成）；再点一次取消。",
     "shader.param.minHeight": "最小高程 (m)",
     "shader.param.maxHeight": "最大高程 (m)",
     "shader.param.auto": "自动",
@@ -761,6 +765,10 @@ var MESSAGES = {
     "shader.preset.contour": "Contours",
     "shader.preset.scan": "Height scan",
     "shader.preset.water": "Water ripples",
+    "shader.preset.water-depth": "Water depth",
+    "shader.param.waterHeight": "Water height (m)",
+    "shader.param.depthMax": "Max depth (m)",
+    "shader.stackHint": "Click presets to stack up to 3 (composed in click order); click again to remove.",
     "shader.param.minHeight": "Min height (m)",
     "shader.param.maxHeight": "Max height (m)",
     "shader.param.auto": "Auto",
@@ -3096,6 +3104,8 @@ function ShaderWorkbench({
   onResetAll
 }) {
   const visibleLayers = layers.filter((layer) => layer.visible);
+  const selectedPresets = Array.isArray(form.preset) ? form.preset : [form.preset];
+  const presetLabel = (value) => (Array.isArray(value) ? value : [value]).map((item) => t2(`shader.preset.${item}`)).join(" + ");
   const numberField = (key, labelKey, placeholder) => h2(
     "div",
     { className: "field", key },
@@ -3110,28 +3120,22 @@ function ShaderWorkbench({
       onChange: (event) => onField(key, event.target.value)
     })
   );
-  let params = null;
-  if (form.preset === "height-false-color") {
+  const paramRows = [];
+  if (selectedPresets.includes("height-false-color")) {
     const auto = t2("shader.param.auto");
-    params = h2(
-      "div",
-      { className: "params" },
-      numberField("minHeight", "shader.param.minHeight", auto),
-      numberField("maxHeight", "shader.param.maxHeight", auto)
-    );
-  } else if (form.preset === "contour") {
-    params = h2("div", { className: "params" }, numberField("interval", "shader.param.interval"));
-  } else if (form.preset === "scan") {
-    params = h2("div", { className: "params" }, numberField("speed", "shader.param.speed"));
-  } else {
-    params = h2(
-      "div",
-      { className: "params" },
-      numberField("speed", "shader.param.speed"),
-      numberField("amplitude", "shader.param.amplitude"),
-      numberField("opacity", "shader.param.opacity")
-    );
+    paramRows.push(numberField("minHeight", "shader.param.minHeight", auto), numberField("maxHeight", "shader.param.maxHeight", auto));
   }
+  if (selectedPresets.includes("contour")) paramRows.push(numberField("interval", "shader.param.interval"));
+  if (selectedPresets.includes("scan") || selectedPresets.includes("water")) {
+    paramRows.push(numberField("speed", "shader.param.speed"));
+  }
+  if (selectedPresets.includes("water")) {
+    paramRows.push(numberField("amplitude", "shader.param.amplitude"), numberField("opacity", "shader.param.opacity"));
+  }
+  if (selectedPresets.includes("water-depth")) {
+    paramRows.push(numberField("waterHeight", "shader.param.waterHeight"), numberField("depthMax", "shader.param.depthMax"));
+  }
+  const params = paramRows.length > 0 ? h2("div", { className: "params" }, ...paramRows) : null;
   return h2(
     "div",
     { className: "mv-card mv-shader", role: "region", "aria-label": t2("shader.title") },
@@ -3177,15 +3181,16 @@ function ShaderWorkbench({
               {
                 key: preset,
                 type: "button",
-                className: `preset${form.preset === preset ? " on" : ""}`,
+                className: `preset${selectedPresets.includes(preset) ? " on" : ""}`,
                 title: t2(`shader.preset.${preset}`),
-                "aria-pressed": form.preset === preset,
+                "aria-pressed": selectedPresets.includes(preset),
                 onClick: () => onPreset(preset)
               },
               t2(`shader.preset.${preset}`)
             )
           )
-        )
+        ),
+        h2("p", { className: "hint" }, t2("shader.stackHint"))
       ),
       params,
       h2(
@@ -3204,7 +3209,7 @@ function ShaderWorkbench({
             "div",
             { key: entry.layer, className: "item" },
             h2("span", { title: entry.layer }, entry.layer),
-            h2("em", null, t2(`shader.preset.${entry.preset}`))
+            h2("em", null, presetLabel(entry.preset))
           )
         )
       ),
@@ -4512,7 +4517,9 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     interval: "20",
     speed: "1",
     amplitude: "1",
-    opacity: "0.75"
+    opacity: "0.75",
+    waterHeight: "",
+    depthMax: ""
   });
   const [settingsOpen, setSettingsOpen] = import_react9.default.useState(false);
   const [health, setHealth] = import_react9.default.useState(null);
@@ -7012,36 +7019,52 @@ ${image !== "" ? `<h2>${escapeHtml(L.snapshot)}</h2>${image}` : ""}
     cache: t2("hud.cache")
   };
   const shaderField = (key, value) => setShaderForm((form) => ({ ...form, [key]: value }));
+  const toggleShaderPreset = (preset) => setShaderForm((form) => {
+    const current = Array.isArray(form.preset) ? form.preset : [form.preset];
+    const next = current.includes(preset) ? current.filter((item) => item !== preset) : current.length >= 3 ? current : [...current, preset];
+    if (next.length === 0) return form;
+    return { ...form, preset: next.length === 1 ? next[0] : next };
+  });
   const shaderFormLayer = () => layers.find((layer) => layer.id === shaderForm.layerId) ?? null;
   const shaderFormArgs = () => {
-    const args = { action: "apply", preset: shaderForm.preset };
+    const selected = Array.isArray(shaderForm.preset) ? shaderForm.preset : [shaderForm.preset];
+    const args = { action: "apply", preset: selected.length === 1 ? selected[0] : selected };
     if (shaderForm.layerId) args.layer = shaderForm.layerId;
     const readNumber = (key) => shaderForm[key] === "" ? void 0 : Number(shaderForm[key]);
-    if (shaderForm.preset === "height-false-color") {
+    const has = (preset) => selected.includes(preset);
+    if (has("height-false-color")) {
       const minimum = readNumber("minHeight");
       const maximum = readNumber("maxHeight");
       if (minimum !== void 0) args.min_height = minimum;
       if (maximum !== void 0) args.max_height = maximum;
-    } else if (shaderForm.preset === "contour") {
+    }
+    if (has("contour")) {
       const interval = readNumber("interval");
       if (interval !== void 0) args.interval = interval;
-    } else if (shaderForm.preset === "scan") {
+    }
+    if (has("scan") || has("water")) {
       const speed = readNumber("speed");
       if (speed !== void 0) args.speed = speed;
-    } else {
-      const speed = readNumber("speed");
+    }
+    if (has("water")) {
       const amplitude = readNumber("amplitude");
       const opacity = readNumber("opacity");
-      if (speed !== void 0) args.speed = speed;
       if (amplitude !== void 0) args.amplitude = amplitude;
       if (opacity !== void 0) args.opacity = opacity;
     }
+    if (has("water-depth")) {
+      const waterHeight = readNumber("waterHeight");
+      const depthMax = readNumber("depthMax");
+      if (waterHeight !== void 0) args.water_height = waterHeight;
+      if (depthMax !== void 0) args.depth_max = depthMax;
+    }
     return args;
   };
+  const shaderStackLabel = (preset) => (Array.isArray(preset) ? preset : [preset]).map((item) => t2(`shader.preset.${item}`)).join(" + ");
   const applyShaderFromWorkbench = async () => {
     try {
       const result = await shaderCommand(shaderFormArgs());
-      showToast(t2("toast.shaderApplied", { preset: t2(`shader.preset.${result.preset}`), layer: result.layer }));
+      showToast(t2("toast.shaderApplied", { preset: shaderStackLabel(result.preset), layer: result.layer }));
     } catch (error2) {
       showToast(message(error2));
     }
@@ -7290,7 +7313,7 @@ ${image !== "" ? `<h2>${escapeHtml(L.snapshot)}</h2>${image}` : ""}
       active: shaderActive,
       onClose: () => setShaderOpen(false),
       onLayer: (layerId) => shaderField("layerId", layerId),
-      onPreset: (preset) => shaderField("preset", preset),
+      onPreset: toggleShaderPreset,
       onField: shaderField,
       onApply: applyShaderFromWorkbench,
       onResetLayer: resetShaderFromWorkbench,

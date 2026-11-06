@@ -113,6 +113,8 @@ const h = React.createElement
         speed: '1',
         amplitude: '1',
         opacity: '0.75',
+        waterHeight: '',
+        depthMax: '',
       })
       const [settingsOpen, setSettingsOpen] = React.useState(false)
       const [health, setHealth] = React.useState(null)
@@ -3041,36 +3043,61 @@ ${image !== '' ? `<h2>${escapeHtml(L.snapshot)}</h2>${image}` : ''}
       // B3 workbench wiring: the card only builds bridge-shaped apply/reset calls;
       // shaderCommand owns validation, layer resolution and the active list.
       const shaderField = (key, value) => setShaderForm((form) => ({ ...form, [key]: value }))
+      // D-17: the workbench chips toggle presets in and out of an ordered stack
+      // (1..3). Clicking the last selected chip is ignored so a form always keeps
+      // at least one preset.
+      const toggleShaderPreset = (preset) =>
+        setShaderForm((form) => {
+          const current = Array.isArray(form.preset) ? form.preset : [form.preset]
+          const next = current.includes(preset)
+            ? current.filter((item) => item !== preset)
+            : current.length >= 3
+              ? current
+              : [...current, preset]
+          if (next.length === 0) return form
+          return { ...form, preset: next.length === 1 ? next[0] : next }
+        })
       const shaderFormLayer = () => layers.find((layer) => layer.id === shaderForm.layerId) ?? null
       const shaderFormArgs = () => {
-        const args = { action: 'apply', preset: shaderForm.preset }
+        const selected = Array.isArray(shaderForm.preset) ? shaderForm.preset : [shaderForm.preset]
+        const args = { action: 'apply', preset: selected.length === 1 ? selected[0] : selected }
         if (shaderForm.layerId) args.layer = shaderForm.layerId
         const readNumber = (key) => (shaderForm[key] === '' ? undefined : Number(shaderForm[key]))
-        if (shaderForm.preset === 'height-false-color') {
+        const has = (preset) => selected.includes(preset)
+        if (has('height-false-color')) {
           const minimum = readNumber('minHeight')
           const maximum = readNumber('maxHeight')
           if (minimum !== undefined) args.min_height = minimum
           if (maximum !== undefined) args.max_height = maximum
-        } else if (shaderForm.preset === 'contour') {
+        }
+        if (has('contour')) {
           const interval = readNumber('interval')
           if (interval !== undefined) args.interval = interval
-        } else if (shaderForm.preset === 'scan') {
+        }
+        if (has('scan') || has('water')) {
           const speed = readNumber('speed')
           if (speed !== undefined) args.speed = speed
-        } else {
-          const speed = readNumber('speed')
+        }
+        if (has('water')) {
           const amplitude = readNumber('amplitude')
           const opacity = readNumber('opacity')
-          if (speed !== undefined) args.speed = speed
           if (amplitude !== undefined) args.amplitude = amplitude
           if (opacity !== undefined) args.opacity = opacity
         }
+        if (has('water-depth')) {
+          const waterHeight = readNumber('waterHeight')
+          const depthMax = readNumber('depthMax')
+          if (waterHeight !== undefined) args.water_height = waterHeight
+          if (depthMax !== undefined) args.depth_max = depthMax
+        }
         return args
       }
+      const shaderStackLabel = (preset) =>
+        (Array.isArray(preset) ? preset : [preset]).map((item) => t(`shader.preset.${item}`)).join(' + ')
       const applyShaderFromWorkbench = async () => {
         try {
           const result = await shaderCommand(shaderFormArgs())
-          showToast(t('toast.shaderApplied', { preset: t(`shader.preset.${result.preset}`), layer: result.layer }))
+          showToast(t('toast.shaderApplied', { preset: shaderStackLabel(result.preset), layer: result.layer }))
         } catch (error) {
           showToast(message(error))
         }
@@ -3331,7 +3358,7 @@ ${image !== '' ? `<h2>${escapeHtml(L.snapshot)}</h2>${image}` : ''}
               active: shaderActive,
               onClose: () => setShaderOpen(false),
               onLayer: (layerId) => shaderField('layerId', layerId),
-              onPreset: (preset) => shaderField('preset', preset),
+              onPreset: toggleShaderPreset,
               onField: shaderField,
               onApply: applyShaderFromWorkbench,
               onResetLayer: resetShaderFromWorkbench,
