@@ -5117,7 +5117,7 @@ var emptySource = (kind) => ({
 });
 function SourceForm({ kind, source, onPickLocal, onChange, onCancel, t: t2 }) {
   const set = (patch) => onChange({ ...source, ...patch });
-  const field2 = (label, input) => h3("div", { className: "mv-field" }, h3("label", null, label), input);
+  const field = (label, input) => h3("div", { className: "mv-field" }, h3("label", null, label), input);
   const pickTiles = async () => {
     if (typeof onPickLocal !== "function") return;
     const url = await onPickLocal();
@@ -5135,8 +5135,8 @@ function SourceForm({ kind, source, onPickLocal, onChange, onCancel, t: t2 }) {
     h3(
       "div",
       { className: "grid" },
-      field2(t2("settings.field.name"), text("name")),
-      field2(
+      field(t2("settings.field.name"), text("name")),
+      field(
         t2("settings.field.type"),
         h3(
           "select",
@@ -5145,12 +5145,12 @@ function SourceForm({ kind, source, onPickLocal, onChange, onCancel, t: t2 }) {
         )
       )
     ),
-    field2(t2("settings.field.url"), text("url", source.url, kind === "imagery" ? "https://…/{z}/{x}/{y}.png" : "https://…")),
-    field2(t2("settings.field.credit"), text("credit", source.credit)),
+    field(t2("settings.field.url"), text("url", source.url, kind === "imagery" ? "https://…/{z}/{x}/{y}.png" : "https://…")),
+    field(t2("settings.field.credit"), text("credit", source.credit)),
     kind === "imagery" && source.type === "xyz" ? h3(
       "div",
       { className: "grid" },
-      field2(
+      field(
         t2("settings.field.maxLevel"),
         h3("input", {
           type: "number",
@@ -5160,7 +5160,7 @@ function SourceForm({ kind, source, onPickLocal, onChange, onCancel, t: t2 }) {
           onChange: (event) => set({ maximumLevel: event.target.value === "" ? void 0 : Number(event.target.value) })
         })
       ),
-      field2(
+      field(
         t2("settings.field.tilingScheme"),
         h3(
           "select",
@@ -5172,7 +5172,7 @@ function SourceForm({ kind, source, onPickLocal, onChange, onCancel, t: t2 }) {
           h3("option", { value: "geographic" }, t2("settings.tiling.geographic"))
         )
       ),
-      field2(
+      field(
         t2("settings.field.subdomains"),
         h3("input", {
           value: (source.subdomains ?? []).join(","),
@@ -5206,7 +5206,7 @@ function SourceForm({ kind, source, onPickLocal, onChange, onCancel, t: t2 }) {
         )
       )
     ) : null,
-    kind === "imagery" && source.type === "wms" ? field2(t2("settings.field.layers"), text("layers", source.layers)) : null,
+    kind === "imagery" && source.type === "wms" ? field(t2("settings.field.layers"), text("layers", source.layers)) : null,
     kind === "terrain" ? h3(
       "div",
       { className: "grid" },
@@ -5245,6 +5245,7 @@ function SourcesDialog({ config, defaults, environmentDark, themeMode, onPickLoc
   const [draft, setDraft] = import_react5.default.useState(() => clone(config));
   const [tab, setTab] = import_react5.default.useState("imagery");
   const [editing, setEditing] = import_react5.default.useState(null);
+  const field = (label, input) => h3("div", { className: "mv-field" }, h3("label", null, label), input);
   const [autoOpen, setAutoOpen] = import_react5.default.useState(readAutoOpen);
   const activeId = (kind) => kind === "imagery" ? draft.settings.imagery : draft.settings.terrain;
   import_react5.default.useEffect(() => {
@@ -5972,7 +5973,7 @@ function shaderStackLabel(t2, preset) {
   return (Array.isArray(preset) ? preset : [preset]).map((item) => t2(`shader.preset.${item}`)).join(" + ");
 }
 function createWorkbenchWiring({ getForm, getLayers, setShaderForm, shaderCommand, showToast, t: t2, shaderCompare }) {
-  const field2 = (key, value) => setShaderForm((form) => ({ ...form, [key]: value }));
+  const field = (key, value) => setShaderForm((form) => ({ ...form, [key]: value }));
   const formLayer = () => getLayers().find((layer) => layer.id === getForm().layerId) ?? null;
   const target = () => resolveWorkbenchTarget(getLayers(), getForm());
   let applyTimer = null;
@@ -5994,7 +5995,7 @@ function createWorkbenchWiring({ getForm, getLayers, setShaderForm, shaderComman
   };
   return {
     /** Set one form field (layerId / numeric inputs). */
-    field: field2,
+    field,
     /** Toggle a preset chip in the stack. */
     toggle: (preset) => setShaderForm((form) => toggleShaderPreset(form, preset)),
     /** Reorder one preset inside the stack (the array order is the compose order). */
@@ -6155,7 +6156,7 @@ function LayersPanel({
     setError("");
     setDraft({ type: "wms", name: "", url: "", layers: "", opacity: 0.7 });
   };
-  const field2 = (label, input) => h5("div", { className: "mv-field" }, h5("label", null, label), input);
+  const field = (label, input) => h5("div", { className: "mv-field" }, h5("label", null, label), input);
   const saveCurrentBookmark = () => {
     const view = typeof getCurrentView === "function" ? getCurrentView() : null;
     if (!view) {
@@ -6225,7 +6226,7 @@ function LayersPanel({
       adding ? h5(
         "div",
         { key: "add-form", className: "mv-overlay-form" },
-        field2(
+        field(
           t2("layers.overlayType"),
           h5(
             "select",
@@ -6233,10 +6234,10 @@ function LayersPanel({
             OVERLAY_TYPES2.map((type) => h5("option", { key: type, value: type }, type.toUpperCase()))
           )
         ),
-        field2(t2("layers.overlayName"), h5("input", { value: draft.name, onChange: (event) => setDraft((current) => ({ ...current, name: event.target.value })) })),
-        field2(t2("layers.overlayUrl"), h5("input", { value: draft.url, placeholder: "https://…", onChange: (event) => setDraft((current) => ({ ...current, url: event.target.value })) })),
-        draft.type === "wms" ? field2(t2("layers.overlayLayers"), h5("input", { value: draft.layers, placeholder: "flood:risk", onChange: (event) => setDraft((current) => ({ ...current, layers: event.target.value })) })) : null,
-        field2(
+        field(t2("layers.overlayName"), h5("input", { value: draft.name, onChange: (event) => setDraft((current) => ({ ...current, name: event.target.value })) })),
+        field(t2("layers.overlayUrl"), h5("input", { value: draft.url, placeholder: "https://…", onChange: (event) => setDraft((current) => ({ ...current, url: event.target.value })) })),
+        draft.type === "wms" ? field(t2("layers.overlayLayers"), h5("input", { value: draft.layers, placeholder: "flood:risk", onChange: (event) => setDraft((current) => ({ ...current, layers: event.target.value })) })) : null,
+        field(
           t2("layers.overlayOpacity"),
           h5("input", {
             type: "range",

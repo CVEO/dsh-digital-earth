@@ -177,6 +177,10 @@ const h = React.createElement
       const [draft, setDraft] = React.useState(() => clone(config))
       const [tab, setTab] = React.useState('imagery')
       const [editing, setEditing] = React.useState(null)
+      // Local form-row helper: `field` is also defined inside SourceForm, but the
+      // Appearance tab renders one here, outside that component's scope.
+      const field = (label, input) =>
+        h('div', { className: 'mv-field' }, h('label', null, label), input)
       // Auto-open is a browser preference, not part of the Host source catalog, so
       // it stays outside `draft` and applies the moment the checkbox changes.
       const [autoOpen, setAutoOpen] = React.useState(readAutoOpen)
