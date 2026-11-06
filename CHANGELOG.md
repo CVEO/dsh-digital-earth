@@ -13,7 +13,9 @@
 ### 修复
 
 - **FPS 不再是错的度量**：仪表改为计数 Cesium 真实渲染帧（`scene.postRender`，与 Cesium 自带 `PerformanceDisplay` 同语义）+ EMA 平滑；页面隐藏、WebGL 上下文丢失、或连续 2 秒无渲染帧时进入**空闲态**，HUD 显示 `—` 而不是冻结的旧数字（此前读数来自窗口 `requestAnimationFrame`，静止时会一直停在某个值，例如 32）。`earth_scene status` 新增可加字段 `render: { fps, idle, terrain_depth_test }`。
+- **性能：移除每帧的帧缓冲拷贝**：`preserveDrawingBuffer` 改为 `false`（截图链路本来就在同一个同步任务里 `viewer.render()` 后立即 `drawImage`，不依赖保留缓冲）。这一项直接减少每帧一次全分辨率拷贝，是"开地形后拖拽掉到 30 FPS"归因后落地的第一刀；HUD 相机/图层统计从 500 ms 降到 1 s 且数值无变化时不触发 React 重渲染，静止场景的面板重渲染降为零。归因与后续修复（分辨率档、地形 LOD、瓦片 LOD）见 `docs/research/performance.md` 与 `docs/PLAN-v1.6.md`。
 - **「全屏」名副其实**：新增真正的全屏（DOM Fullscreen API，面板根节点 `requestFullscreen`，停靠态与主区域都可用，Esc / 系统退出后自动同步状态并 `viewer.resize()`）；原来叫「全屏查看」的按钮实际是把 DSH 右侧栏最大化，现更名为「最大化侧栏」。
+- **工具栏更省空间**：截图 / 问 Agent / 复位改为图标按钮（tooltip + aria-label），两个全屏相关按钮本来就是图标；停靠窄宽度下不再因为文字标签换行到第二排。
 - **地形遮挡（深度测试）可开关**：新增设置项 `terrainDepthTest`（默认关）。关闭时地下管网、埋在地形下的模型都能看见（Cesium 默认行为）；开启时地形会遮挡埋在下面的内容、天际线更干净。切换只改 `Globe` 属性，不重建 viewer，切换地形后自动重放。
 - 清理三处重复实现：原子 JSON 写入、瓦片目录扫描、时间戳格式化各合并为一份；删除已废弃的截图回执兼容分支。
 
