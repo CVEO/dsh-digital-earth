@@ -150,9 +150,10 @@
 .mv-overlay-form input,.mv-overlay-form select{background:var(--mv-input);border:.5px solid var(--mv-line);color:var(--mv-text);border-radius:6px;padding:5px 7px;font:inherit;font-size:11px;min-width:0}
 .mv-icon-btn:hover{background:color-mix(in srgb,var(--mv-lift) 82%,transparent);color:var(--mv-text)}
 .mv-icon-btn.on{color:var(--mv-accent)}
-.mv-hud{position:absolute;left:10px;bottom:10px;z-index:9;padding:8px 11px;border-radius:11px;display:flex;flex-direction:column;gap:3px;font-size:11px;color:var(--mv-dim);max-width:calc(100% - 330px);pointer-events:none}
-.mv-hud .row{display:flex;gap:10px;flex-wrap:wrap}
-.mv-hud b{color:var(--mv-text);font-weight:600;font-variant-numeric:tabular-nums}
+.mv-hud{position:absolute;left:10px;bottom:10px;z-index:9;padding:8px 11px;border-radius:11px;display:flex;flex-direction:column;gap:3px;font-size:11px;color:var(--mv-dim);max-width:min(640px,calc(100% - 20px));white-space:nowrap;pointer-events:none}
+.mv-hud .row{display:flex;gap:10px;flex-wrap:nowrap;align-items:baseline;min-width:0;overflow:hidden}
+.mv-hud .row>span{flex:none;white-space:nowrap}
+.mv-hud b{color:var(--mv-text);font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
 .mv-pick{position:absolute;right:10px;bottom:10px;width:322px;max-height:44%;display:flex;flex-direction:column;z-index:13;border-radius:12px;overflow:hidden}
 .mv-pick>header{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;font-size:11px;color:var(--mv-dim);border-bottom:.5px solid var(--mv-line)}
 .mv-pick table{width:100%;border-collapse:collapse;font-size:11px;overflow:auto;display:block}
@@ -301,6 +302,23 @@
 .mv-health-path{display:flex;align-items:center;gap:8px;border-top:.5px solid var(--mv-line);padding-top:8px;font-size:11px}
 .mv-health-path .key{flex:none;color:var(--mv-dim)}
 .mv-health-path code{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--mv-text);direction:rtl;text-align:left}
+/* Narrow panes: keep the primary cursor/elevation readout on one line and drop
+   secondary telemetry instead of letting every glyph wrap into a vertical column. */
+@container (max-width: 560px){
+  .mv-root.mv-docked .mv-hud .mv-hud-camera,.mv-root.mv-docked .mv-hud .mv-hud-heading{display:none}
+  .mv-root.mv-docked .mv-hud .mv-hud-layer{display:none}
+}
+@container (max-width: 420px){
+  .mv-root.mv-docked .mv-hud{padding:6px 9px;font-size:10.5px;gap:2px}
+  .mv-root.mv-docked .mv-hud .mv-hud-fps{display:none}
+}
+@media (max-width: 760px){
+  .mv-hud .mv-hud-camera,.mv-hud .mv-hud-heading,.mv-hud .mv-hud-layer{display:none}
+}
+@media (max-width: 480px){
+  .mv-hud{padding:6px 9px;font-size:10.5px;gap:2px}
+  .mv-hud .mv-hud-fps{display:none}
+}
 `
     /**
      * The panel's own stylesheet only exists inside an `mv-root`, but the tool

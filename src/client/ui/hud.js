@@ -111,18 +111,18 @@ const h = React.createElement
         { className: 'mv-hud mv-glass' },
         h(
           'div',
-          { className: 'row' },
+          { className: 'row mv-hud-primary' },
           // fps is null while the scene is idle (no render pass for 2 s); a dash is
           // honest, a 0 would suggest the scene renders nothing while idling.
-          h('span', { title: t('hud.fpsTitle') }, 'FPS ', h('b', null, fps === null ? '—' : fps)),
-          h('span', null, `${labels.pointer} `, h('b', { ref: cursorRef }, t('hud.empty'))),
-          h('span', null, `${labels.camera} `, h('b', null, stats.height)),
-          h('span', null, `${labels.heading} `, h('b', null, `${stats.heading} / ${stats.pitch}`)),
+          h('span', { className: 'mv-hud-fps', title: t('hud.fpsTitle') }, 'FPS ', h('b', null, fps === null ? '—' : fps)),
+          h('span', { className: 'mv-hud-cursor' }, `${labels.pointer} `, h('b', { ref: cursorRef }, t('hud.empty'))),
+          h('span', { className: 'mv-hud-camera' }, `${labels.camera} `, h('b', null, stats.height)),
+          h('span', { className: 'mv-hud-heading' }, `${labels.heading} `, h('b', null, `${stats.heading} / ${stats.pitch}`)),
         ),
         stats.layers.map((row) =>
           h(
             'div',
-            { key: row.id, className: 'row' },
+            { key: row.id, className: 'row mv-hud-layer' },
             h('b', null, row.name),
             h('span', null, `${labels.tiles} `, h('b', null, formatCount(row.tiles))),
             h('span', null, `${labels.pending} `, h('b', null, formatCount(row.pending))),
