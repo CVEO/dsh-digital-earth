@@ -82,8 +82,11 @@ const SECRET_PATTERNS = [
 const BINARY_EXT = new Set([
   '.png', '.jpg', '.jpeg', '.gif', '.webp', '.ico', '.tgz', '.zip', '.gz',
   '.glb', '.b3dm', '.woff', '.woff2', '.ttf', '.eot', '.wasm',
+  // Point-cloud / raster data is binary and can embed machine paths; the privacy
+  // scan must skip it rather than read it as text.
+  '.npz', '.npy', '.las', '.laz', '.tif', '.tiff',
 ])
-const SKIP_DIRS = new Set(['.git', '.research', 'node_modules', 'vendor', 'dist', 'captures', '.dsh-earth'])
+const SKIP_DIRS = new Set(['.git', '.research', 'node_modules', 'vendor', 'dist', 'captures', '.dsh-earth', 'roof_task'])
 
 /** 收集包内文本文件（跳过 vendor/.git/.research 等目录与二进制文件）。 */
 async function collectTextFiles(dir, out = []) {
@@ -113,7 +116,8 @@ test('B4 版本：package.json 为合法 semver，未新增依赖/未改 scripts
   assert.equal(pkg.name, '@cveo/dsh-digital-earth')
   assert.match(pkg.version, /^\d+\.\d+\.\d+$/)
   assert.equal(pkg.dependencies, undefined, '不得新增 runtime dependencies')
-  assert.equal(pkg.devDependencies, undefined, '不得新增 devDependencies')
+  // v2.0：只允许构建期 esbuild（client.js 由 src/client 构建）。
+  assert.deepEqual(Object.keys(pkg.devDependencies ?? {}), ['esbuild'], 'devDependencies 只允许 esbuild')
   assert.equal(pkg.optionalDependencies, undefined)
   assert.equal(pkg.peerDependencies, undefined)
   assert.equal(pkg.license, 'MIT')

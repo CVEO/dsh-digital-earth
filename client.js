@@ -93,6 +93,9 @@ window.__ModuleLoader__.load({
         'hud.cache': '缓存',
         'hud.elevation': '高程 {value}',
         'hud.empty': '—',
+        'hud.fpsTitle': '每秒真实渲染帧数（场景静止 2 秒后显示 —）',
+        'settings.terrainDepthTest': '地形遮挡三维图层（深度测试）',
+        'settings.terrainDepthTestHint': '关闭（默认）：地下管网、埋在地形下的模型都能看见；开启：地形会挡住埋在下面的内容，天际线更干净。',
         'layers.title': '图层',
         'layers.collapse': '收起图层卡',
         'urlbar.placeholder': 'tileset.json 的 http(s) 地址，或本地绝对路径',
@@ -174,8 +177,11 @@ window.__ModuleLoader__.load({
         'tab.title': '数字地球',
         'header.open': '在对话旁打开数字地球',
         'btn.beside': '在对话旁打开',
-        'btn.immersive': '全屏查看',
-        'btn.immersiveTitle': '全屏查看（再次点击返回停靠）',
+        'btn.maximize': '最大化侧栏',
+        'btn.maximizeTitle': '最大化侧栏（再次点击返回停靠）',
+        'btn.fullscreen': '全屏',
+        'btn.fullscreenTitle': '全屏（按 Esc 退出）',
+        'btn.fullscreenExit': '退出全屏',
         'tool.action.status': '读取场景',
         'tool.action.list': '读取图层',
         'tool.action.load': '加载图层',
@@ -351,6 +357,8 @@ window.__ModuleLoader__.load({
         'toast.reportSaved': '场景报告已保存：{path}',
         'toast.reportFailed': '导出报告失败：{message}',
         'toast.noSession': '请先打开一个会话，再在对话旁查看数字地球。',
+        'toast.fullscreenUnsupported': '当前浏览器不支持全屏 API。',
+        'toast.fullscreenFailed': '全屏失败：{message}',
         'unit.hectare': '公顷',
       },
       en: {
@@ -416,6 +424,9 @@ window.__ModuleLoader__.load({
         'hud.cache': 'Cache',
         'hud.elevation': 'Elev {value}',
         'hud.empty': '—',
+        'hud.fpsTitle': 'Real rendered frames per second (— after 2 s without a render)',
+        'settings.terrainDepthTest': 'Terrain occludes 3D layers (depth test)',
+        'settings.terrainDepthTestHint': 'Off (default): underground pipes and models buried under the terrain stay visible. On: terrain hides what is below it and the skyline reads cleaner.',
         'layers.title': 'Layers',
         'layers.collapse': 'Collapse layer card',
         'urlbar.placeholder': 'http(s) URL of tileset.json, or an absolute local path',
@@ -497,8 +508,11 @@ window.__ModuleLoader__.load({
         'tab.title': 'Digital Earth',
         'header.open': 'Open Digital Earth beside the chat',
         'btn.beside': 'Open beside chat',
-        'btn.immersive': 'Full screen',
-        'btn.immersiveTitle': 'Full screen (click again to return to the dock)',
+        'btn.maximize': 'Maximize sidebar',
+        'btn.maximizeTitle': 'Maximize sidebar (click again to dock)',
+        'btn.fullscreen': 'Fullscreen',
+        'btn.fullscreenTitle': 'Fullscreen (Esc exits)',
+        'btn.fullscreenExit': 'Exit fullscreen',
         'tool.action.status': 'Read scene',
         'tool.action.list': 'List layers',
         'tool.action.load': 'Load layer',
@@ -678,6 +692,8 @@ window.__ModuleLoader__.load({
         'toast.reportSaved': 'Scene report saved: {path}',
         'toast.reportFailed': 'Could not export the report: {message}',
         'toast.noSession': 'Open a conversation first to view the globe beside it.',
+        'toast.fullscreenUnsupported': 'This browser does not expose the fullscreen API.',
+        'toast.fullscreenFailed': 'Fullscreen failed: {message}',
         'unit.hectare': 'ha',
       },
     }
@@ -1917,7 +1933,9 @@ window.__ModuleLoader__.load({
         h(
           'div',
           { className: 'row' },
-          h('span', null, 'FPS ', h('b', null, fps)),
+          // fps is null while the scene is idle (no render pass for 2 s); a dash is
+          // honest, a 0 would suggest the scene renders nothing while idling.
+          h('span', { title: t('hud.fpsTitle') }, 'FPS ', h('b', null, fps === null ? '—' : fps)),
           h('span', null, `${labels.pointer} `, h('b', { ref: cursorRef }, t('hud.empty'))),
           h('span', null, `${labels.camera} `, h('b', null, stats.height)),
           h('span', null, `${labels.heading} `, h('b', null, `${stats.heading} / ${stats.pitch}`)),
@@ -1950,6 +1968,9 @@ window.__ModuleLoader__.load({
 .mv-root[data-mv-scheme="dark"]{--mv-attrib:rgba(255,255,255,.62);--mv-attrib-shadow:0 1px 2px rgba(0,0,0,.6);--mv-overlay:transparent;--mv-scrim:rgba(3,7,13,.62)}
 .mv-root[data-mv-theme="dark"]{--mv-bg:#151517;--mv-text:#ebeef2;--mv-dim:#adb2b8;--mv-line:#ffffff1f;--mv-accent:#7aaaff;--mv-lift:#ffffff14;--mv-glass:rgba(21,21,23,.82);--mv-glass-strong:#232324;--mv-input:#ffffff14;--mv-shadow:0 8px 28px rgba(0,0,0,.34);color-scheme:dark}
 .mv-root[data-mv-theme="light"]{--mv-bg:#fff;--mv-text:#0f1115;--mv-dim:#5b6068;--mv-line:#0000001a;--mv-accent:#4176e6;--mv-lift:#2631480f;--mv-glass:rgba(255,255,255,.86);--mv-glass-strong:#fff;--mv-input:#2631480f;--mv-shadow:0 8px 28px rgba(15,23,42,.16);color-scheme:light}
+/* DOM fullscreen: the panel root owns the whole screen, so the flex sizing of
+   the slot no longer applies and the floating chrome uses the viewport. */
+.mv-root:fullscreen{position:fixed;inset:0;width:100vw;height:100vh;max-width:none;max-height:none;border-radius:0}
 .mv-globe{position:absolute;inset:0;background:#05080f}
 .mv-globe .cesium-viewer,.mv-globe .cesium-widget,.mv-globe .cesium-widget canvas{width:100%;height:100%}
 .mv-attr{position:absolute;right:10px;bottom:18px;z-index:6;font-size:10px;line-height:1.4;color:var(--mv-attrib);pointer-events:none;text-shadow:var(--mv-attrib-shadow)}
@@ -2520,6 +2541,27 @@ window.__ModuleLoader__.load({
               setDraft((current) => ({
                 ...current,
                 settings: { ...current.settings, screenshotHud: event.target.checked },
+              })),
+          }),
+        ),
+        h(
+          'label',
+          { className: 'mv-toggle' },
+          h(
+            'span',
+            { className: 'text' },
+            h('b', null, t('settings.terrainDepthTest')),
+            h('span', null, t('settings.terrainDepthTestHint')),
+          ),
+          h('input', {
+            type: 'checkbox',
+            // Missing/false = off: underground content stays visible, matching the
+            // Cesium default and the documented behaviour before v2.0.
+            checked: draft.settings.terrainDepthTest === true,
+            onChange: (event) =>
+              setDraft((current) => ({
+                ...current,
+                settings: { ...current.settings, terrainDepthTest: event.target.checked },
               })),
           }),
         ),
@@ -3236,7 +3278,9 @@ window.__ModuleLoader__.load({
       const [sources, setSources] = React.useState(null)
       const [defaults, setDefaults] = React.useState(null)
       const [tool, setTool] = React.useState(null)
-      const [fps, setFps] = React.useState(0)
+      const [fps, setFps] = React.useState(null)
+      // True while the panel root is the document's fullscreen element.
+      const [fullscreen, setFullscreen] = React.useState(false)
       const [stats, setStats] = React.useState(null)
       const [pickInfo, setPickInfo] = React.useState(null)
       const [measureInfo, setMeasureInfo] = React.useState(null)
@@ -3694,6 +3738,9 @@ window.__ModuleLoader__.load({
             viewer.terrainProvider = new Cesium.EllipsoidTerrainProvider()
             showToast(t('toast.terrainOff'))
           }
+          // A terrain switch can change the elevation baseline, so re-apply the
+          // user's depth-test choice on the new terrain.
+          applyGlobeDepthTest()
           return { ok: true, source }
         } catch (error) {
           viewer.terrainProvider = new Cesium.EllipsoidTerrainProvider()
@@ -3703,6 +3750,17 @@ window.__ModuleLoader__.load({
           setTerrainBusy(false)
           if (notify) setBusy('')
         }
+      }
+
+      /**
+       * Terrain depth test is a Globe property, not a viewer option: toggling it
+       * must never rebuild the viewer. Off (default) lets underground pipes and
+       * buried models show through the terrain; on lets terrain occlude them.
+       */
+      function applyGlobeDepthTest() {
+        const viewer = viewerRef.current
+        if (!viewer) return
+        viewer.scene.globe.depthTestAgainstTerrain = sourcesRef.current?.settings?.terrainDepthTest === true
       }
 
       const changeImagery = (id) => {
@@ -3759,6 +3817,31 @@ window.__ModuleLoader__.load({
         service('layout')?.selectPanel?.('digital-earth')
       }
 
+      /**
+       * Real fullscreen: the panel root element goes to OS-level fullscreen
+       * (DOM Fullscreen API), so the whole screen shows the globe and no DSH
+       * chrome remains. Distinct from togglePaneFullscreen, which only expands the
+       * sidebar column and is labelled "maximize sidebar".
+       */
+      const toggleDomFullscreen = () => {
+        const root = rootRef.current
+        if (!root) return
+        const request = root.requestFullscreen?.bind(root)
+        if (typeof request !== 'function') {
+          showToast(t('toast.fullscreenUnsupported'))
+          return
+        }
+        const run = async () => {
+          try {
+            if (document.fullscreenElement === root) await document.exitFullscreen()
+            else await root.requestFullscreen({ navigationUI: 'hide' })
+          } catch (error) {
+            showToast(t('toast.fullscreenFailed', { message: message(error) }))
+          }
+        }
+        void run()
+      }
+
       const saveSources = (draft) => {
         const current = sourcesRef.current
         const meta = metaRef.current
@@ -3768,6 +3851,7 @@ window.__ModuleLoader__.load({
         setSettingsOpen(false)
         if (current?.settings?.imagery !== next.settings.imagery) applyImagery(next.settings.imagery, false)
         if (current?.settings?.terrain !== next.settings.terrain) applyTerrain(next.settings.terrain, false)
+        applyGlobeDepthTest()
       }
 
       function setToolMode(mode) {
@@ -5937,6 +6021,15 @@ ${image !== '' ? `<h2>${escapeHtml(L.snapshot)}</h2>${image}` : ''}
             terrain: config.terrain.map((item) => ({ id: item.id, name: item.name })),
           },
           viewport: { width: viewer.canvas.width, height: viewer.canvas.height },
+          // Render health is additive: `fps` is null while the scene is idle (no
+          // render pass for 2 s) and the terrain depth-test flag is the user's
+          // current choice, so an Agent can explain a "model looks flat/buried"
+          // report instead of guessing.
+          render: {
+            fps: fps === null ? null : Math.round(fps),
+            idle: fps === null,
+            terrain_depth_test: viewer.scene.globe.depthTestAgainstTerrain === true,
+          },
           snapshot: { includeHud: config.settings.screenshotHud === true },
           measureTool: toolRef.current,
           annotations: {
@@ -6352,6 +6445,7 @@ ${image !== '' ? `<h2>${escapeHtml(L.snapshot)}</h2>${image}` : ''}
             viewer.camera.setView({ destination: Cesium.Cartesian3.fromDegrees(104, 31, 14000000) })
             await applyImagery(catalog.config.settings.imagery, false)
             if (catalog.config.settings.terrain) await applyTerrain(catalog.config.settings.terrain, false)
+            applyGlobeDepthTest()
             const handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas)
             handler.setInputAction((event) => onCanvasClick(event.position), Cesium.ScreenSpaceEventType.LEFT_CLICK)
             handler.setInputAction(() => finishMeasure(), Cesium.ScreenSpaceEventType.LEFT_DOUBLE_CLICK)
@@ -6479,22 +6573,80 @@ ${image !== '' ? `<h2>${escapeHtml(L.snapshot)}</h2>${image}` : ''}
         return () => observer.disconnect()
       }, [phase])
 
+      // Fullscreen is owned by the browser: Esc, F11 and the OS can leave it
+      // without going through our button, so the toolbar state follows
+      // `fullscreenchange` (and the canvas is resized once layout settles).
+      React.useEffect(() => {
+        const onChange = () => {
+          setFullscreen(document.fullscreenElement === rootRef.current)
+          try {
+            viewerRef.current?.resize()
+          } catch {
+            /* ignore */
+          }
+        }
+        document.addEventListener('fullscreenchange', onChange)
+        return () => document.removeEventListener('fullscreenchange', onChange)
+      }, [])
+
       React.useEffect(() => {
         if (phase !== 'ready') return undefined
-        let raf = 0
+        const viewer = viewerRef.current
+        if (!viewer) return undefined
+        const scene = viewer.scene
+        const canvas = scene.canvas
+        // Count REAL Cesium render passes (`scene.postRender`), not window
+        // requestAnimationFrame callbacks: rAF fires per compositor vsync even
+        // when the scene did not render (hidden tab, lost context, render mode),
+        // so an rAF counter reports the browser cadence, not scene throughput.
         let frames = 0
         let last = performance.now()
-        const tick = (now) => {
+        let lastFrameAt = last
+        let ema = 0
+        let lost = false
+        const onFrame = () => {
           frames += 1
-          if (now - last >= 1000) {
-            setFps(Math.round((frames * 1000) / (now - last)))
+          lastFrameAt = performance.now()
+        }
+        const onLost = () => {
+          lost = true
+          frames = 0
+          ema = 0
+        }
+        const onRestored = () => {
+          lost = false
+          frames = 0
+          last = performance.now()
+        }
+        scene.postRender.addEventListener(onFrame)
+        canvas.addEventListener('webglcontextlost', onLost)
+        canvas.addEventListener('webglcontextrestored', onRestored)
+        const timer = setInterval(() => {
+          const now = performance.now()
+          const elapsed = now - last
+          // No render pass for two seconds (hidden panel, lost context, destroyed
+          // viewer) is IDLE, not 0 fps: the HUD shows a dash instead of a fake 0.
+          const idle = lost || document.visibilityState === 'hidden' || now - lastFrameAt > 2000
+          if (idle) {
             frames = 0
             last = now
+            ema = 0
+            setFps((previous) => (previous === null ? previous : null))
+            return
           }
-          raf = requestAnimationFrame(tick)
+          const instant = elapsed > 0 ? (frames * 1000) / elapsed : 0
+          frames = 0
+          last = now
+          ema = ema === 0 ? instant : ema * 0.8 + instant * 0.2
+          const value = Math.round(ema)
+          setFps((previous) => (previous === value ? previous : value))
+        }, 500)
+        return () => {
+          clearInterval(timer)
+          scene.postRender.removeEventListener(onFrame)
+          canvas.removeEventListener('webglcontextlost', onLost)
+          canvas.removeEventListener('webglcontextrestored', onRestored)
         }
-        raf = requestAnimationFrame(tick)
-        return () => cancelAnimationFrame(raf)
       }, [phase])
 
       React.useEffect(() => {
@@ -6796,8 +6948,11 @@ ${image !== '' ? `<h2>${escapeHtml(L.snapshot)}</h2>${image}` : ''}
             sessionId ? button(t('btn.askAgent'), askAgent) : null,
             button(t('btn.reset'), resetView),
             docked
-              ? iconButton(h(FullscreenIcon), t('btn.immersiveTitle'), togglePaneFullscreen)
+              ? iconButton(h(FullscreenIcon), t('btn.maximizeTitle'), togglePaneFullscreen)
               : button(t('btn.beside'), openBeside),
+            // Real fullscreen works from both mounts; the sidebar-maximize button
+            // above is a docked-only layout action, not fullscreen.
+            iconButton(h(FullscreenIcon), fullscreen ? t('btn.fullscreenExit') : t('btn.fullscreenTitle'), toggleDomFullscreen, fullscreen),
             h('i', { key: 's3', className: 'mv-sep' }),
             h(
               'div',

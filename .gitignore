@@ -2,7 +2,15 @@ node_modules/
 *.tgz
 *.log
 .DS_Store
+# Local research / QA notes, screenshots and generated captures.
 .research/
 dist/
 captures/
 .dsh-earth/
+# Local-only datasets and scratch data: never shipped, often large, and they
+# carry machine paths (the privacy scan in test/v140-batch4 must not read them).
+roof_task/
+*.npz
+*.npy
+*.las
+*.laz

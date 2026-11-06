@@ -1024,265 +1024,6 @@ export function isLocalResolutionAllowed(resolution, allowedDirs) {
 }
 
 // ---------------------------------------------------------------------------
-// Local tileset georeferencing (v1.4.0 fix for OSGB-derived data).
-//
-// Some OSGB -> 3D Tiles converters write a tileset whose root tile has no
-// `transform` and whose bounding volume is a plain local box: the GLB vertices
-// are metres in an east-north-up frame, and the frame origin is recorded in a
-// sibling `tileset_info.json` (`srs` + `srs_origin`). Cesium reads those metres
-// as ECEF, so the whole scene collapses to within a few kilometres of the earth's
-// centre: `flyTo` dives to the core (the globe then looks off-centre) and the
-// tiles flicker in and out of the frustum as the camera moves through them.
-//
-// The host already serves every byte of a local tileset, so it derives the
-// missing root transform from that sibling file instead of asking the user to
-// rebuild the dataset. Nothing on disk is modified, and a tileset that already
-// carries a world placement (`transform` or `region`) passes through untouched.
-// ---------------------------------------------------------------------------
-
-const GEOREF_INFO_FILE = 'tileset_info.json'
-const MAX_GEOREF_JSON = 16 * 1024 * 1024
-// CGCS2000 ellipsoid; WGS84 and CGCS2000 differ by well under a millimetre here.
-const GEOREF_SEMI_MAJOR = 6378137
-const GEOREF_FLATTENING = 1 / 298.257222101
-
-/**
- * Gauss-Krueger frame of a CGCS2000 EPSG code, or null when the plugin cannot
- * place it without a projection database. The four Chinese families are
- * contiguous, so the central meridian and the false easting follow from the code
- * alone: 6-degree zones 13-23 (EPSG 4491-4501), 6-degree central meridians
- * 75E-135E (4502-4512), 3-degree zones 25-45 (4513-4533) and 3-degree central
- * meridians 75E-135E (4534-4554). EPSG:4547 is the 3-degree 114E frame.
- */
-export function gaussKrugerFrame(srs) {
-  const match = /^epsg:(\d+)$/i.exec(String(srs ?? '').trim())
-  if (match === null) return null
-  const code = Number(match[1])
-  // Zone-numbered variants carry the zone as an easting prefix, so the false
-  // easting is zone * 1e6 + 500 km rather than a flat 500 km.
-  if (code >= 4491 && code <= 4501) {
-    const zone = code - 4478
-    return { centralMeridian: zone * 6, falseEasting: zone * 1e6 + 500000 }
-  }
-  if (code >= 4502 && code <= 4512) return { centralMeridian: 75 + (code - 4502) * 6, falseEasting: 500000 }
-  if (code >= 4513 && code <= 4533) {
-    const zone = code - 4488
-    return { centralMeridian: zone * 3, falseEasting: zone * 1e6 + 500000 }
-  }
-  if (code >= 4534 && code <= 4554) return { centralMeridian: 75 + (code - 4534) * 3, falseEasting: 500000 }
-  return null
-}
-
-/** Inverse transverse Mercator (Snyder series), accurate to about a millimetre in China. */
-function gaussKrugerToGeodetic(easting, northing, frame) {
-  const a = GEOREF_SEMI_MAJOR
-  const e2 = GEOREF_FLATTENING * (2 - GEOREF_FLATTENING)
-  const ep2 = e2 / (1 - e2)
-  const rectifying = a * (1 - e2 / 4 - (3 * e2 * e2) / 64 - (5 * e2 * e2 * e2) / 256)
-  const mu = northing / rectifying
-  const e1 = (1 - Math.sqrt(1 - e2)) / (1 + Math.sqrt(1 - e2))
-  const foot =
-    mu +
-    ((3 * e1) / 2 - (27 * e1 ** 3) / 32) * Math.sin(2 * mu) +
-    ((21 * e1 * e1) / 16 - (55 * e1 ** 4) / 32) * Math.sin(4 * mu) +
-    ((151 * e1 ** 3) / 96) * Math.sin(6 * mu) +
-    ((1097 * e1 ** 4) / 512) * Math.sin(8 * mu)
-  const sin = Math.sin(foot)
-  const cos = Math.cos(foot)
-  const tan = Math.tan(foot)
-  const n1 = a / Math.sqrt(1 - e2 * sin * sin)
-  const r1 = (a * (1 - e2)) / (1 - e2 * sin * sin) ** 1.5
-  const t1 = tan * tan
-  const c1 = ep2 * cos * cos
-  const d = (easting - frame.falseEasting) / n1
-  const lat =
-    foot -
-    ((n1 * tan) / r1) *
-      ((d * d) / 2 -
-        ((5 + 3 * t1 + 10 * c1 - 4 * c1 * c1 - 9 * ep2) * d ** 4) / 24 +
-        ((61 + 90 * t1 + 298 * c1 + 45 * t1 * t1 - 252 * ep2 - 3 * c1 * c1) * d ** 6) / 720)
-  const lon =
-    (frame.centralMeridian * Math.PI) / 180 +
-    (d -
-      ((1 + 2 * t1 + c1) * d ** 3) / 6 +
-      ((5 - 2 * c1 + 28 * t1 - 3 * c1 * c1 + 8 * ep2 + 24 * t1 * t1) * d ** 5) / 120) /
-      cos
-  return { lon: (lon * 180) / Math.PI, lat: (lat * 180) / Math.PI }
-}
-
-function geodeticToEcef(lon, lat, height) {
-  const a = GEOREF_SEMI_MAJOR
-  const e2 = GEOREF_FLATTENING * (2 - GEOREF_FLATTENING)
-  const lambda = (lon * Math.PI) / 180
-  const phi = (lat * Math.PI) / 180
-  const sin = Math.sin(phi)
-  const cos = Math.cos(phi)
-  const n = a / Math.sqrt(1 - e2 * sin * sin)
-  return [(n + height) * cos * Math.cos(lambda), (n + height) * cos * Math.sin(lambda), (n * (1 - e2) + height) * sin]
-}
-
-/** East-north-up -> ECEF, packed the way a 3D Tiles root `transform` wants it. */
-function eastNorthUpTransform(lon, lat, height) {
-  const lambda = (lon * Math.PI) / 180
-  const phi = (lat * Math.PI) / 180
-  const sinLambda = Math.sin(lambda)
-  const cosLambda = Math.cos(lambda)
-  const sinPhi = Math.sin(phi)
-  const cosPhi = Math.cos(phi)
-  const origin = geodeticToEcef(lon, lat, height)
-  return [
-    -sinLambda,
-    cosLambda,
-    0,
-    0,
-    -sinPhi * cosLambda,
-    -sinPhi * sinLambda,
-    cosPhi,
-    0,
-    cosPhi * cosLambda,
-    cosPhi * sinLambda,
-    sinPhi,
-    0,
-    origin[0],
-    origin[1],
-    origin[2],
-    1,
-  ]
-}
-
-/**
- * Derive the missing root transform of an OSGB-derived local tileset from its
- * `tileset_info.json`. Returns null when the metadata is absent, incomplete or
- * names a CRS this plugin cannot place without a projection database.
- */
-export function deriveLocalGeoreference(tilesetInfo) {
-  if (tilesetInfo === null || typeof tilesetInfo !== 'object') return null
-  const origin = tilesetInfo.srs_origin
-  if (!Array.isArray(origin) || origin.length < 2) return null
-  // `srs_origin` is [easting, northing, height] in the projected CRS; the third
-  // value is the ellipsoid height of the local frame origin.
-  const easting = Number(origin[0])
-  const northing = Number(origin[1])
-  const height = origin.length > 2 ? Number(origin[2]) : 0
-  if (!Number.isFinite(easting) || !Number.isFinite(northing) || !Number.isFinite(height)) return null
-  const frame = gaussKrugerFrame(tilesetInfo.srs)
-  if (frame === null) return null
-  const { lon, lat } = gaussKrugerToGeodetic(easting, northing, frame)
-  if (!Number.isFinite(lon) || !Number.isFinite(lat)) return null
-  if (Math.abs(lon) > 180 || Math.abs(lat) > 90) return null
-  return {
-    crs: String(tilesetInfo.srs).toUpperCase(),
-    lon,
-    lat,
-    height,
-    transform: eastNorthUpTransform(lon, lat, height),
-  }
-}
-
-/** True when the root already carries a world placement Cesium can use as-is. */
-export function tilesetRootIsGeoreferenced(root) {
-  if (root === null || typeof root !== 'object') return false
-  if (Array.isArray(root.transform) && root.transform.length === 16) return true
-  const volume = root.boundingVolume
-  return volume !== null && typeof volume === 'object' && volume.region !== undefined
-}
-
-/**
- * Add the derived root transform to a parsed tileset document.
- * Returns `{ document, georeference }`, or null when the document is already
- * georeferenced or no transform can be derived from the metadata.
- */
-export function georeferenceTilesetDocument(document, tilesetInfo) {
-  if (document === null || typeof document !== 'object') return null
-  const root = document.root
-  if (root === null || typeof root !== 'object') return null
-  if (tilesetRootIsGeoreferenced(root)) return null
-  const georeference = deriveLocalGeoreference(tilesetInfo)
-  if (georeference === null) return null
-  const transform = georeference.transform
-  // `root.transform` is prepended to the tile hierarchy, so it lifts every child
-  // out of local metres without touching the per-tile bounding volumes.
-  return { document: { ...document, root: { ...root, transform } }, georeference }
-}
-
-/** Read `tileset_info.json` next to a local tileset; null when absent or invalid. */
-async function readTilesetInfoFile(directory) {
-  try {
-    const text = await fs.readFile(join(directory, GEOREF_INFO_FILE), 'utf8')
-    if (text.length > MAX_GEOREF_JSON) return null
-    return JSON.parse(text.replace(/^\uFEFF/, ''))
-  } catch {
-    return null
-  }
-}
-
-/**
- * True when a directory between `directory` and the opened root already holds a
- * `tileset.json`. Such a document is most likely an external tileset referenced
- * from that ancestor: the ancestor's root transform already applies to it, so a
- * second ENU transform would place it twice as far from the origin.
- */
-async function hasAncestorTileset(rootDir, directory) {
-  if (pathKey(directory) === pathKey(rootDir)) return false
-  let current = dirname(directory)
-  for (;;) {
-    try {
-      if ((await fs.stat(join(current, 'tileset.json'))).isFile()) return true
-    } catch {
-      // A missing ancestor document is the normal case; keep walking.
-    }
-    if (pathKey(current) === pathKey(rootDir)) return false
-    const parent = dirname(current)
-    if (!isWithinDirectory(parent, rootDir)) return false
-    current = parent
-  }
-}
-
-/**
- * Serve a local `tileset.json` with a derived root transform when the sibling
- * metadata says the document is still in local metres. Returns false when the
- * request should fall through to the plain file server, so an ordinary tileset
- * (or any read failure) keeps the old byte-for-byte behaviour.
- */
-export async function serveGeoreferencedTileset(req, res, rootDir, relPath, cacheControl) {
-  if (relPath === '' || basename(relPath).toLowerCase() !== 'tileset.json') return false
-  const target = resolve(rootDir, relPath)
-  if (!within(rootDir, target)) return false
-  if (!isWithinDirectory(await realPathOr(target), await realPathOr(rootDir))) return false
-  let stat
-  try {
-    stat = await fs.stat(target)
-  } catch {
-    return false
-  }
-  if (!stat.isFile() || stat.size > MAX_GEOREF_JSON) return false
-  let document
-  try {
-    document = JSON.parse((await fs.readFile(target, 'utf8')).replace(/^\uFEFF/, ''))
-  } catch {
-    return false
-  }
-  if (tilesetRootIsGeoreferenced(document?.root)) return false
-  // A nested document that hangs off an ancestor tileset is already transformed
-  // by that ancestor; only a dataset's own top-level document needs the patch.
-  if (await hasAncestorTileset(rootDir, dirname(target))) return false
-  const patched = georeferenceTilesetDocument(document, await readTilesetInfoFile(dirname(target)))
-  if (patched === null) return false
-  const body = Buffer.from(JSON.stringify(patched.document), 'utf8')
-  res.writeHead(200, {
-    'content-type': 'application/json; charset=utf-8',
-    'content-length': String(body.length),
-    'cache-control': cacheControl,
-  })
-  if (req.method === 'HEAD') {
-    res.end()
-    return true
-  }
-  res.end(body)
-  return true
-}
-
-// ---------------------------------------------------------------------------
 // Data health check (v1.2.0). A static analysis of one tileset.json runs on the
 // host, so the panel button and the earth_scene "inspect" action share the same
 // report. It is independent from the scene bridge and never changes the scene.
@@ -1781,7 +1522,6 @@ async function analyzeTileset(source, options = {}) {
       rootDoc = doc
       rootBytes = loaded.bytes
       inspectRootDocument(doc, entry.label, state)
-      await inspectRootGeoreference(doc, entry.location.kind === 'local' ? entry.location.dir : null, state, entry.label)
     }
     state.documents += 1
     if (Array.isArray(doc.extensionsUsed)) {
@@ -1882,55 +1622,28 @@ function inspectRootDocument(doc, label, state) {
     if (inspectBoundingVolume(root.boundingVolume) === null) {
       inspectIssue(state.issues, 'error', 'bounding_volume_invalid', 'the root tile needs a boundingVolume with a box, region or sphere.', `${label}:root.boundingVolume`)
     }
+    // Only standard 3D Tiles georeferencing is accepted: a root tile must carry a
+    // world placement, otherwise Cesium reads local metres as ECEF and the dataset
+    // collapses near the earth's centre. The panel reports this instead of
+    // inferring a CRS from vendor sidecar files (tileset_info.json and friends):
+    // a silent rewrite makes the served bytes differ from the bytes on disk.
+    const hasTransform = Array.isArray(root.transform) && root.transform.length === 16
+    const hasRegion = isPlainObject(root.boundingVolume) && root.boundingVolume.region !== undefined
+    if (!hasTransform && !hasRegion) {
+      inspectIssue(
+        state.issues,
+        'error',
+        'tileset_not_georeferenced',
+        "the root tile has no transform (16 numbers) or boundingVolume.region, so its coordinates are read as ECEF; a dataset exported in local metres renders near the earth's centre. Re-export it with a root transform or region: this panel only accepts standard 3D Tiles 1.x georeferencing and never infers a CRS from sidecar files.",
+        `${label}:root`,
+      )
+    }
   }
-}
-
-/**
- * Report how a root document will be placed on the globe, and why it will not be
- * when that is the case. This is the diagnostic half of the serve-time
- * georeferencing: a document that /tiles cannot repair must never fail silently,
- * because the visible symptom (data near the earth's centre, `flyTo` diving to
- * the core) says nothing about the cause. `directory` is the folder of a local
- * document, or null for a remote one (its metadata cannot be read cross-origin).
- */
-export async function inspectRootGeoreference(doc, directory, state, label) {
-  const root = isPlainObject(doc?.root) ? doc.root : null
-  if (root === null || tilesetRootIsGeoreferenced(root)) return
-  const info = directory === null || directory === undefined ? null : await readTilesetInfoFile(directory)
-  const georeference = deriveLocalGeoreference(info)
-  if (georeference !== null) {
-    inspectIssue(
-      state.issues,
-      'info',
-      'georeference_derived',
-      `the root tile has no transform; the panel georeferences it from tileset_info.json as ${georeference.crs} (${georeference.lon.toFixed(6)}, ${georeference.lat.toFixed(6)}).`,
-      `${label}:root`,
-    )
-    return
-  }
-  if (info !== null) {
-    // The metadata exists but names a CRS this plugin cannot project. Saying so
-    // is the only honest answer: the dataset will still render at the core.
-    inspectIssue(
-      state.issues,
-      'warn',
-      'georeference_unsupported',
-      `tileset_info.json declares srs ${JSON.stringify(info.srs ?? null)}, which this panel cannot place without a projection database; its local metres are read as ECEF, so the data renders near the earth's centre. Supported: CGCS2000 Gauss-Krueger EPSG 4491-4554.`,
-      `${label}:root`,
-    )
-    return
-  }
-  inspectIssue(
-    state.issues,
-    'warn',
-    'no_georeference',
-    "the root tile has no transform or region, so its bounding volumes are read as ECEF and a dataset in local metres renders near the earth's centre. Add a root transform, or a sibling tileset_info.json with srs + srs_origin.",
-    `${label}:root`,
-  )
 }
 
 /** Write the report JSON, then keep only the newest reports. The absolute path is
- * added to the report itself as well, so the panel can copy it from either place. */async function writeInspectReport(report) {
+ * added to the report itself as well, so the panel can copy it from either place. */
+async function writeInspectReport(report) {
   await fs.mkdir(REPORT_DIR, { recursive: true })
   const base = `${inspectTimestamp()}-${inspectSlug(report.source?.label)}`
   let handle
@@ -2222,10 +1935,6 @@ async function tilesHandler(req, res, allowedDirs) {
     relParts.push(decoded)
   }
   const relPath = relParts.join(sep)
-  // OSGB-derived local tilesets often ship without a root `transform`; the host
-  // derives one from the sibling tileset_info.json so Cesium places them on the
-  // globe instead of reading local metres as ECEF coordinates.
-  if (await serveGeoreferencedTileset(req, res, resolvedDir, relPath, 'public, max-age=60')) return
   // serveFile repeats the real-path containment check on the target file.
   await serveFile(req, res, resolvedDir, relPath, 'public, max-age=60')
 }

@@ -394,20 +394,26 @@ test('client HUD 采样：拖动不采样、停手一次 depth read、周期不 
   assert.match(client, /sampleCursor\(viewer, Cesium, center, \{ pickPosition: true \}\)/)
 })
 
-test('client docked 全屏按钮：四角图标 + title/aria，不再以可见文本“全屏查看”作子节点', () => {
+test('client 显示三态：停靠 / 最大化侧栏 / 真全屏（DOM Fullscreen API）', () => {
   assert.match(client, /const FullscreenIcon = \(\{ size = 15 \}\) =>/)
   assert.match(client, /M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5/)
   assert.match(client, /const iconButton = \(icon, title, onClick, active\)/)
   assert.match(client, /className: `mv-btn icon\$\{active \? ' on' : ''\}`/)
   assert.match(client, /'aria-label': title/)
   assert.match(client, /'aria-pressed': active === undefined \? undefined : active/)
-  // docked 走图标按钮，非 docked 仍保留“在对话旁打开”的文字按钮。
+  // docked 走“最大化侧栏”图标按钮，非 docked 仍保留“在对话旁打开”的文字按钮。
   assert.match(
     client,
-    /docked\s*\n\s*\? iconButton\(h\(FullscreenIcon\), t\('btn\.immersiveTitle'\), togglePaneFullscreen\)\s*\n\s*: button\(t\('btn\.beside'\), openBeside\)/,
+    /docked\s*\n\s*\? iconButton\(h\(FullscreenIcon\), t\('btn\.maximizeTitle'\), togglePaneFullscreen\)\s*\n\s*: button\(t\('btn\.beside'\), openBeside\)/,
   )
-  // 旧的可点击文本（t('btn.immersive')）不再作为任何按钮内容；key 仅为兼容保留。
-  assert.doesNotMatch(client, /t\('btn\.immersive'\)/)
+  // 真全屏：面板根节点调用 DOM Fullscreen API，并在 fullscreenchange 里同步状态；
+  // 旧把“最大化侧栏”叫成全屏的文案已删除。
+  assert.match(client, /const toggleDomFullscreen = \(\) => \{/)
+  assert.match(client, /root\.requestFullscreen\(\{ navigationUI: 'hide' \}\)/)
+  assert.match(client, /document\.exitFullscreen\(\)/)
+  assert.match(client, /addEventListener\('fullscreenchange'/)
+  assert.match(client, /\.mv-root:fullscreen\{position:fixed;inset:0;width:100vw;height:100vh/)
+  assert.doesNotMatch(client, /btn\.immersive/)
   assert.match(client, /\.mv-btn:focus-visible\{outline:2px solid var\(--mv-accent\);outline-offset:1px\}/)
 })
 
@@ -423,10 +429,11 @@ test('client 窄宽 dock：420px 容器查询收起分隔符并收窄图层卡',
 // 依赖与脚本
 // ---------------------------------------------------------------------------
 
-test('QA 不引入新依赖：package.json 无 dependencies/devDependencies，脚本即 QA 命令', () => {
+test('QA 不引入运行时依赖：dependencies 必须为空，devDependencies 只允许构建期 esbuild', () => {
   const pkg = JSON.parse(packageText)
   assert.equal(pkg.dependencies, undefined)
-  assert.equal(pkg.devDependencies, undefined)
+  // v2.0：client.js 由 src/client 构建为单一产物，esbuild 是唯一的构建期依赖。
+  assert.deepEqual(Object.keys(pkg.devDependencies ?? {}), ['esbuild'])
   assert.equal(pkg.scripts.test, 'node --test')
   assert.match(pkg.scripts.check, /node --check index\.js/)
   assert.match(pkg.scripts.check, /node --check client\.js/)
