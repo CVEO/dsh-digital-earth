@@ -6,6 +6,7 @@
  */
 import React from 'react'
 import { createAnalysisEngine } from '../analysis/engine.js'
+import { buildAgentOverlayList, clearAgentOverlays as clearAgentOverlaysInState, removeAgentOverlay } from '../scene/agent-overlays.js'
 import { ACCESS_TIMEOUT_MS, imageryProvider, loadCesium, loadCesiumStyle, loadMeta, loadSources, persistSources, scanLocalDirectory, terrainProvider } from '../api.js'
 import { formatCursor, sampleCursor } from '../cursor.js'
 import { arrayBufferToBase64, b64url, clone, escapeHtml, formatArea, formatDistance, formatHeight, formatValue, geodesicLength, message, planarArea, redactUrl } from '../format.js'
@@ -792,6 +793,8 @@ const h = React.createElement
         // The commands themselves are kept so a remounted panel can redraw them.
         drawCommands: [],
         measureCommands: [],
+        // Entities per command (WeakMap keeps snapshots JSON-clean).
+        entityGroups: new WeakMap(),
       })
       const [agentOverlayCount, setAgentOverlayCount] = React.useState(0)
 
@@ -800,24 +803,9 @@ const h = React.createElement
         setAgentOverlayCount(state.draw.length + state.measure.length)
       }
 
-      function clearAgentOverlays(kind = 'all') {
-        const viewer = viewerRef.current
-        const state = agentOverlayRef.current
-        const drop = (entities) => {
-          if (viewer) for (const entity of entities) viewer.entities.remove(entity)
-        }
-        if (kind === 'all' || kind === 'draw') {
-          drop(state.draw)
-          state.draw = []
-          state.drawnFeatures = 0
-          state.drawCommands = []
-        }
-        if (kind === 'all' || kind === 'measure') {
-          drop(state.measure)
-          state.measure = []
-          state.measuredCount = 0
-          state.measureCommands = []
-        }
+      // Clear/remove helpers live in src/client/scene/agent-overlays.js.
+      const clearAgentOverlays = (kind = 'all') => {
+        clearAgentOverlaysInState(agentOverlayRef.current, viewerRef.current, kind)
         syncAgentOverlayCount()
         markSceneDirty()
       }
@@ -878,6 +866,7 @@ const h = React.createElement
        */
       function drawAgentOverlay(Cesium, viewer, geojson, style, caption) {
         const state = agentOverlayRef.current
+        const firstEntity = state.draw.length
         const color = agentOverlayColor(Cesium, style)
         const byType = { points: 0, lines: 0, polygons: 0 }
         const bbox = { west: Infinity, south: Infinity, east: -Infinity, north: -Infinity }
@@ -1027,11 +1016,14 @@ const h = React.createElement
         }
         state.drawnFeatures += drawn
         if (drawn > 0) {
-          state.drawCommands.push({
+          const command = {
             geojson,
             style,
+            drawn,
             ...(typeof caption === 'string' && caption !== '' ? { caption } : {}),
-          })
+          }
+          state.entityGroups.set(command, state.draw.slice(firstEntity))
+          state.drawCommands.push(command)
           markSceneDirty()
         }
         syncAgentOverlayCount()
@@ -1049,6 +1041,7 @@ const h = React.createElement
       /** Compute and (by default) draw a measurement; returns structured values. */
       function measureAgentOverlay(Cesium, viewer, args) {
         const state = agentOverlayRef.current
+        const firstEntity = state.measure.length
         const mode = args.mode
         const points = Array.isArray(args.points) ? args.points : []
         const round = (value, digits = 3) => Math.round(value * 10 ** digits) / 10 ** digits
@@ -1157,7 +1150,9 @@ const h = React.createElement
         // count in `overlays`; a numeric-only measurement adds no overlay.
         if (draw) {
           state.measuredCount += points.length
-          state.measureCommands.push({ mode, points, draw: true, result })
+          const command = { mode, points, draw: true, result }
+          state.entityGroups.set(command, state.measure.slice(firstEntity))
+          state.measureCommands.push(command)
           markSceneDirty()
         }
         syncAgentOverlayCount()
@@ -3325,6 +3320,12 @@ ${image !== '' ? `<h2>${escapeHtml(L.snapshot)}</h2>${image}` : ''}
                     onOverlayVisible: setOverlayVisible,
                     onOverlayMove: moveOverlay,
                     onClearVector: () => clearAgentOverlays('all'),
+                    agentOverlays: buildAgentOverlayList(agentOverlayRef.current),
+                    onRemoveAgentOverlay: (kind, index) => {
+                      if (!removeAgentOverlay(agentOverlayRef.current, viewerRef.current, kind, index)) return
+                      syncAgentOverlayCount()
+                      markSceneDirty()
+                    },
                   })
                 : null,
             )

@@ -44,6 +44,8 @@ export function LayersPanel({
   onOverlayVisible,
   onOverlayMove,
   onClearVector,
+  agentOverlays,
+  onRemoveAgentOverlay,
   analysis,
   onClearAnalysis,
 }) {
@@ -198,6 +200,19 @@ export function LayersPanel({
         { key: 'vector-row', className: 'mv-layer' },
         h('span', { className: 'name' }, `${t('layers.vectorDrawn')} ${drawn} · ${t('layers.vectorMeasured')} ${measured}`),
         h('button', { type: 'button', className: 'mv-icon-btn', title: t('tool.clear'), onClick: onClearVector }, '✕'),
+      ),
+      // Editable per-item list: each Agent draw/measure command is one row.
+      ...(Array.isArray(agentOverlays) ? agentOverlays : []).map((row) =>
+        h(
+          'div',
+          { key: row.id, className: 'mv-layer' },
+          h('span', { className: 'name', title: row.detail }, `${row.label} · ${row.detail}`),
+          h(
+            'button',
+            { type: 'button', className: 'mv-icon-btn', title: t('layers.vectorRemove'), onClick: () => onRemoveAgentOverlay(row.kind, row.index) },
+            '✕',
+          ),
+        ),
       ),
       // ---- analysis (Agent-driven; the panel owns the entry + the clear) ------
       h('div', { key: 'g5', className: 'mv-group' }, h('div', { className: 'mv-group-title' }, t('layers.analysis'))),

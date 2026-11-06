@@ -142,6 +142,7 @@ var MESSAGES = {
     "layers.emptyRaster": "暂无叠加层",
     "layers.vectorDrawn": "标注要素",
     "layers.vectorMeasured": "量测点",
+    "layers.vectorRemove": "移除该叠加",
     "layers.frameAll": "框全所有可见图层",
     "layers.analysis": "空间分析",
     "layers.analysisHint": "剖面 / 淹没 / 日照分析由对话 Agent 执行（例如：「对当前图层做一条从 A 到 B 的剖面」）；结果会显示在这里，可一键清除。",
@@ -513,6 +514,7 @@ var MESSAGES = {
     "layers.emptyRaster": "No overlays yet",
     "layers.vectorDrawn": "drawn features",
     "layers.vectorMeasured": "measured points",
+    "layers.vectorRemove": "Remove this overlay",
     "layers.frameAll": "Frame all visible layers",
     "layers.analysis": "Spatial analysis",
     "layers.analysisHint": "Profile / flood / sunlight analyses are run by the conversation Agent (e.g. “profile the current layer from A to B”); results appear here and can be cleared in one click.",
@@ -1839,6 +1841,107 @@ function createAnalysisEngine(deps) {
     /** Re-apply a saved sunlight restore state (used by scene restore). */
     restoreScene: () => restoreAnalysisScene()
   };
+}
+
+// src/client/scene/agent-overlays.js
+function clearAgentOverlays(state, viewer, kind = "all") {
+  const drop = (entities) => {
+    if (!viewer) return;
+    for (const entity of entities) {
+      try {
+        viewer.entities.remove(entity);
+      } catch {
+      }
+    }
+  };
+  if (kind === "all" || kind === "draw") {
+    drop(state.draw);
+    state.draw = [];
+    state.drawnFeatures = 0;
+    state.drawCommands = [];
+  }
+  if (kind === "all" || kind === "measure") {
+    drop(state.measure);
+    state.measure = [];
+    state.measuredCount = 0;
+    state.measureCommands = [];
+  }
+}
+function geojsonFeatureCount(geojson) {
+  if (geojson === null || typeof geojson !== "object") return 0;
+  if (geojson.type === "FeatureCollection") return Array.isArray(geojson.features) ? geojson.features.length : 0;
+  if (geojson.type === "Feature" || geojson.type === "GeometryCollection") return 1;
+  return typeof geojson.type === "string" ? 1 : 0;
+}
+function measureDetail(command) {
+  const result = command?.result ?? {};
+  if (command?.mode === "distance" && Number.isFinite(result.distance_m)) return `${result.distance_m.toFixed(1)} m`;
+  if (command?.mode === "area" && Number.isFinite(result.area_m2)) return `${result.area_m2.toFixed(1)} m²`;
+  if (command?.mode === "height" && Number.isFinite(result.height_m)) return `${result.height_m.toFixed(2)} m`;
+  return "";
+}
+function buildAgentOverlayList(state) {
+  const rows = [];
+  for (let index = 0; index < state.drawCommands.length; index += 1) {
+    const command = state.drawCommands[index];
+    const count = geojsonFeatureCount(command?.geojson);
+    rows.push({
+      id: `draw-${index}`,
+      kind: "draw",
+      index,
+      label: typeof command?.caption === "string" && command.caption !== "" ? command.caption : `标注 ${index + 1}`,
+      detail: `${count || command?.drawn || 0} 要素`
+    });
+  }
+  for (let index = 0; index < state.measureCommands.length; index += 1) {
+    const command = state.measureCommands[index];
+    rows.push({
+      id: `measure-${index}`,
+      kind: "measure",
+      index,
+      label: `量测 ${index + 1}`,
+      detail: `${command?.mode ?? "measure"}${measureDetail(command) === "" ? "" : ` · ${measureDetail(command)}`}`
+    });
+  }
+  return rows;
+}
+function removeAgentOverlay(state, viewer, kind, index) {
+  if (kind === "draw") {
+    const command = state.drawCommands[index];
+    if (!command) return false;
+    const entities = state.entityGroups?.get(command) ?? [];
+    state.drawCommands.splice(index, 1);
+    state.entityGroups?.delete(command);
+    for (const entity of entities) {
+      try {
+        viewer?.entities?.remove(entity);
+      } catch {
+      }
+      const at = state.draw.indexOf(entity);
+      if (at >= 0) state.draw.splice(at, 1);
+    }
+    state.drawnFeatures = Math.max(0, state.drawnFeatures - (Number.isFinite(command.drawn) ? command.drawn : entities.length));
+    return true;
+  }
+  if (kind === "measure") {
+    const command = state.measureCommands[index];
+    if (!command) return false;
+    const entities = state.entityGroups?.get(command) ?? [];
+    state.measureCommands.splice(index, 1);
+    state.entityGroups?.delete(command);
+    for (const entity of entities) {
+      try {
+        viewer?.entities?.remove(entity);
+      } catch {
+      }
+      const at = state.measure.indexOf(entity);
+      if (at >= 0) state.measure.splice(at, 1);
+    }
+    const points = Array.isArray(command.points) ? command.points.length : 0;
+    state.measuredCount = Math.max(0, state.measuredCount - points);
+    return true;
+  }
+  return false;
 }
 
 // src/client/api.js
@@ -4269,6 +4372,8 @@ function LayersPanel({
   onOverlayVisible,
   onOverlayMove,
   onClearVector,
+  agentOverlays,
+  onRemoveAgentOverlay,
   analysis,
   onClearAnalysis
 }) {
@@ -4409,6 +4514,18 @@ function LayersPanel({
         { key: "vector-row", className: "mv-layer" },
         h5("span", { className: "name" }, `${t2("layers.vectorDrawn")} ${drawn} · ${t2("layers.vectorMeasured")} ${measured}`),
         h5("button", { type: "button", className: "mv-icon-btn", title: t2("tool.clear"), onClick: onClearVector }, "✕")
+      ),
+      ...(Array.isArray(agentOverlays) ? agentOverlays : []).map(
+        (row) => h5(
+          "div",
+          { key: row.id, className: "mv-layer" },
+          h5("span", { className: "name", title: row.detail }, `${row.label} · ${row.detail}`),
+          h5(
+            "button",
+            { type: "button", className: "mv-icon-btn", title: t2("layers.vectorRemove"), onClick: () => onRemoveAgentOverlay(row.kind, row.index) },
+            "✕"
+          )
+        )
       ),
       // ---- analysis (Agent-driven; the panel owns the entry + the clear) ------
       h5("div", { key: "g5", className: "mv-group" }, h5("div", { className: "mv-group-title" }, t2("layers.analysis"))),
@@ -5072,34 +5189,20 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     measuredCount: 0,
     // The commands themselves are kept so a remounted panel can redraw them.
     drawCommands: [],
-    measureCommands: []
+    measureCommands: [],
+    // Entities per command (WeakMap keeps snapshots JSON-clean).
+    entityGroups: /* @__PURE__ */ new WeakMap()
   });
   const [agentOverlayCount, setAgentOverlayCount] = import_react9.default.useState(0);
   const syncAgentOverlayCount = () => {
     const state = agentOverlayRef.current;
     setAgentOverlayCount(state.draw.length + state.measure.length);
   };
-  function clearAgentOverlays(kind = "all") {
-    const viewer = viewerRef.current;
-    const state = agentOverlayRef.current;
-    const drop = (entities) => {
-      if (viewer) for (const entity of entities) viewer.entities.remove(entity);
-    };
-    if (kind === "all" || kind === "draw") {
-      drop(state.draw);
-      state.draw = [];
-      state.drawnFeatures = 0;
-      state.drawCommands = [];
-    }
-    if (kind === "all" || kind === "measure") {
-      drop(state.measure);
-      state.measure = [];
-      state.measuredCount = 0;
-      state.measureCommands = [];
-    }
+  const clearAgentOverlays2 = (kind = "all") => {
+    clearAgentOverlays(agentOverlayRef.current, viewerRef.current, kind);
     syncAgentOverlayCount();
     markSceneDirty();
-  }
+  };
   const AGENT_OVERLAY_COLORS = {
     accent: "#5b8cff",
     alert: "#e5484d",
@@ -5141,6 +5244,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
   });
   function drawAgentOverlay(Cesium, viewer, geojson, style, caption) {
     const state = agentOverlayRef.current;
+    const firstEntity = state.draw.length;
     const color = agentOverlayColor(Cesium, style);
     const byType = { points: 0, lines: 0, polygons: 0 };
     const bbox = { west: Infinity, south: Infinity, east: -Infinity, north: -Infinity };
@@ -5287,11 +5391,14 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     }
     state.drawnFeatures += drawn;
     if (drawn > 0) {
-      state.drawCommands.push({
+      const command = {
         geojson,
         style,
+        drawn,
         ...typeof caption === "string" && caption !== "" ? { caption } : {}
-      });
+      };
+      state.entityGroups.set(command, state.draw.slice(firstEntity));
+      state.drawCommands.push(command);
       markSceneDirty();
     }
     syncAgentOverlayCount();
@@ -5305,6 +5412,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
   }
   function measureAgentOverlay(Cesium, viewer, args) {
     const state = agentOverlayRef.current;
+    const firstEntity = state.measure.length;
     const mode = args.mode;
     const points = Array.isArray(args.points) ? args.points : [];
     const round = (value, digits = 3) => Math.round(value * 10 ** digits) / 10 ** digits;
@@ -5410,7 +5518,9 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     }
     if (draw) {
       state.measuredCount += points.length;
-      state.measureCommands.push({ mode, points, draw: true, result });
+      const command = { mode, points, draw: true, result };
+      state.entityGroups.set(command, state.measure.slice(firstEntity));
+      state.measureCommands.push(command);
       markSceneDirty();
     }
     syncAgentOverlayCount();
@@ -6587,7 +6697,7 @@ ${image !== "" ? `<h2>${escapeHtml(L.snapshot)}</h2>${image}` : ""}
       return pickResult(position);
     }
     if (action === "draw") {
-      if (args.clear === true) clearAgentOverlays("all");
+      if (args.clear === true) clearAgentOverlays2("all");
       const outcome = args.geojson !== void 0 ? drawAgentOverlay(Cesium, viewer, args.geojson, args.style, args.label) : { drawn: 0, by_type: { points: 0, lines: 0, polygons: 0 }, bbox: null };
       const value = {
         ok: true,
@@ -6601,7 +6711,7 @@ ${image !== "" ? `<h2>${escapeHtml(L.snapshot)}</h2>${image}` : ""}
       return value;
     }
     if (action === "measure") {
-      if (args.clear === true) clearAgentOverlays("all");
+      if (args.clear === true) clearAgentOverlays2("all");
       const value = measureAgentOverlay(Cesium, viewer, args);
       value.cleared = args.clear === true;
       value.overlays = agentOverlayRef.current.draw.length + agentOverlayRef.current.measure.length;
@@ -7074,7 +7184,7 @@ ${image !== "" ? `<h2>${escapeHtml(L.snapshot)}</h2>${image}` : ""}
                 key: "clearAgent",
                 onClick: () => {
                   setOpenMenu(null);
-                  clearAgentOverlays("all");
+                  clearAgentOverlays2("all");
                   showToast(t2("agent.clearedOverlays"));
                 }
               },
@@ -7283,7 +7393,13 @@ ${image !== "" ? `<h2>${escapeHtml(L.snapshot)}</h2>${image}` : ""}
         onOverlayOpacity: setOverlayOpacity,
         onOverlayVisible: setOverlayVisible,
         onOverlayMove: moveOverlay,
-        onClearVector: () => clearAgentOverlays("all")
+        onClearVector: () => clearAgentOverlays2("all"),
+        agentOverlays: buildAgentOverlayList(agentOverlayRef.current),
+        onRemoveAgentOverlay: (kind, index) => {
+          if (!removeAgentOverlay(agentOverlayRef.current, viewerRef.current, kind, index)) return;
+          syncAgentOverlayCount();
+          markSceneDirty();
+        }
       }) : null
     ) : null,
     phase === "ready" && layers.length === 0 && !emptyDismissed && !restoringScene ? h7(

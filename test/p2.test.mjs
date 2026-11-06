@@ -561,7 +561,9 @@ test('P2 数据菜单 menu.report 调用 runCommand("report",{format:"html"}) �
 test('P2 measureCommands 记录量测 result，供报告引用', () => {
   const measureSource = sourceSlice(clientSource, 'function measureAgentOverlay', '//#endregion Agent overlays')
   assert.ok(measureSource.includes('const result = { mode, points: points.length, drawn: draw }'))
-  assert.ok(measureSource.includes('state.measureCommands.push({ mode, points, draw: true, result })'))
+  // v1.6：命令对象里额外记录实体组（WeakMap），量测行才能单独移除。
+  assert.ok(measureSource.includes('const command = { mode, points, draw: true, result }'))
+  assert.ok(measureSource.includes('state.measureCommands.push(command)'))
   assert.ok(measureSource.includes('return result'))
 })
 
