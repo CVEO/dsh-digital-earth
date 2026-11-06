@@ -47,8 +47,22 @@ test('拆分：引擎块标记与错误契约原样保留（旧结构测试仍�
 })
 
 test('拆分：行数预算收紧后两条约束都成立', () => {
-  assert.ok(viewer.split('\n').length < 3800, `ViewerSurface 行数 ${viewer.split('\n').length} 超过 3800`)
+  assert.ok(viewer.split('\n').length < 3600, `ViewerSurface 行数 ${viewer.split('\n').length} 超过 3600`)
   assert.ok(engine.split('\n').length < 600, `engine 行数 ${engine.split('\n').length} 超过 600`)
   // 引擎不再依赖任何 React 组件状态，只有一个纯工厂导出。
   assert.doesNotMatch(engine, /React\./)
+})
+
+test('拆分：shader 引擎也在自己的模块里，ViewerSurface 只保留委托', () => {
+  const shaderEngine = readRepoFile('src/client/scene/shader-engine.js')
+  for (const fn of ['applyShader', 'resetShader', 'shaderCommand', 'detachShaderForLayer', 'releaseShaderTick', 'shaderActiveList']) {
+    assert.ok(shaderEngine.includes(fn), `shader-engine 缺少 ${fn}`)
+    assert.ok(!viewer.includes(`function ${fn}(`), `ViewerSurface 仍内联 ${fn}`)
+  }
+  assert.match(shaderEngine, /export function createShaderEngine\(deps\)/)
+  assert.match(shaderEngine, /\/\/#region shader engine/)
+  assert.match(viewer, /import \{ createShaderEngine \} from '\.\.\/scene\/shader-engine\.js'/)
+  assert.match(viewer, /const shaderCommand = \(args = \{\}\) => shaderEngine\.command\(args\)/)
+  assert.match(viewer, /const releaseShaderTick = \(\) => shaderEngine\.releaseTick\(\)/)
+  assert.ok(shaderEngine.split('\n').length < 400, `shader-engine 行数 ${shaderEngine.split('\n').length} 超过 400`)
 })
