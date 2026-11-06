@@ -35,7 +35,7 @@
 | 坐标 HUD | 光标经纬度 + 高程；裸地球、地形、模型三种情形均可用，约 5–6 Hz 采样，拖动时暂停、停手后补一次，不触发重渲染；FPS 取 Cesium 真实渲染帧（`scene.postRender`），场景静止 2 秒显示 `—` 而不是假的 0 |
 | 量测与工具 | 测距、测面、测高、拾取 3D Tiles 属性、截图、复位视角 |
 | 地形分析 | `earth_analyze`：剖面（含 SVG 剖面卡）、淹没、日照、剖切、天际线五类分析一次只保留一个；结果以地图叠加与数值返回，清除时移除叠加，日照分析还会恢复进入前的光照 / 阴影状态，剖切会恢复图层原有的裁剪面 |
-| 着色器预设 | `earth_shader`：高程渐变、等高线、扫描、水面四个白名单预设，按图层应用 / 重置 / 列出；3DGS 不支持，不接受自定义 GLSL |
+| 着色器预设 | `earth_shader`：高程渐变、等高线、扫描、水面、水深五个白名单预设，按图层应用 / 重置 / 列出；`preset` 还接受 1–3 个预设的数组叠加（`stack` 字段返回顺序）；3DGS 不支持，不接受自定义 GLSL |
 | 可折叠面板 | 图层面板与坐标 HUD 可从工具栏收起 / 展开，图层卡标题栏也可收起；设置中的显示开关持久化 |
 | 干净截图 | 手动与 Agent 截图默认只保留三维画面；需要时按次传 `include_hud` 或打开设置开关，把坐标 HUD 与团队署名绘入图片 |
 | 图层统计 | 每层瓦片数、待加载数、三角面数、缓存占用；全局 FPS 与相机高度 / 朝向 |
@@ -92,7 +92,7 @@ Agent 调用地球工具时，插件会自动在对话右侧打开地球页签�
 | `earth_draw` | `features`（GeoJSON 字符串：要素集合、单个要素或裸几何）、`style`（`accent` / `alert` / `success` / `warm` / `violet`）、`label`、`clear` | 绘制点 / 多点、线 / 多线、面 / 多面与文字标签，要素 `properties.name` 作为逐要素标签；单次最多 500 个要素 / 20000 个坐标，`clear=true` 清除此前 Agent 绘制的全部叠加；返回要素数与包围盒 |
 | `earth_measure` | `mode`（`distance` / `area` / `height`）、`points`（`[lon,lat]` 或 `[lon,lat,height]`，最多 200 个）、`draw`、`clear` | 大地线距离、平面面积（含周长）、高差（含水平距离与坡度）；默认把量测绘到地球上，`draw=false` 只返回数值；结果 JSON 以米 / 千米给出 |
 | `earth_analyze` | `action`（`profile` / `flood` / `sunlight` / `clip` / `skyline` / `clear`）、`layer`、`from` / `to`（剖面；天际线为观察点/方向目标）、`samples`、`region`、`water_height`、`grid`、`datetime`、`show_shadows`、`height`（剖切高程）、`keep`（`below` / `above`） | 地形分析：剖面（长度、起伏 / 爬升 / 下降与采样点，面板显示 SVG 剖面卡）、淹没（面积、淹没比与水深）、日照（太阳高度角 / 方位角，切换光照与阴影）与清除；一次只保留一个活动分析，默认取最上面的可见 3D Tiles 图层；无可用高程时返回错误，不猜测数值 |
-| `earth_shader` | `action`（`apply` / `reset` / `list`）、`layer`、`preset`（`height-false-color` / `contour` / `scan` / `water`）、`min_height` / `max_height`、`interval`、`speed`、`amplitude`、`opacity` | 为单个 3D Tiles 图层应用 / 重置白名单着色器预设，或列出当前活动预设；同一图层只保留一个 shader，参数按预设严格校验；3DGS 图层不支持，也不接受自定义 GLSL |
+| `earth_shader` | `action`（`apply` / `reset` / `list`）、`layer`、`preset`（`height-false-color` / `contour` / `scan` / `water` / `water-depth`，或 1–3 个预设的数组叠加）、`min_height` / `max_height`、`interval`、`speed`、`amplitude`、`opacity`、`water_height` / `depth_max` | 为单个 3D Tiles 图层应用 / 重置白名单着色器预设（可叠加），或列出当前活动预设；同一图层只保留一个 shader，参数按所选预设的并集严格校验；3DGS 图层不支持，也不接受自定义 GLSL |
 
 | `/earth` 命令 | 作用 |
 | --- | --- |
@@ -112,7 +112,7 @@ Agent 调用地球工具时，插件会自动在对话右侧打开地球页签�
 - **本地数据**：Agent 可直接加载面板「数据 → 打开本地目录」里选过的目录，也可直接传本机绝对路径。路径越出白名单时，宿主会先向面板发起一次授权请求；用户允许后先把所在目录登记为本地数据源，再继续原加载 / 体检。拒绝返回 `access_denied` 且不自动重试，30 秒未处理返回 `access_timeout`；白名单、真实路径与根目录校验不变，命令桥与工具结果不暴露实例 token，模型无法自行扩大可读范围。选过的目录会记入 `$DSH_HOME/digital-earth/directories.json`，重启 DSH 后仍可直接加载。
 - **标准数据契约**：只接受标准 3D Tiles 1.0 / 1.1，根瓦片必须自带世界定位（`root.transform` 或 `root.boundingVolume.region`）。不少 OSGB 转换工具只写局部坐标——根节点没有 `transform`/`region`，原点写在同级 `tileset_info.json` 里；这类数据在 v1.5 起**不再被插件代偿**：宿主原样返回文件字节，数据体检会报 `tileset_not_georeferenced` 错误并说明症状（数据坍缩到地心附近、`flyTo` 钻进地核、瓦片在视锥里反复闪现）。修复方式是在转换时写入根 `transform` 或 `region`，插件不做隐式改写，因此「Cesium 拿到的字节」永远等于「磁盘上的字节」。嵌套外部 tileset 由父级 `tileset.json` 的根变换负责，插件不重复叠加。
 - **地形分析**：`earth_analyze` 一次只保留一个活动分析，新分析替换旧分析；剖面返回长度、起伏 / 爬升 / 下降与采样点并显示 SVG 剖面卡，淹没返回面积、淹没比与水深，日照切换光照与阴影，`clear` 移除分析叠加并在日照分析后恢复进入前的光照 / 阴影 / 时钟状态。没有有效高程数据时返回可操作错误，不猜测数值。
-- **着色器预设**：`earth_shader` 的预设固定为高程渐变、等高线、扫描、水面四种，按图层应用 / 重置 / 列出；同一图层只保留一个 shader，参数按预设严格校验。3DGS 图层不支持该能力，模型与面板都不能注入自定义 GLSL。
+- **着色器预设**：`earth_shader` 的预设固定为高程渐变、等高线、扫描、水面、水深五种，按图层应用 / 重置 / 列出；`preset` 可传 1–3 个预设的数组叠加（按顺序合成、参数取并集），同一图层只保留一个 shader，参数按所选预设严格校验。3DGS 图层不支持该能力，模型与面板都不能注入自定义 GLSL。
 - **场景报告**：直接说「导出当前场景报告」即可调用 `earth_scene` 的 `report`；面板「数据 ▾ → 导出场景报告」或聊天里的 `/earth report [html|markdown]` 也能导出。报告包含相机、图层与显隐、底图 / 地形、Agent 标注与量测数值、活动地形分析、着色器预设和尽力截取的截图：HTML 是单文件（截图 base64 内嵌、内联样式），Markdown 以图片链接引用截图；文件写入 `$DSH_HOME/digital-earth/exports`（保留最近 200 份），工具会返回绝对路径并提示用 `present` 打开。
 - **截图与多模态**：截图保存到 `$DSH_HOME/digital-earth/captures`；对话中的 `earth_capture` 工具行会显示一张可点击的小缩略图，链接到完整截图——图片地址由页面元数据拼装并受实例 token 保护，模型侧仍只看到文件路径。支持图像解译的多模态模型可用 `read_image` 读取返回路径；不支持视觉的模型则退回 `earth_scene` 的 `status` JSON，不编造画面内容。
 - **数据体检**：对当前图层说「做一次数据体检」即可；`layer` 模式由面板解析原始来源并附加运行统计，`path` / `url` 模式在面板未打开时也能体检。报告写入 `$DSH_HOME/digital-earth/reports`（保留最近 100 份），工具只返回摘要与 `report_path`，需要细节时再读文件。

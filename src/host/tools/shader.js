@@ -55,6 +55,15 @@ const SHADER_MIN_DEPTH_MAX = 0.5
 const SHADER_MAX_DEPTH_MAX = 500
 const SHADER_DEFAULT_DEPTH_MAX = 50
 const SHADER_DEFAULT_WATER_HEIGHT = 0
+/** D-17: one shader command may compose at most this many presets. */
+const SHADER_MAX_STACK = 3
+/** Defaults per preset (composition merges them in array order, then explicit values win). */
+const SHADER_PRESET_DEFAULTS = {
+  contour: { interval: SHADER_DEFAULT_INTERVAL },
+  scan: { speed: SHADER_DEFAULT_SPEED },
+  water: { speed: SHADER_DEFAULT_SPEED, amplitude: SHADER_DEFAULT_AMPLITUDE, opacity: SHADER_DEFAULT_OPACITY },
+  'water-depth': { water_height: SHADER_DEFAULT_WATER_HEIGHT, depth_max: SHADER_DEFAULT_DEPTH_MAX },
+}
 
 const SHADER_PARAMETERS = {
   type: 'object',
@@ -69,9 +78,17 @@ const SHADER_PARAMETERS = {
       description: 'apply/reset: layer name or id from earth_scene status. apply defaults to the topmost visible 3D Tiles layer; omit layer on reset to clear every shader.',
     },
     preset: {
-      type: 'string',
-      enum: SHADER_PRESETS,
-      description: 'apply: one whitelisted look preset. height-false-color: elevation color ramp; contour: height isolines; scan: moving height band; water: translucent animated water surface.',
+      oneOf: [
+        { type: 'string', enum: SHADER_PRESETS },
+        {
+          type: 'array',
+          items: { type: 'string', enum: SHADER_PRESETS },
+          minItems: 1,
+          maxItems: SHADER_MAX_STACK,
+          uniqueItems: true,
+        },
+      ],
+      description: 'apply: one whitelisted look preset, or an ordered array of up to three presets to compose (no duplicates). One preset: height-false-color (elevation color ramp); contour (height isolines); scan (moving height band); water (translucent animated water surface); water-depth (fixed depth ramp below a water plane). Stacking an array applies the fragment bodies in order.',
     },
     min_height: {
       type: 'number',
@@ -127,10 +144,10 @@ const SHADER_PARAMETERS = {
 }
 
 const SHADER_DESCRIPTION = [
-  'Apply one of five whitelisted look presets to a loaded 3D Tiles layer: height-false-color (elevation color ramp), contour (height isolines), scan (moving height band), water (translucent animated water surface) and water-depth (fixed depth ramp below a chosen water plane).',
-  'apply adds or replaces the single shader on the chosen layer; different layers can show different presets, but applying again to the same layer replaces its shader. reset clears one layer or every active shader; list reports active shaders and presets.',
-  'No custom GLSL is accepted; only these presets exist, so the model cannot inject shader source. Load 3D Tiles first: with no loaded 3D Tiles layer, or on 3DGS splats and layers without Cesium.CustomShader support, apply returns an error instead of a partial shader.',
-  'Parameters use meters and seconds: height-false-color takes optional min_height/max_height, contour interval (default 20), scan speed (default 1), water speed/amplitude/opacity (defaults 1/1/0.75), water-depth water_height/depth_max (defaults 0/50).',
+  'Apply one of five whitelisted look presets to a loaded 3D Tiles layer: height-false-color (elevation color ramp), contour (height isolines), scan (moving height band), water (animated water surface) and water-depth (depth ramp below a water plane).',
+  'apply adds or replaces the single shader on the chosen layer; applying again to the same layer replaces its shader. "preset" also accepts an ordered array of up to three presets to compose them (no duplicates; parameters are shared). reset clears one layer or every active shader; list reports active shaders and presets.',
+  'No custom GLSL is accepted; only these presets exist. Load 3D Tiles first: with no loaded 3D Tiles layer, or on 3DGS splats and unsupported layers, apply returns an error instead of a partial shader.',
+  'Parameters use meters and seconds: height-false-color min_height/max_height, contour interval (20), scan speed (1), water speed/amplitude/opacity (1/1/0.75), water-depth water_height/depth_max (0/50).',
   'Returns compact text plus JSON with operation, preset, layer, active and presets; call earth_capture if the user should see the shaded view.',
 ].join('\n')
 
@@ -223,56 +240,70 @@ export function normalizeShaderRequest(raw) {
     return { args }
   }
 
-  const preset = input.preset
-  if (typeof preset !== 'string' || !SHADER_PRESETS.includes(preset)) {
+  // D-17: `preset` is a single whitelisted preset or an ordered array of 1..3
+  // (each applied in order, duplicates rejected). Parameters are the union of the
+  // selected presets; defaults merge in composition order then explicit values win.
+  const presetInput = input.preset
+  const presets = Array.isArray(presetInput)
+    ? presetInput.map((item) => (typeof item === 'string' ? item.trim() : ''))
+    : typeof presetInput === 'string'
+      ? [presetInput.trim()]
+      : []
+  if (presets.length === 0 || presets.length > SHADER_MAX_STACK) {
     throw shaderError(
-      `apply needs "preset"; "preset" must be one of ${SHADER_PRESETS.join(', ')}.`,
-      'choose height-false-color, contour, scan, water or water-depth.',
+      `"preset" must be one preset or an array of 1..${SHADER_MAX_STACK} presets; got ${presets.length}.`,
+      'pass a preset name, or a short array of preset names to compose them in order.',
     )
   }
-  rejectShaderKeys(input, 'apply', new Set(['layer', 'preset', ...SHADER_PRESET_PARAMETERS[preset]]))
-  const args = { action, preset }
-  if (input.layer !== undefined) args.layer = normalizeShaderLayer(input.layer)
-
-  if (preset === 'height-false-color') {
-    const hasMin = input.min_height !== undefined
-    const hasMax = input.max_height !== undefined
-    const min = hasMin ? normalizeShaderNumber(input.min_height, 'min_height', SHADER_MIN_HEIGHT, SHADER_MAX_HEIGHT) : undefined
-    const max = hasMax ? normalizeShaderNumber(input.max_height, 'max_height', SHADER_MIN_HEIGHT, SHADER_MAX_HEIGHT) : undefined
-    if (hasMin && hasMax && min >= max) {
+  for (const preset of presets) {
+    if (!SHADER_PRESETS.includes(preset)) {
       throw shaderError(
-        '"min_height" must be less than "max_height".',
-        'send a lower bound below the upper bound, or omit both to use the layer extent.',
+        `unknown preset "${String(preset)}"; presets are ${SHADER_PRESETS.join(', ')}.`,
+        'choose height-false-color, contour, scan, water or water-depth.',
       )
     }
-    if (hasMin) args.min_height = min
-    if (hasMax) args.max_height = max
-  } else if (preset === 'contour') {
-    args.interval = input.interval === undefined
-      ? SHADER_DEFAULT_INTERVAL
-      : normalizeShaderNumber(input.interval, 'interval', SHADER_MIN_INTERVAL, SHADER_MAX_INTERVAL)
-  } else if (preset === 'scan') {
-    args.speed = input.speed === undefined
-      ? SHADER_DEFAULT_SPEED
-      : normalizeShaderNumber(input.speed, 'speed', SHADER_MIN_SPEED, SHADER_MAX_SPEED)
-  } else if (preset === 'water') {
-    args.speed = input.speed === undefined
-      ? SHADER_DEFAULT_SPEED
-      : normalizeShaderNumber(input.speed, 'speed', SHADER_MIN_SPEED, SHADER_MAX_SPEED)
-    args.amplitude = input.amplitude === undefined
-      ? SHADER_DEFAULT_AMPLITUDE
-      : normalizeShaderNumber(input.amplitude, 'amplitude', SHADER_MIN_AMPLITUDE, SHADER_MAX_AMPLITUDE)
-    args.opacity = input.opacity === undefined
-      ? SHADER_DEFAULT_OPACITY
-      : normalizeShaderNumber(input.opacity, 'opacity', SHADER_MIN_OPACITY, SHADER_MAX_OPACITY)
-  } else {
-    // water-depth: a fixed depth ramp below a chosen water plane (no animation).
-    args.water_height = input.water_height === undefined
-      ? SHADER_DEFAULT_WATER_HEIGHT
-      : normalizeShaderNumber(input.water_height, 'water_height', SHADER_MIN_HEIGHT, SHADER_MAX_HEIGHT)
-    args.depth_max = input.depth_max === undefined
-      ? SHADER_DEFAULT_DEPTH_MAX
-      : normalizeShaderNumber(input.depth_max, 'depth_max', SHADER_MIN_DEPTH_MAX, SHADER_MAX_DEPTH_MAX)
+  }
+  if (new Set(presets).size !== presets.length) {
+    throw shaderError(
+      '"preset" contains duplicates.',
+      'list each preset once; array order is the composition order.',
+    )
+  }
+  const allowedParams = new Set(presets.flatMap((preset) => [...SHADER_PRESET_PARAMETERS[preset]]))
+  rejectShaderKeys(input, 'apply', new Set(['layer', 'preset', ...allowedParams]))
+  const args = { action, preset: presets.length === 1 ? presets[0] : presets }
+  if (input.layer !== undefined) args.layer = normalizeShaderLayer(input.layer)
+
+  const defaults = {}
+  for (const preset of presets) Object.assign(defaults, SHADER_PRESET_DEFAULTS[preset] ?? {})
+  const rules = {
+    min_height: [SHADER_MIN_HEIGHT, SHADER_MAX_HEIGHT],
+    max_height: [SHADER_MIN_HEIGHT, SHADER_MAX_HEIGHT],
+    interval: [SHADER_MIN_INTERVAL, SHADER_MAX_INTERVAL],
+    speed: [SHADER_MIN_SPEED, SHADER_MAX_SPEED],
+    amplitude: [SHADER_MIN_AMPLITUDE, SHADER_MAX_AMPLITUDE],
+    opacity: [SHADER_MIN_OPACITY, SHADER_MAX_OPACITY],
+    water_height: [SHADER_MIN_HEIGHT, SHADER_MAX_HEIGHT],
+    depth_max: [SHADER_MIN_DEPTH_MAX, SHADER_MAX_DEPTH_MAX],
+  }
+  for (const [key, range] of Object.entries(rules)) {
+    if (!allowedParams.has(key)) continue
+    if (input[key] === undefined || input[key] === null) {
+      if (key in defaults) args[key] = defaults[key]
+      continue
+    }
+    args[key] = normalizeShaderNumber(input[key], key, range[0], range[1])
+  }
+  if (
+    presets.includes('height-false-color') &&
+    input.min_height !== undefined &&
+    input.max_height !== undefined &&
+    args.min_height >= args.max_height
+  ) {
+    throw shaderError(
+      '"min_height" must be less than "max_height".',
+      'send a lower bound below the upper bound, or omit both to use the layer extent.',
+    )
   }
   return { args }
 }
@@ -280,13 +311,22 @@ export function normalizeShaderRequest(raw) {
 function renderShaderResult(value) {
   if (!isPlainObject(value)) return String(value)
   const operation = typeof value.operation === 'string' ? value.operation : 'unknown'
-  const preset = typeof value.preset === 'string' && value.preset !== '' ? value.preset : null
+  const presetText = Array.isArray(value.preset)
+    ? value.preset.filter((item) => typeof item === 'string').join(' + ')
+    : typeof value.preset === 'string'
+      ? value.preset
+      : ''
+  const preset = presetText !== '' ? presetText : null
   const layer = typeof value.layer === 'string' && value.layer !== '' ? value.layer : null
   const active = []
   for (const entry of Array.isArray(value.active) ? value.active : []) {
     if (!isPlainObject(entry)) continue
     const activeLayer = typeof entry.layer === 'string' && entry.layer !== '' ? entry.layer : 'unknown layer'
-    const activePreset = typeof entry.preset === 'string' && entry.preset !== '' ? entry.preset : 'unknown preset'
+    const activePreset = Array.isArray(entry.preset)
+      ? entry.preset.filter((item) => typeof item === 'string').join(' + ')
+      : typeof entry.preset === 'string' && entry.preset !== ''
+        ? entry.preset
+        : 'unknown preset'
     active.push(`${activeLayer} (${activePreset})`)
     if (active.length >= 20) {
       active.push('...')

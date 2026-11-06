@@ -41,6 +41,8 @@ export function createShaderEngine(deps) {
         operation,
         preset: preset ?? null,
         layer: layer ?? null,
+        // D-18 additive: the ordered stack (one entry for a single preset).
+        stack: Array.isArray(preset) ? preset.slice() : preset ? [preset] : [],
         active: shaderActiveList(),
         presets: SHADER_PRESETS.slice(),
       })
@@ -160,10 +162,11 @@ export function createShaderEngine(deps) {
           throw shaderFail(`高程范围无效（${range.minimum}..${range.maximum}）。`, '传入 min_height < max_height。')
         }
         const options = {
-          uniforms: shaderUniforms(Cesium, request.preset, request.params, range),
-          fragmentShaderText: shaderFragmentSource(request.preset),
+          uniforms: shaderUniforms(Cesium, request.presets ?? request.preset, request.params, range),
+          fragmentShaderText: shaderFragmentSource(request.presets ?? request.preset),
         }
-        if ((request.preset === 'water' || request.preset === 'water-depth') && Cesium.CustomShaderTranslucencyMode?.TRANSLUCENT !== undefined) {
+        const stack = Array.isArray(request.presets) ? request.presets : [request.preset]
+        if ((stack.includes('water') || stack.includes('water-depth')) && Cesium.CustomShaderTranslucencyMode?.TRANSLUCENT !== undefined) {
           options.translucencyMode = Cesium.CustomShaderTranslucencyMode.TRANSLUCENT
         }
         let shader = null

@@ -11,6 +11,8 @@
     // only the fragment material (diffuse/alpha), so lighting and geometry stay
     // untouched and a broken shader cannot corrupt the scene.
     const SHADER_PRESETS = ['height-false-color', 'contour', 'scan', 'water', 'water-depth']
+    /** D-17: at most three presets may be stacked into one composed shader. */
+    const SHADER_MAX_STACK = 3
     /** Hard cap from the B3 contract: one preset source stays well under 8 KB. */
     const SHADER_SOURCE_LIMIT = 8 * 1024
     const SHADER_HEIGHT_FLOOR = -1000
@@ -72,23 +74,40 @@
         return { operation: 'reset', layer }
       }
 
-      const preset = typeof raw.preset === 'string' ? raw.preset.trim() : ''
-      if (!SHADER_PRESETS.includes(preset)) {
+      // D-17: `preset` may also be an ordered array of 1..3 presets and is then
+      // composed into one shader (each preset's fragment body gets its own block
+      // scope so local variable names cannot collide).
+      const rawPresets = Array.isArray(raw.preset) ? raw.preset : typeof raw.preset === 'string' ? [raw.preset] : []
+      const presets = rawPresets.map((item) => (typeof item === 'string' ? item.trim() : ''))
+      if (presets.length === 0 || presets.length > SHADER_MAX_STACK) {
         return shaderFail(
-          `不支持的预设 "${String(raw.preset)}"。`,
-          '使用 height-false-color / contour / scan / water / water-depth。',
+          `preset 需要 1..${SHADER_MAX_STACK} 个预设，实际 ${presets.length} 个。`,
+          '传入一个预设字符串，或 1..3 个预设的数组（按顺序叠加）。',
         )
       }
-      const allowed = new Set(['preset', 'layer', ...SHADER_PRESET_PARAMS[preset]])
+      for (const preset of presets) {
+        if (!SHADER_PRESETS.includes(preset)) {
+          return shaderFail(
+            `不支持的预设 "${String(preset)}"。`,
+            '使用 height-false-color / contour / scan / water / water-depth。',
+          )
+        }
+      }
+      if (new Set(presets).size !== presets.length) {
+        return shaderFail('预设不能重复。', '每个预设只列一次；顺序即叠加顺序。')
+      }
+      const allowedParams = new Set(presets.flatMap((preset) => SHADER_PRESET_PARAMS[preset]))
+      const allowed = new Set(['preset', 'layer', ...allowedParams])
       const extra = keys.filter((key) => !allowed.has(key))
       if (extra.length > 0) {
         return shaderFail(
-          `预设 ${preset} 不接受参数 "${extra[0]}"。`,
-          `只使用 ${['preset', 'layer', ...SHADER_PRESET_PARAMS[preset]].join(', ')}。`,
+          `预设 ${presets.join(' + ')} 不接受参数 "${extra[0]}"。`,
+          `只使用 ${['preset', 'layer', ...allowedParams].join(', ')}。`,
         )
       }
-      const params = { ...SHADER_PRESET_DEFAULTS[preset] }
-      for (const key of SHADER_PRESET_PARAMS[preset]) {
+      const params = {}
+      for (const preset of presets) Object.assign(params, SHADER_PRESET_DEFAULTS[preset])
+      for (const key of allowedParams) {
         const value = raw[key]
         if (value === undefined || value === null) continue
         if (!shaderFinite(value)) return shaderFail(`参数 ${key} 必须是有限数字。`, '传入数字后重试。')
@@ -99,14 +118,20 @@
         params[key] = value
       }
       if (
-        preset === 'height-false-color' &&
+        presets.includes('height-false-color') &&
         params.min_height !== undefined &&
         params.max_height !== undefined &&
         !(params.min_height < params.max_height)
       ) {
         return shaderFail('min_height 必须小于 max_height。', '调整两个高度后重试。')
       }
-      return { operation: 'apply', preset, layer, params }
+      return {
+        operation: 'apply',
+        preset: presets.length === 1 ? presets[0] : presets,
+        presets,
+        layer,
+        params,
+      }
     }
 
     /** ext list detection: Cesium 1.147 keeps tileset JSON extensions in `_extensionsUsed`. */
@@ -171,38 +196,63 @@
 
     /** Per-preset uniform map; every value is finite and inside the contract bounds. */
     function shaderUniforms(Cesium, preset, params, range) {
+      const presets = Array.isArray(preset) ? preset : [preset]
       const uniforms = {
         u_center: { type: Cesium.UniformType.VEC3, value: range.center },
         u_centerHeight: { type: Cesium.UniformType.FLOAT, value: range.centerHeight },
       }
-      if (preset === 'height-false-color' || preset === 'scan') {
+      if (presets.includes('height-false-color') || presets.includes('scan')) {
         uniforms.u_minHeight = { type: Cesium.UniformType.FLOAT, value: range.minimum }
         uniforms.u_maxHeight = { type: Cesium.UniformType.FLOAT, value: range.maximum }
       }
-      if (preset === 'contour') {
+      if (presets.includes('contour')) {
         uniforms.u_interval = { type: Cesium.UniformType.FLOAT, value: params.interval ?? 20 }
       }
-      if (preset === 'scan' || preset === 'water') {
+      if (presets.includes('scan') || presets.includes('water')) {
         uniforms.u_speed = { type: Cesium.UniformType.FLOAT, value: params.speed ?? 1 }
         uniforms.u_time = { type: Cesium.UniformType.FLOAT, value: 0 }
       }
-      if (preset === 'water') {
+      if (presets.includes('water')) {
         uniforms.u_amplitude = { type: Cesium.UniformType.FLOAT, value: params.amplitude ?? 1 }
         uniforms.u_opacity = { type: Cesium.UniformType.FLOAT, value: params.opacity ?? 0.75 }
       }
-      if (preset === 'water-depth') {
+      if (presets.includes('water-depth')) {
         uniforms.u_waterHeight = { type: Cesium.UniformType.FLOAT, value: params.water_height ?? 0 }
         uniforms.u_depthMax = { type: Cesium.UniformType.FLOAT, value: params.depth_max ?? 50 }
       }
       return uniforms
     }
 
+    /**
+     * Compose one 1..3 preset shader. A single preset returns its original source
+     * unchanged (so per-preset contracts stay byte-identical); stacked presets run
+     * in array order, each fragment body wrapped in its own block scope so local
+     * variables (height/span/band/ripple…) cannot collide, and the composed source
+     * is still checked against the 8 KB whitelist limit.
+     */
     function shaderFragmentSource(preset) {
-      const source = SHADER_FRAGMENT_SOURCES[preset]
-      if (typeof source !== 'string' || source.length === 0 || source.length > SHADER_SOURCE_LIMIT) {
-        throw shaderFail(`预设 ${String(preset)} 的着色器源码无效。`, '联系面板维护者检查预设定义。')
+      const presets = Array.isArray(preset) ? preset : [preset]
+      const original = (item) => {
+        const source = SHADER_FRAGMENT_SOURCES[item]
+        if (typeof source !== 'string' || source.length === 0 || source.length > SHADER_SOURCE_LIMIT) {
+          throw shaderFail(`预设 ${String(item)} 的着色器源码无效。`, '联系面板维护者检查预设定义。')
+        }
+        return source
       }
-      return source
+      if (presets.length === 1) return original(presets[0])
+      const blocks = presets.map((item) => {
+        const source = original(item)
+        const match = /void fragmentMain\(FragmentInput fsInput, inout czm_modelMaterial material\) \{([\s\S]*)\}\s*$/.exec(source)
+        if (!match) {
+          throw shaderFail(`预设 ${item} 的着色器结构无效。`, '联系面板维护者检查预设定义。')
+        }
+        return `  // ${item}\n  {${match[1]}}`
+      })
+      const composed = `void fragmentMain(FragmentInput fsInput, inout czm_modelMaterial material) {\n${blocks.join('\n')}\n}`
+      if (composed.length > SHADER_SOURCE_LIMIT) {
+        throw shaderFail(`叠加后的着色器源码超过 ${SHADER_SOURCE_LIMIT} 字节。`, '减少叠加的预设数量。')
+      }
+      return composed
     }
 
     // Fragments only touch `material.diffuse` / `material.alpha`. Cesium declares
@@ -270,4 +320,4 @@
     }
     //#endregion shader core
 
-export { SHADER_PRESETS, SHADER_SOURCE_LIMIT, SHADER_HEIGHT_FLOOR, SHADER_HEIGHT_CEILING, SHADER_PARAM_LIMITS, SHADER_PRESET_PARAMS, SHADER_PRESET_DEFAULTS, shaderClamp, shaderFinite, shaderFail, shaderValidateRequest, shaderTilesetExtensions, shaderGaussianLayer, shaderHeightRange, shaderUniforms, shaderFragmentSource, SHADER_FRAGMENT_SOURCES }
+export { SHADER_PRESETS, SHADER_MAX_STACK, SHADER_SOURCE_LIMIT, SHADER_HEIGHT_FLOOR, SHADER_HEIGHT_CEILING, SHADER_PARAM_LIMITS, SHADER_PRESET_PARAMS, SHADER_PRESET_DEFAULTS, shaderClamp, shaderFinite, shaderFail, shaderValidateRequest, shaderTilesetExtensions, shaderGaussianLayer, shaderHeightRange, shaderUniforms, shaderFragmentSource, SHADER_FRAGMENT_SOURCES }
