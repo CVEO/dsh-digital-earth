@@ -34,6 +34,8 @@ export function LayersPanel({
   onCollapse,
   onSelectTerrain,
   onSelectImagery,
+  terrainError,
+  onRetryTerrain,
   onFlyLayer,
   onFrameAll,
   onToggleLayer,
@@ -142,6 +144,14 @@ export function LayersPanel({
       ...(config?.terrain ?? []).map((source) =>
         radioRow(`t-${source.id}`, source.name, settings?.terrain === source.id, () => onSelectTerrain(source.id)),
       ),
+      terrainError
+        ? h(
+            'div',
+            { key: 'terrain-error', className: 'mv-none mv-terrain-error' },
+            h('span', null, terrainError),
+            h('button', { type: 'button', className: 'mv-icon-btn', title: t('terrain.retry'), 'aria-label': t('terrain.retry'), onClick: onRetryTerrain }, '↻'),
+          )
+        : null,
       // ---- L2 imagery basemap ------------------------------------------------
       h('div', { key: 'g2', className: 'mv-group' }, h('div', { className: 'mv-group-title' }, t('layers.imagery'))),
       radioRow('i-off', t('menu.none'), imageryActive === null, () => onSelectImagery(null)),

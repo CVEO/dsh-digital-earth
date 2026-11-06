@@ -170,6 +170,10 @@ var MESSAGES = {
     "toast.terrainLoading": "正在加载地形…",
     "toast.terrainOn": "已开启地形：{name}",
     "toast.terrainOff": "已关闭地形，恢复椭球",
+    "toast.terrainNetwork": "地形服务不可达（{message}），已回退椭球：请检查网络/代理后点「重试地形」。",
+    "terrain.networkHint": "地形服务不可达（{message}），当前使用椭球。检查网络/代理后点重试，或在「设置 → 数据源」关闭或更换地形。",
+    "terrain.failedHint": "地形加载失败（{message}），当前使用椭球。",
+    "terrain.retry": "重试地形",
     "toast.terrainFailed": "地形加载失败，继续使用椭球：{message}",
     "toast.basemap": "已切换底图：{name}",
     "toast.basemapNone": "已关闭影像底图",
@@ -563,6 +567,10 @@ var MESSAGES = {
     "toast.terrainLoading": "Loading terrain…",
     "toast.terrainOn": "Terrain enabled: {name}",
     "toast.terrainOff": "Terrain off; ellipsoid restored",
+    "toast.terrainNetwork": "Terrain service unreachable ({message}); using the ellipsoid. Check network/proxy and press retry terrain.",
+    "terrain.networkHint": "Terrain service unreachable ({message}); using the ellipsoid. Check network/proxy and retry, or turn terrain off / pick another source in Settings → Data sources.",
+    "terrain.failedHint": "Terrain failed to load ({message}); using the ellipsoid.",
+    "terrain.retry": "Retry terrain",
     "toast.terrainFailed": "Terrain failed; keeping the ellipsoid: {message}",
     "toast.basemap": "Basemap: {name}",
     "toast.basemapNone": "Imagery basemap off",
@@ -4825,6 +4833,9 @@ var CSS = `
 .mv-opacity{width:64px;flex:none;accent-color:var(--mv-accent)}
 .mv-overlay-row{gap:2px}
 .mv-none{padding:6px 8px 8px;font-size:11px;line-height:1.5;color:var(--mv-dim)}
+.mv-terrain-error{display:flex;align-items:flex-start;gap:6px;margin:2px 6px 6px;padding:7px 9px;border-radius:8px;background:color-mix(in srgb,#f0b84b 14%,transparent);border:.5px solid color-mix(in srgb,#f0b84b 38%,transparent);color:color-mix(in srgb,#f0b84b 65%,var(--mv-text))}
+.mv-terrain-error span{flex:1;min-width:0}
+.mv-terrain-error .mv-icon-btn{width:22px;height:22px;font-size:13px;flex:none}
 .mv-overlay-form{border:.5px solid var(--mv-line);border-radius:8px;padding:8px;margin:2px 4px 6px;display:flex;flex-direction:column;gap:6px;background:color-mix(in srgb,var(--mv-lift) 40%,transparent)}
 .mv-overlay-form .mv-field{display:flex;flex-direction:column;gap:3px}
 .mv-overlay-form .mv-field label{font-size:10px;color:var(--mv-dim)}
@@ -5768,6 +5779,8 @@ function LayersPanel({
   onCollapse,
   onSelectTerrain,
   onSelectImagery,
+  terrainError,
+  onRetryTerrain,
   onFlyLayer,
   onFrameAll,
   onToggleLayer,
@@ -5864,6 +5877,12 @@ function LayersPanel({
       ...(config?.terrain ?? []).map(
         (source) => radioRow(`t-${source.id}`, source.name, settings?.terrain === source.id, () => onSelectTerrain(source.id))
       ),
+      terrainError ? h5(
+        "div",
+        { key: "terrain-error", className: "mv-none mv-terrain-error" },
+        h5("span", null, terrainError),
+        h5("button", { type: "button", className: "mv-icon-btn", title: t2("terrain.retry"), "aria-label": t2("terrain.retry"), onClick: onRetryTerrain }, "↻")
+      ) : null,
       // ---- L2 imagery basemap ------------------------------------------------
       h5("div", { key: "g2", className: "mv-group" }, h5("div", { className: "mv-group-title" }, t2("layers.imagery"))),
       radioRow("i-off", t2("menu.none"), imageryActive === null, () => onSelectImagery(null)),
@@ -6370,6 +6389,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
   const [settingsOpen, setSettingsOpen] = import_react10.default.useState(false);
   const [health, setHealth] = import_react10.default.useState(null);
   const [terrainBusy, setTerrainBusy] = import_react10.default.useState(false);
+  const [terrainError, setTerrainError] = import_react10.default.useState("");
   const [imageryBusy, setImageryBusy] = import_react10.default.useState(false);
   const [meta, setMeta] = import_react10.default.useState(null);
   const [bridgeOn, setBridgeOn] = import_react10.default.useState(false);
@@ -6722,17 +6742,23 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     try {
       if (source) {
         viewer.terrainProvider = await withNetworkTimeout(terrainProvider(Cesium, source));
+        setTerrainError("");
         showToast(t2("toast.terrainOn", { name: source.name }));
       } else {
         viewer.terrainProvider = new Cesium.EllipsoidTerrainProvider();
+        setTerrainError("");
         showToast(t2("toast.terrainOff"));
       }
       applyGlobeDepthTest();
       return { ok: true, source };
     } catch (error2) {
       viewer.terrainProvider = new Cesium.EllipsoidTerrainProvider();
-      showToast(t2("toast.terrainFailed", { message: message(error2) }));
-      return { ok: false, error: message(error2) };
+      const text = message(error2);
+      const network = /Request has failed|Failed to fetch|NetworkError|timed out|timeout|超时|网络/i.test(text);
+      const hint = t2(network ? "terrain.networkHint" : "terrain.failedHint", { message: text });
+      setTerrainError(hint);
+      if (notify) showToast(t2(network ? "toast.terrainNetwork" : "toast.terrainFailed", { message: text }));
+      return { ok: false, error: text };
     } finally {
       setTerrainBusy(false);
       if (notify) setBusy("");
@@ -8471,6 +8497,8 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
         onCollapse: () => updateSettings({ showLayers: false }),
         onSelectTerrain: changeTerrain,
         onSelectImagery: changeImagery,
+        terrainError,
+        onRetryTerrain: () => applyTerrain(sourcesRef.current?.settings?.terrain ?? null, true),
         onFlyLayer: flyToLayer,
         onFrameAll: () => frameAllLayers(viewerRef.current, cesiumRef.current, layersRef.current),
         analysis,

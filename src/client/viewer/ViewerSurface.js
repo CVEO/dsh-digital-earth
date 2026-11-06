@@ -130,6 +130,9 @@ const h = React.createElement
       const [settingsOpen, setSettingsOpen] = React.useState(false)
       const [health, setHealth] = React.useState(null)
       const [terrainBusy, setTerrainBusy] = React.useState(false)
+      // Inline terrain problem (blocked service etc.) shown in the layer panel instead
+      // of toasting on every automatic restore attempt.
+      const [terrainError, setTerrainError] = React.useState('')
       const [imageryBusy, setImageryBusy] = React.useState(false)
       const [meta, setMeta] = React.useState(null)
       const [bridgeOn, setBridgeOn] = React.useState(false)
@@ -574,9 +577,11 @@ const h = React.createElement
         try {
           if (source) {
             viewer.terrainProvider = await withNetworkTimeout(terrainProvider(Cesium, source))
+            setTerrainError('')
             showToast(t('toast.terrainOn', { name: source.name }))
           } else {
             viewer.terrainProvider = new Cesium.EllipsoidTerrainProvider()
+            setTerrainError('')
             showToast(t('toast.terrainOff'))
           }
           // A terrain switch can change the elevation baseline, so re-apply the
@@ -585,8 +590,15 @@ const h = React.createElement
           return { ok: true, source }
         } catch (error) {
           viewer.terrainProvider = new Cesium.EllipsoidTerrainProvider()
-          showToast(t('toast.terrainFailed', { message: message(error) }))
-          return { ok: false, error: message(error) }
+          const text = message(error)
+          // A blocked terrain host makes every automatic restore fail. Keep the
+          // failure visible in the layer panel (with a retry) instead of toasting on
+          // each panel open; explicit user switches still get a toast.
+          const network = /Request has failed|Failed to fetch|NetworkError|timed out|timeout|超时|网络/i.test(text)
+          const hint = t(network ? 'terrain.networkHint' : 'terrain.failedHint', { message: text })
+          setTerrainError(hint)
+          if (notify) showToast(t(network ? 'toast.terrainNetwork' : 'toast.terrainFailed', { message: text }))
+          return { ok: false, error: text }
         } finally {
           setTerrainBusy(false)
           if (notify) setBusy('')
@@ -2630,6 +2642,8 @@ const h = React.createElement
                     onCollapse: () => updateSettings({ showLayers: false }),
                     onSelectTerrain: changeTerrain,
                     onSelectImagery: changeImagery,
+                    terrainError,
+                    onRetryTerrain: () => applyTerrain(sourcesRef.current?.settings?.terrain ?? null, true),
                     onFlyLayer: flyToLayer,
                     onFrameAll: () => frameAllLayers(viewerRef.current, cesiumRef.current, layersRef.current),
                     analysis,

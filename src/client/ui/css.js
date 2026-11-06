@@ -136,6 +136,9 @@
 .mv-opacity{width:64px;flex:none;accent-color:var(--mv-accent)}
 .mv-overlay-row{gap:2px}
 .mv-none{padding:6px 8px 8px;font-size:11px;line-height:1.5;color:var(--mv-dim)}
+.mv-terrain-error{display:flex;align-items:flex-start;gap:6px;margin:2px 6px 6px;padding:7px 9px;border-radius:8px;background:color-mix(in srgb,#f0b84b 14%,transparent);border:.5px solid color-mix(in srgb,#f0b84b 38%,transparent);color:color-mix(in srgb,#f0b84b 65%,var(--mv-text))}
+.mv-terrain-error span{flex:1;min-width:0}
+.mv-terrain-error .mv-icon-btn{width:22px;height:22px;font-size:13px;flex:none}
 .mv-overlay-form{border:.5px solid var(--mv-line);border-radius:8px;padding:8px;margin:2px 4px 6px;display:flex;flex-direction:column;gap:6px;background:color-mix(in srgb,var(--mv-lift) 40%,transparent)}
 .mv-overlay-form .mv-field{display:flex;flex-direction:column;gap:3px}
 .mv-overlay-form .mv-field label{font-size:10px;color:var(--mv-dim)}
