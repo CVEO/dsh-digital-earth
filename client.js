@@ -2657,6 +2657,113 @@ function createCaptureService({ getViewer, getRoot, getSettings, getMeta, getSes
   return { renderSnapshot, screenshot, captureScene };
 }
 
+// src/client/scene/pointer-tools.js
+function createPointerTools(deps) {
+  const cesiumRef = { get current() {
+    return deps.getCesium();
+  } };
+  const viewerRef = { get current() {
+    return deps.getViewer();
+  } };
+  const toolRef = deps.toolRef;
+  const measureRef = deps.measureRef;
+  const setPickInfo = deps.setPickInfo;
+  const showToast = deps.showToast;
+  const pickSurface = deps.pickSurface;
+  const redrawMeasure = deps.redrawMeasure;
+  const onFinishTool = deps.onFinishTool;
+  const formatValue2 = deps.formatValue;
+  const layerLabel = deps.layerLabel;
+  const t2 = deps.t;
+  function pickResult(position) {
+    const Cesium = cesiumRef.current;
+    const viewer = viewerRef.current;
+    if (!Cesium || !viewer) return { picked: false, type: "none", properties: [] };
+    const picked = viewer.scene.pick(position);
+    if (!Cesium.defined(picked)) return { picked: false, type: "none", properties: [] };
+    if (picked instanceof Cesium.Cesium3DTileFeature) {
+      const properties = [];
+      for (const id of picked.getPropertyIds()) {
+        if (properties.length >= 40) break;
+        properties.push({ name: id, value: formatValue2(picked.getProperty(id)) });
+      }
+      return {
+        picked: true,
+        type: "tile-feature",
+        layer: layerLabel(picked.primitive ?? picked.tileset),
+        properties
+      };
+    }
+    const primitive = picked?.primitive ?? picked;
+    if (primitive instanceof Cesium.Cesium3DTileset) {
+      return { picked: true, type: "tileset", layer: layerLabel(primitive), properties: [] };
+    }
+    if (picked?.id instanceof Cesium.Entity) {
+      return { picked: true, type: "entity", name: String(picked.id.name ?? picked.id.id), properties: [] };
+    }
+    return { picked: true, type: "scene", properties: [] };
+  }
+  function pickAt(position) {
+    const result = pickResult(position);
+    if (!result.picked) {
+      setPickInfo({ title: t2("toast.pickNone"), rows: [] });
+      return;
+    }
+    if (result.type === "tile-feature") {
+      const rows = result.properties.map((entry) => [entry.name, entry.value]);
+      if (rows.length === 0) rows.push([t2("pick.noProperties"), t2("pick.noPropertiesValue")]);
+      setPickInfo({ title: result.layer, rows });
+      return;
+    }
+    if (result.type === "tileset") {
+      setPickInfo({
+        title: t2("pick.title"),
+        rows: [
+          [t2("pick.type"), t2("pick.tiles")],
+          [t2("pick.layer"), result.layer]
+        ]
+      });
+      return;
+    }
+    if (result.type === "entity") {
+      setPickInfo({
+        title: t2("pick.title"),
+        rows: [
+          [t2("pick.type"), t2("pick.entity")],
+          [t2("pick.name"), result.name]
+        ]
+      });
+      return;
+    }
+    setPickInfo({ title: t2("pick.title"), rows: [[t2("pick.type"), t2("pick.scene")]] });
+  }
+  function onCanvasClick(position) {
+    const mode = toolRef.current;
+    if (mode === null) return;
+    if (mode === "pick") {
+      pickAt(position);
+      return;
+    }
+    const surface = pickSurface(position);
+    if (!surface) {
+      showToast(t2("toast.noSurface"));
+      return;
+    }
+    measureRef.current.points.push(surface);
+    if (mode === "height" && measureRef.current.points.length > 2) {
+      measureRef.current.points.splice(0, measureRef.current.points.length - 2);
+    }
+    redrawMeasure(mode);
+  }
+  function finishMeasure() {
+    if (toolRef.current === "distance" || toolRef.current === "area") {
+      toolRef.current = null;
+      onFinishTool();
+    }
+  }
+  return { pickResult, pickAt, onCanvasClick, finishMeasure };
+}
+
 // src/client/scene/command-bridge.js
 function createCommandBridge(deps) {
   const cesiumRef = { get current() {
@@ -6516,92 +6623,22 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     const found = layersRef.current.find((entry) => entry.tileset === tileset);
     return found ? found.name : t2("model.unnamed");
   }
-  function pickResult(position) {
-    const Cesium = cesiumRef.current;
-    const viewer = viewerRef.current;
-    if (!Cesium || !viewer) return { picked: false, type: "none", properties: [] };
-    const picked = viewer.scene.pick(position);
-    if (!Cesium.defined(picked)) return { picked: false, type: "none", properties: [] };
-    if (picked instanceof Cesium.Cesium3DTileFeature) {
-      const properties = [];
-      for (const id of picked.getPropertyIds()) {
-        if (properties.length >= 40) break;
-        properties.push({ name: id, value: formatValue(picked.getProperty(id)) });
-      }
-      return {
-        picked: true,
-        type: "tile-feature",
-        layer: layerLabel(picked.primitive ?? picked.tileset),
-        properties
-      };
-    }
-    const primitive = picked?.primitive ?? picked;
-    if (primitive instanceof Cesium.Cesium3DTileset) {
-      return { picked: true, type: "tileset", layer: layerLabel(primitive), properties: [] };
-    }
-    if (picked?.id instanceof Cesium.Entity) {
-      return { picked: true, type: "entity", name: String(picked.id.name ?? picked.id.id), properties: [] };
-    }
-    return { picked: true, type: "scene", properties: [] };
-  }
-  function pickAt(position) {
-    const result = pickResult(position);
-    if (!result.picked) {
-      setPickInfo({ title: t2("toast.pickNone"), rows: [] });
-      return;
-    }
-    if (result.type === "tile-feature") {
-      const rows = result.properties.map((entry) => [entry.name, entry.value]);
-      if (rows.length === 0) rows.push([t2("pick.noProperties"), t2("pick.noPropertiesValue")]);
-      setPickInfo({ title: result.layer, rows });
-      return;
-    }
-    if (result.type === "tileset") {
-      setPickInfo({
-        title: t2("pick.title"),
-        rows: [
-          [t2("pick.type"), t2("pick.tiles")],
-          [t2("pick.layer"), result.layer]
-        ]
-      });
-      return;
-    }
-    if (result.type === "entity") {
-      setPickInfo({
-        title: t2("pick.title"),
-        rows: [
-          [t2("pick.type"), t2("pick.entity")],
-          [t2("pick.name"), result.name]
-        ]
-      });
-      return;
-    }
-    setPickInfo({ title: t2("pick.title"), rows: [[t2("pick.type"), t2("pick.scene")]] });
-  }
-  function onCanvasClick(position) {
-    const mode = toolRef.current;
-    if (mode === null) return;
-    if (mode === "pick") {
-      pickAt(position);
-      return;
-    }
-    const surface = pickSurface(position);
-    if (!surface) {
-      showToast(t2("toast.noSurface"));
-      return;
-    }
-    measureRef.current.points.push(surface);
-    if (mode === "height" && measureRef.current.points.length > 2) {
-      measureRef.current.points.splice(0, measureRef.current.points.length - 2);
-    }
-    redrawMeasure(mode);
-  }
-  function finishMeasure() {
-    if (toolRef.current === "distance" || toolRef.current === "area") {
-      toolRef.current = null;
-      setTool(null);
-    }
-  }
+  const pointerTools = createPointerTools({
+    getCesium: () => cesiumRef.current,
+    getViewer: () => viewerRef.current,
+    toolRef,
+    measureRef,
+    setPickInfo,
+    showToast,
+    pickSurface,
+    redrawMeasure,
+    onFinishTool: () => setTool(null),
+    formatValue,
+    layerLabel,
+    t: t2
+  });
+  const { pickResult, pickAt, onCanvasClick } = pointerTools;
+  const finishMeasure = () => pointerTools.finishMeasure();
   function resetView() {
     const Cesium = cesiumRef.current;
     const viewer = viewerRef.current;

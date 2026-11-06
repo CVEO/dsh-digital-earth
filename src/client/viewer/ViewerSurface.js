@@ -19,6 +19,7 @@ import { createOverlayLayers } from '../scene/overlay-layers.js'
 import { flyToCartographic, frameAllLayers } from '../scene/frame.js'
 import { createAskAgent } from '../scene/ask-agent.js'
 import { createCaptureService } from '../scene/capture.js'
+import { createPointerTools } from '../scene/pointer-tools.js'
 import { createCommandBridge } from '../scene/command-bridge.js'
 import { createSceneReport } from '../scene/report.js'
 import { createSceneStatus } from '../scene/status.js'
@@ -1357,95 +1358,23 @@ const h = React.createElement
       }
 
       /** Readable description of the object under a screen position. */
-      function pickResult(position) {
-        const Cesium = cesiumRef.current
-        const viewer = viewerRef.current
-        if (!Cesium || !viewer) return { picked: false, type: 'none', properties: [] }
-        const picked = viewer.scene.pick(position)
-        if (!Cesium.defined(picked)) return { picked: false, type: 'none', properties: [] }
-        if (picked instanceof Cesium.Cesium3DTileFeature) {
-          const properties = []
-          for (const id of picked.getPropertyIds()) {
-            if (properties.length >= 40) break
-            properties.push({ name: id, value: formatValue(picked.getProperty(id)) })
-          }
-          return {
-            picked: true,
-            type: 'tile-feature',
-            layer: layerLabel(picked.primitive ?? picked.tileset),
-            properties,
-          }
-        }
-        const primitive = picked?.primitive ?? picked
-        if (primitive instanceof Cesium.Cesium3DTileset) {
-          return { picked: true, type: 'tileset', layer: layerLabel(primitive), properties: [] }
-        }
-        if (picked?.id instanceof Cesium.Entity) {
-          return { picked: true, type: 'entity', name: String(picked.id.name ?? picked.id.id), properties: [] }
-        }
-        return { picked: true, type: 'scene', properties: [] }
-      }
-
-      function pickAt(position) {
-        const result = pickResult(position)
-        if (!result.picked) {
-          setPickInfo({ title: t('toast.pickNone'), rows: [] })
-          return
-        }
-        if (result.type === 'tile-feature') {
-          const rows = result.properties.map((entry) => [entry.name, entry.value])
-          if (rows.length === 0) rows.push([t('pick.noProperties'), t('pick.noPropertiesValue')])
-          setPickInfo({ title: result.layer, rows })
-          return
-        }
-        if (result.type === 'tileset') {
-          setPickInfo({
-            title: t('pick.title'),
-            rows: [
-              [t('pick.type'), t('pick.tiles')],
-              [t('pick.layer'), result.layer],
-            ],
-          })
-          return
-        }
-        if (result.type === 'entity') {
-          setPickInfo({
-            title: t('pick.title'),
-            rows: [
-              [t('pick.type'), t('pick.entity')],
-              [t('pick.name'), result.name],
-            ],
-          })
-          return
-        }
-        setPickInfo({ title: t('pick.title'), rows: [[t('pick.type'), t('pick.scene')]] })
-      }
-
-      function onCanvasClick(position) {
-        const mode = toolRef.current
-        if (mode === null) return
-        if (mode === 'pick') {
-          pickAt(position)
-          return
-        }
-        const surface = pickSurface(position)
-        if (!surface) {
-          showToast(t('toast.noSurface'))
-          return
-        }
-        measureRef.current.points.push(surface)
-        if (mode === 'height' && measureRef.current.points.length > 2) {
-          measureRef.current.points.splice(0, measureRef.current.points.length - 2)
-        }
-        redrawMeasure(mode)
-      }
-
-      function finishMeasure() {
-        if (toolRef.current === 'distance' || toolRef.current === 'area') {
-          toolRef.current = null
-          setTool(null)
-        }
-      }
+      // Canvas picking / measure click loop lives in src/client/scene/pointer-tools.js.
+      const pointerTools = createPointerTools({
+        getCesium: () => cesiumRef.current,
+        getViewer: () => viewerRef.current,
+        toolRef,
+        measureRef,
+        setPickInfo,
+        showToast,
+        pickSurface,
+        redrawMeasure,
+        onFinishTool: () => setTool(null),
+        formatValue,
+        layerLabel,
+        t,
+      })
+      const { pickResult, pickAt, onCanvasClick } = pointerTools
+      const finishMeasure = () => pointerTools.finishMeasure()
 
       function resetView() {
         const Cesium = cesiumRef.current
