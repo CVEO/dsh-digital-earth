@@ -2465,6 +2465,97 @@ function flyToCartographic(viewer, Cesium, carto, duration = 0.8) {
   return true;
 }
 
+// src/client/scene/ask-agent.js
+function createAskAgent(deps) {
+  const metaRef = { get current() {
+    return deps.getMeta();
+  } };
+  const sessionRef = { get current() {
+    return deps.getSession();
+  } };
+  const showToast = deps.showToast;
+  const t2 = deps.t;
+  const captureScene = deps.captureScene;
+  const collectSceneStatus = deps.collectSceneStatus;
+  const shaderActiveList = deps.shaderActiveList;
+  const message2 = deps.message;
+  async function askAgent() {
+    const analysis = deps.getAnalysis();
+    const meta = metaRef.current;
+    const session = sessionRef.current;
+    if (!meta?.injectUrl || typeof session !== "string" || session === "") {
+      showToast(t2("toast.askAgentNoSession"));
+      return;
+    }
+    let snapshotPath = "";
+    try {
+      const saved = await captureScene({}, session);
+      snapshotPath = typeof saved.path === "string" ? saved.path : "";
+    } catch {
+    }
+    let status = null;
+    try {
+      status = await collectSceneStatus();
+    } catch {
+      status = null;
+    }
+    const lines = [
+      "[Digital Earth scene context] The user is looking at this scene and will ask a follow-up about it."
+    ];
+    if (status !== null) {
+      const view = status.view ?? {};
+      if (Number.isFinite(view.lon) && Number.isFinite(view.lat)) {
+        lines.push(
+          `Camera: lon=${view.lon}, lat=${view.lat}, height=${view.height} m, heading=${view.heading}°, pitch=${view.pitch}°.`
+        );
+      }
+      const layerText = Array.isArray(status.layers) && status.layers.length > 0 ? status.layers.map((layer) => `${layer.name}${layer.visible === false ? " (hidden)" : ""}`).join(", ") : "none";
+      lines.push(`Layers: ${layerText}.`);
+      lines.push(`Imagery: ${status.imagery?.name ?? "none"}; terrain: ${status.terrain?.name ?? "none"}.`);
+      const annotations = status.annotations ?? {};
+      lines.push(
+        `Agent overlays: ${annotations.drawn_features ?? 0} annotated features, ${annotations.measured_points ?? 0} measured points.`
+      );
+    }
+    if (analysis !== null && analysis.result) {
+      const result = analysis.result;
+      if (result.operation === "profile" && result.stats) {
+        lines.push(
+          `Analysis (profile): length=${result.length_m} m, relief=${result.stats.relief_m} m, min=${result.stats.min_height} m, max=${result.stats.max_height} m, samples=${result.samples}.`
+        );
+      } else if (result.operation === "flood") {
+        lines.push(
+          `Analysis (flood): water=${result.water_height} m, area=${result.area_km2} km², inundated=${result.inundated_km2} km², ratio=${result.inundated_ratio}, max depth=${result.depth_max_m} m.`
+        );
+      } else if (result.operation === "sunlight") {
+        lines.push(
+          `Analysis (sunlight): datetime=${result.datetime}, altitude=${result.sun?.altitude_deg}°, azimuth=${result.sun?.azimuth_deg}°, shadows=${result.shadows_enabled === true ? "on" : "off"}.`
+        );
+      }
+    }
+    const shaders = shaderActiveList();
+    if (shaders.length > 0) {
+      lines.push(`Shaders: ${shaders.map((item) => `${item.layer}=${item.preset}`).join(", ")}.`);
+    }
+    if (snapshotPath !== "") lines.push(`Snapshot: ${snapshotPath}`);
+    lines.push("Answer from the scene state above; do not invent data that is not in it.");
+    try {
+      const response = await fetch(meta.injectUrl, {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ session, text: lines.join("\n") })
+      });
+      const data = await response.json().catch(() => null);
+      if (!response.ok || data?.ok !== true) throw new Error(data?.message ?? `HTTP ${response.status}`);
+      showToast(t2("toast.askAgentSent"));
+    } catch (error) {
+      showToast(t2("toast.askAgentFailed", { message: message2(error) }));
+    }
+  }
+  return { askAgent };
+}
+
 // src/client/scene/capture.js
 function createCaptureService({ getViewer, getRoot, getSettings, getMeta, getSession, t: t2, showToast, setChromeHidden, nextFrames, drawCaptureOverlay }) {
   const MAX_CAPTURE_DATAURL = 75e5;
@@ -2771,6 +2862,100 @@ ${image !== "" ? `<h2>${escapeHtml2(L.snapshot)}</h2>${image}` : ""}
     return { format, title, content, label: "scene", sections, failed };
   }
   return { buildSceneReport };
+}
+
+// src/client/scene/status.js
+function createSceneStatus(deps) {
+  const cesiumRef = { get current() {
+    return deps.getCesium();
+  } };
+  const viewerRef = { get current() {
+    return deps.getViewer();
+  } };
+  const sourcesRef = { get current() {
+    return deps.getSources();
+  } };
+  const layersRef = { get current() {
+    return deps.getLayers();
+  } };
+  const overlayLayersRef = { get current() {
+    return deps.getOverlayLayers();
+  } };
+  const agentOverlayRef = { get current() {
+    return deps.getAgentOverlays();
+  } };
+  const toolRef = { get current() {
+    return deps.getToolMode();
+  } };
+  const t2 = deps.t;
+  const redactUrl2 = deps.redactUrl;
+  const normalizeQuality2 = deps.normalizeQuality;
+  async function collectSceneStatus() {
+    const fps = deps.getFps();
+    const busy = deps.getBusy();
+    const Cesium = cesiumRef.current;
+    const viewer = viewerRef.current;
+    if (!Cesium || !viewer) throw new Error(t2("agent.notReady"));
+    const carto = viewer.camera.positionCartographic;
+    const config = sourcesRef.current ?? { imagery: [], terrain: [], settings: {} };
+    const imagery = config.imagery.find((item) => item.id === config.settings.imagery) ?? null;
+    const terrain = config.terrain.find((item) => item.id === config.settings.terrain) ?? null;
+    const round = (value) => Math.round(value * 1e6) / 1e6;
+    return {
+      ready: true,
+      view: {
+        lon: round(Cesium.Math.toDegrees(carto.longitude)),
+        lat: round(Cesium.Math.toDegrees(carto.latitude)),
+        height: Math.round(carto.height),
+        heading: Math.round(Cesium.Math.toDegrees(viewer.camera.heading ?? 0)),
+        pitch: Math.round(Cesium.Math.toDegrees(viewer.camera.pitch ?? 0))
+      },
+      layers: layersRef.current.map((layer) => {
+        const statistics = layer.tileset.statistics ?? {};
+        return {
+          id: layer.id,
+          name: layer.name,
+          visible: layer.visible,
+          url: redactUrl2(layer.url),
+          tiles: statistics.numberOfTilesWithContentReady ?? statistics.numberOfTilesLoaded ?? 0,
+          pending: statistics.numberOfPendingRequests ?? 0,
+          triangles: statistics.numberOfTrianglesSelected ?? 0
+        };
+      }),
+      imagery: imagery ? { id: imagery.id, name: imagery.name } : null,
+      terrain: terrain ? { id: terrain.id, name: terrain.name } : null,
+      sources: {
+        imagery: config.imagery.map((item) => ({ id: item.id, name: item.name })),
+        terrain: config.terrain.map((item) => ({ id: item.id, name: item.name }))
+      },
+      viewport: { width: viewer.canvas.width, height: viewer.canvas.height },
+      // L3 raster overlays above the basemap, in stack order (additive field).
+      raster_overlays: overlayLayersRef.current?.list() ?? [],
+      // Render health is additive: `fps` is null while the scene is idle (no
+      // render pass for 2 s) and the terrain depth-test flag is the user's
+      // current choice, so an Agent can explain a "model looks flat/buried"
+      // report instead of guessing.
+      render: {
+        fps: fps === null ? null : Math.round(fps),
+        idle: fps === null,
+        terrain_depth_test: viewer.scene.globe.depthTestAgainstTerrain === true,
+        // Quality tier + the effective scale, so "why is it blurry / slow"
+        // has an answer in the scene state instead of a guess.
+        quality: normalizeQuality2(config.settings.quality),
+        resolution_scale: viewer.resolutionScale,
+        globe_maximum_screen_space_error: viewer.scene.globe.maximumScreenSpaceError
+      },
+      snapshot: { includeHud: config.settings.screenshotHud === true },
+      measureTool: toolRef.current,
+      annotations: {
+        drawn_features: agentOverlayRef.current.drawnFeatures,
+        measured_points: agentOverlayRef.current.measuredCount,
+        overlays: agentOverlayRef.current.draw.length + agentOverlayRef.current.measure.length
+      },
+      busy: busy || ""
+    };
+  }
+  return { collectSceneStatus };
 }
 
 // src/client/scene/host-scene-store.js
@@ -6263,79 +6448,18 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     drawCaptureOverlay
   });
   const { renderSnapshot, screenshot, captureScene } = capture;
-  async function askAgent() {
-    const meta2 = metaRef.current;
-    const session = sessionRef.current;
-    if (!meta2?.injectUrl || typeof session !== "string" || session === "") {
-      showToast(t2("toast.askAgentNoSession"));
-      return;
-    }
-    let snapshotPath = "";
-    try {
-      const saved = await captureScene({}, session);
-      snapshotPath = typeof saved.path === "string" ? saved.path : "";
-    } catch {
-    }
-    let status2 = null;
-    try {
-      status2 = await collectSceneStatus();
-    } catch {
-      status2 = null;
-    }
-    const lines = [
-      "[Digital Earth scene context] The user is looking at this scene and will ask a follow-up about it."
-    ];
-    if (status2 !== null) {
-      const view = status2.view ?? {};
-      if (Number.isFinite(view.lon) && Number.isFinite(view.lat)) {
-        lines.push(
-          `Camera: lon=${view.lon}, lat=${view.lat}, height=${view.height} m, heading=${view.heading}°, pitch=${view.pitch}°.`
-        );
-      }
-      const layerText = Array.isArray(status2.layers) && status2.layers.length > 0 ? status2.layers.map((layer) => `${layer.name}${layer.visible === false ? " (hidden)" : ""}`).join(", ") : "none";
-      lines.push(`Layers: ${layerText}.`);
-      lines.push(`Imagery: ${status2.imagery?.name ?? "none"}; terrain: ${status2.terrain?.name ?? "none"}.`);
-      const annotations = status2.annotations ?? {};
-      lines.push(
-        `Agent overlays: ${annotations.drawn_features ?? 0} annotated features, ${annotations.measured_points ?? 0} measured points.`
-      );
-    }
-    if (analysis !== null && analysis.result) {
-      const result = analysis.result;
-      if (result.operation === "profile" && result.stats) {
-        lines.push(
-          `Analysis (profile): length=${result.length_m} m, relief=${result.stats.relief_m} m, min=${result.stats.min_height} m, max=${result.stats.max_height} m, samples=${result.samples}.`
-        );
-      } else if (result.operation === "flood") {
-        lines.push(
-          `Analysis (flood): water=${result.water_height} m, area=${result.area_km2} km², inundated=${result.inundated_km2} km², ratio=${result.inundated_ratio}, max depth=${result.depth_max_m} m.`
-        );
-      } else if (result.operation === "sunlight") {
-        lines.push(
-          `Analysis (sunlight): datetime=${result.datetime}, altitude=${result.sun?.altitude_deg}°, azimuth=${result.sun?.azimuth_deg}°, shadows=${result.shadows_enabled === true ? "on" : "off"}.`
-        );
-      }
-    }
-    const shaders = shaderActiveList();
-    if (shaders.length > 0) {
-      lines.push(`Shaders: ${shaders.map((item) => `${item.layer}=${item.preset}`).join(", ")}.`);
-    }
-    if (snapshotPath !== "") lines.push(`Snapshot: ${snapshotPath}`);
-    lines.push("Answer from the scene state above; do not invent data that is not in it.");
-    try {
-      const response = await fetch(meta2.injectUrl, {
-        method: "POST",
-        credentials: "same-origin",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ session, text: lines.join("\n") })
-      });
-      const data = await response.json().catch(() => null);
-      if (!response.ok || data?.ok !== true) throw new Error(data?.message ?? `HTTP ${response.status}`);
-      showToast(t2("toast.askAgentSent"));
-    } catch (error2) {
-      showToast(t2("toast.askAgentFailed", { message: message(error2) }));
-    }
-  }
+  const askAgentService = createAskAgent({
+    getMeta: () => metaRef.current,
+    getSession: () => sessionRef.current,
+    getAnalysis: () => analysis,
+    showToast,
+    t: t2,
+    captureScene,
+    collectSceneStatus,
+    shaderActiveList,
+    message
+  });
+  const askAgent = () => askAgentService.askAgent();
   const sceneReport = createSceneReport({
     getSession: () => sessionRef.current,
     getAgentOverlays: () => agentOverlayRef.current,
@@ -6536,69 +6660,21 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     if (!Number.isFinite(number)) return fallback;
     return Math.min(Math.max(number, minimum), maximum);
   };
-  async function collectSceneStatus() {
-    const Cesium = cesiumRef.current;
-    const viewer = viewerRef.current;
-    if (!Cesium || !viewer) throw new Error(t2("agent.notReady"));
-    const carto = viewer.camera.positionCartographic;
-    const config = sourcesRef.current ?? { imagery: [], terrain: [], settings: {} };
-    const imagery = config.imagery.find((item) => item.id === config.settings.imagery) ?? null;
-    const terrain = config.terrain.find((item) => item.id === config.settings.terrain) ?? null;
-    const round = (value) => Math.round(value * 1e6) / 1e6;
-    return {
-      ready: true,
-      view: {
-        lon: round(Cesium.Math.toDegrees(carto.longitude)),
-        lat: round(Cesium.Math.toDegrees(carto.latitude)),
-        height: Math.round(carto.height),
-        heading: Math.round(Cesium.Math.toDegrees(viewer.camera.heading ?? 0)),
-        pitch: Math.round(Cesium.Math.toDegrees(viewer.camera.pitch ?? 0))
-      },
-      layers: layersRef.current.map((layer) => {
-        const statistics = layer.tileset.statistics ?? {};
-        return {
-          id: layer.id,
-          name: layer.name,
-          visible: layer.visible,
-          url: redactUrl(layer.url),
-          tiles: statistics.numberOfTilesWithContentReady ?? statistics.numberOfTilesLoaded ?? 0,
-          pending: statistics.numberOfPendingRequests ?? 0,
-          triangles: statistics.numberOfTrianglesSelected ?? 0
-        };
-      }),
-      imagery: imagery ? { id: imagery.id, name: imagery.name } : null,
-      terrain: terrain ? { id: terrain.id, name: terrain.name } : null,
-      sources: {
-        imagery: config.imagery.map((item) => ({ id: item.id, name: item.name })),
-        terrain: config.terrain.map((item) => ({ id: item.id, name: item.name }))
-      },
-      viewport: { width: viewer.canvas.width, height: viewer.canvas.height },
-      // L3 raster overlays above the basemap, in stack order (additive field).
-      raster_overlays: overlayLayersRef.current?.list() ?? [],
-      // Render health is additive: `fps` is null while the scene is idle (no
-      // render pass for 2 s) and the terrain depth-test flag is the user's
-      // current choice, so an Agent can explain a "model looks flat/buried"
-      // report instead of guessing.
-      render: {
-        fps: fps === null ? null : Math.round(fps),
-        idle: fps === null,
-        terrain_depth_test: viewer.scene.globe.depthTestAgainstTerrain === true,
-        // Quality tier + the effective scale, so "why is it blurry / slow"
-        // has an answer in the scene state instead of a guess.
-        quality: normalizeQuality(config.settings.quality),
-        resolution_scale: viewer.resolutionScale,
-        globe_maximum_screen_space_error: viewer.scene.globe.maximumScreenSpaceError
-      },
-      snapshot: { includeHud: config.settings.screenshotHud === true },
-      measureTool: toolRef.current,
-      annotations: {
-        drawn_features: agentOverlayRef.current.drawnFeatures,
-        measured_points: agentOverlayRef.current.measuredCount,
-        overlays: agentOverlayRef.current.draw.length + agentOverlayRef.current.measure.length
-      },
-      busy: busy || ""
-    };
-  }
+  const sceneStatus = createSceneStatus({
+    getCesium: () => cesiumRef.current,
+    getViewer: () => viewerRef.current,
+    getSources: () => sourcesRef.current,
+    getLayers: () => layersRef.current,
+    getOverlayLayers: () => overlayLayersRef.current,
+    getAgentOverlays: () => agentOverlayRef.current,
+    getToolMode: () => toolRef.current,
+    getFps: () => fps,
+    getBusy: () => busy,
+    t: t2,
+    redactUrl,
+    normalizeQuality
+  });
+  const collectSceneStatus = () => sceneStatus.collectSceneStatus();
   async function runCommand(action, args = {}, session = null) {
     const Cesium = cesiumRef.current;
     const viewer = viewerRef.current;
