@@ -2465,6 +2465,82 @@ function flyToCartographic(viewer, Cesium, carto, duration = 0.8) {
   return true;
 }
 
+// src/client/scene/host-scene-store.js
+function createHostSceneStore({
+  getMeta,
+  loadMeta: loadMeta2,
+  normalizeSceneSnapshot: normalizeSceneSnapshot2,
+  readSceneSnapshot: readSceneSnapshot2,
+  writeSceneSnapshot: writeSceneSnapshot2,
+  hostTimeoutMs = 3e3,
+  saveIntervalMs = 1e4,
+  maxBodyLength = 512 * 1024
+}) {
+  const metaRef = {
+    get current() {
+      return getMeta();
+    }
+  };
+  const HOST_SCENE_TIMEOUT_MS = hostTimeoutMs;
+  const lastHostSceneSaveRef = { current: 0 };
+  async function readHostSceneSnapshot(session) {
+    const meta = metaRef.current ?? await loadMeta2().catch(() => null);
+    if (!meta?.sceneUrl) return null;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), HOST_SCENE_TIMEOUT_MS);
+    try {
+      const response = await fetch(
+        `${meta.sceneUrl}?token=${encodeURIComponent(meta.token)}&session=${encodeURIComponent(session)}`,
+        { credentials: "same-origin", signal: controller.signal }
+      );
+      if (!response.ok) return null;
+      const data = await response.json();
+      return normalizeSceneSnapshot2(data?.snapshot);
+    } catch {
+      return null;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+  function saveHostSceneSnapshot(session, body, force = false) {
+    const meta = metaRef.current;
+    if (!meta?.sceneUrl) return;
+    const now = Date.now();
+    if (!force && now - lastHostSceneSaveRef.current < saveIntervalMs) return;
+    lastHostSceneSaveRef.current = now;
+    let text = "";
+    try {
+      text = JSON.stringify({ session, snapshot: body });
+    } catch {
+      return;
+    }
+    if (text.length > maxBodyLength) return;
+    try {
+      void fetch(meta.sceneUrl, {
+        method: "PUT",
+        credentials: "same-origin",
+        headers: { "content-type": "application/json" },
+        body: text,
+        keepalive: true
+      }).catch(() => {
+      });
+    } catch {
+    }
+  }
+  async function loadSceneSnapshot(session) {
+    const hostSnapshot = await readHostSceneSnapshot(session);
+    if (hostSnapshot !== null) {
+      try {
+        writeSceneSnapshot2(session, hostSnapshot);
+      } catch {
+      }
+      return hostSnapshot;
+    }
+    return readSceneSnapshot2(session);
+  }
+  return { readHostSceneSnapshot, saveHostSceneSnapshot, loadSceneSnapshot };
+}
+
 // src/client/scene/quality.js
 var QUALITY_MODES = ["balanced", "high"];
 var DEFAULT_QUALITY = "balanced";
@@ -5554,63 +5630,14 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
   const releaseShaderTick = () => shaderEngine.releaseTick();
   const sceneDirtyRef = import_react9.default.useRef(false);
   const sceneRestoredRef = import_react9.default.useRef(false);
-  const HOST_SCENE_TIMEOUT_MS = 3e3;
-  const lastHostSceneSaveRef = import_react9.default.useRef(0);
-  async function readHostSceneSnapshot(session) {
-    const meta2 = metaRef.current ?? await loadMeta().catch(() => null);
-    if (!meta2?.sceneUrl) return null;
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), HOST_SCENE_TIMEOUT_MS);
-    try {
-      const response = await fetch(
-        `${meta2.sceneUrl}?token=${encodeURIComponent(meta2.token)}&session=${encodeURIComponent(session)}`,
-        { credentials: "same-origin", signal: controller.signal }
-      );
-      if (!response.ok) return null;
-      const data = await response.json();
-      return normalizeSceneSnapshot(data?.snapshot);
-    } catch {
-      return null;
-    } finally {
-      clearTimeout(timer);
-    }
-  }
-  function saveHostSceneSnapshot(session, body, force = false) {
-    const meta2 = metaRef.current;
-    if (!meta2?.sceneUrl) return;
-    const now = Date.now();
-    if (!force && now - lastHostSceneSaveRef.current < 1e4) return;
-    lastHostSceneSaveRef.current = now;
-    let text = "";
-    try {
-      text = JSON.stringify({ session, snapshot: body });
-    } catch {
-      return;
-    }
-    if (text.length > 512 * 1024) return;
-    try {
-      void fetch(meta2.sceneUrl, {
-        method: "PUT",
-        credentials: "same-origin",
-        headers: { "content-type": "application/json" },
-        body: text,
-        keepalive: true
-      }).catch(() => {
-      });
-    } catch {
-    }
-  }
-  async function loadSceneSnapshot(session) {
-    const hostSnapshot = await readHostSceneSnapshot(session);
-    if (hostSnapshot !== null) {
-      try {
-        writeSceneSnapshot(session, hostSnapshot);
-      } catch {
-      }
-      return hostSnapshot;
-    }
-    return readSceneSnapshot(session);
-  }
+  const hostSceneStore = createHostSceneStore({
+    getMeta: () => metaRef.current,
+    loadMeta,
+    normalizeSceneSnapshot,
+    readSceneSnapshot,
+    writeSceneSnapshot
+  });
+  const { readHostSceneSnapshot, saveHostSceneSnapshot, loadSceneSnapshot } = hostSceneStore;
   const markSceneDirty = () => {
     sceneDirtyRef.current = true;
   };

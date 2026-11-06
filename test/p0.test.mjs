@@ -420,9 +420,11 @@ test('P0 宿主快照读写存在：readHostSceneSnapshot/saveHostSceneSnapshot/
   const saveHost = sourceSlice(clientSource, 'function saveHostSceneSnapshot', 'async function loadSceneSnapshot')
   assert.ok(saveHost.includes("method: 'PUT',"))
   assert.ok(saveHost.includes('keepalive: true,'))
-  assert.ok(saveHost.includes('if (text.length > 512 * 1024) return'), '客户端必须镜像宿主 512KB 上限')
+  assert.ok(saveHost.includes('if (text.length > maxBodyLength) return'))
+  // 上限作为工厂参数声明（默认 512 KB），镜像宿主 body 限制。
+  assert.ok(clientSource.includes('maxBodyLength = 512 * 1024'), '客户端必须镜像宿主 512KB 上限')
 
-  const load = sourceSlice(clientSource, 'async function loadSceneSnapshot', 'const markSceneDirty')
+  const load = sourceSlice(clientSource, 'async function loadSceneSnapshot', 'return { readHostSceneSnapshot')
   assert.ok(load.includes('const hostSnapshot = await readHostSceneSnapshot(session)'))
   assert.ok(load.includes('return readSceneSnapshot(session)'), '宿主不可达时必须回退到 localStorage')
 })

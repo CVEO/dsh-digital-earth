@@ -17,6 +17,7 @@ import { service } from '../runtime.js'
 import { normalizeSceneSnapshot, readSceneSnapshot, writeSceneSnapshot } from '../scene-store.js'
 import { createOverlayLayers } from '../scene/overlay-layers.js'
 import { flyToCartographic, frameAllLayers } from '../scene/frame.js'
+import { createHostSceneStore } from '../scene/host-scene-store.js'
 import { applyQuality, normalizeQuality, qualityProfile } from '../scene/quality.js'
 import { createShaderEngine } from '../scene/shader-engine.js'
 import { useEnvironmentDark } from '../theme.js'
@@ -1206,71 +1207,16 @@ const h = React.createElement
       // Whether a restore decision was already made for this mount; a session id
       // that arrives after the viewer is ready gets exactly one late restore.
       const sceneRestoredRef = React.useRef(false)
-      const HOST_SCENE_TIMEOUT_MS = 3000
-      const lastHostSceneSaveRef = React.useRef(0)
-
-      /** Read the host-persisted snapshot; null when absent or unreachable. */
-      async function readHostSceneSnapshot(session) {
-        const meta = metaRef.current ?? (await loadMeta().catch(() => null))
-        if (!meta?.sceneUrl) return null
-        const controller = new AbortController()
-        const timer = setTimeout(() => controller.abort(), HOST_SCENE_TIMEOUT_MS)
-        try {
-          const response = await fetch(
-            `${meta.sceneUrl}?token=${encodeURIComponent(meta.token)}&session=${encodeURIComponent(session)}`,
-            { credentials: 'same-origin', signal: controller.signal },
-          )
-          if (!response.ok) return null
-          const data = await response.json()
-          return normalizeSceneSnapshot(data?.snapshot)
-        } catch {
-          return null
-        } finally {
-          clearTimeout(timer)
-        }
-      }
-
-      /** Push one snapshot body to the host store, throttled unless forced. */
-      function saveHostSceneSnapshot(session, body, force = false) {
-        const meta = metaRef.current
-        if (!meta?.sceneUrl) return
-        const now = Date.now()
-        if (!force && now - lastHostSceneSaveRef.current < 10000) return
-        lastHostSceneSaveRef.current = now
-        let text = ''
-        try {
-          text = JSON.stringify({ session, snapshot: body })
-        } catch {
-          return
-        }
-        // Mirror the host body limit so an oversized scene stays local-only.
-        if (text.length > 512 * 1024) return
-        try {
-          void fetch(meta.sceneUrl, {
-            method: 'PUT',
-            credentials: 'same-origin',
-            headers: { 'content-type': 'application/json' },
-            body: text,
-            keepalive: true,
-          }).catch(() => {})
-        } catch {
-          // The host store is best effort; the local cache already has the scene.
-        }
-      }
-
-      /** Prefer the host snapshot (survives origin changes), fall back to local. */
-      async function loadSceneSnapshot(session) {
-        const hostSnapshot = await readHostSceneSnapshot(session)
-        if (hostSnapshot !== null) {
-          try {
-            writeSceneSnapshot(session, hostSnapshot)
-          } catch {
-            // Keeping the local cache warm is a convenience, not a requirement.
-          }
-          return hostSnapshot
-        }
-        return readSceneSnapshot(session)
-      }
+      // Host/local snapshot store lives in src/client/scene/host-scene-store.js;
+      // this component keeps the refs and re-exports the same three names.
+      const hostSceneStore = createHostSceneStore({
+        getMeta: () => metaRef.current,
+        loadMeta,
+        normalizeSceneSnapshot,
+        readSceneSnapshot,
+        writeSceneSnapshot,
+      })
+      const { readHostSceneSnapshot, saveHostSceneSnapshot, loadSceneSnapshot } = hostSceneStore
 
       const markSceneDirty = () => {
         sceneDirtyRef.current = true

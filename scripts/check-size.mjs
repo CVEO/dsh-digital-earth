@@ -35,7 +35,7 @@ const EXCEPTIONS = new Map([
   // M3 phase 2 (scene runtime extraction) is in progress: the analysis engine and
   // other scene modules are being moved out. The number is lowered every time a
   // slice lands, so the file can only shrink.
-  ['src/client/viewer/ViewerSurface.js', 3500],
+  ['src/client/viewer/ViewerSurface.js', 3450],
 ])
 
 async function walk(dir) {
