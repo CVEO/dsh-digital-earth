@@ -1,0 +1,253 @@
+/**
+ * shader/presets.js — authored module of the Digital Earth client half.
+ *
+ * Motion-move target of the v1.x client.js monolith: the artifact is rebuilt with
+ * `npm run build:client` and client.js is never edited by hand.
+ */
+
+    //#region shader core ------------------------------------------------------
+    // B3 shader presets. The model and the workbench can only pick from this
+    // white list; no arbitrary GLSL ever reaches Cesium. Every preset modifies
+    // only the fragment material (diffuse/alpha), so lighting and geometry stay
+    // untouched and a broken shader cannot corrupt the scene.
+    const SHADER_PRESETS = ['height-false-color', 'contour', 'scan', 'water']
+    /** Hard cap from the B3 contract: one preset source stays well under 8 KB. */
+    const SHADER_SOURCE_LIMIT = 8 * 1024
+    const SHADER_HEIGHT_FLOOR = -1000
+    const SHADER_HEIGHT_CEILING = 9000
+    const SHADER_PARAM_LIMITS = {
+      min_height: [-1000, 9000],
+      max_height: [-1000, 9000],
+      interval: [1, 500],
+      speed: [0.1, 10],
+      amplitude: [0.1, 5],
+      opacity: [0.05, 1],
+    }
+    const SHADER_PRESET_PARAMS = {
+      'height-false-color': ['min_height', 'max_height'],
+      contour: ['interval'],
+      scan: ['speed'],
+      water: ['speed', 'amplitude', 'opacity'],
+    }
+    const SHADER_PRESET_DEFAULTS = {
+      'height-false-color': {},
+      contour: { interval: 20 },
+      scan: { speed: 1 },
+      water: { speed: 1, amplitude: 1, opacity: 0.75 },
+    }
+
+    const shaderClamp = (value, minimum, maximum) => Math.min(Math.max(value, minimum), maximum)
+    const shaderFinite = (value) => typeof value === 'number' && Number.isFinite(value)
+    /** All failures are model-facing: one `shader:` prefix and one actionable `next:`. */
+    const shaderFail = (message, next) => new Error(`shader: ${message} next: ${next}`)
+
+    /**
+     * Normalise bridge arguments against the frozen B3 contract. Returns either a
+     * request object or an Error carrying the model-facing message (never throws),
+     * so both runCommand and the workbench share exactly one validation path.
+     */
+    function shaderValidateRequest(args = {}) {
+      const raw = args && typeof args === 'object' && !Array.isArray(args) ? args : {}
+      const action = typeof raw.action === 'string' ? raw.action.trim() : ''
+      if (action !== 'apply' && action !== 'reset' && action !== 'list') {
+        return shaderFail(`不支持的操作 "${String(raw.action)}"。`, '使用 apply / reset / list。')
+      }
+      if (raw.layer !== undefined && raw.layer !== null && typeof raw.layer !== 'string') {
+        return shaderFail('layer 必须是图层名或 id 字符串。', '传入字符串后重试。')
+      }
+      const layer = typeof raw.layer === 'string' && raw.layer.trim() !== '' ? raw.layer.trim() : null
+      const keys = Object.keys(raw).filter((key) => key !== 'action')
+
+      if (action === 'list') {
+        if (keys.length > 0) return shaderFail(`list 不接受参数 "${keys[0]}"。`, '只传 action: "list"。')
+        return { operation: 'list' }
+      }
+      if (action === 'reset') {
+        const extra = keys.filter((key) => key !== 'layer')
+        if (extra.length > 0) return shaderFail(`reset 不接受参数 "${extra[0]}"。`, 'reset 只接受 action 与可选的 layer。')
+        return { operation: 'reset', layer }
+      }
+
+      const preset = typeof raw.preset === 'string' ? raw.preset.trim() : ''
+      if (!SHADER_PRESETS.includes(preset)) {
+        return shaderFail(
+          `不支持的预设 "${String(raw.preset)}"。`,
+          '使用 height-false-color / contour / scan / water。',
+        )
+      }
+      const allowed = new Set(['preset', 'layer', ...SHADER_PRESET_PARAMS[preset]])
+      const extra = keys.filter((key) => !allowed.has(key))
+      if (extra.length > 0) {
+        return shaderFail(
+          `预设 ${preset} 不接受参数 "${extra[0]}"。`,
+          `只使用 ${['preset', 'layer', ...SHADER_PRESET_PARAMS[preset]].join(', ')}。`,
+        )
+      }
+      const params = { ...SHADER_PRESET_DEFAULTS[preset] }
+      for (const key of SHADER_PRESET_PARAMS[preset]) {
+        const value = raw[key]
+        if (value === undefined || value === null) continue
+        if (!shaderFinite(value)) return shaderFail(`参数 ${key} 必须是有限数字。`, '传入数字后重试。')
+        const [minimum, maximum] = SHADER_PARAM_LIMITS[key]
+        if (value < minimum || value > maximum) {
+          return shaderFail(`参数 ${key}=${value} 超出 ${minimum}..${maximum}。`, '调整到合法范围后重试。')
+        }
+        params[key] = value
+      }
+      if (
+        preset === 'height-false-color' &&
+        params.min_height !== undefined &&
+        params.max_height !== undefined &&
+        !(params.min_height < params.max_height)
+      ) {
+        return shaderFail('min_height 必须小于 max_height。', '调整两个高度后重试。')
+      }
+      return { operation: 'apply', preset, layer, params }
+    }
+
+    /** ext list detection: Cesium 1.147 keeps tileset JSON extensions in `_extensionsUsed`. */
+    function shaderTilesetExtensions(tileset) {
+      const lists = [tileset?.extensionsUsed, tileset?._extensionsUsed, tileset?.root?.extensionsUsed]
+      const values = []
+      for (const list of lists) {
+        if (!Array.isArray(list)) continue
+        for (const item of list) {
+          if (typeof item === 'string' && !values.includes(item)) values.push(item)
+        }
+      }
+      return values
+    }
+
+    /** 3DGS splats have no per-vertex GLSL material Cesium.CustomShader can edit. */
+    function shaderGaussianLayer(tileset) {
+      if (shaderTilesetExtensions(tileset).includes('KHR_gaussian_splatting')) return true
+      if (typeof tileset?.hasExtension === 'function') {
+        try {
+          return tileset.hasExtension('KHR_gaussian_splatting') === true
+        } catch {
+          return false
+        }
+      }
+      return false
+    }
+
+    /**
+     * Relative height on the dataset: |positionWC| - |centre| + centreHeight is a
+     * tangent-plane approximation that works for any tileset orientation. The
+     * default range comes from the bounding sphere; the contract fallback is 0..200.
+     */
+    function shaderHeightRange(Cesium, tileset, fallbackCenter) {
+      let center =
+        tileset?.boundingSphere?.center ?? tileset?.root?.boundingSphere?.center ?? fallbackCenter ?? null
+      if (!center) center = Cesium.Cartesian3.fromDegrees(0, 0, 0)
+      let centerHeight = 0
+      try {
+        const carto = Cesium.Cartographic.fromCartesian(center)
+        if (carto && shaderFinite(carto.height)) centerHeight = carto.height
+      } catch {
+        centerHeight = 0
+      }
+      const rawRadius = Number(tileset?.boundingSphere?.radius ?? tileset?.root?.boundingSphere?.radius)
+      const radius = shaderFinite(rawRadius) ? Math.abs(rawRadius) : 0
+      let minimum = 0
+      let maximum = 0
+      if (radius > 0) {
+        minimum = shaderClamp(centerHeight - radius, SHADER_HEIGHT_FLOOR, SHADER_HEIGHT_CEILING)
+        maximum = shaderClamp(centerHeight + radius, SHADER_HEIGHT_FLOOR, SHADER_HEIGHT_CEILING)
+      }
+      // Contract fallback when there is no usable bounding volume: a zero-radius
+      // (point-like) sphere also uses 0..200, exactly as the frozen contract says.
+      // User-supplied min_height/max_height still override this range later.
+      if (!(maximum > minimum)) {
+        minimum = 0
+        maximum = 200
+      }
+      return { center, centerHeight, minimum, maximum, estimated: radius > 0 }
+    }
+
+    /** Per-preset uniform map; every value is finite and inside the contract bounds. */
+    function shaderUniforms(Cesium, preset, params, range) {
+      const uniforms = {
+        u_center: { type: Cesium.UniformType.VEC3, value: range.center },
+        u_centerHeight: { type: Cesium.UniformType.FLOAT, value: range.centerHeight },
+      }
+      if (preset === 'height-false-color' || preset === 'scan') {
+        uniforms.u_minHeight = { type: Cesium.UniformType.FLOAT, value: range.minimum }
+        uniforms.u_maxHeight = { type: Cesium.UniformType.FLOAT, value: range.maximum }
+      }
+      if (preset === 'contour') {
+        uniforms.u_interval = { type: Cesium.UniformType.FLOAT, value: params.interval ?? 20 }
+      }
+      if (preset === 'scan' || preset === 'water') {
+        uniforms.u_speed = { type: Cesium.UniformType.FLOAT, value: params.speed ?? 1 }
+        uniforms.u_time = { type: Cesium.UniformType.FLOAT, value: 0 }
+      }
+      if (preset === 'water') {
+        uniforms.u_amplitude = { type: Cesium.UniformType.FLOAT, value: params.amplitude ?? 1 }
+        uniforms.u_opacity = { type: Cesium.UniformType.FLOAT, value: params.opacity ?? 0.75 }
+      }
+      return uniforms
+    }
+
+    function shaderFragmentSource(preset) {
+      const source = SHADER_FRAGMENT_SOURCES[preset]
+      if (typeof source !== 'string' || source.length === 0 || source.length > SHADER_SOURCE_LIMIT) {
+        throw shaderFail(`预设 ${String(preset)} 的着色器源码无效。`, '联系面板维护者检查预设定义。')
+      }
+      return source
+    }
+
+    // Fragments only touch `material.diffuse` / `material.alpha`. Cesium declares
+    // the uniforms from the CustomShader uniform map, so they are never re-declared
+    // here; `fsInput.attributes.positionWC` is auto-wired by Cesium when referenced.
+    const SHADER_FRAGMENT_SOURCES = {
+      'height-false-color': `void fragmentMain(FragmentInput fsInput, inout czm_modelMaterial material) {
+  float height = length(fsInput.attributes.positionWC) - length(u_center) + u_centerHeight;
+  float span = max(u_maxHeight - u_minHeight, 1.0);
+  float t = clamp((height - u_minHeight) / span, 0.0, 1.0);
+  vec3 low = vec3(0.16, 0.36, 0.86);
+  vec3 midLow = vec3(0.20, 0.78, 0.36);
+  vec3 mid = vec3(0.96, 0.90, 0.22);
+  vec3 midHigh = vec3(0.98, 0.56, 0.14);
+  vec3 high = vec3(0.92, 0.18, 0.16);
+  vec3 ramp = t < 0.25
+    ? mix(low, midLow, t / 0.25)
+    : t < 0.5
+      ? mix(midLow, mid, (t - 0.25) / 0.25)
+      : t < 0.75
+        ? mix(mid, midHigh, (t - 0.5) / 0.25)
+        : mix(midHigh, high, (t - 0.75) / 0.25);
+  material.diffuse = mix(material.diffuse, ramp, 0.85);
+}`,
+      contour: `void fragmentMain(FragmentInput fsInput, inout czm_modelMaterial material) {
+  float height = length(fsInput.attributes.positionWC) - length(u_center) + u_centerHeight;
+  float spacing = max(u_interval, 1.0);
+  float band = fract(height / spacing);
+  float edge = min(band, 1.0 - band);
+  float line = 1.0 - smoothstep(0.0, 0.08, edge);
+  vec3 contourColor = vec3(0.98, 0.84, 0.28);
+  material.diffuse = mix(material.diffuse, contourColor, line);
+}`,
+      scan: `void fragmentMain(FragmentInput fsInput, inout czm_modelMaterial material) {
+  float height = length(fsInput.attributes.positionWC) - length(u_center) + u_centerHeight;
+  float span = max(u_maxHeight - u_minHeight, 1.0);
+  float t = clamp((height - u_minHeight) / span, 0.0, 1.0);
+  float sweep = fract(u_time * max(u_speed, 0.1) * 0.12);
+  float distanceToBand = abs(t - sweep);
+  float band = 1.0 - smoothstep(0.0, 0.05, distanceToBand);
+  vec3 scanColor = vec3(0.32, 0.95, 1.0);
+  material.diffuse = mix(material.diffuse * 0.6, scanColor, band);
+}`,
+      water: `void fragmentMain(FragmentInput fsInput, inout czm_modelMaterial material) {
+  float height = length(fsInput.attributes.positionWC) - length(u_center) + u_centerHeight;
+  float waveA = sin(height * 0.35 + u_time * u_speed * 1.6);
+  float waveB = sin(height * 0.72 - u_time * u_speed * 2.4);
+  float ripple = clamp(0.5 + (waveA * 0.35 + waveB * 0.15) * u_amplitude, 0.0, 1.0);
+  vec3 waterColor = mix(vec3(0.03, 0.16, 0.38), vec3(0.24, 0.62, 0.92), ripple);
+  material.diffuse = mix(material.diffuse, waterColor, u_opacity);
+  material.alpha = mix(material.alpha, 0.92, u_opacity * 0.5);
+}`,
+    }
+    //#endregion shader core
+
+export { SHADER_PRESETS, SHADER_SOURCE_LIMIT, SHADER_HEIGHT_FLOOR, SHADER_HEIGHT_CEILING, SHADER_PARAM_LIMITS, SHADER_PRESET_PARAMS, SHADER_PRESET_DEFAULTS, shaderClamp, shaderFinite, shaderFail, shaderValidateRequest, shaderTilesetExtensions, shaderGaussianLayer, shaderHeightRange, shaderUniforms, shaderFragmentSource, SHADER_FRAGMENT_SOURCES }

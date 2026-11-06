@@ -19,7 +19,7 @@ import { tmpdir } from 'node:os'
 import { basename, dirname, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { hostSource } from './helpers/source.mjs'
+import { clientSource as readClientSource, hostSource } from './helpers/source.mjs'
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)))
 
@@ -37,7 +37,7 @@ const routesSource = readHostModule('routes.js')
 const commandsSource = readHostModule('commands.js')
 const sceneSource = readHostModule('tools/scene.js')
 const captureSource = readHostModule('tools/capture.js')
-const clientSource = await readSource('client.js')
+const clientSource = readClientSource()
 
 // ---------------------------------------------------------------------------
 // 宿主半边：DSH_HOME 必须在 import 之前设置，index.js 的 STATE_DIR/SCENES_DIR

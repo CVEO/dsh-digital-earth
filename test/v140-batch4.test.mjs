@@ -4,7 +4,7 @@
  * 只读源码与文档，不碰实现：
  *   - 版本单一来源：package.json 1.4.0、Host/Client FALLBACK_ABOUT、README/CHANGELOG；
  *   - README 中英：1.4.0 徽章/安装示例、六工具名与功能行、结构与链接离线自查；
- *   - CHANGELOG：1.4.0 置顶且覆盖本地路径/分析/着色器/HUD/性能，无发布/ release/上线/天际线；
+ *   - CHANGELOG：1.4.0 段落完整（本地路径/分析/着色器/HUD/性能），2.0.0 段落覆盖破坏性变更与架构；
  *   - About：宿主元数据（homepage/issues/team）与客户端兜底、团队与源码 URL；
  *   - Client B4 修复静态断言：F1 re-apply 失败恢复活动预设且不动 entries、
  *     F2 自动选层跳过 3DGS、F3 radius=0 一律回退 0..200；
@@ -24,12 +24,13 @@ import { dirname, extname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import { SYSTEM_PROMPT_SECTION } from '../index.js'
-import { hostSource } from './helpers/source.mjs'
+import { clientSource, hostSource } from './helpers/source.mjs'
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)))
 const readText = (name) => readFile(join(root, name), 'utf8').then((text) => text.replace(/\r\n/g, '\n'))
-const [client, packageText, readmeZh, readmeEn, changelog, aboutSource, sceneSource, shaderSource, analyzeSource] = await Promise.all([
-  readText('client.js'),
+// Authored client source (src/client/**), not the generated client.js artifact.
+const client = clientSource()
+const [packageText, readmeZh, readmeEn, changelog, aboutSource, sceneSource, shaderSource, analyzeSource] = await Promise.all([
   readText('package.json'),
   readText('README.md'),
   readText('README.en.md'),
@@ -131,7 +132,10 @@ test('B4 版本：package.json 为合法 semver，未新增依赖/未改 scripts
   assert.equal(pkg.exports?.['./client'], './client.js')
   assert.equal(pkg.dsh?.bundle?.patch, './cordis.patch.yml')
   assert.equal(pkg.scripts?.test, 'node --test')
-  assert.equal(pkg.scripts?.check, 'node --check index.js && node --check client.js && node --test')
+  assert.equal(
+    pkg.scripts?.check,
+    'node --check index.js && node --check client.js && npm run build:client -- --check && node scripts/check-size.mjs && node --test',
+  )
   // 发布白名单不包含测试与 QA 资料。
   assert.ok(!(pkg.files ?? []).some((name) => name.startsWith('test/')), 'files 不应包含 test/')
   assert.ok(!(pkg.files ?? []).some((name) => name.startsWith('.research')), 'files 不应包含 .research')
@@ -238,7 +242,7 @@ test('B4 版本单一来源：Host/Client FALLBACK_ABOUT 与 package 一致，�
   assert.ok(changelog.indexOf('## 1.4.0') < changelog.indexOf('## 1.3.0'))
 })
 
-test('B4 CHANGELOG：1.4.0 覆盖本地路径/分析/着色器/HUD/性能，无发布/ release/上线/天际线', () => {
+test('B4 CHANGELOG：1.4.0 段落完整，且 2.0.0 段落覆盖破坏性变更与架构改动', () => {
   const section = changelog.slice(changelog.indexOf('## 1.4.0'), changelog.indexOf('## 1.3.0'))
   assert.ok(section.length > 500, `CHANGELOG 1.4.0 段落过短：${section.length}`)
   for (const phrase of [
@@ -250,8 +254,20 @@ test('B4 CHANGELOG：1.4.0 覆盖本地路径/分析/着色器/HUD/性能，无�
   }
   assert.match(section, /profile/)
   assert.match(section, /height-false-color/)
-  assert.doesNotMatch(changelog, /发布|release|上线|天际线|skyline/i)
+  // v1.4.0 段落是面向用户的发布说明，不应出现内部流程/未落地功能词。
+  assert.doesNotMatch(section, /发布|release|上线|天际线|skyline/i)
   assert.doesNotMatch(changelog, /\bTODO\b/)
+
+  // v2.0.0 段落必须写清破坏性变更与架构改动（升级者只看这一节）。
+  const v2 = changelog.slice(changelog.indexOf('## 2.0.0'), changelog.indexOf('## 1.4.0'))
+  assert.ok(v2.length > 800, `CHANGELOG 2.0.0 段落过短：${v2.length}`)
+  for (const phrase of [
+    '不兼容变更', 'tileset_info.json', 'tileset_not_georeferenced',
+    'scene.postRender', 'DOM Fullscreen', 'terrainDepthTest',
+    'src/host/**', 'src/client/**', 'build:client', 'check-size',
+  ]) {
+    assert.ok(v2.includes(phrase), `CHANGELOG 2.0.0 缺少：${phrase}`)
+  }
 })
 
 test('B4 About：源码/Issues/团队与 URL 正确，客户端 meta 优先且兜底可用', () => {

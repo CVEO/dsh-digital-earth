@@ -24,12 +24,13 @@ import {
   resolveLocalTileset,
   SYSTEM_PROMPT_SECTION,
 } from '../index.js'
-import { hostSource } from './helpers/source.mjs'
+import { clientSource, hostSource } from './helpers/source.mjs'
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)))
 const readText = (name) => readFile(join(root, name), 'utf8').then((text) => text.replace(/\r\n/g, '\n'))
-const [client, packageText, sceneSource, bridgeSource] = await Promise.all([
-  readText('client.js'),
+// Authored client source (src/client/**), not the generated client.js artifact.
+const client = clientSource()
+const [packageText, sceneSource, bridgeSource] = await Promise.all([
   readText('package.json'),
   readText('src/host/tools/scene.js'),
   readText('src/host/bridge.js'),

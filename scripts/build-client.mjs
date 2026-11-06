@@ -18,13 +18,16 @@
  */
 import { readFile, writeFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
+import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { build } from 'esbuild'
 
+// `root` is a filesystem path, so every child path must be joined with node:path:
+// `new URL(relative, windowsPath)` throws ERR_INVALID_URL on Windows.
 const root = fileURLToPath(new URL('../', import.meta.url))
-const entry = fileURLToPath(new URL('src/client/index.js', root))
-const output = fileURLToPath(new URL('client.js', root))
-const pkg = JSON.parse(await readFile(new URL('package.json', root), 'utf8'))
+const entry = join(root, 'src/client/index.js')
+const output = join(root, 'client.js')
+const pkg = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'))
 
 if (!existsSync(entry)) {
   console.error('build:client: src/client/index.js is missing; the client half has not been migrated yet')
@@ -51,7 +54,6 @@ const result = await build({
     charset: 'utf8',
     logLevel: 'warning',
   })
-}
 
 if (result.outputFiles.length !== 1) {
   console.error(`build:client: expected exactly one output file, got ${result.outputFiles.length}`)

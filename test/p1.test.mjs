@@ -17,7 +17,7 @@ import { readFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { injectHandler } from '../index.js'
-import { hostSource } from './helpers/source.mjs'
+import { clientSource as readClientSource, hostSource } from './helpers/source.mjs'
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)))
 const MAX_INJECT_BODY = 16 * 1024
@@ -25,7 +25,7 @@ const MAX_INJECT_TEXT = 4000
 
 /** 源码断言必须换行无关：Windows 检出可能是 CRLF。 */
 const readSource = async (name) => (await readFile(join(root, name), 'utf8')).replace(/\r\n/g, '\n')
-const clientSource = await readSource('client.js')
+const clientSource = readClientSource()
 // v2.0 split: read the owning module for source assertions; `hostAll` is the
 // concatenated authored host source and is only used for top-level extraction.
 const hostAll = hostSource()

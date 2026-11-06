@@ -10,7 +10,7 @@
  * Generated artifacts (client.js) are exempt: they are build output.
  */
 import { readdir, readFile, stat } from 'node:fs/promises'
-import { join, relative } from 'node:path'
+import { join, relative, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const ROOT = fileURLToPath(new URL('../', import.meta.url))
@@ -53,12 +53,20 @@ async function walk(dir) {
   return found
 }
 
+/**
+ * Repo-relative path with forward slashes. `path.join` yields backslashes on
+ * Windows, so a budget keyed `src/client/...` would silently stop matching there
+ * (the CI matrix runs both platforms — the guard must behave identically).
+ */
+const normalise = (path) => path.split(sep).join('/')
+
 const failures = []
 const warnings = []
 const rows = []
 
 for (const { dir, max } of BUDGETS) {
-  for (const path of await walk(dir)) {
+  for (const rawPath of await walk(dir)) {
+    const path = normalise(rawPath)
     const lines = (await readFile(join(ROOT, path), 'utf8')).split('\n').length
     const exception = EXCEPTIONS.get(path)
     const budget = exception ?? max

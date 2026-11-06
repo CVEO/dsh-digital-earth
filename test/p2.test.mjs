@@ -18,7 +18,7 @@ import { tmpdir } from 'node:os'
 import { basename, dirname, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { hostSource } from './helpers/source.mjs'
+import { clientSource as readClientSource, hostSource } from './helpers/source.mjs'
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)))
 const MAX_REPORT_BODY = 16 * 1024 * 1024
@@ -26,7 +26,7 @@ const MAX_EXPORT_FILES = 200
 
 /** 源码断言必须换行无关：Windows 检出可能是 CRLF。 */
 const readSource = async (name) => (await readFile(join(root, name), 'utf8')).replace(/\r\n/g, '\n')
-const clientSource = await readSource('client.js')
+const clientSource = readClientSource()
 // v2.0 split: implementation lives in src/host; source assertions read the
 // owning module, `hostAll` is only used to extract top-level functions.
 const hostAll = hostSource()

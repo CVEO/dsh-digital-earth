@@ -12,9 +12,13 @@ import { readFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+import { clientSource } from './helpers/source.mjs'
+
 const root = dirname(dirname(fileURLToPath(import.meta.url)))
 const readText = (name) => readFileSync(join(root, name), 'utf8')
-const client = await readFile(join(root, 'client.js'), 'utf8')
+// Authored client source (src/client/**), not the generated client.js artifact:
+// these assertions describe layout/wiring, and the artifact is minified-ish glue.
+const client = clientSource()
 
 test('两个地球工具都注册了自定义工具行', () => {
   assert.match(client, /name: 'tool\.call\.toolview'/)

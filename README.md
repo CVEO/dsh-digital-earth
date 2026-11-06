@@ -6,7 +6,7 @@
 
 [中文](README.md) · [English](README.en.md)
 
-![版本](https://img.shields.io/badge/版本-1.4.0-4f8cff)
+![版本](https://img.shields.io/badge/版本-2.0.0-4f8cff)
 ![许可](https://img.shields.io/badge/许可-MIT-2ea44f)
 ![平台](https://img.shields.io/badge/平台-Web-8b5cf6)
 ![DSH](https://img.shields.io/badge/DSH-%3E%3D0.2.1--rc.1-0ea5e9)
@@ -58,7 +58,7 @@ dsh plugin --profile <profile> add @cveo/dsh-digital-earth
 
 # 从本地目录 / 打包文件安装
 dsh plugin --profile <profile> add "<path-to-plugin>"
-dsh plugin --profile <profile> add "./cveo-dsh-digital-earth-1.4.0.tgz"
+dsh plugin --profile <profile> add "./cveo-dsh-digital-earth-2.0.0.tgz"
 ```
 
 安装或更新后请**完全退出并重新打开 DSH** 一次：客户端 bundle 在宿主启动时注册，仅刷新页面不会重新注册。随后左侧栏出现「数字地球 / Digital Earth」入口，对话标题栏也会出现地球按钮。
@@ -138,8 +138,8 @@ Agent 调用地球工具时，插件会自动在对话右侧打开地球页签�
 
 ## 工作原理
 
-- **宿主侧**（`index.js`）：注册 `/api/3dviewer/*` 路由，负责 Cesium 静态资源、本地目录扫描与白名单、最近打开目录记录、会话场景快照（`$DSH_HOME/digital-earth/scenes`）、瓦片服务、跨域代理、数据源配置读写，以及六个 Agent 工具、`/earth` 斜杠命令和 session 级命令桥。
-- **客户端**（`client.js`）：作为 DSH 客户端模块加载，声明 `sidebar.panellist`、`main` 与右侧边栏页签，按需动态 `import()` 自托管 CesiumJS；页签内面板用 `EventSource` 连接命令桥，串行执行 Agent 指令并回执。
+- **宿主侧**（`index.js` 入口 + `src/host/**`）：注册 `/api/3dviewer/*` 路由，负责 Cesium 静态资源、本地目录扫描与白名单、最近打开目录记录、会话场景快照（`$DSH_HOME/digital-earth/scenes`）、瓦片服务、跨域代理、数据源配置读写，以及六个 Agent 工具、`/earth` 斜杠命令和 session 级命令桥。v2.0 起入口只有 `inject`/`apply` 与公开 re-export，实现按职责拆在 27 个模块里（路由、桥、体检、存储、工具各自独立）。
+- **客户端**（`src/client/**` → `client.js` 产物）：作为 DSH 客户端模块加载，声明 `sidebar.panellist`、`main` 与右侧边栏页签，按需动态 `import()` 自托管 CesiumJS；页签内面板用 `EventSource` 连接命令桥，串行执行 Agent 指令并回执。源码拆在 22 个模块，由 esbuild 打包成单一 `window.__ModuleLoader__` 产物（`npm run build:client`）；`client.js` 是构建产物，CI 会校验它与源码一致，请勿手改。
 - **Agent 命令桥**：`GET /api/3dviewer/bridge?session=…` 推送命令，`POST /api/3dviewer/bridge` 回执；同一会话只由最新打开的那个地球页签执行命令，避免重复加载；截图经 `POST /api/3dviewer/capture` 落盘，再由 `/api/3dviewer/files` 回读；数据体检经 `POST /api/3dviewer/inspect` 分析并写入报告目录。
 - **安全**：所有路由绑定 DSH `connection` 会话与同源校验，并带插件实例 token（只下发给页面，不出现在任何工具结果里）；`/tiles` 仅服务经文件选择器加入白名单的目录，Agent 加载本地路径同样受该白名单约束，且会校验真实路径；白名单注册端点 `/scan` 只接受面板自身的请求头，模型无法借 Cesium 发同源 GET 间接触发；`/inspect` 同样要求面板请求头，本地路径走白名单 + 真实路径，远程 URL 复用 `/remote` 规则；`/remote` 代理拒绝字面量 loopback / 私网地址与 3xx 重定向，避免直接 SSRF；代理不做 DNS 解析，若域名解析到内网可能绕过（见已知限制）。插件不上传数据、不主动外联。
 - **自托管 CesiumJS**：`vendor/cesium` 随插件分发，无 CDN、无 Cesium ion Token。
@@ -160,8 +160,13 @@ Agent 调用地球工具时，插件会自动在对话右侧打开地球页签�
 
 ```text
 dsh-digital-earth/
-├── index.js            # 宿主插件：路由、代理、本地资源、配置持久化、Agent 工具与命令桥
-├── client.js           # 客户端面板：Cesium 场景、工具栏、数据源设置、对话同屏页签与命令桥
+├── index.js            # 宿主入口：inject/apply + 公开 re-export（≤80 行）
+├── src/host/           # 宿主实现：路由、命令桥、体检、存储、六个工具、/earth 命令
+├── src/client/         # 客户端源码：场景面板、工具栏、对话框、着色器/分析、i18n
+├── client.js           # 客户端产物（由 npm run build:client 生成，勿手改）
+├── scripts/            # build-client（esbuild 打包）与 check-size（架构预算门禁）
+├── docs/               # 审计、冻结需求、方向与协议调研、交付验证清单（不随包发布）
+├── test/               # 模块单测 / 契约测试 / 产物冒烟
 ├── cordis.patch.yml    # bundle 补丁
 ├── locale/             # 插件市场元数据（中 / 英）
 ├── vendor/cesium/      # 自托管 CesiumJS 1.147

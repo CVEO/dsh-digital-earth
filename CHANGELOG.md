@@ -1,5 +1,35 @@
 # Changelog
 
+## 2.0.0
+
+架构与契约版本：把 1.x 的单文件巨石拆成模块、清掉隐式改写数据的兼容层、修掉错误的性能度量，并把未验证的功能移出主线。**有破坏性变更，升级前请读「不兼容变更」一节。**
+
+### 不兼容变更
+
+- **删除 `tileset_info.json` 地理配准兼容层**：以前宿主会在 `/tiles` 上读同级 `tileset_info.json` 的 `srs` + `srs_origin`，给缺少根 `transform` 的 `tileset.json` 补一个 ENU→ECEF 根变换。现在**只接受标准 3D Tiles 1.0 / 1.1**：根瓦片必须自带 `root.transform`（16 个数）或 `root.boundingVolume.region`，否则按 ECEF 读局部米、数据会落在地心附近。插件不再猜测、不再改写要发给 Cesium 的 JSON——`/tiles` 恢复为纯静态文件服务，「渲染的字节」永远等于「磁盘的字节」。
+- **替代方案**：数据体检（`earth_scene action=inspect`）在根文档缺世界定位时报 **error 级 `tileset_not_georeferenced`**，说明症状与修法（重新导出时写入根 `transform` / `region`）。OSGB 转换链请把世界定位写进 `tileset.json`，不要依赖 sidecar 文件。
+- **1.5 实验功能包未随本版发布**：自动找目标 / 视觉锚定、第一人称巡检 `earth_camera`、双期卷帘对比、单体化量测、视域 / 通视 / 控高 / 天际线 / 剖切、巡游录制、接触表、QA 清单、照片叠合、属性查询、覆盖网格、取景框、GeoJSON 导出、场景召回等 19 项**已整体移出主线**，代码保留在分支 / tag `wip/v1.5-feature-bomb`。解冻条件见 `docs/DIRECTION.md` §7 与 `docs/spec/SPEC-v2.0.md` §7（先有 `HeightService`、多数据集图层模型或属性语义层，再逐个回归）。
+
+### 修复
+
+- **FPS 不再是错的度量**：仪表改为计数 Cesium 真实渲染帧（`scene.postRender`，与 Cesium 自带 `PerformanceDisplay` 同语义）+ EMA 平滑；页面隐藏、WebGL 上下文丢失、或连续 2 秒无渲染帧时进入**空闲态**，HUD 显示 `—` 而不是冻结的旧数字（此前读数来自窗口 `requestAnimationFrame`，静止时会一直停在某个值，例如 32）。`earth_scene status` 新增可加字段 `render: { fps, idle, terrain_depth_test }`。
+- **「全屏」名副其实**：新增真正的全屏（DOM Fullscreen API，面板根节点 `requestFullscreen`，停靠态与主区域都可用，Esc / 系统退出后自动同步状态并 `viewer.resize()`）；原来叫「全屏查看」的按钮实际是把 DSH 右侧栏最大化，现更名为「最大化侧栏」。
+- **地形遮挡（深度测试）可开关**：新增设置项 `terrainDepthTest`（默认关）。关闭时地下管网、埋在地形下的模型都能看见（Cesium 默认行为）；开启时地形会遮挡埋在下面的内容、天际线更干净。切换只改 `Globe` 属性，不重建 viewer，切换地形后自动重放。
+- 清理三处重复实现：原子 JSON 写入、瓦片目录扫描、时间戳格式化各合并为一份；删除已废弃的截图回执兼容分支。
+
+### 工程
+
+- **Host 拆分**：`index.js` 从 5,081 行降为 **43 行入口**（`inject` / `apply` + 公开 re-export），实现落到 `src/host/**` 的 **27 个模块**（最大 499 行），零运行期依赖、无循环依赖。
+- **Client 拆分**：`client.js` 从 7,582 行手写单文件改为 `src/client/**` 的 **22 个模块**，由 esbuild 打包成单一 `window.__ModuleLoader__` 产物（React 保持 external，动态 Cesium `import()` 保持不变）。`client.js` 现在是**构建产物**（CI 用 `npm run build:client -- --check` 防止源码与产物漂移）。
+- **架构门禁**：`scripts/check-size.mjs` 限制 `src/host/**` ≤600 行、`src/client/**` ≤900 行、`index.js` ≤80 行；`ViewerSurface` 作为限期例外（4,200 行）登记在豁免表里，只许变小。
+- **发布链路**：仍为 tag-only，并加固——手动 `workflow_dispatch` 只允许在 `main` 上运行；tag 必须等于 `v<package.json version>` **且落在 `origin/main` 上**；发布前重跑 `npm ci`、产物一致性、架构预算、测试与打包冒烟。
+- **测试分层**：240 个测试全绿（原 227）；9 个「读源码文本断言」的客户端测试改为读模块源码（`test/helpers/source.mjs`），新增 12 个离线体检行为测试与 3 个产物冒烟测试（在 Node VM 里真实执行 `client.js`，断言工厂返回 `{inject, apply}`）。
+- **仓库卫生**：`roof_task/` 等本地点云数据、`*.npz` / `*.las` 等二进制扩展名加入 `.gitignore` 与隐私扫描跳过列表；`cveo-dsh-digital-earth-1.4.0.tgz` 按 `d14d17b` 重新打包，保留为回滚安装源。
+
+### 文档
+
+- 新增 `docs/AUDIT.md`（证据化审计）、`docs/spec/SPEC-v2.0.md`（冻结需求与决策记录）、`docs/DIRECTION.md`（方向、四层图层模型、路线图、工程准则）、`docs/audit/{host,client,release}.md`（逐行审计明细）、`docs/research/layers.md`（公开 XYZ / WMS / WMTS / ArcGIS / MVT 端点的实测结果与能力矩阵）、`docs/DELIVERY.md`（重装验证清单）。
+
 ## 1.4.0
 
 对话工作区版本：本地数据、地形分析、着色器预设、场景快照、`/earth` 命令、问 Agent 与场景报告。
