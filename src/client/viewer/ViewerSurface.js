@@ -2648,16 +2648,12 @@ const h = React.createElement
                     onFrameAll: () => frameAllLayers(viewerRef.current, cesiumRef.current, layersRef.current),
                     analysis,
                     onClearAnalysis: () => clearAnalysis(),
-                    // Shader effects behave like selectable rows: click loads that
-                    // effect into the workbench, ✕ resets only that layer.
+                    // Shader effects hang off their 3D Tiles layer row: hover shows
+                    // the effect, clicking the row loads it into the workbench.
                     shaderActive,
-                    shaderForm,
-                    onSelectShaderEntry: (entry) => {
-                      workbench.loadEntry(entry)
+                    onEditLayerShader: (layer, entry) => {
+                      workbench.loadEntry(entry ?? { layer: layer.name, layerId: layer.id, preset: 'height-false-color' })
                       setShaderOpen(true)
-                    },
-                    onResetShaderEntry: (entry) => {
-                      void workbench.resetLayerFor(entry.layer)
                     },
                     onToggleLayer: toggleLayer,
                     onInspectLayer: inspectLayer,

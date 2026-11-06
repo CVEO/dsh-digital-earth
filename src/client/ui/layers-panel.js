@@ -53,9 +53,7 @@ export function LayersPanel({
   analysis,
   onClearAnalysis,
   shaderActive,
-  shaderForm,
-  onSelectShaderEntry,
-  onResetShaderEntry,
+  onEditLayerShader,
   getCurrentView,
   onFlyView,
 }) {
@@ -288,78 +286,71 @@ export function LayersPanel({
           ),
       // ---- 3D Tiles content --------------------------------------------------
       h('div', { key: 'g6', className: 'mv-group' }, h('div', { className: 'mv-group-title' }, `${t('layers.content')} · ${layers.length}`)),
-      ...layers.map((layer) =>
-        h(
+      ...layers.map((layer) => {
+        // Shader effects live ON the layer row (not as separate entries): hovering
+        // the row explains the effect, clicking the row (or ✦) edits it, while the
+        // name/⌖ still keep their fly-to behaviour.
+        const shader =
+          (shaderActive ?? []).find(
+            (entry) => entry.layerId === layer.id || (entry.layerId === undefined && entry.layer === layer.name),
+          ) ?? null
+        const summary = shader ? shaderEntrySummary(t, shader) : ''
+        const openShader = () => onEditLayerShader(layer, shader)
+        const stop = (event) => event.stopPropagation()
+        return h(
           'div',
-          { key: layer.id, className: `mv-layer${layer.visible ? '' : ' off'}` },
-          h('span', { className: 'name', title: layer.name, onClick: () => onFlyLayer(layer.id) }, layer.name),
-          h('button', { type: 'button', className: `mv-icon-btn${layer.visible ? '' : ' on'}`, title: layer.visible ? t('btn.visible') : t('btn.hidden'), onClick: () => onToggleLayer(layer.id) }, layer.visible ? '◉' : '◌'),
-          h('button', { type: 'button', className: 'mv-icon-btn', title: t('btn.flyTo'), 'aria-label': t('btn.flyTo'), onClick: () => onFlyLayer(layer.id) }, '⌖'),
-          h('button', { type: 'button', className: 'mv-icon-btn', title: t('btn.health'), 'aria-label': t('btn.health'), onClick: () => onInspectLayer(layer.id) }, '⌕'),
-          h('button', { type: 'button', className: 'mv-icon-btn', title: t('btn.delete'), 'aria-label': t('btn.delete'), onClick: () => onRemoveLayer(layer.id) }, '✕'),
-        ),
-      ),
-      // ---- shader effects: one selectable row per applied preset stack ----------
-      h(
-        'div',
-        { key: 'g7', className: 'mv-group' },
-        h('div', { className: 'mv-group-title' }, `${t('layers.shader')}${(shaderActive ?? []).length > 0 ? ` · ${shaderActive.length}` : ''}`),
-      ),
-      (shaderActive ?? []).length === 0
-        ? h('div', { key: 'shader-empty', className: 'mv-none' }, t('layers.shaderEmpty'))
-        : (shaderActive ?? []).map((entry) => {
-            const selected = entry.layerId !== undefined && shaderForm?.layerId === entry.layerId
-            const presetText = (Array.isArray(entry.preset) ? entry.preset : [entry.preset])
-              .map((item) => t(`shader.preset.${item}`))
-              .join(' + ')
-            return h(
-              'div',
-              {
-                key: entry.layerId ?? entry.layer,
-                className: `mv-layer mv-shader-layer${selected ? ' on' : ''}`,
-                title: shaderEntrySummary(t, entry),
-                role: 'button',
-                tabIndex: 0,
-                onClick: () => onSelectShaderEntry(entry),
-                onKeyDown: (event) => {
-                  if (event.key === 'Enter' || event.key === ' ') {
-                    event.preventDefault()
-                    onSelectShaderEntry(entry)
-                  }
-                },
+          {
+            key: layer.id,
+            className: `mv-layer${layer.visible ? '' : ' off'}${shader ? ' has-shader' : ''}`,
+            title: shader ? `${layer.name} — ${summary}` : layer.name,
+            ...(shader
+              ? {
+                  role: 'button',
+                  tabIndex: 0,
+                  onClick: openShader,
+                  onKeyDown: (event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault()
+                      openShader()
+                    }
+                  },
+                }
+              : {}),
+          },
+          h(
+            'span',
+            {
+              className: 'name',
+              title: layer.name,
+              onClick: (event) => {
+                stop(event)
+                onFlyLayer(layer.id)
               },
-              h('span', { className: 'name', title: entry.layer }, entry.layer),
-              h('span', { className: 'mv-shader-chip' }, presetText),
-              h(
+            },
+            layer.name,
+          ),
+          shader
+            ? h(
                 'button',
                 {
                   type: 'button',
-                  className: 'mv-icon-btn',
-                  title: t('shader.editEntry'),
+                  className: 'mv-icon-btn mv-shader-edit',
+                  title: `${t('shader.editEntry')} · ${summary}`,
                   'aria-label': t('shader.editEntry'),
                   onClick: (event) => {
-                    event.stopPropagation()
-                    onSelectShaderEntry(entry)
+                    stop(event)
+                    openShader()
                   },
                 },
-                '✎',
-              ),
-              h(
-                'button',
-                {
-                  type: 'button',
-                  className: 'mv-icon-btn',
-                  title: t('shader.removeEntry'),
-                  'aria-label': t('shader.removeEntry'),
-                  onClick: (event) => {
-                    event.stopPropagation()
-                    onResetShaderEntry(entry)
-                  },
-                },
-                '✕',
-              ),
-            )
-          }),
+                '✦',
+              )
+            : null,
+          h('button', { type: 'button', className: `mv-icon-btn${layer.visible ? '' : ' on'}`, title: layer.visible ? t('btn.visible') : t('btn.hidden'), onClick: (event) => { stop(event); onToggleLayer(layer.id) } }, layer.visible ? '◉' : '◌'),
+          h('button', { type: 'button', className: 'mv-icon-btn', title: t('btn.flyTo'), 'aria-label': t('btn.flyTo'), onClick: (event) => { stop(event); onFlyLayer(layer.id) } }, '⌖'),
+          h('button', { type: 'button', className: 'mv-icon-btn', title: t('btn.health'), 'aria-label': t('btn.health'), onClick: (event) => { stop(event); onInspectLayer(layer.id) } }, '⌕'),
+          h('button', { type: 'button', className: 'mv-icon-btn', title: t('btn.delete'), 'aria-label': t('btn.delete'), onClick: (event) => { stop(event); onRemoveLayer(layer.id) } }, '✕'),
+        )
+      }),
     ),
   )
 }

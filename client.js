@@ -4895,11 +4895,11 @@ var CSS = `
 .mv-layer:hover{background:color-mix(in srgb,var(--mv-lift) 64%,transparent)}
 .mv-layer .name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;cursor:pointer}
 .mv-layer.off .name{color:var(--mv-dim);text-decoration:line-through}
-.mv-shader-layer{cursor:pointer;border:.5px solid transparent}
-.mv-shader-layer:hover{border-color:color-mix(in srgb,#3ddc97 35%,transparent)}
-.mv-shader-layer.on{border-color:color-mix(in srgb,#3ddc97 65%,transparent);background:color-mix(in srgb,#3ddc97 10%,transparent)}
-.mv-shader-layer .mv-shader-chip{flex:none;max-width:46%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:9.5px;letter-spacing:.02em;color:#04241a;background:color-mix(in srgb,#3ddc97 72%,transparent);border-radius:4px;padding:1px 5px}
-.mv-shader-layer .mv-icon-btn{width:22px;height:22px;font-size:12px}
+.mv-layer.has-shader{cursor:pointer;border-left:2px solid color-mix(in srgb,#3ddc97 70%,transparent);box-sizing:border-box}
+.mv-layer.has-shader:hover{background:color-mix(in srgb,#3ddc97 8%,transparent)}
+.mv-layer.has-shader .name{cursor:default}
+.mv-layer .mv-shader-edit{color:#3ddc97}
+.mv-layer .mv-shader-edit:hover{background:color-mix(in srgb,#3ddc97 18%,transparent);color:#7ff0c4}
 .mv-icon-btn{appearance:none;border:0;background:transparent;color:var(--mv-dim);width:26px;height:26px;border-radius:7px;cursor:pointer;font:inherit;font-size:14px;line-height:1;display:inline-flex;align-items:center;justify-content:center;flex:none}
 .mv-layer{gap:3px;padding:5px 7px}
 .mv-layer .mv-icon-btn{font-size:15px}
@@ -6116,9 +6116,7 @@ function LayersPanel({
   analysis,
   onClearAnalysis,
   shaderActive,
-  shaderForm,
-  onSelectShaderEntry,
-  onResetShaderEntry,
+  onEditLayerShader,
   getCurrentView,
   onFlyView
 }) {
@@ -6326,72 +6324,73 @@ function LayersPanel({
       ),
       // ---- 3D Tiles content --------------------------------------------------
       h5("div", { key: "g6", className: "mv-group" }, h5("div", { className: "mv-group-title" }, `${t2("layers.content")} · ${layers.length}`)),
-      ...layers.map(
-        (layer) => h5(
-          "div",
-          { key: layer.id, className: `mv-layer${layer.visible ? "" : " off"}` },
-          h5("span", { className: "name", title: layer.name, onClick: () => onFlyLayer(layer.id) }, layer.name),
-          h5("button", { type: "button", className: `mv-icon-btn${layer.visible ? "" : " on"}`, title: layer.visible ? t2("btn.visible") : t2("btn.hidden"), onClick: () => onToggleLayer(layer.id) }, layer.visible ? "◉" : "◌"),
-          h5("button", { type: "button", className: "mv-icon-btn", title: t2("btn.flyTo"), "aria-label": t2("btn.flyTo"), onClick: () => onFlyLayer(layer.id) }, "⌖"),
-          h5("button", { type: "button", className: "mv-icon-btn", title: t2("btn.health"), "aria-label": t2("btn.health"), onClick: () => onInspectLayer(layer.id) }, "⌕"),
-          h5("button", { type: "button", className: "mv-icon-btn", title: t2("btn.delete"), "aria-label": t2("btn.delete"), onClick: () => onRemoveLayer(layer.id) }, "✕")
-        )
-      ),
-      // ---- shader effects: one selectable row per applied preset stack ----------
-      h5(
-        "div",
-        { key: "g7", className: "mv-group" },
-        h5("div", { className: "mv-group-title" }, `${t2("layers.shader")}${(shaderActive ?? []).length > 0 ? ` · ${shaderActive.length}` : ""}`)
-      ),
-      (shaderActive ?? []).length === 0 ? h5("div", { key: "shader-empty", className: "mv-none" }, t2("layers.shaderEmpty")) : (shaderActive ?? []).map((entry) => {
-        const selected = entry.layerId !== void 0 && shaderForm?.layerId === entry.layerId;
-        const presetText = (Array.isArray(entry.preset) ? entry.preset : [entry.preset]).map((item) => t2(`shader.preset.${item}`)).join(" + ");
+      ...layers.map((layer) => {
+        const shader = (shaderActive ?? []).find(
+          (entry) => entry.layerId === layer.id || entry.layerId === void 0 && entry.layer === layer.name
+        ) ?? null;
+        const summary = shader ? shaderEntrySummary(t2, shader) : "";
+        const openShader = () => onEditLayerShader(layer, shader);
+        const stop = (event) => event.stopPropagation();
         return h5(
           "div",
           {
-            key: entry.layerId ?? entry.layer,
-            className: `mv-layer mv-shader-layer${selected ? " on" : ""}`,
-            title: shaderEntrySummary(t2, entry),
-            role: "button",
-            tabIndex: 0,
-            onClick: () => onSelectShaderEntry(entry),
-            onKeyDown: (event) => {
-              if (event.key === "Enter" || event.key === " ") {
-                event.preventDefault();
-                onSelectShaderEntry(entry);
+            key: layer.id,
+            className: `mv-layer${layer.visible ? "" : " off"}${shader ? " has-shader" : ""}`,
+            title: shader ? `${layer.name} — ${summary}` : layer.name,
+            ...shader ? {
+              role: "button",
+              tabIndex: 0,
+              onClick: openShader,
+              onKeyDown: (event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  openShader();
+                }
               }
-            }
+            } : {}
           },
-          h5("span", { className: "name", title: entry.layer }, entry.layer),
-          h5("span", { className: "mv-shader-chip" }, presetText),
           h5(
+            "span",
+            {
+              className: "name",
+              title: layer.name,
+              onClick: (event) => {
+                stop(event);
+                onFlyLayer(layer.id);
+              }
+            },
+            layer.name
+          ),
+          shader ? h5(
             "button",
             {
               type: "button",
-              className: "mv-icon-btn",
-              title: t2("shader.editEntry"),
+              className: "mv-icon-btn mv-shader-edit",
+              title: `${t2("shader.editEntry")} · ${summary}`,
               "aria-label": t2("shader.editEntry"),
               onClick: (event) => {
-                event.stopPropagation();
-                onSelectShaderEntry(entry);
+                stop(event);
+                openShader();
               }
             },
-            "✎"
-          ),
-          h5(
-            "button",
-            {
-              type: "button",
-              className: "mv-icon-btn",
-              title: t2("shader.removeEntry"),
-              "aria-label": t2("shader.removeEntry"),
-              onClick: (event) => {
-                event.stopPropagation();
-                onResetShaderEntry(entry);
-              }
-            },
-            "✕"
-          )
+            "✦"
+          ) : null,
+          h5("button", { type: "button", className: `mv-icon-btn${layer.visible ? "" : " on"}`, title: layer.visible ? t2("btn.visible") : t2("btn.hidden"), onClick: (event) => {
+            stop(event);
+            onToggleLayer(layer.id);
+          } }, layer.visible ? "◉" : "◌"),
+          h5("button", { type: "button", className: "mv-icon-btn", title: t2("btn.flyTo"), "aria-label": t2("btn.flyTo"), onClick: (event) => {
+            stop(event);
+            onFlyLayer(layer.id);
+          } }, "⌖"),
+          h5("button", { type: "button", className: "mv-icon-btn", title: t2("btn.health"), "aria-label": t2("btn.health"), onClick: (event) => {
+            stop(event);
+            onInspectLayer(layer.id);
+          } }, "⌕"),
+          h5("button", { type: "button", className: "mv-icon-btn", title: t2("btn.delete"), "aria-label": t2("btn.delete"), onClick: (event) => {
+            stop(event);
+            onRemoveLayer(layer.id);
+          } }, "✕")
         );
       })
     )
@@ -8711,16 +8710,12 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
         onFrameAll: () => frameAllLayers(viewerRef.current, cesiumRef.current, layersRef.current),
         analysis,
         onClearAnalysis: () => clearAnalysis(),
-        // Shader effects behave like selectable rows: click loads that
-        // effect into the workbench, ✕ resets only that layer.
+        // Shader effects hang off their 3D Tiles layer row: hover shows
+        // the effect, clicking the row loads it into the workbench.
         shaderActive,
-        shaderForm,
-        onSelectShaderEntry: (entry) => {
-          workbench.loadEntry(entry);
+        onEditLayerShader: (layer, entry) => {
+          workbench.loadEntry(entry ?? { layer: layer.name, layerId: layer.id, preset: "height-false-color" });
           setShaderOpen(true);
-        },
-        onResetShaderEntry: (entry) => {
-          void workbench.resetLayerFor(entry.layer);
         },
         onToggleLayer: toggleLayer,
         onInspectLayer: inspectLayer,
