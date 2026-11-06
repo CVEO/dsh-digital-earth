@@ -47,7 +47,7 @@ __export(index_exports, {
 module.exports = __toCommonJS(index_exports);
 
 // src/client/plugin.js
-var import_react11 = __toESM(require("react"), 1);
+var import_react12 = __toESM(require("react"), 1);
 
 // src/client/messages.js
 var MESSAGES = {
@@ -122,6 +122,26 @@ var MESSAGES = {
     "settings.qualityHigh": "高清（画质优先）",
     "layers.title": "图层",
     "layers.collapse": "收起图层卡",
+    "layers.terrain": "地形（L1）",
+    "layers.imagery": "影像底图（L2）",
+    "layers.raster": "栅格叠加（L3）",
+    "layers.vector": "矢量叠加（L4）",
+    "layers.content": "三维内容层",
+    "layers.addOverlay": "＋ 添加叠加层",
+    "layers.overlayAdd": "添加",
+    "layers.overlayCancel": "取消",
+    "layers.overlayType": "类型",
+    "layers.overlayName": "名称",
+    "layers.overlayUrl": "服务地址",
+    "layers.overlayLayers": "WMS 图层名",
+    "layers.overlayOpacity": "透明度",
+    "layers.overlayRemove": "移除叠加层",
+    "layers.overlayUp": "上移一层",
+    "layers.overlayDown": "下移一层",
+    "layers.overlayInvalid": "请填写类型、服务地址；WMS 还需要图层名。",
+    "layers.emptyRaster": "暂无叠加层",
+    "layers.vectorDrawn": "标注要素",
+    "layers.vectorMeasured": "量测点",
     "urlbar.placeholder": "tileset.json 的 http(s) 地址，或本地绝对路径",
     "urlbar.submit": "加载",
     "toast.scanEmpty": "该目录下没有找到 tileset.json",
@@ -453,6 +473,26 @@ var MESSAGES = {
     "settings.qualityHigh": "High (sharper)",
     "layers.title": "Layers",
     "layers.collapse": "Collapse layer card",
+    "layers.terrain": "Terrain (L1)",
+    "layers.imagery": "Imagery basemap (L2)",
+    "layers.raster": "Raster overlays (L3)",
+    "layers.vector": "Vector overlays (L4)",
+    "layers.content": "3D Tiles layers",
+    "layers.addOverlay": "+ Add overlay",
+    "layers.overlayAdd": "Add",
+    "layers.overlayCancel": "Cancel",
+    "layers.overlayType": "Type",
+    "layers.overlayName": "Name",
+    "layers.overlayUrl": "Service URL",
+    "layers.overlayLayers": "WMS layer name",
+    "layers.overlayOpacity": "Opacity",
+    "layers.overlayRemove": "Remove overlay",
+    "layers.overlayUp": "Move up",
+    "layers.overlayDown": "Move down",
+    "layers.overlayInvalid": "Fill in the type and service URL; WMS also needs a layer name.",
+    "layers.emptyRaster": "No overlays yet",
+    "layers.vectorDrawn": "drawn features",
+    "layers.vectorMeasured": "measured points",
     "urlbar.placeholder": "http(s) URL of tileset.json, or an absolute local path",
     "urlbar.submit": "Load",
     "toast.scanEmpty": "No tileset.json found in that folder",
@@ -781,46 +821,6 @@ var HudIcon = ({ size = 16 }) => h(
     h("path", { d: "M12 2.8v3.4M12 17.8v3.4M2.8 12h3.4M17.8 12h3.4" })
   )
 );
-var CollapseIcon = ({ size = 13 }) => h(
-  "svg",
-  { viewBox: "0 0 24 24", width: size, height: size, "aria-hidden": true, style: { display: "block" } },
-  h("path", {
-    d: "M5 15l7-7 7 7",
-    fill: "none",
-    stroke: "currentColor",
-    strokeWidth: 2,
-    strokeLinecap: "round",
-    strokeLinejoin: "round"
-  })
-);
-function LayerActionIcon({ kind, size = 16 }) {
-  const stroke = { stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round", strokeLinejoin: "round", fill: "none" };
-  let shapes;
-  if (kind === "visible") {
-    shapes = [
-      h("path", { key: "eye", d: "M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z", ...stroke }),
-      h("circle", { key: "pupil", cx: 12, cy: 12, r: 3, ...stroke })
-    ];
-  } else if (kind === "hidden") {
-    shapes = [
-      h("path", { key: "eye", d: "M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z", ...stroke }),
-      h("path", { key: "slash", d: "M3.5 3.5l17 17", ...stroke })
-    ];
-  } else if (kind === "locate") {
-    shapes = [
-      h("circle", { key: "ring", cx: 12, cy: 12, r: 5.5, ...stroke }),
-      h("path", { key: "ticks", d: "M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3", ...stroke })
-    ];
-  } else if (kind === "inspect") {
-    shapes = [
-      h("circle", { key: "lens", cx: 10.5, cy: 10.5, r: 6, ...stroke }),
-      h("path", { key: "handle", d: "M15 15l5.5 5.5", ...stroke })
-    ];
-  } else {
-    shapes = [h("path", { key: "x", d: "M6 6l12 12M18 6L6 18", ...stroke })];
-  }
-  return h("svg", { viewBox: "0 0 24 24", width: size, height: size, "aria-hidden": true, style: { display: "block" } }, shapes);
-}
 function ShaderIcon({ size = 16 }) {
   const stroke = { stroke: "currentColor", strokeWidth: 1.7, strokeLinecap: "round", strokeLinejoin: "round", fill: "none" };
   return h(
@@ -861,10 +861,10 @@ function AskAgentIcon({ size = 16 }) {
 }
 
 // src/client/ui/layout.js
-var import_react9 = __toESM(require("react"), 1);
+var import_react10 = __toESM(require("react"), 1);
 
 // src/client/viewer/ViewerSurface.js
-var import_react8 = __toESM(require("react"), 1);
+var import_react9 = __toESM(require("react"), 1);
 
 // src/client/analysis/math.js
 var ANALYSIS_ENTITY_PREFIX = "analysis-";
@@ -1400,6 +1400,19 @@ function writeSceneSnapshot(sessionId, snapshot) {
 }
 
 // src/client/scene/overlay-layers.js
+var OVERLAY_TYPES = ["wms", "xyz", "arcgis"];
+function normalizeOverlayDraft(raw) {
+  if (raw === null || typeof raw !== "object") return null;
+  const type = typeof raw.type === "string" && OVERLAY_TYPES.includes(raw.type) ? raw.type : null;
+  if (type === null) return null;
+  const url = typeof raw.url === "string" ? raw.url.trim() : "";
+  if (url === "") return null;
+  const layers = type === "wms" ? typeof raw.layers === "string" ? raw.layers.trim() : "" : "";
+  if (type === "wms" && layers === "") return null;
+  const name = (typeof raw.name === "string" ? raw.name.trim() : "") || "叠加图层";
+  const opacity = Number.isFinite(Number(raw.opacity)) ? Math.min(1, Math.max(0, Number(raw.opacity))) : 1;
+  return { name, type, url, ...layers === "" ? {} : { layers }, opacity, visible: true };
+}
 function createOverlayLayers({ Cesium, viewer, providerFactory, onError = () => {
 } } = {}) {
   const buildProvider = typeof providerFactory === "function" ? providerFactory : async () => {
@@ -2207,6 +2220,21 @@ var CSS = `
 .mv-icon-btn{appearance:none;border:0;background:transparent;color:var(--mv-dim);width:26px;height:26px;border-radius:7px;cursor:pointer;font:inherit;font-size:14px;line-height:1;display:inline-flex;align-items:center;justify-content:center;flex:none}
 .mv-layer{gap:3px;padding:5px 7px}
 .mv-layer .mv-icon-btn{font-size:15px}
+/* Layer panel v1.6: four groups (L1 terrain / L2 basemap / L3 raster / L4 vector)
+   plus the 3D Tiles list. Group titles are sticky so a long overlay list keeps
+   the current section readable. */
+.mv-group{padding:6px 6px 2px;margin-top:2px}
+.mv-group-title{font-size:10px;letter-spacing:.04em;text-transform:uppercase;color:var(--mv-dim);padding:0 2px 4px;position:sticky;top:0;background:var(--mv-glass-strong)}
+.mv-choice{width:100%;text-align:left;border:0;background:transparent;color:var(--mv-text);font:inherit;font-size:12px;cursor:pointer}
+.mv-choice .tick{color:var(--mv-accent);font-size:11px;flex:none}
+.mv-choice.on{background:color-mix(in srgb,var(--mv-accent) 10%,transparent)}
+.mv-opacity{width:64px;flex:none;accent-color:var(--mv-accent)}
+.mv-overlay-row{gap:2px}
+.mv-none{padding:6px 8px;font-size:11px;color:var(--mv-dim)}
+.mv-overlay-form{border:.5px solid var(--mv-line);border-radius:8px;padding:8px;margin:2px 4px 6px;display:flex;flex-direction:column;gap:6px;background:color-mix(in srgb,var(--mv-lift) 40%,transparent)}
+.mv-overlay-form .mv-field{display:flex;flex-direction:column;gap:3px}
+.mv-overlay-form .mv-field label{font-size:10px;color:var(--mv-dim)}
+.mv-overlay-form input,.mv-overlay-form select{background:var(--mv-input);border:.5px solid var(--mv-line);color:var(--mv-text);border-radius:6px;padding:5px 7px;font:inherit;font-size:11px;min-width:0}
 .mv-icon-btn:hover{background:color-mix(in srgb,var(--mv-lift) 82%,transparent);color:var(--mv-text)}
 .mv-icon-btn.on{color:var(--mv-accent)}
 .mv-hud{position:absolute;left:10px;bottom:10px;z-index:9;padding:8px 11px;border-radius:11px;display:flex;flex-direction:column;gap:3px;font-size:11px;color:var(--mv-dim);max-width:calc(100% - 330px);pointer-events:none}
@@ -3127,77 +3155,251 @@ function StatusHud({ fps, stats, viewerRef, cesiumRef, labels, readoutRef }) {
   );
 }
 
-// src/client/ui/menu-item.js
+// src/client/ui/layers-panel.js
 var import_react7 = __toESM(require("react"), 1);
 var h5 = import_react7.default.createElement;
-function MenuItem({ onClick, children, active, title }) {
+var OVERLAY_TYPES2 = ["wms", "xyz", "arcgis"];
+function LayersPanel({
+  t: t2,
+  config,
+  settings,
+  layers,
+  annotations,
+  onCollapse,
+  onSelectTerrain,
+  onSelectImagery,
+  onFlyLayer,
+  onToggleLayer,
+  onInspectLayer,
+  onRemoveLayer,
+  onOverlayAdd,
+  onOverlayRemove,
+  onOverlayOpacity,
+  onOverlayVisible,
+  onOverlayMove,
+  onClearVector
+}) {
+  const [adding, setAdding] = import_react7.default.useState(false);
+  const [draft, setDraft] = import_react7.default.useState({ type: "wms", name: "", url: "", layers: "", opacity: 0.7 });
+  const [error, setError] = import_react7.default.useState("");
+  const sourceName = (list, id) => list?.find((item) => item.id === id)?.name ?? null;
+  const terrainActive = sourceName(config?.terrain, settings?.terrain);
+  const imageryActive = sourceName(config?.imagery, settings?.imagery);
+  const overlays = Array.isArray(config?.rasterOverlays) ? config.rasterOverlays : [];
+  const drawn = annotations?.drawn_features ?? 0;
+  const measured = annotations?.measured_points ?? 0;
+  const radioRow = (key, label, active, onClick) => h5(
+    "button",
+    {
+      key,
+      type: "button",
+      className: `mv-layer mv-choice${active ? " on" : ""}`,
+      "aria-pressed": active,
+      onClick
+    },
+    h5("span", { className: "name" }, label),
+    h5("span", { className: "tick", "aria-hidden": true }, active ? "✓" : "")
+  );
+  const submitDraft = () => {
+    const next = normalizeOverlayDraft(draft);
+    if (next === null) {
+      setError(t2("layers.overlayInvalid"));
+      return;
+    }
+    onOverlayAdd(next);
+    setAdding(false);
+    setError("");
+    setDraft({ type: "wms", name: "", url: "", layers: "", opacity: 0.7 });
+  };
+  const field2 = (label, input) => h5("div", { className: "mv-field" }, h5("label", null, label), input);
   return h5(
+    "div",
+    { className: "mv-layers mv-glass" },
+    h5(
+      "header",
+      null,
+      h5("span", null, t2("layers.title")),
+      h5(
+        "button",
+        { type: "button", className: "mv-icon-btn", title: t2("layers.collapse"), "aria-label": t2("layers.collapse"), onClick: onCollapse },
+        "✕"
+      )
+    ),
+    h5(
+      "div",
+      { className: "mv-layer-list" },
+      // ---- L1 terrain --------------------------------------------------------
+      h5("div", { key: "g1", className: "mv-group" }, h5("div", { className: "mv-group-title" }, t2("layers.terrain"))),
+      radioRow("t-off", t2("menu.terrainOff"), terrainActive === null, () => onSelectTerrain(null)),
+      ...(config?.terrain ?? []).map(
+        (source) => radioRow(`t-${source.id}`, source.name, settings?.terrain === source.id, () => onSelectTerrain(source.id))
+      ),
+      // ---- L2 imagery basemap ------------------------------------------------
+      h5("div", { key: "g2", className: "mv-group" }, h5("div", { className: "mv-group-title" }, t2("layers.imagery"))),
+      radioRow("i-off", t2("menu.none"), imageryActive === null, () => onSelectImagery(null)),
+      ...(config?.imagery ?? []).map(
+        (source) => radioRow(`i-${source.id}`, source.name, settings?.imagery === source.id, () => onSelectImagery(source.id))
+      ),
+      // ---- L3 raster overlays ------------------------------------------------
+      h5(
+        "div",
+        { key: "g3", className: "mv-group" },
+        h5("div", { className: "mv-group-title" }, `${t2("layers.raster")}${overlays.length ? ` · ${overlays.length}` : ""}`),
+        h5(
+          "button",
+          { type: "button", className: "mv-cta", onClick: () => setAdding((value) => !value) },
+          adding ? t2("layers.overlayCancel") : t2("layers.addOverlay")
+        )
+      ),
+      adding ? h5(
+        "div",
+        { key: "add-form", className: "mv-overlay-form" },
+        field2(
+          t2("layers.overlayType"),
+          h5(
+            "select",
+            { value: draft.type, onChange: (event) => setDraft((current) => ({ ...current, type: event.target.value })) },
+            OVERLAY_TYPES2.map((type) => h5("option", { key: type, value: type }, type.toUpperCase()))
+          )
+        ),
+        field2(t2("layers.overlayName"), h5("input", { value: draft.name, onChange: (event) => setDraft((current) => ({ ...current, name: event.target.value })) })),
+        field2(t2("layers.overlayUrl"), h5("input", { value: draft.url, placeholder: "https://…", onChange: (event) => setDraft((current) => ({ ...current, url: event.target.value })) })),
+        draft.type === "wms" ? field2(t2("layers.overlayLayers"), h5("input", { value: draft.layers, placeholder: "flood:risk", onChange: (event) => setDraft((current) => ({ ...current, layers: event.target.value })) })) : null,
+        field2(
+          t2("layers.overlayOpacity"),
+          h5("input", {
+            type: "range",
+            min: 0,
+            max: 100,
+            value: Math.round(draft.opacity * 100),
+            onChange: (event) => setDraft((current) => ({ ...current, opacity: Number(event.target.value) / 100 }))
+          })
+        ),
+        error ? h5("p", { className: "mv-note" }, error) : null,
+        h5("button", { type: "button", className: "mv-cta primary", onClick: submitDraft }, t2("layers.overlayAdd"))
+      ) : null,
+      overlays.length === 0 && !adding ? h5("div", { key: "no-overlay", className: "mv-none" }, t2("layers.emptyRaster")) : overlays.map(
+        (overlay, index) => h5(
+          "div",
+          { key: overlay.id, className: `mv-layer mv-overlay-row${overlay.visible === false ? " off" : ""}` },
+          h5("span", { className: "name", title: overlay.url }, overlay.name),
+          h5("input", {
+            className: "mv-opacity",
+            type: "range",
+            min: 0,
+            max: 100,
+            title: t2("layers.overlayOpacity"),
+            "aria-label": t2("layers.overlayOpacity"),
+            value: Math.round((overlay.opacity ?? 1) * 100),
+            onChange: (event) => onOverlayOpacity(overlay.id, Number(event.target.value) / 100)
+          }),
+          h5("button", {
+            type: "button",
+            className: `mv-icon-btn${overlay.visible === false ? " on" : ""}`,
+            title: overlay.visible === false ? t2("btn.hidden") : t2("btn.visible"),
+            onClick: () => onOverlayVisible(overlay.id, overlay.visible === false)
+          }, overlay.visible === false ? "◌" : "◉"),
+          h5("button", { type: "button", className: "mv-icon-btn", title: t2("layers.overlayDown"), disabled: index === 0, onClick: () => onOverlayMove(overlay.id, -1) }, "↑"),
+          h5("button", { type: "button", className: "mv-icon-btn", title: t2("layers.overlayUp"), disabled: index === overlays.length - 1, onClick: () => onOverlayMove(overlay.id, 1) }, "↓"),
+          h5("button", { type: "button", className: "mv-icon-btn", title: t2("layers.overlayRemove"), onClick: () => onOverlayRemove(overlay.id) }, "✕")
+        )
+      ),
+      // ---- L4 vector overlays ------------------------------------------------
+      h5("div", { key: "g4", className: "mv-group" }, h5("div", { className: "mv-group-title" }, t2("layers.vector"))),
+      h5(
+        "div",
+        { key: "vector-row", className: "mv-layer" },
+        h5("span", { className: "name" }, `${t2("layers.vectorDrawn")} ${drawn} · ${t2("layers.vectorMeasured")} ${measured}`),
+        h5("button", { type: "button", className: "mv-icon-btn", title: t2("tool.clear"), onClick: onClearVector }, "✕")
+      ),
+      // ---- 3D Tiles content --------------------------------------------------
+      h5("div", { key: "g5", className: "mv-group" }, h5("div", { className: "mv-group-title" }, `${t2("layers.content")} · ${layers.length}`)),
+      ...layers.map(
+        (layer) => h5(
+          "div",
+          { key: layer.id, className: `mv-layer${layer.visible ? "" : " off"}` },
+          h5("span", { className: "name", title: layer.name, onClick: () => onFlyLayer(layer.id) }, layer.name),
+          h5("button", { type: "button", className: `mv-icon-btn${layer.visible ? "" : " on"}`, title: layer.visible ? t2("btn.visible") : t2("btn.hidden"), onClick: () => onToggleLayer(layer.id) }, layer.visible ? "◉" : "◌"),
+          h5("button", { type: "button", className: "mv-icon-btn", title: t2("btn.flyTo"), "aria-label": t2("btn.flyTo"), onClick: () => onFlyLayer(layer.id) }, "⌖"),
+          h5("button", { type: "button", className: "mv-icon-btn", title: t2("btn.health"), "aria-label": t2("btn.health"), onClick: () => onInspectLayer(layer.id) }, "⌕"),
+          h5("button", { type: "button", className: "mv-icon-btn", title: t2("btn.delete"), "aria-label": t2("btn.delete"), onClick: () => onRemoveLayer(layer.id) }, "✕")
+        )
+      )
+    )
+  );
+}
+
+// src/client/ui/menu-item.js
+var import_react8 = __toESM(require("react"), 1);
+var h6 = import_react8.default.createElement;
+function MenuItem({ onClick, children, active, title }) {
+  return h6(
     "button",
     { type: "button", className: `mv-menu-item${active ? " on" : ""}`, onClick, title },
     children,
-    active ? h5("span", { className: "check", "aria-hidden": true }, "✓") : null
+    active ? h6("span", { className: "check", "aria-hidden": true }, "✓") : null
   );
 }
 
 // src/client/viewer/ViewerSurface.js
-var h6 = import_react8.default.createElement;
+var h7 = import_react9.default.createElement;
 function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
   const fallbackT = useTranslation();
   const t2 = typeof injectedT === "function" ? injectedT : fallbackT;
   const environmentDark = useEnvironmentDark();
-  const rootRef = import_react8.default.useRef(null);
-  const globeRef = import_react8.default.useRef(null);
-  const creditRef = import_react8.default.useRef(null);
-  const menuRef = import_react8.default.useRef(null);
-  const viewerRef = import_react8.default.useRef(null);
-  const cesiumRef = import_react8.default.useRef(null);
-  const metaRef = import_react8.default.useRef(null);
-  const layersRef = import_react8.default.useRef([]);
-  const toolRef = import_react8.default.useRef(null);
-  const measureRef = import_react8.default.useRef({ points: [], entities: [] });
-  const handlerRef = import_react8.default.useRef(null);
-  const imageryRef = import_react8.default.useRef(null);
-  const overlayLayersRef = import_react8.default.useRef(null);
-  const sourcesRef = import_react8.default.useRef(null);
-  const toastTimer = import_react8.default.useRef(0);
-  const captureReadoutRef = import_react8.default.useRef(null);
-  const commandChainRef = import_react8.default.useRef(Promise.resolve());
-  const commandRef = import_react8.default.useRef(null);
-  const accessRef = import_react8.default.useRef(null);
-  const analysisRef = import_react8.default.useRef({ operation: null, layerId: null, layerName: null, entities: [], restore: null });
-  const analysisCommandRef = import_react8.default.useRef(null);
-  const shaderEntriesRef = import_react8.default.useRef(/* @__PURE__ */ new Map());
-  const shaderTickRef = import_react8.default.useRef(null);
-  const readyGateRef = import_react8.default.useRef({ ready: false, error: null, waiters: [] });
-  const healthSeqRef = import_react8.default.useRef(0);
-  const sessionRef = import_react8.default.useRef(sessionId);
+  const rootRef = import_react9.default.useRef(null);
+  const globeRef = import_react9.default.useRef(null);
+  const creditRef = import_react9.default.useRef(null);
+  const menuRef = import_react9.default.useRef(null);
+  const viewerRef = import_react9.default.useRef(null);
+  const cesiumRef = import_react9.default.useRef(null);
+  const metaRef = import_react9.default.useRef(null);
+  const layersRef = import_react9.default.useRef([]);
+  const toolRef = import_react9.default.useRef(null);
+  const measureRef = import_react9.default.useRef({ points: [], entities: [] });
+  const handlerRef = import_react9.default.useRef(null);
+  const imageryRef = import_react9.default.useRef(null);
+  const overlayLayersRef = import_react9.default.useRef(null);
+  const sourcesRef = import_react9.default.useRef(null);
+  const toastTimer = import_react9.default.useRef(0);
+  const captureReadoutRef = import_react9.default.useRef(null);
+  const commandChainRef = import_react9.default.useRef(Promise.resolve());
+  const commandRef = import_react9.default.useRef(null);
+  const accessRef = import_react9.default.useRef(null);
+  const analysisRef = import_react9.default.useRef({ operation: null, layerId: null, layerName: null, entities: [], restore: null });
+  const analysisCommandRef = import_react9.default.useRef(null);
+  const shaderEntriesRef = import_react9.default.useRef(/* @__PURE__ */ new Map());
+  const shaderTickRef = import_react9.default.useRef(null);
+  const readyGateRef = import_react9.default.useRef({ ready: false, error: null, waiters: [] });
+  const healthSeqRef = import_react9.default.useRef(0);
+  const sessionRef = import_react9.default.useRef(sessionId);
   sessionRef.current = sessionId;
-  const [phase, setPhase] = import_react8.default.useState("loading");
-  const [error, setError] = import_react8.default.useState("");
-  const [layers, setLayers] = import_react8.default.useState([]);
-  const [sources, setSources] = import_react8.default.useState(null);
-  const [defaults, setDefaults] = import_react8.default.useState(null);
-  const [tool, setTool] = import_react8.default.useState(null);
-  const [fps, setFps] = import_react8.default.useState(null);
-  const [fullscreen, setFullscreen] = import_react8.default.useState(false);
-  const [stats, setStats] = import_react8.default.useState(null);
-  const [pickInfo, setPickInfo] = import_react8.default.useState(null);
-  const [measureInfo, setMeasureInfo] = import_react8.default.useState(null);
-  const [scan, setScan] = import_react8.default.useState(null);
-  const [emptyDismissed, setEmptyDismissed] = import_react8.default.useState(false);
-  const [restoringScene, setRestoringScene] = import_react8.default.useState(false);
-  const [urlBar, setUrlBar] = import_react8.default.useState(false);
-  const [urlInput, setUrlInput] = import_react8.default.useState("");
-  const [busy, setBusy] = import_react8.default.useState("");
-  const [toast, setToast] = import_react8.default.useState("");
-  const [openMenu, setOpenMenu] = import_react8.default.useState(null);
-  const [recentDirs, setRecentDirs] = import_react8.default.useState([]);
-  const [accessRequest, setAccessRequest] = import_react8.default.useState(null);
-  const [accessBusy, setAccessBusy] = import_react8.default.useState(false);
-  const [analysis, setAnalysis] = import_react8.default.useState(null);
-  const [shaderOpen, setShaderOpen] = import_react8.default.useState(false);
-  const [shaderActive, setShaderActive] = import_react8.default.useState([]);
-  const [shaderForm, setShaderForm] = import_react8.default.useState({
+  const [phase, setPhase] = import_react9.default.useState("loading");
+  const [error, setError] = import_react9.default.useState("");
+  const [layers, setLayers] = import_react9.default.useState([]);
+  const [sources, setSources] = import_react9.default.useState(null);
+  const [defaults, setDefaults] = import_react9.default.useState(null);
+  const [tool, setTool] = import_react9.default.useState(null);
+  const [fps, setFps] = import_react9.default.useState(null);
+  const [fullscreen, setFullscreen] = import_react9.default.useState(false);
+  const [stats, setStats] = import_react9.default.useState(null);
+  const [pickInfo, setPickInfo] = import_react9.default.useState(null);
+  const [measureInfo, setMeasureInfo] = import_react9.default.useState(null);
+  const [scan, setScan] = import_react9.default.useState(null);
+  const [emptyDismissed, setEmptyDismissed] = import_react9.default.useState(false);
+  const [restoringScene, setRestoringScene] = import_react9.default.useState(false);
+  const [urlBar, setUrlBar] = import_react9.default.useState(false);
+  const [urlInput, setUrlInput] = import_react9.default.useState("");
+  const [busy, setBusy] = import_react9.default.useState("");
+  const [toast, setToast] = import_react9.default.useState("");
+  const [openMenu, setOpenMenu] = import_react9.default.useState(null);
+  const [recentDirs, setRecentDirs] = import_react9.default.useState([]);
+  const [accessRequest, setAccessRequest] = import_react9.default.useState(null);
+  const [accessBusy, setAccessBusy] = import_react9.default.useState(false);
+  const [analysis, setAnalysis] = import_react9.default.useState(null);
+  const [shaderOpen, setShaderOpen] = import_react9.default.useState(false);
+  const [shaderActive, setShaderActive] = import_react9.default.useState([]);
+  const [shaderForm, setShaderForm] = import_react9.default.useState({
     layerId: "",
     preset: "height-false-color",
     minHeight: "",
@@ -3207,14 +3409,14 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     amplitude: "1",
     opacity: "0.75"
   });
-  const [settingsOpen, setSettingsOpen] = import_react8.default.useState(false);
-  const [health, setHealth] = import_react8.default.useState(null);
-  const [terrainBusy, setTerrainBusy] = import_react8.default.useState(false);
-  const [imageryBusy, setImageryBusy] = import_react8.default.useState(false);
-  const [meta, setMeta] = import_react8.default.useState(null);
-  const [bridgeOn, setBridgeOn] = import_react8.default.useState(false);
-  const [bridgeReload, setBridgeReload] = import_react8.default.useState(false);
-  const [bridgeEpoch, setBridgeEpoch] = import_react8.default.useState(0);
+  const [settingsOpen, setSettingsOpen] = import_react9.default.useState(false);
+  const [health, setHealth] = import_react9.default.useState(null);
+  const [terrainBusy, setTerrainBusy] = import_react9.default.useState(false);
+  const [imageryBusy, setImageryBusy] = import_react9.default.useState(false);
+  const [meta, setMeta] = import_react9.default.useState(null);
+  const [bridgeOn, setBridgeOn] = import_react9.default.useState(false);
+  const [bridgeReload, setBridgeReload] = import_react9.default.useState(false);
+  const [bridgeEpoch, setBridgeEpoch] = import_react9.default.useState(0);
   const themeMode = sources?.settings?.theme ?? "auto";
   const resolvedDark = themeMode === "auto" ? environmentDark : themeMode === "dark";
   const showLayers = sources?.settings?.showLayers !== false;
@@ -3271,8 +3473,8 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     setLayers(layersRef.current.map((layer) => ({ id: layer.id, name: layer.name, visible: layer.visible })));
     markSceneDirty();
   };
-  const saveChainRef = import_react8.default.useRef(Promise.resolve());
-  const saveSeqRef = import_react8.default.useRef(0);
+  const saveChainRef = import_react9.default.useRef(Promise.resolve());
+  const saveSeqRef = import_react9.default.useRef(0);
   const commitSources = (next, notify) => {
     const previous = sourcesRef.current;
     sourcesRef.current = next;
@@ -3751,7 +3953,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
       setMeasureInfo({ text: t2("measure.start") });
     }
   }
-  const agentOverlayRef = import_react8.default.useRef({
+  const agentOverlayRef = import_react9.default.useRef({
     draw: [],
     measure: [],
     drawnFeatures: 0,
@@ -3760,7 +3962,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     drawCommands: [],
     measureCommands: []
   });
-  const [agentOverlayCount, setAgentOverlayCount] = import_react8.default.useState(0);
+  const [agentOverlayCount, setAgentOverlayCount] = import_react9.default.useState(0);
   const syncAgentOverlayCount = () => {
     const state = agentOverlayRef.current;
     setAgentOverlayCount(state.draw.length + state.measure.length);
@@ -4685,10 +4887,10 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     if (request.operation === "reset") return resetShader(request.layer);
     return applyShader(request);
   }
-  const sceneDirtyRef = import_react8.default.useRef(false);
-  const sceneRestoredRef = import_react8.default.useRef(false);
+  const sceneDirtyRef = import_react9.default.useRef(false);
+  const sceneRestoredRef = import_react9.default.useRef(false);
   const HOST_SCENE_TIMEOUT_MS = 3e3;
-  const lastHostSceneSaveRef = import_react8.default.useRef(0);
+  const lastHostSceneSaveRef = import_react9.default.useRef(0);
   async function readHostSceneSnapshot(session) {
     const meta2 = metaRef.current ?? await loadMeta().catch(() => null);
     if (!meta2?.sceneUrl) return null;
@@ -5429,6 +5631,45 @@ ${image !== "" ? `<h2>${escapeHtml(L.snapshot)}</h2>${image}` : ""}
     const viewer = viewerRef.current;
     if (layer && viewer) viewer.flyTo(layer.tileset, { duration: 1 });
   }
+  function persistOverlays(next) {
+    const current = sourcesRef.current;
+    if (!current) return;
+    commitSources({ ...current, rasterOverlays: next });
+  }
+  function overlayCatalog() {
+    return Array.isArray(sourcesRef.current?.rasterOverlays) ? sourcesRef.current.rasterOverlays : [];
+  }
+  function addOverlay(draft) {
+    const next = [...overlayCatalog(), { ...draft, id: `overlay-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}` }];
+    persistOverlays(next);
+    void overlayLayersRef.current?.sync(next).catch(() => {
+    });
+  }
+  function removeOverlay(id) {
+    const next = overlayCatalog().filter((item) => item.id !== id);
+    persistOverlays(next);
+    void overlayLayersRef.current?.sync(next).catch(() => {
+    });
+  }
+  function setOverlayOpacity(id, opacity) {
+    persistOverlays(overlayCatalog().map((item) => item.id === id ? { ...item, opacity } : item));
+    void overlayLayersRef.current?.setOpacity(id, opacity);
+  }
+  function setOverlayVisible(id, visible) {
+    persistOverlays(overlayCatalog().map((item) => item.id === id ? { ...item, visible } : item));
+    void overlayLayersRef.current?.setVisible(id, visible);
+  }
+  function moveOverlay(id, delta) {
+    const list = [...overlayCatalog()];
+    const index = list.findIndex((item2) => item2.id === id);
+    const target = index + delta;
+    if (index < 0 || target < 0 || target >= list.length) return;
+    const [item] = list.splice(index, 1);
+    list.splice(target, 0, item);
+    persistOverlays(list);
+    void overlayLayersRef.current?.sync(list).catch(() => {
+    });
+  }
   function removeLayer(id) {
     const viewer = viewerRef.current;
     const index = layersRef.current.findIndex((item) => item.id === id);
@@ -5836,7 +6077,7 @@ ${image !== "" ? `<h2>${escapeHtml(L.snapshot)}</h2>${image}` : ""}
     throw new Error(t2("agent.badAction", { action: String(action) }));
   }
   commandRef.current = runCommand;
-  import_react8.default.useEffect(() => {
+  import_react9.default.useEffect(() => {
     if (!sessionId || !meta?.bridgeUrl) return void 0;
     const bridgeSession = sessionId;
     const endpoint = `${meta.bridgeUrl}?token=${encodeURIComponent(meta.token)}&session=${encodeURIComponent(bridgeSession)}`;
@@ -5916,7 +6157,7 @@ ${image !== "" ? `<h2>${escapeHtml(L.snapshot)}</h2>${image}` : ""}
       }
     };
   }, [sessionId, meta, bridgeEpoch]);
-  import_react8.default.useEffect(
+  import_react9.default.useEffect(
     () => () => {
       const current = accessRef.current;
       if (!current) return;
@@ -5926,7 +6167,7 @@ ${image !== "" ? `<h2>${escapeHtml(L.snapshot)}</h2>${image}` : ""}
     },
     []
   );
-  import_react8.default.useEffect(() => {
+  import_react9.default.useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
@@ -6027,7 +6268,7 @@ ${image !== "" ? `<h2>${escapeHtml(L.snapshot)}</h2>${image}` : ""}
       layersRef.current = [];
     };
   }, []);
-  import_react8.default.useEffect(() => {
+  import_react9.default.useEffect(() => {
     if (phase !== "ready" || sceneRestoredRef.current) return void 0;
     if (typeof sessionId !== "string" || sessionId === "") return void 0;
     sceneRestoredRef.current = true;
@@ -6041,7 +6282,7 @@ ${image !== "" ? `<h2>${escapeHtml(L.snapshot)}</h2>${image}` : ""}
       cancelled = true;
     };
   }, [phase, sessionId]);
-  import_react8.default.useEffect(() => {
+  import_react9.default.useEffect(() => {
     const timer = setInterval(() => {
       if (sceneDirtyRef.current) saveSceneSnapshot();
     }, 3e3);
@@ -6059,7 +6300,7 @@ ${image !== "" ? `<h2>${escapeHtml(L.snapshot)}</h2>${image}` : ""}
       document.removeEventListener("visibilitychange", onVisibility);
     };
   }, []);
-  import_react8.default.useEffect(() => {
+  import_react9.default.useEffect(() => {
     if (!openMenu) return void 0;
     const close = (event) => {
       if (!menuRef.current?.contains(event.target)) setOpenMenu(null);
@@ -6067,10 +6308,10 @@ ${image !== "" ? `<h2>${escapeHtml(L.snapshot)}</h2>${image}` : ""}
     document.addEventListener("pointerdown", close, true);
     return () => document.removeEventListener("pointerdown", close, true);
   }, [openMenu]);
-  import_react8.default.useEffect(() => {
+  import_react9.default.useEffect(() => {
     if (openMenu === "data") refreshRecentDirs();
   }, [openMenu, meta?.directoriesUrl]);
-  import_react8.default.useEffect(() => {
+  import_react9.default.useEffect(() => {
     if (phase !== "ready") return void 0;
     const element = globeRef.current;
     if (!element || typeof ResizeObserver === "undefined") return void 0;
@@ -6083,7 +6324,7 @@ ${image !== "" ? `<h2>${escapeHtml(L.snapshot)}</h2>${image}` : ""}
     observer.observe(element);
     return () => observer.disconnect();
   }, [phase]);
-  import_react8.default.useEffect(() => {
+  import_react9.default.useEffect(() => {
     const onChange = () => {
       setFullscreen(document.fullscreenElement === rootRef.current);
       try {
@@ -6094,7 +6335,7 @@ ${image !== "" ? `<h2>${escapeHtml(L.snapshot)}</h2>${image}` : ""}
     document.addEventListener("fullscreenchange", onChange);
     return () => document.removeEventListener("fullscreenchange", onChange);
   }, []);
-  import_react8.default.useEffect(() => {
+  import_react9.default.useEffect(() => {
     if (phase !== "ready") return void 0;
     const viewer = viewerRef.current;
     if (!viewer) return void 0;
@@ -6147,7 +6388,7 @@ ${image !== "" ? `<h2>${escapeHtml(L.snapshot)}</h2>${image}` : ""}
       canvas.removeEventListener("webglcontextrestored", onRestored);
     };
   }, [phase]);
-  import_react8.default.useEffect(() => {
+  import_react9.default.useEffect(() => {
     if (!scan) return void 0;
     const onKey = (event) => {
       if (event.key === "Escape") setScan(null);
@@ -6155,7 +6396,7 @@ ${image !== "" ? `<h2>${escapeHtml(L.snapshot)}</h2>${image}` : ""}
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [scan]);
-  import_react8.default.useEffect(() => {
+  import_react9.default.useEffect(() => {
     if (phase !== "ready") return void 0;
     let lastKey = "";
     const timer = setInterval(() => {
@@ -6167,7 +6408,7 @@ ${image !== "" ? `<h2>${escapeHtml(L.snapshot)}</h2>${image}` : ""}
     }, 1e3);
     return () => clearInterval(timer);
   }, [phase]);
-  import_react8.default.useEffect(() => {
+  import_react9.default.useEffect(() => {
     const viewer = viewerRef.current;
     const Cesium = cesiumRef.current;
     if (phase !== "ready" || !viewer || !Cesium) return;
@@ -6176,12 +6417,12 @@ ${image !== "" ? `<h2>${escapeHtml(L.snapshot)}</h2>${image}` : ""}
     if (viewer.scene.skyAtmosphere) viewer.scene.skyAtmosphere.show = resolvedDark;
     viewer.scene.requestRender?.();
   }, [phase, resolvedDark]);
-  const button = (label, onClick, active, extra, title) => h6(
+  const button = (label, onClick, active, extra, title) => h7(
     "button",
     { type: "button", className: `mv-btn${active ? " on" : ""}${extra ? ` ${extra}` : ""}`, onClick, title },
     label
   );
-  const iconButton = (icon, title, onClick, active) => h6(
+  const iconButton = (icon, title, onClick, active) => h7(
     "button",
     {
       type: "button",
@@ -6193,11 +6434,11 @@ ${image !== "" ? `<h2>${escapeHtml(L.snapshot)}</h2>${image}` : ""}
     },
     icon
   );
-  const menu = (id, label, items, active) => h6(
+  const menu = (id, label, items, active) => h7(
     "div",
     { key: id, className: "mv-menu" },
     button(`${label} ▾`, () => setOpenMenu(openMenu === id ? null : id), active),
-    openMenu === id ? h6("div", { className: "mv-menu-panel mv-glass" }, items) : null
+    openMenu === id ? h7("div", { className: "mv-menu-panel mv-glass" }, items) : null
   );
   const status = busy || (phase === "loading" ? t2("panel.status.loading") : layers.length ? t2("panel.status.layers", { n: layers.length }) : t2("panel.status.ready"));
   const hudLabels = {
@@ -6266,7 +6507,7 @@ ${image !== "" ? `<h2>${escapeHtml(L.snapshot)}</h2>${image}` : ""}
       showToast(message(error2));
     }
   };
-  return h6(
+  return h7(
     "div",
     {
       ref: rootRef,
@@ -6274,41 +6515,41 @@ ${image !== "" ? `<h2>${escapeHtml(L.snapshot)}</h2>${image}` : ""}
       "data-mv-theme": themeMode === "auto" ? void 0 : themeMode,
       "data-mv-scheme": resolvedDark ? "dark" : "light"
     },
-    h6("style", { key: "css" }, CSS),
-    h6("div", { key: "globe", ref: globeRef, className: "mv-globe" }),
-    activeImagery?.credit ? h6("div", { key: "attr", className: "mv-attr" }, `${t2("credit.imagery")} © ${activeImagery.credit}`) : null,
-    h6("div", { key: "credits", ref: creditRef, className: "mv-credits" }),
-    h6(
+    h7("style", { key: "css" }, CSS),
+    h7("div", { key: "globe", ref: globeRef, className: "mv-globe" }),
+    activeImagery?.credit ? h7("div", { key: "attr", className: "mv-attr" }, `${t2("credit.imagery")} © ${activeImagery.credit}`) : null,
+    h7("div", { key: "credits", ref: creditRef, className: "mv-credits" }),
+    h7(
       "div",
       { key: "top", className: "mv-top" },
-      h6(
+      h7(
         "div",
         { className: "mv-brand mv-glass" },
-        h6(ViewerIcon, { size: 18 }),
-        h6("b", null, t2("panel.title")),
-        h6("span", null, status)
+        h7(ViewerIcon, { size: 18 }),
+        h7("b", null, t2("panel.title")),
+        h7("span", null, status)
       ),
-      h6(
+      h7(
         "div",
         { ref: menuRef, className: "mv-actions mv-glass" },
         menu(
           "data",
           t2("btn.data"),
           [
-            h6(MenuItem, { key: "local", onClick: pickLocal }, t2("btn.openLocal")),
-            recentDirs.length ? h6(
-              import_react8.default.Fragment,
+            h7(MenuItem, { key: "local", onClick: pickLocal }, t2("btn.openLocal")),
+            recentDirs.length ? h7(
+              import_react9.default.Fragment,
               { key: "recent" },
-              h6("span", { className: "mv-menu-label" }, t2("menu.recentDirs")),
+              h7("span", { className: "mv-menu-label" }, t2("menu.recentDirs")),
               ...recentDirs.map(
-                (entry) => h6(
+                (entry) => h7(
                   MenuItem,
                   { key: entry.dir, title: entry.dir, onClick: () => openRecentDirectory(entry.dir) },
-                  h6("span", { className: "ellipsis" }, entry.name)
+                  h7("span", { className: "ellipsis" }, entry.name)
                 )
               )
             ) : null,
-            agentOverlayCount > 0 ? h6(
+            agentOverlayCount > 0 ? h7(
               MenuItem,
               {
                 key: "clearAgent",
@@ -6320,7 +6561,7 @@ ${image !== "" ? `<h2>${escapeHtml(L.snapshot)}</h2>${image}` : ""}
               },
               t2("menu.clearAgent")
             ) : null,
-            h6(
+            h7(
               MenuItem,
               {
                 key: "url",
@@ -6331,7 +6572,7 @@ ${image !== "" ? `<h2>${escapeHtml(L.snapshot)}</h2>${image}` : ""}
               },
               t2("btn.openUrl")
             ),
-            h6(
+            h7(
               MenuItem,
               {
                 key: "report",
@@ -6347,8 +6588,8 @@ ${image !== "" ? `<h2>${escapeHtml(L.snapshot)}</h2>${image}` : ""}
               },
               t2("menu.report")
             ),
-            h6("i", { key: "sep", className: "mv-sep", style: { width: "auto", height: ".5px", margin: "4px 8px" } }),
-            h6(
+            h7("i", { key: "sep", className: "mv-sep", style: { width: "auto", height: ".5px", margin: "4px 8px" } }),
+            h7(
               MenuItem,
               {
                 key: "clear",
@@ -6363,68 +6604,36 @@ ${image !== "" ? `<h2>${escapeHtml(L.snapshot)}</h2>${image}` : ""}
             )
           ]
         ),
-        menu(
-          "basemap",
-          t2("btn.basemap"),
-          [
-            h6(
-              MenuItem,
-              { key: "none", active: activeImageryId === null, onClick: () => changeImagery(null) },
-              t2("menu.none")
-            ),
-            ...(sources?.imagery ?? []).map(
-              (source) => h6(
-                MenuItem,
-                { key: source.id, active: activeImageryId === source.id, onClick: () => changeImagery(source.id) },
-                source.name
-              )
-            )
-          ],
-          Boolean(activeImageryId)
-        ),
-        menu(
-          "terrain",
-          t2("btn.terrain"),
-          [
-            h6(MenuItem, { key: "off", active: activeTerrainId === null, onClick: () => changeTerrain(null) }, t2("menu.terrainOff")),
-            ...(sources?.terrain ?? []).map(
-              (source) => h6(
-                MenuItem,
-                { key: source.id, active: activeTerrainId === source.id, onClick: () => changeTerrain(source.id) },
-                source.name
-              )
-            )
-          ],
-          activeTerrainId !== null
-        ),
-        h6("i", { key: "s1", className: "mv-sep" }),
+        h7("i", { key: "s1", className: "mv-sep" }),
         menu(
           "measure",
           t2("btn.measure"),
           [
-            h6(MenuItem, { key: "distance", active: tool === "distance", onClick: () => setToolMode(tool === "distance" ? null : "distance") }, t2("tool.distance")),
-            h6(MenuItem, { key: "area", active: tool === "area", onClick: () => setToolMode(tool === "area" ? null : "area") }, t2("tool.area")),
-            h6(MenuItem, { key: "height", active: tool === "height", onClick: () => setToolMode(tool === "height" ? null : "height") }, t2("tool.height")),
-            h6(MenuItem, { key: "pick", active: tool === "pick", onClick: () => setToolMode(tool === "pick" ? null : "pick") }, t2("tool.pick"))
+            h7(MenuItem, { key: "distance", active: tool === "distance", onClick: () => setToolMode(tool === "distance" ? null : "distance") }, t2("tool.distance")),
+            h7(MenuItem, { key: "area", active: tool === "area", onClick: () => setToolMode(tool === "area" ? null : "area") }, t2("tool.area")),
+            h7(MenuItem, { key: "height", active: tool === "height", onClick: () => setToolMode(tool === "height" ? null : "height") }, t2("tool.height")),
+            h7(MenuItem, { key: "pick", active: tool === "pick", onClick: () => setToolMode(tool === "pick" ? null : "pick") }, t2("tool.pick"))
           ],
           tool !== null
         ),
-        h6("i", { key: "s2", className: "mv-sep" }),
+        h7("i", { key: "s2", className: "mv-sep" }),
         button(
           `${t2("btn.layers")}${layers.length ? ` ${layers.length}` : ""}`,
           () => updateSettings({ showLayers: !showLayers }),
-          showLayers && layers.length > 0,
+          // The panel is the only place to pick terrain/basemap now, so it must
+          // be reachable even with zero 3D Tiles loaded.
+          showLayers,
           void 0,
           showLayers ? t2("btn.layersHide") : t2("btn.layersShow")
         ),
         iconButton(
-          h6(HudIcon),
+          h7(HudIcon),
           showHud ? t2("btn.hudHide") : t2("btn.hudShow"),
           () => updateSettings({ showHud: !showHud }),
           showHud
         ),
         iconButton(
-          h6(ShaderIcon),
+          h7(ShaderIcon),
           shaderOpen ? t2("btn.shaderHide") : t2("btn.shaderShow"),
           () => setShaderOpen((value) => !value),
           shaderOpen
@@ -6433,18 +6642,18 @@ ${image !== "" ? `<h2>${escapeHtml(L.snapshot)}</h2>${image}` : ""}
         // narrow panel the text labels were what wrapped the toolbar onto a
         // second row. The four dropdown menus keep their text labels because a
         // bare icon does not tell the user what the menu contains.
-        iconButton(h6(ScreenshotIcon), t2("btn.screenshot"), screenshot),
-        sessionId ? iconButton(h6(AskAgentIcon), t2("btn.askAgent"), askAgent) : null,
-        iconButton(h6(ResetIcon), t2("btn.reset"), resetView),
-        docked ? iconButton(h6(FullscreenIcon), t2("btn.maximizeTitle"), togglePaneFullscreen) : button(t2("btn.beside"), openBeside),
+        iconButton(h7(ScreenshotIcon), t2("btn.screenshot"), screenshot),
+        sessionId ? iconButton(h7(AskAgentIcon), t2("btn.askAgent"), askAgent) : null,
+        iconButton(h7(ResetIcon), t2("btn.reset"), resetView),
+        docked ? iconButton(h7(FullscreenIcon), t2("btn.maximizeTitle"), togglePaneFullscreen) : button(t2("btn.beside"), openBeside),
         // Real fullscreen works from both mounts; the sidebar-maximize button
         // above is a docked-only layout action, not fullscreen.
-        iconButton(h6(FullscreenIcon), fullscreen ? t2("btn.fullscreenExit") : t2("btn.fullscreenTitle"), toggleDomFullscreen, fullscreen),
-        h6("i", { key: "s3", className: "mv-sep" }),
-        h6(
+        iconButton(h7(FullscreenIcon), fullscreen ? t2("btn.fullscreenExit") : t2("btn.fullscreenTitle"), toggleDomFullscreen, fullscreen),
+        h7("i", { key: "s3", className: "mv-sep" }),
+        h7(
           "div",
           { key: "appearance", className: "mv-menu" },
-          h6(
+          h7(
             "button",
             {
               type: "button",
@@ -6453,9 +6662,9 @@ ${image !== "" ? `<h2>${escapeHtml(L.snapshot)}</h2>${image}` : ""}
               "aria-haspopup": "menu",
               onClick: () => setOpenMenu(openMenu === "appearance" ? null : "appearance")
             },
-            h6(ThemeIcon, { mode: resolvedDark ? "dark" : "light" })
+            h7(ThemeIcon, { mode: resolvedDark ? "dark" : "light" })
           ),
-          openMenu === "appearance" ? h6(
+          openMenu === "appearance" ? h7(
             "div",
             { className: "mv-menu-panel mv-glass" },
             [
@@ -6463,7 +6672,7 @@ ${image !== "" ? `<h2>${escapeHtml(L.snapshot)}</h2>${image}` : ""}
               ["light", "theme.light"],
               ["dark", "theme.dark"]
             ].map(
-              ([mode, label]) => h6(
+              ([mode, label]) => h7(
                 MenuItem,
                 {
                   key: mode,
@@ -6475,7 +6684,7 @@ ${image !== "" ? `<h2>${escapeHtml(L.snapshot)}</h2>${image}` : ""}
             )
           ) : null
         ),
-        h6(
+        h7(
           "button",
           {
             key: "settings",
@@ -6484,23 +6693,23 @@ ${image !== "" ? `<h2>${escapeHtml(L.snapshot)}</h2>${image}` : ""}
             title: t2("btn.settings"),
             onClick: () => setSettingsOpen(true)
           },
-          h6(
+          h7(
             "svg",
             { viewBox: "0 0 24 24", width: 16, height: 16, "aria-hidden": true, style: { display: "block" } },
-            h6(
+            h7(
               "g",
               { stroke: "currentColor", strokeWidth: 1.7, fill: "none", strokeLinecap: "round" },
-              h6("circle", { cx: 12, cy: 12, r: 3.2 }),
-              h6("path", { d: "M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.2a1.6 1.6 0 0 0-1-1.5 1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.2a1.6 1.6 0 0 0 1.5-1 1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.2a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.2a1.6 1.6 0 0 0-1.4 1z" })
+              h7("circle", { cx: 12, cy: 12, r: 3.2 }),
+              h7("path", { d: "M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.2a1.6 1.6 0 0 0-1-1.5 1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.2a1.6 1.6 0 0 0 1.5-1 1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.2a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.2a1.6 1.6 0 0 0-1.4 1z" })
             )
           )
         )
       )
     ),
-    urlBar ? h6(
+    urlBar ? h7(
       "div",
       { key: "urlbar", className: "mv-urlbar mv-glass" },
-      h6("input", {
+      h7("input", {
         autoFocus: true,
         value: urlInput,
         placeholder: t2("urlbar.placeholder"),
@@ -6510,9 +6719,9 @@ ${image !== "" ? `<h2>${escapeHtml(L.snapshot)}</h2>${image}` : ""}
           if (event.key === "Escape") setUrlBar(false);
         }
       }),
-      h6("button", { type: "button", onClick: submitUrl }, t2("urlbar.submit"))
+      h7("button", { type: "button", onClick: submitUrl }, t2("urlbar.submit"))
     ) : null,
-    shaderOpen ? h6(ShaderWorkbench, {
+    shaderOpen ? h7(ShaderWorkbench, {
       key: "shader",
       t: t2,
       layers,
@@ -6526,80 +6735,42 @@ ${image !== "" ? `<h2>${escapeHtml(L.snapshot)}</h2>${image}` : ""}
       onResetLayer: resetShaderFromWorkbench,
       onResetAll: resetAllShadersFromWorkbench
     }) : null,
-    analysis || showLayers && layers.length > 0 ? h6(
+    analysis || showLayers ? h7(
       "div",
       { key: "right", className: "mv-right" },
-      analysis ? h6(AnalysisCard, { key: "analysis", state: analysis, t: t2, onClose: () => clearAnalysis() }) : null,
-      showLayers && layers.length > 0 ? h6(
-        "div",
-        { key: "layers", className: "mv-layers mv-glass" },
-        h6(
-          "header",
-          null,
-          h6("span", null, `${t2("layers.title")} · ${layers.length}`),
-          h6(
-            "button",
-            {
-              type: "button",
-              className: "mv-icon-btn",
-              title: t2("layers.collapse"),
-              "aria-label": t2("layers.collapse"),
-              onClick: () => updateSettings({ showLayers: false })
-            },
-            h6(CollapseIcon)
-          )
-        ),
-        h6(
-          "div",
-          { className: "mv-layer-list" },
-          layers.map(
-            (layer) => h6(
-              "div",
-              { key: layer.id, className: `mv-layer${layer.visible ? "" : " off"}` },
-              h6("span", { className: "name", title: layer.name, onClick: () => flyToLayer(layer.id) }, layer.name),
-              h6(
-                "button",
-                {
-                  type: "button",
-                  className: `mv-icon-btn${layer.visible ? "" : " on"}`,
-                  title: layer.visible ? t2("btn.visible") : t2("btn.hidden"),
-                  onClick: () => toggleLayer(layer.id)
-                },
-                layer.visible ? h6(LayerActionIcon, { key: "v", kind: "visible" }) : h6(LayerActionIcon, { key: "v", kind: "hidden" })
-              ),
-              h6(
-                "button",
-                { type: "button", className: "mv-icon-btn", title: t2("btn.flyTo"), "aria-label": t2("btn.flyTo"), onClick: () => flyToLayer(layer.id) },
-                h6(LayerActionIcon, { kind: "locate" })
-              ),
-              h6(
-                "button",
-                {
-                  type: "button",
-                  className: "mv-icon-btn",
-                  title: t2("btn.health"),
-                  "aria-label": t2("btn.health"),
-                  onClick: () => inspectLayer(layer.id)
-                },
-                h6(LayerActionIcon, { kind: "inspect" })
-              ),
-              h6(
-                "button",
-                { type: "button", className: "mv-icon-btn", title: t2("btn.delete"), "aria-label": t2("btn.delete"), onClick: () => removeLayer(layer.id) },
-                h6(LayerActionIcon, { kind: "delete" })
-              )
-            )
-          )
-        )
-      ) : null
+      analysis ? h7(AnalysisCard, { key: "analysis", state: analysis, t: t2, onClose: () => clearAnalysis() }) : null,
+      showLayers ? h7(LayersPanel, {
+        key: "layers",
+        t: t2,
+        config: sources,
+        settings: sources?.settings ?? {},
+        layers,
+        annotations: {
+          drawn_features: agentOverlayRef.current.drawnFeatures,
+          measured_points: agentOverlayRef.current.measuredCount
+        },
+        onCollapse: () => updateSettings({ showLayers: false }),
+        onSelectTerrain: changeTerrain,
+        onSelectImagery: changeImagery,
+        onFlyLayer: flyToLayer,
+        onToggleLayer: toggleLayer,
+        onInspectLayer: inspectLayer,
+        onRemoveLayer: removeLayer,
+        onOverlayAdd: addOverlay,
+        onOverlayRemove: removeOverlay,
+        onOverlayOpacity: setOverlayOpacity,
+        onOverlayVisible: setOverlayVisible,
+        onOverlayMove: moveOverlay,
+        onClearVector: () => clearAgentOverlays("all")
+      }) : null
     ) : null,
-    phase === "ready" && layers.length === 0 && !emptyDismissed && !restoringScene ? h6(
+    phase === "ready" && layers.length === 0 && !emptyDismissed && !restoringScene ? h7(
       "div",
       { key: "empty", className: "mv-overlay" },
-      h6(
+      h7(
         "div",
         { className: "mv-empty" },
-        h6(
+        h7(
           "button",
           {
             type: "button",
@@ -6610,73 +6781,73 @@ ${image !== "" ? `<h2>${escapeHtml(L.snapshot)}</h2>${image}` : ""}
           },
           "✕"
         ),
-        h6(ViewerIcon, { size: 30 }),
-        h6("h2", null, t2("panel.empty.title")),
-        h6("p", null, t2("panel.empty.body")),
-        h6(
+        h7(ViewerIcon, { size: 30 }),
+        h7("h2", null, t2("panel.empty.title")),
+        h7("p", null, t2("panel.empty.body")),
+        h7(
           "div",
           { className: "buttons" },
-          h6("button", { type: "button", className: "mv-cta primary", onClick: pickLocal }, t2("panel.empty.local")),
-          h6("button", { type: "button", className: "mv-cta", onClick: () => setUrlBar(true) }, t2("panel.empty.url"))
+          h7("button", { type: "button", className: "mv-cta primary", onClick: pickLocal }, t2("panel.empty.local")),
+          h7("button", { type: "button", className: "mv-cta", onClick: () => setUrlBar(true) }, t2("panel.empty.url"))
         )
       )
     ) : null,
-    phase === "loading" ? h6("div", { key: "loading", className: "mv-overlay dim" }, h6("div", { className: "mv-empty" }, h6("div", { className: "mv-spinner" }), h6("p", null, t2("panel.status.loading")))) : null,
-    phase === "error" ? h6(
+    phase === "loading" ? h7("div", { key: "loading", className: "mv-overlay dim" }, h7("div", { className: "mv-empty" }, h7("div", { className: "mv-spinner" }), h7("p", null, t2("panel.status.loading")))) : null,
+    phase === "error" ? h7(
       "div",
       { key: "error", className: "mv-overlay dim" },
-      h6(
+      h7(
         "div",
         { className: "mv-empty" },
-        h6("h2", null, "⚠"),
-        h6("p", null, error),
-        h6("div", { className: "buttons" }, h6("button", { type: "button", className: "mv-cta", onClick: () => location.reload() }, t2("btn.retry")))
+        h7("h2", null, "⚠"),
+        h7("p", null, error),
+        h7("div", { className: "buttons" }, h7("button", { type: "button", className: "mv-cta", onClick: () => location.reload() }, t2("btn.retry")))
       )
     ) : null,
-    stats && showHud ? h6(StatusHud, { key: "hud", fps, stats, viewerRef, cesiumRef, labels: hudLabels, readoutRef: captureReadoutRef }) : null,
-    measureInfo ? h6("div", { key: "measure", className: "mv-measure mv-glass" }, measureInfo.text) : null,
-    pickInfo ? h6(
+    stats && showHud ? h7(StatusHud, { key: "hud", fps, stats, viewerRef, cesiumRef, labels: hudLabels, readoutRef: captureReadoutRef }) : null,
+    measureInfo ? h7("div", { key: "measure", className: "mv-measure mv-glass" }, measureInfo.text) : null,
+    pickInfo ? h7(
       "div",
       { key: "pick", className: "mv-pick mv-glass" },
-      h6(
+      h7(
         "header",
         null,
-        h6("span", null, pickInfo.title),
-        h6(
+        h7("span", null, pickInfo.title),
+        h7(
           "button",
           { type: "button", className: "mv-icon-btn", onClick: () => setPickInfo(null), title: t2("btn.close") },
           "✕"
         )
       ),
-      h6(
+      h7(
         "table",
         null,
-        h6(
+        h7(
           "tbody",
           null,
-          pickInfo.rows.map(([name, value]) => h6("tr", { key: name }, h6("td", null, name), h6("td", null, value)))
+          pickInfo.rows.map(([name, value]) => h7("tr", { key: name }, h7("td", null, name), h7("td", null, value)))
         )
       )
     ) : null,
-    toast ? h6("div", { key: "toast", className: "mv-toast" }, toast) : null,
-    scan ? h6(
+    toast ? h7("div", { key: "toast", className: "mv-toast" }, toast) : null,
+    scan ? h7(
       "div",
       { key: "scan", className: "mv-modal", onPointerDown: (event) => event.target === event.currentTarget && setScan(null) },
-      h6(
+      h7(
         "div",
         { className: "mv-dialog" },
-        h6(
+        h7(
           "header",
           null,
-          h6("b", null, t2("layers.title")),
-          h6("span", { className: "path", style: { fontWeight: 400, color: "var(--mv-dim)" } }, scan.dir),
-          h6("button", { type: "button", className: "mv-icon-btn", onClick: () => setScan(null), title: t2("btn.close") }, "✕")
+          h7("b", null, t2("layers.title")),
+          h7("span", { className: "path", style: { fontWeight: 400, color: "var(--mv-dim)" } }, scan.dir),
+          h7("button", { type: "button", className: "mv-icon-btn", onClick: () => setScan(null), title: t2("btn.close") }, "✕")
         ),
-        h6(
+        h7(
           "div",
           { className: "body" },
           scan.items.map(
-            (item) => h6(
+            (item) => h7(
               "button",
               {
                 key: item.url,
@@ -6688,13 +6859,13 @@ ${image !== "" ? `<h2>${escapeHtml(L.snapshot)}</h2>${image}` : ""}
                   path: joinLocalPath(scan.dir, item.name)
                 })
               },
-              h6("span", null, item.name)
+              h7("span", null, item.name)
             )
           )
         )
       )
     ) : null,
-    health ? h6(HealthDialog, {
+    health ? h7(HealthDialog, {
       key: "health",
       state: health,
       messages: t2,
@@ -6710,7 +6881,7 @@ ${image !== "" ? `<h2>${escapeHtml(L.snapshot)}</h2>${image}` : ""}
         }
       }
     }) : null,
-    settingsOpen && sources && defaults ? h6(SourcesDialog, {
+    settingsOpen && sources && defaults ? h7(SourcesDialog, {
       key: "settings",
       config: sources,
       defaults,
@@ -6724,7 +6895,7 @@ ${image !== "" ? `<h2>${escapeHtml(L.snapshot)}</h2>${image}` : ""}
       onSave: saveSources,
       onClose: () => setSettingsOpen(false)
     }) : null,
-    accessRequest ? h6(PathAccessDialog, {
+    accessRequest ? h7(PathAccessDialog, {
       key: "access",
       request: accessRequest,
       busy: accessBusy,
@@ -6732,29 +6903,29 @@ ${image !== "" ? `<h2>${escapeHtml(L.snapshot)}</h2>${image}` : ""}
       onAllow: allowPathAccess,
       onDeny: () => settleAccess({ allowed: false, message: t2("access.denied") })
     }) : null,
-    imageryBusy || terrainBusy ? h6("div", { key: "busy", className: "mv-measure mv-glass", style: { bottom: "44px" } }, t2("toast.loadingData")) : null
+    imageryBusy || terrainBusy ? h7("div", { key: "busy", className: "mv-measure mv-glass", style: { bottom: "44px" } }, t2("toast.loadingData")) : null
   );
 }
 
 // src/client/ui/layout.js
-var h7 = import_react9.default.createElement;
+var h8 = import_react10.default.createElement;
 function ViewerPanel(props) {
-  return h7(ViewerSurface, { t: props.t, sessionId: null, docked: false });
+  return h8(ViewerSurface, { t: props.t, sessionId: null, docked: false });
 }
 function EarthTabBody(props) {
   const info = typeof props.useTabInfo === "function" ? props.useTabInfo() : null;
   const sessionId = props.sessionId ?? info?.tab?.sessionId ?? info?.sessionId ?? null;
-  return h7(ViewerSurface, { t: props.t, sessionId, docked: true });
+  return h8(ViewerSurface, { t: props.t, sessionId, docked: true });
 }
 
 // src/client/ui/tool-row.js
-var import_react10 = __toESM(require("react"), 1);
-var h8 = import_react10.default.createElement;
+var import_react11 = __toESM(require("react"), 1);
+var h9 = import_react11.default.createElement;
 function HeaderButton(props) {
   const fallbackT = useTranslation();
   const t2 = typeof props.t === "function" ? props.t : fallbackT;
-  const [hover, setHover] = import_react10.default.useState(false);
-  return h8(
+  const [hover, setHover] = import_react11.default.useState(false);
+  return h9(
     "button",
     {
       type: "button",
@@ -6781,7 +6952,7 @@ function HeaderButton(props) {
       onMouseEnter: () => setHover(true),
       onMouseLeave: () => setHover(false)
     },
-    h8(ViewerIcon, { size: 16 })
+    h9(ViewerIcon, { size: 16 })
   );
 }
 var ensureToolCss = () => {
@@ -6838,8 +7009,8 @@ var TOOL_SUMMARY_KEYS = {
 var AUTO_OPENED_CALLS = /* @__PURE__ */ new Set();
 function EarthToolRow({ toolName, phase, block, callId }) {
   const t2 = useTranslation();
-  const openedRef = import_react10.default.useRef(false);
-  import_react10.default.useEffect(() => {
+  const openedRef = import_react11.default.useRef(false);
+  import_react11.default.useEffect(() => {
     if (phase === "result" || openedRef.current) return;
     if (typeof callId === "string" && AUTO_OPENED_CALLS.has(callId)) return;
     if (!readAutoOpen()) return;
@@ -6853,8 +7024,8 @@ function EarthToolRow({ toolName, phase, block, callId }) {
     } catch {
     }
   }, [phase, callId]);
-  const [thumbUrl, setThumbUrl] = import_react10.default.useState("");
-  import_react10.default.useEffect(() => {
+  const [thumbUrl, setThumbUrl] = import_react11.default.useState("");
+  import_react11.default.useEffect(() => {
     if (toolName !== "earth_capture" || phase !== "result" || block?.isError === true) return void 0;
     const content = Array.isArray(block?.content) ? block.content : [];
     const text = content.filter((part) => part?.type === "text" && typeof part.text === "string").map((part) => part.text).join("\n");
@@ -6877,14 +7048,14 @@ function EarthToolRow({ toolName, phase, block, callId }) {
   const failure = state === "error" ? resultFirstLine(block) : "";
   const summaryKey = toolName === "earth_scene" ? SCENE_ACTION_KEYS[action] ?? "tool.action.generic" : TOOL_SUMMARY_KEYS[toolName] ?? "tool.action.generic";
   const summary = failure !== "" ? failure : t2(summaryKey);
-  return h8(
+  return h9(
     "div",
     { className: "mv-toolrow", "data-state": state, "data-tool": toolName },
-    h8("span", { className: "glyph", "aria-hidden": true }, h8(ViewerIcon, { size: 14 })),
-    h8("span", { className: "title" }, t2("panel.title")),
-    h8("span", { className: "sep", "aria-hidden": true }),
-    h8("span", { className: "summary", title: failure !== "" ? failure : void 0 }, summary),
-    thumbUrl === "" ? null : h8(
+    h9("span", { className: "glyph", "aria-hidden": true }, h9(ViewerIcon, { size: 14 })),
+    h9("span", { className: "title" }, t2("panel.title")),
+    h9("span", { className: "sep", "aria-hidden": true }),
+    h9("span", { className: "summary", title: failure !== "" ? failure : void 0 }, summary),
+    thumbUrl === "" ? null : h9(
       "a",
       {
         className: "thumb",
@@ -6893,9 +7064,9 @@ function EarthToolRow({ toolName, phase, block, callId }) {
         rel: "noopener noreferrer",
         title: t2("tool.thumbOpen")
       },
-      h8("img", { src: thumbUrl, alt: "", loading: "lazy" })
+      h9("img", { src: thumbUrl, alt: "", loading: "lazy" })
     ),
-    h8(
+    h9(
       "button",
       { type: "button", className: "open", title: t2("tool.openTip"), onClick: openEarthPanel },
       t2("tool.open")
@@ -6904,7 +7075,7 @@ function EarthToolRow({ toolName, phase, block, callId }) {
 }
 
 // src/client/plugin.js
-var h9 = import_react11.default.createElement;
+var h10 = import_react12.default.createElement;
 var plugin = {
   inject: ["slots", "uiWorkspace", "locale", "theme"],
   apply(ctx) {
@@ -6955,7 +7126,7 @@ var plugin = {
       "conversation.session.header.utilities",
       () => ctx.slots.register(
         { name: "conversation.session.header.utilities", id: "digital-earth-open", order: 30, locale: NS },
-        (props) => h9(HeaderButton, { ...props, onOpen: openEarthPanel })
+        (props) => h10(HeaderButton, { ...props, onOpen: openEarthPanel })
       )
     );
     ctx.slots.inject("tool.call.toolview", function* () {

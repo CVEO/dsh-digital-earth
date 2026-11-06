@@ -22,7 +22,8 @@ import { AnalysisCard, ShaderWorkbench } from '../ui/cards.js'
 import { CSS } from '../ui/css.js'
 import { HealthDialog, PathAccessDialog, SourcesDialog } from '../ui/dialogs.js'
 import { StatusHud } from '../ui/hud.js'
-import { AskAgentIcon, CollapseIcon, FullscreenIcon, HudIcon, LayerActionIcon, ResetIcon, ScreenshotIcon, ShaderIcon, ThemeIcon, ViewerIcon } from '../ui/icons.js'
+import { AskAgentIcon, FullscreenIcon, HudIcon, ResetIcon, ScreenshotIcon, ShaderIcon, ThemeIcon, ViewerIcon } from '../ui/icons.js'
+import { LayersPanel } from '../ui/layers-panel.js'
 import { MenuItem } from '../ui/menu-item.js'
 
 const h = React.createElement
@@ -2673,6 +2674,52 @@ ${image !== '' ? `<h2>${escapeHtml(L.snapshot)}</h2>${image}` : ''}
         if (layer && viewer) viewer.flyTo(layer.tileset, { duration: 1.0 })
       }
 
+      // ---- L3 raster overlays: the panel edits the catalog, then one sync()
+      // reconciles the live stack. Persisting first keeps sources.json and the
+      // rendered stack from diverging if the provider call fails.
+      function persistOverlays(next) {
+        const current = sourcesRef.current
+        if (!current) return
+        commitSources({ ...current, rasterOverlays: next })
+      }
+
+      function overlayCatalog() {
+        return Array.isArray(sourcesRef.current?.rasterOverlays) ? sourcesRef.current.rasterOverlays : []
+      }
+
+      function addOverlay(draft) {
+        const next = [...overlayCatalog(), { ...draft, id: `overlay-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}` }]
+        persistOverlays(next)
+        void overlayLayersRef.current?.sync(next).catch(() => {})
+      }
+
+      function removeOverlay(id) {
+        const next = overlayCatalog().filter((item) => item.id !== id)
+        persistOverlays(next)
+        void overlayLayersRef.current?.sync(next).catch(() => {})
+      }
+
+      function setOverlayOpacity(id, opacity) {
+        persistOverlays(overlayCatalog().map((item) => (item.id === id ? { ...item, opacity } : item)))
+        void overlayLayersRef.current?.setOpacity(id, opacity)
+      }
+
+      function setOverlayVisible(id, visible) {
+        persistOverlays(overlayCatalog().map((item) => (item.id === id ? { ...item, visible } : item)))
+        void overlayLayersRef.current?.setVisible(id, visible)
+      }
+
+      function moveOverlay(id, delta) {
+        const list = [...overlayCatalog()]
+        const index = list.findIndex((item) => item.id === id)
+        const target = index + delta
+        if (index < 0 || target < 0 || target >= list.length) return
+        const [item] = list.splice(index, 1)
+        list.splice(target, 0, item)
+        persistOverlays(list)
+        void overlayLayersRef.current?.sync(list).catch(() => {})
+      }
+
       function removeLayer(id) {
         const viewer = viewerRef.current
         const index = layersRef.current.findIndex((item) => item.id === id)
@@ -3756,40 +3803,6 @@ ${image !== '' ? `<h2>${escapeHtml(L.snapshot)}</h2>${image}` : ''}
                 ),
               ],
             ),
-            menu(
-              'basemap',
-              t('btn.basemap'),
-              [
-                h(
-                  MenuItem,
-                  { key: 'none', active: activeImageryId === null, onClick: () => changeImagery(null) },
-                  t('menu.none'),
-                ),
-                ...(sources?.imagery ?? []).map((source) =>
-                  h(
-                    MenuItem,
-                    { key: source.id, active: activeImageryId === source.id, onClick: () => changeImagery(source.id) },
-                    source.name,
-                  ),
-                ),
-              ],
-              Boolean(activeImageryId),
-            ),
-            menu(
-              'terrain',
-              t('btn.terrain'),
-              [
-                h(MenuItem, { key: 'off', active: activeTerrainId === null, onClick: () => changeTerrain(null) }, t('menu.terrainOff')),
-                ...(sources?.terrain ?? []).map((source) =>
-                  h(
-                    MenuItem,
-                    { key: source.id, active: activeTerrainId === source.id, onClick: () => changeTerrain(source.id) },
-                    source.name,
-                  ),
-                ),
-              ],
-              activeTerrainId !== null,
-            ),
             h('i', { key: 's1', className: 'mv-sep' }),
             menu(
               'measure',
@@ -3806,7 +3819,9 @@ ${image !== '' ? `<h2>${escapeHtml(L.snapshot)}</h2>${image}` : ''}
             button(
               `${t('btn.layers')}${layers.length ? ` ${layers.length}` : ''}`,
               () => updateSettings({ showLayers: !showLayers }),
-              showLayers && layers.length > 0,
+              // The panel is the only place to pick terrain/basemap now, so it must
+              // be reachable even with zero 3D Tiles loaded.
+              showLayers,
               undefined,
               showLayers ? t('btn.layersHide') : t('btn.layersShow'),
             ),
@@ -3925,76 +3940,38 @@ ${image !== '' ? `<h2>${escapeHtml(L.snapshot)}</h2>${image}` : ''}
               onResetAll: resetAllShadersFromWorkbench,
             })
           : null,
-        analysis || (showLayers && layers.length > 0)
+        analysis || showLayers
           ? h(
               'div',
               { key: 'right', className: 'mv-right' },
               analysis
                 ? h(AnalysisCard, { key: 'analysis', state: analysis, t, onClose: () => clearAnalysis() })
                 : null,
-              showLayers && layers.length > 0
-                ? h(
-                    'div',
-                    { key: 'layers', className: 'mv-layers mv-glass' },
-                    h(
-                      'header',
-                      null,
-                      h('span', null, `${t('layers.title')} · ${layers.length}`),
-                      h(
-                        'button',
-                        {
-                          type: 'button',
-                          className: 'mv-icon-btn',
-                          title: t('layers.collapse'),
-                          'aria-label': t('layers.collapse'),
-                          onClick: () => updateSettings({ showLayers: false }),
-                        },
-                        h(CollapseIcon),
-                      ),
-                    ),
-                    h(
-                      'div',
-                      { className: 'mv-layer-list' },
-                      layers.map((layer) =>
-                        h(
-                          'div',
-                          { key: layer.id, className: `mv-layer${layer.visible ? '' : ' off'}` },
-                          h('span', { className: 'name', title: layer.name, onClick: () => flyToLayer(layer.id) }, layer.name),
-                          h(
-                            'button',
-                            {
-                              type: 'button',
-                              className: `mv-icon-btn${layer.visible ? '' : ' on'}`,
-                              title: layer.visible ? t('btn.visible') : t('btn.hidden'),
-                              onClick: () => toggleLayer(layer.id),
-                            },
-                            layer.visible ? h(LayerActionIcon, { key: 'v', kind: 'visible' }) : h(LayerActionIcon, { key: 'v', kind: 'hidden' }),
-                          ),
-                          h(
-                            'button',
-                            { type: 'button', className: 'mv-icon-btn', title: t('btn.flyTo'), 'aria-label': t('btn.flyTo'), onClick: () => flyToLayer(layer.id) },
-                            h(LayerActionIcon, { kind: 'locate' }),
-                          ),
-                          h(
-                            'button',
-                            {
-                              type: 'button',
-                              className: 'mv-icon-btn',
-                              title: t('btn.health'),
-                              'aria-label': t('btn.health'),
-                              onClick: () => inspectLayer(layer.id),
-                            },
-                            h(LayerActionIcon, { kind: 'inspect' }),
-                          ),
-                          h(
-                            'button',
-                            { type: 'button', className: 'mv-icon-btn', title: t('btn.delete'), 'aria-label': t('btn.delete'), onClick: () => removeLayer(layer.id) },
-                            h(LayerActionIcon, { kind: 'delete' }),
-                          ),
-                        ),
-                      ),
-                    ),
-                  )
+              showLayers
+                ? h(LayersPanel, {
+                    key: 'layers',
+                    t,
+                    config: sources,
+                    settings: sources?.settings ?? {},
+                    layers,
+                    annotations: {
+                      drawn_features: agentOverlayRef.current.drawnFeatures,
+                      measured_points: agentOverlayRef.current.measuredCount,
+                    },
+                    onCollapse: () => updateSettings({ showLayers: false }),
+                    onSelectTerrain: changeTerrain,
+                    onSelectImagery: changeImagery,
+                    onFlyLayer: flyToLayer,
+                    onToggleLayer: toggleLayer,
+                    onInspectLayer: inspectLayer,
+                    onRemoveLayer: removeLayer,
+                    onOverlayAdd: addOverlay,
+                    onOverlayRemove: removeOverlay,
+                    onOverlayOpacity: setOverlayOpacity,
+                    onOverlayVisible: setOverlayVisible,
+                    onOverlayMove: moveOverlay,
+                    onClearVector: () => clearAgentOverlays('all'),
+                  })
                 : null,
             )
           : null,

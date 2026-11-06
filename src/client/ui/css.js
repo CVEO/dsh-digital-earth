@@ -96,6 +96,21 @@
 .mv-icon-btn{appearance:none;border:0;background:transparent;color:var(--mv-dim);width:26px;height:26px;border-radius:7px;cursor:pointer;font:inherit;font-size:14px;line-height:1;display:inline-flex;align-items:center;justify-content:center;flex:none}
 .mv-layer{gap:3px;padding:5px 7px}
 .mv-layer .mv-icon-btn{font-size:15px}
+/* Layer panel v1.6: four groups (L1 terrain / L2 basemap / L3 raster / L4 vector)
+   plus the 3D Tiles list. Group titles are sticky so a long overlay list keeps
+   the current section readable. */
+.mv-group{padding:6px 6px 2px;margin-top:2px}
+.mv-group-title{font-size:10px;letter-spacing:.04em;text-transform:uppercase;color:var(--mv-dim);padding:0 2px 4px;position:sticky;top:0;background:var(--mv-glass-strong)}
+.mv-choice{width:100%;text-align:left;border:0;background:transparent;color:var(--mv-text);font:inherit;font-size:12px;cursor:pointer}
+.mv-choice .tick{color:var(--mv-accent);font-size:11px;flex:none}
+.mv-choice.on{background:color-mix(in srgb,var(--mv-accent) 10%,transparent)}
+.mv-opacity{width:64px;flex:none;accent-color:var(--mv-accent)}
+.mv-overlay-row{gap:2px}
+.mv-none{padding:6px 8px;font-size:11px;color:var(--mv-dim)}
+.mv-overlay-form{border:.5px solid var(--mv-line);border-radius:8px;padding:8px;margin:2px 4px 6px;display:flex;flex-direction:column;gap:6px;background:color-mix(in srgb,var(--mv-lift) 40%,transparent)}
+.mv-overlay-form .mv-field{display:flex;flex-direction:column;gap:3px}
+.mv-overlay-form .mv-field label{font-size:10px;color:var(--mv-dim)}
+.mv-overlay-form input,.mv-overlay-form select{background:var(--mv-input);border:.5px solid var(--mv-line);color:var(--mv-text);border-radius:6px;padding:5px 7px;font:inherit;font-size:11px;min-width:0}
 .mv-icon-btn:hover{background:color-mix(in srgb,var(--mv-lift) 82%,transparent);color:var(--mv-text)}
 .mv-icon-btn.on{color:var(--mv-accent)}
 .mv-hud{position:absolute;left:10px;bottom:10px;z-index:9;padding:8px 11px;border-radius:11px;display:flex;flex-direction:column;gap:3px;font-size:11px;color:var(--mv-dim);max-width:calc(100% - 330px);pointer-events:none}

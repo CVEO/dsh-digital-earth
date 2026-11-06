@@ -16,6 +16,27 @@
  * capabilities), and two rapid settings saves must not interleave inserts/removes.
  */
 
+/** Overlay source types the inline "add overlay" form accepts. */
+export const OVERLAY_TYPES = ['wms', 'xyz', 'arcgis']
+
+/**
+ * Validate the inline "add overlay" form into a catalog overlay entry, or null.
+ * Pure on purpose: the form rules live next to the stack schema and are
+ * unit-testable without React or a browser.
+ */
+export function normalizeOverlayDraft(raw) {
+  if (raw === null || typeof raw !== 'object') return null
+  const type = typeof raw.type === 'string' && OVERLAY_TYPES.includes(raw.type) ? raw.type : null
+  if (type === null) return null
+  const url = typeof raw.url === 'string' ? raw.url.trim() : ''
+  if (url === '') return null
+  const layers = type === 'wms' ? (typeof raw.layers === 'string' ? raw.layers.trim() : '') : ''
+  if (type === 'wms' && layers === '') return null
+  const name = (typeof raw.name === 'string' ? raw.name.trim() : '') || '叠加图层'
+  const opacity = Number.isFinite(Number(raw.opacity)) ? Math.min(1, Math.max(0, Number(raw.opacity))) : 1
+  return { name, type, url, ...(layers === '' ? {} : { layers }), opacity, visible: true }
+}
+
 /**
  * @param {object} options
  * @param {object} options.Cesium vendored Cesium namespace (from the panel runtime)
