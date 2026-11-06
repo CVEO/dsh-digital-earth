@@ -13,10 +13,13 @@ import { after, test } from 'node:test'
 import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
 import { EventEmitter } from 'node:events'
+import { readFileSync } from 'node:fs'
 import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { basename, dirname, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+
+import { hostSource } from './helpers/source.mjs'
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)))
 
@@ -24,6 +27,16 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)))
 const readSource = async (name) => (await readFile(join(root, name), 'utf8')).replace(/\r\n/g, '\n')
 
 const indexSource = await readSource('index.js')
+// v2.0 split: implementation lives in src/host; `host` is the concatenated
+// authored host source (safe for top-level function extraction), while
+// adjacency-sensitive slices read the owning module on purpose.
+const hostAll = hostSource()
+const readHostModule = (rel) => readFileSync(join(root, 'src/host', rel), 'utf8').replace(/\r\n/g, '\n')
+const constantsSource = readHostModule('constants.js')
+const routesSource = readHostModule('routes.js')
+const commandsSource = readHostModule('commands.js')
+const sceneSource = readHostModule('tools/scene.js')
+const captureSource = readHostModule('tools/capture.js')
 const clientSource = await readSource('client.js')
 
 // ---------------------------------------------------------------------------
@@ -272,10 +285,7 @@ test('P0 renderEarthCommandStatus 容忍空输入，不输出 undefined', () => 
 // 3) /earth 命令接线（宿主源码）
 // ---------------------------------------------------------------------------
 
-const commandSource = indexSource.slice(
-  indexSource.indexOf('function mountEarthCommand'),
-  indexSource.indexOf('export const inject'),
-)
+const commandSource = commandsSource.slice(commandsSource.indexOf('function mountEarthCommand'))
 
 test('P0 /earth 已注册：name、input hint 与 status/capture/report/clear/open 分支齐备', () => {
   assert.match(commandSource, /scope\.commands\.register\(\{/)
@@ -294,7 +304,7 @@ test('P0 /earth 已注册：name、input hint 与 status/capture/report/clear/op
   assert.ok(commandSource.includes("bridge.run(target.sessionId, 'draw', { clear: true }"))
   // 命令必须在 apply() 里挂载，否则注册代码是死代码。
   assert.ok(indexSource.includes('mountEarthCommand(ctx, bridge)'))
-  assert.ok(indexSource.includes("ctx.inject(['commands'], (scope) => {"))
+  assert.ok(commandsSource.includes("ctx.inject(['commands'], (scope) => {"))
 })
 
 test('P0 /earth 失败返回 kind:error，成功返回 kind:success，命令结果不写入模型消息', () => {
@@ -316,28 +326,25 @@ test('P0 /earth 失败返回 kind:error，成功返回 kind:success，命令结�
 // 4) meta 接线：filesUrl / sceneUrl，且 token 不进入任何工具结果文本
 // ---------------------------------------------------------------------------
 
-const metaSource = indexSource.slice(
-  indexSource.indexOf('function metaHandler'),
-  indexSource.indexOf('/** GET: the current catalog plus the built-ins the UI can restore. */'),
-)
+const metaSource = routesSource.slice(routesSource.indexOf('function metaHandler'))
 
 test('P0 meta 下发 filesUrl 与 sceneUrl（都带 per-process token）', () => {
   const meta = {
-    filesUrl: indexSource.includes('filesUrl: `${FILES_ROUTE}/${TOKEN}/`,'),
-    sceneUrl: indexSource.includes('sceneUrl: `${SCENE_ROUTE}/${TOKEN}`,')
+    filesUrl: routesSource.includes('filesUrl: `${FILES_ROUTE}/${TOKEN}/`,'),
+    sceneUrl: routesSource.includes('sceneUrl: `${SCENE_ROUTE}/${TOKEN}`,')
   }
   assert.equal(meta.filesUrl, true, 'metaHandler 必须下发 filesUrl')
   assert.equal(meta.sceneUrl, true, 'metaHandler 必须下发 sceneUrl')
   assert.ok(metaSource.includes('token: TOKEN,'))
-  assert.ok(indexSource.includes('const SCENE_ROUTE = `${API}/scene`'))
-  assert.ok(indexSource.includes('const FILES_ROUTE = `${API}/files`'))
+  assert.ok(constantsSource.includes('const SCENE_ROUTE = `${API}/scene`'))
+  assert.ok(constantsSource.includes('const FILES_ROUTE = `${API}/files`'))
 })
 
 test('P0 场景快照路由按 exact 方式注册并复用导出的 handler', () => {
-  assert.ok(indexSource.includes("register('exact', `${SCENE_ROUTE}/${TOKEN}`, sceneSnapshotHandler)"))
-  assert.ok(indexSource.includes('const MAX_SCENE_BODY = 512 * 1024'))
-  assert.ok(indexSource.includes('const MAX_SCENE_FILES = 50'))
-  assert.ok(indexSource.includes('function pruneSceneSnapshots()'))
+  assert.ok(routesSource.includes("register('exact', `${SCENE_ROUTE}/${TOKEN}`, sceneSnapshotHandler)"))
+  assert.ok(constantsSource.includes('const MAX_SCENE_BODY = 512 * 1024'))
+  assert.ok(constantsSource.includes('const MAX_SCENE_FILES = 50'))
+  assert.ok(readHostModule('snapshots.js').includes('function pruneSceneSnapshots()'))
 })
 
 test('P0 token 不出现在工具结果渲染函数与 capture 结果值里', () => {
@@ -351,15 +358,22 @@ test('P0 token 不出现在工具结果渲染函数与 capture 结果值里', ()
     'renderInspectResult',
   ]
   for (const name of renderFunctions) {
-    const body = topLevelFunction(indexSource, name)
+    const body = topLevelFunction(hostAll, name)
     assert.doesNotMatch(body, /\bTOKEN\b|filesUrl|sceneUrl/, `${name} 的结果文本不得携带 token 或缺省 URL`)
   }
 
-  const captureValue = topLevelFunction(indexSource, 'captureResultValue')
+  const captureValue = topLevelFunction(hostAll, 'captureResultValue')
   assert.doesNotMatch(captureValue, /\burl\s*:/, '截图工具结果不得带 url 字段')
-  assert.ok(captureValue.includes('within(CAPTURES_DIR, target)'), '截图路径必须校验在 captures 目录内')
+  assert.ok(captureValue.includes('isWithinDirectory(target, CAPTURES_DIR)'), '截图路径必须校验在 captures 目录内')
 
-  const toolSource = indexSource.slice(indexSource.indexOf('function createSceneTool'), indexSource.indexOf('function mountAgentTools'))
+  const toolSource = [
+    sceneSource,
+    captureSource,
+    readHostModule('tools/draw.js'),
+    readHostModule('tools/measure.js'),
+    readHostModule('tools/analyze.js'),
+    readHostModule('tools/shader.js'),
+  ].join('\n')
   assert.equal((toolSource.match(/scrubToken\(/g) ?? []).length, 6, '六个工具都要经过 scrubToken')
   assert.doesNotMatch(toolSource, /\bTOKEN\b/)
 })
@@ -472,9 +486,13 @@ function sourceSlice(source, startMarker, endMarker) {
 /** 取一个顶层 `function name(...)` 到它独占一行的 `}` 为止。 */
 function topLevelFunction(source, name) {
   const lines = source.split('\n')
-  const start = lines.findIndex(
-    (line) => line.startsWith(`function ${name}(`) || line.startsWith(`async function ${name}(`),
-  )
+  const prefixes = [
+    `function ${name}(`,
+    `async function ${name}(`,
+    `export function ${name}(`,
+    `export async function ${name}(`,
+  ]
+  const start = lines.findIndex((line) => prefixes.some((prefix) => line.startsWith(prefix)))
   assert.notEqual(start, -1, `源码中找不到顶层函数 ${name}`)
   let end = start + 1
   while (end < lines.length && lines[end] !== '}') end += 1

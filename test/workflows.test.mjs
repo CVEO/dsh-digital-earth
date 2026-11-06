@@ -49,8 +49,11 @@ test('CI 的 Windows 腿用 bash 跑同一套冒烟脚本', () => {
   assert.match(ci, /defaults:\s*\n\s*run:\s*\n\s*shell:\s*bash/)
 })
 
-test('CI 依次做语法检查、结构测试、打包清单与打包冒烟', () => {
+test('CI 依次做语法检查、产物一致性、架构预算、结构测试、打包清单与打包冒烟', () => {
+  assert.match(ci, /npm ci/, '构建期依赖需要 npm ci')
   assert.match(ci, /node --check index\.js && node --check client\.js/)
+  assert.match(ci, /npm run build:client -- --check/, '必须有产物一致性门禁')
+  assert.match(ci, /node scripts\/check-size\.mjs/, '必须有架构预算门禁')
   assert.match(ci, /node --test/)
   assert.match(ci, /npm pack --dry-run/)
   // 冒烟必须来自真实 tarball，而不是只跑 dry-run
@@ -62,8 +65,12 @@ test('CI 依次做语法检查、结构测试、打包清单与打包冒烟', ()
   assert.match(ci, /pathToFileURL\(process\.argv\[1\]\)\.href/)
   assert.match(ci, /typeof m\.apply/)
   assert.match(ci, /process\.exit\(1\)/)
-  // 顺序：语法检查 → 测试 → 打包冒烟
+  // 顺序：安装 → 语法 → 产物 → 预算 → 测试 → 打包冒烟
+  assert.ok(ci.indexOf('npm ci') < ci.indexOf('node --check'), '依赖安装应在语法检查之前')
+  assert.ok(ci.indexOf('build:client -- --check') < ci.indexOf('node --test'), '产物检查应在测试之前')
   assert.ok(ci.indexOf('node --test') < ci.indexOf('npm pack --silent'), '测试应在打包冒烟之前')
+  // 拆包后宿主入口会 import src/host/**，冒烟必须确认它被发布。
+  assert.match(ci, /src\/host/)
 })
 
 test('CI 权限最小化，且并发时取消旧任务', () => {
@@ -74,12 +81,30 @@ test('CI 权限最小化，且并发时取消旧任务', () => {
   assert.match(ci, /package-manager-cache:\s*false/)
 })
 
-test('Publish 只在 v* tag 与手动 dispatch 时触发，push main 不再发版', () => {
+test('Publish 只在 v* tag 与 main 上的手动 dispatch 时触发，push main 不再发版', () => {
   // main 只做代码合入：合并不会把版本发到 npm，发版由维护者打 tag 决定。
   const onBlock = publish.slice(publish.indexOf('on:'), publish.indexOf('permissions:'))
   assert.doesNotMatch(onBlock, /branches:/, '发布工作流不应再按分支 push 触发')
   assert.match(onBlock, /tags:\s*\['v\*'\]/)
   assert.match(onBlock, /workflow_dispatch:/)
+  // 手动 dispatch 可以从任意分支启动，必须在 job 层挡掉非 main / 非 tag 的 ref。
+  assert.match(
+    publish,
+    /if:\s*startsWith\(github\.ref, 'refs\/tags\/v'\) \|\| github\.ref == 'refs\/heads\/main'/,
+    'dispatch 需要 ref 守卫',
+  )
+})
+
+test('Publish 只从 main 打 tag：tag 必须落在 origin/main 上', () => {
+  assert.match(publish, /git fetch --no-tags origin main/)
+  assert.match(publish, /git merge-base --is-ancestor "\$GITHUB_SHA" origin\/main/)
+})
+
+test('Publish 在发布前重建并校验产物（client.js 是构建产物）', () => {
+  assert.match(publish, /npm ci/)
+  assert.match(publish, /npm run build:client -- --check/)
+  assert.match(publish, /node scripts\/check-size\.mjs/)
+  assert.ok(publish.indexOf('build:client -- --check') < publish.indexOf('name: Publish to npm'), '产物校验必须在发布之前')
 })
 
 test('Publish 用 OIDC Trusted Publishing 并升级 npm 到支持版本', () => {

@@ -3,11 +3,12 @@ name: Publish
 # 发布链路（维护文档不随插件仓库分发，流程约定只写在本注释里）：
 #   - 只在 push v* tag 或手动 workflow_dispatch 时发布；**push 到 main 不触发发布**，
 #     合并到 main 只是代码合入，什么时候发版由维护者打 tag 决定；
-#   - push v* tag → tag 必须严格等于 v<package.json 的 version>，不一致直接失败；
-#   - workflow_dispatch → 手动发版 / 补发 / 重试（在选中的分支上运行，不做 tag 一致性硬校验）。
+#   - push v* tag → tag 必须严格等于 v<package.json 的 version>，且必须在 main 上；
+#   - workflow_dispatch → 手动发版 / 补发 / 重试，**只允许在 main 上运行**。
 # 认证走 npm Trusted Publishing（OIDC），不需要 NPM_TOKEN secret；npm 版本须 ≥ 11.5.1，故这里升级 npm。
 # 版本已存在时跳过而不是失败，所以「改代码但没升版本」的重复发布不会把流水线变红。
 # 发布前的校验必须在本工作流里重跑一遍：CI 可能跑的是旧提交 / 被跳过，发布不能只信 CI 的结论。
+# v2.0 起 client.js 是构建产物：发布前必须 npm ci + 校验产物一致性，否则会发出「源码改了但面板没更新」的包。
 
 on:
   push:
@@ -27,6 +28,9 @@ jobs:
   publish:
     name: publish to npm
     runs-on: ubuntu-latest
+    # 手动 dispatch 可能从任意分支启动：只允许 main 与 v* tag 真正发布。
+    # Trusted Publishing 绑定 workflow 文件名与 environment 名，改名会 403。
+    if: startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main'
     # 可选环境：在仓库 Settings → Environments 创建 `npm`，可加保护规则 / 维护者审批。
     # Trusted Publishing 走 OIDC，不需要在这里配置任何 secret；npmjs.com 的
     # Trusted Publisher 配置里若填了 Environment name，请同样填 `npm`（可留空）。
@@ -35,7 +39,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
         with:
-          fetch-depth: 0 # 取全量 tag，供 tag / package.json 版本一致性校验使用
+          fetch-depth: 0 # 取全量 tag/main 历史，供 tag / package.json 版本一致性校验使用
 
       - uses: actions/setup-node@v6
         with:
@@ -46,8 +50,19 @@ jobs:
       - name: Upgrade npm (Trusted Publishing needs >= 11.5.1)
         run: npm install -g npm@latest
 
+      - name: Install build dependencies
+        # esbuild 是唯一构建期依赖；package-lock.json 固定版本。
+        run: npm ci
+
       - name: Syntax check
         run: node --check index.js && node --check client.js
+
+      - name: Client artifact is up to date
+        # 发布出去的 client.js 必须与 src/client 一致，否则用户装到的是旧面板。
+        run: npm run build:client -- --check
+
+      - name: Architecture budgets
+        run: node scripts/check-size.mjs
 
       - name: Structural tests
         run: node --test
@@ -73,13 +88,14 @@ jobs:
           for FILE in index.js client.js cordis.patch.yml vendor/cesium/Cesium.js; do
             test -f "$DEST/package/$FILE" || { echo "::error::打包结果缺少 $FILE"; exit 1; }
           done
+          test -d "$DEST/package/src/host" || { echo "::error::打包结果缺少 src/host"; exit 1; }
 
           ENTRY="$DEST/package/index.js"
           node --input-type=module -e "const m = await import('$ENTRY'); if (typeof m.apply !== 'function') { console.error('index.js 未导出 apply()'); process.exit(1) }"
           echo "打包冒烟通过：$TARBALL"
 
       - name: Check tag / package.json version consistency
-        # tag 发布：tag 必须精确等于 v<version>，否则一定是打错版本或忘记改 package.json，直接失败。
+        # tag 发布：tag 必须精确等于 v<version>，且该 tag 必须落在 main 上。
         # 手动发布：没有 tag 可比，只对比最新 tag 并给出警告，不阻塞发布。
         env:
           REF_TYPE: ${{ github.ref_type }}
@@ -94,7 +110,12 @@ jobs:
               echo "::error::tag $REF_NAME 与 package.json 的 version $VERSION 不一致，期望 tag v$VERSION"
               exit 1
             fi
-            echo "::notice::tag $REF_NAME 与 package.json version 一致"
+            git fetch --no-tags origin main
+            if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+              echo "::error::tag $REF_NAME 不在 main 上；发布必须从 main 打 tag"
+              exit 1
+            fi
+            echo "::notice::tag $REF_NAME 与 package.json version 一致，且在 main 上"
             exit 0
           fi
 

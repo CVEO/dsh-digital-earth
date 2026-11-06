@@ -24,14 +24,17 @@ import {
   resolveLocalTileset,
   SYSTEM_PROMPT_SECTION,
 } from '../index.js'
+import { hostSource } from './helpers/source.mjs'
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)))
 const readText = (name) => readFile(join(root, name), 'utf8').then((text) => text.replace(/\r\n/g, '\n'))
-const [client, host, packageText] = await Promise.all([
+const [client, packageText, sceneSource, bridgeSource] = await Promise.all([
   readText('client.js'),
-  readText('index.js'),
   readText('package.json'),
+  readText('src/host/tools/scene.js'),
+  readText('src/host/bridge.js'),
 ])
+const host = hostSource()
 
 const temporary = []
 after(async () => {
@@ -293,14 +296,14 @@ test('提示词不再包含 Data 菜单/手动开目录/强制先 status 的旧�
 })
 
 test('模型可见 SCENE_ACTIONS 不含内部 authorize，authorize 只走桥内部命令', () => {
-  const actions = block(host, 'const SCENE_ACTIONS = {', '\n}')
+  const actions = block(sceneSource, 'const SCENE_ACTIONS = {', '\n}')
   assert.doesNotMatch(actions, /authorize/)
   for (const action of ['status', 'list', 'load', 'remove', 'visible', 'basemap', 'terrain', 'fly', 'reset', 'pick', 'inspect']) {
     assert.match(actions, new RegExp(`\\b${action}:`))
   }
-  assert.match(host, /const SCENE_ACTION_NAMES = Object\.keys\(SCENE_ACTIONS\)/)
+  assert.match(sceneSource, /const SCENE_ACTION_NAMES = Object\.keys\(SCENE_ACTIONS\)/)
   // 内部授权命令由 createBridge 派发；它不是 SCENE_PARAMETERS 的 action 枚举来源。
-  assert.match(host, /dispatch\(sessionId, 'authorize', authorizeArgs\(action, resolution\), authorizeTimeoutMs, signal\)/)
+  assert.match(bridgeSource, /dispatch\(sessionId, 'authorize', authorizeArgs\(action, resolution\), authorizeTimeoutMs, signal\)/)
 })
 
 // ---------------------------------------------------------------------------

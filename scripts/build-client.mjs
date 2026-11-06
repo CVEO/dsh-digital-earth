@@ -9,40 +9,67 @@
  * `require`, and bundling a second copy would break hooks.
  *
  * The output is committed (packaging and the DSH loader read it directly) and is
- * verified in CI with `git diff --exit-code client.js` after a fresh build, so a
- * stale artifact cannot be published.
+ * verified in CI with `npm run build:client -- --check`, so a stale artifact
+ * cannot be published.
  *
  * Usage:
  *   node scripts/build-client.mjs           # build in place
  *   node scripts/build-client.mjs --check   # exit 1 when client.js is stale
  */
 import { readFile, writeFile } from 'node:fs/promises'
+import { existsSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { build } from 'esbuild'
 
-const root = new URL('../', import.meta.url)
+const root = fileURLToPath(new URL('../', import.meta.url))
 const entry = fileURLToPath(new URL('src/client/index.js', root))
 const output = fileURLToPath(new URL('client.js', root))
 const pkg = JSON.parse(await readFile(new URL('package.json', root), 'utf8'))
 
+if (!existsSync(entry)) {
+  console.error('build:client: src/client/index.js is missing; the client half has not been migrated yet')
+  process.exit(1)
+}
+
 const result = await build({
-  entryPoints: [entry],
-  bundle: true,
-  // The ModuleLoader factory is a CommonJS-shaped scope: it hands us `require`
-  // (the browser module table) and consumes whatever the factory returns.
-  format: 'cjs',
-  platform: 'browser',
-  target: ['chrome120', 'edge120', 'firefox120', 'safari17'],
-  external: ['react'],
-  write: false,
-  sourcemap: false,
-  legalComments: 'none',
-  charset: 'utf8',
-  logLevel: 'warning',
-})
+    // Absolute working directory + relative entry keeps the module-path comments
+    // in the artifact relative, so the build is reproducible on any machine (an
+    // absolute path in a committed artifact would leak local directories and make
+    // --check fail on every other checkout).
+    absWorkingDir: root,
+    entryPoints: ['src/client/index.js'],
+    bundle: true,
+    // The ModuleLoader factory is a CommonJS-shaped scope: it hands us `require`
+    // (the browser module table) and consumes whatever the factory returns.
+    format: 'cjs',
+    platform: 'browser',
+    target: ['chrome120', 'edge120', 'firefox120', 'safari17'],
+    external: ['react'],
+    write: false,
+    sourcemap: false,
+    legalComments: 'none',
+    charset: 'utf8',
+    logLevel: 'warning',
+  })
+}
 
 if (result.outputFiles.length !== 1) {
   console.error(`build:client: expected exactly one output file, got ${result.outputFiles.length}`)
+  process.exit(1)
+}
+
+const body = result.outputFiles[0].text
+
+// Failure modes this artifact must not have (the smoke test in
+// test/client-artifact.test.mjs also executes the result):
+//   - React bundled twice => hooks break;
+//   - the dynamic Cesium import rewritten away => the globe never loads.
+if (!/require\(["']react["']\)/.test(body)) {
+  console.error('build:client: the bundle lost require("react"); React must stay external')
+  process.exit(1)
+}
+if (!/import\(/.test(body)) {
+  console.error('build:client: the bundle lost the dynamic import for the vendored Cesium build')
   process.exit(1)
 }
 
@@ -58,11 +85,19 @@ window.__ModuleLoader__.load({
     var module = { exports: {} };
     var exports = module.exports;
 `
-const footer = `    return module.exports;
+// The loader materializes a factory by taking whatever it returns, and some
+// consumers treat a `__esModule`-marked object as { default }. Hand back a plain
+// object that carries the named exports so both readings find `apply`.
+const footer = `    if (module.exports && module.exports.__esModule) {
+      var named = {};
+      for (var key in module.exports) named[key] = module.exports[key];
+      return named;
+    }
+    return module.exports;
   },
 })
 `
-const artifact = banner + result.outputFiles[0].text + footer
+const artifact = banner + body + footer
 
 if (process.argv.includes('--check')) {
   const current = await readFile(output, 'utf8').catch(() => null)

@@ -24,14 +24,17 @@ import {
   normalizeAnalyzeRequest,
   SYSTEM_PROMPT_SECTION,
 } from '../index.js'
+import { hostSource } from './helpers/source.mjs'
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)))
 const readText = (name) => readFile(join(root, name), 'utf8').then((text) => text.replace(/\r\n/g, '\n'))
-const [client, host, packageText] = await Promise.all([
+const [client, packageText, analyzeSource, sceneSource] = await Promise.all([
   readText('client.js'),
-  readText('index.js'),
   readText('package.json'),
+  readText('src/host/tools/analyze.js'),
+  readText('src/host/tools/scene.js'),
 ])
+const host = hostSource()
 
 /** 取源码片段：从 start 到其后的 end（含 end），找不到即断言失败。 */
 function block(source, start, end) {
@@ -251,8 +254,8 @@ test('normalizeAnalyzeRequest：clear 不接受其他参数，未知参数/缺�
 
 test('normalizeAnalyzeRequest：所有拒绝都走统一 earth_analyze 错误前缀且带可执行 next', () => {
   // Host 只有一个构造点：分析错误必须经过它，自然获得 next:。
-  assert.equal((host.match(/new Error\(`earth_analyze:/g) ?? []).length, 1)
-  const helper = block(host, 'const analyzeError =', 'function normalizeAnalyzeLayer')
+  assert.equal((analyzeSource.match(/new Error\(`earth_analyze:/g) ?? []).length, 1)
+  const helper = block(analyzeSource, 'const analyzeError =', 'function normalizeAnalyzeLayer')
   assert.match(helper, /new Error\(`earth_analyze: \$\{message\} next: \$\{next\}`\)/)
   assert.match(helper, /check the argument against the earth_analyze schema and retry\./)
 
@@ -279,7 +282,7 @@ test('normalizeAnalyzeRequest：所有拒绝都走统一 earth_analyze 错误前
 // ---------------------------------------------------------------------------
 
 test('earth_analyze schema：注册于六工具集，10 个参数、required action、两处 additionalProperties:false', () => {
-  const params = block(host, 'const ANALYZE_PARAMETERS = {', '\n}')
+  const params = block(analyzeSource, 'const ANALYZE_PARAMETERS = {', '\n}')
   const properties = [...params.matchAll(/^    ([a-z_]+): \{/gm)].map((match) => match[1])
   assert.deepEqual(properties, [
     'action', 'layer', 'from', 'to', 'samples', 'region', 'water_height', 'grid', 'datetime', 'show_shadows',
@@ -304,7 +307,7 @@ test('earth_analyze schema：注册于六工具集，10 个参数、required act
   // B3：earth_shader 是第六个工具，注册总数随之 5→6。
   assert.equal((host.match(/scope\.tools\.register\(/g) ?? []).length, 6)
 
-  const tool = block(host, 'function createAnalyzeTool(bridge) {', '\n}')
+  const tool = block(analyzeSource, 'function createAnalyzeTool(bridge) {', '\n}')
   assert.match(tool, /name: ANALYZE_TOOL_NAME/)
   assert.match(tool, /description: ANALYZE_DESCRIPTION/)
   assert.match(tool, /parameters: ANALYZE_PARAMETERS/)
@@ -315,7 +318,7 @@ test('earth_analyze schema：注册于六工具集，10 个参数、required act
 
 test('earth_analyze 工具描述 ≤1200 字符，覆盖单活动/clear/坐标来源/数据已加载/不猜数值', () => {
   // 描述是源码里的字符串数组，测试按实现拼回来量预算，避免硬编码字符数。
-  const descBlock = block(host, 'const ANALYZE_DESCRIPTION = [', "].join('")
+  const descBlock = block(analyzeSource, 'const ANALYZE_DESCRIPTION = [', "].join('")
   const lines = [...descBlock.matchAll(/'((?:[^'\\]|\\.)*)'/g)].map((match) =>
     match[1].replace(/\\'/g, "'").replace(/\\\\/g, '\\'),
   )
@@ -338,7 +341,7 @@ test('earth_analyze 工具描述 ≤1200 字符，覆盖单活动/clear/坐标�
 
 test('earth_analyze 执行：30 s 超时、analyze 桥命令、scrubToken/asResultObject、会话回退', () => {
   assert.match(host, /const ANALYZE_TIMEOUT_MS = 30000/)
-  const tool = block(host, 'function createAnalyzeTool(bridge) {', '\n}')
+  const tool = block(analyzeSource, 'function createAnalyzeTool(bridge) {', '\n}')
   assert.match(tool, /const request = normalizeAnalyzeRequest\(args\)/)
   assert.match(tool, /const target = resolveSessionTarget\(bridge, exec\)/)
   assert.match(tool, /if \(target === null\) throw new Error\(PANEL_CLOSED_MESSAGE\)/)
@@ -351,13 +354,13 @@ test('earth_analyze 执行：30 s 超时、analyze 桥命令、scrubToken/asResu
 
 test('earth_analyze 渲染：8 KB 上限、UTF-8 安全截断、四种 operation 的字段与 JSON 兜底', () => {
   assert.match(host, /const ANALYZE_RENDER_LIMIT = 8 \* 1024/)
-  const truncate = block(host, 'function truncateAnalyzeText(text, note) {', '\n}')
+  const truncate = block(analyzeSource, 'function truncateAnalyzeText(text, note) {', '\n}')
   assert.match(truncate, /Buffer\.byteLength\(text, 'utf8'\) <= ANALYZE_RENDER_LIMIT/)
   assert.match(truncate, /for \(const character of text\)/)
   assert.match(truncate, /Buffer\.byteLength\(character, 'utf8'\)/)
   assert.match(truncate, /return `\$\{head\}\$\{note\}`/)
 
-  const render = block(host, 'function renderAnalyzeResult(value) {', '\n}')
+  const render = block(analyzeSource, 'function renderAnalyzeResult(value) {', '\n}')
   for (const operation of ['profile', 'flood', 'sunlight', 'clear']) {
     assert.match(render, new RegExp(`operation === '${operation}'`))
   }
@@ -409,7 +412,7 @@ test('系统提示词：≤1600 字符、五工具名、analyze 一句，且不�
 })
 
 test('earth_scene 契约：12 个 action（含 report），模型面不出现 authorize/skyline', () => {
-  const scene = block(host, 'const SCENE_ACTIONS = {', '\n}')
+  const scene = block(sceneSource, 'const SCENE_ACTIONS = {', '\n}')
   const names = [...scene.matchAll(/^  ([a-z]+): \[/gm)].map((match) => match[1])
   assert.equal(names.length, 12)
   assert.deepEqual(names, [
@@ -418,7 +421,7 @@ test('earth_scene 契约：12 个 action（含 report），模型面不出现 au
   assert.doesNotMatch(scene, /authorize|skyline/)
   assert.match(host, /const SCENE_ACTION_NAMES = Object\.keys\(SCENE_ACTIONS\)/)
 
-  const params = block(host, 'const ANALYZE_PARAMETERS = {', '\n}')
+  const params = block(analyzeSource, 'const ANALYZE_PARAMETERS = {', '\n}')
   assert.doesNotMatch(params, /authorize|skyline|天际线/)
 })
 

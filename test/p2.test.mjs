@@ -12,10 +12,13 @@
 import { after, test } from 'node:test'
 import assert from 'node:assert/strict'
 import { EventEmitter } from 'node:events'
+import { readFileSync } from 'node:fs'
 import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { basename, dirname, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+
+import { hostSource } from './helpers/source.mjs'
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)))
 const MAX_REPORT_BODY = 16 * 1024 * 1024
@@ -23,8 +26,16 @@ const MAX_EXPORT_FILES = 200
 
 /** 源码断言必须换行无关：Windows 检出可能是 CRLF。 */
 const readSource = async (name) => (await readFile(join(root, name), 'utf8')).replace(/\r\n/g, '\n')
-const indexSource = await readSource('index.js')
 const clientSource = await readSource('client.js')
+// v2.0 split: implementation lives in src/host; source assertions read the
+// owning module, `hostAll` is only used to extract top-level functions.
+const hostAll = hostSource()
+const readHostModule = (rel) => readFileSync(join(root, 'src/host', rel), 'utf8').replace(/\r\n/g, '\n')
+const constantsSource = readHostModule('constants.js')
+const routesSource = readHostModule('routes.js')
+const storageSource = readHostModule('storage.js')
+const sceneSource = readHostModule('tools/scene.js')
+const commandsSource = readHostModule('commands.js')
 
 // ---------------------------------------------------------------------------
 // 宿主半边：DSH_HOME 必须在 import 之前设置，index.js 的 EXPORTS_DIR 是模块级常量，
@@ -233,8 +244,8 @@ test('P2 超过 16 MiB 的 body 返回 413 并销毁请求流；恰好 16 MiB �
   assert.equal(boundary.res.body, 'invalid json')
 
   // 上限值来自源码常量，避免测试里硬编码一个与产品脱节的数字。
-  assert.ok(indexSource.includes('const MAX_REPORT_BODY = 16 * 1024 * 1024'))
-  const handlerSource = topLevelFunction(indexSource, 'reportHandler')
+  assert.ok(constantsSource.includes('const MAX_REPORT_BODY = 16 * 1024 * 1024'))
+  const handlerSource = topLevelFunction(hostAll, 'reportHandler')
   assert.ok(handlerSource.includes('if (body.length > MAX_REPORT_BODY) {'))
   assert.ok(handlerSource.includes('req.destroy()'))
   assert.ok(handlerSource.includes("return sendText(res, 413, 'payload too large')"))
@@ -247,9 +258,9 @@ test('P2 读取请求流出错返回 400 bad request', async () => {
 })
 
 test('P2 exports 目录只保留最新 MAX_EXPORT_FILES=200 份报告', async () => {
-  assert.ok(indexSource.includes('const MAX_EXPORT_FILES = 200'))
-  assert.ok(indexSource.includes('function pruneExports(keepName)'))
-  assert.ok(indexSource.includes('void pruneExports(name).catch(() => {})'))
+  assert.ok(constantsSource.includes('const MAX_EXPORT_FILES = 200'))
+  assert.ok(storageSource.includes('function pruneExports(keepName)'))
+  assert.ok(storageSource.includes('void pruneExports(name).catch(() => {})'))
 
   await mkdir(exportsDir, { recursive: true })
   // 造 201 份旧文件，让目录超过上限。
@@ -278,35 +289,32 @@ test('P2 exports 目录只保留最新 MAX_EXPORT_FILES=200 份报告', async ()
 // 2) meta / 路由 / 渲染函数接线
 // ---------------------------------------------------------------------------
 
-const metaSource = indexSource.slice(
-  indexSource.indexOf('function metaHandler'),
-  indexSource.indexOf('/** GET: the current catalog plus the built-ins the UI can restore. */'),
-)
+const metaSource = routesSource.slice(routesSource.indexOf('function metaHandler'))
 
 test('P2 meta 暴露 reportUrl，路由以 exact token 方式指向导出的 reportHandler', () => {
   assert.ok(metaSource.includes('reportUrl: `${REPORT_ROUTE}/${TOKEN}`,'), 'metaHandler 必须下发 reportUrl')
-  assert.ok(indexSource.includes('const REPORT_ROUTE = `${API}/report`'))
-  assert.ok(indexSource.includes("const REPORT_FORMATS = new Set(['html', 'markdown'])"))
-  assert.ok(indexSource.includes("const EXPORTS_DIR = resolve(STATE_DIR, 'exports')"))
-  assert.ok(indexSource.includes('export async function reportHandler(req, res) {'))
+  assert.ok(constantsSource.includes('const REPORT_ROUTE = `${API}/report`'))
+  assert.ok(constantsSource.includes("const REPORT_FORMATS = new Set(['html', 'markdown'])"))
+  assert.ok(constantsSource.includes("const EXPORTS_DIR = resolve(STATE_DIR, 'exports')"))
+  assert.ok(storageSource.includes('export async function reportHandler(req, res) {'))
   // 报告只能写进固定目录：文件名由宿主生成，页面只提供内容。
-  assert.ok(indexSource.includes('const target = join(EXPORTS_DIR, name)'))
-  assert.ok(indexSource.includes("await fs.writeFile(target, content, 'utf8')"))
+  assert.ok(storageSource.includes('const target = join(EXPORTS_DIR, name)'))
+  assert.ok(storageSource.includes("await fs.writeFile(target, content, 'utf8')"))
   assert.ok(
-    indexSource.includes("register('exact', `${REPORT_ROUTE}/${TOKEN}`, reportHandler)"),
+    routesSource.includes("register('exact', `${REPORT_ROUTE}/${TOKEN}`, reportHandler)"),
     'report 路由必须精确注册到导出的 handler',
   )
 })
 
 test('P2 renderReportResult 接入 report 结果渲染（当前为模块内函数，未导出）', () => {
-  const renderSource = topLevelFunction(indexSource, 'renderReportResult')
+  const renderSource = topLevelFunction(hostAll, 'renderReportResult')
   assert.ok(renderSource.includes('Scene report written: ${path}'))
   assert.ok(renderSource.includes('Format: ${format}${bytes}.'))
   assert.ok(renderSource.includes('Sections: ${value.sections.join'))
   assert.ok(renderSource.includes('Skipped: ${value.failed.join'))
   assert.ok(renderSource.includes('Call present with this path to show the report to the user.'))
 
-  const createScene = sourceSlice(indexSource, 'function createSceneTool', 'function createCaptureTool')
+  const createScene = sceneSource.slice(sceneSource.indexOf('function createSceneTool'))
   assert.ok(createScene.includes("value.operation === 'report'"))
   assert.ok(createScene.includes('renderReportResult(value)'))
 
@@ -327,11 +335,18 @@ test('P2 token 安全：REPORT_ROUTE/reportUrl 不出现在工具结果渲染函
     'renderReportResult',
   ]
   for (const name of renderFunctions) {
-    const body = topLevelFunction(indexSource, name)
+    const body = topLevelFunction(hostAll, name)
     assert.doesNotMatch(body, /\bTOKEN\b|reportUrl|REPORT_ROUTE/, `${name} 的结果文本不得携带导出路由或 token`)
   }
 
-  const toolSource = indexSource.slice(indexSource.indexOf('function createSceneTool'), indexSource.indexOf('function mountAgentTools'))
+  const toolSource = [
+    sceneSource,
+    readHostModule('tools/capture.js'),
+    readHostModule('tools/draw.js'),
+    readHostModule('tools/measure.js'),
+    readHostModule('tools/analyze.js'),
+    readHostModule('tools/shader.js'),
+  ].join('\n')
   assert.doesNotMatch(toolSource, /reportUrl|REPORT_ROUTE|\bTOKEN\b/)
   assert.ok(toolSource.includes('scrubToken('), 'report 结果也要经过 scrubToken')
 })
@@ -341,7 +356,7 @@ test('P2 token 安全：REPORT_ROUTE/reportUrl 不出现在工具结果渲染函
 // ---------------------------------------------------------------------------
 
 test('P2 SCENE_ACTIONS 注册 report 动作与 format/title/include_capture 参数', () => {
-  const sceneActions = sourceSlice(indexSource, 'const SCENE_ACTIONS = {', 'const SCENE_ACTION_NAMES')
+  const sceneActions = sourceSlice(sceneSource, 'const SCENE_ACTIONS = {', 'const SCENE_ACTION_NAMES')
   assert.ok(sceneActions.includes("report: ['format', 'title', 'include_capture'],"))
   const actions = [...sceneActions.matchAll(/^ {2}([a-z_]+):/gm)].map((match) => match[1])
   assert.deepEqual(actions, [
@@ -360,7 +375,7 @@ test('P2 SCENE_ACTIONS 注册 report 动作与 format/title/include_capture 参�
   ])
   assert.equal(actions.length, 12, '契约测试按 12 个 action 对齐')
 
-  const sceneParameters = sourceSlice(indexSource, 'const SCENE_PARAMETERS = {', 'const SCENE_DESCRIPTION')
+  const sceneParameters = sourceSlice(sceneSource, 'const SCENE_PARAMETERS = {', 'const SCENE_DESCRIPTION')
   assert.ok(sceneParameters.includes("enum: ['html', 'markdown'],"))
   assert.ok(sceneParameters.includes('report: output format. Default html'))
   assert.ok(sceneParameters.includes('report: report title, up to 120 characters.'))
@@ -368,12 +383,12 @@ test('P2 SCENE_ACTIONS 注册 report 动作与 format/title/include_capture 参�
   assert.ok(sceneParameters.includes("required: ['action']"))
   assert.ok(sceneParameters.includes('additionalProperties: false'))
 
-  const description = sourceSlice(indexSource, 'const SCENE_DESCRIPTION = [', 'const CAPTURE_PARAMETERS')
+  const description = sceneSource.slice(sceneSource.indexOf('const SCENE_DESCRIPTION = ['))
   assert.ok(description.includes('- report: write a scene report'))
 })
 
 test('P2 normalizeSceneRequest 处理 report 默认值/标题截断/参数校验，createSceneTool 用 REPORT_TIMEOUT_MS', () => {
-  const normalize = sourceSlice(indexSource, 'function normalizeSceneRequest', 'function normalizeCaptureRequest')
+  const normalize = sceneSource.slice(sceneSource.indexOf('function normalizeSceneRequest'))
   assert.ok(normalize.includes("case 'report': {"))
   assert.ok(normalize.includes("const format = raw.format === undefined ? 'html' : raw.format"))
   assert.ok(normalize.includes('if (typeof format !== \'string\' || !REPORT_FORMATS.has(format)) {'))
@@ -385,8 +400,8 @@ test('P2 normalizeSceneRequest 处理 report 默认值/标题截断/参数校验
   assert.ok(normalize.includes('if (typeof raw.include_capture !== \'boolean\') throw sceneError(\'report "include_capture" must be true or false.\')'))
   assert.ok(normalize.includes('args.include_capture = raw.include_capture'))
 
-  assert.ok(indexSource.includes('const REPORT_TIMEOUT_MS = 45000'))
-  const createScene = sourceSlice(indexSource, 'function createSceneTool', 'function createCaptureTool')
+  assert.ok(constantsSource.includes('const REPORT_TIMEOUT_MS = 45000'))
+  const createScene = sceneSource.slice(sceneSource.indexOf('function createSceneTool'))
   assert.ok(createScene.includes("const timeout = request.action === 'report' ? REPORT_TIMEOUT_MS : SCENE_TIMEOUT_MS"))
   assert.ok(createScene.includes("value.operation === 'report'"))
 })
@@ -395,10 +410,7 @@ test('P2 normalizeSceneRequest 处理 report 默认值/标题截断/参数校验
 // 4) /earth 命令：report 分支
 // ---------------------------------------------------------------------------
 
-const commandSource = indexSource.slice(
-  indexSource.indexOf('function mountEarthCommand'),
-  indexSource.indexOf('export const inject'),
-)
+const commandSource = commandsSource.slice(commandsSource.indexOf('function mountEarthCommand'))
 
 test('P2 /earth 命令新增 report [html|markdown] 分支与用法文案', () => {
   assert.ok(commandSource.includes("input: { hint: 'status | capture [label] | report [html|markdown] | clear | open' }"))

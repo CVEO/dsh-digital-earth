@@ -12,10 +12,12 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { EventEmitter } from 'node:events'
+import { readFileSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { injectHandler } from '../index.js'
+import { hostSource } from './helpers/source.mjs'
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)))
 const MAX_INJECT_BODY = 16 * 1024
@@ -23,8 +25,14 @@ const MAX_INJECT_TEXT = 4000
 
 /** 源码断言必须换行无关：Windows 检出可能是 CRLF。 */
 const readSource = async (name) => (await readFile(join(root, name), 'utf8')).replace(/\r\n/g, '\n')
-const indexSource = await readSource('index.js')
 const clientSource = await readSource('client.js')
+// v2.0 split: read the owning module for source assertions; `hostAll` is the
+// concatenated authored host source and is only used for top-level extraction.
+const hostAll = hostSource()
+const readHostModule = (rel) => readFileSync(join(root, 'src/host', rel), 'utf8').replace(/\r\n/g, '\n')
+const constantsSource = readHostModule('constants.js')
+const routesSource = readHostModule('routes.js')
+const injectSource = readHostModule('inject.js')
 
 // ---------------------------------------------------------------------------
 // 假 ctx / agents / agent / req / res
@@ -383,20 +391,17 @@ test('P1 agent.inject 抛错返回 500 inject_failed，且只尝试一次', asyn
 // 5) meta 与路由接线
 // ---------------------------------------------------------------------------
 
-const metaSource = indexSource.slice(
-  indexSource.indexOf('function metaHandler'),
-  indexSource.indexOf('/** GET: the current catalog plus the built-ins the UI can restore. */'),
-)
+const metaSource = routesSource.slice(routesSource.indexOf('function metaHandler'))
 
 test('P1 meta 暴露 injectUrl，路由以 exact token 方式指向导出的 injectHandler', () => {
   assert.ok(metaSource.includes('injectUrl: `${INJECT_ROUTE}/${TOKEN}`,'), 'metaHandler 必须下发 injectUrl')
-  assert.ok(indexSource.includes('const INJECT_ROUTE = `${API}/inject`'))
-  assert.ok(indexSource.includes('const MAX_INJECT_BODY = 16 * 1024'))
-  assert.ok(indexSource.includes('const MAX_INJECT_TEXT = 4000'))
-  assert.ok(indexSource.includes('export async function injectHandler(ctx, req, res) {'))
-  assert.ok(indexSource.includes('ctx.get(\'agents\') ?? ctx.agents'))
+  assert.ok(constantsSource.includes('const INJECT_ROUTE = `${API}/inject`'))
+  assert.ok(constantsSource.includes('const MAX_INJECT_BODY = 16 * 1024'))
+  assert.ok(constantsSource.includes('const MAX_INJECT_TEXT = 4000'))
+  assert.ok(injectSource.includes('export async function injectHandler(ctx, req, res) {'))
+  assert.ok(injectSource.includes('ctx.get(\'agents\') ?? ctx.agents'))
   assert.ok(
-    indexSource.includes("register('exact', `${INJECT_ROUTE}/${TOKEN}`, (req, res) => injectHandler(ctx, req, res))"),
+    routesSource.includes("register('exact', `${INJECT_ROUTE}/${TOKEN}`, (req, res) => injectHandler(ctx, req, res))"),
     '注入路由必须精确注册并把 ctx 传给 handler',
   )
 })
@@ -412,11 +417,18 @@ test('P1 token 安全：injectUrl/INJECT_ROUTE 不出现在工具结果渲染函
     'renderInspectResult',
   ]
   for (const name of renderFunctions) {
-    const body = topLevelFunction(indexSource, name)
+    const body = topLevelFunction(hostAll, name)
     assert.doesNotMatch(body, /\bTOKEN\b|injectUrl|INJECT_ROUTE/, `${name} 的结果文本不得携带注入路由或 token`)
   }
 
-  const toolSource = indexSource.slice(indexSource.indexOf('function createSceneTool'), indexSource.indexOf('function mountAgentTools'))
+  const toolSource = [
+    readHostModule('tools/scene.js'),
+    readHostModule('tools/capture.js'),
+    readHostModule('tools/draw.js'),
+    readHostModule('tools/measure.js'),
+    readHostModule('tools/analyze.js'),
+    readHostModule('tools/shader.js'),
+  ].join('\n')
   assert.doesNotMatch(toolSource, /injectUrl|INJECT_ROUTE|\bTOKEN\b/)
 })
 
@@ -532,9 +544,13 @@ function sourceSlice(source, startMarker, endMarker) {
 /** 取一个顶层 `function name(...)` / `async function name(...)` 到它独占一行的 `}` 为止。 */
 function topLevelFunction(source, name) {
   const lines = source.split('\n')
-  const start = lines.findIndex(
-    (line) => line.startsWith(`function ${name}(`) || line.startsWith(`async function ${name}(`),
-  )
+  const prefixes = [
+    `function ${name}(`,
+    `async function ${name}(`,
+    `export function ${name}(`,
+    `export async function ${name}(`,
+  ]
+  const start = lines.findIndex((line) => prefixes.some((prefix) => line.startsWith(prefix)))
   assert.notEqual(start, -1, `源码中找不到顶层函数 ${name}`)
   let end = start + 1
   while (end < lines.length && lines[end] !== '}') end += 1

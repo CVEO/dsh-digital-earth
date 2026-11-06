@@ -24,17 +24,22 @@ import { dirname, extname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import { SYSTEM_PROMPT_SECTION } from '../index.js'
+import { hostSource } from './helpers/source.mjs'
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)))
 const readText = (name) => readFile(join(root, name), 'utf8').then((text) => text.replace(/\r\n/g, '\n'))
-const [client, host, packageText, readmeZh, readmeEn, changelog] = await Promise.all([
+const [client, packageText, readmeZh, readmeEn, changelog, aboutSource, sceneSource, shaderSource, analyzeSource] = await Promise.all([
   readText('client.js'),
-  readText('index.js'),
   readText('package.json'),
   readText('README.md'),
   readText('README.en.md'),
   readText('CHANGELOG.md'),
+  readText('src/host/about.js'),
+  readText('src/host/tools/scene.js'),
+  readText('src/host/tools/shader.js'),
+  readText('src/host/tools/analyze.js'),
 ])
+const host = hostSource()
 
 const pkg = JSON.parse(packageText)
 const TOOL_NAMES = ['earth_scene', 'earth_capture', 'earth_draw', 'earth_measure', 'earth_analyze', 'earth_shader']
@@ -206,13 +211,13 @@ test('B4 README 链接与本地资源：离线可判定的值均有效，无占�
 })
 
 test('B4 版本单一来源：Host/Client FALLBACK_ABOUT 与 package 一致，文档不残留 1.3.0', () => {
-  const hostAbout = evalObjectLiteral(host, 'const FALLBACK_ABOUT = {', '\n}')
+  const hostAbout = evalObjectLiteral(aboutSource, 'const FALLBACK_ABOUT = {', '\n}')
   const clientAbout = evalObjectLiteral(client, 'const FALLBACK_ABOUT = {', '\n    }')
   assert.equal(hostAbout.version, pkg.version)
   assert.equal(clientAbout.version, pkg.version)
 
   // Host 以 package.json 为单一来源；常量只是文件缺失/损坏时的兜底。
-  const readAbout = block(host, 'function readAbout() {', '\nconst ABOUT = readAbout()')
+  const readAbout = block(aboutSource, 'function readAbout() {', 'const ABOUT = readAbout()')
   assert.match(readAbout, /readFileSync\(PACKAGE_FILE, 'utf8'\)/)
   assert.match(readAbout, /version: version !== '' \? version : FALLBACK_ABOUT\.version/)
   assert.match(readAbout, /homepage: homepage !== '' \? homepage : FALLBACK_ABOUT\.homepage/)
@@ -220,7 +225,7 @@ test('B4 版本单一来源：Host/Client FALLBACK_ABOUT 与 package 一致，�
   assert.match(readAbout, /name: teamName !== '' \? teamName : FALLBACK_ABOUT\.team\.name/)
   assert.equal(JSON.parse(packageText).team, undefined, 'package.json 没有 team 字段，About 团队必须走 Host 兜底')
 
-  for (const [label, text] of [['README.md', readmeZh], ['README.en.md', readmeEn], ['index.js', host], ['client.js', client]]) {
+  for (const [label, text] of [['README.md', readmeZh], ['README.en.md', readmeEn], ['src/host', host], ['client.js', client]]) {
     assert.ok(!text.includes('1.3.0'), `${label} 残留 1.3.0`)
   }
   const versions = [...changelog.matchAll(/^## (\d+\.\d+\.\d+)$/gm)].map((match) => match[1])
@@ -250,7 +255,7 @@ test('B4 CHANGELOG：1.4.0 覆盖本地路径/分析/着色器/HUD/性能，无�
 })
 
 test('B4 About：源码/Issues/团队与 URL 正确，客户端 meta 优先且兜底可用', () => {
-  const hostAbout = evalObjectLiteral(host, 'const FALLBACK_ABOUT = {', '\n}')
+  const hostAbout = evalObjectLiteral(aboutSource, 'const FALLBACK_ABOUT = {', '\n}')
   assert.equal(hostAbout.homepage, 'https://github.com/CVEO/dsh-digital-earth')
   assert.equal(hostAbout.issues, 'https://github.com/CVEO/dsh-digital-earth/issues')
   assert.equal(hostAbout.team.name, '武汉大学 CVEO 课题组')
@@ -377,12 +382,12 @@ test('B4 模型面回归：提示词 ≤1600 六工具名，描述区无 authori
   assert.match(prompt, /plus earth_analyze, plus earth_shader/)
   assert.doesNotMatch(prompt, /authorize|skyline|天际线/i)
 
-  const region = block(host, 'const SCENE_DESCRIPTION = [', 'export const SYSTEM_PROMPT_SECTION')
+  const region = sceneSource.slice(sceneSource.indexOf('const SCENE_DESCRIPTION = ['))
   assert.doesNotMatch(region, /authorize|skyline|天际线/i)
   assert.doesNotMatch(region, /fragmentShader|vertexShader/i)
 
-  const shaderDesc = descriptionOf(host, 'SHADER')
-  const analyzeDesc = descriptionOf(host, 'ANALYZE')
+  const shaderDesc = descriptionOf(shaderSource, 'SHADER')
+  const analyzeDesc = descriptionOf(analyzeSource, 'ANALYZE')
   assert.ok(shaderDesc.length <= 1200, `earth_shader 描述超预算：${shaderDesc.length}`)
   assert.ok(analyzeDesc.length <= 1200, `earth_analyze 描述超预算：${analyzeDesc.length}`)
   for (const desc of [shaderDesc, analyzeDesc]) assert.doesNotMatch(desc, /authorize|skyline|天际线/i)

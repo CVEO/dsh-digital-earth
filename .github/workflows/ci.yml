@@ -1,10 +1,13 @@
 name: CI
 
 # 每次 push / PR 到 main 或 develop 都跑：
-#   语法检查 → node:test 结构测试 → 打包清单 → 真实打包冒烟（解包后 import 宿主入口）。
+#   安装构建依赖 → 语法检查 → 客户端产物一致性 → 架构预算 → node:test 结构/行为测试
+#   → 打包清单 → 真实打包冒烟（解包后 import 宿主入口）。
 # publish.yml 会在发布前独立重跑同一组校验，不依赖本工作流的结论。
-# 注意：这里刻意保持「无第三方依赖、无 npm install」——插件没有运行期依赖，
-# 测试与打包只需要 Node 自带能力，避免供应链与缓存带来的不确定性。
+#
+# v2.0 起 client.js 由 src/client 经 esbuild 构建（唯一 devDependency，仅构建期使用），
+# 所以这里需要 npm ci；运行期依赖仍然是零。`build:client --check` 保证「源码改了
+# 但产物没重建」的提交无法通过 CI，`scripts/check-size.mjs` 阻止单文件重新长成巨石。
 
 on:
   push:
@@ -44,8 +47,18 @@ jobs:
           node-version: ${{ matrix.node }}
           package-manager-cache: false
 
+      - name: Install build dependencies
+        # esbuild 只在构建期使用；package-lock.json 固定版本，运行期依赖仍为空。
+        run: npm ci
+
       - name: Syntax check
         run: node --check index.js && node --check client.js
+
+      - name: Client artifact is up to date
+        run: npm run build:client -- --check
+
+      - name: Architecture budgets
+        run: node scripts/check-size.mjs
 
       - name: Structural tests
         run: node --test
@@ -76,6 +89,8 @@ jobs:
           for FILE in index.js client.js cordis.patch.yml vendor/cesium/Cesium.js; do
             test -f "$DEST/package/$FILE" || { echo "::error::打包结果缺少 $FILE"; exit 1; }
           done
+          # 拆包后宿主入口会 import src/host/**，漏发会让插件装上却加载失败。
+          test -d "$DEST/package/src/host" || { echo "::error::打包结果缺少 src/host"; exit 1; }
 
           ENTRY="$DEST/package/index.js"
           # Windows 上 ESM 不能直接 import 盘符绝对路径，必须转成 file:// URL。

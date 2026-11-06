@@ -17,10 +17,11 @@ import { readFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { normalizeDrawRequest, normalizeMeasureRequest } from '../index.js'
+import { hostSource } from './helpers/source.mjs'
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)))
 const client = await readFile(join(root, 'client.js'), 'utf8')
-const host = await readFile(join(root, 'index.js'), 'utf8')
+const host = hostSource()
 
 /** 一个只带坐标的 GeoJSON Feature。 */
 const feature = (geometry, properties = {}) => ({ type: 'Feature', properties, geometry })

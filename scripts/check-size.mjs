@@ -23,8 +23,19 @@ const BUDGETS = [
 /** Files that must stay small on their own. */
 const FILE_BUDGETS = [
   { file: 'index.js', max: 80 },
-  { file: 'scripts/build-client.mjs', max: 160 },
+  { file: 'scripts/build-client.mjs', max: 200 },
 ]
+/**
+ * Time-boxed exceptions for a file that is mid-decomposition. The max is the
+ * CURRENT size rounded up: the file may not grow, and the entry must be removed
+ * (or lowered) when the milestone that shrinks it lands. An exception is printed
+ * as a warning so it cannot be forgotten.
+ */
+const EXCEPTIONS = new Map([
+  // M3 phase 2 (scene runtime extraction) splits this into scene/* modules; until
+  // that lands the React shell is allowed to stay large but must not grow.
+  ['src/client/viewer/ViewerSurface.js', 4200],
+])
 
 async function walk(dir) {
   const found = []
@@ -43,13 +54,17 @@ async function walk(dir) {
 }
 
 const failures = []
+const warnings = []
 const rows = []
 
 for (const { dir, max } of BUDGETS) {
   for (const path of await walk(dir)) {
     const lines = (await readFile(join(ROOT, path), 'utf8')).split('\n').length
-    rows.push({ path, lines, max })
-    if (lines > max) failures.push(`${path}: ${lines} lines > budget ${max}`)
+    const exception = EXCEPTIONS.get(path)
+    const budget = exception ?? max
+    rows.push({ path, lines, max: budget, exception: exception !== undefined })
+    if (lines > budget) failures.push(`${path}: ${lines} lines > budget ${budget}`)
+    else if (exception !== undefined) warnings.push(`${path}: ${lines}/${budget} lines (time-boxed exception, must shrink)`)
   }
 }
 
@@ -62,10 +77,12 @@ for (const { file, max } of FILE_BUDGETS) {
 }
 
 rows.sort((a, b) => b.lines - a.lines)
-for (const { path, lines, max } of rows) {
-  const flag = lines > max ? 'FAIL' : ' ok '
+for (const { path, lines, max, exception } of rows) {
+  const flag = lines > max ? 'FAIL' : exception ? 'WARN' : ' ok '
   console.log(`${flag} ${String(lines).padStart(5)} / ${String(max).padStart(5)}  ${relative(ROOT, join(ROOT, path))}`)
 }
+
+for (const warning of warnings) console.warn(`size guard: ${warning}`)
 
 if (failures.length > 0) {
   console.error(`\nsize guard: ${failures.length} file(s) over budget`)

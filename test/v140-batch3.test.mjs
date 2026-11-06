@@ -31,14 +31,19 @@ import {
   normalizeAnalyzeRequest,
   normalizeShaderRequest,
 } from '../index.js'
+import { hostSource } from './helpers/source.mjs'
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)))
 const readText = (name) => readFile(join(root, name), 'utf8').then((text) => text.replace(/\r\n/g, '\n'))
-const [client, host, packageText] = await Promise.all([
+const [client, packageText, shaderSource, sceneSource, analyzeSource, registrySource] = await Promise.all([
   readText('client.js'),
-  readText('index.js'),
   readText('package.json'),
+  readText('src/host/tools/shader.js'),
+  readText('src/host/tools/scene.js'),
+  readText('src/host/tools/analyze.js'),
+  readText('src/host/tools/registry.js'),
 ])
+const host = hostSource()
 
 /** 取源码片段：从 start 到其后的 end（含 end），找不到即断言失败。 */
 function block(source, start, end) {
@@ -214,7 +219,7 @@ test('shader：reset/list 多余参数拒绝，错误统一单行且只有一个
 // ---------------------------------------------------------------------------
 
 test('宿主：earth_shader 是第 6 个注册工具，execute 走 session/桥接/scrub/fallback', () => {
-  const disposers = block(host, 'const disposers = [', ']')
+  const disposers = block(registrySource, 'const disposers = [', ']')
   const calls = [...disposers.matchAll(/scope\.tools\.register\((create[A-Za-z]+Tool)\(/g)].map((match) => match[1])
   assert.deepEqual(calls, [
     'createSceneTool',
@@ -228,7 +233,7 @@ test('宿主：earth_shader 是第 6 个注册工具，execute 走 session/桥�
   assert.match(host, /const SHADER_TOOL_NAME = 'earth_shader'/)
   assert.match(host, /const SHADER_TIMEOUT_MS = 30000/)
 
-  const tool = block(host, 'function createShaderTool(bridge) {', 'return value\n    },\n  }\n}')
+  const tool = block(shaderSource, 'function createShaderTool(bridge) {', 'return value\n    },\n  }\n}')
   assert.match(tool, /name: SHADER_TOOL_NAME/)
   assert.match(tool, /description: SHADER_DESCRIPTION/)
   assert.match(tool, /parameters: SHADER_PARAMETERS/)
@@ -241,7 +246,7 @@ test('宿主：earth_shader 是第 6 个注册工具，execute 走 session/桥�
 })
 
 test('宿主：earth_shader schema 9 属性、required action、additionalProperties:false、无 GLSL 字段', () => {
-  const params = block(host, 'const SHADER_PARAMETERS = {', '\n}')
+  const params = block(shaderSource, 'const SHADER_PARAMETERS = {', '\n}')
   const properties = [...params.matchAll(/^    ([a-z_]+): \{/gm)].map((match) => match[1])
   assert.deepEqual(properties, [
     'action', 'layer', 'preset', 'min_height', 'max_height', 'interval', 'speed', 'amplitude', 'opacity',
@@ -275,7 +280,7 @@ test('宿主：earth_shader schema 9 属性、required action、additionalProper
 })
 
 test('宿主：earth_shader 描述 ≤1200 字符，覆盖四预设/覆盖语义/reset/无自定义 GLSL/3DGS/先加载', () => {
-  const descBlock = block(host, 'const SHADER_DESCRIPTION = [', "].join('")
+  const descBlock = block(shaderSource, 'const SHADER_DESCRIPTION = [', "].join('")
   const lines = [...descBlock.matchAll(/'((?:[^'\\]|\\.)*)'/g)].map((match) =>
     match[1].replace(/\\'/g, "'").replace(/\\\\/g, '\\'),
   )
@@ -325,7 +330,7 @@ test('系统提示词：≤1600、六工具名齐全、shader 一句，且无 sk
 })
 
 test('回归：earth_scene 12 action（含 report），earth_analyze 契约与注册未被 B3 改动', () => {
-  const scene = block(host, 'const SCENE_ACTIONS = {', '\n}')
+  const scene = block(sceneSource, 'const SCENE_ACTIONS = {', '\n}')
   const names = [...scene.matchAll(/^  ([a-z]+): \[/gm)].map((match) => match[1])
   assert.equal(names.length, 12)
   assert.deepEqual(names, [
@@ -341,7 +346,7 @@ test('回归：earth_scene 12 action（含 report），earth_analyze 契约与�
   )
   assert.match(host, /const ANALYZE_TIMEOUT_MS = 30000/)
   assert.match(host, /scope\.tools\.register\(createAnalyzeTool\(bridge\)\)/)
-  const analyzeParams = block(host, 'const ANALYZE_PARAMETERS = {', '\n}')
+  const analyzeParams = block(analyzeSource, 'const ANALYZE_PARAMETERS = {', '\n}')
   assert.equal([...analyzeParams.matchAll(/^    ([a-z_]+): \{/gm)].length, 10)
   assert.doesNotMatch(analyzeParams, /preset|min_height|interval|amplitude|opacity/)
 })

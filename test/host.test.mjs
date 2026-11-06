@@ -13,12 +13,32 @@
  *   - 目录合并只做纯数据变换（去重、最新在前、截断、不改入参）。
  */
 import { EventEmitter } from 'node:events'
-import { mkdtemp, realpath, rm, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, readdir, readFile, realpath, rm, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { join, parse, resolve } from 'node:path'
-import { test } from 'node:test'
+import { basename, dirname, join, parse, resolve } from 'node:path'
+import { after, test } from 'node:test'
 import assert from 'node:assert/strict'
-import { apply, createBridge, inject, mergeRecentDirectories } from '../index.js'
+import { fileURLToPath } from 'node:url'
+
+// DSH_HOME 必须在 import 之前设置：constants.js 在模块加载时就固化了 STATE_DIR /
+// REPORT_DIR，晚一步体检报告就会写进真实用户目录。
+const previousHome = process.env.DSH_HOME
+const home = await mkdtemp(join(tmpdir(), 'dsh-de-host-'))
+process.env.DSH_HOME = home
+const host = await import(new URL('../index.js', import.meta.url).href)
+const { apply, createBridge, inject, mergeRecentDirectories } = host
+const inspectFiles = await import(new URL('../src/host/constants.js', import.meta.url).href)
+const { REPORT_DIR } = inspectFiles
+const { analyzeTileset } = await import(new URL('../src/host/inspect/analyze.js', import.meta.url).href)
+const { InspectError } = await import(new URL('../src/host/inspect/fetch.js', import.meta.url).href)
+const { inspectHandler, writeInspectReport } = await import(new URL('../src/host/inspect/handler.js', import.meta.url).href)
+const { TOKEN } = inspectFiles
+
+after(async () => {
+  if (previousHome === undefined) delete process.env.DSH_HOME
+  else process.env.DSH_HOME = previousHome
+  await rm(home, { recursive: true, force: true })
+})
 
 /** 一路假的 SSE 连接：收集 res.write 的每一帧。 */
 function openConnection() {
@@ -269,4 +289,292 @@ test('mergeRecentDirectories 去重、最新在前、截断，且不修改入参
   // 不给时间戳时补一个 ISO 时间，避免出现空 at。
   const stamped = mergeRecentDirectories([], { path: 'D:/data/x' }, 5)
   assert.match(stamped[0].at, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/)
+})
+
+// ---------------------------------------------------------------------------
+// inspect（数据体检）行为测试：v2.0 拆分出来的 analyzeTileset / inspectHandler
+// 测试缝。全部离线：本地临时目录 + 127.0.0.1 私有地址拒绝，不发真实网络请求。
+// ---------------------------------------------------------------------------
+
+const tempDirs = []
+async function fixtureDir(label) {
+  const directory = await mkdtemp(join(tmpdir(), `dsh-de-inspect-${label}-`))
+  tempDirs.push(directory)
+  return directory
+}
+
+/** 一个带根 region 的标准 3D Tiles 文档。 */
+const standardTileset = (overrides = {}) => ({
+  asset: { version: '1.1' },
+  geometricError: 100,
+  root: { boundingVolume: { region: [-0.01, -0.01, -0.01, 0.01, 0.01, 0.01] }, geometricError: 100 },
+  ...overrides,
+})
+
+async function writeFixtureTileset(directory, document) {
+  await mkdir(directory, { recursive: true })
+  const file = join(directory, 'tileset.json')
+  await writeFile(file, typeof document === 'string' ? document : JSON.stringify(document))
+  return file
+}
+
+/** 分析一个本地 fixture：allowlist 用目录的 realpath，避免大小写/短名差异。 */
+async function analyzeFixture(directory, options = {}) {
+  const allowedDirs = new Set([await realpath(directory)])
+  return analyzeTileset({ kind: 'local', path: join(allowedDirs.values().next().value, 'tileset.json') }, { allowedDirs, ...options })
+}
+
+function fakeInspectRequest({ method = 'POST', token = TOKEN, panel = true, chunks = [] } = {}) {
+  const req = new EventEmitter()
+  req.method = method
+  req.url = `/api/3dviewer/inspect?token=${encodeURIComponent(token)}`
+  req.headers = { host: 'localhost:3000', ...(panel ? { 'x-dsh-panel': '1' } : {}) }
+  req.destroyed = false
+  req.destroy = () => {
+    req.destroyed = true
+  }
+  req[Symbol.asyncIterator] = async function* iterate() {
+    for (const chunk of chunks) yield chunk
+  }
+  return req
+}
+
+function fakeInspectResponse() {
+  const res = {
+    status: null,
+    headers: {},
+    body: '',
+    writeHead(status, headers) {
+      res.status = status
+      res.headers = headers ?? {}
+    },
+    write(chunk) {
+      res.body += String(chunk)
+      return true
+    },
+    end(chunk) {
+      if (chunk !== undefined) res.body += String(chunk)
+    },
+  }
+  return res
+}
+
+async function callInspectHandler(options, allowedDirs) {
+  const req = fakeInspectRequest(options)
+  const res = fakeInspectResponse()
+  await inspectHandler(req, res, allowedDirs)
+  return { req, res }
+}
+
+test('inspect：标准 tileset 分析 ok，并把报告写到 DSH_HOME/reports', async () => {
+  const directory = await fixtureDir('ok')
+  await writeFixtureTileset(directory, standardTileset())
+  const report = await analyzeFixture(directory)
+  assert.equal(report.ok, true)
+  assert.equal(report.asset.version, '1.1')
+  assert.equal(report.counts.tiles, 1)
+  assert.equal(report.root.boundingVolume.type, 'region')
+  assert.deepEqual(report.issues, [])
+
+  const written = await writeInspectReport(report)
+  assert.equal(dirname(written.reportPath), REPORT_DIR)
+  const stored = JSON.parse(await readFile(written.reportPath, 'utf8'))
+  assert.equal(stored.ok, true)
+  assert.equal(stored.reportPath, written.reportPath)
+})
+
+test('inspect：根瓦片缺少 transform/region 时给出 error 级 tileset_not_georeferenced', async () => {
+  const directory = await fixtureDir('nogeoref')
+  await writeFixtureTileset(directory, standardTileset({
+    root: { boundingVolume: { box: [0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1] }, geometricError: 100 },
+  }))
+  const report = await analyzeFixture(directory)
+  assert.equal(report.ok, false, '缺失世界定位必须让报告失败，而不是静默通过')
+  const issue = report.issues.find((item) => item.code === 'tileset_not_georeferenced')
+  assert.ok(issue, '缺少 tileset_not_georeferenced 诊断')
+  assert.equal(issue.level, 'error')
+  assert.match(issue.message, /no transform \(16 numbers\) or boundingVolume\.region/)
+})
+
+test('inspect：非 1.x 的 asset.version 是 error 级 asset_version_unsupported', async () => {
+  const directory = await fixtureDir('asset')
+  await writeFixtureTileset(directory, standardTileset({ asset: { version: '0.0' } }))
+  const report = await analyzeFixture(directory)
+  assert.equal(report.ok, false)
+  const issue = report.issues.find((item) => item.code === 'asset_version_unsupported')
+  assert.ok(issue)
+  assert.equal(issue.level, 'error')
+  assert.match(issue.message, /0\.0/)
+})
+
+test('inspect：损坏的 JSON 抛 InspectError(invalid_json)，不写报告', async () => {
+  const directory = await fixtureDir('badjson')
+  await writeFixtureTileset(directory, '{not json')
+  await assert.rejects(analyzeFixture(directory), (error) => {
+    assert.ok(error instanceof InspectError)
+    assert.equal(error.code, 'invalid_json')
+    assert.match(error.message, /not a valid 3D Tiles document/)
+    return true
+  })
+})
+
+test('inspect：白名单之外的本机路径以 forbidden 拒绝', async () => {
+  const outside = await fixtureDir('outside')
+  const allowed = await fixtureDir('allowed')
+  await writeFixtureTileset(outside, standardTileset())
+  await assert.rejects(
+    analyzeTileset(
+      { kind: 'local', path: join(await realpath(outside), 'tileset.json') },
+      { allowedDirs: new Set([await realpath(allowed)]) },
+    ),
+    (error) => {
+      assert.ok(error instanceof InspectError)
+      assert.equal(error.code, 'forbidden')
+      assert.match(error.message, /folders the user opened/)
+      return true
+    },
+  )
+})
+
+test('inspect：深检时经 junction 越界的内容文件只告警、不读取', async (t) => {
+  const allowed = await fixtureDir('escape-allowed')
+  const outside = await fixtureDir('escape-outside')
+  await writeFile(join(outside, 'model.glb'), 'glb')
+  try {
+    await symlink(outside, join(allowed, 'escape'), 'junction')
+  } catch (error) {
+    if (['EPERM', 'EACCES', 'ENOTSUP', 'UNKNOWN'].includes(error.code)) {
+      t.skip(`当前环境不允许创建 junction/symlink：${error.code}`)
+      return
+    }
+    throw error
+  }
+  await writeFixtureTileset(allowed, standardTileset({
+    root: {
+      boundingVolume: { region: [-0.01, -0.01, -0.01, 0.01, 0.01, 0.01] },
+      geometricError: 100,
+      content: { uri: 'escape/model.glb' },
+    },
+  }))
+  const report = await analyzeFixture(allowed, { deep: true })
+  const issue = report.issues.find((item) => item.code === 'content_unreachable')
+  assert.ok(issue, '越界的派生内容必须被报告')
+  assert.equal(issue.level, 'warn')
+  assert.match(issue.message, /outside the folders the user opened/)
+  assert.equal(report.ok, true, '越界内容只是告警，不改变数据本身的有效性')
+})
+
+test('inspect：深检区分存在的与缺失的本地内容文件', async () => {
+  const directory = await fixtureDir('content')
+  await writeFile(join(directory, 'exists.b3dm'), 'b3dm')
+  await writeFixtureTileset(directory, standardTileset({
+    root: {
+      boundingVolume: { region: [-0.01, -0.01, -0.01, 0.01, 0.01, 0.01] },
+      geometricError: 100,
+      content: { uri: 'exists.b3dm' },
+      children: [{
+        boundingVolume: { region: [-0.01, -0.01, -0.01, 0.01, 0.01, 0.01] },
+        geometricError: 0,
+        content: { uri: 'missing.b3dm' },
+      }],
+    },
+  }))
+  const report = await analyzeFixture(directory, { deep: true })
+  const missing = report.issues.filter((item) => item.code === 'content_missing')
+  assert.equal(missing.length, 1)
+  assert.match(missing[0].message, /missing\.b3dm/)
+  assert.ok(!report.issues.some((item) => item.message.includes('exists.b3dm')))
+  assert.equal(report.counts.contents, 2)
+})
+
+test('inspect：SPZ 头按小端 uint32 校验，坏头只告警', async () => {
+  const directory = await fixtureDir('spz')
+  const header = Buffer.alloc(12)
+  header.writeUInt32LE(0x5053474e, 0)
+  header.writeUInt32LE(1, 4)
+  header.writeUInt32LE(10, 8)
+  await writeFile(join(directory, 'splat.spz'), header)
+  await writeFixtureTileset(directory, standardTileset({
+    extensionsUsed: ['KHR_gaussian_splatting'],
+    root: {
+      boundingVolume: { region: [-0.01, -0.01, -0.01, 0.01, 0.01, 0.01] },
+      geometricError: 100,
+      content: { uri: 'splat.spz' },
+    },
+  }))
+  const good = await analyzeFixture(directory, { deep: true })
+  const okIssue = good.issues.find((item) => item.code === 'gaussian_splatting_ok' && /SPZ header ok/.test(item.message))
+  assert.ok(okIssue, '有效 SPZ 头应产生 info')
+  assert.match(okIssue.message, /version 1, 10 splats/)
+  assert.equal(good.kinds.gaussianSplatting, true)
+
+  const broken = Buffer.alloc(12)
+  broken.writeUInt32LE(0, 0)
+  await writeFile(join(directory, 'splat.spz'), broken)
+  const bad = await analyzeFixture(directory, { deep: true })
+  const badIssue = bad.issues.find((item) => item.code === 'spz_header_invalid')
+  assert.ok(badIssue)
+  assert.equal(badIssue.level, 'warn')
+})
+
+test('inspect：runtime 只转发合法的非负数字计数器', async () => {
+  const directory = await fixtureDir('runtime')
+  await writeFixtureTileset(directory, standardTileset())
+  const report = await analyzeFixture(directory, { runtime: { tiles: 3, pending: -1, triangles: 'x', memory: 5 } })
+  assert.deepEqual(report.runtime, { tiles: 3, memory: 5 })
+
+  const without = await analyzeFixture(directory, { runtime: 'nope' })
+  assert.equal('runtime' in without, false)
+})
+
+test('inspect：报告目录只保留最新 100 份', async () => {
+  await mkdir(REPORT_DIR, { recursive: true })
+  for (let index = 0; index < 105; index += 1) {
+    await writeFile(join(REPORT_DIR, `20260101-000000-dummy-${String(index).padStart(3, '0')}.json`), '{}')
+  }
+  const written = await writeInspectReport({ ok: true, source: { label: 'retention' } })
+  const names = (await readdir(REPORT_DIR)).filter((name) => /^\d{8}-\d{6}-.+\.json$/.test(name))
+  assert.equal(names.length, 100)
+  assert.ok(names.includes(basename(written.reportPath)), '本次写入的报告不能被裁掉')
+})
+
+test('inspectHandler：token + panel 头门禁、非法 body 与私有远端地址', async () => {
+  const directory = await fixtureDir('handler')
+  await writeFixtureTileset(directory, standardTileset())
+  const allowedDirs = new Set([await realpath(directory)])
+  const localSource = { kind: 'local', path: join([...allowedDirs][0], 'tileset.json') }
+
+  const noToken = (await callInspectHandler({ token: 'wrong', chunks: [JSON.stringify({ source: localSource })] }, allowedDirs)).res
+  assert.equal(noToken.status, 403)
+
+  const noPanel = (await callInspectHandler({ panel: false, chunks: [JSON.stringify({ source: localSource })] }, allowedDirs)).res
+  assert.equal(noPanel.status, 403)
+  assert.match(noPanel.body, /must come from the panel/)
+
+  const badJson = (await callInspectHandler({ chunks: ['{broken'] }, allowedDirs)).res
+  assert.equal(badJson.status, 400)
+  assert.equal(JSON.parse(badJson.body).code, 'invalid_json')
+
+  const privateHost = (await callInspectHandler({
+    chunks: [JSON.stringify({ source: { kind: 'remote', url: 'http://127.0.0.1/tileset.json' } })],
+  }, allowedDirs)).res
+  assert.equal(privateHost.status, 403)
+  assert.equal(JSON.parse(privateHost.body).code, 'forbidden')
+
+  const okRes = (await callInspectHandler({ chunks: [JSON.stringify({ source: localSource })] }, allowedDirs)).res
+  assert.equal(okRes.status, 200)
+  const payload = JSON.parse(okRes.body)
+  assert.equal(payload.ok, true)
+  assert.equal(dirname(payload.reportPath), REPORT_DIR)
+  assert.equal(payload.report.ok, true)
+})
+
+test('inspect：analyzeTileset 作为模块 seam 已导出', () => {
+  assert.equal(typeof analyzeTileset, 'function')
+  assert.equal(typeof inspectHandler, 'function')
+  assert.equal(typeof writeInspectReport, 'function')
+})
+
+after(async () => {
+  for (const directory of tempDirs) await rm(directory, { recursive: true, force: true }).catch(() => {})
 })
