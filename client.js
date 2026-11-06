@@ -140,6 +140,7 @@ var MESSAGES = {
     "toast.basemap": "已切换底图：{name}",
     "toast.basemapNone": "已关闭影像底图",
     "toast.basemapFailed": "底图加载失败：{message}",
+    "toast.overlayFailed": "叠加图层「{name}」加载失败：{message}",
     "toast.screenshotSaved": "截图已保存",
     "toast.screenshotFailed": "截图失败：{message}",
     "toast.sourcesSaved": "数据源已保存",
@@ -470,6 +471,7 @@ var MESSAGES = {
     "toast.basemap": "Basemap: {name}",
     "toast.basemapNone": "Imagery basemap off",
     "toast.basemapFailed": "Basemap failed: {message}",
+    "toast.overlayFailed": 'Overlay layer "{name}" failed: {message}',
     "toast.screenshotSaved": "Snapshot saved",
     "toast.screenshotFailed": "Snapshot failed: {message}",
     "toast.sourcesSaved": "Sources saved",
@@ -1395,6 +1397,165 @@ function writeSceneSnapshot(sessionId, snapshot) {
     }
   }
   return body;
+}
+
+// src/client/scene/overlay-layers.js
+function createOverlayLayers({ Cesium, viewer, providerFactory, onError = () => {
+} } = {}) {
+  const buildProvider = typeof providerFactory === "function" ? providerFactory : async () => {
+    throw new Error("overlay provider factory is missing");
+  };
+  const entries = /* @__PURE__ */ new Map();
+  let chain = Promise.resolve();
+  const collection = () => {
+    try {
+      return viewer?.scene?.imageryLayers ?? null;
+    } catch {
+      return null;
+    }
+  };
+  function enqueue(task) {
+    const run = chain.then(task);
+    chain = run.catch(() => {
+    });
+    return run;
+  }
+  function destroyLayer(layer) {
+    const layers = collection();
+    if (!layers || !layer) return;
+    try {
+      layers.remove(layer, true);
+    } catch {
+    }
+  }
+  function removeNow(id) {
+    const entry = entries.get(id);
+    if (!entry) return false;
+    destroyLayer(entry.layer);
+    entries.delete(id);
+    return true;
+  }
+  function needsRebuild(entry, source) {
+    return entry.source.type !== source.type || entry.source.url !== source.url || (entry.source.layers ?? "") !== (source.layers ?? "");
+  }
+  function applyStyle(entry) {
+    if (!entry.layer) return;
+    entry.layer.alpha = entry.source.opacity;
+    entry.layer.show = entry.source.visible !== false;
+  }
+  async function addNow(source) {
+    const layers = collection();
+    if (!layers) return null;
+    if (entries.has(source.id)) removeNow(source.id);
+    let provider;
+    try {
+      provider = await buildProvider(Cesium, source);
+    } catch (error) {
+      onError(error, source);
+      return null;
+    }
+    const layer = layers.addImageryProvider(provider);
+    const entry = {
+      id: source.id,
+      source: { ...source },
+      layer
+    };
+    entries.set(source.id, entry);
+    applyStyle(entry);
+    return entry;
+  }
+  return {
+    /** Add (or replace) one overlay and return its entry, or null on failure. */
+    add(source) {
+      return enqueue(() => addNow(source));
+    },
+    /** Remove one overlay; returns true when it existed. */
+    remove(id) {
+      return enqueue(() => removeNow(id));
+    },
+    /** Remove every overlay (used when the panel is destroyed). */
+    clear() {
+      return enqueue(() => {
+        for (const id of [...entries.keys()]) removeNow(id);
+      });
+    },
+    setOpacity(id, opacity) {
+      return enqueue(() => {
+        const entry = entries.get(id);
+        if (!entry) return false;
+        entry.source.opacity = Math.min(1, Math.max(0, Number(opacity) || 0));
+        applyStyle(entry);
+        return true;
+      });
+    },
+    setVisible(id, visible) {
+      return enqueue(() => {
+        const entry = entries.get(id);
+        if (!entry) return false;
+        entry.source.visible = visible !== false;
+        applyStyle(entry);
+        return true;
+      });
+    },
+    /**
+     * Reconcile the live stack with a catalog array: add new ids, drop removed
+     * ones, rebuild changed sources and refresh opacity/visibility. This is the
+     * one entry point the panel calls at mount and after a settings save, so the
+     * stack can never drift from `sources.json`.
+     */
+    sync(sources) {
+      return enqueue(async () => {
+        const next = Array.isArray(sources) ? sources.filter((item) => item && typeof item.id === "string") : [];
+        const wanted = new Set(next.map((item) => item.id));
+        const summary = { added: 0, removed: 0, updated: 0, failed: 0 };
+        for (const id of [...entries.keys()]) {
+          if (!wanted.has(id)) {
+            if (removeNow(id)) summary.removed += 1;
+          }
+        }
+        for (const source of next) {
+          const existing = entries.get(source.id);
+          if (!existing) {
+            if (await addNow(source) !== null) summary.added += 1;
+            else summary.failed += 1;
+            continue;
+          }
+          if (needsRebuild(existing, source)) {
+            removeNow(source.id);
+            if (await addNow(source) !== null) summary.added += 1;
+            else summary.failed += 1;
+            continue;
+          }
+          existing.source = { ...source };
+          applyStyle(existing);
+          summary.updated += 1;
+        }
+        return summary;
+      });
+    },
+    /** Live stack in insert order (bottom-most overlay first). */
+    list() {
+      return [...entries.values()].map((entry) => ({
+        id: entry.id,
+        name: entry.source.name,
+        type: entry.source.type,
+        url: entry.source.url,
+        opacity: entry.source.opacity,
+        visible: entry.source.visible !== false
+      }));
+    },
+    /** Number of live overlays. */
+    size() {
+      return entries.size;
+    },
+    /** Remove every layer and forget the stack (viewer teardown). */
+    dispose() {
+      return enqueue(() => {
+        for (const id of [...entries.keys()]) removeNow(id);
+        chain = Promise.resolve();
+      });
+    }
+  };
 }
 
 // src/client/scene/quality.js
@@ -2996,6 +3157,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
   const measureRef = import_react8.default.useRef({ points: [], entities: [] });
   const handlerRef = import_react8.default.useRef(null);
   const imageryRef = import_react8.default.useRef(null);
+  const overlayLayersRef = import_react8.default.useRef(null);
   const sourcesRef = import_react8.default.useRef(null);
   const toastTimer = import_react8.default.useRef(0);
   const captureReadoutRef = import_react8.default.useRef(null);
@@ -3367,7 +3529,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
       }
       if (source) {
         const provider = await imageryProvider(Cesium, source);
-        imageryRef.current = viewer.scene.imageryLayers.addImageryProvider(provider);
+        imageryRef.current = viewer.scene.imageryLayers.addImageryProvider(provider, 0);
         if (notify) showToast(t2("toast.basemap", { name: source.name }));
       } else if (notify) {
         showToast(t2("toast.basemapNone"));
@@ -3487,6 +3649,8 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
       );
     }
     applyGlobeDepthTest();
+    void overlayLayersRef.current?.sync(next.rasterOverlays ?? []).catch(() => {
+    });
   };
   function setToolMode(mode) {
     toolRef.current = mode;
@@ -5422,6 +5586,8 @@ ${image !== "" ? `<h2>${escapeHtml(L.snapshot)}</h2>${image}` : ""}
         terrain: config.terrain.map((item) => ({ id: item.id, name: item.name }))
       },
       viewport: { width: viewer.canvas.width, height: viewer.canvas.height },
+      // L3 raster overlays above the basemap, in stack order (additive field).
+      raster_overlays: overlayLayersRef.current?.list() ?? [],
       // Render health is additive: `fps` is null while the scene is idle (no
       // render pass for 2 s) and the terrain depth-test flag is the user's
       // current choice, so an Agent can explain a "model looks flat/buried"
@@ -5809,6 +5975,14 @@ ${image !== "" ? `<h2>${escapeHtml(L.snapshot)}</h2>${image}` : ""}
         await applyImagery(catalog.config.settings.imagery, false);
         if (catalog.config.settings.terrain) await applyTerrain(catalog.config.settings.terrain, false);
         applyGlobeDepthTest();
+        overlayLayersRef.current = createOverlayLayers({
+          Cesium,
+          viewer,
+          // The panel owns the provider mapping; the stack stays browser-free.
+          providerFactory: imageryProvider,
+          onError: (error2, source) => showToast(t2("toast.overlayFailed", { name: source?.name ?? "", message: message(error2) }))
+        });
+        await overlayLayersRef.current.sync(catalog.config.rasterOverlays ?? []);
         const handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
         handler.setInputAction((event) => onCanvasClick(event.position), Cesium.ScreenSpaceEventType.LEFT_CLICK);
         handler.setInputAction(() => finishMeasure(), Cesium.ScreenSpaceEventType.LEFT_DOUBLE_CLICK);
@@ -5843,6 +6017,8 @@ ${image !== "" ? `<h2>${escapeHtml(L.snapshot)}</h2>${image}` : ""}
       handlerRef.current = null;
       releaseShaderTick();
       shaderEntriesRef.current.clear();
+      void overlayLayersRef.current?.dispose();
+      overlayLayersRef.current = null;
       try {
         viewerRef.current?.destroy();
       } catch {

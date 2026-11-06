@@ -14,6 +14,7 @@ import { FALLBACK_ABOUT } from '../messages.js'
 import { folderName } from '../preferences.js'
 import { service } from '../runtime.js'
 import { normalizeSceneSnapshot, readSceneSnapshot, writeSceneSnapshot } from '../scene-store.js'
+import { createOverlayLayers } from '../scene/overlay-layers.js'
 import { applyQuality, normalizeQuality, qualityProfile } from '../scene/quality.js'
 import { SHADER_PRESETS, shaderFail, shaderFragmentSource, shaderGaussianLayer, shaderHeightRange, shaderUniforms, shaderValidateRequest } from '../shader/presets.js'
 import { useEnvironmentDark } from '../theme.js'
@@ -47,6 +48,8 @@ const h = React.createElement
       const measureRef = React.useRef({ points: [], entities: [] })
       const handlerRef = React.useRef(null)
       const imageryRef = React.useRef(null)
+      // L3 raster overlays above the basemap (several layers, each with alpha).
+      const overlayLayersRef = React.useRef(null)
       const sourcesRef = React.useRef(null)
       const toastTimer = React.useRef(0)
       const captureReadoutRef = React.useRef(null)
@@ -513,7 +516,9 @@ const h = React.createElement
           }
           if (source) {
             const provider = await imageryProvider(Cesium, source)
-            imageryRef.current = viewer.scene.imageryLayers.addImageryProvider(provider)
+            // Index 0: the basemap is always the BOTTOM imagery layer, so switching
+            // it never covers the L3 raster overlays stacked above it.
+            imageryRef.current = viewer.scene.imageryLayers.addImageryProvider(provider, 0)
             if (notify) showToast(t('toast.basemap', { name: source.name }))
           } else if (notify) {
             showToast(t('toast.basemapNone'))
@@ -664,6 +669,8 @@ const h = React.createElement
           )
         }
         applyGlobeDepthTest()
+        // Reconcile the L3 stack with the saved catalog (add/remove/reorder/alpha).
+        void overlayLayersRef.current?.sync(next.rasterOverlays ?? []).catch(() => {})
       }
 
       function setToolMode(mode) {
@@ -2843,6 +2850,8 @@ ${image !== '' ? `<h2>${escapeHtml(L.snapshot)}</h2>${image}` : ''}
             terrain: config.terrain.map((item) => ({ id: item.id, name: item.name })),
           },
           viewport: { width: viewer.canvas.width, height: viewer.canvas.height },
+          // L3 raster overlays above the basemap, in stack order (additive field).
+          raster_overlays: overlayLayersRef.current?.list() ?? [],
           // Render health is additive: `fps` is null while the scene is idle (no
           // render pass for 2 s) and the terrain depth-test flag is the user's
           // current choice, so an Agent can explain a "model looks flat/buried"
@@ -3287,6 +3296,18 @@ ${image !== '' ? `<h2>${escapeHtml(L.snapshot)}</h2>${image}` : ''}
             await applyImagery(catalog.config.settings.imagery, false)
             if (catalog.config.settings.terrain) await applyTerrain(catalog.config.settings.terrain, false)
             applyGlobeDepthTest()
+            // L3 raster overlays: created after the basemap so the stack order is
+            // basemap (index 0) -> overlays (appended above). A failed overlay is a
+            // toast, never a panel-wide failure.
+            overlayLayersRef.current = createOverlayLayers({
+              Cesium,
+              viewer,
+              // The panel owns the provider mapping; the stack stays browser-free.
+              providerFactory: imageryProvider,
+              onError: (error, source) =>
+                showToast(t('toast.overlayFailed', { name: source?.name ?? '', message: message(error) })),
+            })
+            await overlayLayersRef.current.sync(catalog.config.rasterOverlays ?? [])
             const handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas)
             handler.setInputAction((event) => onCanvasClick(event.position), Cesium.ScreenSpaceEventType.LEFT_CLICK)
             handler.setInputAction(() => finishMeasure(), Cesium.ScreenSpaceEventType.LEFT_DOUBLE_CLICK)
@@ -3331,6 +3352,10 @@ ${image !== '' ? `<h2>${escapeHtml(L.snapshot)}</h2>${image}` : ''}
           // the viewer goes away; the tilesets themselves are destroyed with it.
           releaseShaderTick()
           shaderEntriesRef.current.clear()
+          // Drop the L3 overlay layers with the viewer; the queued removals are
+          // no-ops if the scene is already gone.
+          void overlayLayersRef.current?.dispose()
+          overlayLayersRef.current = null
           try {
             viewerRef.current?.destroy()
           } catch {

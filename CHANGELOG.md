@@ -6,6 +6,7 @@
 
 - **渲染质量档**：设置 → 外观新增「渲染质量」，两个档位——**均衡（默认）**：`resolutionScale 0.85` + 2× MSAA + 地形 LOD 3 + 瓦片 LOD 20 + 地形缓存 200，拖拽更稳；**高清**：满分辨率 + 4× MSAA + Cesium 默认 LOD（2 / 16），适合截图与评审。切换即时生效（抗锯齿档位在重新打开面板后完全生效）；`earth_scene status` 的 `render` 增加 `quality`、`resolution_scale`、`globe_maximum_screen_space_error`，Agent 可以解释"为什么模糊/为什么卡"。
 - **修复地形遮挡开关不持久化**：`settings.terrainDepthTest` 之前只存在于客户端，宿主 `normalizeConfig` 会把它丢掉，导致每次保存设置后开关复位；现在它和渲染质量一起随数据源配置持久化（新增行为测试覆盖往返）。
+- **L3 栅格叠加地基**：数据源配置新增 `rasterOverlays` 数组（每项 = 影像源 + 透明度 + 显隐，最多 8 层；非法项自动丢弃、重复 id 自动去重，旧配置缺字段时为 `[]`）；客户端新增叠加层管理器（`src/client/scene/overlay-layers.js`）：底图固定在第 0 层，叠加层按顺序叠在其上，支持增删 / 透明度 / 显隐 / URL 变更重建，并且只有 `sync()` 一个入口与配置对齐（串行执行，避免两次保存交错）；单层加载失败只弹 toast，不影响其他图层与面板。`earth_scene status` 增加 `raster_overlays`（加法字段）。面板 UI 与 Agent 侧接入在后续提交完成。
 
 ## 1.5.0
 

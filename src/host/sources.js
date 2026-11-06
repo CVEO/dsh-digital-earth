@@ -15,6 +15,9 @@ import { writeJsonAtomic } from './fs-util.js'
  */
 const QUALITY_MODES = new Set(['balanced', 'high'])
 
+/** Maximum number of L3 raster overlays the catalog accepts (each is a GPU layer). */
+const MAX_RASTER_OVERLAYS = 8
+
 /**
  * Built-in catalogs, used for a first run and for the "restore defaults"
  * action. Names are brand names rather than translated UI copy, so the same
@@ -82,6 +85,10 @@ const DEFAULT_SOURCES = {
       credit: 'Esri, CGIAR, USGS',
     },
   ],
+  // L3 raster overlays: extra imagery layers above the basemap (business rasters,
+  // WMS results, classification maps). Each entry is an imagery source plus an
+  // opacity/visibility pair, so it reuses the same provider mapping.
+  rasterOverlays: [],
   settings: {
     theme: 'auto',
     imagery: 'esri-world-imagery',
@@ -147,6 +154,28 @@ function normalizeSourceList(kind, raw, fallback) {
   return sources
 }
 
+/**
+ * Normalize the L3 raster-overlay list: an overlay is an imagery source plus an
+ * opacity (0..1) and a visibility flag. Invalid entries are dropped rather than
+ * failing the whole catalog, and ids are de-duplicated the same way source lists
+ * are, so a hand-edited sources.json cannot break the panel.
+ */
+function normalizeRasterOverlays(raw) {
+  if (!Array.isArray(raw)) return []
+  const seen = new Set()
+  const overlays = []
+  for (const [index, item] of raw.slice(0, MAX_RASTER_OVERLAYS).entries()) {
+    const source = normalizeSource('imagery', item, index)
+    if (source === null) continue
+    while (seen.has(source.id)) source.id = `${source.id}-${overlays.length + 1}`
+    seen.add(source.id)
+    const rawOpacity = item.opacity
+    const opacity = Number.isFinite(rawOpacity) ? Math.min(1, Math.max(0, rawOpacity)) : 1
+    overlays.push({ ...source, opacity, visible: item.visible !== false })
+  }
+  return overlays
+}
+
 /** Pick a stored selection id, but only when it still exists in the list. */
 function cleanSelection(value, sources) {
   if (typeof value !== 'string') return null
@@ -195,6 +224,7 @@ export function normalizeConfig(raw) {
   return {
     imagery,
     terrain,
+    rasterOverlays: normalizeRasterOverlays(input.rasterOverlays),
     settings: {
       theme,
       imagery: selection(input.settings?.imagery, imagery, DEFAULT_SOURCES.settings.imagery),
