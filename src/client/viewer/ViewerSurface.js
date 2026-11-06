@@ -33,6 +33,7 @@ import { HealthDialog, PathAccessDialog, SourcesDialog } from '../ui/dialogs.js'
 import { StatusHud } from '../ui/hud.js'
 import { AskAgentIcon, FullscreenIcon, HudIcon, ResetIcon, ScreenshotIcon, ShaderIcon, ThemeIcon, ViewerIcon } from '../ui/icons.js'
 import { LayersPanel } from '../ui/layers-panel.js'
+import { createWorkbenchWiring } from '../ui/workbench-wiring.js'
 import { MenuItem } from '../ui/menu-item.js'
 
 const h = React.createElement
