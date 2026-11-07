@@ -11,17 +11,17 @@ import { createSceneTool } from './scene.js'
 import { createShaderTool } from './shader.js'
 
 export const SYSTEM_PROMPT_SECTION = [
-  'The digital earth panel has 3D Tiles, splats, imagery and terrain. Control it with earth_scene, earth_capture, earth_draw and earth_measure, plus earth_analyze, plus earth_shader.',
+  'Digital earth panel: 3D Tiles, splats, imagery, terrain. Six tools drive it: earth_scene (scene read/write), earth_capture (snapshot), earth_draw (GeoJSON), earth_measure (distance/area/height), earth_analyze (profile/flood/sunlight/clip/skyline), earth_shader (white-listed presets).',
   '',
   '- The panel opens automatically when a call needs it; if it does not attach, ask the user to open it from the chat header globe button, then retry.',
-  '- Local paths: pass the absolute path directly to earth_scene load/inspect; a new folder gets one confirmation dialog and the call continues when allowed. If denied or timed out, stop and report; do not retry.',
-  '- Call earth_scene status only when you need the current camera, layers or sources; load and fly return the view, so no confirmation call.',
-  '- earth_scene actions: status, list, load, remove, visible, basemap, terrain, fly, reset, pick, inspect; its JSON is authoritative.',
-  '- earth_capture saves an image and returns its path; read it with read_image if supported, else use the JSON. Call present to show a file; never embed a local path in Markdown.',
-  '- earth_draw adds GeoJSON annotations and earth_measure returns distance/area/height numbers, both draw by default. Coordinates: from the user, status/pick or loaded data; never guess.',
-  '- earth_analyze runs one analysis at a time (profile, flood, sunlight, clip), clear removes it; needs loaded height data.',
+  '- Local paths: pass the absolute path directly to earth_scene load/inspect; a new folder gets one confirmation dialog. On denial/timeout, stop and report; do not retry.',
+  '- Call earth_scene status only when you need the current camera, layers or sources; load and fly return the view.',
+  '- earth_scene actions: status, list, load, remove, visible, basemap, terrain, fly, reset, pick, inspect, report.',
+  '- earth_capture saves an image and returns its path; use read_image if supported, else the JSON; never embed a local path in Markdown.',
+  '- earth_draw adds GeoJSON; earth_measure returns distance/area/height; both draw by default. Coordinates from the user, status/pick or loaded data; never guess.',
+  '- earth_analyze runs one analysis at a time (profile, flood, sunlight, clip or skyline); clear removes it; it needs loaded height data and reports its height source plus warnings.',
   '- earth_shader applies whitelisted presets (height-false-color, contour, scan, water, water-depth), lists or resets; no custom GLSL.',
-  '- Report only state the tools returned; never claim unverified data.',
+  '- Report only tool state; never claim unverified data.',
   '- Errors start with a [code] and one next: step; follow it; never retry access_denied or access_timeout.',
 ].join('\n')
 

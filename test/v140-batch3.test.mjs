@@ -323,14 +323,14 @@ test('宿主：earth_shader 描述 ≤1200 字符，覆盖四预设/覆盖语义
   assert.doesNotMatch(description, /authorize|skyline|天际线/i)
 })
 
-test('系统提示词：≤1600、六工具名齐全、shader 一句，且无 skyline/天际线/Data 菜单/手动目录/必须先 status', () => {
+test('系统提示词：≤1600、六工具名齐全、shader 一句，且无 Data 菜单/手动目录/必须先 status', () => {
   const prompt = SYSTEM_PROMPT_SECTION
   assert.ok(prompt.length <= 1600, `提示词超预算：${prompt.length} 字符`)
   assert.ok(prompt.length >= 1400, `提示词过短：${prompt.length} 字符`)
   for (const name of ['earth_scene', 'earth_capture', 'earth_draw', 'earth_measure', 'earth_analyze', 'earth_shader']) {
     assert.match(prompt, new RegExp(name))
   }
-  assert.match(prompt, /plus earth_analyze, plus earth_shader/)
+  assert.match(prompt, /Six tools drive it/)
   assert.match(
     prompt,
     /earth_shader applies whitelisted presets \(height-false-color, contour, scan, water, water-depth\), lists or resets; no custom GLSL\./,
@@ -343,7 +343,6 @@ test('系统提示词：≤1600、六工具名齐全、shader 一句，且无 sk
   assert.match(prompt, /never retry access_denied or access_timeout/)
   assert.equal((prompt.match(/opens automatically/g) ?? []).length, 1)
 
-  assert.doesNotMatch(prompt, /skyline|天际线/i)
   assert.doesNotMatch(prompt, /authorize/i)
   assert.doesNotMatch(prompt, /Data\s*(?:→|->|>)/i)
   assert.doesNotMatch(prompt, /Open local folder|手动打开目录/)

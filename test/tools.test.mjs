@@ -295,13 +295,12 @@ test('宿主：导出两个归一化函数，且六个工具都在 mountAgentToo
   assert.match(host, /name: SHADER_TOOL_NAME/)
 })
 
-test('宿主：系统提示词段落提到六个工具', () => {
-  // B2 保留了旧四工具短语并追加 earth_analyze，B3 再追加 earth_shader。
-  assert.match(host, /earth_scene, earth_capture, earth_draw and earth_measure/)
-  assert.match(host, /earth_draw adds GeoJSON annotations/)
-  assert.match(host, /earth_measure returns distance\/area\/height numbers/)
-  assert.match(host, /plus earth_analyze/)
+test('宿主：系统提示词段落提到六个工具与完整 action 清单', () => {
+  assert.match(host, /Six tools drive it/)
+  assert.match(host, /earth_draw adds GeoJSON/)
+  assert.match(host, /earth_measure returns distance\/area\/height/)
+  assert.match(host, /earth_analyze \(profile\/flood\/sunlight\/clip\/skyline\)/)
   assert.match(host, /earth_analyze runs one analysis at a time/)
-  assert.match(host, /plus earth_shader/)
+  assert.match(host, /earth_shader \(white-listed presets\)/)
   assert.match(host, /earth_shader applies whitelisted presets/)
 })

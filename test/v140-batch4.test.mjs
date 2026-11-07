@@ -393,13 +393,15 @@ test('B4 F3：radius=0 一律回退 0..200，无 centerHeight±50 分支，显�
 // 模型面回归、隐私与文档事实
 // ---------------------------------------------------------------------------
 
-test('B4 模型面回归：提示词 ≤1600 六工具名，描述区无 authorize/skyline/天际线', () => {
+test('B4 模型面回归：提示词 ≤1600 六工具名与完整 action 清单，描述区无 authorize', () => {
   const prompt = SYSTEM_PROMPT_SECTION
   assert.ok(prompt.length <= 1600, `提示词超预算：${prompt.length}`)
   assert.ok(prompt.length >= 1400, `提示词过短：${prompt.length}`)
   for (const name of TOOL_NAMES) assert.ok(prompt.includes(name), `提示词缺少 ${name}`)
-  assert.match(prompt, /plus earth_analyze, plus earth_shader/)
-  assert.doesNotMatch(prompt, /authorize|skyline|天际线/i)
+  assert.match(prompt, /Six tools drive it/)
+  assert.match(prompt, /earth_scene actions: status, list, load, remove, visible, basemap, terrain, fly, reset, pick, inspect, report\./)
+  assert.match(prompt, /earth_analyze runs one analysis at a time \(profile, flood, sunlight, clip or skyline\)/)
+  assert.doesNotMatch(prompt, /authorize/i)
 
   const region = sceneSource.slice(sceneSource.indexOf('const SCENE_DESCRIPTION = ['))
   assert.doesNotMatch(region, /authorize|skyline|天际线/i)

@@ -15,9 +15,9 @@ const ANALYZE_TOOL_NAME = 'earth_analyze'
 const ANALYZE_RENDER_LIMIT = 8 * 1024
 
 // ---------------------------------------------------------------------------
-// earth_analyze: one active terrain analysis at a time (profile/flood/sunlight),
-// plus clear. The Host owns strict model-input validation and the compact text;
-// the panel owns sampling, Cesium entities and the analysis card.
+// earth_analyze: one active analysis at a time (profile / flood / sunlight /
+// clip / skyline), plus clear. The Host owns strict model-input validation and
+// the compact text; the panel owns sampling, Cesium entities and the card.
 // ---------------------------------------------------------------------------
 
 export const ANALYZE_ACTIONS = ['profile', 'flood', 'sunlight', 'clip', 'skyline', 'clear']
@@ -305,7 +305,7 @@ export function normalizeAnalyzeRequest(raw) {
   if (typeof action !== 'string' || !ANALYZE_ACTIONS.includes(action)) {
     throw analyzeError(
       `"action" must be one of ${ANALYZE_ACTIONS.join(', ')}.`,
-      'choose profile, flood, sunlight, clip or clear.',
+      'choose profile, flood, sunlight, clip, skyline or clear.',
     )
   }
   if (action === 'clear') {

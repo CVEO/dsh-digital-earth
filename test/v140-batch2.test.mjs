@@ -390,15 +390,18 @@ test('earth_analyze 渲染：8 KB 上限、UTF-8 安全截断、四种 operation
   assert.match(render, /analysis JSON truncated at \$\{ANALYZE_RENDER_LIMIT\} UTF-8 bytes/)
 })
 
-test('系统提示词：≤1600 字符、五工具名、analyze 一句，且不出现内部命令/天际线/旧话术', () => {
+test('系统提示词：≤1600 字符、六工具名、analyze 一句，且不出现内部命令/旧话术', () => {
   const prompt = SYSTEM_PROMPT_SECTION
   assert.ok(prompt.length <= 1600, `提示词超预算：${prompt.length} 字符`)
   assert.ok(prompt.length >= 1400, `提示词过短：${prompt.length} 字符`)
-  for (const name of ['earth_scene', 'earth_capture', 'earth_draw', 'earth_measure', 'earth_analyze']) {
+  for (const name of ['earth_scene', 'earth_capture', 'earth_draw', 'earth_measure', 'earth_analyze', 'earth_shader']) {
     assert.match(prompt, new RegExp(name))
   }
-  assert.match(prompt, /plus earth_analyze/)
-  assert.match(prompt, /earth_analyze runs one analysis at a time \(profile, flood, sunlight, clip\), clear removes it; needs loaded height data./)
+  assert.match(prompt, /Six tools drive it/)
+  // The action lists must match the shipped contract: report is a real earth_scene
+  // action and skyline/clip are real earth_analyze actions (D-16).
+  assert.match(prompt, /earth_scene actions: status, list, load, remove, visible, basemap, terrain, fly, reset, pick, inspect, report\./)
+  assert.match(prompt, /earth_analyze runs one analysis at a time \(profile, flood, sunlight, clip or skyline\); clear removes it; it needs loaded height data and reports its height source plus warnings./)
   // B1 语义保留。
   assert.match(prompt, /pass the absolute path directly to earth_scene load\/inspect/)
   assert.match(prompt, /one confirmation dialog/)
@@ -407,7 +410,6 @@ test('系统提示词：≤1600 字符、五工具名、analyze 一句，且不�
   assert.match(prompt, /never retry access_denied or access_timeout/)
   assert.equal((prompt.match(/opens automatically/g) ?? []).length, 1)
 
-  assert.doesNotMatch(prompt, /skyline|天际线/i)
   assert.doesNotMatch(prompt, /authorize/i)
   assert.doesNotMatch(prompt, /Data\s*(?:→|->|>)/i)
   assert.doesNotMatch(prompt, /Open local folder|手动打开目录/)
