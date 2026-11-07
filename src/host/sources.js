@@ -102,6 +102,9 @@ const DEFAULT_SOURCES = {
     quality: 'balanced',
     // Off by default: underground pipes and buried models stay visible.
     terrainDepthTest: false,
+    // HUD detail mode: off keeps the instrument at five numbers (FPS, cursor,
+    // camera height); on restores heading/pitch and per-layer counters there.
+    hudDetailed: false,
   },
 }
 
@@ -207,6 +210,9 @@ export function normalizeConfig(raw) {
   // normalization (dropping them here silently reset the user's choice).
   const quality = QUALITY_MODES.has(input.settings?.quality) ? input.settings.quality : 'balanced'
   const terrainDepthTest = input.settings?.terrainDepthTest === true
+  // HUD detail is off unless explicitly enabled, so catalogs written by older
+  // versions keep the five-number instrument.
+  const hudDetailed = input.settings?.hudDetailed === true
   const imagery = withBuiltins(
     normalizeSourceList('imagery', input.imagery, DEFAULT_SOURCES.imagery),
     DEFAULT_SOURCES.imagery,
@@ -234,6 +240,7 @@ export function normalizeConfig(raw) {
       showHud,
       quality,
       terrainDepthTest,
+      hudDetailed,
     },
   }
 }

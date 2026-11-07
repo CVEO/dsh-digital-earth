@@ -241,6 +241,9 @@ import { V17_MESSAGES } from './messages-v17.js'
         'settings.showHud': '显示坐标 HUD',
         'settings.showHudHint':
           '关闭后不渲染左下角的坐标/瓦片统计，并停止指针采样以节省性能。截图默认仍不叠加 HUD；该偏好会写回数据源配置。',
+        'settings.hudDetailed': 'HUD 详细模式',
+        'settings.hudDetailedHint':
+          '默认关闭：左下角只显示 FPS、光标读数与相机高度。打开后额外显示朝向 / 俯仰与逐层瓦片 / 待加载 / 三角面 / 缓存；该偏好会写回数据源配置。',
         'about.version': '版本',
         'about.homepage': '项目源码',
         'about.issues': '问题反馈',
@@ -652,6 +655,9 @@ import { V17_MESSAGES } from './messages-v17.js'
         'settings.showHud': 'Show the coordinate HUD',
         'settings.showHudHint':
           'When off, the bottom-left coordinates/tile statistics are not rendered and pointer sampling stops to save performance. Snapshots still hide the HUD by default; the preference is written back to the sources config.',
+        'settings.hudDetailed': 'Detailed HUD',
+        'settings.hudDetailedHint':
+          'Off by default: the bottom-left HUD shows FPS, the cursor readout and camera height only. Turn it on to add heading / pitch and per-layer tiles / pending / triangles / cache; the preference is written back to the sources config.',
         'about.version': 'Version',
         'about.homepage': 'Source code',
         'about.issues': 'Report an issue',

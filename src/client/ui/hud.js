@@ -6,6 +6,7 @@
  */
 import React from 'react'
 import { HUD_SAMPLE_INTERVAL_MS, HUD_SETTLE_MS, formatCursor, sampleCursor } from '../cursor.js'
+import { formatBytes, formatCount } from '../format.js'
 import { t } from '../i18n.js'
 
 const h = React.createElement
@@ -13,11 +14,13 @@ const h = React.createElement
 /**
  * Bottom-left HUD: only the instrument readouts that must be visible while
  * working — real FPS, the point under the pointer (lon / lat / elevation) and the
- * camera height. Five numbers total. The technical telemetry (heading / pitch,
- * per-layer tiles / triangles / cache) moved into the layer panel's "场景详情"
- * group so a wide HUD no longer fights the scene for attention.
+ * camera height. Five numbers by default.
+ *
+ * `detailed` (Settings → Appearance → HUD detail mode, off by default) restores
+ * the older telemetry: heading / pitch and the per-layer tiles / pending /
+ * triangles / cache counters.
  */
-function StatusHud({ fps, stats, viewerRef, cesiumRef, labels, readoutRef }) {
+function StatusHud({ fps, stats, viewerRef, cesiumRef, labels, readoutRef, detailed = false }) {
   // The cursor readout is written straight into the DOM: it updates around five
   // times a second, so keeping it out of React avoids re-renders while busy.
   const cursorRef = React.useRef(null)
@@ -122,7 +125,23 @@ function StatusHud({ fps, stats, viewerRef, cesiumRef, labels, readoutRef }) {
       h('span', { className: 'mv-hud-fps', title: t('hud.fpsTitle') }, 'FPS ', h('b', null, fps === null ? '—' : fps)),
       h('span', { className: 'mv-hud-cursor' }, `${labels.pointer} `, h('b', { ref: cursorRef }, t('hud.empty'))),
       h('span', { className: 'mv-hud-camera' }, `${labels.camera} `, h('b', null, stats.height)),
+      detailed
+        ? h('span', { className: 'mv-hud-heading' }, `${labels.heading} `, h('b', null, `${stats.heading} / ${stats.pitch}`))
+        : null,
     ),
+    detailed
+      ? (stats.layers ?? []).map((row) =>
+          h(
+            'div',
+            { key: row.id, className: 'row mv-hud-layer' },
+            h('b', null, row.name),
+            h('span', null, `${labels.tiles} `, h('b', null, formatCount(row.tiles))),
+            h('span', null, `${labels.pending} `, h('b', null, formatCount(row.pending))),
+            h('span', null, `${labels.triangles} `, h('b', null, formatCount(row.triangles))),
+            h('span', null, `${labels.cache} `, h('b', null, formatBytes(row.memory))),
+          ),
+        )
+      : null,
   )
 }
 

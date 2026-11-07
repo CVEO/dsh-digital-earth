@@ -41,9 +41,10 @@ test('窄面板：优先保留光标/高程主读数，隐藏次要遥测', () =
   assert.match(client, /className: 'row mv-hud-primary'/)
   assert.match(client, /className: 'mv-hud-camera'/)
   assert.match(client, /className: 'mv-hud-fps'/)
-  // v1.7 P0：朝向/俯仰与逐层统计移入图层面板的「场景详情」，HUD 常驻数字 ≤6。
-  assert.doesNotMatch(client, /className: 'mv-hud-heading'/)
-  assert.doesNotMatch(client, /className: 'row mv-hud-layer'/)
+  // v1.7 P0：默认 HUD 5 个数字；详细模式（设置开关，默认关）才恢复朝向/逐层统计。
+  assert.match(client, /className: 'mv-hud-heading'/)
+  assert.match(client, /className: 'row mv-hud-layer'/)
+  assert.match(client, /detailed: hudDetailed/)
   const panel = readRepoFile('src/client/ui/layers-panel.js')
   assert.match(panel, /className: 'mv-details'/)
   assert.match(panel, /t\('hud\.heading'\)/)
@@ -52,11 +53,12 @@ test('窄面板：优先保留光标/高程主读数，隐藏次要遥测', () =
   assert.match(client, /fps === null \? '—' : fps/)
 })
 
-test('HUD 主行只保留光标与高程读数（朝向/图层统计移入场景详情）', () => {
+test('HUD 主行默认只保留光标与高程读数，详细模式才加回朝向/图层统计', () => {
   const hud = readRepoFile('src/client/ui/hud.js')
   for (const marker of ['mv-hud-cursor', 'mv-hud-camera', 'labels.pointer', 'labels.camera', 'mv-hud-primary']) {
     assert.ok(hud.includes(marker), `HUD 缺少 ${marker}`)
   }
-  assert.equal(hud.includes('mv-hud-heading'), false, '朝向读数已移入场景详情')
-  assert.equal(hud.includes('mv-hud-layer'), false, '逐层统计已移入场景详情')
+  assert.match(hud, /detailed = false/, '详细模式必须默认关闭')
+  assert.match(hud, /detailed\s*\?\s*h\('span', \{ className: 'mv-hud-heading' \}/)
+  assert.match(hud, /detailed\s*\?\s*\(stats\.layers \?\? \[\]\)\.map/)
 })

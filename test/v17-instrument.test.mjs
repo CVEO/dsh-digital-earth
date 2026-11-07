@@ -11,15 +11,16 @@ import assert from 'node:assert/strict'
 import { clientSource, readRepoFile } from './helpers/source.mjs'
 import { MESSAGES } from '../src/client/messages.js'
 
-test('HUD ≤6 个常驻数字：FPS + 光标经纬/高程 + 相机高度，遥测移入场景详情', () => {
+test('HUD 默认 ≤6 个常驻数字：详细模式才加朝向与逐层统计', () => {
   const hud = readRepoFile('src/client/ui/hud.js')
-  // One primary row with three value slots: fps, cursor (lon/lat/elevation), camera height.
-  assert.equal((hud.match(/h\('b'/g) ?? []).length, 3)
-  assert.equal((hud.match(/h\('span'/g) ?? []).length, 3)
-  assert.match(hud, /Five numbers total/)
-  assert.doesNotMatch(hud, /mv-hud-heading/)
-  assert.doesNotMatch(hud, /mv-hud-layer/)
-  assert.doesNotMatch(hud, /formatCount|formatBytes/)
+  // Primary row: fps + cursor + camera height (3 value slots). Detailed mode
+  // adds heading/pitch (1) and one layer row (name + 4 counters = 5).
+  assert.equal((hud.match(/h\('b'/g) ?? []).length, 9)
+  assert.match(hud, /detailed = false/)
+  assert.match(hud, /detailed\s*\?\s*h\('span', \{ className: 'mv-hud-heading' \}/)
+  assert.match(hud, /detailed\s*\?\s*\(stats\.layers \?\? \[\]\)\.map/)
+  assert.match(hud, /formatCount\(row\.tiles\)/)
+  assert.match(hud, /formatBytes\(row\.memory\)/)
 
   const panel = readRepoFile('src/client/ui/layers-panel.js')
   assert.match(panel, /t\('layers\.details'\)/)
@@ -94,7 +95,7 @@ test('大气与相机节奏：地平线有大气，复位与框全使用自适�
 
 test('不回归：v1.6 的 HUD/图层/着色器接线仍在，新增面板未挤占既有入口', () => {
   const client = clientSource()
-  assert.match(client, /h\(StatusHud, \{ key: 'hud', fps, stats, viewerRef, cesiumRef, labels: hudLabels, readoutRef: captureReadoutRef \}\)/)
+  assert.match(client, /h\(StatusHud, \{ key: 'hud', fps, stats, viewerRef, cesiumRef, labels: hudLabels, readoutRef: captureReadoutRef, detailed: hudDetailed \}\)/)
   assert.match(client, /h\(LayersPanel, \{/)
   assert.match(client, /shaderActive,/)
   assert.match(client, /className: 'mv-hud mv-glass'/)

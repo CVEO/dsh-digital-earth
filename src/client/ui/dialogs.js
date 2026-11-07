@@ -432,6 +432,26 @@ const h = React.createElement
               })),
           }),
         ),
+        h(
+          'label',
+          { className: 'mv-toggle' },
+          h(
+            'span',
+            { className: 'text' },
+            h('b', null, t('settings.hudDetailed')),
+            h('span', null, t('settings.hudDetailedHint')),
+          ),
+          h('input', {
+            type: 'checkbox',
+            // Off by default: the instrument keeps five numbers unless asked.
+            checked: draft.settings.hudDetailed === true,
+            onChange: (event) =>
+              setDraft((current) => ({
+                ...current,
+                settings: { ...current.settings, hudDetailed: event.target.checked },
+              })),
+          }),
+        ),
       )
 
       const homepage = meta?.homepage ?? FALLBACK_ABOUT.homepage

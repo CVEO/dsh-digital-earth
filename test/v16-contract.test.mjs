@@ -38,6 +38,7 @@ test('catalog 契约：顶层四个字段固定（imagery / terrain / rasterOver
 test('catalog 契约：settings 键集合固定，新增项不得挤掉旧项', () => {
   const { settings } = normalizeConfig({})
   assert.deepEqual(Object.keys(settings).sort(), [
+    'hudDetailed',
     'imagery',
     'quality',
     'screenshotHud',
@@ -56,6 +57,7 @@ test('catalog 契约：settings 键集合固定，新增项不得挤掉旧项', 
   assert.equal(settings.showHud, true)
   assert.equal(settings.quality, 'balanced')
   assert.equal(settings.terrainDepthTest, false)
+  assert.equal(settings.hudDetailed, false)
 })
 
 test('catalog 契约：叠加层条目的字段允许集合固定（L3 面板与 Agent 都按它读）', () => {

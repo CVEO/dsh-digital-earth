@@ -384,6 +384,8 @@ var MESSAGES = {
     "settings.showLayersHint": "关闭后图层卡从画布上收起；仍可从工具栏的「图层」按钮重新展开。该偏好会写回数据源配置。",
     "settings.showHud": "显示坐标 HUD",
     "settings.showHudHint": "关闭后不渲染左下角的坐标/瓦片统计，并停止指针采样以节省性能。截图默认仍不叠加 HUD；该偏好会写回数据源配置。",
+    "settings.hudDetailed": "HUD 详细模式",
+    "settings.hudDetailedHint": "默认关闭：左下角只显示 FPS、光标读数与相机高度。打开后额外显示朝向 / 俯仰与逐层瓦片 / 待加载 / 三角面 / 缓存；该偏好会写回数据源配置。",
     "about.version": "版本",
     "about.homepage": "项目源码",
     "about.issues": "问题反馈",
@@ -789,6 +791,8 @@ var MESSAGES = {
     "settings.showLayersHint": "When off, the layer card collapses off the canvas; reopen it from the Layers button in the toolbar. The preference is written back to the sources config.",
     "settings.showHud": "Show the coordinate HUD",
     "settings.showHudHint": "When off, the bottom-left coordinates/tile statistics are not rendered and pointer sampling stops to save performance. Snapshots still hide the HUD by default; the preference is written back to the sources config.",
+    "settings.hudDetailed": "Detailed HUD",
+    "settings.hudDetailedHint": "Off by default: the bottom-left HUD shows FPS, the cursor readout and camera height only. Turn it on to add heading / pitch and per-layer tiles / pending / triangles / cache; the preference is written back to the sources config.",
     "about.version": "Version",
     "about.homepage": "Source code",
     "about.issues": "Report an issue",
@@ -6141,6 +6145,25 @@ function SourcesDialog({ config, defaults, environmentDark, themeMode, onPickLoc
           settings: { ...current.settings, showHud: event.target.checked }
         }))
       })
+    ),
+    h4(
+      "label",
+      { className: "mv-toggle" },
+      h4(
+        "span",
+        { className: "text" },
+        h4("b", null, t2("settings.hudDetailed")),
+        h4("span", null, t2("settings.hudDetailedHint"))
+      ),
+      h4("input", {
+        type: "checkbox",
+        // Off by default: the instrument keeps five numbers unless asked.
+        checked: draft.settings.hudDetailed === true,
+        onChange: (event) => setDraft((current) => ({
+          ...current,
+          settings: { ...current.settings, hudDetailed: event.target.checked }
+        }))
+      })
     )
   );
   const homepage = meta?.homepage ?? FALLBACK_ABOUT.homepage;
@@ -6405,7 +6428,7 @@ function PathAccessDialog({ request, busy, t: t2, onAllow, onDeny }) {
 // src/client/ui/hud.js
 var import_react6 = __toESM(require("react"), 1);
 var h5 = import_react6.default.createElement;
-function StatusHud({ fps, stats, viewerRef, cesiumRef, labels, readoutRef }) {
+function StatusHud({ fps, stats, viewerRef, cesiumRef, labels, readoutRef, detailed = false }) {
   const cursorRef = import_react6.default.useRef(null);
   import_react6.default.useEffect(() => {
     const viewer = viewerRef.current;
@@ -6496,8 +6519,20 @@ function StatusHud({ fps, stats, viewerRef, cesiumRef, labels, readoutRef }) {
       // honest, a 0 would suggest the scene renders nothing while idling.
       h5("span", { className: "mv-hud-fps", title: t("hud.fpsTitle") }, "FPS ", h5("b", null, fps === null ? "—" : fps)),
       h5("span", { className: "mv-hud-cursor" }, `${labels.pointer} `, h5("b", { ref: cursorRef }, t("hud.empty"))),
-      h5("span", { className: "mv-hud-camera" }, `${labels.camera} `, h5("b", null, stats.height))
-    )
+      h5("span", { className: "mv-hud-camera" }, `${labels.camera} `, h5("b", null, stats.height)),
+      detailed ? h5("span", { className: "mv-hud-heading" }, `${labels.heading} `, h5("b", null, `${stats.heading} / ${stats.pitch}`)) : null
+    ),
+    detailed ? (stats.layers ?? []).map(
+      (row) => h5(
+        "div",
+        { key: row.id, className: "row mv-hud-layer" },
+        h5("b", null, row.name),
+        h5("span", null, `${labels.tiles} `, h5("b", null, formatCount(row.tiles))),
+        h5("span", null, `${labels.pending} `, h5("b", null, formatCount(row.pending))),
+        h5("span", null, `${labels.triangles} `, h5("b", null, formatCount(row.triangles))),
+        h5("span", null, `${labels.cache} `, h5("b", null, formatBytes(row.memory)))
+      )
+    ) : null
   );
 }
 
@@ -9483,7 +9518,16 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     openMenu === id ? h9("div", { className: "mv-menu-panel mv-glass" }, items) : null
   );
   const status = busy || (phase === "loading" ? t2("panel.status.loading") : layers.length ? t2("panel.status.layers", { n: layers.length }) : t2("panel.status.ready"));
-  const hudLabels = { pointer: t2("hud.pointer"), camera: t2("hud.camera") };
+  const hudLabels = {
+    pointer: t2("hud.pointer"),
+    camera: t2("hud.camera"),
+    heading: t2("hud.heading"),
+    tiles: t2("hud.tiles"),
+    pending: t2("hud.pending"),
+    triangles: t2("hud.triangles"),
+    cache: t2("hud.cache")
+  };
+  const hudDetailed = sources?.settings?.hudDetailed === true;
   const workbench = createWorkbenchWiring({
     getForm: () => shaderForm,
     getLayers: () => layers,
@@ -9837,7 +9881,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
         h9("div", { className: "buttons" }, h9("button", { type: "button", className: "mv-cta", onClick: () => location.reload() }, t2("btn.retry")))
       )
     ) : null,
-    stats && showHud ? h9(StatusHud, { key: "hud", fps, stats, viewerRef, cesiumRef, labels: hudLabels, readoutRef: captureReadoutRef }) : null,
+    stats && showHud ? h9(StatusHud, { key: "hud", fps, stats, viewerRef, cesiumRef, labels: hudLabels, readoutRef: captureReadoutRef, detailed: hudDetailed }) : null,
     measureInfo ? h9("div", { key: "measure", className: "mv-measure mv-glass" }, measureInfo.text) : null,
     pickInfo ? h9(
       "div",

@@ -2315,9 +2315,18 @@ const h = React.createElement
         )
 
       const status = busy || (phase === 'loading' ? t('panel.status.loading') : layers.length ? t('panel.status.layers', { n: layers.length }) : t('panel.status.ready'))
-      // v1.7 P0: the HUD keeps only three readouts (fps + pointer + camera
-      // height); heading/pitch and layer counters live in the panel's details.
-      const hudLabels = { pointer: t('hud.pointer'), camera: t('hud.camera') }
+      // v1.7 P0: the HUD keeps five readouts by default; the detailed mode
+      // (Settings → Appearance, off by default) restores the old telemetry.
+      const hudLabels = {
+        pointer: t('hud.pointer'),
+        camera: t('hud.camera'),
+        heading: t('hud.heading'),
+        tiles: t('hud.tiles'),
+        pending: t('hud.pending'),
+        triangles: t('hud.triangles'),
+        cache: t('hud.cache'),
+      }
+      const hudDetailed = sources?.settings?.hudDetailed === true
 
       // B3 workbench wiring lives in src/client/ui/workbench-wiring.js; this
       // component only owns the form state and the scene refs the wiring needs.
@@ -2698,7 +2707,7 @@ const h = React.createElement
             )
           : null,
         stats && showHud
-          ? h(StatusHud, { key: 'hud', fps, stats, viewerRef, cesiumRef, labels: hudLabels, readoutRef: captureReadoutRef })
+          ? h(StatusHud, { key: 'hud', fps, stats, viewerRef, cesiumRef, labels: hudLabels, readoutRef: captureReadoutRef, detailed: hudDetailed })
           : null,
         measureInfo ? h('div', { key: 'measure', className: 'mv-measure mv-glass' }, measureInfo.text) : null,
         pickInfo
