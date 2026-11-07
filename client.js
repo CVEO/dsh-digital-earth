@@ -71,18 +71,11 @@ var V17_MESSAGES = {
     "selection.objectHeight": "高度估计（几何）",
     "selection.aboveMedian": "高于邻域表面中位数",
     "selection.sampled": "邻域 {n} 点抽样",
-    "selection.sampling": "邻域表面采样 {count} 点（{radii} m × 8 方位，含屋顶）· 高程基准 WGS84 椭球",
-    "selection.unknowns": "属性未知",
-    "selection.unknown.name": "名称",
-    "selection.unknown.use": "用途",
-    "selection.unknown.ownership": "权属",
-    "selection.unknown.footprint": "占地范围",
-    "selection.limit.tile_feature_only": "命中级别为整块瓦片，未达到单体建筑",
-    "selection.limit.no_feature_name": "要素不含名称属性",
-    "selection.limit.no_building_identity": "数据不含要素 ID / 用途等属性",
-    "selection.limit.too_few_height_samples": "邻域可用样本不足，高度估计不可用",
-    "selection.limit.neighbour_sampled_height": "高度为邻域采样的几何估计，非测绘值",
-    "selection.limit.layer_source_unknown": "来源图层已移除",
+    "selection.sampling": "邻域表面采样 {count} 点（{radii} m × 8 方位）",
+    "selection.samplingHint": "邻域表面采样（含屋顶）；高程基准为 WGS84 椭球",
+    "selection.footnote": "高度为邻域采样的几何估计；数据不含要素级属性。",
+    "selection.flyHint": "相机飞近至该点上方约 120 m，俯角 -35°",
+    "selection.measureHint": "进入高度量测，并把该点预填为第一个点",
     "selection.confidence.high": "高置信度",
     "selection.confidence.medium": "中置信度",
     "selection.confidence.low": "低置信度",
@@ -90,7 +83,7 @@ var V17_MESSAGES = {
     "selection.measure": "高度量测",
     "selection.takeAway": "导出证据",
     "selection.exporting": "正在导出…",
-    "selection.exportHint": "导出证据 = 干净截图 PNG + 证据 JSON（坐标 / 高程 / 采样 / 来源 / 未知）。",
+    "selection.exportHint": "导出干净截图 PNG + 证据 JSON（坐标 / 高程 / 采样 / 来源 / 未知）",
     "selection.saved": "证据包已写入：{path}",
     "selection.saveFailed": "导出失败：{message}",
     "selection.noSurface": "此处无可用表面采样，请换一处。",
@@ -130,18 +123,11 @@ var V17_MESSAGES = {
     "selection.objectHeight": "Height estimate (geometric)",
     "selection.aboveMedian": "Above neighbourhood surface median",
     "selection.sampled": "from {n} neighbourhood samples",
-    "selection.sampling": "{count}-point neighbourhood surface sampling ({radii} m × 8 bearings, roofs included) · WGS84 ellipsoidal heights",
-    "selection.unknowns": "Unknown attributes",
-    "selection.unknown.name": "name",
-    "selection.unknown.use": "use",
-    "selection.unknown.ownership": "tenure",
-    "selection.unknown.footprint": "footprint extent",
-    "selection.limit.tile_feature_only": "Whole-tile hit; not a single building",
-    "selection.limit.no_feature_name": "Feature carries no name property",
-    "selection.limit.no_building_identity": "Data has no feature ID / use attributes",
-    "selection.limit.too_few_height_samples": "Too few neighbourhood samples; height estimate unavailable",
-    "selection.limit.neighbour_sampled_height": "Height is a neighbourhood-sampled geometric estimate, not a survey value",
-    "selection.limit.layer_source_unknown": "Source layer was removed",
+    "selection.sampling": "{count}-point neighbourhood surface sampling ({radii} m × 8 bearings)",
+    "selection.samplingHint": "Neighbourhood surface sampling (roofs included); heights are WGS84 ellipsoidal",
+    "selection.footnote": "Height is a neighbourhood-sampled geometric estimate; the data carries no feature-level attributes.",
+    "selection.flyHint": "Fly the camera to about 120 m above the point, pitch -35°",
+    "selection.measureHint": "Start a height measurement with this point prefilled",
     "selection.confidence.high": "High confidence",
     "selection.confidence.medium": "Medium confidence",
     "selection.confidence.low": "Low confidence",
@@ -149,7 +135,7 @@ var V17_MESSAGES = {
     "selection.measure": "Measure height",
     "selection.takeAway": "Export evidence",
     "selection.exporting": "Exporting…",
-    "selection.exportHint": "Export evidence = a clean PNG plus an evidence JSON (position / elevation / sampling / source / unknowns).",
+    "selection.exportHint": "Export a clean PNG plus an evidence JSON (position / elevation / sampling / source / unknowns)",
     "selection.saved": "Evidence pack written: {path}",
     "selection.saveFailed": "Export failed: {message}",
     "selection.noSurface": "No usable surface sample here - pick another point.",
@@ -5730,14 +5716,11 @@ var CSS = `
 .mv-sel-conf.high{color:#4ade80}
 .mv-sel-conf.medium{color:#f0b84b}
 .mv-sel-conf.low{color:#ff8b8b}
-.mv-select .sampling{font-size:10.5px;color:var(--mv-dim);line-height:1.45}
-.mv-select .unknowns{font-size:10.5px;line-height:1.5;color:color-mix(in srgb,#f0b84b 72%,var(--mv-text))}
-.mv-select .limits{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px;font-size:10.5px;line-height:1.45;color:var(--mv-dim)}
-.mv-select .limits li::before{content:"· ";color:var(--mv-dim)}
+.mv-select .sampling{font-size:10px;color:var(--mv-dim);line-height:1.45}
+.mv-select .footnote{margin:0;font-size:9.5px;line-height:1.45;color:color-mix(in srgb,var(--mv-dim) 78%,transparent)}
 .mv-select .actions{display:flex;gap:6px;margin-top:2px}
 .mv-select .actions .mv-cta{flex:1;padding:6px 8px;font-size:11.5px;white-space:nowrap}
 .mv-select .actions .mv-cta:disabled{opacity:.5;cursor:default}
-.mv-select .hint{margin:0;font-size:10px;color:var(--mv-dim);line-height:1.45}
 .mv-select-loading{flex-direction:row;align-items:center;gap:9px;font-size:11.5px;color:var(--mv-dim)}
 .mv-select-loading .mv-spinner{width:14px;height:14px;border-width:2px}
 .mv-select-error{font-size:11.5px;line-height:1.5;color:color-mix(in srgb,#ff8b8b 78%,var(--mv-text));border-left:2px solid #ff8b8b;padding-left:8px}
@@ -7400,9 +7383,9 @@ function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t: t2, s
     const tier = CONFIDENCE_TIER[basis] ?? CONFIDENCE_TIER.inferred;
     return h7("span", { className: `mv-sel-conf ${tier.tone}`, title: t2(tier.key) }, t2(tier.key));
   };
-  const unknowns = Array.isArray(card?.unknowns) ? card.unknowns : [];
   const limitations = Array.isArray(card?.limitations) ? card.limitations : [];
   const radii = card?.sampling?.radii_m ?? [30, 60, 120];
+  const showFootnote = limitations.includes("no_building_identity") || limitations.includes("tile_feature_only");
   return h7(
     import_react9.default.Fragment,
     null,
@@ -7473,26 +7456,23 @@ function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t: t2, s
           confidenceChip(above.basis)
         ) : null
       ),
-      h7("p", { className: "sampling" }, t2("selection.sampling", { count: card.sampling?.count ?? 0, radii: radii.join("/") })),
-      unknowns.length ? h7(
+      h7(
         "p",
-        { className: "unknowns" },
-        h7("span", null, `${t2("selection.unknowns")}：`),
-        unknowns.map((code) => t2(`selection.unknown.${code}`)).join(" / ")
-      ) : null,
-      limitations.length ? h7(
-        "ul",
-        { className: "limits" },
-        limitations.slice(0, 3).map((code) => h7("li", { key: code }, t2(`selection.limit.${code}`)))
-      ) : null,
+        { className: "sampling", title: t2("selection.samplingHint") },
+        t2("selection.sampling", { count: card.sampling?.count ?? 0, radii: radii.join("/") })
+      ),
+      showFootnote ? h7("p", { className: "footnote" }, t2("selection.footnote")) : null,
       h7(
         "div",
         { className: "actions" },
-        h7("button", { type: "button", className: "mv-cta", onClick: flyNear }, t2("selection.fly")),
-        h7("button", { type: "button", className: "mv-cta", onClick: measure }, t2("selection.measure")),
-        h7("button", { type: "button", className: "mv-cta primary", disabled: exporting, onClick: takeAway }, exporting ? t2("selection.exporting") : t2("selection.takeAway"))
-      ),
-      h7("p", { className: "hint" }, t2("selection.exportHint"))
+        h7("button", { type: "button", className: "mv-cta", title: t2("selection.flyHint"), onClick: flyNear }, t2("selection.fly")),
+        h7("button", { type: "button", className: "mv-cta", title: t2("selection.measureHint"), onClick: measure }, t2("selection.measure")),
+        h7(
+          "button",
+          { type: "button", className: "mv-cta primary", title: t2("selection.exportHint"), disabled: exporting, onClick: takeAway },
+          exporting ? t2("selection.exporting") : t2("selection.takeAway")
+        )
+      )
     ) : null,
     active && !card && !busy && errorLine === "" ? h7("div", { className: "mv-sel-hint mv-glass" }, t2("selection.hint")) : null
   );

@@ -200,9 +200,12 @@ export function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t
     const tier = CONFIDENCE_TIER[basis] ?? CONFIDENCE_TIER.inferred
     return h('span', { className: `mv-sel-conf ${tier.tone}`, title: t(tier.key) }, t(tier.key))
   }
-  const unknowns = Array.isArray(card?.unknowns) ? card.unknowns : []
   const limitations = Array.isArray(card?.limitations) ? card.limitations : []
   const radii = card?.sampling?.radii_m ?? [30, 60, 120]
+  // The card stays quiet: only the one caveat a user must not miss stays visible,
+  // and it is a single small line. The full unknowns/limitations still travel in
+  // the exported evidence JSON.
+  const showFootnote = limitations.includes('no_building_identity') || limitations.includes('tile_feature_only')
 
   return h(
     React.Fragment,
@@ -284,30 +287,23 @@ export function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t
                 )
               : null,
           ),
-          h('p', { className: 'sampling' }, t('selection.sampling', { count: card.sampling?.count ?? 0, radii: radii.join('/') })),
-          unknowns.length
-            ? h(
-                'p',
-                { className: 'unknowns' },
-                h('span', null, `${t('selection.unknowns')}：`),
-                unknowns.map((code) => t(`selection.unknown.${code}`)).join(' / '),
-              )
-            : null,
-          limitations.length
-            ? h(
-                'ul',
-                { className: 'limits' },
-                limitations.slice(0, 3).map((code) => h('li', { key: code }, t(`selection.limit.${code}`))),
-              )
-            : null,
+          h(
+            'p',
+            { className: 'sampling', title: t('selection.samplingHint') },
+            t('selection.sampling', { count: card.sampling?.count ?? 0, radii: radii.join('/') }),
+          ),
+          showFootnote ? h('p', { className: 'footnote' }, t('selection.footnote')) : null,
           h(
             'div',
             { className: 'actions' },
-            h('button', { type: 'button', className: 'mv-cta', onClick: flyNear }, t('selection.fly')),
-            h('button', { type: 'button', className: 'mv-cta', onClick: measure }, t('selection.measure')),
-            h('button', { type: 'button', className: 'mv-cta primary', disabled: exporting, onClick: takeAway }, exporting ? t('selection.exporting') : t('selection.takeAway')),
+            h('button', { type: 'button', className: 'mv-cta', title: t('selection.flyHint'), onClick: flyNear }, t('selection.fly')),
+            h('button', { type: 'button', className: 'mv-cta', title: t('selection.measureHint'), onClick: measure }, t('selection.measure')),
+            h(
+              'button',
+              { type: 'button', className: 'mv-cta primary', title: t('selection.exportHint'), disabled: exporting, onClick: takeAway },
+              exporting ? t('selection.exporting') : t('selection.takeAway'),
+            ),
           ),
-          h('p', { className: 'hint' }, t('selection.exportHint')),
         )
       : null,
     active && !card && !busy && errorLine === ''
