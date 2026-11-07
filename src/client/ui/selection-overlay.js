@@ -237,7 +237,7 @@ export function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t
           h(
             'header',
             null,
-            h('span', { className: 'kind' }, t(`selection.kind.${card.identity?.kind ?? 'scene'}`)),
+            h('span', { className: 'kind' }, t('selection.resultLabel')),
             h(
               'button',
               { type: 'button', className: 'mv-icon-btn', title: t('btn.close'), 'aria-label': t('btn.close'), onClick: () => { setCard(null); anchorRef.current = null } },
@@ -275,7 +275,7 @@ export function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t
               ? h(
                   'div',
                   { className: 'fact' },
-                  h('span', { className: 'key' }, t('selection.aboveMedian')),
+                  h('span', { className: 'key', title: t('selection.aboveMedianHint') }, t('selection.aboveMedian')),
                   h(
                     'b',
                     null,
