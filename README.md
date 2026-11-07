@@ -170,7 +170,6 @@ dsh-digital-earth/
 ├── src/client/         # 客户端源码：场景面板、工具栏、对话框、着色器/分析、i18n
 ├── client.js           # 客户端产物（由 npm run build:client 生成，勿手改）
 ├── scripts/            # build-client（esbuild 打包）与 check-size（架构预算门禁）
-├── docs/               # 审计、冻结需求、方向与协议调研、交付验证清单（不随包发布）
 ├── test/               # 模块单测 / 契约测试 / 产物冒烟
 ├── cordis.patch.yml    # bundle 补丁
 ├── locale/             # 插件市场元数据（中 / 英）

@@ -16,3 +16,5 @@ roof_task/
 *.laz
 # Personal career notes about this project: never shipped, never published.
 数字地球项目-简历包装*.md
+# Development notes, plans, audits and research: local-only, never pushed or published.
+docs/
