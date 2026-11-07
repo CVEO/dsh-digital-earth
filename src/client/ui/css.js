@@ -342,10 +342,10 @@
 .mv-select .fact .key{color:var(--mv-dim);flex:none}
 .mv-select .fact b{font-weight:600;font-variant-numeric:tabular-nums}
 .mv-select .fact em{flex:1;min-width:0;text-align:right;font-style:normal;font-size:10.5px;color:var(--mv-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.mv-sel-dot{flex:none;width:6px;height:6px;border-radius:50%;margin-top:5px}
-.mv-sel-dot.certain{background:#4ade80}
-.mv-sel-dot.likely{background:#7dd3fc}
-.mv-sel-dot.guess{background:#f0b84b}
+.mv-select .fact .mv-sel-conf{margin-left:auto;flex:none;font-size:9.5px;line-height:1;padding:2px 5px;border-radius:5px;border:1px solid color-mix(in srgb,currentColor 45%,transparent);background:color-mix(in srgb,currentColor 12%,transparent);white-space:nowrap}
+.mv-sel-conf.high{color:#4ade80}
+.mv-sel-conf.medium{color:#f0b84b}
+.mv-sel-conf.low{color:#ff8b8b}
 .mv-select .sampling{font-size:10.5px;color:var(--mv-dim);line-height:1.45}
 .mv-select .unknowns{font-size:10.5px;line-height:1.5;color:color-mix(in srgb,#f0b84b 72%,var(--mv-text))}
 .mv-select .limits{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px;font-size:10.5px;line-height:1.45;color:var(--mv-dim)}

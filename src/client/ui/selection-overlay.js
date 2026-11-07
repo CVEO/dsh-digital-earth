@@ -13,8 +13,16 @@ import React from 'react'
 
 const h = React.createElement
 
-/** Confidence tiers shown next to each fact: measured / estimated / inferred. */
-const BASIS_LABEL = { measured: 'selection.basis.certain', estimated: 'selection.basis.likely', inferred: 'selection.basis.guess' }
+/**
+ * Confidence tiers shown on each fact: one chip, colour-coded green / amber / red
+ * for high / medium / low. The wording is deliberately "confidence", not
+ * "certain / likely / guessed": a geometric estimate is still an estimate.
+ */
+const CONFIDENCE_TIER = {
+  measured: { key: 'selection.confidence.high', tone: 'high' },
+  estimated: { key: 'selection.confidence.medium', tone: 'medium' },
+  inferred: { key: 'selection.confidence.low', tone: 'low' },
+}
 
 function factOf(card, key) {
   const facts = Array.isArray(card?.facts) ? card.facts : []
@@ -169,11 +177,10 @@ export function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t
   const surface = factOf(card, 'surface_height')
   const object = factOf(card, 'object_height')
   const above = factOf(card, 'above_median')
-  const dot = (basis) =>
-    h(
-      'span',
-      { className: `mv-sel-dot ${basis === 'measured' ? 'certain' : basis === 'estimated' ? 'likely' : 'guess'}`, title: t(BASIS_LABEL[basis] ?? BASIS_LABEL.inferred) },
-    )
+  const confidenceChip = (basis) => {
+    const tier = CONFIDENCE_TIER[basis] ?? CONFIDENCE_TIER.inferred
+    return h('span', { className: `mv-sel-conf ${tier.tone}`, title: t(tier.key) }, t(tier.key))
+  }
   const unknowns = Array.isArray(card?.unknowns) ? card.unknowns : []
   const limitations = Array.isArray(card?.limitations) ? card.limitations : []
   const radii = card?.sampling?.radii_m ?? [30, 60, 120]
@@ -228,28 +235,27 @@ export function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t
               ? h(
                   'div',
                   { className: 'fact' },
-                  dot('measured'),
                   h('span', { className: 'key' }, t('selection.surfaceHeight')),
                   h('b', null, numberText(surface.value)),
+                  confidenceChip('measured'),
                 )
               : null,
             object
               ? h(
                   'div',
                   { className: 'fact' },
-                  dot(object.basis),
                   h('span', { className: 'key' }, t('selection.objectHeight')),
                   h('b', null, numberText(object.value)),
-                  h('em', null, t('selection.sampled', { n: object.sample_count ?? 0 })),
+                  confidenceChip(object.basis),
                 )
               : null,
             above
               ? h(
                   'div',
                   { className: 'fact' },
-                  dot(above.basis),
                   h('span', { className: 'key' }, t('selection.aboveMedian')),
                   h('b', null, typeof above.value === 'number' ? `${above.value > 0 ? '+' : ''}${above.value} m` : '—'),
+                  confidenceChip(above.basis),
                 )
               : null,
           ),

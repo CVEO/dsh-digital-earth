@@ -80,9 +80,9 @@ var V17_MESSAGES = {
     "selection.limit.too_few_height_samples": "可采样周边太少，高度估计不可靠",
     "selection.limit.neighbour_sampled_height": "高度来自周边采样，是几何估计，不是测绘值",
     "selection.limit.layer_source_unknown": "来源图层已卸载",
-    "selection.basis.certain": "确定（来源数据）",
-    "selection.basis.likely": "很可能（几何估计）",
-    "selection.basis.guess": "我猜（视觉推断）",
+    "selection.confidence.high": "高置信度",
+    "selection.confidence.medium": "中置信度",
+    "selection.confidence.low": "低置信度",
     "selection.fly": "飞近看",
     "selection.measure": "量一下",
     "selection.takeAway": "取走",
@@ -136,9 +136,9 @@ var V17_MESSAGES = {
     "selection.limit.too_few_height_samples": "Too few usable neighbour samples; height estimate is unreliable",
     "selection.limit.neighbour_sampled_height": "Height comes from neighbour sampling: a geometric estimate, not a survey value",
     "selection.limit.layer_source_unknown": "Source layer is no longer loaded",
-    "selection.basis.certain": "Certain (source data)",
-    "selection.basis.likely": "Likely (geometric estimate)",
-    "selection.basis.guess": "Guess (visual inference)",
+    "selection.confidence.high": "High confidence",
+    "selection.confidence.medium": "Medium confidence",
+    "selection.confidence.low": "Low confidence",
     "selection.fly": "Fly closer",
     "selection.measure": "Measure",
     "selection.takeAway": "Take away",
@@ -5720,10 +5720,10 @@ var CSS = `
 .mv-select .fact .key{color:var(--mv-dim);flex:none}
 .mv-select .fact b{font-weight:600;font-variant-numeric:tabular-nums}
 .mv-select .fact em{flex:1;min-width:0;text-align:right;font-style:normal;font-size:10.5px;color:var(--mv-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.mv-sel-dot{flex:none;width:6px;height:6px;border-radius:50%;margin-top:5px}
-.mv-sel-dot.certain{background:#4ade80}
-.mv-sel-dot.likely{background:#7dd3fc}
-.mv-sel-dot.guess{background:#f0b84b}
+.mv-select .fact .mv-sel-conf{margin-left:auto;flex:none;font-size:9.5px;line-height:1;padding:2px 5px;border-radius:5px;border:1px solid color-mix(in srgb,currentColor 45%,transparent);background:color-mix(in srgb,currentColor 12%,transparent);white-space:nowrap}
+.mv-sel-conf.high{color:#4ade80}
+.mv-sel-conf.medium{color:#f0b84b}
+.mv-sel-conf.low{color:#ff8b8b}
 .mv-select .sampling{font-size:10.5px;color:var(--mv-dim);line-height:1.45}
 .mv-select .unknowns{font-size:10.5px;line-height:1.5;color:color-mix(in srgb,#f0b84b 72%,var(--mv-text))}
 .mv-select .limits{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px;font-size:10.5px;line-height:1.45;color:var(--mv-dim)}
@@ -7242,7 +7242,11 @@ function LoadingGlobe() {
 // src/client/ui/selection-overlay.js
 var import_react9 = __toESM(require("react"), 1);
 var h7 = import_react9.default.createElement;
-var BASIS_LABEL = { measured: "selection.basis.certain", estimated: "selection.basis.likely", inferred: "selection.basis.guess" };
+var CONFIDENCE_TIER = {
+  measured: { key: "selection.confidence.high", tone: "high" },
+  estimated: { key: "selection.confidence.medium", tone: "medium" },
+  inferred: { key: "selection.confidence.low", tone: "low" }
+};
 function factOf(card, key) {
   const facts = Array.isArray(card?.facts) ? card.facts : [];
   return facts.find((fact) => fact && fact.key === key) ?? null;
@@ -7377,10 +7381,10 @@ function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t: t2, s
   const surface = factOf(card, "surface_height");
   const object = factOf(card, "object_height");
   const above = factOf(card, "above_median");
-  const dot = (basis) => h7(
-    "span",
-    { className: `mv-sel-dot ${basis === "measured" ? "certain" : basis === "estimated" ? "likely" : "guess"}`, title: t2(BASIS_LABEL[basis] ?? BASIS_LABEL.inferred) }
-  );
+  const confidenceChip = (basis) => {
+    const tier = CONFIDENCE_TIER[basis] ?? CONFIDENCE_TIER.inferred;
+    return h7("span", { className: `mv-sel-conf ${tier.tone}`, title: t2(tier.key) }, t2(tier.key));
+  };
   const unknowns = Array.isArray(card?.unknowns) ? card.unknowns : [];
   const limitations = Array.isArray(card?.limitations) ? card.limitations : [];
   const radii = card?.sampling?.radii_m ?? [30, 60, 120];
@@ -7431,24 +7435,23 @@ function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t: t2, s
         surface ? h7(
           "div",
           { className: "fact" },
-          dot("measured"),
           h7("span", { className: "key" }, t2("selection.surfaceHeight")),
-          h7("b", null, numberText(surface.value))
+          h7("b", null, numberText(surface.value)),
+          confidenceChip("measured")
         ) : null,
         object ? h7(
           "div",
           { className: "fact" },
-          dot(object.basis),
           h7("span", { className: "key" }, t2("selection.objectHeight")),
           h7("b", null, numberText(object.value)),
-          h7("em", null, t2("selection.sampled", { n: object.sample_count ?? 0 }))
+          confidenceChip(object.basis)
         ) : null,
         above ? h7(
           "div",
           { className: "fact" },
-          dot(above.basis),
           h7("span", { className: "key" }, t2("selection.aboveMedian")),
-          h7("b", null, typeof above.value === "number" ? `${above.value > 0 ? "+" : ""}${above.value} m` : "—")
+          h7("b", null, typeof above.value === "number" ? `${above.value > 0 ? "+" : ""}${above.value} m` : "—"),
+          confidenceChip(above.basis)
         ) : null
       ),
       h7("p", { className: "sampling" }, t2("selection.sampling", { count: card.sampling?.count ?? 0, radii: radii.join("/") })),

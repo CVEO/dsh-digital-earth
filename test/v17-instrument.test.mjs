@@ -9,6 +9,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 
 import { clientSource, readRepoFile } from './helpers/source.mjs'
+import { MESSAGES } from '../src/client/messages.js'
 
 test('HUD ≤6 个常驻数字：FPS + 光标经纬/高程 + 相机高度，遥测移入场景详情', () => {
   const hud = readRepoFile('src/client/ui/hud.js')
@@ -57,10 +58,21 @@ test('指认卡片接线：三个动作都真实可用（无假按钮）', () =>
   assert.match(overlay, /flyTo\(\{[\s\S]*?pitch: Cesium\.Math\.toRadians\(-35\)/)
   assert.match(overlay, /renderSnapshot\(\{ format: 'png' \}\)/)
   assert.match(overlay, /controller\.exportEvidence\(card, snapshot\)/)
-  // Three confidence tiers, no fake precision.
-  assert.match(overlay, /selection\.basis\.certain/)
-  assert.match(overlay, /selection\.basis\.likely/)
-  assert.match(overlay, /selection\.basis\.guess/)
+  // Confidence is a red / amber / green high / medium / low chip; the card never
+  // says "certain / likely / guessed".
+  assert.match(overlay, /selection\.confidence\.high/)
+  assert.match(overlay, /selection\.confidence\.medium/)
+  assert.match(overlay, /selection\.confidence\.low/)
+  assert.match(overlay, /mv-sel-conf \$\{tier\.tone\}/)
+  assert.equal(MESSAGES.zh['selection.confidence.high'], '高置信度')
+  assert.equal(MESSAGES.zh['selection.confidence.medium'], '中置信度')
+  assert.equal(MESSAGES.zh['selection.confidence.low'], '低置信度')
+  assert.doesNotMatch(JSON.stringify(MESSAGES.zh), /确定（来源数据）|很可能（几何估计）|我猜（视觉推断）/)
+  const cssSource = readRepoFile('src/client/ui/css.js')
+  assert.match(cssSource, /\.mv-sel-conf\.high\{color:#4ade80\}/)
+  assert.match(cssSource, /\.mv-sel-conf\.medium\{color:#f0b84b\}/)
+  assert.match(cssSource, /\.mv-sel-conf\.low\{color:#ff8b8b\}/)
+  assert.doesNotMatch(cssSource, /mv-sel-dot/)
 
   const client = clientSource()
   assert.match(client, /iconButton\(h\(IdentifyIcon\), t\('btn\.identifyHint'\), \(\) => setToolMode\(tool === 'identify' \? null : 'identify'\), tool === 'identify'\)/)
