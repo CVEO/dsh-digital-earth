@@ -302,6 +302,8 @@ var MESSAGES = {
     "measure.distance": "总长 {value} · 双击结束",
     "measure.area": "面积 {value} · 双击结束",
     "measure.height": "高差 {value} · 水平距 {distance}",
+    "measure.end": "结束",
+    "measure.endHint": "结束当前量测（Esc）",
     "measure.total": "总长 {value}",
     "measure.areaLabel": "面积 {value}",
     "pick.title": "拾取对象",
@@ -709,6 +711,8 @@ var MESSAGES = {
     "measure.distance": "Total {value} · double-click to finish",
     "measure.area": "Area {value} · double-click to finish",
     "measure.height": "Δh {value} · horizontal {distance}",
+    "measure.end": "End",
+    "measure.endHint": "End the current measurement (Esc)",
     "measure.total": "Total {value}",
     "measure.areaLabel": "Area {value}",
     "pick.title": "Picked object",
@@ -5410,7 +5414,7 @@ var CSS = `
 .mv-menu-item .check{font-size:11px}
 .mv-menu-label{padding:4px 10px 2px;font-size:10.5px;line-height:1.4;letter-spacing:.04em;color:var(--mv-dim);white-space:nowrap}
 .mv-menu-item .ellipsis{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.mv-urlbar{position:absolute;top:58px;left:50%;transform:translateX(-50%);display:flex;gap:6px;padding:6px;border-radius:11px;z-index:12;width:min(640px,82%)}
+.mv-urlbar{position:absolute;top:58px;left:0;right:0;margin:0 auto;display:flex;gap:6px;padding:6px;border-radius:11px;z-index:12;width:min(640px,82%)}
 .mv-urlbar input{flex:1;min-width:0;background:var(--mv-input);border:.5px solid var(--mv-line);color:var(--mv-text);border-radius:7px;padding:7px 9px;font:inherit;font-size:12px;outline:none}
 .mv-urlbar input:focus{border-color:var(--mv-accent)}
 .mv-urlbar button{appearance:none;border:.5px solid var(--mv-line);background:var(--mv-lift);color:var(--mv-text);font:inherit;font-size:12px;padding:7px 13px;border-radius:7px;cursor:pointer}
@@ -5529,8 +5533,10 @@ var CSS = `
 .mv-pick table{width:100%;border-collapse:collapse;font-size:11px;overflow:auto;display:block}
 .mv-pick td{padding:3px 9px;vertical-align:top;border-top:.5px solid var(--mv-line);word-break:break-all}
 .mv-pick td:first-child{color:var(--mv-dim);width:38%}
-.mv-measure{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);z-index:11;padding:6px 13px;border-radius:999px;font-size:11px;color:var(--mv-dim);white-space:nowrap;pointer-events:none}
-.mv-toast{position:absolute;left:50%;bottom:64px;transform:translateX(-50%);z-index:40;background:var(--mv-glass-strong);border:.5px solid var(--mv-line);color:var(--mv-text);padding:8px 14px;border-radius:9px;font-size:12px;max-width:72%;word-break:break-all;box-shadow:var(--mv-shadow)}
+.mv-measure{position:absolute;left:0;right:0;margin:0 auto;width:max-content;bottom:16px;z-index:11;padding:7px 14px;border-radius:999px;font-size:12px;font-weight:500;line-height:1.35;color:var(--mv-text);white-space:nowrap;pointer-events:none;display:flex;align-items:center;gap:10px;font-variant-numeric:tabular-nums;background:color-mix(in srgb,var(--mv-glass-strong) 94%,transparent);border:.5px solid color-mix(in srgb,var(--mv-line) 80%,transparent);box-shadow:0 6px 18px rgba(0,0,0,.22);backdrop-filter:none;-webkit-backdrop-filter:none}
+.mv-measure-end{pointer-events:auto;appearance:none;border:.5px solid var(--mv-line);background:var(--mv-lift);color:var(--mv-text);font:inherit;font-size:11px;padding:3px 10px;border-radius:999px;cursor:pointer}
+.mv-measure-end:hover{border-color:var(--mv-accent);background:color-mix(in srgb,var(--mv-accent) 20%,transparent)}
+.mv-toast{position:absolute;left:0;right:0;margin:0 auto;width:max-content;bottom:64px;z-index:40;background:var(--mv-glass-strong);border:.5px solid var(--mv-line);color:var(--mv-text);padding:8px 14px;border-radius:9px;font-size:12px;max-width:72%;word-break:break-all;box-shadow:var(--mv-shadow)}
 .mv-overlay{position:absolute;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;padding:24px;background:var(--mv-overlay);pointer-events:none}
 .mv-overlay.dim{background:var(--mv-scrim)}
 .mv-empty{position:relative;display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center;max-width:470px;pointer-events:auto;padding:24px 28px;border-radius:16px;background:var(--mv-glass-strong);border:.5px solid var(--mv-line);box-shadow:0 24px 64px var(--mv-shadow)}
@@ -5702,7 +5708,7 @@ var CSS = `
 .mv-sel-anchor .c.br{left:15px;top:15px;border-left:0;border-top:0}
 .mv-sel-anchor .leader{position:absolute;left:0;top:14px;width:1px;height:52px;background:linear-gradient(180deg,rgba(125,211,252,.9),rgba(125,211,252,.02))}
 .mv-sel-anchor .chip{position:absolute;left:8px;top:38px;padding:2px 6px;border-radius:5px;background:rgba(6,12,20,.78);color:#d8ecff;font:inherit;font-size:10.5px;font-variant-numeric:tabular-nums;white-space:nowrap;border:.5px solid rgba(125,211,252,.35)}
-.mv-select{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);z-index:12;width:min(340px,calc(100% - 20px));border-radius:12px;padding:11px 13px 12px;display:flex;flex-direction:column;gap:7px;animation:mv-fade .2s cubic-bezier(.16,1,.3,1)}
+.mv-select{position:absolute;left:0;right:0;margin:0 auto;bottom:18px;z-index:12;width:min(340px,calc(100% - 20px));border-radius:12px;padding:11px 13px 12px;display:flex;flex-direction:column;gap:7px;animation:mv-fade .2s cubic-bezier(.16,1,.3,1)}
 .mv-select header{display:flex;align-items:center;justify-content:space-between;gap:8px;color:var(--mv-dim);font-size:10.5px;letter-spacing:.04em;text-transform:uppercase}
 .mv-select h3{margin:0;font-size:13px;font-weight:600;line-height:1.35;color:var(--mv-text)}
 .mv-select p{margin:0}
@@ -5724,8 +5730,8 @@ var CSS = `
 .mv-select-loading{flex-direction:row;align-items:center;gap:9px;font-size:11.5px;color:var(--mv-dim)}
 .mv-select-loading .mv-spinner{width:14px;height:14px;border-width:2px}
 .mv-select-error{font-size:11.5px;line-height:1.5;color:color-mix(in srgb,#ff8b8b 78%,var(--mv-text));border-left:2px solid #ff8b8b;padding-left:8px}
-.mv-sel-hint{position:absolute;left:50%;top:62px;transform:translateX(-50%);z-index:11;padding:6px 12px;border-radius:999px;font-size:11px;color:var(--mv-dim);pointer-events:none;white-space:nowrap;max-width:calc(100% - 24px);overflow:hidden;text-overflow:ellipsis}
-.mv-tour{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);z-index:12;width:min(560px,calc(100% - 20px));border-radius:12px;padding:9px 12px 10px;display:flex;flex-direction:column;gap:6px;animation:mv-fade .2s cubic-bezier(.16,1,.3,1)}
+.mv-sel-hint{position:absolute;left:0;right:0;margin:0 auto;width:max-content;top:62px;z-index:11;padding:6px 12px;border-radius:999px;font-size:11px;color:var(--mv-dim);pointer-events:none;white-space:nowrap;max-width:calc(100% - 24px);overflow:hidden;text-overflow:ellipsis}
+.mv-tour{position:absolute;left:0;right:0;margin:0 auto;bottom:18px;z-index:12;width:min(560px,calc(100% - 20px));border-radius:12px;padding:9px 12px 10px;display:flex;flex-direction:column;gap:6px;animation:mv-fade .2s cubic-bezier(.16,1,.3,1)}
 .mv-tour-head{display:flex;align-items:center;gap:8px}
 .mv-tour-head b{font-size:11px;font-weight:600;letter-spacing:.03em;color:var(--mv-dim);text-transform:uppercase}
 .mv-tour-progress{margin-left:auto;font-size:10.5px;color:var(--mv-dim);font-variant-numeric:tabular-nums}
@@ -7372,15 +7378,15 @@ function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t: t2, s
     const viewer = controller?.getViewer?.();
     const Cesium = controller?.getCesium?.();
     if (!viewer || !Cesium || !card) return;
+    const anchor = anchorRef.current;
+    const target = anchor ?? Cesium.Cartesian3.fromDegrees(card.point.lon, card.point.lat, card.point.surface_height_m ?? 0);
+    const range = 120;
+    const pitch = Cesium.Math.toRadians(-35);
+    const heading = viewer.camera.heading ?? 0;
     try {
-      viewer.camera.flyTo({
-        destination: Cesium.Cartesian3.fromDegrees(
-          card.point.lon,
-          card.point.lat,
-          (card.point.surface_height_m ?? 0) + 120
-        ),
-        orientation: { heading: 0, pitch: Cesium.Math.toRadians(-35), roll: 0 },
-        duration: 1.2
+      viewer.camera.flyToBoundingSphere(new Cesium.BoundingSphere(target, 2), {
+        offset: new Cesium.HeadingPitchRange(heading, pitch, range),
+        duration: 1.4
       });
       setCard(null);
       anchorRef.current = null;
@@ -9473,6 +9479,15 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [scan]);
+  const measureMode = tool === "distance" || tool === "area" || tool === "height";
+  import_react12.default.useEffect(() => {
+    if (!measureMode) return void 0;
+    const onKey = (event) => {
+      if (event.key === "Escape") setToolMode(null);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [measureMode]);
   import_react12.default.useEffect(() => {
     if (phase !== "ready") return void 0;
     let lastKey = "";
@@ -9882,7 +9897,22 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
       )
     ) : null,
     stats && showHud ? h9(StatusHud, { key: "hud", fps, stats, viewerRef, cesiumRef, labels: hudLabels, readoutRef: captureReadoutRef, detailed: hudDetailed }) : null,
-    measureInfo ? h9("div", { key: "measure", className: "mv-measure mv-glass" }, measureInfo.text) : null,
+    measureInfo ? h9(
+      "div",
+      { key: "measure", className: "mv-measure mv-glass" },
+      h9("span", { className: "text" }, measureInfo.text),
+      h9(
+        "button",
+        {
+          type: "button",
+          className: "mv-measure-end",
+          title: t2("measure.endHint"),
+          "aria-label": t2("measure.endHint"),
+          onClick: () => setToolMode(null)
+        },
+        t2("measure.end")
+      )
+    ) : null,
     pickInfo ? h9(
       "div",
       { key: "pick", className: "mv-pick mv-glass" },

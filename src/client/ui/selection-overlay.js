@@ -153,15 +153,19 @@ export function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t
     const viewer = controller?.getViewer?.()
     const Cesium = controller?.getCesium?.()
     if (!viewer || !Cesium || !card) return
+    // Frame the picked point itself (not "some height above its lon/lat"): a
+    // bounding sphere + HeadingPitchRange puts it in the view centre at a real
+    // 120 m distance. The old height+120 destination aimed the camera at a point
+    // beside the object, so the object drifted off-centre.
+    const anchor = anchorRef.current
+    const target = anchor ?? Cesium.Cartesian3.fromDegrees(card.point.lon, card.point.lat, card.point.surface_height_m ?? 0)
+    const range = 120
+    const pitch = Cesium.Math.toRadians(-35)
+    const heading = viewer.camera.heading ?? 0
     try {
-      viewer.camera.flyTo({
-        destination: Cesium.Cartesian3.fromDegrees(
-          card.point.lon,
-          card.point.lat,
-          (card.point.surface_height_m ?? 0) + 120,
-        ),
-        orientation: { heading: 0, pitch: Cesium.Math.toRadians(-35), roll: 0 },
-        duration: 1.2,
+      viewer.camera.flyToBoundingSphere(new Cesium.BoundingSphere(target, 2), {
+        offset: new Cesium.HeadingPitchRange(heading, pitch, range),
+        duration: 1.4,
       })
       setCard(null)
       anchorRef.current = null

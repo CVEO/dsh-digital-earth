@@ -56,7 +56,7 @@ test('指认卡片接线：三个动作都真实可用（无假按钮）', () =>
   assert.match(overlay, /onClick: flyNear/)
   assert.match(overlay, /onClick: measure/)
   assert.match(overlay, /onClick: takeAway/)
-  assert.match(overlay, /flyTo\(\{[\s\S]*?pitch: Cesium\.Math\.toRadians\(-35\)/)
+  assert.match(overlay, /flyToBoundingSphere\(new Cesium\.BoundingSphere\(target, 2\), \{[\s\S]*?offset: new Cesium\.HeadingPitchRange\(heading, pitch, range\)/)
   assert.match(overlay, /renderSnapshot\(\{ format: 'png' \}\)/)
   assert.match(overlay, /controller\.exportEvidence\(card, snapshot\)/)
   // Confidence is a red / amber / green high / medium / low chip; the card never
@@ -91,6 +91,31 @@ test('大气与相机节奏：地平线有大气，复位与框全使用自适�
   // Layer fly + frame-all derive their duration from the actual distance.
   assert.match(client, /viewer\.flyTo\(layer\.tileset, \{ duration: flightDuration\(distance\) \}\)/)
   assert.match(client, /flyToBoundingSphere\(target, \{ duration: travel \}\)/)
+})
+
+test('测量模式可退出、提示不糊；抵近定位用包围球取景', () => {
+  const client = clientSource()
+  // Esc leaves any active tool; the on-screen chip also carries an explicit End
+  // button, so a measurement is never a dead end.
+  assert.match(client, /if \(event\.key === 'Escape'\) setToolMode\(null\)/)
+  assert.match(client, /className: 'mv-measure-end'/)
+  assert.match(client, /t\('measure\.end'\)/)
+
+  // The measure chip is centred with auto margins (no fractional translateX,
+  // which blurred the text) and drops the backdrop blur for a crisp readout.
+  const css = readRepoFile('src/client/ui/css.js')
+  assert.match(css, /\.mv-measure\{[^}]*margin:0 auto/)
+  assert.match(css, /\.mv-measure\{[^}]*backdrop-filter:none/)
+  assert.match(css, /\.mv-measure-end\{[^}]*pointer-events:auto/)
+  assert.doesNotMatch(css, /\.mv-measure\{[^}]*translateX/)
+
+  // "Approach object" frames the picked point itself (bounding sphere + offset)
+  // instead of aiming at a height over its lon/lat.
+  const overlay = readRepoFile('src/client/ui/selection-overlay.js')
+  assert.match(overlay, /flyToBoundingSphere\(new Cesium\.BoundingSphere\(target, 2\)/)
+  assert.match(overlay, /new Cesium\.HeadingPitchRange\(heading, pitch, range\)/)
+  assert.match(overlay, /const range = 120/)
+  assert.doesNotMatch(overlay, /surface_height_m \?\? 0\) \+ 120/)
 })
 
 test('不回归：v1.6 的 HUD/图层/着色器接线仍在，新增面板未挤占既有入口', () => {

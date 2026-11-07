@@ -2256,6 +2256,20 @@ const h = React.createElement
         return () => document.removeEventListener('keydown', onKey)
       }, [scan])
 
+      // A measure tool must never be a dead end: Esc leaves it (the on-screen
+      // chip also offers an explicit 结束 button). Scoped to the three measure
+      // modes so Esc keeps its "close the card, stay in identify mode" meaning.
+      const measureMode = tool === 'distance' || tool === 'area' || tool === 'height'
+      React.useEffect(() => {
+        if (!measureMode) return undefined
+        const onKey = (event) => {
+          if (event.key === 'Escape') setToolMode(null)
+        }
+        document.addEventListener('keydown', onKey)
+        return () => document.removeEventListener('keydown', onKey)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+      }, [measureMode])
+
       React.useEffect(() => {
         if (phase !== 'ready') return undefined
         // The camera/layer readout only needs ~1 Hz, and every state update
@@ -2709,7 +2723,24 @@ const h = React.createElement
         stats && showHud
           ? h(StatusHud, { key: 'hud', fps, stats, viewerRef, cesiumRef, labels: hudLabels, readoutRef: captureReadoutRef, detailed: hudDetailed })
           : null,
-        measureInfo ? h('div', { key: 'measure', className: 'mv-measure mv-glass' }, measureInfo.text) : null,
+        measureInfo
+          ? h(
+              'div',
+              { key: 'measure', className: 'mv-measure mv-glass' },
+              h('span', { className: 'text' }, measureInfo.text),
+              h(
+                'button',
+                {
+                  type: 'button',
+                  className: 'mv-measure-end',
+                  title: t('measure.endHint'),
+                  'aria-label': t('measure.endHint'),
+                  onClick: () => setToolMode(null),
+                },
+                t('measure.end'),
+              ),
+            )
+          : null,
         pickInfo
           ? h(
               'div',
