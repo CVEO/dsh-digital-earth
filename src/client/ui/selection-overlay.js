@@ -2,9 +2,10 @@
  * ui/selection-overlay.js — the "指认" card, corner brackets and height leader.
  *
  * v1.7 P0, panel-only: the card answers three questions from the data itself
- * (where / how high / what is unknown) and offers the three next moves (fly
- * closer / measure / take away). It never invents a building name — when the
- * layer has no feature metadata the title stays "未命名对象（瓦片内要素）".
+ * (where / how high / what is unknown) and offers the three next moves (approach
+ * the object / measure its height / export the evidence). It never invents a
+ * building name — when the layer has no feature metadata the title follows the
+ * hit level ("unnamed feature inside a tile" vs "whole-tile hit only").
  *
  * The brackets track the picked 3D point through `scene.postRender` with direct
  * DOM writes, so following the camera costs no React re-render.
@@ -24,13 +25,31 @@ const CONFIDENCE_TIER = {
   inferred: { key: 'selection.confidence.low', tone: 'low' },
 }
 
+/**
+ * The title must agree with the hit level: a whole-tile pick is not a "feature",
+ * and a feature hit without metadata is not an "unidentified object".
+ */
+const TITLE_KEY = {
+  tile_feature: 'selection.unnamed',
+  tileset: 'selection.unnamed.tileset',
+  entity: 'selection.unnamed.entity',
+  scene: 'selection.unnamed.scene',
+}
+
 function factOf(card, key) {
   const facts = Array.isArray(card?.facts) ? card.facts : []
   return facts.find((fact) => fact && fact.key === key) ?? null
 }
 
-function numberText(value, suffix = ' m') {
-  return typeof value === 'number' && Number.isFinite(value) ? `${value}${suffix}` : '—'
+/**
+ * Instrument readout formatting. The default is whole metres: a 24-point
+ * neighbourhood estimate must not look like it has decimetre accuracy.
+ */
+function numberText(value, suffix = ' m', digits = 0) {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return '—'
+  const factor = 10 ** digits
+  const rounded = Math.round(value * factor) / factor
+  return `${rounded}${suffix}`
 }
 
 export function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t, showToast, onMeasure }) {
@@ -222,7 +241,7 @@ export function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t
               '✕',
             ),
           ),
-          h('h3', null, card.identity?.name ?? t('selection.unnamed')),
+          h('h3', null, card.identity?.name ?? t(TITLE_KEY[card.identity?.kind] ?? TITLE_KEY.tile_feature)),
           h(
             'p',
             { className: 'layer' },
@@ -254,7 +273,13 @@ export function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t
                   'div',
                   { className: 'fact' },
                   h('span', { className: 'key' }, t('selection.aboveMedian')),
-                  h('b', null, typeof above.value === 'number' ? `${above.value > 0 ? '+' : ''}${above.value} m` : '—'),
+                  h(
+                    'b',
+                    null,
+                    typeof above.value === 'number'
+                      ? `${Math.round(above.value) > 0 ? '+' : ''}${Math.round(above.value)} m`
+                      : '—',
+                  ),
                   confidenceChip(above.basis),
                 )
               : null,

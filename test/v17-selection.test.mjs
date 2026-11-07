@@ -224,7 +224,9 @@ test('接线：指认模式走既有 canvas 点击循环，卡片不进入任何
   assert.match(client, /if \(mode === 'identify'\)/)
   assert.match(client, /onIdentify: \(position\) => selectionApiRef\.current\?\.\(position\)/)
   assert.match(client, /className: 'mv-sel-anchor'/)
-  assert.match(client, /t\('selection\.unnamed'\)/)
+  // The title must follow the hit level: a whole-tile pick is not a "feature".
+  assert.match(client, /selection\.unnamed\.tileset/)
+  assert.match(client, /TITLE_KEY\[card\.identity\?\.kind\]/)
   assert.match(client, /t\('selection\.takeAway'\)/)
   assert.match(client, /iconButton\(h\(IdentifyIcon\)/)
   // Zero tool-contract change: no identify/select/evidence action appears in the
