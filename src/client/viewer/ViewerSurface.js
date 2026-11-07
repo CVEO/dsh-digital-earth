@@ -17,6 +17,7 @@ import { normalizeSceneSnapshot, readSceneSnapshot, writeSceneSnapshot } from '.
 import { createOverlayLayers } from '../scene/overlay-layers.js'
 import { flyToBookmark } from '../scene/bookmarks.js'
 import { flyToCartographic, frameAllLayers } from '../scene/frame.js'
+import { tilesetGeorefIssue } from '../scene/georef-check.js'
 import { flightDuration } from '../scene/motion.js'
 import { createAskAgent } from '../scene/ask-agent.js'
 import { createCaptureService } from '../scene/capture.js'
@@ -383,6 +384,10 @@ const h = React.createElement
             showToast(t('toast.proxyFallback'))
           }
           viewer.scene.primitives.add(tileset)
+          // A root without transform/region makes Cesium read local metres as
+          // ECEF (data near the Earth's centre). Flag it instead of silently
+          // flying the camera into the planet and showing a black screen.
+          const georefIssue = tilesetGeorefIssue(tileset, Cesium)
           const layer = {
             id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
             name: label,
@@ -390,11 +395,14 @@ const h = React.createElement
             source,
             tileset,
             visible: true,
+            georefIssue,
           }
           layersRef.current.push(layer)
           syncLayers()
           setScan(null)
-          if (options.fly !== false) await viewer.flyTo(tileset, { duration: 1.2 })
+          if (georefIssue !== null) {
+            if (options.fly !== false) showToast(t('toast.notGeoreferenced'))
+          } else if (options.fly !== false) await viewer.flyTo(tileset, { duration: 1.2 })
           return layer
         } finally {
           setBusy('')

@@ -360,6 +360,17 @@ export function LayersPanel({
                 }
               : {}),
           },
+          layer.georefIssue
+            ? h(
+                'span',
+                {
+                  className: 'mv-warn',
+                  title: t('layers.georefWarning'),
+                  'aria-label': t('layers.georefWarning'),
+                },
+                '⚠',
+              )
+            : null,
           h(
             'span',
             {

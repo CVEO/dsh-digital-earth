@@ -114,7 +114,7 @@ Agent 调用地球工具时，插件会自动在对话右侧打开地球页签�
 - **场景保持**：切换会话 / 窗口或面板被右侧栏回收后，重新打开地球页签（或下一次 Agent 调用自动打开）会按会话恢复相机视角、已加载图层（按原始本地路径或在线地址重新加载）、图层显隐、Agent 标注 / 量测、当前地形分析结果与各图层的着色器预设；快照优先存放在宿主的 `$DSH_HOME/digital-earth/scenes`（每会话一份、原子写入、单份上限约 512 KB、最多保留最近 50 个会话，经面板专用带 token 路由读写，不进入任何工具结果），本机浏览器 localStorage 只作快速缓存与兜底，因此重启 DSH 或页面地址 / 端口变化后仍能恢复；底图与地形沿用数据源设置。
 - **截图叠加信息**：面板工具栏与 HUD 是网页 DOM 元素，本身无法与 WebGL 画面一起导出；截图默认只保留干净三维画面，Agent 截图可按次传 `include_hud=true`，或打开「设置 → 截图时叠加坐标 HUD 与署名」作为默认，插件会把光标坐标、相机参数和团队署名重绘到图片画布上，手动截图与 Agent 截图都生效。
 - **本地数据**：Agent 可直接加载面板「数据 → 打开本地目录」里选过的目录，也可直接传本机绝对路径。路径越出白名单时，宿主会先向面板发起一次授权请求；用户允许后先把所在目录登记为本地数据源，再继续原加载 / 体检。拒绝返回 `access_denied` 且不自动重试，30 秒未处理返回 `access_timeout`；白名单、真实路径与根目录校验不变，命令桥与工具结果不暴露实例 token，模型无法自行扩大可读范围。选过的目录会记入 `$DSH_HOME/digital-earth/directories.json`，重启 DSH 后仍可直接加载。
-- **标准数据契约**：只接受标准 3D Tiles 1.0 / 1.1，根瓦片必须自带世界定位（`root.transform` 或 `root.boundingVolume.region`）。不少 OSGB 转换工具只写局部坐标——根节点没有 `transform`/`region`，原点写在同级 `tileset_info.json` 里；这类数据在 v1.5 起**不再被插件代偿**：宿主原样返回文件字节，数据体检会报 `tileset_not_georeferenced` 错误并说明症状（数据坍缩到地心附近、`flyTo` 钻进地核、瓦片在视锥里反复闪现）。修复方式是在转换时写入根 `transform` 或 `region`，插件不做隐式改写，因此「Cesium 拿到的字节」永远等于「磁盘上的字节」。嵌套外部 tileset 由父级 `tileset.json` 的根变换负责，插件不重复叠加。
+- **标准数据契约**：只接受标准 3D Tiles 1.0 / 1.1，根瓦片必须自带世界定位（`root.transform` 或 `root.boundingVolume.region`）。不少 OSGB 转换工具只写局部坐标——根节点没有 `transform`/`region`，原点写在同级 `tileset_info.json` 里；这类数据在 v1.5 起**不再被插件代偿**：宿主原样返回文件字节，数据体检会报 `tileset_not_georeferenced` 错误并说明症状（数据坍缩到地心附近、`flyTo` 钻进地核、瓦片在视锥里反复闪现）。修复方式是在转换时写入根 `transform` 或 `region`，插件不做隐式改写，因此「Cesium 拿到的字节」永远等于「磁盘上的字节」。嵌套外部 tileset 由父级 `tileset.json` 的根变换负责，插件不重复叠加。已经转换好的存量数据可以用 `scripts/georef-osgb.mjs` 一次性批量补根 `transform`（默认 dry-run，`--apply` 先备份 `tileset.json.bak`，支持 CGCS2000 EPSG 4491–4554；脚本不随 npm 包发布，插件运行时仍不读取 sidecar、不改写数据）。
 - **地形分析**：`earth_analyze` 一次只保留一个活动分析，新分析替换旧分析；剖面返回长度、起伏 / 爬升 / 下降与采样点并显示 SVG 剖面卡，淹没返回面积、淹没比与水深，日照切换光照与阴影，剖切用水平面切开图层并返回剖切高程 / 保留侧，天际线返回观察点最大仰角与出现距离；`clear` 移除分析叠加并在日照分析后恢复进入前的光照 / 阴影 / 时钟状态。没有有效高程数据时返回可操作错误，不猜测数值。
 - **着色器预设**：`earth_shader` 的预设固定为高程渐变、等高线、扫描、水面、水深五种，按图层应用 / 重置 / 列出；`preset` 可传 1–3 个预设的数组叠加（按顺序合成、参数取并集），同一图层只保留一个 shader，参数按所选预设严格校验。3DGS 图层不支持该能力，模型与面板都不能注入自定义 GLSL。
 - **场景报告**：直接说「导出当前场景报告」即可调用 `earth_scene` 的 `report`；面板「数据 ▾ → 导出场景报告」或聊天里的 `/earth report [html|markdown]` 也能导出。报告包含相机、图层与显隐、底图 / 地形、Agent 标注与量测数值、活动地形分析、着色器预设和尽力截取的截图：HTML 是单文件（截图 base64 内嵌、内联样式），Markdown 以图片链接引用截图；文件写入 `$DSH_HOME/digital-earth/exports`（保留最近 200 份），工具会返回绝对路径并提示用 `present` 打开。
@@ -169,7 +169,7 @@ dsh-digital-earth/
 ├── src/host/           # 宿主实现：路由、命令桥、体检、存储、六个工具、/earth 命令
 ├── src/client/         # 客户端源码：场景面板、工具栏、对话框、着色器/分析、i18n
 ├── client.js           # 客户端产物（由 npm run build:client 生成，勿手改）
-├── scripts/            # build-client（esbuild 打包）与 check-size（架构预算门禁）
+├── scripts/            # build-client（esbuild 打包）、check-size（架构预算）与 georef-osgb（存量数据一次性补定位）
 ├── test/               # 模块单测 / 契约测试 / 产物冒烟
 ├── cordis.patch.yml    # bundle 补丁
 ├── locale/             # 插件市场元数据（中 / 英）

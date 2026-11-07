@@ -250,6 +250,7 @@ var MESSAGES = {
     "layers.frameAll": "框全所有可见图层",
     "layers.analysis": "空间分析",
     "layers.analysisHint": "剖面 / 淹没 / 日照 / 剖切 / 天际线分析由对话 Agent 执行（例如：「对当前图层做一条从 A 到 B 的剖面」）；结果会显示在这里，可在此清除。",
+    "layers.georefWarning": "缺少世界定位：数据会落在地心附近。请用 scripts/georef-osgb.mjs 修复该 tileset.json 后重新加载。",
     "layers.analysisClear": "清除分析",
     "layers.shader": "着色器效果",
     "layers.shaderEmpty": "暂无着色器效果；在着色器工作台应用预设后会出现在这里。",
@@ -274,6 +275,7 @@ var MESSAGES = {
     "toast.proxyFallback": "直连失败，已通过本地代理加载",
     "toast.loadFailed": "加载失败：{message}",
     "toast.loadingData": "正在加载数据…",
+    "toast.notGeoreferenced": "该图层缺少世界定位（根 transform / region）：局部坐标会被当作 ECEF 渲染在地心附近。这不是渲染故障；请用 scripts/georef-osgb.mjs 修复数据后重新加载。",
     "toast.requestTimeout": "请求超时（{seconds} 秒），已放弃等待",
     "toast.busyDirectory": "正在打开目录…",
     "toast.restoreTimeout": "恢复上次场景时部分图层超时，已跳过（面板可直接使用）。",
@@ -659,6 +661,7 @@ var MESSAGES = {
     "layers.frameAll": "Frame all visible layers",
     "layers.analysis": "Spatial analysis",
     "layers.analysisHint": "Profile / flood / sunlight / clip / skyline analyses are run by the conversation Agent (e.g. “profile the current layer from A to B”); results appear here and can be cleared here.",
+    "layers.georefWarning": "No world placement: the data sits near the Earth centre. Run scripts/georef-osgb.mjs on this tileset.json, then reload.",
     "layers.analysisClear": "Clear analysis",
     "layers.shader": "Shader effects",
     "layers.shaderEmpty": "No shader effects yet; applying a preset in the workbench lists it here.",
@@ -683,6 +686,7 @@ var MESSAGES = {
     "toast.proxyFallback": "Direct request failed; loaded through the local proxy",
     "toast.loadFailed": "Load failed: {message}",
     "toast.loadingData": "Loading dataset…",
+    "toast.notGeoreferenced": "This layer has no world placement (root transform / region): local metres are read as ECEF and render near the Earth centre. This is a data issue, not a render fault; run scripts/georef-osgb.mjs on the tileset and reload.",
     "toast.requestTimeout": "Request timed out after {seconds}s",
     "toast.busyDirectory": "Opening folder…",
     "toast.restoreTimeout": "Some layers from the previous scene timed out and were skipped; the panel is ready to use.",
@@ -2802,6 +2806,27 @@ function flyToCartographic(viewer, Cesium, carto, duration = 0.8) {
     duration
   });
   return true;
+}
+
+// src/client/scene/georef-check.js
+var EARTH_SURFACE_MIN_RADIUS_M = 62e5;
+var EARTH_SURFACE_MAX_RADIUS_M = 66e5;
+function tilesetGeorefIssue(tileset, Cesium) {
+  const center = tileset?.boundingSphere?.center;
+  if (!center) return null;
+  const magnitude = Cesium?.Cartesian3?.magnitude;
+  if (typeof magnitude !== "function") return null;
+  let distance = Number.NaN;
+  try {
+    distance = magnitude(center);
+  } catch {
+    return null;
+  }
+  if (!Number.isFinite(distance)) return null;
+  if (distance >= EARTH_SURFACE_MIN_RADIUS_M && distance <= EARTH_SURFACE_MAX_RADIUS_M) return null;
+  const radius = Number(tileset?.boundingSphere?.radius);
+  if (distance < EARTH_SURFACE_MIN_RADIUS_M && Number.isFinite(radius) && radius >= EARTH_SURFACE_MIN_RADIUS_M) return null;
+  return { kind: distance < EARTH_SURFACE_MIN_RADIUS_M ? "inside_earth" : "outside_earth", distance_m: Math.round(distance) };
 }
 
 // src/client/scene/ask-agent.js
@@ -5489,6 +5514,7 @@ var CSS = `
 .mv-layer-list{overflow:auto;padding:4px 10px 12px;min-height:0;overscroll-behavior:contain;scrollbar-width:thin}
 .mv-layer{display:flex;align-items:center;gap:2px;padding:5px 6px;border-radius:8px}
 .mv-layer:hover{background:color-mix(in srgb,var(--mv-lift) 64%,transparent)}
+.mv-layer .mv-warn{flex:none;color:#f0b84b;font-size:12px;line-height:1;cursor:help;padding:0 2px}
 .mv-layer .name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;cursor:pointer}
 .mv-layer.off .name{color:var(--mv-dim);text-decoration:line-through}
 .mv-layer.has-shader{cursor:pointer;border-left:2px solid color-mix(in srgb,#3ddc97 70%,transparent);box-sizing:border-box}
@@ -7077,6 +7103,15 @@ function LayersPanel({
               }
             } : {}
           },
+          layer.georefIssue ? h6(
+            "span",
+            {
+              className: "mv-warn",
+              title: t2("layers.georefWarning"),
+              "aria-label": t2("layers.georefWarning")
+            },
+            "⚠"
+          ) : null,
           h6(
             "span",
             {
@@ -7920,18 +7955,22 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
         showToast(t2("toast.proxyFallback"));
       }
       viewer.scene.primitives.add(tileset);
+      const georefIssue = tilesetGeorefIssue(tileset, Cesium);
       const layer = {
         id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
         name: label,
         url,
         source,
         tileset,
-        visible: true
+        visible: true,
+        georefIssue
       };
       layersRef.current.push(layer);
       syncLayers();
       setScan(null);
-      if (options.fly !== false) await viewer.flyTo(tileset, { duration: 1.2 });
+      if (georefIssue !== null) {
+        if (options.fly !== false) showToast(t2("toast.notGeoreferenced"));
+      } else if (options.fly !== false) await viewer.flyTo(tileset, { duration: 1.2 });
       return layer;
     } finally {
       setBusy("");
