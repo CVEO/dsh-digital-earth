@@ -8,6 +8,7 @@
  * Both take the Cesium namespace as an argument so the maths is unit-testable
  * with a tiny fake.
  */
+import { flightDuration } from './motion.js'
 
 /**
  * Bounding sphere that encloses every visible layer's tileset.
@@ -34,13 +35,18 @@ export function combinedBoundingSphere(Cesium, layers) {
 }
 
 /** Frame every visible 3D Tiles layer, or return false when there is nothing to frame. */
-export function frameAllLayers(viewer, Cesium, layers, duration = 1.2) {
+export function frameAllLayers(viewer, Cesium, layers, duration) {
   if (!viewer || !Cesium) return false
   const sphere = combinedBoundingSphere(Cesium, layers)
   if (sphere === null) return false
   // A little margin so the data does not touch the viewport edges.
   const target = new Cesium.BoundingSphere(sphere.center, sphere.radius * 1.15)
-  viewer.camera.flyToBoundingSphere(target, { duration })
+  // Undefined duration → distance-adaptive, so framing a whole province does not
+  // feel like a jump cut while a single block still snaps quickly.
+  const travel = Number.isFinite(duration)
+    ? duration
+    : flightDuration(Cesium.Cartesian3.distance(viewer.camera.positionWC, target.center))
+  viewer.camera.flyToBoundingSphere(target, { duration: travel })
   return true
 }
 

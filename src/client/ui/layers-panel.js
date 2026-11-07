@@ -17,7 +17,8 @@
 import React from 'react'
 
 import { normalizeOverlayDraft } from '../scene/overlay-layers.js'
-import { addBookmark, loadBookmarks, removeBookmark, saveBookmarks } from '../scene/bookmarks.js'
+import { addBookmark, loadBookmarks, removeBookmark, saveBookmarks, updateBookmarkCaption } from '../scene/bookmarks.js'
+import { formatBytes, formatCount } from '../format.js'
 import { shaderEntrySummary } from './workbench-wiring.js'
 
 const h = React.createElement
@@ -56,6 +57,8 @@ export function LayersPanel({
   onEditLayerShader,
   getCurrentView,
   onFlyView,
+  stats,
+  onStartTour,
 }) {
   const [adding, setAdding] = React.useState(false)
   const [draft, setDraft] = React.useState({ type: 'wms', name: '', url: '', layers: '', opacity: 0.7 })
@@ -114,6 +117,14 @@ export function LayersPanel({
 
   const deleteBookmark = (id) => {
     const next = removeBookmark(bookmarks, id)
+    setBookmarks(next)
+    saveBookmarks(next)
+  }
+
+  // Tour stop text ("这一站看什么") is edited inline; every edit also updates the
+  // list the story bar plays, so no separate save action is needed.
+  const setCaption = (id, value) => {
+    const next = updateBookmarkCaption(bookmarks, id, value)
     setBookmarks(next)
     saveBookmarks(next)
   }
@@ -271,7 +282,24 @@ export function LayersPanel({
         'div',
         { key: 'g6b', className: 'mv-group' },
         h('div', { className: 'mv-group-title' }, `${t('bookmarks.title')}${bookmarks.length > 0 ? ` · ${bookmarks.length}` : ''}`),
-        h('button', { type: 'button', className: 'mv-cta', onClick: saveCurrentBookmark }, t('bookmarks.save')),
+        h(
+          'div',
+          { className: 'mv-group-actions' },
+          h('button', { type: 'button', className: 'mv-cta', onClick: saveCurrentBookmark }, t('bookmarks.save')),
+          h(
+            'button',
+            {
+              type: 'button',
+              className: 'mv-cta',
+              disabled: bookmarks.length < 2,
+              title: bookmarks.length < 2 ? t('tour.needStops') : t('tour.start'),
+              onClick: () => {
+                if (typeof onStartTour === 'function') onStartTour(bookmarks)
+              },
+            },
+            t('tour.start'),
+          ),
+        ),
       ),
       bookmarkNotice !== '' ? h('div', { key: 'bm-notice', className: 'mv-none' }, bookmarkNotice) : null,
       bookmarks.length === 0
@@ -279,9 +307,24 @@ export function LayersPanel({
         : bookmarks.map((item) =>
             h(
               'div',
-              { key: item.id, className: 'mv-layer' },
-              h('span', { className: 'name', title: t('bookmarks.flyHint'), onClick: () => onFlyView(item.view) }, item.name),
-              h('button', { type: 'button', className: 'mv-icon-btn', title: t('bookmarks.remove'), onClick: () => deleteBookmark(item.id) }, '✕'),
+              { key: item.id, className: 'mv-bookmark' },
+              h(
+                'div',
+                { className: 'mv-layer' },
+                h('span', { className: 'name', title: t('bookmarks.flyHint'), onClick: () => onFlyView(item.view) }, item.name),
+                h('button', { type: 'button', className: 'mv-icon-btn', title: t('bookmarks.remove'), onClick: () => deleteBookmark(item.id) }, '✕'),
+              ),
+              h('input', {
+                className: 'mv-caption',
+                value: item.caption ?? '',
+                placeholder: t('bookmarks.captionPlaceholder'),
+                title: t('bookmarks.captionPlaceholder'),
+                maxLength: 120,
+                onChange: (event) => setCaption(item.id, event.target.value),
+                onKeyDown: (event) => {
+                  if (event.key === 'Enter') event.currentTarget.blur()
+                },
+              }),
             ),
           ),
       // ---- 3D Tiles content --------------------------------------------------
@@ -351,6 +394,32 @@ export function LayersPanel({
           h('button', { type: 'button', className: 'mv-icon-btn', title: t('btn.delete'), 'aria-label': t('btn.delete'), onClick: (event) => { stop(event); onRemoveLayer(layer.id) } }, '✕'),
         )
       }),
+      // ---- technical telemetry ----------------------------------------------
+      // v1.7 P0: heading / pitch and the per-layer counters left the HUD so the
+      // instrument keeps at most six numbers; they still have a home here.
+      h('div', { key: 'g7', className: 'mv-group' }, h('div', { className: 'mv-group-title' }, t('layers.details'))),
+      h(
+        'div',
+        { key: 'details', className: 'mv-details' },
+        h(
+          'div',
+          { className: 'row' },
+          h('span', null, `${t('hud.camera')} ${stats?.height ?? '—'}`),
+          h('span', null, `${t('hud.heading')} ${stats?.heading ?? '—'} / ${stats?.pitch ?? '—'}`),
+        ),
+        ...(Array.isArray(stats?.layers) ? stats.layers : []).map((row) =>
+          h(
+            'div',
+            { key: `d-${row.id}`, className: 'row' },
+            h('b', null, row.name),
+            h(
+              'span',
+              null,
+              `${t('hud.tiles')} ${formatCount(row.tiles)} · ${t('hud.pending')} ${formatCount(row.pending)} · ${t('hud.triangles')} ${formatCount(row.triangles)} · ${t('hud.cache')} ${formatBytes(row.memory)}`,
+            ),
+          ),
+        ),
+      ),
     ),
   )
 }

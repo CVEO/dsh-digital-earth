@@ -392,9 +392,10 @@ test('client HUD 采样：拖动不采样、停手一次 depth read、周期不 
   assert.match(hud, /clearInterval\(timer\)/)
   assert.match(hud, /readoutRef\.current = null/)
 
-  // 全局只剩 earth_scene pick 这一处 scene.pick()，HUD 不再用它。
-  assert.equal((client.match(/scene\.pick\(/g) ?? []).length, 1)
+  // HUD 不再使用 scene.pick()；两处合法用法是 earth_scene pick 与 v1.7 指认卡片。
+  assert.equal((client.match(/scene\.pick\(/g) ?? []).length, 2)
   assert.match(client, /const picked = viewer\.scene\.pick\(position\)/)
+  assert.match(client, /const classified = classifyPick\(viewer\.scene\.pick\(position\), Cesium\)/)
   // 截图是“已停稳”的显式读取：显式要求 pickPosition。
   assert.match(client, /sampleCursor\(viewer, Cesium, center, \{ pickPosition: true \}\)/)
 })

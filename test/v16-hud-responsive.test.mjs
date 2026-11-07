@@ -40,15 +40,23 @@ test('窄面板：优先保留光标/高程主读数，隐藏次要遥测', () =
   const client = clientSource()
   assert.match(client, /className: 'row mv-hud-primary'/)
   assert.match(client, /className: 'mv-hud-camera'/)
-  assert.match(client, /className: 'mv-hud-heading'/)
-  assert.match(client, /className: 'row mv-hud-layer'/)
+  assert.match(client, /className: 'mv-hud-fps'/)
+  // v1.7 P0：朝向/俯仰与逐层统计移入图层面板的「场景详情」，HUD 常驻数字 ≤6。
+  assert.doesNotMatch(client, /className: 'mv-hud-heading'/)
+  assert.doesNotMatch(client, /className: 'row mv-hud-layer'/)
+  const panel = readRepoFile('src/client/ui/layers-panel.js')
+  assert.match(panel, /className: 'mv-details'/)
+  assert.match(panel, /t\('hud\.heading'\)/)
+  assert.match(panel, /t\('layers\.details'\)/)
   // FPS 占位语义不变（v1.5 契约）。
   assert.match(client, /fps === null \? '—' : fps/)
 })
 
-test('HUD 主行仍包含光标、高程、朝向三类读数（不缺功能）', () => {
+test('HUD 主行只保留光标与高程读数（朝向/图层统计移入场景详情）', () => {
   const hud = readRepoFile('src/client/ui/hud.js')
-  for (const marker of ['mv-hud-cursor', 'mv-hud-camera', 'mv-hud-heading', 'labels.pointer', 'labels.camera', 'labels.heading']) {
+  for (const marker of ['mv-hud-cursor', 'mv-hud-camera', 'labels.pointer', 'labels.camera', 'mv-hud-primary']) {
     assert.ok(hud.includes(marker), `HUD 缺少 ${marker}`)
   }
+  assert.equal(hud.includes('mv-hud-heading'), false, '朝向读数已移入场景详情')
+  assert.equal(hud.includes('mv-hud-layer'), false, '逐层统计已移入场景详情')
 })

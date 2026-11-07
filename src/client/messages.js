@@ -5,6 +5,8 @@
  * `npm run build:client` and client.js is never edited by hand.
  */
 
+import { V17_MESSAGES } from './messages-v17.js'
+
     const MESSAGES = {
       zh: {
         'panel.title': '数字地球',
@@ -413,6 +415,8 @@
         'toast.fullscreenUnsupported': '当前浏览器不支持全屏 API。',
         'toast.fullscreenFailed': '全屏失败：{message}',
         'unit.hectare': '公顷',
+        // v1.7 P0 vocabulary (identify card / evidence export / tour bar).
+        ...V17_MESSAGES.zh,
       },
       en: {
         'panel.title': 'Digital Earth',
@@ -825,6 +829,8 @@
         'toast.fullscreenUnsupported': 'This browser does not expose the fullscreen API.',
         'toast.fullscreenFailed': 'Fullscreen failed: {message}',
         'unit.hectare': 'ha',
+        // v1.7 P0 vocabulary (identify card / evidence export / tour bar).
+        ...V17_MESSAGES.en,
       },
     }
 

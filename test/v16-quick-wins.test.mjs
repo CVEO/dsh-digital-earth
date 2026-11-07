@@ -114,7 +114,8 @@ test('双击飞向光标：保持当前朝向与高度，只把目标点移到�
 test('接线：双击在测量工具激活时结束测量，否则飞向光标点', () => {
   const client = clientSource()
   assert.match(client, /Cesium\.ScreenSpaceEventType\.LEFT_DOUBLE_CLICK/)
-  assert.match(client, /if \(toolRef\.current\) \{\s*\n\s*finishMeasure\(\)/)
+  // v1.7 P0: 指认 mode is not a measurement, so double click still recentres.
+  assert.match(client, /if \(toolRef\.current && toolRef\.current !== 'identify'\) \{\s*\n\s*finishMeasure\(\)/)
   assert.match(client, /sampleCursor\(viewerNow, Cesium, event\.position, \{ pickPosition: true \}\)/)
   assert.match(client, /flyToCartographic\(viewerNow, Cesium, carto\)/)
 })

@@ -7,10 +7,17 @@
  * talks to the Cesium viewer directly, exactly like the reset/fly buttons.
  */
 
+import { cameraView, flightDuration, viewDistanceM } from './motion.js'
+
 export const BOOKMARK_STORAGE_KEY = 'dsh-de:bookmarks:v1'
 export const MAX_BOOKMARKS = 20
+/** One sentence per stop, used by the tour story bar (v1.7 P0). */
+export const MAX_BOOKMARK_CAPTION = 120
 
 const finite = (value) => typeof value === 'number' && Number.isFinite(value)
+
+/** Captions are free text; empty is the normal "no sentence yet" state. */
+const normalizeCaption = (value) => (typeof value === 'string' ? value.trim().slice(0, MAX_BOOKMARK_CAPTION) : '')
 
 /** Accept only complete, sane camera views (missing/wrong fields are dropped). */
 export function normalizeBookmarkView(raw) {
@@ -39,6 +46,8 @@ export function normalizeBookmarks(raw, max = MAX_BOOKMARKS) {
     bookmarks.push({
       id,
       name: typeof item.name === 'string' && item.name.trim() !== '' ? item.name.trim().slice(0, 60) : '视角',
+      // Additive since v1.7: older saved lists simply have no caption.
+      caption: normalizeCaption(item.caption),
       view,
       createdAt: finite(item.createdAt) ? item.createdAt : 0,
     })
@@ -80,7 +89,7 @@ export function saveBookmarks(list, storage = defaultStorage()) {
  * Add one bookmark at the front. The name defaults to "视角 N"; ids stay unique.
  * Returns the new list plus the created bookmark.
  */
-export function addBookmark(list, view, name, { now = Date.now(), idFactory } = {}) {
+export function addBookmark(list, view, name, { now = Date.now(), idFactory, caption } = {}) {
   const normalized = normalizeBookmarkView(view)
   if (normalized === null) return { list: normalizeBookmarks(list), bookmark: null }
   const bookmarks = normalizeBookmarks(list)
@@ -88,10 +97,16 @@ export function addBookmark(list, view, name, { now = Date.now(), idFactory } = 
   const bookmark = {
     id,
     name: typeof name === 'string' && name.trim() !== '' ? name.trim().slice(0, 60) : `视角 ${bookmarks.length + 1}`,
+    caption: normalizeCaption(caption),
     view: normalized,
     createdAt: now,
   }
   return { list: [bookmark, ...bookmarks].slice(0, MAX_BOOKMARKS), bookmark }
+}
+
+/** Replace one bookmark's caption (tour stop text); unknown ids are a no-op. */
+export function updateBookmarkCaption(list, id, caption) {
+  return normalizeBookmarks(list).map((item) => (item.id === id ? { ...item, caption: normalizeCaption(caption) } : item))
 }
 
 /** Remove one bookmark by id; unknown ids are a no-op. */
@@ -99,10 +114,19 @@ export function removeBookmark(list, id) {
   return normalizeBookmarks(list).filter((item) => item.id !== id)
 }
 
-/** Fly the camera to a stored view. Returns false for unusable input. */
-export function flyToBookmark(viewer, Cesium, view, duration = 1.2) {
+/**
+ * Fly the camera to a stored view. Returns false for unusable input.
+ *
+ * `duration` stays optional and backwards compatible: when the caller does not
+ * pin it, the flight time follows the distance from the current camera, so a hop
+ * across a province is not rushed while a bookmark next door stays instant.
+ */
+export function flyToBookmark(viewer, Cesium, view, duration) {
   const normalized = normalizeBookmarkView(view)
   if (!viewer?.camera || !Cesium?.Cartesian3 || normalized === null) return false
+  const travel = Number.isFinite(duration)
+    ? duration
+    : flightDuration(viewDistanceM(cameraView(viewer, Cesium), normalized))
   try {
     viewer.camera.flyTo({
       destination: Cesium.Cartesian3.fromDegrees(normalized.lon, normalized.lat, normalized.height),
@@ -111,7 +135,7 @@ export function flyToBookmark(viewer, Cesium, view, duration = 1.2) {
         pitch: Cesium.Math.toRadians(normalized.pitch),
         roll: 0,
       },
-      duration,
+      duration: travel,
     })
     return true
   } catch {

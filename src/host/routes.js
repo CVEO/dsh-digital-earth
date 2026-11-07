@@ -6,10 +6,11 @@
 import { resolve, sep } from 'node:path'
 import { Readable } from 'node:stream'
 import { ABOUT } from './about.js'
-import { API, BRIDGE_ROUTE, CAPTURE_ROUTE, CESIUM_DIR, CESIUM_ROUTE, DIRECTORIES_ROUTE, FILES_ROUTE, INJECT_ROUTE, INSPECT_ROUTE, MAX_REMOTE_QUERY, PANEL_HEADER, REMOTE_ROUTE, REPORT_ROUTE, SCENE_ROUTE, SOURCES_ROUTE, TILES_ROUTE, TOKEN } from './constants.js'
+import { API, BRIDGE_ROUTE, CAPTURE_ROUTE, CESIUM_DIR, CESIUM_ROUTE, DIRECTORIES_ROUTE, EXPORT_ROUTE, FILES_ROUTE, INJECT_ROUTE, INSPECT_ROUTE, MAX_REMOTE_QUERY, PANEL_HEADER, REMOTE_ROUTE, REPORT_ROUTE, SCENE_ROUTE, SOURCES_ROUTE, TILES_ROUTE, TOKEN } from './constants.js'
 import { blockedHost, decodeSegment, fromB64, isFilesystemRoot, realPathOr, segments, toB64 } from './paths.js'
 import { bridgeHandler } from './bridge.js'
 import { captureHandler, capturesHandler, reportHandler } from './storage.js'
+import { evidenceExportHandler } from './export.js'
 import { directoriesHandler } from './directories.js'
 import { injectHandler } from './inject.js'
 import { inspectHandler } from './inspect/handler.js'
@@ -62,6 +63,8 @@ function metaHandler(req, res) {
     injectUrl: `${INJECT_ROUTE}/${TOKEN}`,
     // Scene reports are written by the host under DSH_HOME/exports.
     reportUrl: `${REPORT_ROUTE}/${TOKEN}`,
+    // Page-only "take away" evidence-pack destination (never a model-facing URL).
+    exportUrl: `${EXPORT_ROUTE}/${TOKEN}`,
     version: ABOUT.version,
     homepage: ABOUT.homepage,
     issues: ABOUT.issues,
@@ -256,6 +259,7 @@ export function registerRoutes(ctx, { allowedDirs, bridge, directories }) {
       register('exact', `${SCENE_ROUTE}/${TOKEN}`, sceneSnapshotHandler),
       register('exact', `${INJECT_ROUTE}/${TOKEN}`, (req, res) => injectHandler(ctx, req, res)),
       register('exact', `${REPORT_ROUTE}/${TOKEN}`, reportHandler),
+      register('exact', `${EXPORT_ROUTE}/${TOKEN}`, evidenceExportHandler),
       register('exact', BRIDGE_ROUTE, bridgeHandler(bridge)),
       register('exact', CAPTURE_ROUTE, captureHandler),
       register('exact', INSPECT_ROUTE, (req, res) => inspectHandler(req, res, allowedDirs)),

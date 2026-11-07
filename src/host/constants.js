@@ -38,6 +38,11 @@ export const MAX_INJECT_TEXT = 4000
 export const REPORT_ROUTE = `${API}/report`
 export const REPORT_FORMATS = new Set(['html', 'markdown'])
 export const MAX_REPORT_BODY = 16 * 1024 * 1024
+// "Take away" evidence pack: the panel posts a card plus an optional screenshot
+// and the user saves the written files. Page-only: no tool ever mentions it.
+export const EXPORT_ROUTE = `${API}/export`
+export const MAX_EXPORT_BODY = 16 * 1024 * 1024
+export const MAX_EVIDENCE_JSON = 256 * 1024
 export const MAX_EXPORT_FILES = 200
 export const MAX_SCENE_BODY = 512 * 1024
 export const MAX_SCENE_FILES = 50

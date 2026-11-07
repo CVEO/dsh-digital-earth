@@ -133,6 +133,18 @@ const h = React.createElement
       )
     }
 
+    /** Selection reticle: the "指认" tool (point at one object and read it). */
+    function IdentifyIcon({ size = 16 }) {
+      const stroke = { stroke: 'currentColor', strokeWidth: 1.7, strokeLinecap: 'round', strokeLinejoin: 'round', fill: 'none' }
+      return h(
+        'svg',
+        { viewBox: '0 0 24 24', width: size, height: size, 'aria-hidden': true, style: { display: 'block' } },
+        h('path', { d: 'M12 2.8v4M12 17.2v4M2.8 12h4M17.2 12h4', ...stroke }),
+        h('circle', { cx: 12, cy: 12, r: 5.2, ...stroke }),
+        h('circle', { cx: 12, cy: 12, r: 1.3, fill: 'currentColor', stroke: 'none' }),
+      )
+    }
+
     /** Home glyph: reset the camera to the home view. */
     function ResetIcon({ size = 16 }) {
       const stroke = { stroke: 'currentColor', strokeWidth: 1.7, strokeLinecap: 'round', strokeLinejoin: 'round', fill: 'none' }
@@ -156,4 +168,4 @@ const h = React.createElement
       )
     }
 
-export { ViewerIcon, ThemeIcon, FullscreenIcon, HudIcon, CollapseIcon, LayerActionIcon, ShaderIcon, ScreenshotIcon, ResetIcon, AskAgentIcon }
+export { ViewerIcon, ThemeIcon, FullscreenIcon, HudIcon, CollapseIcon, LayerActionIcon, ShaderIcon, ScreenshotIcon, IdentifyIcon, ResetIcon, AskAgentIcon }

@@ -87,6 +87,12 @@ export function createPointerTools(deps) {
       function onCanvasClick(position) {
         const mode = toolRef.current
         if (mode === null) return
+        // v1.7 P0 "指认": the overlay owns the read, this module only routes the
+        // click so the measure loop below is untouched.
+        if (mode === 'identify') {
+          if (typeof deps.onIdentify === 'function') deps.onIdentify(position)
+          return
+        }
         if (mode === 'pick') {
           pickAt(position)
           return

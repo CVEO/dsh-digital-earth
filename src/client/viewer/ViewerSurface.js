@@ -8,19 +8,21 @@ import React from 'react'
 import { createAnalysisEngine } from '../analysis/engine.js'
 import { buildAgentOverlayList, clearAgentOverlays as clearAgentOverlaysInState, removeAgentOverlay } from '../scene/agent-overlays.js'
 import { ACCESS_TIMEOUT_MS, imageryProvider, loadCesium, loadCesiumStyle, loadMeta, loadSources, persistSources, scanLocalDirectory, terrainProvider } from '../api.js'
-import { formatCursor, sampleCursor } from '../cursor.js'
+import { sampleCursor } from '../cursor.js'
 import { arrayBufferToBase64, b64url, clone, escapeHtml, formatArea, formatDistance, formatHeight, formatValue, geodesicLength, message, planarArea, redactUrl } from '../format.js'
 import { isChinese, t, useTranslation } from '../i18n.js'
-import { FALLBACK_ABOUT } from '../messages.js'
 import { folderName } from '../preferences.js'
 import { service } from '../runtime.js'
 import { normalizeSceneSnapshot, readSceneSnapshot, writeSceneSnapshot } from '../scene-store.js'
 import { createOverlayLayers } from '../scene/overlay-layers.js'
 import { flyToBookmark } from '../scene/bookmarks.js'
 import { flyToCartographic, frameAllLayers } from '../scene/frame.js'
+import { flightDuration } from '../scene/motion.js'
 import { createAskAgent } from '../scene/ask-agent.js'
 import { createCaptureService } from '../scene/capture.js'
+import { createCaptureHud } from '../scene/capture-hud.js'
 import { createPointerTools } from '../scene/pointer-tools.js'
+import { createSelectionController } from '../scene/selection-controller.js'
 import { createCommandBridge } from '../scene/command-bridge.js'
 import { createSceneReport } from '../scene/report.js'
 import { createSceneStatus } from '../scene/status.js'
@@ -32,9 +34,11 @@ import { AnalysisCard, ShaderWorkbench } from '../ui/cards.js'
 import { CSS } from '../ui/css.js'
 import { HealthDialog, PathAccessDialog, SourcesDialog } from '../ui/dialogs.js'
 import { StatusHud } from '../ui/hud.js'
-import { AskAgentIcon, FullscreenIcon, HudIcon, ResetIcon, ScreenshotIcon, ShaderIcon, ThemeIcon, ViewerIcon } from '../ui/icons.js'
+import { AskAgentIcon, FullscreenIcon, HudIcon, IdentifyIcon, ResetIcon, ScreenshotIcon, ShaderIcon, ThemeIcon, ViewerIcon } from '../ui/icons.js'
 import { LayersPanel } from '../ui/layers-panel.js'
 import { LoadingGlobe } from '../ui/loading-globe.js'
+import { SelectionOverlay } from '../ui/selection-overlay.js'
+import { useTour } from '../ui/tour-bar.js'
 import { createWorkbenchWiring } from '../ui/workbench-wiring.js'
 import { MenuItem } from '../ui/menu-item.js'
 
@@ -68,6 +72,9 @@ const h = React.createElement
       const captureReadoutRef = React.useRef(null)
       const commandChainRef = React.useRef(Promise.resolve())
       const commandRef = React.useRef(null)
+      // v1.7 P0 "指认": the overlay publishes its identify(position) here so the
+      // shared canvas click loop in scene/pointer-tools.js can route clicks.
+      const selectionApiRef = React.useRef(null)
       const accessRef = React.useRef(null)
       // Single active analysis: owns its entities plus the scene state sunlight
       // changed (lighting, shadows, clock) so clear() can restore it exactly.
@@ -1409,6 +1416,8 @@ const h = React.createElement
         onFinishTool: () => setTool(null),
         formatValue,
         layerLabel,
+        // "识别模式" route: the click lands in ui/selection-overlay.js.
+        onIdentify: (position) => selectionApiRef.current?.(position),
         t,
       })
       const { pickResult, pickAt, onCanvasClick } = pointerTools
@@ -1420,7 +1429,9 @@ const h = React.createElement
         if (!Cesium || !viewer) return
         viewer.camera.flyTo({
           destination: Cesium.Cartesian3.fromDegrees(104, 31, 14000000),
-          duration: 1.2,
+          // The longest flight in the panel (ground → 14,000 km): give it room
+          // instead of the old 1.2 s yank.
+          duration: 2.4,
         })
       }
 
@@ -1430,97 +1441,17 @@ const h = React.createElement
         if (root) root.classList.toggle('mv-capturing', hidden)
       }
 
-      const roundedRectPath = (context, x, y, width, height, radius) => {
-        const r = Math.max(0, Math.min(radius, width / 2, height / 2))
-        context.beginPath()
-        context.moveTo(x + r, y)
-        context.lineTo(x + width - r, y)
-        context.arcTo(x + width, y, x + width, y + r, r)
-        context.lineTo(x + width, y + height - r)
-        context.arcTo(x + width, y + height, x + width - r, y + height, r)
-        context.lineTo(x + r, y + height)
-        context.arcTo(x, y + height, x, y + height - r, r)
-        context.lineTo(x, y + r)
-        context.arcTo(x, y, x + r, y, r)
-        context.closePath()
-      }
-
-      /**
-       * Draw the coordinate HUD and the team credit into the snapshot itself.
-       * The panel chrome is a DOM overlay and can never be rasterised with the
-       * WebGL canvas, so this is what "include HUD" means in an image.
-       */
-      const drawCaptureOverlay = (context, width, height) => {
-        const viewer = viewerRef.current
-        const Cesium = cesiumRef.current
-        if (!viewer || !Cesium) return
-        const font = Math.max(11, Math.min(24, Math.round(width * 0.0155)))
-        const padding = Math.max(10, Math.round(font * 0.75))
-        const lineGap = Math.round(font * 1.6)
-        const cartographic = Cesium.Cartographic.fromCartesian(viewer.camera.positionWC)
-        const lon = cartographic ? Cesium.Math.toDegrees(cartographic.longitude).toFixed(4) : '—'
-        const lat = cartographic ? Cesium.Math.toDegrees(cartographic.latitude).toFixed(4) : '—'
-        const cameraHeight = cartographic ? Math.round(cartographic.height) : 0
-        const heading = Math.round(Cesium.Math.toDegrees(viewer.camera.heading ?? 0))
-        const pitch = Math.round(Cesium.Math.toDegrees(viewer.camera.pitch ?? 0))
-        const config = sourcesRef.current ?? { imagery: [], terrain: [], settings: {} }
-        const imagery = config.imagery.find((item) => item.id === config.settings.imagery) ?? null
-        const terrain = config.terrain.find((item) => item.id === config.settings.terrain) ?? null
-        const lastReadout = captureReadoutRef.current
-        let pointerText = lastReadout || ''
-        if (!pointerText) {
-          const center = new Cesium.Cartesian2(
-            Math.round(viewer.canvas.clientWidth / 2),
-            Math.round(viewer.canvas.clientHeight / 2),
-          )
-          const carto = sampleCursor(viewer, Cesium, center, { pickPosition: true })
-          if (carto) pointerText = formatCursor(Cesium, carto)
-        }
-        const visibleCount = layersRef.current.filter((layer) => layer.visible).length
-        const lines = [
-          `${lastReadout ? t('hud.pointer') : t('hud.center')}  ${pointerText || t('hud.empty')}`,
-          `${t('hud.camera')} ${cameraHeight} m · ${t('hud.heading')} ${heading}° · ${pitch}°`,
-          `${t('hud.layers')} ${visibleCount}/${layersRef.current.length} · ${imagery?.name ?? '—'} · ${terrain?.name ?? '—'}`,
-          `${t('hud.cameraPos')} ${lon}, ${lat}`,
-        ]
-        const family = '"Segoe UI", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif'
-        context.save()
-        context.font = `${font}px ${family}`
-        context.textBaseline = 'top'
-        context.textAlign = 'left'
-        const textWidth = Math.max(...lines.map((line) => context.measureText(line).width))
-        const boxWidth = Math.min(width - padding * 2, textWidth + padding * 2)
-        const boxHeight = lines.length * lineGap + padding * 2
-        const boxX = padding
-        const boxY = height - boxHeight - padding
-        context.fillStyle = 'rgba(8, 12, 18, 0.6)'
-        roundedRectPath(context, boxX, boxY, boxWidth, boxHeight, Math.round(font * 0.65))
-        context.fill()
-        lines.forEach((line, index) => {
-          context.fillStyle = index === 0 ? '#eef4ff' : '#c5d2e2'
-          context.fillText(line, boxX + padding, boxY + padding + index * lineGap)
-        })
-        const title = t('panel.title')
-        const aboutMeta = metaRef.current
-        const teamName = aboutMeta?.team?.name ?? t('about.teamName')
-        let teamHost = 'www.whu-cveo.com'
-        try {
-          teamHost = new URL(aboutMeta?.team?.url ?? FALLBACK_ABOUT.teamUrl).host || teamHost
-        } catch {
-          /* keep the static fallback */
-        }
-        context.font = `600 ${font}px ${family}`
-        context.fillStyle = 'rgba(240, 246, 255, 0.9)'
-        context.shadowColor = 'rgba(0, 0, 0, 0.45)'
-        context.shadowBlur = Math.round(font * 0.6)
-        context.fillText(title, padding, padding)
-        const credit = `${teamName} · ${teamHost}`
-        context.textAlign = 'right'
-        context.font = `${Math.max(10, Math.round(font * 0.85))}px ${family}`
-        context.fillStyle = 'rgba(238, 244, 255, 0.85)'
-        context.fillText(credit, width - padding, height - padding - font)
-        context.restore()
-      }
+      // Capture-HUD text painter lives in src/client/scene/capture-hud.js; the
+      // refs are injected so this file stays inside its line budget.
+      const drawCaptureOverlay = createCaptureHud({
+        getViewer: () => viewerRef.current,
+        getCesium: () => cesiumRef.current,
+        getSources: () => sourcesRef.current,
+        getLayers: () => layersRef.current,
+        getMeta: () => metaRef.current,
+        getReadout: () => captureReadoutRef.current,
+        t,
+      })
 
       /** Wait for the next painted frame, but never hang on a hidden tab. */
       const nextFrames = (count) =>
@@ -1548,6 +1479,34 @@ const h = React.createElement
         drawCaptureOverlay,
       })
       const { renderSnapshot, screenshot, captureScene } = capture
+
+      // v1.7 P0 "指认": card data (pick + neighbour ring sampler) and the
+      // evidence pack. React state stays in ui/selection-overlay.js.
+      const selectionController = createSelectionController({
+        getViewer: () => viewerRef.current,
+        getCesium: () => cesiumRef.current,
+        getLayers: () => layersRef.current,
+        getMeta: () => metaRef.current,
+      })
+
+      /** "量一下" from the selection card: pre-fill the first height point. */
+      function measureFromSelection(anchor) {
+        if (!anchor) return
+        // setToolMode clears the previous measurement, so seed the point AFTER it.
+        setToolMode('height')
+        measureRef.current.points = [anchor]
+        redrawMeasure('height')
+      }
+
+      // v1.7 P0 tour: bookmark stops play through the panel (captions + flights +
+      // take-over); the Agent's six tools are untouched.
+      const tour = useTour({
+        t,
+        showToast,
+        getCurrentView: () => currentSceneSnapshot()?.view ?? null,
+        onFlyView: (view) => flyToBookmark(viewerRef.current, cesiumRef.current, view),
+        onFinish: () => void screenshot(),
+      })
 
       /**
        * "Ask Agent": capture the current scene as context and inject it into the
@@ -1619,7 +1578,12 @@ const h = React.createElement
       function flyToLayer(id) {
         const layer = layersRef.current.find((item) => item.id === id)
         const viewer = viewerRef.current
-        if (layer && viewer) viewer.flyTo(layer.tileset, { duration: 1.0 })
+        const Cesium = cesiumRef.current
+        if (!layer || !viewer) return
+        // Distance-adaptive so flying to a province does not look like a cut.
+        const center = layer.tileset?.boundingSphere?.center
+        const distance = Cesium && center ? Cesium.Cartesian3.distance(viewer.camera.positionWC, center) : 0
+        viewer.flyTo(layer.tileset, { duration: flightDuration(distance) })
       }
 
       // ---- L3 raster overlays: the panel edits the catalog, then one sync()
@@ -2062,9 +2026,9 @@ const h = React.createElement
             handler.setInputAction((event) => onCanvasClick(event.position), Cesium.ScreenSpaceEventType.LEFT_CLICK)
             handler.setInputAction(
               (event) => {
-                // A double click finishes a measurement when a tool is active;
-                // otherwise it is a "bring that spot here" gesture.
-                if (toolRef.current) {
+                // A double click finishes a measurement when a measure tool is
+                // active; in 指认 mode it still centres the point under the cursor.
+                if (toolRef.current && toolRef.current !== 'identify') {
                   finishMeasure()
                   return
                 }
@@ -2351,15 +2315,9 @@ const h = React.createElement
         )
 
       const status = busy || (phase === 'loading' ? t('panel.status.loading') : layers.length ? t('panel.status.layers', { n: layers.length }) : t('panel.status.ready'))
-      const hudLabels = {
-        pointer: t('hud.pointer'),
-        camera: t('hud.camera'),
-        heading: t('hud.heading'),
-        tiles: t('hud.tiles'),
-        pending: t('hud.pending'),
-        triangles: t('hud.triangles'),
-        cache: t('hud.cache'),
-      }
+      // v1.7 P0: the HUD keeps only three readouts (fps + pointer + camera
+      // height); heading/pitch and layer counters live in the panel's details.
+      const hudLabels = { pointer: t('hud.pointer'), camera: t('hud.camera') }
 
       // B3 workbench wiring lives in src/client/ui/workbench-wiring.js; this
       // component only owns the form state and the scene refs the wiring needs.
@@ -2510,6 +2468,8 @@ const h = React.createElement
               () => setShaderOpen((value) => !value),
               shaderOpen,
             ),
+            // v1.7 P0: 指认 — click an object to read it (panel-only, no tool).
+            iconButton(h(IdentifyIcon), t('btn.identifyHint'), () => setToolMode(tool === 'identify' ? null : 'identify'), tool === 'identify'),
             // Action buttons are icon-only with a tooltip/aria-label: in the docked
             // narrow panel the text labels were what wrapped the toolbar onto a
             // second row. The four dropdown menus keep their text labels because a
@@ -2621,6 +2581,18 @@ const h = React.createElement
               onResetAll: workbench.resetAll,
             })
           : null,
+        // v1.7 P0: 指认 card + corner brackets (panel-only) and the tour bar.
+        h(SelectionOverlay, {
+          key: 'selection',
+          active: tool === 'identify',
+          apiRef: selectionApiRef,
+          controller: selectionController,
+          renderSnapshot,
+          t,
+          showToast,
+          onMeasure: measureFromSelection,
+        }),
+        tour.element,
         analysis || showLayers
           ? h(
               'div',
@@ -2667,6 +2639,8 @@ const h = React.createElement
                     // Camera bookmarks: panel-managed list, storage in localStorage.
                     getCurrentView: () => currentSceneSnapshot()?.view ?? null,
                     onFlyView: (view) => flyToBookmark(viewerRef.current, cesiumRef.current, view),
+                    stats,
+                    onStartTour: tour.start,
                     agentOverlays: buildAgentOverlayList(agentOverlayRef.current),
                     onRemoveAgentOverlay: (kind, index) => {
                       if (!removeAgentOverlay(agentOverlayRef.current, viewerRef.current, kind, index)) return

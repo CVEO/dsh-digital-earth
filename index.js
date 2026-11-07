@@ -30,6 +30,7 @@ export function apply(ctx) {
 export { createBridge } from './src/host/bridge.js'
 export { renderEarthCommandStatus } from './src/host/commands.js'
 export { mergeRecentDirectories } from './src/host/directories.js'
+export { evidenceExportHandler } from './src/host/export.js'
 export { injectHandler } from './src/host/inject.js'
 export { isLocalResolutionAllowed, resolveLocalTileset } from './src/host/local-resolve.js'
 export { sceneSnapshotFile, sceneSnapshotHandler } from './src/host/snapshots.js'
