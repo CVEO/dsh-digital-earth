@@ -36,18 +36,6 @@ These are real panel captures. The sample data is a project-owned LOD18 photogra
 
 ![Shaders](https://github.com/CVEO/dsh-digital-earth/raw/main/assets/readme/shader.jpg)
 
-## Why Digital Earth
-
-DSH puts the conversation, your files and your tools in one workspace. The Agent can read a file and run a script, but before this plugin it could not see your 3D scene — let alone turn "how tall is that building?" or "would this area flood?" into numbers you can check.
-
-Digital Earth adds that spatial context. The story is three steps:
-
-- **Identify**: turn what is on screen into coordinates, elevations and an evidence JSON — not a guess that "looks right".
-- **Explain**: the Agent answers with measurements, profiles, flood, sunlight, clip and skyline results, each carrying its elevation source and limits.
-- **Take it away**: clean snapshots, evidence packs, HTML / Markdown reports and per-session scene snapshots that survive closing the panel.
-
-It does not replace desktop GIS or photogrammetry tools. Your data stays a standard 3D Tiles dataset on disk; the plugin puts browsing, identification, analysis and hand-off into the conversation workflow.
-
 ## Features
 
 **Data and scene**
@@ -137,7 +125,7 @@ Five-minute check: you can see the globe, load one tileset, measure a distance a
 | Identify | Click an object to open the selection card (coordinates, surface elevation, geometric height estimate, confidence) with approach / measure / export evidence |
 | Layers | Two tabs: Map (terrain / imagery / raster / view bookmarks) and 3D (vector / 3D content / spatial analysis / sun); the header ⓘ opens the separate "Scene details" card |
 | Shader | Opens the workbench: choose a 3D Tiles layer and a preset, tune parameters, apply / reset / compare with the original |
-| Ask Agent | Captures the current view when possible and injects a bounded scene summary into the conversation's Agent; it never wakes an idle Agent |
+| Ask Agent | Adds the current view and a concise scene summary to the current conversation context, then lets you type the question directly; it applies on the next step and does not start an idle conversation |
 | Settings | Data sources (imagery / terrain), appearance, render quality, Detailed HUD, snapshot annotation and an About tab |
 
 **Loading and layers**
