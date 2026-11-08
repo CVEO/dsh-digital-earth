@@ -265,15 +265,6 @@ Host (Node)                                   Browser (DSH Web UI)
 - **Where are snapshots and reports saved?** The snapshot folder keeps the latest 50 images, reports 100, exports 200; the tool returns the exact path.
 - **How fast is it?** It depends on the GPU, window size and data; try it with your own data.
 
-## Roadmap
-
-These are directions under discussion, not version commitments; scheduling follows the issues.
-
-- **Data security**: a post-DNS-resolution check in the `/remote` proxy to tighten the untrusted-network boundary.
-- **Large-dataset experience**: loading and dragging larger tilesets, plus continued cache and quality-tier tuning.
-- **Hand-off formats**: more export shapes for analysis results and automation around reports / evidence packs.
-- **Docs and examples**: fuller integration examples, common data-conversion flows and a troubleshooting guide.
-
 ## Contributing
 
 Issues and suggestions are welcome in the [issue tracker](https://github.com/CVEO/dsh-digital-earth/issues); development, build, test and release steps are in [CONTRIBUTING.md](CONTRIBUTING.md). Keep the six tools' names, parameters and action sets unchanged; prefer panel-side work or new optional parameters for new capabilities.

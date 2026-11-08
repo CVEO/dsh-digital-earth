@@ -172,7 +172,7 @@ test('B4 README 英文：版本徽章/安装示例、六工具与对应功能行
 test('B4 README 中英对齐：章节数、工具行、安装命令与代码围栏一致', () => {
   const zhHeadings = markdownHeadings(readmeZh)
   const enHeadings = markdownHeadings(readmeEn)
-  assert.equal(zhHeadings.length, 11, `README.md 章节数异常：${zhHeadings.length}`)
+  assert.equal(zhHeadings.length, 10, `README.md 章节数异常：${zhHeadings.length}`)
   assert.equal(enHeadings.length, zhHeadings.length, '中英 README 章节数必须一致')
   assert.equal(codeFences(readmeZh), 2)
   assert.equal(codeFences(readmeEn), 2)
