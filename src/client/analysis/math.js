@@ -15,8 +15,7 @@
     const ANALYSIS_ENTITY_PREFIX = 'analysis-'
     /** At least this many elevation samples are required for a surface statistic. */
     const ANALYSIS_MIN_SAMPLES = 2
-    /** Elevation colour band: blue (low) → green → yellow → orange → red (high). */
-    const ANALYSIS_ELEVATION_STOPS = ['#3b82f6', '#22c55e', '#eab308', '#f97316', '#ef4444']
+    const ANALYSIS_ELEVATION_STOPS = ['#38c9ff', '#45dfbe', '#ffd16b']
 
     const analysisRound = (value, digits = 1) => {
       const factor = 10 ** digits

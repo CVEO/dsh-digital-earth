@@ -43,11 +43,11 @@ test('release:check：跑产物可复现、架构预算与 npm pack dry-run', ()
   assert.match(script, /process\.platform === 'win32'/)
 })
 
-test('release:check：当前版本保持 1.5.0，且 tag 目标即 v1.5.0', () => {
-  assert.equal(pkg.version, '1.5.0')
+test('release:check：当前版本保持 1.5.1，且 tag 目标即 v1.5.1', () => {
+  assert.equal(pkg.version, '1.5.1')
   const changelog = readRepoFile('CHANGELOG.md')
-  assert.ok(changelog.startsWith('# Changelog\n\n## 1.5.0\n'))
-  assert.ok(readRepoFile('README.md').includes('版本-1.5.0-'))
-  assert.ok(readRepoFile('src/host/about.js').includes("version: '1.5.0'"))
-  assert.ok(readRepoFile('src/client/messages.js').includes("version: '1.5.0'"))
+  assert.ok(changelog.startsWith('# Changelog\n\n## 1.5.1\n'))
+  assert.ok(readRepoFile('README.md').includes('版本-1.5.1-'))
+  assert.ok(readRepoFile('src/host/about.js').includes("version: '1.5.1'"))
+  assert.ok(readRepoFile('src/client/messages.js').includes("version: '1.5.1'"))
 })

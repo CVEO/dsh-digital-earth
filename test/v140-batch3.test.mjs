@@ -449,7 +449,7 @@ test('client 五预设：仅片元 fragmentMain、只改 diffuse/alpha、源码 
   assert.match(sources['height-false-color'], /length\(fsInput\.attributes\.positionWC\)/)
   assert.match(sources.contour, /fract\(height \/ spacing\)/)
   assert.match(sources.scan, /u_time/)
-  assert.match(sources.water, /material\.alpha/)
+  assert.doesNotMatch(sources.water, /material\.alpha/)
   assert.match(client, /const SHADER_SOURCE_LIMIT = 8 \* 1024/)
   assert.match(client, /function shaderFragmentSource\(preset\) \{/)
   assert.match(client, /fragmentShaderText: shaderFragmentSource\(request\.presets \?\? request\.preset\)/)
@@ -502,7 +502,7 @@ test('client 引擎：CustomShader 构造、同层覆盖保留最初 previous、
   assert.match(apply, /const options = \{/)
   assert.match(apply, /fragmentShaderText: shaderFragmentSource\(request\.presets \?\? request\.preset\)/)
   assert.match(apply, /shader = new Cesium\.CustomShader\(options\)/)
-  assert.match(apply, /options\.translucencyMode = Cesium\.CustomShaderTranslucencyMode\.TRANSLUCENT/)
+  assert.match(apply, /options\.translucencyMode = Cesium\.CustomShaderTranslucencyMode\.INHERIT/)
   // 重复 apply 同一层时保留最早的 previous，避免 reset 恢复成自己造出来的 shader。
   assert.match(apply, /const previous = existing \? existing\.previous : \(layer\.tileset\.customShader \?\? null\)/)
   assert.match(apply, /layer\.tileset\.customShader = shader/)
@@ -633,7 +633,7 @@ test('client 工作台：可见图层/五预设可叠加/按预设并集参数/�
   assert.match(wiring, /const target = \(\) => resolveWorkbenchTarget\(getLayers\(\), getForm\(\)\)/)
   assert.match(wiring, /shaderCompare\(resolved\.layer\.id, enabled\)/)
   assert.match(wiring, /await shaderCommand\(\{ action: 'reset' \}\)/)
-  assert.match(client, /const workbench = createWorkbenchWiring\(\{/)
+  assert.match(client, /const workbench = useWorkbenchWiring\(\{/)
   assert.match(client, /onPreset: workbench\.toggle,/)
 })
 

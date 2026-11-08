@@ -13,6 +13,11 @@ import React from 'react'
 
 import { TOUR_DWELL_MS, TOUR_MIN_STOPS, buildTour, stepIndex, stopCaption, tourDuration } from '../scene/tour.js'
 
+// Every other UI module keeps this one-letter alias; tour-bar.js was the only
+// one that rendered with a bare `h(` and no binding, so opening the tour bar
+// threw `ReferenceError: h is not defined` and unmounted the panel.
+const h = React.createElement
+
 export function useTour({ t, showToast, getCurrentView, onFlyView, onFinish }) {
   const [state, setState] = React.useState(null)
   const barRef = React.useRef(null)

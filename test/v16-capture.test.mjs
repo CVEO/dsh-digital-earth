@@ -62,7 +62,8 @@ function makeService(overrides = {}) {
     showToast: (text) => toasts.push(text),
     setChromeHidden: (value) => hidden.push(value),
     nextFrames: async () => {},
-    drawCaptureOverlay: () => {},
+    drawCaptureOverlay: overrides.drawCaptureOverlay ?? (() => {}),
+    drawVectorLabels: overrides.drawVectorLabels,
   })
   return {
     service,
@@ -100,6 +101,21 @@ test('renderSnapshot：面板不可见/尺寸过小直接报 hiddenPanel，不�
   } finally {
     restore()
   }
+})
+
+test('renderSnapshot：隐藏 HUD 时仍绘入矢量文字，显示 HUD 时先画文字再画 HUD', async () => {
+  const painted = []
+  const { service, restore } = makeService({
+    drawVectorLabels: (_context, width, height) => painted.push(['labels', width, height]),
+    drawCaptureOverlay: () => painted.push(['hud']),
+  })
+  try {
+    await service.renderSnapshot({ width: 1000, include_hud: false })
+    assert.deepEqual(painted, [['labels', 1000, 563]])
+    painted.length = 0
+    await service.renderSnapshot({ width: 1000, include_hud: true })
+    assert.deepEqual(painted, [['labels', 1000, 563], ['hud']])
+  } finally { restore() }
 })
 
 test('renderSnapshot：PNG + include_hud 走 HUD 叠加，宽度夹到 480..2560', async () => {

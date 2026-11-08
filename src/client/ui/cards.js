@@ -6,7 +6,9 @@
  */
 import React from 'react'
 import { formatDistance, formatHeight } from '../format.js'
+import { profileCsv, profileMetrics, profileSvg } from '../analysis/profile-metrics.js'
 import { SHADER_PRESETS } from '../shader/presets.js'
+import { ElevationLegend, elevationSliderBounds, useShaderElevation } from './shader-elevation.js'
 
 const h = React.createElement
 
@@ -14,6 +16,42 @@ const h = React.createElement
 
     const analysisMetric = (value, digits = 1) =>
       typeof value === 'number' && Number.isFinite(value) ? value.toFixed(digits) : '—'
+
+    const formatVolume = (value) =>
+      typeof value === 'number' && Number.isFinite(value) ? `${Math.round(value).toLocaleString()} m³` : '—'
+
+    const clampProfileWidth = (value) => {
+      const number = Number(value)
+      if (!Number.isFinite(number)) return 7
+      return Math.min(100, Math.max(1, Math.round(number)))
+    }
+
+    const profileChartLabels = (t) => ({
+      title: t('analysis.title.profile'),
+      distance: t('profile.axisDistance'),
+      elevation: t('profile.axisElevation'),
+      terrain: t('profile.terrain'),
+      design: t('profile.design'),
+      cut: t('profile.cut'),
+      fill: t('profile.fill'),
+      note: t('profile.note'),
+    })
+
+    /** Client-side file download for profile CSV/SVG (no Host round-trip). */
+    function downloadText(filename, text, mime) {
+      if (typeof document === 'undefined' || typeof Blob === 'undefined' || typeof URL === 'undefined') return false
+      const blob = new Blob([text], { type: mime })
+      const url = URL.createObjectURL(blob)
+      const anchor = document.createElement('a')
+      anchor.href = url
+      anchor.download = filename
+      anchor.rel = 'noopener'
+      document.body.appendChild(anchor)
+      anchor.click()
+      anchor.remove()
+      setTimeout(() => URL.revokeObjectURL(url), 1000)
+      return true
+    }
 
     /** SVG distance–elevation chart; gaps in the sampled data stay visible. */
     function AnalysisProfileChart({ points, t }) {
@@ -65,8 +103,8 @@ const h = React.createElement
             key: `segment-${index}`,
             points: pointsText,
             fill: 'none',
-            stroke: 'var(--mv-accent)',
-            strokeWidth: 1.7,
+            stroke: 'var(--mv-profile-line)',
+            strokeWidth: 3,
             strokeLinejoin: 'round',
             strokeLinecap: 'round',
           }),
@@ -77,12 +115,73 @@ const h = React.createElement
       )
     }
 
+    /** Full-size profile preview; the card keeps a thumbnail that opens this. */
+    function ProfileChartDialog({ metrics, t, onClose }) {
+      React.useEffect(() => {
+        const onKey = (event) => {
+          if (event.key === 'Escape') onClose()
+        }
+        document.addEventListener('keydown', onKey)
+        return () => document.removeEventListener('keydown', onKey)
+      }, [onClose])
+
+      const svg = profileSvg(metrics, profileChartLabels(t))
+      const src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
+      return h(
+        'div',
+        {
+          className: 'mv-modal mv-chart-modal',
+          onPointerDown: (event) => event.target === event.currentTarget && onClose(),
+        },
+        h(
+          'div',
+          { className: 'mv-chart-dialog', role: 'dialog', 'aria-modal': true, 'aria-labelledby': 'mv-chart-title' },
+          h(
+            'header',
+            null,
+            h('b', { id: 'mv-chart-title' }, t('profile.chartTitle')),
+            h('button', { type: 'button', className: 'mv-icon-btn', title: t('btn.close'), 'aria-label': t('btn.close'), onClick: onClose }, '✕'),
+          ),
+          h('div', { className: 'mv-chart-body' }, h('img', { src, alt: t('profile.chartTitle') })),
+          h(
+            'div',
+            { className: 'mv-chart-actions' },
+            h(
+              'button',
+              {
+                type: 'button',
+                className: 'mv-cta',
+                onClick: () => downloadText(`profile-${Date.now()}.csv`, profileCsv(metrics), 'text/csv;charset=utf-8'),
+              },
+              t('profile.exportCsv'),
+            ),
+            h(
+              'button',
+              {
+                type: 'button',
+                className: 'mv-cta',
+                onClick: () => downloadText(`profile-${Date.now()}.svg`, svg, 'image/svg+xml'),
+              },
+              t('profile.exportSvg'),
+            ),
+            h('span', { className: 'mv-chart-note' }, t('profile.note')),
+          ),
+        ),
+      )
+    }
+
     /** Floating result card for the single active analysis. */
     function AnalysisCard({ state, t, onClose }) {
       const [open, setOpen] = React.useState(true)
+      // A2 profile extras are display-side only: the Agent contract stays the same.
+      const [profileMode, setProfileMode] = React.useState('grade')
+      const [profileWidth, setProfileWidth] = React.useState(7)
+      const [chartOpen, setChartOpen] = React.useState(false)
       if (!state || !state.result) return null
       const result = state.result
       const operation = state.operation
+      const profile = operation === 'profile' ? profileMetrics(result.points, { mode: profileMode, width_m: profileWidth }) : null
+      const showProfile = Boolean(profile && profile.valid_count >= 2)
       const rows = []
       const row = (key, label, value) =>
         rows.push(h('div', { key, className: 'stat' }, h('span', null, label), h('b', null, value)))
@@ -95,6 +194,18 @@ const h = React.createElement
         row('gain', t('analysis.gain'), formatHeight(stats.gain_m ?? 0))
         row('loss', t('analysis.loss'), formatHeight(stats.loss_m ?? 0))
         row('samples', t('analysis.samples'), `${result.samples ?? 0}`)
+        if (showProfile) {
+          row('slopeMean', t('profile.slopeMean'), `${analysisMetric(profile.slope.mean_abs_pct)}%`)
+          row(
+            'slopeMax',
+            t('profile.slopeMax'),
+            `${analysisMetric(profile.slope.max_abs_pct)}% · ${formatDistance(profile.slope.max_at_m ?? 0)}`,
+          )
+          row('designGrade', t('profile.designGrade'), `${analysisMetric(profile.design_grade_pct)}%`)
+          row('cut', t('profile.cut'), formatVolume(profile.cut_volume_m3))
+          row('fill', t('profile.fill'), formatVolume(profile.fill_volume_m3))
+          row('net', t('profile.net'), formatVolume(profile.net_volume_m3))
+        }
       } else if (operation === 'flood') {
         row('water', t('analysis.waterHeight'), formatHeight(result.water_height ?? 0))
         row('area', t('analysis.area'), `${analysisMetric(result.area_km2, 3)} km²`)
@@ -172,9 +283,89 @@ const h = React.createElement
                 ? h('div', { className: 'layer', title: state.layerName }, `${t('analysis.layer')}: ${state.layerName}`)
                 : null,
               ...rows,
-              operation === 'profile' ? h(AnalysisProfileChart, { points: result.points, t }) : null,
+              operation === 'profile' && !showProfile ? h(AnalysisProfileChart, { points: result.points, t }) : null,
+              showProfile
+                ? h(
+                    'button',
+                    {
+                      type: 'button',
+                      className: 'profile-chart-thumb',
+                      title: t('profile.expandChart'),
+                      'aria-label': t('profile.expandChart'),
+                      onClick: () => setChartOpen(true),
+                    },
+                    h(AnalysisProfileChart, { points: result.points, t }),
+                    h('span', { className: 'profile-chart-hint' }, t('profile.expandChart')),
+                  )
+                : null,
+              showProfile
+                ? h(
+                    'div',
+                    { key: 'profile-tools', className: 'profile-tools' },
+                    h(
+                      'div',
+                      { className: 'profile-row' },
+                      h(
+                        'select',
+                        {
+                          value: profileMode,
+                          'aria-label': t('profile.baseline'),
+                          onChange: (event) => setProfileMode(event.target.value),
+                        },
+                        h('option', { value: 'grade' }, t('profile.mode.grade')),
+                        h('option', { value: 'level' }, t('profile.mode.level')),
+                      ),
+                      h(
+                        'label',
+                        { className: 'profile-width' },
+                        t('profile.width'),
+                        h('input', {
+                          type: 'number',
+                          min: 1,
+                          max: 100,
+                          step: 1,
+                          value: profileWidth,
+                          'aria-label': t('profile.width'),
+                          onChange: (event) => setProfileWidth(clampProfileWidth(event.target.value)),
+                        }),
+                      ),
+                    ),
+                    h(
+                      'div',
+                      { className: 'profile-row' },
+                      h(
+                        'button',
+                        {
+                          type: 'button',
+                          className: 'mv-cta',
+                          onClick: () =>
+                            downloadText(`profile-${Date.now()}.csv`, profileCsv(profile), 'text/csv;charset=utf-8'),
+                        },
+                        t('profile.exportCsv'),
+                      ),
+                      h(
+                        'button',
+                        {
+                          type: 'button',
+                          className: 'mv-cta',
+                          onClick: () =>
+                            downloadText(
+                              `profile-${Date.now()}.svg`,
+                              profileSvg(profile, profileChartLabels(t)),
+                              'image/svg+xml',
+                            ),
+                        },
+                        t('profile.exportSvg'),
+                      ),
+                    ),
+                    h('p', { className: 'profile-note' }, t('profile.note')),
+                  )
+                : null,
               h('p', { className: 'hint' }, t('analysis.hint')),
             )
+          : null,
+        chartOpen && showProfile
+          ? h(ProfileChartDialog, { key: 'chart-dialog', metrics: profile, t, onClose: () => setChartOpen(false) })
           : null,
       )
     }
@@ -194,6 +385,7 @@ const h = React.createElement
       form,
       active,
       target,
+      getScene,
       onClose,
       onLayer,
       onPreset,
@@ -222,6 +414,17 @@ const h = React.createElement
         [],
       )
       const targetName = target?.layer?.name ?? ''
+      const elevation = useShaderElevation(target, getScene)
+      const bounds = elevationSliderBounds(elevation.range, form)
+      const rangeMinimum = form.minHeight === '' ? elevation.range?.minimum ?? 0 : Number(form.minHeight)
+      const rangeMaximum = form.maxHeight === '' ? elevation.range?.maximum ?? 200 : Number(form.maxHeight)
+      const fitRange = async () => {
+        const range = await elevation.refresh(true)
+        if (!range) return
+        onField('minHeight', '')
+        onField('maxHeight', '')
+        if (live) onPreview()
+      }
       const changeField = (key, value) => {
         onField(key, value)
         if (live) onPreview()
@@ -289,8 +492,8 @@ const h = React.createElement
       const paramRows = []
       if (selectedPresets.includes('height-false-color')) {
         paramRows.push(
-          sliderField('minHeight', 'shader.param.minHeight', -1000, 9000, 1, '0'),
-          sliderField('maxHeight', 'shader.param.maxHeight', -1000, 9000, 1, '200'),
+          sliderField('minHeight', 'shader.param.minHeight', bounds.min, bounds.max, bounds.step, String(rangeMinimum)),
+          sliderField('maxHeight', 'shader.param.maxHeight', bounds.min, bounds.max, bounds.step, String(rangeMaximum)),
         )
       }
       if (selectedPresets.includes('contour')) paramRows.push(sliderField('interval', 'shader.param.interval', 1, 500, 1, '20'))
@@ -301,7 +504,7 @@ const h = React.createElement
         paramRows.push(sliderField('amplitude', 'shader.param.amplitude', 0.1, 5, 0.1, '1'), sliderField('opacity', 'shader.param.opacity', 0.05, 1, 0.05, '0.75'))
       }
       if (selectedPresets.includes('water-depth')) {
-        paramRows.push(sliderField('waterHeight', 'shader.param.waterHeight', -1000, 9000, 1, '0'), sliderField('depthMax', 'shader.param.depthMax', 0.5, 500, 0.5, '50'))
+        paramRows.push(sliderField('waterHeight', 'shader.param.waterHeight', bounds.min, bounds.max, bounds.step, '0'), sliderField('depthMax', 'shader.param.depthMax', 0.5, Math.max(50, Math.min(500, Number(form.depthMax) || 50, (elevation.range?.maximum ?? 50) - (elevation.range?.minimum ?? 0))), 0.5, '50'))
       }
       const params = paramRows.length > 0 ? h('div', { className: 'params' }, ...paramRows) : null
 
@@ -513,6 +716,8 @@ const h = React.createElement
             h('p', { className: 'hint' }, t('shader.stackHint')),
           ),
           orderList,
+          selectedPresets.includes('height-false-color') ? h(ElevationLegend, { range: elevation.range, minimum: rangeMinimum, maximum: rangeMaximum, t, busy: elevation.busy, onFit: fitRange }) : null,
+          selectedPresets.includes('water') ? h('p', { className: 'hint' }, t(selectedPresets.includes('water-depth') ? 'shader.waterMasked' : 'shader.waterPurpose')) : null,
           params,
           h(
             'label',
@@ -530,7 +735,7 @@ const h = React.createElement
           h(
             'div',
             { className: 'row' },
-            h('button', { type: 'button', className: 'mv-cta primary', disabled: visibleLayers.length === 0, onClick: runApply }, t('shader.apply')),
+            h('button', { type: 'button', className: 'mv-cta primary', disabled: visibleLayers.length === 0 || elevation.busy, onClick: runApply }, t('shader.apply')),
             h(
               'button',
               {

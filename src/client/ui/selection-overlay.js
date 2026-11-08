@@ -167,8 +167,6 @@ export function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t
         offset: new Cesium.HeadingPitchRange(heading, pitch, range),
         duration: 1.4,
       })
-      setCard(null)
-      anchorRef.current = null
     } catch {
       /* a destroyed viewer is not worth a toast */
     }

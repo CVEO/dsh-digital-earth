@@ -27,7 +27,7 @@ const WIRINGS = [
   'const commandBridge = createCommandBridge(',
   'const analysisEngine = createAnalysisEngine(',
   'const shaderEngine = createShaderEngine(',
-  'const workbench = createWorkbenchWiring(',
+  'const workbench = useWorkbenchWiring(',
 ]
 
 function definitionOf(lines, name) {

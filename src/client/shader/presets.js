@@ -5,6 +5,8 @@
  * `npm run build:client` and client.js is never edited by hand.
  */
 
+import { cachedElevationRange } from './elevation-range.js'
+
     //#region shader core ------------------------------------------------------
     // B3 shader presets. The model and the workbench can only pick from this
     // white list; no arbitrary GLSL ever reaches Cesium. Every preset modifies
@@ -227,7 +229,7 @@
       } catch {
         centerHeight = 0
       }
-      const extent = shaderTilesetExtent(Cesium, tileset)
+      const extent = cachedElevationRange(tileset) ?? shaderTilesetExtent(Cesium, tileset)
       if (extent) {
         const minimum = shaderClamp(extent.minimum, SHADER_HEIGHT_FLOOR, SHADER_HEIGHT_CEILING)
         const maximum = shaderClamp(extent.maximum, SHADER_HEIGHT_FLOOR, SHADER_HEIGHT_CEILING)
@@ -272,6 +274,8 @@
       if (presets.includes('water')) {
         uniforms.u_amplitude = { type: Cesium.UniformType.FLOAT, value: params.amplitude ?? 1 }
         uniforms.u_opacity = { type: Cesium.UniformType.FLOAT, value: params.opacity ?? 0.75 }
+        uniforms.u_waterMask = { type: Cesium.UniformType.FLOAT, value: presets.includes('water-depth') ? 1 : 0 }
+        uniforms.u_waterHeight = { type: Cesium.UniformType.FLOAT, value: params.water_height ?? 0 }
       }
       if (presets.includes('water-depth')) {
         uniforms.u_waterHeight = { type: Cesium.UniformType.FLOAT, value: params.water_height ?? 0 }
@@ -379,22 +383,25 @@
   material.diffuse = mix(material.diffuse, scanTint, clamp(glow * 0.8 + core * 0.2, 0.0, 1.0));
 }`,
       water: `void fragmentMain(FragmentInput fsInput, inout czm_modelMaterial material) {
-  // World-space waves keep ripples moving across the surface instead of sliding
-  // up and down with altitude (the old height-only sine looked like stripes).
-  vec3 world = fsInput.attributes.positionWC;
-  float speed = max(u_speed, 0.1) * 1.15;
-  float w1 = sin(world.x * 0.055 + world.z * 0.021 + u_time * speed);
-  float w2 = sin(world.y * 0.043 - world.z * 0.031 - u_time * speed * 1.35);
-  float w3 = sin((world.x + world.y) * 0.028 + u_time * speed * 0.72);
-  float ripple = clamp(0.5 + (w1 * 0.5 + w2 * 0.32 + w3 * 0.18) * u_amplitude * 0.6, 0.0, 1.0);
-  vec3 deep = vec3(0.02, 0.09, 0.22);
-  vec3 shallow = vec3(0.09, 0.42, 0.60);
-  vec3 crest = vec3(0.62, 0.97, 1.0);
-  vec3 waterColor = mix(deep, shallow, ripple);
-  float sparkle = pow(ripple, 7.0);
-  waterColor = mix(waterColor, crest, sparkle * 0.55);
-  material.diffuse = mix(material.diffuse, waterColor, u_opacity * 0.85);
-  material.alpha = mix(material.alpha, 0.94, u_opacity * 0.55);
+  vec3 local = fsInput.attributes.positionWC - u_center;
+  vec3 up = normalize(u_center);
+  vec3 east = normalize(cross(vec3(0.0, 0.0, 1.0), up) + vec3(0.00001, 0.0, 0.0));
+  vec3 north = cross(up, east);
+  vec2 position = vec2(dot(local, east), dot(local, north));
+  float time = u_time * max(u_speed, 0.1) * 0.55;
+  float w1 = sin(dot(position, vec2(1.7, 0.65)) - time);
+  float w2 = sin(dot(position, vec2(-0.8, 2.1)) - time * 0.73);
+  float w3 = sin(dot(position, vec2(3.1, 1.8)) + time * 1.13);
+  float detail = (w1 * 0.5 + w2 * 0.3 + w3 * 0.2) * (u_amplitude / (1.0 + u_amplitude)) * 1.5;
+  float footprint = max(length(fwidth(position)), 0.01);
+  float fade = 1.0 - smoothstep(0.35, 2.0, footprint);
+  float ripple = detail * fade;
+  vec3 waterColor = mix(vec3(0.045, 0.18, 0.23), vec3(0.10, 0.32, 0.35), 0.5 + ripple * 0.12);
+  float glint = pow(max(0.0, ripple), 6.0) * 0.06;
+  waterColor += vec3(0.55, 0.75, 0.77) * glint;
+  float height = length(fsInput.attributes.positionWC) - length(u_center) + u_centerHeight;
+  float coverage = mix(1.0, 1.0 - smoothstep(u_waterHeight - 0.3, u_waterHeight + 0.3, height), u_waterMask);
+  material.diffuse = mix(material.diffuse, waterColor, u_opacity * coverage * 0.72);
 }`,
       // D-17: colour geometry by how deep it sits below a chosen water plane; the
       // depth ramp is fixed (never user-supplied color) so the whitelist stays intact.

@@ -17,12 +17,17 @@ import { normalizeSceneSnapshot, readSceneSnapshot, writeSceneSnapshot } from '.
 import { createOverlayLayers } from '../scene/overlay-layers.js'
 import { flyToBookmark } from '../scene/bookmarks.js'
 import { flyToCartographic, frameAllLayers } from '../scene/frame.js'
+import { flyToCoordinates, parseLonLat } from '../scene/fly-target.js'
 import { tilesetGeorefIssue } from '../scene/georef-check.js'
 import { flightDuration } from '../scene/motion.js'
 import { createAskAgent } from '../scene/ask-agent.js'
 import { createCaptureService } from '../scene/capture.js'
 import { createCaptureHud } from '../scene/capture-hud.js'
 import { createPointerTools } from '../scene/pointer-tools.js'
+import { pickSurfaceAt } from '../scene/pick-surface.js'
+import { createProfileTool } from '../scene/profile-tool.js'
+import { createVectorInteraction } from '../scene/vector-interaction.js'
+import { VECTOR_COLORS, vectorLabel } from '../scene/vector-style.js'
 import { createSelectionController } from '../scene/selection-controller.js'
 import { createCommandBridge } from '../scene/command-bridge.js'
 import { createSceneReport } from '../scene/report.js'
@@ -34,14 +39,17 @@ import { useEnvironmentDark } from '../theme.js'
 import { AnalysisCard, ShaderWorkbench } from '../ui/cards.js'
 import { CSS } from '../ui/css.js'
 import { HealthDialog, PathAccessDialog, SourcesDialog } from '../ui/dialogs.js'
+import { UrlBar } from '../ui/url-bar.js'
+import { Compass } from '../ui/compass.js'
 import { StatusHud } from '../ui/hud.js'
 import { AskAgentIcon, FullscreenIcon, HudIcon, IdentifyIcon, ResetIcon, ScreenshotIcon, ShaderIcon, ThemeIcon, ViewerIcon } from '../ui/icons.js'
 import { LayersPanel } from '../ui/layers-panel.js'
 import { LoadingGlobe } from '../ui/loading-globe.js'
 import { SelectionOverlay } from '../ui/selection-overlay.js'
+import { VectorCard } from '../ui/vector-card.js'
 import { useTour } from '../ui/tour-bar.js'
 import { useSceneDetails } from '../ui/scene-details.js'
-import { createWorkbenchWiring } from '../ui/workbench-wiring.js'
+import { useWorkbenchWiring } from '../ui/use-workbench.js'
 import { MenuItem } from '../ui/menu-item.js'
 
 const h = React.createElement
@@ -64,7 +72,9 @@ const h = React.createElement
       const metaRef = React.useRef(null)
       const layersRef = React.useRef([])
       const toolRef = React.useRef(null)
+      const profileToolRef = React.useRef(null)
       const measureRef = React.useRef({ points: [], entities: [] })
+      const vectorRef = React.useRef(null)
       const handlerRef = React.useRef(null)
       const imageryRef = React.useRef(null)
       // L3 raster overlays above the basemap (several layers, each with alpha).
@@ -108,6 +118,7 @@ const h = React.createElement
       const [stats, setStats] = React.useState(null)
       const [pickInfo, setPickInfo] = React.useState(null)
       const [measureInfo, setMeasureInfo] = React.useState(null)
+      const [vectorSelection, setVectorSelection] = React.useState(null)
       const [scan, setScan] = React.useState(null)
       // The empty-state card is onboarding, not chrome: dismissing it keeps the
       // globe free for custom instructions until this panel is remounted.
@@ -320,20 +331,7 @@ const h = React.createElement
         }
       }
 
-      const pickSurface = (position) => {
-        const viewer = viewerRef.current
-        if (!viewer) return null
-        if (viewer.scene.pickPositionSupported) {
-          try {
-            const picked = viewer.scene.pickPosition(position)
-            if (picked) return picked
-          } catch {
-            /* fall through to the globe ray pick */
-          }
-        }
-        const ray = viewer.camera.getPickRay(position)
-        return ray ? viewer.scene.globe.pick(ray, viewer.scene) ?? null : null
-      }
+      const pickSurface = (position) => pickSurfaceAt(viewerRef.current, position)
 
       const proxyUrlFor = (url) => {
         const meta = metaRef.current
@@ -715,7 +713,9 @@ const h = React.createElement
       function setToolMode(mode) {
         toolRef.current = mode
         setTool(mode)
-        clearMeasure()
+        if (mode !== 'profile') profileToolRef.current?.clear()
+        vectorRef.current?.clearSelection()
+        if (mode !== null || measureRef.current.points.length < (measureRef.current.mode === 'area' ? 3 : 2)) clearMeasure()
         if (mode) setPickInfo(null)
         setOpenMenu(null)
       }
@@ -739,26 +739,18 @@ const h = React.createElement
         for (const entity of state.entities) viewer.entities.remove(entity)
         state.entities = []
         const points = state.points
+        state.mode = mode
+        const descriptor = { group: 'local-measure', kind: t('layers.vectorMeasured'), title: t(`tool.${mode}`), summary: '' }
         const add = (options) => {
-          const entity = viewer.entities.add(options)
+          const entity = vectorRef.current.add(options, descriptor)
           state.entities.push(entity)
           return entity
         }
-        const accent = Cesium.Color.fromCssColorString('#5b8cff')
+        const accent = Cesium.Color.fromCssColorString(VECTOR_COLORS.accent)
         const label = (position, text) =>
           add({
             position,
-            label: {
-              text,
-              font: '12px -apple-system,"Segoe UI","PingFang SC",sans-serif',
-              style: Cesium.LabelStyle.FILL,
-              fillColor: Cesium.Color.WHITE,
-              showBackground: true,
-              backgroundColor: new Cesium.Color(0.06, 0.09, 0.15, 0.85),
-              backgroundPadding: new Cesium.Cartesian2(8, 5),
-              pixelOffset: new Cesium.Cartesian2(0, -18),
-              disableDepthTestDistance: Number.POSITIVE_INFINITY,
-            },
+            label: vectorLabel(Cesium, text),
           })
         for (const position of points) {
           add({
@@ -787,6 +779,7 @@ const h = React.createElement
               outlineColor: accent,
             },
           })
+          add({ polyline: { positions: [...points, points[0]], width: 2.5, material: accent, depthFailMaterial: accent.withAlpha(0.3) } })
           const area = planarArea(Cesium, points)
           const center = Cesium.BoundingSphere.fromPoints(points).center
           label(center, t('measure.areaLabel', { value: formatArea(area) }))
@@ -796,8 +789,8 @@ const h = React.createElement
             polyline: {
               positions: points,
               width: 2,
-              material: Cesium.Color.fromCssColorString('#f0b84b'),
-              depthFailMaterial: Cesium.Color.fromCssColorString('#f0b84b'),
+              material: accent,
+              depthFailMaterial: accent.withAlpha(0.3),
             },
           })
           const left = Cesium.Cartographic.fromCartesian(points[0])
@@ -813,6 +806,8 @@ const h = React.createElement
         } else {
           setMeasureInfo({ text: t('measure.start') })
         }
+        descriptor.summary = state.entities.map((entity) => entity.label?.text?.getValue?.()).filter(Boolean).join(' · ')
+        vectorRef.current.refresh(descriptor)
       }
 
       //#region Agent overlays (annotations + measurements) ---------------------
@@ -844,13 +839,7 @@ const h = React.createElement
         markSceneDirty()
       }
 
-      const AGENT_OVERLAY_COLORS = {
-        accent: '#5b8cff',
-        alert: '#e5484d',
-        success: '#2ec27e',
-        warm: '#f0b84b',
-        violet: '#a855f7',
-      }
+      const AGENT_OVERLAY_COLORS = VECTOR_COLORS
 
       const agentOverlayColor = (Cesium, style) => {
         const css = AGENT_OVERLAY_COLORS[style] ?? AGENT_OVERLAY_COLORS.accent
@@ -879,18 +868,9 @@ const h = React.createElement
       const addAgentGroundLabel = (Cesium, add, lon, lat, text) =>
         add({
           position: Cesium.Cartesian3.fromDegrees(lon, lat),
-          label: {
-            text,
-            font: '12px -apple-system,"Segoe UI","PingFang SC",sans-serif',
-            style: Cesium.LabelStyle.FILL,
-            fillColor: Cesium.Color.WHITE,
-            showBackground: true,
-            backgroundColor: new Cesium.Color(0.06, 0.09, 0.15, 0.85),
-            backgroundPadding: new Cesium.Cartesian2(8, 5),
-            pixelOffset: new Cesium.Cartesian2(0, -18),
+          label: vectorLabel(Cesium, text, {
             heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
-            disableDepthTestDistance: Number.POSITIVE_INFINITY,
-          },
+          }),
         })
 
       /**
@@ -905,8 +885,9 @@ const h = React.createElement
         const byType = { points: 0, lines: 0, polygons: 0 }
         const bbox = { west: Infinity, south: Infinity, east: -Infinity, north: -Infinity }
         let drawn = 0
+        let descriptor = null
         const add = (options) => {
-          const entity = viewer.entities.add(options)
+          const entity = vectorRef.current.add(options, descriptor)
           state.draw.push(entity)
           return entity
         }
@@ -1015,6 +996,8 @@ const h = React.createElement
         const drawGeometry = (geometry, properties) => {
           if (geometry === null || typeof geometry !== 'object') return
           const label = agentLabelText(nameOf(properties), caption)
+          descriptor = { group: {}, kind: t('layers.vectorDrawn'), title: label || t('layers.vectorDrawn'), summary: t(`vector.geometry.${geometry.type.replace('Multi', '')}`),
+            rows: Object.entries(properties ?? {}).filter(([key]) => key !== 'name').slice(0, 12).map(([key, value]) => [key, formatValue(value)]) }
           switch (geometry.type) {
             case 'Point':
               drawPoint(geometry.coordinates, label)
@@ -1088,9 +1071,10 @@ const h = React.createElement
         })
         const ground = located.map((point) => Cesium.Cartesian3.fromDegrees(point.lon, point.lat, 0))
         const draw = args.draw !== false
-        const color = Cesium.Color.fromCssColorString('#f0b84b')
+        const color = Cesium.Color.fromCssColorString(VECTOR_COLORS.accent)
+        const descriptor = { group: {}, kind: t('layers.vectorMeasured'), title: t(`tool.${mode}`), summary: '' }
         const add = (options) => {
-          const entity = viewer.entities.add(options)
+          const entity = vectorRef.current.add(options, descriptor)
           state.measure.push(entity)
           return entity
         }
@@ -1175,7 +1159,8 @@ const h = React.createElement
                 depthFailMaterial: color.withAlpha(0.55),
               },
             })
-            addAgentGroundLabel(Cesium, add, to.lon, to.lat, `${t('measure.height', { value: `${delta >= 0 ? '+' : ''}${delta.toFixed(2)} m`, distance: formatDistance(horizontal) })}`)
+            add({ position: Cesium.Cartesian3.fromDegrees(to.lon, to.lat, to.height), label: vectorLabel(Cesium,
+              t('measure.height', { value: `${delta >= 0 ? '+' : ''}${delta.toFixed(2)} m`, distance: formatDistance(horizontal) })) })
           }
         } else {
           throw new Error(t('agent.badMeasure', { message: `unsupported mode ${String(mode)}` }))
@@ -1190,6 +1175,8 @@ const h = React.createElement
           markSceneDirty()
         }
         syncAgentOverlayCount()
+        descriptor.summary = state.measure.slice(firstEntity).map((entity) => entity.label?.text?.getValue?.()).filter(Boolean).join(' · ')
+        vectorRef.current.refresh(descriptor)
         return result
       }
       //#endregion Agent overlays
@@ -1206,11 +1193,16 @@ const h = React.createElement
         state: analysisRef,
         commandRef: analysisCommandRef,
         setAnalysis,
+        addEntity: (options, descriptor) => vectorRef.current.add(options, descriptor),
         markSceneDirty: () => markSceneDirty(),
         t,
       })
       const clearAnalysis = () => analysisEngine.clear()
       const analyzeCommand = (args = {}) => analysisEngine.command(args)
+      const profileTool = createProfileTool({
+        getCesium: () => cesiumRef.current, getViewer: () => viewerRef.current, pickSurface, setTool: setToolMode, runAnalysis: analyzeCommand, showToast, t,
+      })
+      profileToolRef.current = profileTool
       //#endregion analysis engine
 
       //#region shader engine ----------------------------------------------------
@@ -1413,8 +1405,7 @@ const h = React.createElement
 
       /** Readable description of the object under a screen position. */
       // Canvas picking / measure click loop lives in src/client/scene/pointer-tools.js.
-      const pointerTools = createPointerTools({
-        getCesium: () => cesiumRef.current,
+      const pointerTools = createPointerTools({        getCesium: () => cesiumRef.current,
         getViewer: () => viewerRef.current,
         toolRef,
         measureRef,
@@ -1422,11 +1413,13 @@ const h = React.createElement
         showToast,
         pickSurface,
         redrawMeasure,
-        onFinishTool: () => setTool(null),
+        onFinishTool: () => setToolMode(null),
         formatValue,
         layerLabel,
         // "识别模式" route: the click lands in ui/selection-overlay.js.
         onIdentify: (position) => selectionApiRef.current?.(position),
+        onProfilePoint: (position) => profileTool.onPoint(position),
+        onOverlayClick: (position) => vectorRef.current?.click(position),
         t,
       })
       const { pickResult, pickAt, onCanvasClick } = pointerTools
@@ -1486,6 +1479,7 @@ const h = React.createElement
         setChromeHidden,
         nextFrames,
         drawCaptureOverlay,
+        drawVectorLabels: (context, width, height) => vectorRef.current?.drawLabels(context, width, height),
       })
       const { renderSnapshot, screenshot, captureScene } = capture
 
@@ -1757,6 +1751,11 @@ const h = React.createElement
       async function submitUrl() {
         const value = urlInput.trim()
         if (!value) return
+        const target = parseLonLat(value)
+        if (target) {
+          setUrlBar(false); setUrlInput('')
+          return flyToCoordinates(viewerRef.current, cesiumRef.current, target)
+        }
         let url = value
         if (/^[a-zA-Z]:[\\/]/.test(value) || value.startsWith('\\\\')) {
           try {
@@ -2006,6 +2005,8 @@ const h = React.createElement
             contextOptions: { webgl: { preserveDrawingBuffer: false } },
             })
             viewerRef.current = viewer
+            vectorRef.current = createVectorInteraction({ Cesium, viewer, root: rootRef.current, getTool: () => toolRef.current,
+              onSelect: (selection) => { setVectorSelection(selection); if (selection) setPickInfo(null) } })
             viewer.scene.globe.baseColor = Cesium.Color.fromCssColorString('#060a12')
             // Apply the persisted render tier before the first frame: resolution
             // scale and terrain LOD are the two biggest per-frame costs.
@@ -2051,6 +2052,12 @@ const h = React.createElement
                 if (carto) flyToCartographic(viewerNow, Cesium, carto)
               },
               Cesium.ScreenSpaceEventType.LEFT_DOUBLE_CLICK,
+            )
+            handler.setInputAction(
+              () => {
+                if (toolRef.current === 'profile') profileTool.cancel()
+              },
+              Cesium.ScreenSpaceEventType.RIGHT_CLICK,
             )
             handlerRef.current = handler
             // A camera move is the most frequent scene change: mark it dirty and
@@ -2100,6 +2107,8 @@ const h = React.createElement
           // no-ops if the scene is already gone.
           void overlayLayersRef.current?.dispose()
           overlayLayersRef.current = null
+          vectorRef.current?.dispose()
+          vectorRef.current = null
           try {
             viewerRef.current?.destroy()
           } catch {
@@ -2271,7 +2280,7 @@ const h = React.createElement
       // A measure tool must never be a dead end: Esc leaves it (the on-screen
       // chip also offers an explicit 结束 button). Scoped to the three measure
       // modes so Esc keeps its "close the card, stay in identify mode" meaning.
-      const measureMode = tool === 'distance' || tool === 'area' || tool === 'height'
+      const measureMode = tool === 'distance' || tool === 'area' || tool === 'height' || tool === 'profile'
       React.useEffect(() => {
         if (!measureMode) return undefined
         const onKey = (event) => {
@@ -2356,9 +2365,9 @@ const h = React.createElement
 
       // B3 workbench wiring lives in src/client/ui/workbench-wiring.js; this
       // component only owns the form state and the scene refs the wiring needs.
-      const workbench = createWorkbenchWiring({
+      const workbench = useWorkbenchWiring({
         getForm: () => shaderForm,
-        getLayers: () => layers,
+        getLayers: () => layersRef.current,
         setShaderForm,
         shaderCommand,
         showToast,
@@ -2380,6 +2389,7 @@ const h = React.createElement
           ? h('div', { key: 'attr', className: 'mv-attr' }, `${t('credit.imagery')} © ${activeImagery.credit}`)
           : null,
         h('div', { key: 'credits', ref: creditRef, className: 'mv-credits' }),
+        h(Compass, { key: 'compass', getViewer: () => viewerRef.current, t }),
         h(
           'div',
           { key: 'top', className: 'mv-top' },
@@ -2577,21 +2587,15 @@ const h = React.createElement
           ),
         ),
         urlBar
-          ? h(
-              'div',
-              { key: 'urlbar', className: 'mv-urlbar mv-glass' },
-              h('input', {
-                autoFocus: true,
-                value: urlInput,
-                placeholder: t('urlbar.placeholder'),
-                onChange: (event) => setUrlInput(event.target.value),
-                onKeyDown: (event) => {
-                  if (event.key === 'Enter') submitUrl()
-                  if (event.key === 'Escape') setUrlBar(false)
-                },
-              }),
-              h('button', { type: 'button', onClick: submitUrl }, t('urlbar.submit')),
-            )
+          ? h(UrlBar, {
+              key: 'urlbar',
+              value: urlInput,
+              placeholder: t('urlbar.placeholder'),
+              submitLabel: t('urlbar.submit'),
+              onChange: setUrlInput,
+              onSubmit: submitUrl,
+              onClose: () => setUrlBar(false),
+            })
           : null,
         shaderOpen
           ? h(ShaderWorkbench, {
@@ -2609,7 +2613,7 @@ const h = React.createElement
               onField: workbench.field,
               onApply: workbench.apply,
               onPreview: workbench.preview,
-              target: workbench.target(),
+              target: workbench.target(), getScene: () => ({ Cesium: cesiumRef.current, viewer: viewerRef.current }),
               onPresetMove: workbench.move,
               onCompare: workbench.compare,
               onResetLayer: workbench.resetLayer,
@@ -2656,6 +2660,9 @@ const h = React.createElement
                     onFrameAll: () => frameAllLayers(viewerRef.current, cesiumRef.current, layersRef.current),
                     analysis,
                     onClearAnalysis: () => clearAnalysis(),
+                    onStartProfile: () => profileTool.start(),
+                    getViewer: () => viewerRef.current,
+                    getCesium: () => cesiumRef.current,
                     // Shader effects hang off their 3D Tiles layer row: hover shows
                     // the effect, clicking the row loads it into the workbench.
                     shaderActive,
@@ -2746,15 +2753,16 @@ const h = React.createElement
                 {
                   type: 'button',
                   className: 'mv-measure-end',
-                  title: t('measure.endHint'),
-                  'aria-label': t('measure.endHint'),
-                  onClick: () => setToolMode(null),
+                  title: tool ? t('measure.endHint') : t('tool.clear'),
+                  'aria-label': tool ? t('measure.endHint') : t('tool.clear'),
+                  onClick: () => tool ? setToolMode(null) : clearMeasure(),
                 },
-                t('measure.end'),
+                tool ? t('measure.end') : t('tool.clear'),
               ),
             )
           : null,
-        pickInfo
+        h(VectorCard, { key: 'vector-selection', selection: vectorSelection, onClose: () => vectorRef.current?.clearSelection(), t }),
+        pickInfo && !vectorSelection
           ? h(
               'div',
               { key: 'pick', className: 'mv-pick mv-glass' },

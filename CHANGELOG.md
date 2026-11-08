@@ -1,5 +1,24 @@
 # Changelog
 
+## 1.5.1
+
+UI and interaction patch for the layer panel, manual profile and sun timeline.
+
+### Features
+
+- **Layer-panel tabs** — the layer card now has two tabs: Map (terrain / imagery / raster) and 3D (vector / 3D content / spatial analysis / sun / view bookmarks).
+- **Compass** — a circular rose with an outer ring, 15° ticks, N/E/S/W labels and a red north needle; it rotates with the camera and clicking it faces north again.
+- **Manual profile** — in the 3D tab, click "Draw profile" and then the start/end points on the globe; right-click or Esc cancels. The result reuses the existing profile engine and A2 card: cut/fill, slope, CSV/SVG export, a chart thumbnail that opens a full-size chart.
+- **Sun timeline** — date and time slider, solar altitude/azimuth readout and shadow toggle. At night a scene-wide brightness post-process darkens photogrammetry and terrain together; closing the timeline or leaving the 3D tab restores the scene.
+- **Profile line contrast** — the card thumbnail uses a 3 px blue line, the exported SVG uses 3.2 px, and the 3D profile overlay uses 4.5 px; the design line is darker and thicker as well.
+- **Vector and shader polish** — vector selection card and labels, shader elevation-range sampling and an elevation legend for the height ramp.
+
+### Docs
+
+- Bilingual README updated for the two tabs, compass, manual profile, sun timeline and chart preview.
+- Added `CONTRIBUTING.md`; development details moved out of the README.
+- Removed the "known limitations" and "development" sections from the README.
+
 ## 1.5.0
 
 图层平台与性能版本，按 `docs/PLAN-v1.6.md` 的阶段推进（**发布版本号始终保持 1.5.0**，不单独发 1.6.0）。以下为本轮已完成项：

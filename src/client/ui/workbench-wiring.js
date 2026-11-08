@@ -179,6 +179,7 @@ export function createWorkbenchWiring({ getForm, getLayers, setShaderForm, shade
   let applying = false
   let queued = false
   let lastSilentError = ''
+  let disposed = false
 
   const runApply = async (silent) => {
     try {
@@ -197,6 +198,8 @@ export function createWorkbenchWiring({ getForm, getLayers, setShaderForm, shade
   }
 
   return {
+    activate() { disposed = false },
+    dispose() { disposed = true; clearTimeout(applyTimer); applyTimer = null; queued = false },
     /** Set one form field (layerId / numeric inputs). */
     field,
     /** Toggle a preset chip in the stack. */
@@ -218,6 +221,7 @@ export function createWorkbenchWiring({ getForm, getLayers, setShaderForm, shade
     },
     /** Debounced silent apply for slider previews; repeated calls merge into one. */
     preview: () => {
+      if (disposed) return
       if (applyTimer !== null) clearTimeout(applyTimer)
       applyTimer = setTimeout(() => {
         applyTimer = null
@@ -271,6 +275,7 @@ export function createWorkbenchWiring({ getForm, getLayers, setShaderForm, shade
 
   /** Serialise applies so rapid slider previews never interleave two shader builds. */
   async function applyInternal(silent) {
+    if (disposed) return
     if (applying) {
       queued = true
       return

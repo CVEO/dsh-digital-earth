@@ -51,7 +51,16 @@ export function useSceneDetails({ t, stats, config, layers, analysis, shaderActi
           row(t('hud.heading'), `${stats?.heading ?? '—'} / ${stats?.pitch ?? '—'}`),
           row(t('layers.imagery'), sourceName(config?.imagery, config?.settings?.imagery)),
           row(t('layers.terrain'), sourceName(config?.terrain, config?.settings?.terrain)),
-          row(t('sceneDetails.analysis'), analysis ? `${analysis.operation ?? ''}${analysis.layer ? ` · ${analysis.layer}` : ''}` : t('sceneDetails.none')),
+          row(
+            t('sceneDetails.analysis'),
+            analysis
+              ? `${
+                  typeof analysis.operation === 'string' && analysis.operation !== ''
+                    ? t(`analysis.title.${analysis.operation}`)
+                    : t('layers.analysis')
+                }${typeof analysis.layerName === 'string' && analysis.layerName !== '' ? ` · ${analysis.layerName}` : ''}`
+              : t('sceneDetails.none'),
+          ),
           row(t('sceneDetails.shader'), shaderActive?.length ? String(shaderActive.length) : t('sceneDetails.none')),
         ),
         focusedLayer?.georefIssue

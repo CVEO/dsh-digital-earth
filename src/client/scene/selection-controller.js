@@ -8,7 +8,7 @@
  * frozen six tools.
  */
 import { createHeightService } from '../analysis/height-service.js'
-import { sampleCursor } from '../cursor.js'
+import { pickSurfaceAt } from './pick-surface.js'
 import { postEvidence } from './evidence-export.js'
 import { cameraView } from './motion.js'
 import { SELECTION_MAX_PROPERTIES, buildSelectionCard, selectionOffsets } from './selection.js'
@@ -78,20 +78,13 @@ export function createSelectionController({ getViewer, getCesium, getLayers, get
     const viewer = getViewer()
     const Cesium = getCesium()
     if (!viewer || !Cesium) throw new Error('not_ready')
-    const carto = sampleCursor(viewer, Cesium, position, { pickPosition: true })
+    const anchor = pickSurfaceAt(viewer, position)
+    const carto = anchor ? Cesium.Cartographic.fromCartesian(anchor) : null
     if (!carto) throw new Error('no_surface')
     const lon = Cesium.Math.toDegrees(carto.longitude)
     const lat = Cesium.Math.toDegrees(carto.latitude)
     const classified = classifyPick(viewer.scene.pick(position), Cesium)
     const layer = findLayer(classified.tileset)
-    let anchor = null
-    try {
-      const picked = viewer.scene.pickPosition(position)
-      if (Cesium.defined(picked)) anchor = picked
-    } catch {
-      anchor = null
-    }
-    if (!anchor) anchor = Cesium.Cartesian3.fromDegrees(lon, lat, carto.height)
     const identity = {
       kind: classified.kind,
       name: classified.name ?? null,

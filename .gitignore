@@ -18,3 +18,9 @@ roof_task/
 数字地球项目-简历包装*.md
 # Development notes, plans, audits and research: local-only, never pushed or published.
 docs/
+
+# Local visual verification captures: never commit.
+verify/
+
+# Local verification captures
+verify/

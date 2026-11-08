@@ -614,7 +614,8 @@ test('client sunlight 引擎：光照/阴影/时钟/3D Tiles ShadowMode，并保
 
 test('client 单活动分析：analysis- 实体前缀独立于 agent-，clear 移除实体并恢复场景，删图层联动清理', () => {
   assert.match(client, /const ANALYSIS_ENTITY_PREFIX = 'analysis-'/)
-  assert.match(client, /const entity = viewer\.entities\.add\(\{ \.\.\.options, id: `\$\{ANALYSIS_ENTITY_PREFIX\}\$\{options\.id\}` \}\)/)
+  assert.match(client, /const values = \{ \.\.\.options, id: `\$\{ANALYSIS_ENTITY_PREFIX\}\$\{options\.id\}` \}/)
+  assert.match(client, /const entity = deps\.addEntity \? deps\.addEntity\(values, descriptor\) : viewer\.entities\.add\(values\)/)
   assert.match(client, /state\.entities\.push\(entity\)/)
   assert.match(client, /const analysisRef = React\.useRef\(\{ operation: null, layerId: null, layerName: null, entities: \[\], restore: null \}\)/)
 

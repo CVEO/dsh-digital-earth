@@ -34,7 +34,7 @@ function fakeReact() {
 }
 
 const clone = (value) => JSON.parse(JSON.stringify(value))
-const FALLBACK_ABOUT = { version: '1.5.0', homepage: 'https://x', issues: 'https://x', team: { name: 'n', url: 'https://x' } }
+const FALLBACK_ABOUT = { version: '1.5.1', homepage: 'https://x', issues: 'https://x', team: { name: 'n', url: 'https://x' } }
 
 function loadDialogs() {
   let source = readRepoFile('src/client/ui/dialogs.js')

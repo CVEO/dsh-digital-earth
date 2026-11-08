@@ -14,6 +14,7 @@
 import { createHeightService } from './height-service.js'
 import { ANALYSIS_ENTITY_PREFIX, ANALYSIS_MIN_SAMPLES, analysisClipPlane, analysisColorAt, analysisInteger, analysisLonLat, analysisObserver, analysisRegion, analysisRound, analysisSunAngles } from './math.js'
 import { formatHeight } from '../format.js'
+import { vectorLabel } from '../scene/vector-style.js'
 
 /**
  * @param {object} deps
@@ -47,22 +48,14 @@ export function createAnalysisEngine(deps) {
 
       const analysisAdd = (Cesium, viewer, options) => {
         const state = analysisRef.current
-        const entity = viewer.entities.add({ ...options, id: `${ANALYSIS_ENTITY_PREFIX}${options.id}` })
+        const descriptor = { group: 'analysis', kind: t('layers.analysis'), title: t(`analysis.title.${state.operation}`), summary: state.layerName ?? '' }
+        const values = { ...options, id: `${ANALYSIS_ENTITY_PREFIX}${options.id}` }
+        const entity = deps.addEntity ? deps.addEntity(values, descriptor) : viewer.entities.add(values)
         state.entities.push(entity)
         return entity
       }
 
-      const analysisLabel = (Cesium, text) => ({
-        text,
-        font: '12px -apple-system,"Segoe UI","PingFang SC",sans-serif',
-        style: Cesium.LabelStyle.FILL,
-        fillColor: Cesium.Color.WHITE,
-        showBackground: true,
-        backgroundColor: new Cesium.Color(0.06, 0.09, 0.15, 0.85),
-        backgroundPadding: new Cesium.Cartesian2(8, 5),
-        pixelOffset: new Cesium.Cartesian2(0, -18),
-        disableDepthTestDistance: Number.POSITIVE_INFINITY,
-      })
+      const analysisLabel = (Cesium, text) => vectorLabel(Cesium, text)
 
       /** Restore whatever the sunlight or clip operation changed in the scene. */
       const restoreAnalysisScene = () => {
@@ -197,7 +190,7 @@ export function createAnalysisEngine(deps) {
                 positionAt((index - 1) * step, left.height_m),
                 positionAt(index * step, right.height_m),
               ],
-              width: 3.5,
+              width: 4.5,
               arcType: Cesium.ArcType.NONE,
               material: color,
               depthFailMaterial: color.withAlpha(0.35),
@@ -211,7 +204,7 @@ export function createAnalysisEngine(deps) {
             id,
             position: positionAt(fraction, endpointHeight(point)),
             point: {
-              pixelSize: 9,
+              pixelSize: 10,
               color,
               disableDepthTestDistance: Number.POSITIVE_INFINITY,
             },
@@ -326,7 +319,7 @@ export function createAnalysisEngine(deps) {
           position: positionAt(fractions[maxIndex], maxPoint.height_m),
           point: {
             pixelSize: 10,
-            color: Cesium.Color.fromCssColorString('#ffd166'),
+            color: Cesium.Color.fromCssColorString('#ddbb83'),
             disableDepthTestDistance: Number.POSITIVE_INFINITY,
           },
           label: analysisLabel(
@@ -339,7 +332,7 @@ export function createAnalysisEngine(deps) {
           position: positionAt(0, eyeHeight),
           point: {
             pixelSize: 8,
-            color: Cesium.Color.fromCssColorString('#7fd4ff'),
+            color: Cesium.Color.fromCssColorString('#79b6e8'),
             disableDepthTestDistance: Number.POSITIVE_INFINITY,
           },
           label: analysisLabel(Cesium, t('analysis.skylineEyeValue', { value: formatHeight(eyeHeight) })),

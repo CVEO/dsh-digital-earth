@@ -1,191 +1,310 @@
 <div align="center">
 
+<img src="https://github.com/CVEO/dsh-digital-earth/raw/main/icon.svg" width="72" height="72" alt="Digital Earth icon">
+
 # Digital Earth
 
-**A DeepSeek Harness panel for 3D Tiles and 3DGS layers on a CesiumJS globe, built to work alongside an Agent conversation**
+**3D Tiles and 3DGS on a CesiumJS globe, with the scene readable and drivable by the Agent in the chat.**
 
-[中文](README.md) · [English](README.en.md)
+[中文](README.md) · [English](README.en.md) · [Issues](https://github.com/CVEO/dsh-digital-earth/issues) · [Changelog](CHANGELOG.md)
 
-![version](https://img.shields.io/badge/version-1.5.0-4f8cff)
+![version](https://img.shields.io/badge/version-1.5.1-4f8cff)
 ![license](https://img.shields.io/badge/license-MIT-2ea44f)
-![platform](https://img.shields.io/badge/platform-Web-8b5cf6)
-![DSH](https://img.shields.io/badge/DSH-%3E%3D0.2.1--rc.1-0ea5e9)
+![DSH plugin](https://img.shields.io/badge/DSH-plugin-0ea5e9)
+![3D Tiles + 3DGS](https://img.shields.io/badge/3D_Tiles_%2B_3DGS-CesiumJS-8b5cf6)
+![platform](https://img.shields.io/badge/platform-Web-64748b)
 
 </div>
 
-![Preview](preview.png)
+![3D Tiles over the CesiumJS globe](https://github.com/CVEO/dsh-digital-earth/raw/main/preview.png)
 
-Digital Earth adds a CesiumJS globe to DSH. It opens beside the conversation so photogrammetry and Gaussian-splatting deliverables can be explored while you chat, and it lets the Agent read and drive the scene in natural language. CesiumJS 1.147 and the UI assets are self-hosted (no Cesium ion token, no external static assets); imagery basemaps, terrain and online tiles still reach the services you select.
+Digital Earth is a DeepSeek Harness (DSH) plugin that puts a CesiumJS globe in the workspace, next to the conversation. It lets people browse photogrammetry and Gaussian-splatting deliverables, and it lets the Agent read, drive, measure and analyze that scene in natural language. CesiumJS 1.147 and the UI assets ship with the plugin — no Cesium ion token, no external static assets. Imagery basemaps, terrain and online tiles still reach the services you select.
+
+## Demo
+
+These are real panel captures. The sample data is a project-owned LOD18 photogrammetry scene plus an open-source 3DGS sample; the images contain no local paths. The hero is the overview; the rest shows one capability each.
+
+**Annotate: the Agent draws points, extents and labels from GeoJSON; coordinates, measurements and annotations stay in the panel.**
+
+![Annotate](https://github.com/CVEO/dsh-digital-earth/raw/main/assets/readme/identify.jpg)
+
+**Profile: the Agent samples the terrain between two points, draws the profile in the scene and returns length, relief and climb.**
+
+![Profile](https://github.com/CVEO/dsh-digital-earth/raw/main/assets/readme/analysis.jpg)
+
+**Shaders: five white-listed presets per 3D Tiles layer, for example water-depth coloured by elevation; the workbench stacks 1–3 presets, tunes sliders and compares against the original look.**
+
+![Shaders](https://github.com/CVEO/dsh-digital-earth/raw/main/assets/readme/shader.jpg)
+
+**3DGS: Gaussian-splat layers can sit in the same scene as 3D Tiles; analysis and shaders only apply to ordinary 3D Tiles.**
+
+![3DGS layer](https://github.com/CVEO/dsh-digital-earth/raw/main/assets/readme/3dgs.jpg)
+
+## Why Digital Earth
+
+DSH puts the conversation, your files and your tools in one workspace. The Agent can read a file and run a script, but before this plugin it could not see your 3D scene — let alone turn "how tall is that building?" or "would this area flood?" into numbers you can check.
+
+Digital Earth adds that spatial context. The story is three steps:
+
+- **Identify**: turn what is on screen into coordinates, elevations and an evidence JSON — not a guess that "looks right".
+- **Explain**: the Agent answers with measurements, profiles, flood, sunlight, clip and skyline results, each carrying its elevation source and limits.
+- **Take it away**: clean snapshots, evidence packs, HTML / Markdown reports and per-session scene snapshots that survive closing the panel.
+
+It does not replace desktop GIS or photogrammetry tools. Your data stays a standard 3D Tiles dataset on disk; the plugin puts browsing, identification, analysis and hand-off into the conversation workflow.
 
 ## Features
 
-| Capability | Details |
-| --- | --- |
-| Beside the chat | A session-scoped “Digital Earth” tab in the right sidebar sits next to the conversation and opens by itself when the Agent calls an earth tool; the globe button in the chat header opens it at any time, and a full-screen immersive mode is one click away |
-| Agent integration | Six built-in tools — `earth_scene` for scene control, `earth_capture` for snapshots, `earth_draw` for annotations, `earth_measure` for measurements, `earth_analyze` for terrain analysis and `earth_shader` for shader presets; every call gets a tool row in the conversation, all driven by natural language |
-| 3D Tiles & 3DGS | Recursive `tileset.json` discovery from a local folder; 3D Tiles 1.0 / 1.1 (b3dm, glb) and 3DGS (`KHR_gaussian_splatting`, SPZ included); multiple layers with show / hide, fly-to and remove |
-| Online & local paths | Paste an `http(s)` URL or an absolute local path; if a local path lies outside the chosen folders the panel asks once for authorisation, registers the folder and continues; cross-origin failures fall back to the host proxy automatically |
-| Standard data contract | Only standard 3D Tiles 1.0 / 1.1: the root tile must carry a world placement (`root.transform` or `boundingVolume.region`). Datasets without one are never rewritten silently; the data health check reports `tileset_not_georeferenced` instead. Re-export with a root `transform` / `region` |
-| Basemaps | Built-in Esri presets plus custom XYZ (TMS, projection, subdomains, max level) / WMS / ArcGIS services; the no-basemap mode stays fully usable |
-| Terrain | ArcGIS WorldElevation3D built in; any Cesium or ArcGIS terrain service can be added |
-| Local tiles | Point at a local XYZ / TMS tile folder and use it as a basemap offline |
-| Source management | Add, edit, delete, select and restore defaults in the settings panel; persisted to `$DSH_HOME/digital-earth/sources.json` |
-| Cursor HUD | Longitude / latitude plus elevation on the bare globe, terrain and 3D surfaces; ~5–6 Hz sampling, paused while dragging and refreshed once when the drag ends, without React re-renders; FPS is measured from real Cesium render passes (`scene.postRender`) and shows `—` after 2 s of an idle scene instead of a fake 0. Five numbers by default (FPS + cursor lon/lat/elevation + camera height); the Settings → Appearance “Detailed HUD” switch (off by default, persisted) restores heading / pitch and per-layer tiles / pending / triangles / cache |
-| Measurement | Distance, area, height difference, 3D Tiles property picking, snapshot, reset view |
-| View bookmarks | In the layer panel: save the current camera view (up to 20, stored locally), click a name to fly back, ✕ to remove; each bookmark can carry one sentence for the guided tour; no Agent round-trip needed |
-| Identify & export evidence | The toolbar “Identify” tool: clicking an object opens a selection card with coordinates, a sampled surface elevation and a geometric height estimate (24 neighbourhood samples: 8 bearings × 30/60/120 m, sample count shown) plus “above neighbourhood median”, and marks every claim with a **red / amber / green high / medium / low confidence chip**. Without a batch table the title is a neutral hit level (“3D tile region” / “Feature inside a tile” / “Scene surface”) — no “unnamed object” phrasing, no invented name and no fake precision; unknown attributes and limitations go into the evidence JSON, and the card keeps only one small footnote that the height is a geometric estimate. “Export evidence” writes a clean PNG plus an evidence JSON (position / elevation / sampling / source / camera / time / limitations) under `$DSH_HOME/digital-earth/exports/`; the full explanation lives in the button tooltip |
-| Guided tour | View bookmarks become tour stops: one saved camera view + one sentence each. Playback flies between stops with distance-adaptive timing (1.6–2.4 s) and shows the caption; pause, previous and next are available; dragging the globe or clicking elsewhere takes over immediately, and a natural finish saves one snapshot. Panel-only: the tool contract is unchanged |
-| Terrain analysis | `earth_analyze`: profile (with an SVG profile card), flood, sunlight, clip and skyline; one active analysis at a time, results shown as map overlays and numbers; clear removes the overlays and restores the previous lighting / shadow state for sunlight |
-| Shader presets | `earth_shader`: five white-listed presets (elevation ramp, contour, scan, water, water-depth) per 3D Tiles layer — apply, reset or list, and `preset` also accepts an ordered array of 1-3 presets to stack; the panel workbench adds **preset thumbnails, a target-layer hint, reorderable stacking, sliders, live preview and an original-look comparison**, and each applied effect hangs off its 3D Tiles layer row (hover for parameters, click the row to edit); 3DGS is unsupported and custom GLSL is not accepted |
-| Collapsible panels | The layer card and coordinate HUD can be collapsed / expanded from the toolbar, and the layer card can also be closed from its header; the show switches persist |
-| Display modes & terrain occlusion | Docked sidebar / main area mounts with a **single real fullscreen entry** (DOM Fullscreen, Esc exits; maximizing the sidebar is DSH's own feature); the “Terrain occludes 3D layers (depth test)” switch is off by default so underground pipes and buried models stay visible, and on it lets terrain hide what is below it |
-| Render quality tiers | Settings → Appearance offers “Balanced” (default, smoother) or “High” (sharper): Balanced lowers the render resolution and the terrain / 3D Tiles LOD and enlarges the terrain cache so dragging stays smooth; High restores full resolution and Cesium’s default LOD. Switching applies live (the anti-aliasing tier takes effect after the panel is reopened); the active tier and effective scale are reported in `earth_scene status` → `render` |
-| Clean snapshots | Manual and Agent snapshots keep only the 3D view by default; pass `include_hud` per call or enable the settings switch to burn the coordinate HUD and team credit into the image |
-| Layer statistics | Tiles, pending tiles, triangles and cache per layer moved into a separate “Scene details” card (header ⓘ for all layers, per-row ⓘ for one layer); the HUD keeps only FPS, the cursor readout and camera height |
-| Data health check | Per layer, inspects the `tileset.json`: asset version, root geometric error, LOD depth, tile / content counts, external tilesets, `extensionsUsed`, missing content and bounding-volume problems; the report is persisted and the Agent can run the same check through `earth_scene` |
-| Bilingual | Follows the DSH language and switches between Chinese and English at runtime |
-| Theme | Follows DSH or the system; explicit light / dark override scoped to this panel |
+**Data and scene**
 
-## Requirements
+- 3D Tiles 1.0 / 1.1 (b3dm, glb) and 3DGS (`KHR_gaussian_splatting`, SPZ included); multiple layers with show / hide, fly-to and remove.
+- Three ways in: recursively scan a local folder for `tileset.json`, paste an `http(s)` URL, or pass an absolute local path. A path outside the chosen folders triggers one authorisation prompt; a denial is not retried.
+- Four layer groups: L1 terrain, L2 imagery basemap, L3 raster overlays (WMS / XYZ / ArcGIS), L4 vector overlays.
+- Data health check: asset version, root geometric error, LOD depth, tile / content counts, external tilesets, `extensionsUsed`, missing content and bounding-volume problems; the report is written to disk.
+- Six built-in tools: `earth_scene`, `earth_capture`, `earth_draw`, `earth_measure`, `earth_analyze`, `earth_shader`; every call gets a tool row in the conversation.
 
-- DeepSeek Harness `>=0.2.1-rc.1 <0.3.0-0`
-- A modern browser with WebGL / WebGL2
-- Network access to the public ArcGIS services (`server.arcgisonline.com`, `elevation3d.arcgis.com`)
+**Measure and annotate**
 
-## Install
+- Distance, area, height and 3D Tiles property picking; left click to add a point, double click to finish, **Esc** or the on-chip "End" button to leave.
+- The Agent can draw points, lines, polygons and labels from GeoJSON; drawn and measured results stay until `clear=true` or a menu clear.
 
-Search for “Digital Earth” in the plugin market, or use the CLI:
+**Terrain analysis (panel + conversation)**
+
+- Terrain analysis: profile, flood, sunlight, clip and skyline; one active result at a time, shown as a scene overlay plus an analysis card.
+- Draw a profile in the 3D tab (start / end clicks) or scrub the sun timeline; flood / clip / skyline go through `earth_analyze` in the conversation.
+- Profile results include cut / fill / net volumes and mean / max slope; the design baseline and width are configurable, and one click exports CSV / SVG.
+- Sun timeline: drag the date / time to see solar altitude and shadows; a scene-wide night filter dims photogrammetry and terrain together.
+
+**Shader presets**
+
+- Five white-listed presets: elevation ramp, contour, scan, water and water-depth. One shader per layer, and `preset` also accepts an ordered array of 1–3 presets to stack.
+- The workbench offers preset thumbnails, a target-layer hint, reorderable stacking, parameter sliders, live preview and an original-look comparison. 3DGS layers are for browsing; shaders are white-listed presets.
+
+**Identify and evidence**
+
+- Neutral hit levels (3D tile region / feature inside a tile / scene surface) instead of invented object names or fake precision.
+- Red / amber / green confidence chips mark the source of every claim; surface elevation is sampled, height is a geometric estimate from 24 neighbourhood points, and unknowns plus limits go into the evidence JSON.
+
+**Tour and hand-off**
+
+- View bookmarks and a guided tour: each stop is one camera view plus one caption, with distance-adaptive flights; dragging the globe or clicking elsewhere takes over immediately.
+- Clean snapshots: manual and Agent snapshots keep only the 3D view by default (following the panel setting, which is off out of the box); pass `include_hud=true` per call or enable the setting to burn in the HUD.
+- `earth_scene` reports: self-contained HTML (screenshot embedded) or Markdown, written under `$DSH_HOME/digital-earth/exports`.
+- `/earth` slash commands, Ask Agent context injection and per-session scene restore; switching sessions or restarting DSH still brings back the camera, layers and annotations.
+
+**Interface**
+
+- Collapsible panels, a bilingual UI (follows the DSH language, switches live) and light / dark themes.
+- Two layer-panel tabs: **Map** (terrain / imagery / raster) and **3D** (vector / 3D content / spatial analysis / sun / view bookmarks / shader).
+- Compass: bottom-right, rotates with the camera; click to face north.
+- The coordinate HUD samples at about 5–6 Hz; FPS comes from real Cesium render passes and shows `—` after two idle seconds instead of a fake 0.
+- Two render-quality tiers (Balanced / High); the active tier and effective resolution are reported in `earth_scene status` → `render`.
+
+## Quickstart
+
+**Requirements**
+
+- DeepSeek Harness `>=0.2.1-rc.1 <0.3.0-0` (same range as `engines.dsh` in `package.json`).
+- A modern browser with WebGL / WebGL2; the panel is part of the DSH Web UI.
+- Online basemaps, terrain and tiles need to reach the selected public services (for example `server.arcgisonline.com`, `elevation3d.arcgis.com`); offline, use local tiles or turn the basemap off.
+- Node.js 22 or 24 is needed only for development and builds (CI covers both); there are no runtime dependencies.
+
+**Install**
 
 ```bash
 # from the npm registry
 dsh plugin --profile <profile> add @cveo/dsh-digital-earth
 
-# from a local folder or tarball
-dsh plugin --profile <profile> add "<path-to-plugin>"
-dsh plugin --profile <profile> add "./cveo-dsh-digital-earth-1.5.0.tgz"
+# or from a local tarball (run in the repository root)
+dsh plugin --profile <profile> add ./cveo-dsh-digital-earth-1.5.1.tgz
 ```
 
-Fully quit and reopen DSH after installing or updating: client bundles are registered when the host starts, so reloading the page alone is not enough. The “Digital Earth” entry then appears in the sidebar, and a globe button appears in the conversation header.
+You can also search for "Digital Earth" in the plugin market. After installing or updating, **fully quit and reopen DSH**: client bundles are registered when the host starts, so reloading the page is not enough. The globe button then appears in the chat header and a Digital Earth entry appears in the sidebar.
 
-## Usage
+**Load your first dataset**
+
+1. Click the globe button in the chat header (or just ask the Agent to call an earth tool — the panel opens by itself and waits for the connection).
+2. Use **Data ▾ → Open local folder…** and pick a folder containing `tileset.json`, or **Data ▾ → Load address or coordinates…** and paste an `http(s)` URL / absolute local path, or enter `lon,lat[,height]` (for example `113.14,31.02,900`) to fly there.
+3. If the folder is not whitelisted, the panel asks once for authorisation; allow it to continue. A denial is not retried.
+4. Drag to explore, measure a distance with the Measure menu, or tell the Agent: "run a data health check on the current layer".
+
+Five-minute check: you can see the globe, load one tileset, measure a distance and ask the Agent for a snapshot. Use your own standard 3D Tiles. A sample prompt can be: `Load D:\data\city\tileset.json, fly to the city centre and take a snapshot` (replace the path with yours).
+
+## Using the panel
 
 | Entry | What it does |
 | --- | --- |
-| **Globe button in the chat header** | Opens the Digital Earth tab beside the conversation; the tab toolbar also offers real fullscreen |
-| **Ask Agent** | Toolbar button inside a session tab: captures the current view when possible and injects a scene summary into the conversation's Agent, then you just type your question; it never wakes an idle Agent |
-| **Data ▾** | Open a local folder (`tileset.json` discovery), re-scan one from “Recently opened”, load an online URL or an absolute local path (a one-time prompt authorises the folder when needed), clear measurements and picking results, export a scene report (HTML), and clear Agent annotations when overlays are present |
-| **Measure ▾** | Distance, area, height, property picking; left click to add a point, double click to finish; press **Esc** or click **End** on the readout chip to leave a measurement |
-| **Identify** | Toolbar reticle button: click an object to open the selection card (L-shaped corner brackets + height leader) with “Approach object / Measure height / Export evidence”; Esc closes the card and a second click leaves identify mode. Identify and evidence export are panel-only and add no Agent tools |
-| **Layers** | Unified layer panel (v1.6): **L1 terrain**, **L2 imagery basemap**, **L3 raster overlays** (WMS/XYZ/ArcGIS, multiple layers with opacity / visibility / ordering / removal and an inline add form), **L4 vector overlays** (Agent draw + measure counts, clear), **spatial analysis** (active analysis + one-click clear), and the **3D Tiles content list** (fly / visibility / health / remove); the header ⛶ frames all visible layers and ⓘ opens the separate “Scene details” card; each layer row has its own ⓘ for that layer only; it opens even with no 3D Tiles loaded |
-| **Double-click the globe** | Flies the point under the cursor to the centre (keeping heading / pitch / height); with a measurement tool active, double-click still finishes the measurement |
-| **Layers / coordinate HUD** | Toolbar buttons collapse / expand the layer panel and the coordinate HUD; the show switches persist |
-| **Shader** | The toolbar shader button opens the workbench: pick a visible 3D Tiles layer and one of five white-listed presets, adjust its parameters, then apply or reset |
-| **Appearance** | Follow system / light / dark |
-| **Settings** | Source management (imagery / terrain), appearance (including “open automatically on Agent calls”, “show layer card”, “show coordinate HUD” and “Detailed HUD”), the snapshot annotation switch and an About tab (version, GitHub repository and issues, team) |
+| Globe button | Opens the Digital Earth tab beside the conversation; the panel toolbar has the only real fullscreen entry (DOM Fullscreen, Esc exits) |
+| Data ▾ | Open a local folder, re-scan a recent one, load an address or coordinates, clear Agent annotations and measurements, export a scene report |
+| Measure ▾ | Distance / area / height / property picking; left click to add a point, double click to finish, Esc or "End" on the chip to leave |
+| Draw profile | In the 3D tab click "Draw profile", then click the start / end point on the globe; the result opens in the analysis card |
+| Sun timeline | In the 3D tab enable it, then drag the date / time to watch day/night tone and terrain shadow changes |
+| Identify | Click an object to open the selection card (coordinates, surface elevation, geometric height estimate, confidence) with approach / measure / export evidence |
+| Layers | Two tabs: Map (terrain / imagery / raster / view bookmarks) and 3D (vector / 3D content / spatial analysis / sun); the header ⓘ opens the separate "Scene details" card |
+| Shader | Opens the workbench: choose a 3D Tiles layer and a preset, tune parameters, apply / reset / compare with the original |
+| Ask Agent | Captures the current view when possible and injects a bounded scene summary into the conversation's Agent; it never wakes an idle Agent |
+| Settings | Data sources (imagery / terrain), appearance, render quality, Detailed HUD, snapshot annotation and an About tab |
 
-Cursor coordinates are sampled at roughly 5–6 Hz, paused while dragging and refreshed once when the drag ends: a ray–ellipsoid intersection keeps the readout alive on the bare globe, the depth buffer provides 3D Tiles / 3DGS surface elevations, and `globe.getHeight` corrects terrain. HUD text is written straight to the DOM, so it never triggers React re-renders; hiding the HUD stops pointer sampling.
+**Loading and layers**
 
-## Working with the Agent
+- Local folders are remembered in `$DSH_HOME/digital-earth/directories.json`, so they stay loadable after a DSH restart.
+- The scene is saved per session: camera, layers and visibility, Agent annotations / measurements, the active analysis and shader presets per layer. The snapshot lives on the host; localStorage is only a cache and fallback.
+- The layer card opens even with no 3D Tiles loaded, so terrain / basemap / raster overlays remain reachable.
 
-When the Agent calls the earth tools the plugin opens the globe tab on the conversational side by itself and waits up to about 8 seconds for it to connect, so no manual opening is needed. Folders the user picked in the panel are remembered and can still be loaded after a DSH restart. The panel then connects to the current conversation through an SSE command bridge, so the model can read and change the scene in natural language. The Agent can also pass an absolute local path; when it lies outside the chosen folders the panel asks once for authorisation. All six tools get a tool row in the conversation, and `/earth` slash commands also drive the panel without a model turn:
+**Measure and identify**
 
-| Tool | Parameters | What it does |
-| --- | --- | --- |
-| `earth_scene` | `action` (`status` / `list` / `load` / `remove` / `visible` / `basemap` / `terrain` / `fly` / `reset` / `pick` / `inspect` / `report`) | Read scene state and layer statistics; load / remove / show or hide layers; switch basemap and terrain; fly to coordinates; pick whatever sits at the view centre; run a data health check (`layer` / `path` / `url`, plus optional `deep`); export a scene report (`format` / `title` / `include_capture`) |
-| `earth_capture` | `width`, `format`, `include_hud`, `label` | Capture a snapshot and return its absolute host path; by default the image keeps only the clean 3D view, and `include_hud=true` burns the coordinate HUD and team credit into the picture |
-| `earth_draw` | `features` (GeoJSON string: a FeatureCollection, a Feature or a bare geometry), `style` (`accent` / `alert` / `success` / `warm` / `violet`), `label`, `clear` | Draw points / lines / polygons and text labels — `properties.name` becomes the per-feature label; up to 500 features / 20000 coordinates per call, `clear=true` removes all earlier Agent overlays; returns the feature count and bounding box |
-| `earth_measure` | `mode` (`distance` / `area` / `height`), `points` (`[lon,lat]` or `[lon,lat,height]`, up to 200), `draw`, `clear` | Geodesic distance, planar area (perimeter included) or height difference (with horizontal distance and slope); drawn on the globe by default, `draw=false` returns numbers only; results are JSON in metres / kilometres |
-| `earth_analyze` | `action` (`profile` / `flood` / `sunlight` / `clip` / `skyline` / `clear`), `layer`, `from` / `to` (observer/target for skyline), `samples`, `region`, `water_height`, `grid`, `datetime`, `show_shadows`, `height` (clip plane height), `keep` (`below` / `above`) | Terrain analysis: profile (length, relief / gain / loss and sample points, with an SVG profile card), flood (area, inundated ratio and depth), sunlight (sun altitude / azimuth, toggling lighting and shadows), clip (horizontal section plane with a kept side), skyline (observer's maximum elevation angle and distance) and clear; one active analysis at a time, defaulting to the topmost visible 3D Tiles layer; returns an actionable error instead of guessing when no elevation data is available |
-| `earth_shader` | `action` (`apply` / `reset` / `list`), `layer`, `preset` (`height-false-color` / `contour` / `scan` / `water` / `water-depth`, or an ordered array of 1-3 presets), `min_height` / `max_height`, `interval`, `speed`, `amplitude`, `opacity`, `water_height` / `depth_max` | Apply / reset a white-listed shader preset on one 3D Tiles layer, or list the active presets; one shader per layer, parameters validated per preset; 3DGS layers are unsupported and custom GLSL is not accepted |
+- Press **Esc** or click "End" on the chip to leave a measurement; double-click finishes and keeps the result, and clicking the same tool again resumes.
+- The identify card marks each claim with a high / medium / low confidence chip, and the evidence JSON tags every number as measured / estimated / inferred; the evidence pack is a clean PNG plus a JSON under `$DSH_HOME/digital-earth/exports/`.
+- The evidence JSON records position, sampling method, camera, time and uncertainties. Without a batch table it writes a neutral hit level and never invents a name.
 
-| `/earth` command | What it does |
-| --- | --- |
-| `/earth status` | One-screen summary of the camera, layers, basemap / terrain and Agent overlay counts |
-| `/earth capture [label]` | Capture a snapshot and return its absolute host path, with an optional label |
-| `/earth report [html\|markdown]` | Export a scene report and return its absolute host path; HTML by default (self-contained, screenshot embedded) |
-| `/earth clear` | Clear the Agent annotations and measurement overlays |
-| `/earth open` | Guidance: the next earth tool call opens the tab automatically, or click the globe button in the chat header |
-| `/earth` (no arguments) | Show usage |
+**Analysis: panel + conversation**
 
-Command results stay in the command bubble and never enter the model context; when the panel is not connected, the command returns a command error instead of a model message.
+- Profile: in the 3D tab click "Draw profile", then click the start / end point on the globe to get a result; sun: in the 3D tab enable the timeline and drag the date / time.
+- Flood / clip / skyline still go through the Agent: `Run a flood analysis on the current layer at 75 m` (replace the values).
+- One analysis at a time; a new one replaces the previous one. The "Spatial analysis" section shows the active summary and ✕ clears it and its overlay.
+- Without valid elevation data it returns an actionable error instead of estimated numbers.
+- The profile card switches the design baseline (start–end grade / lowest-point level) and road width, updates cut/fill live, and shows a thumbnail chart; click it to open the full chart and export CSV / SVG from there.
+- Sun: at night a scene-wide dimming filter darkens photogrammetry and terrain together; daylight restores the original brightness.
 
-- **Ask Agent**: the toolbar button turns the current scene (camera, layers and visibility, basemap / terrain, Agent annotations / measurements, the active terrain analysis, the shader presets per layer, plus a best-effort snapshot path) into a bounded text summary and sends it through the host's token-protected inject route into the current conversation's Agent; the context lands on the next admitted step and never wakes an idle Agent, so you simply type your follow-up question afterwards. Text is capped at 4000 characters and the request body at 16 KiB; the injected content is a context line rather than a user message and never contains the instance token; when the Agent is not running or the host has no Agent runtime, 409 / 503 come back as actionable toast errors.
-- **Agent annotations and measurements**: what `earth_draw` / `earth_measure` draw stays on the panel until a tool call passes `clear=true` or the user picks **Data ▾ → Clear Agent annotations**; `status.annotations` from `earth_scene` reports the current drawn-feature, measured-point and overlay counts.
-- **Scene stays put**: after switching sessions / windows or when the right sidebar recycles the panel, reopening the earth tab (or the next Agent call opening it automatically) restores this session's camera, loaded layers (reloaded from their original local path or URL), layer visibility, Agent annotations / measurements, the active terrain analysis result and the shader presets per layer; snapshots live on the host under `$DSH_HOME/digital-earth/scenes` first (one JSON per session, atomic write, about 512 KB each, latest 50 sessions kept, read and written through a token-protected panel-only route, never part of any tool result), with this browser's localStorage only as a fast cache / fallback, so a DSH restart or a page origin / port change still restores the scene; basemap and terrain keep following the source settings.
-- **Snapshot annotations**: the panel toolbar and HUD are DOM chrome, so they can never be exported with the WebGL canvas. Snapshots keep only the clean 3D view by default; pass `include_hud=true` per Agent call or turn on **Settings → Overlay coordinate HUD and credits in snapshots** to redraw the cursor coordinates, camera parameters and team credit onto the image canvas; it applies to manual and Agent captures alike.
-- **Local data**: the Agent can load folders the user chose through the panel’s **Data → Open local folder**, or pass an absolute local path directly. When a path lies outside the whitelist the host first asks the panel for a one-time authorisation; once the user allows it, the folder is registered as a local source and the original load / health check continues. A denial returns `access_denied` without retrying, and an unanswered request returns `access_timeout` after 30 seconds. The whitelist, real-path and root checks stay in place, and neither the command bridge nor any tool result exposes the plugin token, so the model cannot widen the whitelist itself. Folders the user picked are remembered in `$DSH_HOME/digital-earth/directories.json`, so they stay loadable after a DSH restart.
-- **Standard data contract**: only standard 3D Tiles 1.0 / 1.1 are accepted — the root tile must carry a world placement (`root.transform` or `root.boundingVolume.region`). Many OSGB converters only write local coordinates: the root has no `transform` / `region` and the origin lives in a sibling `tileset_info.json` as `srs` + `srs_origin`. Cesium then reads those local metres as ECEF, so the dataset collapses near the earth’s centre: `flyTo` dives to the core (which looks like “the globe is not centred”) and tiles flicker in and out of the frustum. Since v1.5 the plugin **no longer compensates** for that: the host serves the file bytes unchanged and the data health check reports a `tileset_not_georeferenced` error explaining the symptom. Fix it at export time by writing a root `transform` or `region`; the plugin performs no implicit rewriting, so the bytes Cesium receives always equal the bytes on disk. Existing datasets can be repaired in one pass with `scripts/georef-osgb.mjs` (dry run by default, `--apply` keeps a `tileset.json.bak`; the script is not part of the npm package and the runtime never reads sidecars). A nested external tileset is placed by its parent `tileset.json` root transform and is never transformed twice.
-- **Terrain analysis**: `earth_analyze` keeps one active analysis — a new one replaces the previous one. Profile returns length, relief / gain / loss and sample points with an SVG profile card; flood returns area, inundated ratio and depth; sunlight toggles lighting and shadows; clip cuts the tileset with a horizontal plane and returns the height and kept side; skyline returns the observer's maximum elevation angle and its distance. `clear` removes the analysis overlays; after a sunlight analysis it also restores the previous lighting / shadow / clock state. When no valid elevation data is available it returns an actionable error instead of guessing values.
-- **Shader presets**: `earth_shader` offers exactly five presets — elevation ramp, contour, scan, water and water-depth — applied, reset or listed per layer; `preset` also takes an ordered array of up to three to stack them. One shader is kept per layer and parameters are validated per preset. 3DGS layers are unsupported, and neither the model nor the panel can inject custom GLSL.
-- **Scene report**: ask for “export a scene report” and it runs `earth_scene`'s `report`; the panel's **Data ▾ → Export scene report** and the chat's `/earth report [html|markdown]` command do the same. The report covers the camera, layers and visibility, basemap / terrain, Agent annotations and measured values, the active terrain analysis, shader presets and a best-effort snapshot: HTML is a single self-contained file (screenshot embedded as base64, inline CSS) while Markdown links the captured image; files go to `$DSH_HOME/digital-earth/exports` (latest 200 kept), and the tool returns the absolute path with a hint to open it via `present`.
-- **Snapshots and multimodal models**: captures are written to `$DSH_HOME/digital-earth/captures`, and each `earth_capture` tool row in the conversation shows a small clickable thumbnail linking to the full image — the URL is assembled from page metadata and protected by the instance token, so the model still only sees the file path. Models that understand images can call `read_image` on the returned path; models without vision fall back to the `status` JSON from `earth_scene` instead of guessing the picture.
-- **Data health check**: ask for “a data health check on this layer”. In `layer` mode the panel resolves the original source and adds live runtime counters; `path` / `url` modes also work while the panel is closed. Reports go to `$DSH_HOME/digital-earth/reports` (latest 100 are kept); the tool returns a compact summary plus `report_path`, and the file can be read for details.
-- **Try saying**: “Open Digital Earth, switch to satellite imagery, fly to Wuhan University and take a snapshot”; “Load the tileset from the folder I just picked”; “Hide the second layer and report the camera height”; “Run a data health check on the current layer and look for missing content”; “Connect these three points into a route, label it and take a snapshot”; “Measure the height difference, horizontal distance and slope between these two points”; “Draw a terrain profile from this start point to that end point”; “Apply contour lines to the current layer”.
+**Shader workbench**
 
-## Data sources
+- Pick a layer and presets, tune parameters and stack up to three presets. Live preview applies silently while dragging; an explicit Apply writes to the scene.
+- Applied effects hang off the 3D Tiles layer row: hover for parameters, click the row (or ✦) to load it into the workbench.
+- 3DGS layers are for browsing; shaders are white-listed presets.
 
-All built-in presets are token-free ArcGIS public services and can be enabled in the settings panel:
+**Tour and hand-off**
 
-| Kind | Presets |
+- "View bookmarks" saves the current camera (up to 20). With two or more stops you can "Play tour", and each stop can carry one caption.
+- Snapshots are clean by default; the report and snapshot paths come back from the tools and can be shown with `present`. The capture folder keeps the latest 50 images.
+
+**Data sources**
+
+| Kind | Built-in presets |
 | --- | --- |
 | Imagery | Esri World Imagery, World Topographic, World Street Map, Light Gray Canvas, World Shaded Relief, World Ocean, World Hillshade |
 | Terrain | ArcGIS WorldElevation3D |
 
-Custom sources support:
+Custom sources support XYZ tiles (TMS, projection, subdomains, maximum level, attribution), WMS, ArcGIS MapServer, Cesium terrain services and local tile folders; selections persist to `$DSH_HOME/digital-earth/sources.json`.
 
-- **XYZ tiles** — `{z}/{x}/{y}` templates, TMS (south-origin Y), Web Mercator / geographic projection, subdomains, maximum level, attribution
-- **WMS** — service URL plus layer names
-- **ArcGIS** — MapServer URL (level metadata is read automatically)
-- **Cesium terrain** — terrain service URL with optional vertex normals / water mask
-- **Local tile folders** — pick a folder right from the XYZ form; the host exposes it through its directory whitelist
+## Agent tools
 
-Selections persist with the rest of the catalog, so changing ports or restarting DSH never loses them.
+The host registers six tools whose names and parameters are a stable contract. Tool results report state and paths; they never fabricate picture content. Analysis has no panel button by design — call `earth_analyze` from the conversation.
+
+| Tool | Key parameters | What it does |
+| --- | --- | --- |
+| `earth_scene` | `action` (`status` / `list` / `load` / `remove` / `visible` / `basemap` / `terrain` / `fly` / `reset` / `pick` / `inspect` / `report`); `layer` / `path` / `url` / `visible` / `imagery` / `terrain` / `lon` / `lat` / `height` / `heading` / `pitch` / `duration` / `deep` / `format` / `title` / `include_capture` | Read and drive the scene and layers; `fly` defaults to 1500 m height and -45° pitch; `inspect` runs a health check; `report` exports a scene report |
+| `earth_capture` | `width` (480–2560, default 1280), `format` (`jpeg` / `png`), `include_hud`, `label` | Captures a snapshot and returns its absolute host path; `include_hud=true` burns the HUD and credits into the image |
+| `earth_draw` | `features` (GeoJSON string), `style` (`accent` / `alert` / `success` / `warm` / `violet`), `label` (≤80 chars), `clear` | Draws points / lines / polygons and text labels; up to 500 features / 20000 coordinates per call; `clear=true` removes earlier Agent overlays |
+| `earth_measure` | `mode` (`distance` / `area` / `height`), `points` (`[lon,lat]` or `[lon,lat,height]`, up to 200, at least 2), `draw`, `clear` | Geodesic distance, planar area (perimeter included) or height difference (with horizontal distance and slope) |
+| `earth_analyze` | `action` (`profile` / `flood` / `sunlight` / `clip` / `skyline` / `clear`), `layer`, `from` / `to`, `samples` (8–64, default 32), `region` (span ≤10°), `water_height`, `grid` (4–24, default 12), `datetime` (1900–2200), `show_shadows`, `height` (-1000–9000), `keep` (`below` / `above`) | Terrain analysis; one active analysis at a time; returns an error rather than guessing when elevation data is missing |
+| `earth_shader` | `action` (`apply` / `reset` / `list`), `layer`, `preset` (one of five, or an array of 1–3), `min_height` / `max_height`, `interval` (1–500), `speed`, `amplitude`, `opacity`, `water_height`, `depth_max` | White-listed shader presets (for ordinary 3D Tiles) |
+
+**Two example prompts**
+
+> Load `D:\data\city\tileset.json`, switch to satellite imagery, fly to the scene centre and take a snapshot.
+
+> Run a data health check on the current layer and list any missing content; then measure the height difference from the view centre to a point 300 m north-east.
+
+**Error convention**
+
+- Tool errors start with `[code]` and include one `next:` step. Follow it rather than repeating the same failing call.
+- Local paths outside the whitelist return `access_denied` or `access_timeout`; neither is retried automatically — the user must re-authorise in the panel.
+- Missing elevation, 3DGS with shaders, and capturing while the panel is hidden all return actionable errors instead of empty results.
+
+| `/earth` command | What it does |
+| --- | --- |
+| `/earth status` | One-screen summary of camera, layers, basemap / terrain and Agent overlay counts |
+| `/earth capture [label]` | Captures a snapshot and returns its absolute host path, with an optional label |
+| `/earth report [html\|markdown]` | Exports a scene report and returns its absolute host path; HTML by default |
+| `/earth clear` | Clears Agent-drawn annotations and measurements |
+| `/earth open` | Guidance: the next earth tool call opens the tab, or use the globe button in the chat header |
+| `/earth` | Shows usage |
+
+Command results stay in the command bubble and never enter the model context; when the panel is not connected, the command returns a command error instead of a model message.
+
+## Data & security
+
+**Standard 3D Tiles contract**
+
+- Only standard 3D Tiles 1.0 / 1.1 are accepted: the root tile must carry a world placement (`root.transform` or `root.boundingVolume.region`).
+- The plugin never rewrites data implicitly: the bytes Cesium receives always equal the bytes on disk. A nested external tileset is placed by its parent root transform and is not transformed twice.
+
+**Diagnosing a missing world placement**
+
+- Symptoms: the dataset collapses near the Earth's centre, `flyTo` dives toward the core, and tiles flicker in and out of the frustum. This is not a render bug.
+- The health check reports `tileset_not_georeferenced` with the fix: write a root `transform` / `region` at export time.
+- Existing OSGB conversions can be repaired once with `scripts/georef-osgb.mjs`: dry-run by default, `--apply` keeps a `tileset.json.bak`, and CGCS2000 Gauss-Krüger EPSG 4491–4554 is supported. The runtime still never reads sidecars and never rewrites data.
+
+**Local data**
+
+- Only folders opened through the panel (or authorised once by the user) are served by `/tiles`; the whitelist, real-path and root checks live on the host.
+- The Agent may pass an absolute local path; outside the whitelist the host asks the panel for a one-time authorisation, and an unanswered request returns `access_timeout` after 30 seconds.
+- The plugin never uploads data and never reaches out on its own; network requests only go to the imagery, terrain and online tile services you select.
+
+**Access control and proxy**
+
+- Every route is bound to the DSH `connection` session, same-origin checks and a plugin-instance token; the token is only handed to the page and never appears in tool results.
+- The `/remote` proxy rejects literal loopback / private addresses and 3xx redirects, and forwards query strings (up to 2048 characters; overlong gets 400, control characters or invalid encoding get 403).
+- The proxy does not resolve DNS: a hostname that resolves to an internal address can still slip through — see FAQ.
+
+**Output and retention**
+
+- Snapshots under `$DSH_HOME/digital-earth/captures` keep the latest 50 images; health reports keep the latest 100.
+- Scene reports and evidence packs share the latest 200 files under `$DSH_HOME/digital-earth/exports`.
+- One scene snapshot per session, written atomically, capped at about 512 KB, keeping the latest 50 sessions.
 
 ## How it works
 
-- **Host** (`index.js` entry + `src/host/**`) registers the `/api/3dviewer/*` routes: Cesium static assets, local folder scanning and whitelisting, the remembered-folder list, per-session scene snapshots (`$DSH_HOME/digital-earth/scenes`), tile serving, the cross-origin proxy, catalog persistence, plus the six Agent tools, the `/earth` slash command and the session command bridge. Since v1.5 the entry is only `inject`/`apply` plus public re-exports; the implementation lives in 27 modules by responsibility (routes, bridge, inspect, storage, tools).
-- **Client** (`src/client/**` → the `client.js` artifact) loads as a DSH client module, claims the `sidebar.panellist`, `main` and right-sidebar tab slots, and dynamically imports the self-hosted CesiumJS build. The tab panel uses `EventSource` to receive Agent commands, executes them in order and posts an acknowledgement. Sources live in 22 modules bundled by esbuild into one `window.__ModuleLoader__` artifact (`npm run build:client`); `client.js` is build output and CI rejects a stale one, so do not edit it by hand.
-- **Agent bridge**: `GET /api/3dviewer/bridge?session=…` pushes commands, `POST /api/3dviewer/bridge` acknowledges them; within one session only the most recently opened globe tab executes commands, so nothing loads twice. Snapshots are written by `POST /api/3dviewer/capture` and read back through `/api/3dviewer/files`; data health checks go through `POST /api/3dviewer/inspect` and are written to the report folder.
-- **Security**: every route is bound to the DSH `connection` session and same-origin checks with a plugin-instance token that is only handed to the page and never appears in tool results; `/tiles` only serves directories opened through the file picker, and Agent-side local loads obey the same whitelist with a real-path check; the whitelist registration endpoint `/scan` accepts only the panel’s own request header, so a model cannot trigger it through a same-origin Cesium fetch; `/inspect` requires the same panel header, validates local paths against the whitelist plus realpath and reuses the `/remote` rules for remote URLs; the `/remote` proxy rejects literal loopback and private addresses plus 3xx redirects to prevent direct SSRF; it does not resolve DNS, so a hostname that resolves to an internal address can still slip through (see Known limitations). The plugin never uploads data or reaches out on its own.
-- **Self-hosted CesiumJS**: `vendor/cesium` ships with the plugin — no CDN, no Cesium ion token.
+The host owns data and services; the client owns the Cesium frame and the panel. The two sides talk over a token-protected SSE command bridge. `client.js` is the build output of `src/client/**` — do not edit it by hand.
 
-## Known limitations
+<pre>
+Host (Node)                                   Browser (DSH Web UI)
++------------------------------+   commands   +---------------------------+
+| index.js   inject / apply    | -----------> | src/client/**  -> client.js|
+| src/host/tools/* (6 tools)   |              | CesiumJS + panel          |
+| routes / bridge / storage    | <----------- | (vendor/cesium, bundled)  |
++------------------------------+   acks/data  +---------------------------+
+</pre>
 
-- When the same session opens the globe tab in several browser tabs, only the most recently connected one executes Agent commands; the others stay read-only.
-- Terrain analysis depends on loaded 3D Tiles or terrain elevation. Without data or valid sample points it returns an error instead of estimated values, and only one analysis result is kept at a time.
-- Shader presets only work on ordinary 3D Tiles; 3DGS layers return an error. The five presets are visual treatments (the water ripples are not real refraction), and custom GLSL is not accepted.
-- Frame rate while dragging with terrain enabled depends on the GPU, window size and data volume; on this machine's real-GPU browser it measured about 30 FPS. This is not a fixed FPS promise, and headless / SwiftShader numbers do not represent the actual experience.
-- Agent captures require the globe tab to be visible: switching to another tab or backgrounding the window returns a clear “panel is not visible” error instead of a blank image.
-- The capture folder keeps only the latest 50 images, the health-report folder the latest 100 reports, and scene snapshots only the latest 50 sessions, so they cannot grow without bound.
-- The `/remote` proxy forwards query strings (up to 2048 characters; overlong queries get 400, control characters or invalid encoding get 403), so WMS / WMTS and signed tile URLs work through it; health checks read external `tileset.json` files (at most 50, local and remote), remote `deep` mode only checks the root tile content, and local `deep` mode checks at most 200 content files.
-- The `/remote` proxy classifies internal addresses literally and does not resolve DNS; do not expose it to an untrusted model/user mix on untrusted networks. DNS resolution plus post-resolve checks are planned.
-- Public Esri services can be unreachable on some networks; the basemap then renders empty, and a local tile source can be used instead.
+- **Host**: `index.js` only does `inject` / `apply` plus public re-exports; the implementation lives in 28 modules under `src/host/**` (routes, command bridge, health checks, storage, six tools, `/earth`).
+- **Client**: 53 modules under `src/client/**` are bundled by esbuild into one `window.__ModuleLoader__` artifact; it dynamically `import()`s the self-hosted CesiumJS and registers the sidebar tab and tool rows.
+- **CesiumJS**: `vendor/cesium` ships with the plugin — no CDN, no Cesium ion token.
+- **Release**: tag-only with GitHub Actions OIDC. The local `npm run release:check` is a read-only dry run over version single-sourcing, artifact consistency and package contents; it never tags, pushes or publishes.
 
-## Layout
+## FAQ
 
-```text
-dsh-digital-earth/
-├── index.js            # host entry: inject/apply + public re-exports (<=80 lines)
-├── src/host/           # host implementation: routes, bridge, inspect, storage, six tools, /earth
-├── src/client/         # client sources: scene panel, toolbar, dialogs, shader/analysis, i18n
-├── client.js           # client artifact (generated by npm run build:client, do not edit)
-├── scripts/            # build-client (esbuild bundle), check-size (architecture budgets) and georef-osgb (one-off placement repair)
-├── test/               # module unit tests / contract tests / artifact smoke
-├── cordis.patch.yml    # bundle patch
-├── locale/             # plugin market metadata (zh / en)
-├── vendor/cesium/      # self-hosted CesiumJS 1.147
-├── icon.svg
-└── preview.png
-```
+- **Which data works?** Standard 3D Tiles 1.0 / 1.1 (b3dm, glb) and 3DGS (SPZ); load from a local folder, a URL or an absolute local path.
+- **What can 3DGS do?** Browse, fly to, show / hide and remove; analysis and shaders target ordinary 3D Tiles.
+- **Why is the HUD missing from my snapshot?** Manual and Agent snapshots keep only the 3D view by default; pass `include_hud=true` per call or enable the snapshot setting.
+- **Black screen or model near the Earth's centre?** Run the health check and confirm the root tile has a `transform` or `region`; re-export with world placement and reload.
+- **Is my data uploaded?** No; the plugin reads local files and the online sources you choose.
+- **Where is the analysis button?** Profile and sun are in the 3D tab (draw profile + sun timeline); flood / clip / skyline use `earth_analyze` in the conversation.
+- **Where are snapshots and reports saved?** The snapshot folder keeps the latest 50 images, reports 100, exports 200; the tool returns the exact path.
+- **How fast is it?** It depends on the GPU, window size and data; try it with your own data.
 
-## Feedback
+## Roadmap
 
-Issues and suggestions are welcome in the [issue tracker](https://github.com/CVEO/dsh-digital-earth/issues). Please make sure `node --check index.js && node --check client.js` passes before opening a pull request.
+These are directions under discussion, not version commitments; scheduling follows the issues.
 
-## Team
+- **Data security**: a post-DNS-resolution check in the `/remote` proxy to tighten the untrusted-network boundary.
+- **Large-dataset experience**: loading and dragging larger tilesets, plus continued cache and quality-tier tuning.
+- **Hand-off formats**: more export shapes for analysis results and automation around reports / evidence packs.
+- **Docs and examples**: fuller integration examples, common data-conversion flows and a troubleshooting guide.
+
+## Contributing
+
+Issues and suggestions are welcome in the [issue tracker](https://github.com/CVEO/dsh-digital-earth/issues); development, build, test and release steps are in [CONTRIBUTING.md](CONTRIBUTING.md). Keep the six tools' names, parameters and action sets unchanged; prefer panel-side work or new optional parameters for new capabilities.
+
+## Credits & license
+
+**Credits**
+
+- CesiumJS 1.147, distributed under Apache-2.0 and self-hosted with the plugin; see [NOTICE](NOTICE) for third-party attribution.
+- DeepSeek Harness for the plugin runtime, command bridge and tool-call UI.
+- Sample data: a project-owned LOD18 photogrammetry scene; the 3DGS sample Svirnas Alyt comes from WilliamLiu's 3D-Tiles-RendererJS-3DGS-Plugin (Apache-2.0).
+- Imagery and terrain come from public ArcGIS services accessed at runtime and remain subject to their providers' terms.
+
+**Team and license**
 
 Maintained by the **CVEO Research Group, Wuhan University** · <https://www.whu-cveo.com/>
 
-## License
-
-MIT. CesiumJS is distributed under Apache-2.0; see [`NOTICE`](NOTICE) for third-party attribution.
+Released under the MIT license; see [LICENSE](LICENSE) and [NOTICE](NOTICE).

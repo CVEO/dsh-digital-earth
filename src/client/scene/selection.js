@@ -169,9 +169,9 @@ export function selectionUnknowns(identity) {
  */
 export function buildSelectionCard({ point, layer, identity: rawIdentity, samples, id, createdAt } = {}) {
   const safePoint = {
-    lon: round1(Number(point?.lon)) ?? 0,
-    lat: round1(Number(point?.lat)) ?? 0,
-    surface_height_m: round1(Number(point?.surface_height_m)),
+    lon: Number.isFinite(point?.lon) ? point.lon : 0,
+    lat: Number.isFinite(point?.lat) ? point.lat : 0,
+    surface_height_m: round1(point?.surface_height_m),
   }
   const identity = normalizeIdentity(rawIdentity)
   const list = Array.isArray(samples) ? samples : []
@@ -253,8 +253,8 @@ export function buildSelectionCard({ point, layer, identity: rawIdentity, sample
 export function buildEvidencePack({ card, view, pluginVersion, capturedAt, image } = {}) {
   const safeView = view
     ? {
-        lon: round1(Number(view.lon)),
-        lat: round1(Number(view.lat)),
+        lon: Number.isFinite(view.lon) ? view.lon : null,
+        lat: Number.isFinite(view.lat) ? view.lat : null,
         height: round1(Number(view.height)),
         heading: round1(Number(view.heading)),
         pitch: round1(Number(view.pitch)),

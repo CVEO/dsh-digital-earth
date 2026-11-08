@@ -19,6 +19,7 @@ import React from 'react'
 import { normalizeOverlayDraft } from '../scene/overlay-layers.js'
 import { addBookmark, loadBookmarks, removeBookmark, saveBookmarks, updateBookmarkCaption } from '../scene/bookmarks.js'
 import { shaderEntrySummary } from './workbench-wiring.js'
+import { SunTimeline } from './sun-timeline.js'
 
 const h = React.createElement
 
@@ -58,10 +59,14 @@ export function LayersPanel({
   onFlyView,
   onStartTour,
   onShowSceneDetails,
+  onStartProfile,
+  getViewer,
+  getCesium,
 }) {
   const [adding, setAdding] = React.useState(false)
   const [draft, setDraft] = React.useState({ type: 'wms', name: '', url: '', layers: '', opacity: 0.7 })
   const [error, setError] = React.useState('')
+  const [tab, setTab] = React.useState('map')
   // Camera bookmarks (视角收藏) are client-only: stored in localStorage, no Agent
   // contract involved. The panel owns the list; flying is a callback.
   const [bookmarks, setBookmarks] = React.useState(() => loadBookmarks())
@@ -155,7 +160,33 @@ export function LayersPanel({
     ),
     h(
       'div',
-      { className: 'mv-layer-list' },
+      { key: 'layer-tabs', className: 'mv-layer-tabs', role: 'tablist' },
+      h(
+        'button',
+        {
+          type: 'button',
+          role: 'tab',
+          'aria-selected': tab === 'map',
+          className: `mv-layer-tab${tab === 'map' ? ' on' : ''}`,
+          onClick: () => setTab('map'),
+        },
+        t('layers.tab.map'),
+      ),
+      h(
+        'button',
+        {
+          type: 'button',
+          role: 'tab',
+          'aria-selected': tab === '3d',
+          className: `mv-layer-tab${tab === '3d' ? ' on' : ''}`,
+          onClick: () => setTab('3d'),
+        },
+        `${t('layers.tab.3d')}${layers.length ? ` · ${layers.length}` : ''}`,
+      ),
+    ),
+    h(
+      'div',
+      { key: 'list-map', className: 'mv-layer-list', hidden: tab !== 'map' },
       // ---- L1 terrain --------------------------------------------------------
       h('div', { key: 'g1', className: 'mv-group' }, h('div', { className: 'mv-group-title' }, t('layers.terrain'))),
       radioRow('t-off', t('menu.terrainOff'), terrainActive === null, () => onSelectTerrain(null)),
@@ -238,21 +269,26 @@ export function LayersPanel({
               h('button', {
                 type: 'button',
                 className: `mv-icon-btn${overlay.visible === false ? ' on' : ''}`,
-                title: overlay.visible === false ? t('btn.hidden') : t('btn.visible'),
+                title: overlay.visible === false ? t('btn.visible') : t('btn.hidden'),
+                'aria-label': overlay.visible === false ? t('btn.visible') : t('btn.hidden'),
                 onClick: () => onOverlayVisible(overlay.id, overlay.visible === false),
               }, overlay.visible === false ? '◌' : '◉'),
-              h('button', { type: 'button', className: 'mv-icon-btn', title: t('layers.overlayDown'), disabled: index === 0, onClick: () => onOverlayMove(overlay.id, -1) }, '↑'),
-              h('button', { type: 'button', className: 'mv-icon-btn', title: t('layers.overlayUp'), disabled: index === overlays.length - 1, onClick: () => onOverlayMove(overlay.id, 1) }, '↓'),
-              h('button', { type: 'button', className: 'mv-icon-btn', title: t('layers.overlayRemove'), onClick: () => onOverlayRemove(overlay.id) }, '✕'),
+              h('button', { type: 'button', className: 'mv-icon-btn', title: t('layers.overlayDown'), 'aria-label': t('layers.overlayDown'), disabled: index === 0, onClick: () => onOverlayMove(overlay.id, -1) }, '↑'),
+              h('button', { type: 'button', className: 'mv-icon-btn', title: t('layers.overlayUp'), 'aria-label': t('layers.overlayUp'), disabled: index === overlays.length - 1, onClick: () => onOverlayMove(overlay.id, 1) }, '↓'),
+              h('button', { type: 'button', className: 'mv-icon-btn', title: t('layers.overlayRemove'), 'aria-label': t('layers.overlayRemove'), onClick: () => onOverlayRemove(overlay.id) }, '✕'),
             ),
           ),
+    ),
+    h(
+      'div',
+      { key: 'list-3d', className: 'mv-layer-list', hidden: tab !== '3d' },
       // ---- L4 vector overlays ------------------------------------------------
       h('div', { key: 'g4', className: 'mv-group' }, h('div', { className: 'mv-group-title' }, t('layers.vector'))),
       h(
         'div',
         { key: 'vector-row', className: 'mv-layer' },
         h('span', { className: 'name' }, `${t('layers.vectorDrawn')} ${drawn} · ${t('layers.vectorMeasured')} ${measured}`),
-        h('button', { type: 'button', className: 'mv-icon-btn', title: t('tool.clear'), onClick: onClearVector }, '✕'),
+        h('button', { type: 'button', className: 'mv-icon-btn', title: t('tool.clear'), 'aria-label': t('tool.clear'), onClick: onClearVector }, '✕'),
       ),
       // Editable per-item list: each Agent draw/measure command is one row.
       ...(Array.isArray(agentOverlays) ? agentOverlays : []).map((row) =>
@@ -262,13 +298,18 @@ export function LayersPanel({
           h('span', { className: 'name', title: row.detail }, `${row.label} · ${row.detail}`),
           h(
             'button',
-            { type: 'button', className: 'mv-icon-btn', title: t('layers.vectorRemove'), onClick: () => onRemoveAgentOverlay(row.kind, row.index) },
+            { type: 'button', className: 'mv-icon-btn', title: t('layers.vectorRemove'), 'aria-label': t('layers.vectorRemove'), onClick: () => onRemoveAgentOverlay(row.kind, row.index) },
             '✕',
           ),
         ),
       ),
       // ---- analysis (Agent-driven; the panel owns the entry + the clear) ------
       h('div', { key: 'g5', className: 'mv-group' }, h('div', { className: 'mv-group-title' }, t('layers.analysis'))),
+      h(
+        'button',
+        { key: 'draw-profile', type: 'button', className: 'mv-cta', onClick: () => onStartProfile?.() },
+        t('profile.draw'),
+      ),
       analysis
         ? h(
             'div',
@@ -276,11 +317,24 @@ export function LayersPanel({
             h(
               'span',
               { className: 'name' },
-              `${analysis.operation ?? t('layers.analysis')}${typeof analysis.layer === 'string' && analysis.layer !== '' ? ` · ${analysis.layer}` : ''}`,
+              `${
+                typeof analysis.operation === 'string' && analysis.operation !== ''
+                  ? t(`analysis.title.${analysis.operation}`)
+                  : t('layers.analysis')
+              }${typeof analysis.layerName === 'string' && analysis.layerName !== '' ? ` · ${analysis.layerName}` : ''}`,
             ),
-            h('button', { type: 'button', className: 'mv-icon-btn', title: t('layers.analysisClear'), onClick: onClearAnalysis }, '✕'),
+            h('button', { type: 'button', className: 'mv-icon-btn', title: t('layers.analysisClear'), 'aria-label': t('layers.analysisClear'), onClick: onClearAnalysis }, '✕'),
           )
         : h('div', { key: 'analysis-hint', className: 'mv-none' }, t('layers.analysisHint')),
+      h(SunTimeline, {
+        key: 'sun',
+        t,
+        getCesium,
+        getViewer,
+        getLayers: () => layers,
+        onBeforeEnable: onClearAnalysis,
+        active: tab === '3d',
+      }),
       // ---- camera bookmarks (client-only, localStorage) ----------------------
       h(
         'div',
@@ -316,7 +370,7 @@ export function LayersPanel({
                 'div',
                 { className: 'mv-layer' },
                 h('span', { className: 'name', title: t('bookmarks.flyHint'), onClick: () => onFlyView(item.view) }, item.name),
-                h('button', { type: 'button', className: 'mv-icon-btn', title: t('bookmarks.remove'), onClick: () => deleteBookmark(item.id) }, '✕'),
+                h('button', { type: 'button', className: 'mv-icon-btn', title: t('bookmarks.remove'), 'aria-label': t('bookmarks.remove'), onClick: () => deleteBookmark(item.id) }, '✕'),
               ),
               h('input', {
                 className: 'mv-caption',
@@ -403,7 +457,7 @@ export function LayersPanel({
                 '✦',
               )
             : null,
-          h('button', { type: 'button', className: `mv-icon-btn${layer.visible ? '' : ' on'}`, title: layer.visible ? t('btn.visible') : t('btn.hidden'), onClick: (event) => { stop(event); onToggleLayer(layer.id) } }, layer.visible ? '◉' : '◌'),
+          h('button', { type: 'button', className: `mv-icon-btn${layer.visible ? '' : ' on'}`, title: layer.visible ? t('btn.hidden') : t('btn.visible'), 'aria-label': layer.visible ? t('btn.hidden') : t('btn.visible'), onClick: (event) => { stop(event); onToggleLayer(layer.id) } }, layer.visible ? '◉' : '◌'),
           h('button', { type: 'button', className: 'mv-icon-btn', title: t('sceneDetails.openLayerHint'), 'aria-label': t('sceneDetails.openLayerHint'), onClick: (event) => { stop(event); onShowSceneDetails?.(layer.id) } }, 'ⓘ'),
           h('button', { type: 'button', className: 'mv-icon-btn', title: t('btn.flyTo'), 'aria-label': t('btn.flyTo'), onClick: (event) => { stop(event); onFlyLayer(layer.id) } }, '⌖'),
           h('button', { type: 'button', className: 'mv-icon-btn', title: t('btn.health'), 'aria-label': t('btn.health'), onClick: (event) => { stop(event); onInspectLayer(layer.id) } }, '⌕'),

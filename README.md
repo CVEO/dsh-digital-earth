@@ -1,191 +1,310 @@
 <div align="center">
 
+<img src="https://github.com/CVEO/dsh-digital-earth/raw/main/icon.svg" width="72" height="72" alt="数字地球图标">
+
 # 数字地球 · Digital Earth
 
-**在 CesiumJS 地球上叠加 3D Tiles / 3DGS 图层，并与 Agent 对话协同的 DeepSeek Harness 面板**
+**在 CesiumJS 地球上叠加 3D Tiles / 3DGS，并把场景交给对话里的 Agent 读写。**
 
-[中文](README.md) · [English](README.en.md)
+[中文](README.md) · [English](README.en.md) · [Issues](https://github.com/CVEO/dsh-digital-earth/issues) · [更新日志](CHANGELOG.md)
 
-![版本](https://img.shields.io/badge/版本-1.5.0-4f8cff)
+![版本](https://img.shields.io/badge/版本-1.5.1-4f8cff)
 ![许可](https://img.shields.io/badge/许可-MIT-2ea44f)
-![平台](https://img.shields.io/badge/平台-Web-8b5cf6)
-![DSH](https://img.shields.io/badge/DSH-%3E%3D0.2.1--rc.1-0ea5e9)
+![DSH 插件](https://img.shields.io/badge/DSH-插件-0ea5e9)
+![3D Tiles + 3DGS](https://img.shields.io/badge/3D_Tiles_%2B_3DGS-CesiumJS-8b5cf6)
+![平台](https://img.shields.io/badge/平台-Web-64748b)
 
 </div>
 
-![预览](preview.png)
+![数字地球：3D Tiles 实景城市叠加在 CesiumJS 地球上](https://github.com/CVEO/dsh-digital-earth/raw/main/preview.png)
 
-数字地球是一个 DSH 插件：把 CesiumJS 三维地球嵌入工作区，既能与对话同屏浏览实景三维与高斯泼溅成果，也能让 Agent 通过自然语言直接读取、操控场景。CesiumJS 1.147 与界面资源自托管、不依赖 Cesium ion Token，也不请求外网静态资源；影像底图、地形与在线瓦片按所选数据源访问网络。
+数字地球是 DeepSeek Harness（DSH）的一个插件：把 CesiumJS 三维地球放进工作区，与对话同屏。它既能让工程师浏览实景三维与高斯泼溅成果，也能让 Agent 通过自然语言读取、操控、量测和分析这套场景。CesiumJS 1.147 与界面资源随插件自托管，不需要 Cesium ion Token；影像底图、地形与在线瓦片按你选择的数据源访问网络。
+
+## 演示
+
+以下画面来自真实面板。示例数据为课题组自有的 LOD18 实景三维与开源 3DGS 样例，截图不包含本机路径；头图是总览，下面按能力看细节。
+
+**标注：Agent 用 GeoJSON 在场景里画出点、范围与标签；坐标、量测与标注结果都留在面板里。**
+
+![标注](https://github.com/CVEO/dsh-digital-earth/raw/main/assets/readme/identify.jpg)
+
+**剖面：让 Agent 沿起点到终点采样地形，剖面线直接画在场景里，并返回长度、起伏与爬升。**
+
+![剖面](https://github.com/CVEO/dsh-digital-earth/raw/main/assets/readme/analysis.jpg)
+
+**着色器：五个白名单预设按图层应用，例如水深按高程上色；工作台支持 1–3 个预设叠加、滑杆调参与原图对比。**
+
+![着色器](https://github.com/CVEO/dsh-digital-earth/raw/main/assets/readme/shader.jpg)
+
+**3DGS：高斯泼溅图层与 3D Tiles 可在同一场景中叠加浏览；分析与着色器只作用于普通 3D Tiles。**
+
+![3DGS 图层](https://github.com/CVEO/dsh-digital-earth/raw/main/assets/readme/3dgs.jpg)
+
+## 为什么是数字地球
+
+DSH 把对话、文件和工具放进同一个工作台。Agent 能读你的文件、跑你的脚本，但在装上这个插件之前，它看不见你的三维场景——更没法把「这栋楼多高」「这里会不会淹」变成可复核的数字。
+
+数字地球补的就是这层空间上下文，主线是三步：
+
+- **指认**：把屏幕上的对象变成坐标、高程和证据 JSON，而不是「看起来像」。
+- **讲述**：Agent 用量测、剖面、淹没、日照、剖切与天际线回答问题，每个数字带高程来源与依据。
+- **带走**：干净截图、证据包、HTML / Markdown 报告与会话级场景快照，离开面板也能接回来。
+
+它不是 GIS 桌面软件或摄影测量工具的替代品；数据仍是你磁盘上的标准 3D Tiles，插件做的是把浏览、指认、分析与交付放进对话工作流。
 
 ## 功能
 
-| 能力 | 说明 |
-| --- | --- |
-| 对话同屏 | 右侧边栏的「数字地球」页签与对话并排显示；Agent 调用地球工具时自动打开并等待连上；对话标题栏的地球按钮可随时打开，也可切到全屏沉浸模式 |
-| Agent 协同 | 内置六个工具：`earth_scene` 读取与操控场景、`earth_capture` 截图、`earth_draw` 标注、`earth_measure` 量测、`earth_analyze` 地形分析、`earth_shader` 着色器预设；六个工具调用都会显示工具行，用自然语言即可驱动 |
-| 实景三维叠加 | 本地目录递归扫描 `tileset.json`；3D Tiles 1.0 / 1.1（b3dm、glb）与 3DGS（`KHR_gaussian_splatting`，含 SPZ 压缩）；多图层同时叠加、显隐 / 定位 / 移除 |
-| 在线与本地路径 | 直接粘贴 `http(s)` 地址或本机绝对路径；本机路径不在已选目录时，面板会弹窗一次性授权，允许后登记目录并继续；跨域失败自动回退到宿主代理 |
-| 标准数据契约 | 只接受标准 3D Tiles 1.0 / 1.1：根瓦片必须自带世界定位（`root.transform` 或 `boundingVolume.region`）。缺世界定位的数据不会被静默改写，而是在数据体检中报 `tileset_not_georeferenced`，请重新导出时写入根 `transform` / `region` |
-| 影像底图 | 内置多个 Esri 底图预设，可自定义 XYZ（TMS、投影、子域名、最大层级）/ WMS / ArcGIS 服务；无底图模式也完整可用 |
-| 地形 | 内置 ArcGIS WorldElevation3D，可接入任意 Cesium / ArcGIS 地形服务 |
-| 本地瓦片 | 直接把本地 XYZ / TMS 瓦片目录添加为底图，离线可用 |
-| 数据源管理 | 设置面板内增删改、单选启用、恢复默认，配置持久化到 `$DSH_HOME/digital-earth/sources.json` |
-| 显示模式与地形遮挡 | 停靠侧栏 / 主区域两种挂载，工具栏**只有一个真全屏入口**（DOM Fullscreen，Esc 退出；最大化侧栏由 DSH 自带）；「地形遮挡三维图层（深度测试）」开关默认关闭，地下管网与埋在地形下的模型都能看见，开启后地形会遮挡埋在下面的内容 |
-| 渲染质量档 | 设置 → 外观可选「均衡（默认，流畅优先）」或「高清（画质优先）」：均衡降低渲染分辨率与地形 / 瓦片 LOD、加大地形缓存，拖动更稳；高清回到满分辨率与 Cesium 默认 LOD。切换即时生效，抗锯齿档位在重新打开面板后完全生效；当前档位与有效分辨率进 `earth_scene status` 的 `render` |
-| 坐标 HUD | 光标经纬度 + 高程；裸地球、地形、模型三种情形均可用，约 5–6 Hz 采样，拖动时暂停、停手后补一次，不触发重渲染；FPS 取 Cesium 真实渲染帧（`scene.postRender`），场景静止 2 秒显示 `—` 而不是假的 0。默认只显示 5 个数字（FPS + 光标经纬/高程 + 相机高度）；设置 → 外观的「HUD 详细模式」（默认关、持久化）可恢复朝向 / 俯仰与逐层瓦片 / 待加载 / 三角面 / 缓存 |
-| 量测与工具 | 测距、测面、测高、拾取 3D Tiles 属性、截图、复位视角 |
-| 视角收藏 | 图层面板内「视角收藏」：保存当前相机视角（最多 20 条，存本地）、点击名称飞回、✕ 删除；每条可写一句站点说明，供导览播放；不依赖对话 Agent |
-| 指认与导出证据 | 工具栏「指认」：点击场景中的对象，选中卡显示坐标、表面高程（采样值）、高度估计（几何；邻域 8 方位 × 30/60/120 m 共 24 点，标注样本数）与「高于邻域中位数」，并用**红黄绿三档置信度**（高 / 中 / 低）标注来源；没有 batch 属性时用中性命中级别作标题（「三维瓦片区域」/「瓦片内要素」/「场景表面」），不写"未命名对象"式措辞、不编造名称、不给伪精度；属性未知与限制写入证据 JSON，卡片只在底部保留一行小字说明高度为几何估计。「导出证据」生成干净 PNG + 证据 JSON（坐标 / 高程 / 采样 / 来源 / 相机 / 时间 / limitations），写入 `$DSH_HOME/digital-earth/exports/`；按钮的完整说明在悬浮提示里 |
-| 导览故事条 | 把「视角收藏」当作导览站点：每站 = 一个保存的相机视角 + 一句说明；播放时相机按距离自适应飞行（1.6–2.4 s）、到站显示文案，支持暂停 / 上一站 / 下一站；拖动地球或点击别处立即接管，自然结束自动保存一张截图。纯面板功能，不改工具契约 |
-| 地形分析 | `earth_analyze`：剖面（含 SVG 剖面卡）、淹没、日照、剖切、天际线五类分析一次只保留一个；结果以地图叠加与数值返回，清除时移除叠加，日照分析还会恢复进入前的光照 / 阴影状态，剖切会恢复图层原有的裁剪面 |
-| 着色器预设 | `earth_shader`：高程渐变、等高线、扫描、水面、水深五个白名单预设，按图层应用 / 重置 / 列出；`preset` 还接受 1–3 个预设的数组叠加（`stack` 字段返回顺序）；面板工作台提供**预设缩略图、目标图层提示、叠加顺序调整、滑杆调参、实时预览与原图对比**；已应用的效果信息直接挂在图层面板的 3D Tiles 图层行上（悬停看参数、点击整行载入编辑）；3DGS 不支持，不接受自定义 GLSL |
-| 可折叠面板 | 图层面板与坐标 HUD 可从工具栏收起 / 展开，图层卡标题栏也可收起；设置中的显示开关持久化 |
-| 干净截图 | 手动与 Agent 截图默认只保留三维画面；需要时按次传 `include_hud` 或打开设置开关，把坐标 HUD 与团队署名绘入图片 |
-| 图层统计 | 每层瓦片数、待加载数、三角面数、缓存占用收进独立的「场景详情」浮层（图层面板头 ⓘ 看全部，图层行 ⓘ 只看该层）；HUD 只保留 FPS、光标读数与相机高度 |
-| 数据体检 | 图层行静态体检 `tileset.json`：资产版本、根几何误差、LOD 深度、瓦片 / 内容数、外部 tileset、`extensionsUsed`、内容缺失与包围体问题；报告落盘可追溯，Agent 也可通过 `earth_scene` 触发 |
-| 双语 | 跟随 DSH 语言，中文 / English 运行时即时切换 |
-| 主题 | 跟随 DSH 或系统；可显式选择浅色 / 深色，仅作用于本面板 |
+**数据与场景**
 
-## 环境要求
+- 3D Tiles 1.0 / 1.1（b3dm、glb）与 3DGS（`KHR_gaussian_splatting`，含 SPZ 压缩）；多图层同时叠加，可显隐、定位、移除。
+- 数据入口三种：本地目录递归扫描 `tileset.json`、`http(s)` 在线地址、本机绝对路径。路径越出已选白名单时面板弹一次授权，拒绝不重试。
+- 四层图层结构：L1 地形、L2 影像底图、L3 栅格叠加（WMS / XYZ / ArcGIS）、L4 矢量叠加。
+- 数据体检：资产版本、根几何误差、LOD 深度、瓦片 / 内容数、外部 tileset、`extensionsUsed`、内容缺失与包围体问题；报告落盘可追溯。
+- 内置六个工具：`earth_scene`、`earth_capture`、`earth_draw`、`earth_measure`、`earth_analyze`、`earth_shader`；每次调用都会在对话里显示工具行。
 
-- DeepSeek Harness `>=0.2.1-rc.1 <0.3.0-0`
-- 支持 WebGL / WebGL2 的现代浏览器
-- 底图 / 地形 / 在线瓦片需要能访问对应公共服务（例如 `server.arcgisonline.com`、`elevation3d.arcgis.com`）；地形服务不可达时面板会回退到椭球并提示，不影响本地数据浏览
+**量测与标注**
 
-## 安装
+- 测距、测面、测高、拾取 3D Tiles 属性；左键取点，双击结束，**Esc** 或提示条上的「结束」退出。
+- Agent 可用 GeoJSON 绘制点 / 线 / 面与文字标签；绘制与量测结果留在面板，直到 `clear=true` 或从菜单清除。
 
-在插件市场中搜索「数字地球」，或使用命令行：
+**空间分析（面板 + 对话）**
+
+- 地形分析：剖面、淹没、日照、剖切、天际线；一次只保留一个结果，结果显示为场景叠加与分析卡。
+- 剖面可以手动画线：在「三维」Tab 点「画剖面」，在地球上点起点 / 终点，直接出结果；剖面卡支持挖填、坡度与 CSV / SVG 导出。
+- 日照时间轴：在「三维」Tab 拖动日期 / 时间，看太阳高度与地形阴影；夜间自动给整个画面加压暗滤镜，摄影测量与地形一起变暗。
+- 淹没 / 剖切 / 天际线仍由对话 Agent 执行；「空间分析」区保留可复制的示例 Prompt 与清除按钮。
+
+**着色器预设**
+
+- 五个白名单预设：高程渐变、等高线、扫描、水面、水深；同一图层只保留一个 shader，`preset` 可传 1–3 个预设的数组叠加。
+- 工作台提供预设缩略图、目标图层提示、叠加顺序调整、滑杆调参、实时预览与原图对比；3DGS 图层用于浏览，着色器为白名单预设。
+
+**指认与证据**
+
+- 命中标题用中性级别（三维瓦片区域 / 瓦片内要素 / 场景表面），不编造对象名，也不给伪精度。
+- 红 / 黄 / 绿三档置信度标注每条结论的来源；表面高程是采样值，高度是几何估计（邻域 24 点），未知与不确定性写进证据 JSON。
+
+**导览与交付**
+
+- 视角收藏与导览故事条：每站 = 一个相机视角 + 一句说明，按距离自适应飞行，拖动地球或点击别处立即接管。
+- 干净截图：手动与 Agent 截图默认只保留三维画面（默认跟随面板设置，开箱为不叠加 HUD）；需要时按次传 `include_hud=true` 或打开设置开关。
+- `earth_scene` 场景报告：HTML（单文件、截图内嵌）或 Markdown，写入 `$DSH_HOME/digital-earth/exports`。
+- `/earth` 斜杠命令、问 Agent 场景注入、按会话恢复场景；切换会话或重启 DSH 后仍能接回上次的相机、图层与标注。
+
+**界面**
+
+- 双语（跟随 DSH 语言，运行时即时切换）、浅色 / 深色主题、可折叠面板。
+- 图层面板两个 Tab：「地图」（地形 / 影像 / 栅格）与「三维」（矢量 / 三维内容 / 空间分析 / 日照 / 视角收藏 / 着色器）。
+- 指南针：右下角随相机旋转，点击回正北。
+- 坐标 HUD 约 5–6 Hz 采样；FPS 取 Cesium 真实渲染帧，场景静止 2 秒显示 `—` 而不是假的 0。
+- 渲染质量两档（均衡 / 高清），当前档位与有效分辨率写入 `earth_scene status` 的 `render`。
+
+## 快速开始
+
+**前置条件**
+
+- DeepSeek Harness `>=0.2.1-rc.1 <0.3.0-0`（与 `package.json` 的 `engines.dsh` 一致）。
+- 支持 WebGL / WebGL2 的现代浏览器；面板是 DSH Web UI 的一部分。
+- 在线底图 / 地形 / 在线瓦片需要能访问对应公共服务（例如 `server.arcgisonline.com`、`elevation3d.arcgis.com`）；离线时可用本地瓦片或关闭底图。
+- 只有开发与构建需要 Node.js 22 或 24（CI 覆盖这两个版本）；运行期没有第三方依赖。
+
+**安装**
 
 ```bash
 # 从 npm 注册表安装
 dsh plugin --profile <profile> add @cveo/dsh-digital-earth
 
-# 从本地目录 / 打包文件安装
-dsh plugin --profile <profile> add "<path-to-plugin>"
-dsh plugin --profile <profile> add "./cveo-dsh-digital-earth-1.5.0.tgz"
+# 或从本地 tgz 安装（在仓库根目录执行）
+dsh plugin --profile <profile> add ./cveo-dsh-digital-earth-1.5.1.tgz
 ```
 
-安装或更新后请**完全退出并重新打开 DSH** 一次：客户端 bundle 在宿主启动时注册，仅刷新页面不会重新注册。随后左侧栏出现「数字地球 / Digital Earth」入口，对话标题栏也会出现地球按钮。
+也可以在插件市场搜索「数字地球」。安装或更新后请**完全退出并重新打开 DSH**：客户端 bundle 在宿主启动时注册，仅刷新页面不会重新注册。随后对话标题栏会出现地球按钮，左侧栏会出现「数字地球」入口。
 
-## 使用
+**加载第一个数据**
+
+1. 点对话标题栏的地球按钮（或直接让 Agent 调用地球工具，面板会自动打开并等待连上）。
+2. 打开「数据 ▾ → 打开本地目录…」选择包含 `tileset.json` 的目录；或「数据 ▾ → 加载地址或坐标…」粘贴 `http(s)` 地址 / 本机绝对路径，或输入 `经度,纬度[,高度]`（例如 `113.14,31.02,900`）直接飞到该点。
+3. 目录不在白名单时，面板会请求一次授权；允许后继续，拒绝后不会自动重试。
+4. 载入后即可拖动浏览；用工具栏「量测」量一条距离，或对 Agent 说「对当前图层做一次数据体检」。
+
+五分钟验收：能看到地球、加载一个 tileset、量一条距离、让 Agent 截一张图。请使用你自己的标准 3D Tiles；示例 Prompt 可写成 `加载 D:\data\city\tileset.json，飞到城市上空并截图`（路径换成你的）。
+
+## 使用面板
 
 | 入口 | 作用 |
 | --- | --- |
-| **对话标题栏地球按钮** | 在对话右侧打开地球页签（对话同屏）；页签工具栏还提供真全屏 |
-| **问 Agent** | 地球页签工具栏按钮（仅会话页签内显示）：尽力截取当前画面并把场景摘要注入当前对话的 Agent，随后直接输入问题即可；不会唤醒空闲 Agent |
-| **数据 ▾** | 打开本地目录（递归扫描 `tileset.json`）、从「最近打开」重扫上一次的目录、加载在线地址 / 本机绝对路径（越出已选目录时弹窗一次性授权所在目录）、清除量测与拾取结果、导出场景报告（HTML）；存在 Agent 标注时显示「清除 Agent 标注」 |
-| **量测 ▾** | 测距、测面、测高、拾取属性；左键取点，双击结束；量测中按 **Esc** 或点提示条上的「结束」退出 |
-| **指认** | 工具栏准星按钮：点击场景中的对象打开选中卡（L 形角标 + 高度引线），可「抵近定位 / 高度量测 / 导出证据」；Esc 关闭卡片、再点按钮退出指认。指认与导出证据都只在面板内工作，不新增任何 Agent 工具 |
-| **双击地球** | 把光标处的点飞到画面中心（保持当前朝向/俯仰/高度）；量测工具激活时双击仍然是"结束量测" |
-| **图层** | 统一图层面板（v1.6）：**L1 地形**、**L2 影像底图**、**L3 栅格叠加**（WMS/XYZ/ArcGIS，多实例，透明度/显隐/排序/移除，面板内可直接添加）、**L4 矢量叠加**（Agent 标注与量测数量 + 清除）、**空间分析**（当前活动分析 + 一键清除）、**三维内容层**（定位 / 显隐 / 数据体检 / 移除）；标题栏 ⛶ 框全所有可见图层；标题栏 ⓘ 打开独立的「场景详情」浮层，每个图层行的 ⓘ 只查看该层详情；没有加载 3D Tiles 时也能打开 |
-| **图层 / 坐标 HUD** | 工具栏按钮可收起 / 展开图层面板与坐标 HUD；设置中的显示开关会持久化 |
-| **着色器** | 工具栏着色器按钮打开工作台：选择可见 3D Tiles 图层与四个白名单预设，按预设设置参数后应用 / 重置 |
-| **外观** | 跟随系统 / 浅色 / 深色 |
-| **设置** | 数据源管理（影像 / 地形）、外观（含「Agent 调用时自动打开」「显示图层卡」「显示坐标 HUD」「HUD 详细模式」开关）、截图叠加信息开关与「关于」页签（版本、GitHub 仓库与 Issues、团队） |
+| 地球按钮 | 在对话右侧打开数字地球页签；面板工具栏只有一个真全屏入口（DOM Fullscreen，Esc 退出） |
+| 数据 ▾ | 打开本地目录、重扫最近目录、加载地址或经纬度、清除 Agent 标注与量测、导出场景报告 |
+| 量测 ▾ | 测距 / 测面 / 测高 / 拾取属性；左键取点，双击结束，Esc 或提示条「结束」退出 |
+| 画剖面 | 在「三维」Tab 点「画剖面」，在地球上点起点 / 终点；结果直接进入分析卡 |
+| 日照时间轴 | 在「三维」Tab 开启后拖动日期 / 时间，查看昼夜明暗与地形阴影变化 |
+| 指认 | 点选场景对象打开选中卡：坐标、表面高程、几何高度估计、置信度，可抵近定位 / 高度量测 / 导出证据 |
+| 图层 | 两个 Tab：「地图」地形 / 影像 / 栅格；「三维」矢量 / 三维内容 / 空间分析 / 日照 / 视角收藏；标题栏 ⓘ 打开独立「场景详情」浮层 |
+| 着色器 | 打开工作台：选择 3D Tiles 图层与预设，调参后应用 / 重置 / 对比原图 |
+| 问 Agent | 尽力截取当前画面并把有界场景摘要注入当前对话，随后直接输入问题；不会唤醒空闲 Agent |
+| 设置 | 数据源（影像 / 地形）、外观、渲染质量、HUD 详细模式、截图叠加信息与「关于」页签 |
 
-鼠标坐标按约 5–6 Hz 采样，拖动视角时暂停、停手后补一次：射线与椭球求交保证裸地球也有经纬度；命中 3D Tiles / 3DGS 时用深度缓冲取模型表面高程；有地形时用 `globe.getHeight` 校正。HUD 文本直接写入 DOM，不触发 React 重渲染；隐藏 HUD 后停止指针采样。
+**加载与图层**
 
-## 与 Agent 协作
+- 本地目录会记入 `$DSH_HOME/digital-earth/directories.json`，重启 DSH 后仍可直接加载。
+- 场景按会话保存：相机、图层与显隐、Agent 标注 / 量测、活动分析、各图层着色器预设；快照在宿主侧，localStorage 只作缓存与兜底。
+- 没有加载 3D Tiles 时也能打开图层面板，用来切换地形 / 底图 / 栅格叠加。
 
-Agent 调用地球工具时，插件会自动在对话右侧打开地球页签，并等待它连上（最多约 8 秒），不需要先手动打开；用户通过面板选过的本地目录会被记住，重启 DSH 后仍可直接加载。面板通过 SSE 命令桥接入当前对话的 Agent，模型即可用自然语言读写场景。Agent 也可直接传本机绝对路径，路径越出已选目录时由面板弹窗请求一次授权。六个工具调用都会在对话中显示工具行；Agent 侧提供六个工具，也可以用 `/earth` 斜杠命令直接操作面板（不产生模型回合）：
+**量测与指认**
 
-| 工具 | 参数 | 作用 |
+- 量测中按 **Esc** 或点提示条「结束」退出；双击结束并保留结果，再点一次同一工具可继续。
+- 指认卡片用高 / 中 / 低三档置信度标注来源，证据 JSON 把每个数字标成实测 / 估计 / 推断；证据包是干净 PNG + JSON，写入 `$DSH_HOME/digital-earth/exports/`。
+- 证据 JSON 带坐标、采样方法、相机、时间与不确定性；拿不到 batch 属性时只写中性标题，不编造名称。
+
+**分析：面板 + 对话**
+
+- 剖面：在「三维」Tab 点「画剖面」，在地球上点起点 / 终点，直接出结果；日照：在「三维」Tab 开启时间轴并拖动日期 / 时间。
+- 淹没 / 剖切 / 天际线仍对 Agent 说：`对当前图层做一次淹没分析，水位 75 米`（参数换成你的）。
+- 一次只保留一个分析；新的会替换旧的。「空间分析」区显示当前分析摘要，✕ 清除并移除叠加。
+- 没有有效高程数据时返回可操作错误，不生成估算值。
+- 剖面卡可直接切换设计基准（起终点坡线 / 最低点水平）与路宽，挖填数值即时更新；卡片里的剖面图是缩略图，点击展开大图，并在大图里直接导出 CSV / SVG。
+- 日照：夜间自动给整个画面加压暗滤镜，摄影测量与地形一起变暗；白天恢复原始亮度。
+
+**着色器工作台**
+
+- 选图层与预设后可调参数、叠加最多 3 个预设；「实时预览」拖动滑杆静默生效，显式「应用」才写回场景。
+- 已应用效果挂在图层面板的 3D Tiles 图层行上：悬停看参数，点击整行（或 ✦）载入编辑。
+- 3DGS 图层用于浏览；着色器为白名单预设。
+
+**导览与交付**
+
+- 「视角收藏」保存当前相机视角（最多 20 条）；两站以上可「播放导览」，每站可写一句说明。
+- 截图默认干净画面；报告与截图路径由工具返回，用 `present` 展示给用户。截图目录保留最近 50 张。
+
+**数据源**
+
+| 类型 | 内置预设 |
+| --- | --- |
+| 影像 | Esri World Imagery、World Topographic、World Street Map、Light Gray Canvas、World Shaded Relief、World Ocean、World Hillshade |
+| 地形 | ArcGIS WorldElevation3D |
+
+自定义数据源支持 XYZ 瓦片（含 TMS、投影、子域名、最大层级与署名）、WMS、ArcGIS MapServer、Cesium 地形服务与本地瓦片目录；选择会持久化到 `$DSH_HOME/digital-earth/sources.json`。
+
+## Agent 工具
+
+六个工具由 Host 注册，名称与参数是稳定契约；工具结果只报状态与路径，不伪造画面内容。分析族没有面板按钮，用对话调用 `earth_analyze` 是设计选择，不是缺失。
+
+| 工具 | 关键参数 | 作用 |
 | --- | --- | --- |
-| `earth_scene` | `action`（`status` / `list` / `load` / `remove` / `visible` / `basemap` / `terrain` / `fly` / `reset` / `pick` / `inspect` / `report`） | 读取场景状态与图层统计；加载 / 移除 / 显隐图层；切换底图与地形；飞到指定经纬度；拾取画面中心对象；数据体检（`layer` / `path` / `url` 三选一，`deep` 可选）；导出场景报告（`format` / `title` / `include_capture`） |
-| `earth_capture` | `width`、`format`、`include_hud`、`label` | 生成截图并返回宿主绝对路径；默认只保留干净三维画面，`include_hud=true` 时把坐标 HUD 与团队署名直接绘入图片 |
-| `earth_draw` | `features`（GeoJSON 字符串：要素集合、单个要素或裸几何）、`style`（`accent` / `alert` / `success` / `warm` / `violet`）、`label`、`clear` | 绘制点 / 多点、线 / 多线、面 / 多面与文字标签，要素 `properties.name` 作为逐要素标签；单次最多 500 个要素 / 20000 个坐标，`clear=true` 清除此前 Agent 绘制的全部叠加；返回要素数与包围盒 |
-| `earth_measure` | `mode`（`distance` / `area` / `height`）、`points`（`[lon,lat]` 或 `[lon,lat,height]`，最多 200 个）、`draw`、`clear` | 大地线距离、平面面积（含周长）、高差（含水平距离与坡度）；默认把量测绘到地球上，`draw=false` 只返回数值；结果 JSON 以米 / 千米给出 |
-| `earth_analyze` | `action`（`profile` / `flood` / `sunlight` / `clip` / `skyline` / `clear`）、`layer`、`from` / `to`（剖面；天际线为观察点/方向目标）、`samples`、`region`、`water_height`、`grid`、`datetime`、`show_shadows`、`height`（剖切高程）、`keep`（`below` / `above`） | 地形分析：剖面（长度、起伏 / 爬升 / 下降与采样点，面板显示 SVG 剖面卡）、淹没（面积、淹没比与水深）、日照（太阳高度角 / 方位角，切换光照与阴影）、剖切（水平剖切面，选择保留侧）、天际线（观察点最大仰角 / 距离）与清除；一次只保留一个活动分析，默认取最上面的可见 3D Tiles 图层；无可用高程时返回错误，不猜测数值 |
-| `earth_shader` | `action`（`apply` / `reset` / `list`）、`layer`、`preset`（`height-false-color` / `contour` / `scan` / `water` / `water-depth`，或 1–3 个预设的数组叠加）、`min_height` / `max_height`、`interval`、`speed`、`amplitude`、`opacity`、`water_height` / `depth_max` | 为单个 3D Tiles 图层应用 / 重置白名单着色器预设（可叠加），或列出当前活动预设；同一图层只保留一个 shader，参数按所选预设的并集严格校验；3DGS 图层不支持，也不接受自定义 GLSL |
+| `earth_scene` | `action`（`status` / `list` / `load` / `remove` / `visible` / `basemap` / `terrain` / `fly` / `reset` / `pick` / `inspect` / `report`）；`layer` / `path` / `url` / `visible` / `imagery` / `terrain` / `lon` / `lat` / `height` / `heading` / `pitch` / `duration` / `deep` / `format` / `title` / `include_capture` | 读写场景与图层；`fly` 默认高度 1500 m、俯仰 -45°；`inspect` 做数据体检；`report` 导出场景报告 |
+| `earth_capture` | `width`（480–2560，默认 1280）、`format`（`jpeg` / `png`）、`include_hud`、`label` | 截图并返回宿主绝对路径；`include_hud=true` 才把坐标 HUD 与署名绘入图片 |
+| `earth_draw` | `features`（GeoJSON 字符串）、`style`（`accent` / `alert` / `success` / `warm` / `violet`）、`label`（≤80 字符）、`clear` | 绘制点 / 线 / 面与文字标签；单次 ≤500 要素 / 20000 坐标；`clear=true` 清除此前 Agent 叠加 |
+| `earth_measure` | `mode`（`distance` / `area` / `height`）、`points`（`[lon,lat]` 或 `[lon,lat,height]`，最多 200，至少 2）、`draw`、`clear` | 大地线距离、平面面积（含周长）、高差（含水平距离与坡度） |
+| `earth_analyze` | `action`（`profile` / `flood` / `sunlight` / `clip` / `skyline` / `clear`）、`layer`、`from` / `to`、`samples`（8–64，默认 32）、`region`（跨度 ≤10°）、`water_height`、`grid`（4–24，默认 12）、`datetime`（1900–2200）、`show_shadows`、`height`（-1000–9000）、`keep`（`below` / `above`） | 地形分析；一次一个活动分析；无有效高程时返回错误，不猜值 |
+| `earth_shader` | `action`（`apply` / `reset` / `list`）、`layer`、`preset`（5 选 1，或 1–3 个的数组）、`min_height` / `max_height`、`interval`（1–500）、`speed`、`amplitude`、`opacity`、`water_height`、`depth_max` | 白名单着色器预设（作用对象为普通 3D Tiles） |
+
+**两个示例 Prompt**
+
+> 加载 `D:\data\city\tileset.json`，切到影像底图，飞到场景中心并截图。
+
+> 对当前图层做一次数据体检，把缺失内容列出来；再量一下画面中心到东北方向 300 米的高差。
+
+**错误约定**
+
+- 工具错误以 `[code]` 开头，并给出一条 `next:` 操作建议；按 `next:` 处理，不要重复同一个失败调用。
+- 本地路径越权返回 `access_denied` 或 `access_timeout`，两者都不自动重试；需要用户在面板里重新授权。
+- 分析没有高程、着色器目标不是普通 3D Tiles、面板不可见时截图，都会返回可操作的错误而不是空结果。
 
 | `/earth` 命令 | 作用 |
 | --- | --- |
 | `/earth status` | 相机、图层、底图 / 地形与 Agent 叠加数量的一屏摘要 |
 | `/earth capture [label]` | 截图并返回宿主绝对路径，可带一个标签 |
-| `/earth report [html\|markdown]` | 导出场景报告并返回宿主绝对路径，默认 HTML（自包含，截图内嵌） |
-| `/earth clear` | 清除 Agent 绘制的标注与量测叠加 |
-| `/earth open` | 打开指引：下一次地球工具调用会自动打开，或点对话标题栏的地球按钮 |
-| `/earth`（不带参数） | 显示用法 |
+| `/earth report [html\|markdown]` | 导出场景报告并返回宿主绝对路径，默认 HTML |
+| `/earth clear` | 清除 Agent 绘制的标注与量测 |
+| `/earth open` | 打开指引：下一次地球工具调用会自动打开，或点对话标题栏地球按钮 |
+| `/earth` | 显示用法 |
 
-命令结果只保留在命令气泡里，不写入模型上下文；面板未连接时返回命令错误而不是模型消息。
+命令结果只留在命令气泡里，不写入模型上下文；面板未连接时返回命令错误而不是模型消息。
 
-- **问 Agent**：工具栏的「问 Agent」按钮把当前场景（相机、图层与显隐、底图 / 地形、Agent 标注 / 量测、活动地形分析、各图层着色器预设，以及尽力截取的截图路径）整理成一段有界文本，经宿主带 token 的注入路由送进当前对话的 Agent；上下文落在下一个被接纳的步骤上，且不会唤醒空闲 Agent，随后直接输入你的问题即可。文本上限 4000 字符、请求体上限 16 KiB，注入的是上下文行而非用户消息，也不含实例 token；Agent 未运行或宿主没有 Agent 运行时，分别以 409 / 503 返回可操作的 toast 错误。
-- **Agent 标注与量测**：`earth_draw` / `earth_measure` 的绘制结果留在面板里，直到用工具传 `clear=true` 或从「数据 ▾ → 清除 Agent 标注」清除；`earth_scene` 的 `status.annotations` 报告当前 Agent 绘制的要素数、量测点数与叠加对象数。
-- **场景保持**：切换会话 / 窗口或面板被右侧栏回收后，重新打开地球页签（或下一次 Agent 调用自动打开）会按会话恢复相机视角、已加载图层（按原始本地路径或在线地址重新加载）、图层显隐、Agent 标注 / 量测、当前地形分析结果与各图层的着色器预设；快照优先存放在宿主的 `$DSH_HOME/digital-earth/scenes`（每会话一份、原子写入、单份上限约 512 KB、最多保留最近 50 个会话，经面板专用带 token 路由读写，不进入任何工具结果），本机浏览器 localStorage 只作快速缓存与兜底，因此重启 DSH 或页面地址 / 端口变化后仍能恢复；底图与地形沿用数据源设置。
-- **截图叠加信息**：面板工具栏与 HUD 是网页 DOM 元素，本身无法与 WebGL 画面一起导出；截图默认只保留干净三维画面，Agent 截图可按次传 `include_hud=true`，或打开「设置 → 截图时叠加坐标 HUD 与署名」作为默认，插件会把光标坐标、相机参数和团队署名重绘到图片画布上，手动截图与 Agent 截图都生效。
-- **本地数据**：Agent 可直接加载面板「数据 → 打开本地目录」里选过的目录，也可直接传本机绝对路径。路径越出白名单时，宿主会先向面板发起一次授权请求；用户允许后先把所在目录登记为本地数据源，再继续原加载 / 体检。拒绝返回 `access_denied` 且不自动重试，30 秒未处理返回 `access_timeout`；白名单、真实路径与根目录校验不变，命令桥与工具结果不暴露实例 token，模型无法自行扩大可读范围。选过的目录会记入 `$DSH_HOME/digital-earth/directories.json`，重启 DSH 后仍可直接加载。
-- **标准数据契约**：只接受标准 3D Tiles 1.0 / 1.1，根瓦片必须自带世界定位（`root.transform` 或 `root.boundingVolume.region`）。不少 OSGB 转换工具只写局部坐标——根节点没有 `transform`/`region`，原点写在同级 `tileset_info.json` 里；这类数据在 v1.5 起**不再被插件代偿**：宿主原样返回文件字节，数据体检会报 `tileset_not_georeferenced` 错误并说明症状（数据坍缩到地心附近、`flyTo` 钻进地核、瓦片在视锥里反复闪现）。修复方式是在转换时写入根 `transform` 或 `region`，插件不做隐式改写，因此「Cesium 拿到的字节」永远等于「磁盘上的字节」。嵌套外部 tileset 由父级 `tileset.json` 的根变换负责，插件不重复叠加。已经转换好的存量数据可以用 `scripts/georef-osgb.mjs` 一次性批量补根 `transform`（默认 dry-run，`--apply` 先备份 `tileset.json.bak`，支持 CGCS2000 EPSG 4491–4554；脚本不随 npm 包发布，插件运行时仍不读取 sidecar、不改写数据）。
-- **地形分析**：`earth_analyze` 一次只保留一个活动分析，新分析替换旧分析；剖面返回长度、起伏 / 爬升 / 下降与采样点并显示 SVG 剖面卡，淹没返回面积、淹没比与水深，日照切换光照与阴影，剖切用水平面切开图层并返回剖切高程 / 保留侧，天际线返回观察点最大仰角与出现距离；`clear` 移除分析叠加并在日照分析后恢复进入前的光照 / 阴影 / 时钟状态。没有有效高程数据时返回可操作错误，不猜测数值。
-- **着色器预设**：`earth_shader` 的预设固定为高程渐变、等高线、扫描、水面、水深五种，按图层应用 / 重置 / 列出；`preset` 可传 1–3 个预设的数组叠加（按顺序合成、参数取并集），同一图层只保留一个 shader，参数按所选预设严格校验。3DGS 图层不支持该能力，模型与面板都不能注入自定义 GLSL。
-- **场景报告**：直接说「导出当前场景报告」即可调用 `earth_scene` 的 `report`；面板「数据 ▾ → 导出场景报告」或聊天里的 `/earth report [html|markdown]` 也能导出。报告包含相机、图层与显隐、底图 / 地形、Agent 标注与量测数值、活动地形分析、着色器预设和尽力截取的截图：HTML 是单文件（截图 base64 内嵌、内联样式），Markdown 以图片链接引用截图；文件写入 `$DSH_HOME/digital-earth/exports`（保留最近 200 份），工具会返回绝对路径并提示用 `present` 打开。
-- **截图与多模态**：截图保存到 `$DSH_HOME/digital-earth/captures`；对话中的 `earth_capture` 工具行会显示一张可点击的小缩略图，链接到完整截图——图片地址由页面元数据拼装并受实例 token 保护，模型侧仍只看到文件路径。支持图像解译的多模态模型可用 `read_image` 读取返回路径；不支持视觉的模型则退回 `earth_scene` 的 `status` JSON，不编造画面内容。
-- **数据体检**：对当前图层说「做一次数据体检」即可；`layer` 模式由面板解析原始来源并附加运行统计，`path` / `url` 模式在面板未打开时也能体检。报告写入 `$DSH_HOME/digital-earth/reports`（保留最近 100 份），工具只返回摘要与 `report_path`，需要细节时再读文件。
-- **示例**：「打开数字地球，切到影像底图，飞到武汉大学并截图」；「加载我刚才选过的那个数据目录里的 tileset」；「把第二个图层隐藏，再报告当前相机高度」；「对当前图层做数据体检，看看有没有内容缺失」；「把这三个点连成一条路线并标注名称，然后截图」；「量一下这两个点的高差、水平距离和坡度」；「从起点到终点做一条地形剖面」；「给当前图层套上等高线」。
+## 数据与安全
 
-## 数据源
+**标准 3D Tiles 契约**
 
-内置预设均为免 Token 的 ArcGIS 公共服务，可在设置中启用：
+- 只接受标准 3D Tiles 1.0 / 1.1：根瓦片必须自带世界定位（`root.transform` 或 `root.boundingVolume.region`）。
+- 插件不做隐式改写：Cesium 拿到的字节永远等于磁盘上的字节；嵌套外部 tileset 由父级根变换负责，不重复叠加。
 
-| 类型 | 预设 |
-| --- | --- |
-| 影像 | Esri World Imagery、World Topographic、World Street Map、Light Gray Canvas、World Shaded Relief、World Ocean、World Hillshade |
-| 地形 | ArcGIS WorldElevation3D |
+**缺世界定位的诊断**
 
-自定义数据源支持：
+- 症状：数据坍缩到地心附近、`flyTo` 钻进地核、瓦片在视锥里反复闪现。这不是渲染故障。
+- 数据体检会报 `tileset_not_georeferenced` 并说明修法：在导出时写入根 `transform` / `region`。
+- 存量 OSGB 转换数据可用 `scripts/georef-osgb.mjs` 一次性补根 `transform`：默认 dry-run，`--apply` 先备份 `tileset.json.bak`，支持 CGCS2000 高斯-克吕格 EPSG 4491–4554。插件运行时仍不读取 sidecar、不改写数据。
 
-- **XYZ 瓦片**：`{z}/{x}/{y}` 模板、TMS（Y 轴南起）、Web 墨卡托 / 地理坐标、子域名、最大层级、版权署名
-- **WMS**：服务地址 + 图层名
-- **ArcGIS**：MapServer 地址（自动读取层级信息）
-- **Cesium 地形**：地形服务地址，可选请求法线 / 水面掩膜
-- **本地瓦片目录**：在 XYZ 表单中直接选择目录，插件通过宿主白名单提供瓦片
+**本地数据**
 
-选中的底图与地形随配置持久化，换端口或重开 DSH 都不会丢失。
+- 只有通过面板打开过的目录（或用户一次性授权的目录）才会被 `/tiles` 提供；白名单、真实路径与根目录校验都在宿主侧。
+- Agent 可传本机绝对路径；越出白名单时宿主向面板发起一次授权请求，30 秒未处理返回 `access_timeout`。
+- 插件不上传数据、不主动外联；网络请求只发生在你选择的影像、地形与在线瓦片服务上。
+
+**访问控制与代理**
+
+- 所有路由绑定 DSH `connection` 会话、同源校验与插件实例 token；token 只下发给页面，不出现在任何工具结果里。
+- `/remote` 代理拒绝字面量 loopback / 私网地址与 3xx 重定向，转发查询串（上限 2048 字符；超限 400，控制字符或非法编码 403）。
+- 代理不做 DNS 解析：域名解析到内网地址的场景仍可能绕过，详见「常见问题」。
+
+**输出与保留**
+
+- 截图 `$DSH_HOME/digital-earth/captures` 保留最近 50 张；体检报告保留最近 100 份。
+- 场景报告与证据包共享 `$DSH_HOME/digital-earth/exports` 的最近 200 份配额。
+- 场景快照每会话一份、原子写入、单份上限约 512 KB，最多保留最近 50 个会话。
 
 ## 工作原理
 
-- **宿主侧**（`index.js` 入口 + `src/host/**`）：注册 `/api/3dviewer/*` 路由，负责 Cesium 静态资源、本地目录扫描与白名单、最近打开目录记录、会话场景快照（`$DSH_HOME/digital-earth/scenes`）、瓦片服务、跨域代理、数据源配置读写，以及六个 Agent 工具、`/earth` 斜杠命令和 session 级命令桥。v1.5 起入口只有 `inject`/`apply` 与公开 re-export，实现按职责拆在 27 个模块里（路由、桥、体检、存储、工具各自独立）。
-- **客户端**（`src/client/**` → `client.js` 产物）：作为 DSH 客户端模块加载，声明 `sidebar.panellist`、`main` 与右侧边栏页签，按需动态 `import()` 自托管 CesiumJS；页签内面板用 `EventSource` 连接命令桥，串行执行 Agent 指令并回执。源码拆在 22 个模块，由 esbuild 打包成单一 `window.__ModuleLoader__` 产物（`npm run build:client`）；`client.js` 是构建产物，CI 会校验它与源码一致，请勿手改。
-- **Agent 命令桥**：`GET /api/3dviewer/bridge?session=…` 推送命令，`POST /api/3dviewer/bridge` 回执；同一会话只由最新打开的那个地球页签执行命令，避免重复加载；截图经 `POST /api/3dviewer/capture` 落盘，再由 `/api/3dviewer/files` 回读；数据体检经 `POST /api/3dviewer/inspect` 分析并写入报告目录。
-- **安全**：所有路由绑定 DSH `connection` 会话与同源校验，并带插件实例 token（只下发给页面，不出现在任何工具结果里）；`/tiles` 仅服务经文件选择器加入白名单的目录，Agent 加载本地路径同样受该白名单约束，且会校验真实路径；白名单注册端点 `/scan` 只接受面板自身的请求头，模型无法借 Cesium 发同源 GET 间接触发；`/inspect` 同样要求面板请求头，本地路径走白名单 + 真实路径，远程 URL 复用 `/remote` 规则；`/remote` 代理拒绝字面量 loopback / 私网地址与 3xx 重定向，避免直接 SSRF；代理不做 DNS 解析，若域名解析到内网可能绕过（见已知限制）。插件不上传数据、不主动外联。
-- **自托管 CesiumJS**：`vendor/cesium` 随插件分发，无 CDN、无 Cesium ion Token。
+宿主侧负责数据与服务，客户端侧负责 Cesium 画面与面板；两侧通过带 token 的 SSE 命令桥通信。`client.js` 是 `src/client/**` 的构建产物，不手改。
 
-## 已知限制
+<pre>
+Host (Node)                                   Browser (DSH Web UI)
++------------------------------+   commands   +---------------------------+
+| index.js   inject / apply    | -----------> | src/client/**  -> client.js|
+| src/host/tools/* (6 tools)   |              | CesiumJS + panel          |
+| routes / bridge / storage    | <----------- | (vendor/cesium, bundled)  |
++------------------------------+   acks/data  +---------------------------+
+</pre>
 
-- 同一会话若在多个浏览器标签页里打开地球页签，只有最新连接的那一个会执行 Agent 命令，其余页签保持只读展示。
-- 地形分析依赖已加载的 3D Tiles 或地形高程；数据未加载或没有有效采样点时返回错误，不生成估算值，同一时间只保留一个分析结果。
-- 着色器预设只作用于普通 3D Tiles，3DGS 图层会返回错误；四种预设仅做外观表达（水面波纹不是真实折射），不接受自定义 GLSL。
-- 地形开启时拖动视角的帧率取决于显卡、窗口尺寸与数据量；本机真实 GPU 浏览器实测约 30 FPS，不作为固定帧率承诺，headless / SwiftShader 数值不代表实际体验。
-- Agent 截图要求地球页签可见：切到其他页签或窗口在后台时会返回「面板不可见」提示，而不是生成空白图。
-- 截图目录只保留最近 50 张，体检报告只保留最近 100 份，场景快照按会话只保留最近 50 个，避免长期使用后无限增长。
-- `/remote` 代理已透传查询串（长度上限 2048 字符，超限 400，控制字符与非法编码 403），WMS / WMTS / 带签名参数的瓦片可直接经代理加载；体检会读取外部 `tileset.json`（本地与远程最多 50 个），远程 `deep` 模式只检查根瓦片内容，本地 `deep` 模式最多检查 200 个内容文件。
-- `/remote` 代理按字面量判断内网地址、不做 DNS 解析；在不可信网络里请勿把它暴露给不可控的模型 / 用户组合，后续版本会补 DNS 解析与解析后校验。
-- 在线 Esri 服务在部分网络环境可能不可达，此时底图会显示为空白，可切换为本地瓦片数据源。
+- **Host**：`index.js` 只做 `inject` / `apply` 与公开 re-export；实现按职责拆在 `src/host/**` 的 28 个模块里（路由、命令桥、体检、存储、六个工具、`/earth` 命令）。
+- **Client**：`src/client/**` 的 53 个模块经 esbuild 打包成单一 `window.__ModuleLoader__` 产物；按需动态 `import()` 自托管 CesiumJS，声明侧栏页签与工具行。
+- **CesiumJS**：`vendor/cesium` 随插件分发，无 CDN、无 Cesium ion Token。
+- **发布**：tag-only + GitHub Actions OIDC。本地 `npm run release:check` 只读自检版本单源、产物一致性与打包清单，不 tag / push / publish。
 
-## 目录结构
+## 常见问题
 
-```text
-dsh-digital-earth/
-├── index.js            # 宿主入口：inject/apply + 公开 re-export（≤80 行）
-├── src/host/           # 宿主实现：路由、命令桥、体检、存储、六个工具、/earth 命令
-├── src/client/         # 客户端源码：场景面板、工具栏、对话框、着色器/分析、i18n
-├── client.js           # 客户端产物（由 npm run build:client 生成，勿手改）
-├── scripts/            # build-client（esbuild 打包）、check-size（架构预算）与 georef-osgb（存量数据一次性补定位）
-├── test/               # 模块单测 / 契约测试 / 产物冒烟
-├── cordis.patch.yml    # bundle 补丁
-├── locale/             # 插件市场元数据（中 / 英）
-├── vendor/cesium/      # 自托管 CesiumJS 1.147
-├── icon.svg
-└── preview.png
-```
+- **支持哪些数据？** 标准 3D Tiles 1.0 / 1.1（b3dm、glb）与 3DGS（含 SPZ）；本地目录、在线地址、本机绝对路径都可以加载。
+- **3DGS 能做什么？** 高斯泼溅图层可以浏览、定位、显隐和移除；分析与着色器面向普通 3D Tiles。
+- **为什么截图里没有 HUD？** 手动与 Agent 截图默认只保留三维画面；按次传 `include_hud=true`，或打开「设置 → 截图时叠加坐标 HUD 与署名」。
+- **画面黑屏或模型落在地心？** 先做数据体检，确认根瓦片带 `transform` 或 `region`；补上世界定位后重新加载即可。
+- **数据会上传吗？** 不会；插件只读取本机文件和你选择的在线数据源。
+- **分析按钮在哪？** 剖面和日照在「三维」Tab：画剖面 + 日照时间轴；淹没 / 剖切 / 天际线通过对话调用 `earth_analyze`。
+- **截图和报告保存在哪？** 截图目录只保留最近 50 张，报告 100 份，导出 200 份；具体路径由工具返回。
+- **性能大概怎样？** 取决于显卡、窗口尺寸与数据量，建议用实际数据试。
 
-## 反馈与贡献
+## 路线图
 
-欢迎通过 [Issue](https://github.com/CVEO/dsh-digital-earth/issues) 报告问题或提出建议。提交前请确保 `node --check index.js && node --check client.js` 通过。
+以下是讨论中的方向，不构成版本承诺；具体排期以 Issue 为准。
 
-## 团队
+- **数据安全**：`/remote` 代理补 DNS 解析后的二次校验，收紧不可信网络下的边界。
+- **大数据体验**：更大瓦片集的加载与拖动体验、缓存与质量档的继续调优。
+- **交付格式**：更多分析结果的导出形态，以及报告 / 证据包的自动化工作流。
+- **文档与示例**：更完整的接入示例、常见数据转换流程与排错手册。
 
-由 **武汉大学 CVEO 课题组** 维护 · <https://www.whu-cveo.com/>
+## 参与贡献
 
-## 许可
+欢迎通过 [Issues](https://github.com/CVEO/dsh-digital-earth/issues) 报问题或提建议；开发、构建、测试与发布流程见 [CONTRIBUTING.md](CONTRIBUTING.md)。提交 PR 时请保持六个工具的名称、参数与 action 集合不变，新增能力优先做面板侧或新增可选参数。
 
-MIT。CesiumJS 以 Apache-2.0 分发，第三方声明见 [`NOTICE`](NOTICE)。
+## 致谢与许可
+
+**致谢**
+
+- CesiumJS 1.147 以 Apache-2.0 分发并随插件自托管；第三方声明见 [NOTICE](NOTICE)。
+- DeepSeek Harness 提供的插件运行时、命令桥与工具调用界面。
+- 示例数据：课题组自有的 LOD18 实景三维；3DGS 样例 Svirnas Alyt 来自 WilliamLiu 的 3D-Tiles-RendererJS-3DGS-Plugin（Apache-2.0）。
+- 影像与地形：运行期访问的 ArcGIS 公共服务，版权归各自提供方。
+
+**团队与许可**
+
+由**武汉大学 CVEO 课题组**维护 · <https://www.whu-cveo.com/>
+
+本项目以 MIT 许可发布，完整文本见 [LICENSE](LICENSE)；第三方许可见 [NOTICE](NOTICE)。

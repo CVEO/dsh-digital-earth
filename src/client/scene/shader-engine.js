@@ -200,8 +200,8 @@ export function createShaderEngine(deps) {
           fragmentShaderText: shaderFragmentSource(request.presets ?? request.preset),
         }
         const stack = Array.isArray(request.presets) ? request.presets : [request.preset]
-        if ((stack.includes('water') || stack.includes('water-depth')) && Cesium.CustomShaderTranslucencyMode?.TRANSLUCENT !== undefined) {
-          options.translucencyMode = Cesium.CustomShaderTranslucencyMode.TRANSLUCENT
+        if ((stack.includes('water') || stack.includes('water-depth')) && Cesium.CustomShaderTranslucencyMode?.INHERIT !== undefined) {
+          options.translucencyMode = Cesium.CustomShaderTranslucencyMode.INHERIT
         }
         let shader = null
         try {

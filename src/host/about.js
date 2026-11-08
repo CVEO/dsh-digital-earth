@@ -8,7 +8,7 @@ import { PACKAGE_FILE } from './constants.js'
 import { cleanText, cleanUrl } from './sanitize.js'
 
 const FALLBACK_ABOUT = {
-  version: '1.5.0',
+  version: '1.5.1',
   homepage: 'https://github.com/CVEO/dsh-digital-earth',
   issues: 'https://github.com/CVEO/dsh-digital-earth/issues',
   team: { name: '武汉大学 CVEO 课题组', url: 'https://www.whu-cveo.com/' },

@@ -11,7 +11,7 @@
  * Dependencies are injected so this module holds no React state: viewer/root refs
  * arrive as getters, and chrome/HUD helpers plus the frame scheduler are passed in.
  */
-export function createCaptureService({ getViewer, getRoot, getSettings, getMeta, getSession, t, showToast, setChromeHidden, nextFrames, drawCaptureOverlay }) {
+export function createCaptureService({ getViewer, getRoot, getSettings, getMeta, getSession, t, showToast, setChromeHidden, nextFrames, drawCaptureOverlay, drawVectorLabels }) {
   const MAX_CAPTURE_DATAURL = 7_500_000
 
   /** Render the canvas at the requested width and return a data URL. */
@@ -63,6 +63,7 @@ export function createCaptureService({ getViewer, getRoot, getSettings, getMeta,
           target.height = targetHeight
           const context = target.getContext('2d')
           context.drawImage(canvas, 0, 0, targetWidth, targetHeight)
+          drawVectorLabels?.(context, targetWidth, targetHeight)
           if (includeHud) drawCaptureOverlay(context, targetWidth, targetHeight)
           dataUrl = format === 'png' ? target.toDataURL('image/png') : target.toDataURL('image/jpeg', quality)
           if (dataUrl.length <= MAX_CAPTURE_DATAURL) break

@@ -23,9 +23,31 @@ import {
   summarizeHeights,
 } from '../src/client/scene/selection.js'
 import { postEvidence } from '../src/client/scene/evidence-export.js'
+import * as Cesium from '../vendor/cesium/index.js'
+import { createSelectionController } from '../src/client/scene/selection-controller.js'
 import { clientSource, readRepoFile } from './helpers/source.mjs'
 
 const adjacent = (a, b, epsilon = 1e-9) => Math.abs(a - b) <= epsilon
+
+test('指认坐标与证据保留经纬度精度，低于 100 m 的模型表面不会归零', async () => {
+  const lon = 113.13861234
+  const lat = 31.02085678
+  const anchor = Cesium.Cartesian3.fromDegrees(lon, lat, 87.6)
+  let reads = 0
+  const viewer = { scene: { pickPositionSupported: true, pickPosition() { reads++; return anchor }, pick: () => null,
+    globe: { terrainProvider: new Cesium.EllipsoidTerrainProvider() } } }
+  const controller = createSelectionController({ getViewer: () => viewer, getCesium: () => Cesium, getLayers: () => [] })
+  const result = await controller.identifyAt(new Cesium.Cartesian2(200, 200))
+  assert.equal(reads, 1)
+  assert.ok(adjacent(result.card.point.lon, lon))
+  assert.ok(adjacent(result.card.point.lat, lat))
+  assert.equal(result.card.point.surface_height_m, 87.6)
+  assert.equal(result.anchor, anchor)
+  const pack = buildEvidencePack({ card: result.card, view: {lon, lat, height: 200} })
+  assert.ok(adjacent(pack.point.lon, lon))
+  assert.ok(adjacent(pack.view.lat, lat))
+  assert.equal(buildSelectionCard({ point: { lon, lat, surface_height_m: null } }).point.surface_height_m, null)
+})
 
 test('offsetCartographic：正北抬升纬度、正东抬升经度，高纬经度补偿、非法输入返回 null', () => {
   const north = offsetCartographic(114.3, 30.5, 0, 30)

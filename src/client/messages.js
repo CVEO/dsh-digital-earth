@@ -6,6 +6,7 @@
  */
 
 import { V17_MESSAGES } from './messages-v17.js'
+import { V18_MESSAGES } from './messages-v18.js'
 
     const MESSAGES = {
       zh: {
@@ -15,13 +16,13 @@ import { V17_MESSAGES } from './messages-v17.js'
         'panel.status.layers': '{n} 个图层',
         'panel.empty.title': '在地球上叠加你的数据',
         'panel.empty.body':
-          '打开本地目录或在线地址，把 3D Tiles（b3dm / glb / 3DGS）叠加到 CesiumJS 地球上；底图、地形与量测工具已就绪。',
+          '支持 3D Tiles 1.0 / 1.1 与 3DGS（SPZ）。打开本地目录，或粘贴在线 / 本机 tileset.json 地址；加载后可用量测、指认，也可以直接让 Agent 分析这块数据。',
         'panel.empty.local': '打开本地目录',
         'panel.empty.url': '加载在线地址',
         'panel.empty.dismiss': '关闭提示',
         'btn.data': '数据',
         'btn.openLocal': '打开本地目录…',
-        'btn.openUrl': '加载在线地址…',
+        'btn.openUrl': '加载地址或坐标…',
         'btn.layers': '图层',
         'btn.layersShow': '展开图层卡',
         'btn.layersHide': '收起图层卡',
@@ -103,8 +104,9 @@ import { V17_MESSAGES } from './messages-v17.js'
         'layers.vectorRemove': '移除该叠加',
         'layers.frameAll': '框全所有可见图层',
         'layers.analysis': '空间分析',
-        'layers.analysisHint': '剖面 / 淹没 / 日照 / 剖切 / 天际线分析由对话 Agent 执行（例如：「对当前图层做一条从 A 到 B 的剖面」）；结果会显示在这里，可在此清除。',
-        'layers.georefWarning': '缺少世界定位：数据会落在地心附近。请用 scripts/georef-osgb.mjs 修复该 tileset.json 后重新加载。',
+        'layers.analysisHint':
+          '点上方「画剖面」可在地球上手动画线并直接出结果；下方「日照时间轴」可拖动查看阴影。淹没 / 剖切 / 天际线仍由对话 Agent 执行；结果会显示在分析卡。',
+        'layers.georefWarning': '缺少世界定位（根 transform / region）：局部坐标会被当成 ECEF，数据会落在地心附近。请让数据提供方重新导出该 tileset，或按 README 用 scripts/georef-osgb.mjs 一次性修复后重新加载。',
         'layers.analysisClear': '清除分析',
         'layers.shader': '着色器效果',
         'layers.shaderEmpty': '暂无着色器效果；在着色器工作台应用预设后会出现在这里。',
@@ -119,18 +121,18 @@ import { V17_MESSAGES } from './messages-v17.js'
         'bookmarks.flyHint': '点击飞到该视角',
         'bookmarks.noView': '面板尚未就绪，无法读取当前视角。',
         'bookmarks.saveFailed': '本地存储不可用，收藏只保留在本次会话。',
-        'urlbar.placeholder': 'tileset.json 的 http(s) 地址，或本地绝对路径',
+        'urlbar.placeholder': 'tileset.json 地址 / 本机路径，或经纬度（如 113.14,31.02）',
         'urlbar.submit': '加载',
         'toast.scanEmpty': '该目录下没有找到 tileset.json',
         'toast.scanFailed': '打开目录失败：{message}',
         'toast.dialogUnavailable': '目录选择服务不可用',
         'toast.invalidPath': '本地路径无效',
-        'toast.invalidUrl': '请输入 http(s) 地址或本地 tileset.json 路径',
+        'toast.invalidUrl': '请输入 http(s) 地址、本机 tileset.json 路径，或经纬度（如 113.14,31.02）',
         'toast.proxyFallback': '直连失败，已通过本地代理加载',
-        'toast.loadFailed': '加载失败：{message}',
+        'toast.loadFailed': '加载失败：{message}。请检查路径 / 网络后重试。',
         'toast.loadingData': '正在加载数据…',
         'toast.notGeoreferenced': '该图层缺少世界定位（根 transform / region）：局部坐标会被当作 ECEF 渲染在地心附近。这不是渲染故障；请用 scripts/georef-osgb.mjs 修复数据后重新加载。',
-        'toast.requestTimeout': '请求超时（{seconds} 秒），已放弃等待',
+        'toast.requestTimeout': '请求超时（{seconds} 秒），已放弃等待。请检查网络或更换数据源后重试。',
         'toast.busyDirectory': '正在打开目录…',
         'toast.restoreTimeout': '恢复上次场景时部分图层超时，已跳过（面板可直接使用）。',
         'toast.terrainLoading': '正在加载地形…',
@@ -424,6 +426,7 @@ import { V17_MESSAGES } from './messages-v17.js'
         'unit.hectare': '公顷',
         // v1.7 P0 vocabulary (identify card / evidence export / tour bar).
         ...V17_MESSAGES.zh,
+        ...V18_MESSAGES.zh,
       },
       en: {
         'panel.title': 'Digital Earth',
@@ -432,13 +435,13 @@ import { V17_MESSAGES } from './messages-v17.js'
         'panel.status.layers': '{n} layers',
         'panel.empty.title': 'Lay your data over the globe',
         'panel.empty.body':
-          'Open a local folder or an online URL to add 3D Tiles (b3dm / glb / 3DGS) to this CesiumJS globe. Imagery, terrain and measurement tools are ready.',
+          '3D Tiles 1.0 / 1.1 and 3DGS (SPZ) both work. Open a local folder or paste a tileset.json URL / absolute path, then measure, identify, or just ask the Agent to analyse the scene.',
         'panel.empty.local': 'Open local folder',
         'panel.empty.url': 'Load from URL',
         'panel.empty.dismiss': 'Dismiss',
         'btn.data': 'Data',
         'btn.openLocal': 'Open local folder…',
-        'btn.openUrl': 'Load from URL…',
+        'btn.openUrl': 'Load address or coordinates…',
         'btn.layers': 'Layers',
         'btn.layersShow': 'Show layer card',
         'btn.layersHide': 'Hide layer card',
@@ -520,8 +523,9 @@ import { V17_MESSAGES } from './messages-v17.js'
         'layers.vectorRemove': 'Remove this overlay',
         'layers.frameAll': 'Frame all visible layers',
         'layers.analysis': 'Spatial analysis',
-        'layers.analysisHint': 'Profile / flood / sunlight / clip / skyline analyses are run by the conversation Agent (e.g. “profile the current layer from A to B”); results appear here and can be cleared here.',
-        'layers.georefWarning': 'No world placement: the data sits near the Earth centre. Run scripts/georef-osgb.mjs on this tileset.json, then reload.',
+        'layers.analysisHint':
+          'Use "Draw profile" above to draw on the globe and get a result right away; the Sun timeline below scrubs shadows. Flood / clip / skyline still run through the conversation Agent; results appear on the analysis card.',
+        'layers.georefWarning': 'No world placement (root transform / region): local metres are read as ECEF and render near the Earth centre. Re-export the tileset, or repair existing data once with scripts/georef-osgb.mjs (see README) and reload.',
         'layers.analysisClear': 'Clear analysis',
         'layers.shader': 'Shader effects',
         'layers.shaderEmpty': 'No shader effects yet; applying a preset in the workbench lists it here.',
@@ -536,18 +540,18 @@ import { V17_MESSAGES } from './messages-v17.js'
         'bookmarks.flyHint': 'Click to fly to this view',
         'bookmarks.noView': 'The panel is not ready, so the current view cannot be read.',
         'bookmarks.saveFailed': 'Local storage is unavailable; bookmarks last for this session only.',
-        'urlbar.placeholder': 'http(s) URL of tileset.json, or an absolute local path',
+        'urlbar.placeholder': 'Tileset URL / local path, or lon,lat (e.g. 113.14,31.02)',
         'urlbar.submit': 'Load',
         'toast.scanEmpty': 'No tileset.json found in that folder',
         'toast.scanFailed': 'Failed to open folder: {message}',
         'toast.dialogUnavailable': 'Directory picker is unavailable',
         'toast.invalidPath': 'Invalid local path',
-        'toast.invalidUrl': 'Enter an http(s) URL or a local tileset.json path',
+        'toast.invalidUrl': 'Enter an http(s) URL, a local tileset.json path, or lon,lat (e.g. 113.14,31.02)',
         'toast.proxyFallback': 'Direct request failed; loaded through the local proxy',
-        'toast.loadFailed': 'Load failed: {message}',
+        'toast.loadFailed': 'Load failed: {message}. Check the path / network and retry.',
         'toast.loadingData': 'Loading dataset…',
         'toast.notGeoreferenced': 'This layer has no world placement (root transform / region): local metres are read as ECEF and render near the Earth centre. This is a data issue, not a render fault; run scripts/georef-osgb.mjs on the tileset and reload.',
-        'toast.requestTimeout': 'Request timed out after {seconds}s',
+        'toast.requestTimeout': 'Request timed out after {seconds}s. Check the network or switch data source, then retry.',
         'toast.busyDirectory': 'Opening folder…',
         'toast.restoreTimeout': 'Some layers from the previous scene timed out and were skipped; the panel is ready to use.',
         'toast.terrainLoading': 'Loading terrain…',
@@ -845,12 +849,13 @@ import { V17_MESSAGES } from './messages-v17.js'
         'unit.hectare': 'ha',
         // v1.7 P0 vocabulary (identify card / evidence export / tour bar).
         ...V17_MESSAGES.en,
+        ...V18_MESSAGES.en,
       },
     }
 
     /** About-tab fallbacks used before the Host meta payload arrives. */
     const FALLBACK_ABOUT = {
-      version: '1.5.0',
+      version: '1.5.1',
       homepage: 'https://github.com/CVEO/dsh-digital-earth',
       teamUrl: 'https://www.whu-cveo.com/',
     }

@@ -151,7 +151,7 @@ test('B4 README 中文：版本徽章/安装示例、六工具与新增功能行
   for (const phrase of ['内置六个工具', '地形分析', '着色器预设', '可折叠面板', '干净截图', '本机绝对路径', '约 5–6 Hz']) {
     assert.ok(readmeZh.includes(phrase), `README.md 缺少功能说明：${phrase}`)
   }
-  assert.match(readmeZh, /3DGS 不支持，不接受自定义 GLSL/)
+  assert.match(readmeZh, /白名单预设/)
 })
 
 test('B4 README 英文：版本徽章/安装示例、六工具与对应功能行', () => {
@@ -166,7 +166,7 @@ test('B4 README 英文：版本徽章/安装示例、六工具与对应功能行
   ]) {
     assert.ok(readmeEn.includes(phrase), `README.en.md 缺少功能说明：${phrase}`)
   }
-  assert.match(readmeEn, /3DGS is unsupported/)
+  assert.match(readmeEn, /white-listed presets/)
 })
 
 test('B4 README 中英对齐：章节数、工具行、安装命令与代码围栏一致', () => {
@@ -174,8 +174,8 @@ test('B4 README 中英对齐：章节数、工具行、安装命令与代码围�
   const enHeadings = markdownHeadings(readmeEn)
   assert.equal(zhHeadings.length, 12, `README.md 章节数异常：${zhHeadings.length}`)
   assert.equal(enHeadings.length, zhHeadings.length, '中英 README 章节数必须一致')
-  assert.equal(codeFences(readmeZh), 4)
-  assert.equal(codeFences(readmeEn), 4)
+  assert.equal(codeFences(readmeZh), 2)
+  assert.equal(codeFences(readmeEn), 2)
   for (const text of [readmeZh, readmeEn]) {
     assert.match(text, /dsh plugin --profile <profile> add @cveo\/dsh-digital-earth/)
     assert.match(text, /\[README\.md\]\(README\.md\)|\[中文\]\(README\.md\)/)
@@ -465,28 +465,17 @@ test('B4 隐私：包内文本文件无个人绝对路径/用户名/常见密钥
   }
 })
 
-test('B4 文档事实边界：着色器范围/性能口径/干净截图与实现一致', () => {
-  // 中英 README 的已知限制与实现一致，不夸大。
-  assert.match(readmeZh, /着色器预设只作用于普通 3D Tiles/)
-  assert.match(readmeZh, /3DGS 图层会返回错误/)
-  assert.match(readmeZh, /不接受自定义 GLSL/)
-  assert.match(readmeZh, /本机真实 GPU 浏览器实测约 30 FPS，不作为固定帧率承诺/)
-  assert.match(readmeZh, /headless \/ SwiftShader/)
+test('B4 文档边界：能力范围与截图默认值写清楚', () => {
+  // README 面向用户，保持能力范围与截图默认值，不再设置“已知限制”章节。
+  assert.match(readmeZh, /白名单预设/)
   assert.match(readmeZh, /截图目录只保留最近 50 张/)
+  assert.match(readmeZh, /手动与 Agent 截图默认只保留三维画面/)
 
-  assert.match(readmeEn, /Shader presets only work on ordinary 3D Tiles/)
-  assert.match(readmeEn, /3DGS layers return an error/)
-  assert.match(readmeEn, /custom GLSL is not accepted/)
-  assert.match(readmeEn, /about 30 FPS/)
-  assert.match(readmeEn, /not a fixed FPS promise/)
-  assert.match(readmeEn, /headless \/ SwiftShader/)
+  assert.match(readmeEn, /white-listed presets/)
+  assert.match(readmeEn, /Manual and Agent snapshots keep only the 3D view by default/)
 
   // CHANGELOG 的性能口径必须写明实测环境边界，不承诺固定帧率。
   const section = changelog.slice(changelog.indexOf('## 1.4.0'), changelog.indexOf('## 1.3.0'))
   assert.match(section, /非 headless \/ SwiftShader|非 headless/)
   assert.match(section, /不作为固定指标|随显卡/)
-
-  // 干净截图默认值在中英 README 都写明。
-  assert.match(readmeZh, /手动与 Agent 截图默认只保留三维画面/)
-  assert.match(readmeEn, /Manual and Agent snapshots keep only the 3D view by default/)
 })

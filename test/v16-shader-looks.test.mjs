@@ -86,7 +86,7 @@ test('五个预设保持现代配色与可读性线索，且仍只改 diffuse/al
     'height-false-color': [/dot\(material\.diffuse, vec3\(0\.2126, 0\.7152, 0\.0722\)\)/, /mix\(material\.diffuse, ramp, 0\.72\)/],
     contour: [/spacing \* 5\.0/, /lineColor = mix\(vec3\(0\.62, 0\.86, 1\.0\)/],
     scan: [/exp\(-distanceToBand \* 22\.0\)/, /material\.diffuse \*= 0\.88/],
-    water: [/vec3 world = fsInput\.attributes\.positionWC/, /sparkle = pow\(ripple, 7\.0\)/],
+    water: [/vec3 local = fsInput\.attributes\.positionWC - u_center/, /fwidth\(position\)/, /u_waterMask/],
     'water-depth': [/shore = 1\.0 - smoothstep/, /submerged/],
   }
   for (const [preset, patterns] of Object.entries(cues)) {
