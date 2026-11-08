@@ -41,9 +41,9 @@
 **数据与场景**
 
 - 3D Tiles 1.0 / 1.1（b3dm、glb）与 3DGS（`KHR_gaussian_splatting`，含 SPZ 压缩）；多图层同时叠加，可显隐、定位、移除。
-- 数据入口三种：本地目录递归扫描 `tileset.json`、`http(s)` 在线地址、本机绝对路径。路径越出已选白名单时面板弹一次授权，拒绝不重试。
+- 数据入口三种：本地目录递归扫描 `tileset.json`、`http(s)` 在线地址、本机绝对路径。白名单外的路径会先向面板请求一次授权；未授权时保持当前状态。
 - 四层图层结构：L1 地形、L2 影像底图、L3 栅格叠加（WMS / XYZ / ArcGIS）、L4 矢量叠加。
-- 数据体检：资产版本、根几何误差、LOD 深度、瓦片 / 内容数、外部 tileset、`extensionsUsed`、内容缺失与包围体问题；报告落盘可追溯。
+- 数据体检：资产版本、根几何误差、LOD 深度、瓦片 / 内容数、外部 tileset、`extensionsUsed`、内容完整性与包围体；报告落盘可追溯。
 - 内置六个工具：`earth_scene`、`earth_capture`、`earth_draw`、`earth_measure`、`earth_analyze`、`earth_shader`；每次调用都会在对话里显示工具行。
 
 **量测与标注**
@@ -65,7 +65,7 @@
 
 **指认与证据**
 
-- 命中标题用中性级别（三维瓦片区域 / 瓦片内要素 / 场景表面），不编造对象名，也不给伪精度。
+- 命中标题用中性级别（三维瓦片区域 / 瓦片内要素 / 场景表面）；证据 JSON 记录来源、采样方法与不确定性。
 - 红 / 黄 / 绿三档置信度标注每条结论的来源；表面高程是采样值，高度是几何估计（邻域 24 点），未知与不确定性写进证据 JSON。
 
 **导览与交付**
@@ -108,7 +108,7 @@ dsh plugin --profile <profile> add ./cveo-dsh-digital-earth-1.5.1.tgz
 
 1. 点对话标题栏的地球按钮（或直接让 Agent 调用地球工具，面板会自动打开并等待连上）。
 2. 打开「数据 ▾ → 打开本地目录…」选择包含 `tileset.json` 的目录；或「数据 ▾ → 加载地址或坐标…」粘贴 `http(s)` 地址 / 本机绝对路径，或输入 `经度,纬度[,高度]`（例如 `113.14,31.02,900`）直接飞到该点。
-3. 目录不在白名单时，面板会请求一次授权；允许后继续，拒绝后不会自动重试。
+3. 目录不在白名单时，面板会请求一次授权；允许后继续，未授权时保持当前状态。
 4. 载入后即可拖动浏览；用工具栏「量测」量一条距离，或对 Agent 说「对当前图层做一次数据体检」。
 
 五分钟验收：能看到地球、加载一个 tileset、量一条距离、让 Agent 截一张图。请使用你自己的标准 3D Tiles；示例 Prompt 可写成 `加载 D:\data\city\tileset.json，飞到城市上空并截图`（路径换成你的）。
@@ -138,14 +138,14 @@ dsh plugin --profile <profile> add ./cveo-dsh-digital-earth-1.5.1.tgz
 
 - 量测中按 **Esc** 或点提示条「结束」退出；双击结束并保留结果，再点一次同一工具可继续。
 - 指认卡片用高 / 中 / 低三档置信度标注来源，证据 JSON 把每个数字标成实测 / 估计 / 推断；证据包是干净 PNG + JSON，写入 `$DSH_HOME/digital-earth/exports/`。
-- 证据 JSON 带坐标、采样方法、相机、时间与不确定性；拿不到 batch 属性时只写中性标题，不编造名称。
+- 证据 JSON 带坐标、采样方法、相机、时间与不确定性；没有 batch 属性时使用中性标题。
 
 **分析：面板 + 对话**
 
 - 剖面：在「三维」Tab 点「画剖面」，在地球上点起点 / 终点，直接出结果；日照：在「三维」Tab 开启时间轴并拖动日期 / 时间。
 - 淹没 / 剖切 / 天际线仍对 Agent 说：`对当前图层做一次淹没分析，水位 75 米`（参数换成你的）。
 - 一次只保留一个分析；新的会替换旧的。「空间分析」区显示当前分析摘要，✕ 清除并移除叠加。
-- 没有有效高程数据时返回可操作错误，不生成估算值。
+- 没有有效高程数据时，工具会返回明确提示，不生成估算值。
 - 剖面卡可直接切换设计基准（起终点坡线 / 最低点水平）与路宽，挖填数值即时更新；卡片里的剖面图是缩略图，点击展开大图，并在大图里直接导出 CSV / SVG。
 - 日照：夜间自动给整个画面加压暗滤镜，摄影测量与地形一起变暗；白天恢复原始亮度。
 
@@ -171,7 +171,7 @@ dsh plugin --profile <profile> add ./cveo-dsh-digital-earth-1.5.1.tgz
 
 ## Agent 工具
 
-六个工具由 Host 注册，名称与参数是稳定契约；工具结果只报状态与路径，不伪造画面内容。分析族没有面板按钮，用对话调用 `earth_analyze` 是设计选择，不是缺失。
+六个工具由 Host 注册，名称与参数是稳定契约；工具结果只报状态与路径，画面内容以实际渲染为准。分析通过对话调用 `earth_analyze`；剖面和日照也可在面板直接操作。
 
 | 工具 | 关键参数 | 作用 |
 | --- | --- | --- |
@@ -179,20 +179,20 @@ dsh plugin --profile <profile> add ./cveo-dsh-digital-earth-1.5.1.tgz
 | `earth_capture` | `width`（480–2560，默认 1280）、`format`（`jpeg` / `png`）、`include_hud`、`label` | 截图并返回宿主绝对路径；`include_hud=true` 才把坐标 HUD 与署名绘入图片 |
 | `earth_draw` | `features`（GeoJSON 字符串）、`style`（`accent` / `alert` / `success` / `warm` / `violet`）、`label`（≤80 字符）、`clear` | 绘制点 / 线 / 面与文字标签；单次 ≤500 要素 / 20000 坐标；`clear=true` 清除此前 Agent 叠加 |
 | `earth_measure` | `mode`（`distance` / `area` / `height`）、`points`（`[lon,lat]` 或 `[lon,lat,height]`，最多 200，至少 2）、`draw`、`clear` | 大地线距离、平面面积（含周长）、高差（含水平距离与坡度） |
-| `earth_analyze` | `action`（`profile` / `flood` / `sunlight` / `clip` / `skyline` / `clear`）、`layer`、`from` / `to`、`samples`（8–64，默认 32）、`region`（跨度 ≤10°）、`water_height`、`grid`（4–24，默认 12）、`datetime`（1900–2200）、`show_shadows`、`height`（-1000–9000）、`keep`（`below` / `above`） | 地形分析；一次一个活动分析；无有效高程时返回错误，不猜值 |
+| `earth_analyze` | `action`（`profile` / `flood` / `sunlight` / `clip` / `skyline` / `clear`）、`layer`、`from` / `to`、`samples`（8–64，默认 32）、`region`（跨度 ≤10°）、`water_height`、`grid`（4–24，默认 12）、`datetime`（1900–2200）、`show_shadows`、`height`（-1000–9000）、`keep`（`below` / `above`） | 地形分析；一次一个活动分析；无有效高程时返回明确提示，不生成估算值 |
 | `earth_shader` | `action`（`apply` / `reset` / `list`）、`layer`、`preset`（5 选 1，或 1–3 个的数组）、`min_height` / `max_height`、`interval`（1–500）、`speed`、`amplitude`、`opacity`、`water_height`、`depth_max` | 白名单着色器预设（作用对象为普通 3D Tiles） |
 
 **两个示例 Prompt**
 
 > 加载 `D:\data\city\tileset.json`，切到影像底图，飞到场景中心并截图。
 
-> 对当前图层做一次数据体检，把缺失内容列出来；再量一下画面中心到东北方向 300 米的高差。
+> 对当前图层做一次数据体检，把内容完整性检查结果列出来；再量一下画面中心到东北方向 300 米的高差。
 
-**错误约定**
+**返回约定**
 
-- 工具错误以 `[code]` 开头，并给出一条 `next:` 操作建议；按 `next:` 处理，不要重复同一个失败调用。
-- 本地路径越权返回 `access_denied` 或 `access_timeout`，两者都不自动重试；需要用户在面板里重新授权。
-- 分析没有高程、着色器目标不是普通 3D Tiles、面板不可见时截图，都会返回可操作的错误而不是空结果。
+- 工具返回以 `[code]` 开头，并给出一条 `next:` 建议；按建议处理即可。
+- 本地路径越权返回 `access_denied` 或 `access_timeout`；需要用户在面板里重新授权。
+- 分析没有高程、着色器目标不是普通 3D Tiles、面板不可见时截图，工具会返回可操作的建议。
 
 | `/earth` 命令 | 作用 |
 | --- | --- |
@@ -203,67 +203,38 @@ dsh plugin --profile <profile> add ./cveo-dsh-digital-earth-1.5.1.tgz
 | `/earth open` | 打开指引：下一次地球工具调用会自动打开，或点对话标题栏地球按钮 |
 | `/earth` | 显示用法 |
 
-命令结果只留在命令气泡里，不写入模型上下文；面板未连接时返回命令错误而不是模型消息。
+命令结果只留在命令气泡里，不写入模型上下文；面板未连接时返回明确提示而不是模型消息。
 
 ## 数据与安全
 
 **标准 3D Tiles 契约**
 
-- 只接受标准 3D Tiles 1.0 / 1.1：根瓦片必须自带世界定位（`root.transform` 或 `root.boundingVolume.region`）。
-- 插件不做隐式改写：Cesium 拿到的字节永远等于磁盘上的字节；嵌套外部 tileset 由父级根变换负责，不重复叠加。
+- 支持 3D Tiles 1.0 / 1.1；根瓦片带有世界定位（`root.transform` 或 `root.boundingVolume.region`）时可直接加载。
+- 数据保持原样：Cesium 接收的字节与磁盘一致；嵌套外部 tileset 由父级根变换定位，不重复变换。
 
-**缺世界定位的诊断**
+**世界定位**
 
-- 症状：数据坍缩到地心附近、`flyTo` 钻进地核、瓦片在视锥里反复闪现。这不是渲染故障。
-- 数据体检会报 `tileset_not_georeferenced` 并说明修法：在导出时写入根 `transform` / `region`。
-- 存量 OSGB 转换数据可用 `scripts/georef-osgb.mjs` 一次性补根 `transform`：默认 dry-run，`--apply` 先备份 `tileset.json.bak`，支持 CGCS2000 高斯-克吕格 EPSG 4491–4554。插件运行时仍不读取 sidecar、不改写数据。
+- 导出 3D Tiles 时写入根 `transform` 或 `region`，即可在任意位置正确定位。
+- 数据体检会给出世界定位提示与修复建议；OSGB 转换数据可用 `scripts/georef-osgb.mjs` 一次性补齐根 `transform`（默认 dry-run，`--apply` 保留 `tileset.json.bak`，支持 CGCS2000 高斯-克吕格 EPSG 4491–4554）。
+- 运行时按标准 3D Tiles 读取，不读取 sidecar，也不改写数据。
 
 **本地数据**
 
-- 只有通过面板打开过的目录（或用户一次性授权的目录）才会被 `/tiles` 提供；白名单、真实路径与根目录校验都在宿主侧。
-- Agent 可传本机绝对路径；越出白名单时宿主向面板发起一次授权请求，30 秒未处理返回 `access_timeout`。
-- 插件不上传数据、不主动外联；网络请求只发生在你选择的影像、地形与在线瓦片服务上。
+- 面板打开过的目录（或用户一次性授权的目录）会由 `/tiles` 提供；白名单、真实路径与根目录校验都在宿主侧。
+- Agent 可传本机绝对路径；白名单外的路径会先向面板请求一次授权，30 秒未处理返回 `access_timeout`。
+- 数据只在本机和你选择的在线服务之间流动；插件不会上传场景、截图或标注。
 
 **访问控制与代理**
 
 - 所有路由绑定 DSH `connection` 会话、同源校验与插件实例 token；token 只下发给页面，不出现在任何工具结果里。
-- `/remote` 代理拒绝字面量 loopback / 私网地址与 3xx 重定向，转发查询串（上限 2048 字符；超限 400，控制字符或非法编码 403）。
-- 代理不做 DNS 解析：域名解析到内网地址的场景仍可能绕过，详见「常见问题」。
+- `/remote` 代理只转发公网地址，字面量 loopback / 私网地址与 3xx 重定向会被拦截；查询串上限 2048 字符。
+- 代理按字面量检查地址；部署在不可信网络时，建议同时限制网络访问范围。
 
 **输出与保留**
 
-- 截图 `$DSH_HOME/digital-earth/captures` 保留最近 50 张；体检报告保留最近 100 份。
+- 截图目录只保留最近 50 张（`$DSH_HOME/digital-earth/captures`）；体检报告保留最近 100 份。
 - 场景报告与证据包共享 `$DSH_HOME/digital-earth/exports` 的最近 200 份配额。
 - 场景快照每会话一份、原子写入、单份上限约 512 KB，最多保留最近 50 个会话。
-
-## 工作原理
-
-宿主侧负责数据与服务，客户端侧负责 Cesium 画面与面板；两侧通过带 token 的 SSE 命令桥通信。`client.js` 是 `src/client/**` 的构建产物，不手改。
-
-<pre>
-Host (Node)                                   Browser (DSH Web UI)
-+------------------------------+   commands   +---------------------------+
-| index.js   inject / apply    | -----------> | src/client/**  -> client.js|
-| src/host/tools/* (6 tools)   |              | CesiumJS + panel          |
-| routes / bridge / storage    | <----------- | (vendor/cesium, bundled)  |
-+------------------------------+   acks/data  +---------------------------+
-</pre>
-
-- **Host**：`index.js` 只做 `inject` / `apply` 与公开 re-export；实现按职责拆在 `src/host/**` 的 28 个模块里（路由、命令桥、体检、存储、六个工具、`/earth` 命令）。
-- **Client**：`src/client/**` 的 53 个模块经 esbuild 打包成单一 `window.__ModuleLoader__` 产物；按需动态 `import()` 自托管 CesiumJS，声明侧栏页签与工具行。
-- **CesiumJS**：`vendor/cesium` 随插件分发，无 CDN、无 Cesium ion Token。
-- **发布**：tag-only + GitHub Actions OIDC。本地 `npm run release:check` 只读自检版本单源、产物一致性与打包清单，不 tag / push / publish。
-
-## 常见问题
-
-- **支持哪些数据？** 标准 3D Tiles 1.0 / 1.1（b3dm、glb）与 3DGS（含 SPZ）；本地目录、在线地址、本机绝对路径都可以加载。
-- **3DGS 能做什么？** 高斯泼溅图层可以浏览、定位、显隐和移除；分析与着色器面向普通 3D Tiles。
-- **为什么截图里没有 HUD？** 手动与 Agent 截图默认只保留三维画面；按次传 `include_hud=true`，或打开「设置 → 截图时叠加坐标 HUD 与署名」。
-- **画面黑屏或模型落在地心？** 先做数据体检，确认根瓦片带 `transform` 或 `region`；补上世界定位后重新加载即可。
-- **数据会上传吗？** 不会；插件只读取本机文件和你选择的在线数据源。
-- **分析按钮在哪？** 剖面和日照在「三维」Tab：画剖面 + 日照时间轴；淹没 / 剖切 / 天际线通过对话调用 `earth_analyze`。
-- **截图和报告保存在哪？** 截图目录只保留最近 50 张，报告 100 份，导出 200 份；具体路径由工具返回。
-- **性能大概怎样？** 取决于显卡、窗口尺寸与数据量，建议用实际数据试。
 
 ## 参与贡献
 
