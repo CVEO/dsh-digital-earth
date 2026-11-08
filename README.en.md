@@ -22,23 +22,19 @@ Digital Earth is a DeepSeek Harness (DSH) plugin that puts a CesiumJS globe in t
 
 ## Demo
 
-These are real panel captures. The sample data is a project-owned LOD18 photogrammetry scene plus an open-source 3DGS sample; the images contain no local paths. The hero is the overview; the rest shows one capability each.
+These are real panel captures. The sample data is a project-owned LOD18 photogrammetry scene; the images contain no local paths. The hero is the overview; the rest shows one capability each.
 
-**Annotate: the Agent draws points, extents and labels from GeoJSON; coordinates, measurements and annotations stay in the panel.**
+**Annotate / measure: draw an extent or measure a distance on the globe, or have the Agent annotate from GeoJSON; coordinates, areas and results stay in the panel.**
 
-![Annotate](https://github.com/CVEO/dsh-digital-earth/raw/main/assets/readme/identify.jpg)
+![Annotate and measure](https://github.com/CVEO/dsh-digital-earth/raw/main/assets/readme/identify.jpg)
 
-**Profile: the Agent samples the terrain between two points, draws the profile in the scene and returns length, relief and climb.**
+**Profile: in the 3D tab click "Draw profile" and the start / end points on the globe; the card reports relief, slope, cut/fill and the profile line.**
 
 ![Profile](https://github.com/CVEO/dsh-digital-earth/raw/main/assets/readme/analysis.jpg)
 
-**Shaders: five white-listed presets per 3D Tiles layer, for example water-depth coloured by elevation; the workbench stacks 1–3 presets, tunes sliders and compares against the original look.**
+**Shaders: five white-listed presets per 3D Tiles layer, such as water and elevation; the workbench stacks 1–3 presets, tunes sliders and compares against the original look.**
 
 ![Shaders](https://github.com/CVEO/dsh-digital-earth/raw/main/assets/readme/shader.jpg)
-
-**3DGS: Gaussian-splat layers can sit in the same scene as 3D Tiles; analysis and shaders only apply to ordinary 3D Tiles.**
-
-![3DGS layer](https://github.com/CVEO/dsh-digital-earth/raw/main/assets/readme/3dgs.jpg)
 
 ## Why Digital Earth
 

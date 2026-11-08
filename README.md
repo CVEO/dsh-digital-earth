@@ -22,23 +22,19 @@
 
 ## 演示
 
-以下画面来自真实面板。示例数据为课题组自有的 LOD18 实景三维与开源 3DGS 样例，截图不包含本机路径；头图是总览，下面按能力看细节。
+以下画面来自真实面板。示例数据为课题组自有的 LOD18 实景三维；截图不包含本机路径。头图是总览，下面按能力看细节。
 
-**标注：Agent 用 GeoJSON 在场景里画出点、范围与标签；坐标、量测与标注结果都留在面板里。**
+**标注 / 量测：在地球上画范围、量距离，或让 Agent 用 GeoJSON 标注；坐标、面积与标注结果都留在面板里。**
 
-![标注](https://github.com/CVEO/dsh-digital-earth/raw/main/assets/readme/identify.jpg)
+![标注与量测](https://github.com/CVEO/dsh-digital-earth/raw/main/assets/readme/identify.jpg)
 
-**剖面：让 Agent 沿起点到终点采样地形，剖面线直接画在场景里，并返回长度、起伏与爬升。**
+**剖面：在「三维」Tab 点「画剖面」，在地球上点起点 / 终点；分析卡给出起伏、坡度、挖填方与剖面线。**
 
 ![剖面](https://github.com/CVEO/dsh-digital-earth/raw/main/assets/readme/analysis.jpg)
 
-**着色器：五个白名单预设按图层应用，例如水深按高程上色；工作台支持 1–3 个预设叠加、滑杆调参与原图对比。**
+**着色器：五个白名单预设按图层应用，例如水面、高程；工作台支持 1–3 个预设叠加、滑杆调参与原图对比。**
 
 ![着色器](https://github.com/CVEO/dsh-digital-earth/raw/main/assets/readme/shader.jpg)
-
-**3DGS：高斯泼溅图层与 3D Tiles 可在同一场景中叠加浏览；分析与着色器只作用于普通 3D Tiles。**
-
-![3DGS 图层](https://github.com/CVEO/dsh-digital-earth/raw/main/assets/readme/3dgs.jpg)
 
 ## 为什么是数字地球
 
