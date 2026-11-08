@@ -18,15 +18,15 @@
 
 ![Digital Earth panel: shader workbench, two layer tabs and compass](https://github.com/CVEO/dsh-digital-earth/raw/main/assets/readme/panel-overview.jpg)
 
-Digital Earth is a DeepSeek Harness (DSH) plugin that opens a CesiumJS globe beside the conversation, browses 3D Tiles and 3DGS, and lets the Agent read and drive the scene, annotate, measure, analyze terrain and apply shader presets. CesiumJS and the UI assets ship with the plugin — no external static assets and no Cesium ion token.
+Digital Earth brings a CesiumJS 3D scene into the DeepSeek Harness (DSH) conversation workspace: browse 3D Tiles and 3DGS, and let the Agent read and drive the scene, annotate, measure, analyze terrain and apply shader presets. CesiumJS and the UI assets ship with the plugin — no external static assets and no Cesium ion token.
 
 ## Screenshots
 
-**Annotate and measure**: draw an extent or measure a distance on the globe, or annotate from GeoJSON; coordinates, areas and results stay in the panel.
+**Annotate and measure**: draw an extent, measure a distance on the globe, or annotate from GeoJSON; coordinates, areas and results stay in the panel.
 
 ![Annotate and measure](https://github.com/CVEO/dsh-digital-earth/raw/main/assets/readme/identify.jpg)
 
-**Profile**: in the 3D tab click "Draw profile" and the start / end points on the globe; the card reports relief, slope, cut/fill and the profile line.
+**Profile**: in the 3D tab select "Draw profile", then choose the start and end points on the globe; the card reports relief, slope, cut/fill and the profile line.
 
 ![Profile](https://github.com/CVEO/dsh-digital-earth/raw/main/assets/readme/analysis.jpg)
 
@@ -38,7 +38,7 @@ Digital Earth is a DeepSeek Harness (DSH) plugin that opens a CesiumJS globe bes
 
 - **Scene**: 3D Tiles 1.0 / 1.1 (b3dm, glb) and 3DGS (`KHR_gaussian_splatting`, SPZ included); multiple layers with show / hide, fly-to and remove.
 - **Data entry**: recursively scan a local folder for `tileset.json`, paste an `http(s)` URL, or use an absolute local path; paths outside the whitelist ask for one authorisation in the panel.
-- **Layer groups**: L1 terrain, L2 imagery, L3 raster overlays (WMS / XYZ / ArcGIS), L4 vector overlays; terrain, basemap and rasters stay reachable without 3D Tiles.
+- **Layer groups**: L1 terrain, L2 imagery, L3 raster overlays (WMS / XYZ / ArcGIS), L4 vector overlays; terrain, basemap and rasters remain reachable even without 3D Tiles.
 - **Measure and identify**: distance, area, height and 3D Tiles property picking; the identify card shows coordinates, surface elevation, a geometric height estimate and confidence, and exports an evidence pack.
 - **Terrain analysis**: profile, flood, sunlight, clip and skyline; one active analysis at a time, shown as a scene overlay plus an analysis card.
 - **Shader presets**: elevation ramp, contour, scan, water and water-depth; one shader per layer, with 1–3 presets stacked.
@@ -72,12 +72,12 @@ You can also search for "Digital Earth" in the plugin market. After installing o
 
 **Load your first dataset**
 
-1. Click the globe button in the chat header, or ask the Agent to call an earth tool; the panel opens and waits for the connection.
+1. Select the globe button in the chat header, or have the Agent call an earth tool; the panel opens and waits for the connection.
 2. Use **Data ▾ → Open local folder…** and pick a folder containing `tileset.json`, or **Data ▾ → Load address or coordinates…** and paste an `http(s)` URL / absolute local path, or enter `lon,lat[,height]` to fly there.
-3. If the folder is outside the whitelist, the panel asks once for authorisation; allow it to continue, or keep the current state.
-4. Drag to explore, measure a distance with the Measure menu, or ask the Agent: "run a data health check on the current layer".
+3. If the folder is outside the whitelist, the panel requests authorisation once; grant it to continue.
+4. Drag to explore, use Measure to take a distance, or ask the Agent: "run a data health check on the current layer".
 
-Five-minute check: you can see the globe, load one tileset, measure a distance and ask the Agent for a snapshot. Use your own standard 3D Tiles. A sample prompt can be: `Load D:\data\city\tileset.json, fly to the city centre and take a snapshot` (replace the path with yours).
+Quick check: open the globe, load one tileset, measure a distance and ask the Agent for a snapshot. Use standard 3D Tiles; example prompt: `Load D:\data\city\tileset.json, fly to the city centre and take a snapshot` (replace the path with your data path).
 
 ## Using the panel
 
@@ -86,19 +86,19 @@ Five-minute check: you can see the globe, load one tileset, measure a distance a
 | Globe button | Opens the Digital Earth tab beside the conversation; the toolbar has the fullscreen entry (DOM Fullscreen, Esc exits) |
 | Data ▾ | Open a local folder, re-scan a recent one, load an address or coordinates, clear Agent annotations and measurements, export a scene report |
 | Measure ▾ | Distance / area / height / property picking; left click to add a point, double click to finish, Esc or "End" to leave |
-| Draw profile | In the 3D tab click "Draw profile", then click the start / end point on the globe; the result opens in the analysis card |
+| Draw profile | In the 3D tab select "Draw profile", then choose the start and end points; the result opens in the analysis card |
 | Sun timeline | In the 3D tab enable it, then drag the date / time to watch day/night tone and terrain shadow changes |
-| Identify | Click an object to open the selection card with approach, height measurement and evidence export |
+| Identify | Select an object to open the selection card with approach, height measurement and evidence export |
 | Layers | Two tabs: Map (terrain / imagery / raster) and 3D (vector / 3D content / spatial analysis / sun / view bookmarks) |
 | Shader | Opens the workbench: choose a 3D Tiles layer and a preset, tune parameters, apply / reset / compare with the original |
-| Ask Agent | Adds the current view and a concise scene summary to the current conversation context, then lets you type the question directly; it applies on the next step and does not start an idle conversation |
+| Ask Agent | Adds the current view and a concise scene summary to the current conversation context, then lets you type the question; it applies on the next step and does not start an idle conversation |
 | Settings | Data sources, appearance, render quality, Detailed HUD, snapshot annotation and an About tab |
 
 Local folders are remembered in `$DSH_HOME/digital-earth/directories.json`; the scene is saved per session — camera, layers, annotations / measurements, analysis results and shader presets survive switching sessions or restarting DSH. Snapshots keep only the 3D view by default, and the capture folder keeps the latest 50 images; reports and exports return their paths.
 
 ## Agent tools
 
-Six tools are registered by the host with stable names and parameters. Tool results report state and paths; the rendered frame remains the visual source. Analysis runs through `earth_analyze`; profile and sun are also available directly in the panel.
+Six tools are registered by the host with stable names and parameters. Tool results describe scene state and file paths; they do not replace the rendered frame. Analysis runs through `earth_analyze`; profile and sun are also available in the panel.
 
 | Tool | What it does |
 | --- | --- |
@@ -125,9 +125,9 @@ Six tools are registered by the host with stable names and parameters. Tool resu
 
 **Return convention**
 
-- Tool results start with `[code]` and include one `next:` step; follow it.
+- Tool results include a `[code]` and a `next:` step.
 - A local path outside the whitelist returns `access_denied` or `access_timeout`; the user can authorise it again from the panel.
-- Missing elevation, 3DGS with shaders, and capturing while the panel is hidden all return actionable guidance.
+- When elevation data is unavailable, the shader target is unsupported or the panel is hidden, the tool returns the relevant error code and next step.
 
 ## Contributing
 
