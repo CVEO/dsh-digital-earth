@@ -43,6 +43,7 @@
 - **地形分析**：剖面、淹没、日照、剖切、天际线；一次只保留一个分析，结果为场景叠加与分析卡。
 - **着色器预设**：高程渐变、等高线、扫描、水面、水深五个白名单预设；同一图层只保留一个 shader，支持 1–3 个预设叠加。
 - **交付**：干净截图（手动与 Agent 截图默认只保留三维画面）、HTML / Markdown 场景报告、证据包、按会话恢复场景。
+- **本地数据**：只在面板打开过或一次性授权的目录内读取；不上传场景、截图或标注。
 - **界面**：双语（跟随 DSH 语言）、浅色 / 深色主题、可折叠面板；图层分「地图 / 三维」两个 Tab，右下角指南针点击回正北，坐标 HUD 约 5–6 Hz 采样。
 - **内置六个工具**：`earth_scene`、`earth_capture`、`earth_draw`、`earth_measure`、`earth_analyze`、`earth_shader`；每次调用都会在对话里显示工具行。
 
@@ -54,6 +55,8 @@
 - 支持 WebGL / WebGL2 的现代浏览器；面板是 DSH Web UI 的一部分。
 - 在线底图 / 地形 / 在线瓦片需要访问对应公共服务；离线时可用本地瓦片或关闭底图。
 - Node.js 22 或 24 只用于开发与构建，运行期没有第三方依赖。
+
+**数据要求**：标准 3D Tiles 1.0 / 1.1，根瓦片自带世界定位（`root.transform` 或 `root.boundingVolume.region`）。OSGB 转换数据可用 `scripts/georef-osgb.mjs` 一次性补齐根 `transform`。
 
 **安装**
 
@@ -91,7 +94,7 @@ dsh plugin --profile <profile> add ./cveo-dsh-digital-earth-1.5.1.tgz
 | 问 Agent | 将当前视图与场景摘要附加到当前对话上下文，随后直接输入问题；上下文在下一步生效，不会主动启动空闲会话 |
 | 设置 | 数据源、外观、渲染质量、HUD 详细模式、截图叠加信息与「关于」页签 |
 
-本地目录会记入 `$DSH_HOME/digital-earth/directories.json`；场景按会话保存相机、图层、标注 / 量测、分析结果与着色器预设，切换会话或重启 DSH 后可以恢复。
+本地目录会记入 `$DSH_HOME/digital-earth/directories.json`；场景按会话保存相机、图层、标注 / 量测、分析结果与着色器预设，切换会话或重启 DSH 后可以恢复。截图默认只保留三维画面，截图目录只保留最近 50 张；报告与导出路径由工具返回。
 
 ## Agent 工具
 
@@ -125,31 +128,6 @@ dsh plugin --profile <profile> add ./cveo-dsh-digital-earth-1.5.1.tgz
 - 工具返回以 `[code]` 开头，并给出一条 `next:` 建议；按建议处理即可。
 - 白名单外的本地路径返回 `access_denied` 或 `access_timeout`，可在面板重新授权。
 - 分析没有高程、着色器目标不是普通 3D Tiles、面板不可见时截图，工具会返回可操作的建议。
-
-## 数据与安全
-
-**数据契约**
-
-- 支持 3D Tiles 1.0 / 1.1；根瓦片带有世界定位（`root.transform` 或 `root.boundingVolume.region`）时可直接加载。
-- 数据保持原样：Cesium 接收的字节与磁盘一致；嵌套外部 tileset 由父级根变换定位，不重复变换。
-
-**世界定位**
-
-- 导出 3D Tiles 时写入根 `transform` 或 `region`，即可在任意位置正确定位。
-- 数据体检会给出世界定位提示与修复建议；OSGB 转换数据可用 `scripts/georef-osgb.mjs` 一次性补齐根 `transform`（默认 dry-run，`--apply` 保留 `tileset.json.bak`，支持 CGCS2000 高斯-克吕格 EPSG 4491–4554）。
-- 运行时按标准 3D Tiles 读取，不读取 sidecar，也不改写数据。
-
-**本地数据与权限**
-
-- 面板打开过的目录（或用户一次性授权的目录）会由 `/tiles` 提供；白名单、真实路径与根目录校验都在宿主侧。
-- Agent 可传本机绝对路径；白名单外的路径会先向面板请求一次授权，30 秒未处理返回 `access_timeout`。
-- 数据只在本机和你选择的在线服务之间流动；插件不会上传场景、截图或标注。
-
-**访问控制与保留**
-
-- 所有路由绑定 DSH `connection` 会话、同源校验与插件实例 token；token 只下发给页面，不出现在任何工具结果里。
-- `/remote` 代理只转发公网地址，字面量 loopback / 私网地址与 3xx 重定向会被拦截；查询串上限 2048 字符。
-- 截图目录只保留最近 50 张（`$DSH_HOME/digital-earth/captures`）；体检报告保留最近 100 份，场景报告与证据包保留最近 200 份，场景快照保留最近 50 个会话。
 
 ## 参与贡献
 

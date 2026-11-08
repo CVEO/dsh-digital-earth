@@ -43,6 +43,7 @@ Digital Earth is a DeepSeek Harness (DSH) plugin that opens a CesiumJS globe bes
 - **Terrain analysis**: profile, flood, sunlight, clip and skyline; one active analysis at a time, shown as a scene overlay plus an analysis card.
 - **Shader presets**: elevation ramp, contour, scan, water and water-depth; one shader per layer, with 1–3 presets stacked.
 - **Hand-off**: Clean snapshots (Manual and Agent snapshots keep only the 3D view by default), HTML / Markdown scene reports, evidence packs and per-session scene restore.
+- **Local data**: reads only folders opened in the panel or authorised once; it does not upload scenes, snapshots or annotations.
 - **Interface**: bilingual UI, light / dark themes, Collapsible panels; the layer card has Map / 3D tabs, the compass faces north on click, and the coordinate HUD samples at 5–6 Hz.
 - **Six built-in tools**: `earth_scene`, `earth_capture`, `earth_draw`, `earth_measure`, `earth_analyze`, `earth_shader`; every call gets a tool row in the conversation.
 
@@ -54,6 +55,8 @@ Digital Earth is a DeepSeek Harness (DSH) plugin that opens a CesiumJS globe bes
 - A modern browser with WebGL / WebGL2; the panel is part of the DSH Web UI.
 - Online basemaps, terrain and tiles need to reach the selected public services; offline, use local tiles or turn the basemap off.
 - Node.js 22 or 24 is needed only for development and builds; there are no runtime dependencies.
+
+**Data requirement**: standard 3D Tiles 1.0 / 1.1 with a world placement on the root tile (`root.transform` or `root.boundingVolume.region`). OSGB conversions can add the root `transform` once with `scripts/georef-osgb.mjs`.
 
 **Install**
 
@@ -91,7 +94,7 @@ Five-minute check: you can see the globe, load one tileset, measure a distance a
 | Ask Agent | Adds the current view and a concise scene summary to the current conversation context, then lets you type the question directly; it applies on the next step and does not start an idle conversation |
 | Settings | Data sources, appearance, render quality, Detailed HUD, snapshot annotation and an About tab |
 
-Local folders are remembered in `$DSH_HOME/digital-earth/directories.json`; the scene is saved per session — camera, layers, annotations / measurements, analysis results and shader presets survive switching sessions or restarting DSH.
+Local folders are remembered in `$DSH_HOME/digital-earth/directories.json`; the scene is saved per session — camera, layers, annotations / measurements, analysis results and shader presets survive switching sessions or restarting DSH. Snapshots keep only the 3D view by default, and the capture folder keeps the latest 50 images; reports and exports return their paths.
 
 ## Agent tools
 
@@ -125,31 +128,6 @@ Six tools are registered by the host with stable names and parameters. Tool resu
 - Tool results start with `[code]` and include one `next:` step; follow it.
 - A local path outside the whitelist returns `access_denied` or `access_timeout`; the user can authorise it again from the panel.
 - Missing elevation, 3DGS with shaders, and capturing while the panel is hidden all return actionable guidance.
-
-## Data & security
-
-**Data contract**
-
-- Supports 3D Tiles 1.0 / 1.1; a root tile with a world placement (`root.transform` or `root.boundingVolume.region`) loads directly.
-- Data stays as authored: the bytes Cesium receives match the bytes on disk. A nested external tileset is placed by its parent root transform and is not transformed twice.
-
-**World placement**
-
-- Write a root `transform` or `region` when exporting 3D Tiles to place the dataset anywhere on the globe.
-- The health check reports world-placement hints and fixes; OSGB conversions can add the root `transform` once with `scripts/georef-osgb.mjs` (dry-run by default, `--apply` keeps `tileset.json.bak`, CGCS2000 Gauss-Krüger EPSG 4491–4554 supported).
-- The runtime reads standard 3D Tiles only; it does not read sidecars or rewrite data.
-
-**Local data and permissions**
-
-- Folders opened through the panel (or authorised once by the user) are served by `/tiles`; the whitelist, real-path and root checks live on the host.
-- The Agent may pass an absolute local path; paths outside the whitelist ask the panel for a one-time authorisation, and an unanswered request returns `access_timeout` after 30 seconds.
-- Data stays between your machine and the online services you select; the plugin does not upload scenes, snapshots or annotations.
-
-**Access control and retention**
-
-- Every route is bound to the DSH `connection` session, same-origin checks and a plugin-instance token; the token is only handed to the page and never appears in tool results.
-- The `/remote` proxy forwards public addresses only; literal loopback / private addresses and 3xx redirects are blocked, and query strings are capped at 2048 characters.
-- Snapshots under `$DSH_HOME/digital-earth/captures` keep the latest 50 images; health reports keep the latest 100, scene reports and evidence packs the latest 200, and scene snapshots the latest 50 sessions.
 
 ## Contributing
 
