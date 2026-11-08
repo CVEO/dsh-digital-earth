@@ -40,6 +40,7 @@ import { LayersPanel } from '../ui/layers-panel.js'
 import { LoadingGlobe } from '../ui/loading-globe.js'
 import { SelectionOverlay } from '../ui/selection-overlay.js'
 import { useTour } from '../ui/tour-bar.js'
+import { useSceneDetails } from '../ui/scene-details.js'
 import { createWorkbenchWiring } from '../ui/workbench-wiring.js'
 import { MenuItem } from '../ui/menu-item.js'
 
@@ -1515,6 +1516,9 @@ const h = React.createElement
         onFlyView: (view) => flyToBookmark(viewerRef.current, cesiumRef.current, view),
         onFinish: () => void screenshot(),
       })
+      // Dedicated scene-details card (whole scene or one layer) instead of
+      // inlining camera telemetry into the long, narrow layer list.
+      const sceneDetails = useSceneDetails({ t, stats, config: sources, layers, analysis, shaderActive })
 
       /**
        * "Ask Agent": capture the current scene as context and inject it into the
@@ -2336,7 +2340,7 @@ const h = React.createElement
           openMenu === id ? h('div', { className: 'mv-menu-panel mv-glass' }, items) : null,
         )
 
-      const status = busy || (phase === 'loading' ? t('panel.status.loading') : layers.length ? t('panel.status.layers', { n: layers.length }) : t('panel.status.ready'))
+      const status = busy || (phase === 'loading' ? t('panel.status.loading') : t('panel.status.ready'))
       // v1.7 P0: the HUD keeps five readouts by default; the detailed mode
       // (Settings → Appearance, off by default) restores the old telemetry.
       const hudLabels = {
@@ -2479,7 +2483,7 @@ const h = React.createElement
             ),
             h('i', { key: 's2', className: 'mv-sep' }),
             button(
-              `${t('btn.layers')}${layers.length ? ` ${layers.length}` : ''}`,
+              t('btn.layers'),
               () => updateSettings({ showLayers: !showLayers }),
               // The panel is the only place to pick terrain/basemap now, so it must
               // be reachable even with zero 3D Tiles loaded.
@@ -2624,6 +2628,7 @@ const h = React.createElement
           onMeasure: measureFromSelection,
         }),
         tour.element,
+        sceneDetails.element,
         analysis || showLayers
           ? h(
               'div',
@@ -2670,8 +2675,8 @@ const h = React.createElement
                     // Camera bookmarks: panel-managed list, storage in localStorage.
                     getCurrentView: () => currentSceneSnapshot()?.view ?? null,
                     onFlyView: (view) => flyToBookmark(viewerRef.current, cesiumRef.current, view),
-                    stats,
                     onStartTour: tour.start,
+                    onShowSceneDetails: sceneDetails.open,
                     agentOverlays: buildAgentOverlayList(agentOverlayRef.current),
                     onRemoveAgentOverlay: (kind, index) => {
                       if (!removeAgentOverlay(agentOverlayRef.current, viewerRef.current, kind, index)) return

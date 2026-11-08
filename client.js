@@ -47,7 +47,7 @@ __export(index_exports, {
 module.exports = __toCommonJS(index_exports);
 
 // src/client/plugin.js
-var import_react15 = __toESM(require("react"), 1);
+var import_react16 = __toESM(require("react"), 1);
 
 // src/client/messages-v17.js
 var V17_MESSAGES = {
@@ -99,7 +99,17 @@ var V17_MESSAGES = {
     "tour.exit": "结束导览",
     "tour.finished": "导览结束，已保存一张截图。",
     "tour.hint": "拖动地球或点击别处即接管；Esc 结束。",
-    "layers.details": "场景详情"
+    "layers.details": "场景详情",
+    "sceneDetails.title": "场景详情",
+    "sceneDetails.layerTitle": "图层详情",
+    "sceneDetails.scene": "场景",
+    "sceneDetails.layer": "图层",
+    "sceneDetails.layers": "内容图层",
+    "sceneDetails.none": "无",
+    "sceneDetails.analysis": "当前分析",
+    "sceneDetails.shader": "着色器效果",
+    "sceneDetails.openHint": "查看场景详情",
+    "sceneDetails.openLayerHint": "只看该图层的详情"
   },
   en: {
     "bookmarks.captionPlaceholder": "One sentence for this stop (optional)",
@@ -149,7 +159,17 @@ var V17_MESSAGES = {
     "tour.exit": "End tour",
     "tour.finished": "Tour finished — one screenshot saved.",
     "tour.hint": "Drag the globe or click elsewhere to take over; Esc ends the tour.",
-    "layers.details": "Scene details"
+    "layers.details": "Scene details",
+    "sceneDetails.title": "Scene details",
+    "sceneDetails.layerTitle": "Layer details",
+    "sceneDetails.scene": "Scene",
+    "sceneDetails.layer": "Layer",
+    "sceneDetails.layers": "Content layers",
+    "sceneDetails.none": "none",
+    "sceneDetails.analysis": "Active analysis",
+    "sceneDetails.shader": "Shader effects",
+    "sceneDetails.openHint": "Show scene details",
+    "sceneDetails.openLayerHint": "Show this layer only"
   }
 };
 
@@ -1095,10 +1115,10 @@ function AskAgentIcon({ size = 16 }) {
 }
 
 // src/client/ui/layout.js
-var import_react13 = __toESM(require("react"), 1);
+var import_react14 = __toESM(require("react"), 1);
 
 // src/client/viewer/ViewerSurface.js
-var import_react12 = __toESM(require("react"), 1);
+var import_react13 = __toESM(require("react"), 1);
 
 // src/client/analysis/height-service.js
 var CACHE_DEGREES = 1e-7;
@@ -5662,7 +5682,7 @@ var CSS = `
   .mv-root.mv-docked .mv-shader{top:92px;left:12px;width:min(320px,calc(100% - 24px));max-height:calc(100% - 236px)}
 }
 /* Snapshot mode: the picture is meant to be clean, so every overlay is hidden. */
-.mv-root.mv-capturing .mv-top,.mv-root.mv-capturing .mv-urlbar,.mv-root.mv-capturing .mv-right,.mv-root.mv-capturing .mv-shader,.mv-root.mv-capturing .mv-layers,.mv-root.mv-capturing .mv-analysis,.mv-root.mv-capturing .mv-hud,.mv-root.mv-capturing .mv-attr,.mv-root.mv-capturing .mv-credits,.mv-root.mv-capturing .mv-pick,.mv-root.mv-capturing .mv-measure,.mv-root.mv-capturing .mv-toast,.mv-root.mv-capturing .mv-select,.mv-root.mv-capturing .mv-sel-anchor,.mv-root.mv-capturing .mv-sel-hint,.mv-root.mv-capturing .mv-tour,.mv-root.mv-capturing .mv-overlay,.mv-root.mv-capturing .mv-modal{visibility:hidden!important}
+.mv-root.mv-capturing .mv-top,.mv-root.mv-capturing .mv-urlbar,.mv-root.mv-capturing .mv-right,.mv-root.mv-capturing .mv-shader,.mv-root.mv-capturing .mv-layers,.mv-root.mv-capturing .mv-analysis,.mv-root.mv-capturing .mv-hud,.mv-root.mv-capturing .mv-attr,.mv-root.mv-capturing .mv-credits,.mv-root.mv-capturing .mv-pick,.mv-root.mv-capturing .mv-measure,.mv-root.mv-capturing .mv-toast,.mv-root.mv-capturing .mv-select,.mv-root.mv-capturing .mv-sel-anchor,.mv-root.mv-capturing .mv-sel-hint,.mv-root.mv-capturing .mv-tour,.mv-root.mv-capturing .mv-scene-details,.mv-root.mv-capturing .mv-overlay,.mv-root.mv-capturing .mv-modal{visibility:hidden!important}
 .mv-about{display:flex;flex-direction:column;gap:12px;padding:2px 0;font-size:12px}
 .mv-about .intro{margin:0;color:var(--mv-dim);line-height:1.75}
 .mv-about .row{display:flex;gap:12px;align-items:baseline}
@@ -5735,6 +5755,19 @@ var CSS = `
 .mv-sel-anchor .leader{position:absolute;left:0;top:14px;width:1px;height:52px;background:linear-gradient(180deg,rgba(125,211,252,.9),rgba(125,211,252,.02))}
 .mv-sel-anchor .chip{position:absolute;left:8px;top:38px;padding:2px 6px;border-radius:5px;background:rgba(6,12,20,.78);color:#d8ecff;font:inherit;font-size:10.5px;font-variant-numeric:tabular-nums;white-space:nowrap;border:.5px solid rgba(125,211,252,.35)}
 .mv-select{position:absolute;left:0;right:0;margin:0 auto;bottom:18px;z-index:12;width:min(340px,calc(100% - 20px));border-radius:12px;padding:11px 13px 12px;display:flex;flex-direction:column;gap:7px;animation:mv-fade .2s cubic-bezier(.16,1,.3,1)}
+.mv-scene-details{position:absolute;top:64px;right:12px;z-index:30;width:min(360px,calc(100% - 24px));max-height:calc(100% - 130px);overflow:auto;border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:8px;animation:mv-fade .16s ease-out}
+.mv-scene-details>header{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px;font-weight:600;color:var(--mv-text)}
+.mv-sd-section{display:flex;flex-direction:column;gap:4px;border-top:.5px solid var(--mv-line);padding-top:7px}
+.mv-sd-section:first-of-type{border-top:0;padding-top:0}
+.mv-sd-title{font-size:10.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--mv-dim)}
+.mv-sd-row{display:flex;align-items:baseline;gap:8px;font-size:11.5px}
+.mv-sd-row span{color:var(--mv-dim);flex:none}
+.mv-sd-row b{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mv-sd-layer{display:flex;flex-direction:column;gap:2px;font-size:11.5px;padding:4px 0}
+.mv-sd-layer b{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mv-sd-layer span{color:var(--mv-dim);font-size:10.5px;font-variant-numeric:tabular-nums}
+.mv-sd-empty{font-size:11px;color:var(--mv-dim)}
+.mv-sd-warn{font-size:10.5px;line-height:1.45;color:#f0b84b;margin:0}
 .mv-select header{display:flex;align-items:center;justify-content:space-between;gap:8px;color:var(--mv-dim);font-size:10.5px;letter-spacing:.04em;text-transform:uppercase}
 .mv-select h3{margin:0;font-size:13px;font-weight:600;line-height:1.35;color:var(--mv-text)}
 .mv-select p{margin:0}
@@ -5771,10 +5804,6 @@ var CSS = `
 .mv-caption{background:var(--mv-input);border:.5px solid var(--mv-line);color:var(--mv-text);border-radius:6px;padding:4px 7px;font:inherit;font-size:11px;margin:0 8px 4px;outline:none;min-width:0}
 .mv-caption:focus{border-color:var(--mv-accent)}
 .mv-caption::placeholder{color:color-mix(in srgb,var(--mv-dim) 70%,transparent)}
-.mv-details{padding:2px 6px 6px;display:flex;flex-direction:column;gap:3px}
-.mv-details .row{display:flex;gap:8px;align-items:baseline;font-size:10.5px;line-height:1.5;color:var(--mv-dim);flex-wrap:wrap}
-.mv-details .row b{font-weight:600;color:var(--mv-text);max-width:42%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.mv-details .row span{font-variant-numeric:tabular-nums}
 `;
 var TOOL_CSS = `
 .mv-toolrow{display:flex;align-items:center;min-width:0;height:calc(24px + var(--dsh-content-font-delta,0px));color:var(--dsw-alias-label-tertiary,#8a8f98);font-size:var(--dsh-content-font-size-secondary,13px);line-height:calc(24px + var(--dsh-content-font-delta,0px))}
@@ -6834,8 +6863,8 @@ function LayersPanel({
   onEditLayerShader,
   getCurrentView,
   onFlyView,
-  stats,
-  onStartTour
+  onStartTour,
+  onShowSceneDetails
 }) {
   const [adding, setAdding] = import_react7.default.useState(false);
   const [draft, setDraft] = import_react7.default.useState({ type: "wms", name: "", url: "", layers: "", opacity: 0.7 });
@@ -6903,6 +6932,11 @@ function LayersPanel({
       h6(
         "div",
         { className: "mv-head-actions" },
+        h6(
+          "button",
+          { type: "button", className: "mv-icon-btn", title: t2("sceneDetails.openHint"), "aria-label": t2("sceneDetails.openHint"), onClick: () => onShowSceneDetails?.() },
+          "ⓘ"
+        ),
         layers.length > 0 ? h6("button", { type: "button", className: "mv-icon-btn", title: t2("layers.frameAll"), "aria-label": t2("layers.frameAll"), onClick: onFrameAll }, "⛶") : null,
         h6(
           "button",
@@ -7142,6 +7176,10 @@ function LayersPanel({
             stop(event);
             onToggleLayer(layer.id);
           } }, layer.visible ? "◉" : "◌"),
+          h6("button", { type: "button", className: "mv-icon-btn", title: t2("sceneDetails.openLayerHint"), "aria-label": t2("sceneDetails.openLayerHint"), onClick: (event) => {
+            stop(event);
+            onShowSceneDetails?.(layer.id);
+          } }, "ⓘ"),
           h6("button", { type: "button", className: "mv-icon-btn", title: t2("btn.flyTo"), "aria-label": t2("btn.flyTo"), onClick: (event) => {
             stop(event);
             onFlyLayer(layer.id);
@@ -7155,33 +7193,7 @@ function LayersPanel({
             onRemoveLayer(layer.id);
           } }, "✕")
         );
-      }),
-      // ---- technical telemetry ----------------------------------------------
-      // v1.7 P0: heading / pitch and the per-layer counters left the HUD so the
-      // instrument keeps at most six numbers; they still have a home here.
-      h6("div", { key: "g7", className: "mv-group" }, h6("div", { className: "mv-group-title" }, t2("layers.details"))),
-      h6(
-        "div",
-        { key: "details", className: "mv-details" },
-        h6(
-          "div",
-          { className: "row" },
-          h6("span", null, `${t2("hud.camera")} ${stats?.height ?? "—"}`),
-          h6("span", null, `${t2("hud.heading")} ${stats?.heading ?? "—"} / ${stats?.pitch ?? "—"}`)
-        ),
-        ...(Array.isArray(stats?.layers) ? stats.layers : []).map(
-          (row) => h6(
-            "div",
-            { key: `d-${row.id}`, className: "row" },
-            h6("b", null, row.name),
-            h6(
-              "span",
-              null,
-              `${t2("hud.tiles")} ${formatCount(row.tiles)} · ${t2("hud.pending")} ${formatCount(row.pending)} · ${t2("hud.triangles")} ${formatCount(row.triangles)} · ${t2("hud.cache")} ${formatBytes(row.memory)}`
-            )
-          )
-        )
-      )
+      })
     )
   );
 }
@@ -7686,78 +7698,141 @@ function useTour({ t: t2, showToast, getCurrentView, onFlyView, onFinish }) {
   return { start, stop, element };
 }
 
-// src/client/ui/menu-item.js
+// src/client/ui/scene-details.js
 var import_react11 = __toESM(require("react"), 1);
 var h8 = import_react11.default.createElement;
+function useSceneDetails({ t: t2, stats, config, layers, analysis, shaderActive }) {
+  const [focus, setFocus] = import_react11.default.useState(null);
+  const open = import_react11.default.useCallback((layerId) => setFocus({ layerId: typeof layerId === "string" ? layerId : null }), []);
+  const close = import_react11.default.useCallback(() => setFocus(null), []);
+  import_react11.default.useEffect(() => {
+    if (!focus) return void 0;
+    const onKey = (event) => {
+      if (event.key === "Escape") setFocus(null);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [focus]);
+  const focusedLayer = focus?.layerId ? (layers ?? []).find((layer) => layer.id === focus.layerId) ?? null : null;
+  const sourceName = (list, id) => (Array.isArray(list) ? list.find((source) => source.id === id)?.name : null) ?? t2("sceneDetails.none");
+  const row = (label, value) => h8("div", { className: "mv-sd-row" }, h8("span", null, label), h8("b", null, value));
+  const layerRows = (stats?.layers ?? (layers ?? []).map((layer) => ({ id: layer.id, name: layer.name }))).filter(
+    (layer) => focusedLayer === null || layer.id === focusedLayer.id
+  );
+  const element = focus ? h8(
+    "div",
+    { className: "mv-scene-details mv-glass", role: "dialog", "aria-label": focusedLayer ? t2("sceneDetails.layerTitle") : t2("sceneDetails.title") },
+    h8(
+      "header",
+      null,
+      h8("b", null, focusedLayer ? t2("sceneDetails.layerTitle") : t2("sceneDetails.title")),
+      h8("button", { type: "button", className: "mv-icon-btn", title: t2("btn.close"), "aria-label": t2("btn.close"), onClick: close }, "✕")
+    ),
+    h8(
+      "div",
+      { className: "mv-sd-section" },
+      h8("div", { className: "mv-sd-title" }, t2("sceneDetails.scene")),
+      row(t2("hud.camera"), stats?.height ?? "—"),
+      row(t2("hud.heading"), `${stats?.heading ?? "—"} / ${stats?.pitch ?? "—"}`),
+      row(t2("layers.imagery"), sourceName(config?.imagery, config?.settings?.imagery)),
+      row(t2("layers.terrain"), sourceName(config?.terrain, config?.settings?.terrain)),
+      row(t2("sceneDetails.analysis"), analysis ? `${analysis.operation ?? ""}${analysis.layer ? ` · ${analysis.layer}` : ""}` : t2("sceneDetails.none")),
+      row(t2("sceneDetails.shader"), shaderActive?.length ? String(shaderActive.length) : t2("sceneDetails.none"))
+    ),
+    focusedLayer?.georefIssue ? h8("p", { className: "mv-sd-warn" }, `⚠ ${t2("layers.georefWarning")}`) : null,
+    h8(
+      "div",
+      { className: "mv-sd-section" },
+      h8("div", { className: "mv-sd-title" }, focusedLayer ? t2("sceneDetails.layer") : t2("sceneDetails.layers")),
+      layerRows.length === 0 ? h8("div", { className: "mv-sd-empty" }, t2("sceneDetails.none")) : layerRows.map(
+        (layer) => h8(
+          "div",
+          { key: layer.id, className: "mv-sd-layer" },
+          h8("b", null, layer.name ?? "—"),
+          h8(
+            "span",
+            null,
+            `${t2("hud.tiles")} ${formatCount(layer.tiles)} · ${t2("hud.pending")} ${formatCount(layer.pending)} · ${t2("hud.triangles")} ${formatCount(layer.triangles)} · ${t2("hud.cache")} ${formatBytes(layer.memory)}`
+          )
+        )
+      )
+    )
+  ) : null;
+  return { open, close, element };
+}
+
+// src/client/ui/menu-item.js
+var import_react12 = __toESM(require("react"), 1);
+var h9 = import_react12.default.createElement;
 function MenuItem({ onClick, children, active, title }) {
-  return h8(
+  return h9(
     "button",
     { type: "button", className: `mv-menu-item${active ? " on" : ""}`, onClick, title },
     children,
-    active ? h8("span", { className: "check", "aria-hidden": true }, "✓") : null
+    active ? h9("span", { className: "check", "aria-hidden": true }, "✓") : null
   );
 }
 
 // src/client/viewer/ViewerSurface.js
-var h9 = import_react12.default.createElement;
+var h10 = import_react13.default.createElement;
 function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
   const fallbackT = useTranslation();
   const t2 = typeof injectedT === "function" ? injectedT : fallbackT;
   const environmentDark = useEnvironmentDark();
-  const rootRef = import_react12.default.useRef(null);
-  const globeRef = import_react12.default.useRef(null);
-  const creditRef = import_react12.default.useRef(null);
-  const menuRef = import_react12.default.useRef(null);
-  const viewerRef = import_react12.default.useRef(null);
-  const cesiumRef = import_react12.default.useRef(null);
-  const metaRef = import_react12.default.useRef(null);
-  const layersRef = import_react12.default.useRef([]);
-  const toolRef = import_react12.default.useRef(null);
-  const measureRef = import_react12.default.useRef({ points: [], entities: [] });
-  const handlerRef = import_react12.default.useRef(null);
-  const imageryRef = import_react12.default.useRef(null);
-  const overlayLayersRef = import_react12.default.useRef(null);
-  const sourcesRef = import_react12.default.useRef(null);
-  const toastTimer = import_react12.default.useRef(0);
-  const captureReadoutRef = import_react12.default.useRef(null);
-  const commandChainRef = import_react12.default.useRef(Promise.resolve());
-  const commandRef = import_react12.default.useRef(null);
-  const selectionApiRef = import_react12.default.useRef(null);
-  const accessRef = import_react12.default.useRef(null);
-  const analysisRef = import_react12.default.useRef({ operation: null, layerId: null, layerName: null, entities: [], restore: null });
-  const analysisCommandRef = import_react12.default.useRef(null);
-  const shaderEntriesRef = import_react12.default.useRef(/* @__PURE__ */ new Map());
-  const shaderTickRef = import_react12.default.useRef(null);
-  const readyGateRef = import_react12.default.useRef({ ready: false, error: null, waiters: [] });
-  const healthSeqRef = import_react12.default.useRef(0);
-  const sessionRef = import_react12.default.useRef(sessionId);
+  const rootRef = import_react13.default.useRef(null);
+  const globeRef = import_react13.default.useRef(null);
+  const creditRef = import_react13.default.useRef(null);
+  const menuRef = import_react13.default.useRef(null);
+  const viewerRef = import_react13.default.useRef(null);
+  const cesiumRef = import_react13.default.useRef(null);
+  const metaRef = import_react13.default.useRef(null);
+  const layersRef = import_react13.default.useRef([]);
+  const toolRef = import_react13.default.useRef(null);
+  const measureRef = import_react13.default.useRef({ points: [], entities: [] });
+  const handlerRef = import_react13.default.useRef(null);
+  const imageryRef = import_react13.default.useRef(null);
+  const overlayLayersRef = import_react13.default.useRef(null);
+  const sourcesRef = import_react13.default.useRef(null);
+  const toastTimer = import_react13.default.useRef(0);
+  const captureReadoutRef = import_react13.default.useRef(null);
+  const commandChainRef = import_react13.default.useRef(Promise.resolve());
+  const commandRef = import_react13.default.useRef(null);
+  const selectionApiRef = import_react13.default.useRef(null);
+  const accessRef = import_react13.default.useRef(null);
+  const analysisRef = import_react13.default.useRef({ operation: null, layerId: null, layerName: null, entities: [], restore: null });
+  const analysisCommandRef = import_react13.default.useRef(null);
+  const shaderEntriesRef = import_react13.default.useRef(/* @__PURE__ */ new Map());
+  const shaderTickRef = import_react13.default.useRef(null);
+  const readyGateRef = import_react13.default.useRef({ ready: false, error: null, waiters: [] });
+  const healthSeqRef = import_react13.default.useRef(0);
+  const sessionRef = import_react13.default.useRef(sessionId);
   sessionRef.current = sessionId;
-  const [phase, setPhase] = import_react12.default.useState("loading");
-  const [error, setError] = import_react12.default.useState("");
-  const [layers, setLayers] = import_react12.default.useState([]);
-  const [sources, setSources] = import_react12.default.useState(null);
-  const [defaults, setDefaults] = import_react12.default.useState(null);
-  const [tool, setTool] = import_react12.default.useState(null);
-  const [fps, setFps] = import_react12.default.useState(null);
-  const [fullscreen, setFullscreen] = import_react12.default.useState(false);
-  const [stats, setStats] = import_react12.default.useState(null);
-  const [pickInfo, setPickInfo] = import_react12.default.useState(null);
-  const [measureInfo, setMeasureInfo] = import_react12.default.useState(null);
-  const [scan, setScan] = import_react12.default.useState(null);
-  const [emptyDismissed, setEmptyDismissed] = import_react12.default.useState(false);
-  const [restoringScene, setRestoringScene] = import_react12.default.useState(false);
-  const [urlBar, setUrlBar] = import_react12.default.useState(false);
-  const [urlInput, setUrlInput] = import_react12.default.useState("");
-  const [busy, setBusy] = import_react12.default.useState("");
-  const [toast, setToast] = import_react12.default.useState("");
-  const [openMenu, setOpenMenu] = import_react12.default.useState(null);
-  const [recentDirs, setRecentDirs] = import_react12.default.useState([]);
-  const [accessRequest, setAccessRequest] = import_react12.default.useState(null);
-  const [accessBusy, setAccessBusy] = import_react12.default.useState(false);
-  const [analysis, setAnalysis] = import_react12.default.useState(null);
-  const [shaderOpen, setShaderOpen] = import_react12.default.useState(false);
-  const [shaderActive, setShaderActive] = import_react12.default.useState([]);
-  const [shaderForm, setShaderForm] = import_react12.default.useState({
+  const [phase, setPhase] = import_react13.default.useState("loading");
+  const [error, setError] = import_react13.default.useState("");
+  const [layers, setLayers] = import_react13.default.useState([]);
+  const [sources, setSources] = import_react13.default.useState(null);
+  const [defaults, setDefaults] = import_react13.default.useState(null);
+  const [tool, setTool] = import_react13.default.useState(null);
+  const [fps, setFps] = import_react13.default.useState(null);
+  const [fullscreen, setFullscreen] = import_react13.default.useState(false);
+  const [stats, setStats] = import_react13.default.useState(null);
+  const [pickInfo, setPickInfo] = import_react13.default.useState(null);
+  const [measureInfo, setMeasureInfo] = import_react13.default.useState(null);
+  const [scan, setScan] = import_react13.default.useState(null);
+  const [emptyDismissed, setEmptyDismissed] = import_react13.default.useState(false);
+  const [restoringScene, setRestoringScene] = import_react13.default.useState(false);
+  const [urlBar, setUrlBar] = import_react13.default.useState(false);
+  const [urlInput, setUrlInput] = import_react13.default.useState("");
+  const [busy, setBusy] = import_react13.default.useState("");
+  const [toast, setToast] = import_react13.default.useState("");
+  const [openMenu, setOpenMenu] = import_react13.default.useState(null);
+  const [recentDirs, setRecentDirs] = import_react13.default.useState([]);
+  const [accessRequest, setAccessRequest] = import_react13.default.useState(null);
+  const [accessBusy, setAccessBusy] = import_react13.default.useState(false);
+  const [analysis, setAnalysis] = import_react13.default.useState(null);
+  const [shaderOpen, setShaderOpen] = import_react13.default.useState(false);
+  const [shaderActive, setShaderActive] = import_react13.default.useState([]);
+  const [shaderForm, setShaderForm] = import_react13.default.useState({
     layerId: "",
     preset: "height-false-color",
     minHeight: "",
@@ -7769,15 +7844,15 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     waterHeight: "",
     depthMax: ""
   });
-  const [settingsOpen, setSettingsOpen] = import_react12.default.useState(false);
-  const [health, setHealth] = import_react12.default.useState(null);
-  const [terrainBusy, setTerrainBusy] = import_react12.default.useState(false);
-  const [terrainError, setTerrainError] = import_react12.default.useState("");
-  const [imageryBusy, setImageryBusy] = import_react12.default.useState(false);
-  const [meta, setMeta] = import_react12.default.useState(null);
-  const [bridgeOn, setBridgeOn] = import_react12.default.useState(false);
-  const [bridgeReload, setBridgeReload] = import_react12.default.useState(false);
-  const [bridgeEpoch, setBridgeEpoch] = import_react12.default.useState(0);
+  const [settingsOpen, setSettingsOpen] = import_react13.default.useState(false);
+  const [health, setHealth] = import_react13.default.useState(null);
+  const [terrainBusy, setTerrainBusy] = import_react13.default.useState(false);
+  const [terrainError, setTerrainError] = import_react13.default.useState("");
+  const [imageryBusy, setImageryBusy] = import_react13.default.useState(false);
+  const [meta, setMeta] = import_react13.default.useState(null);
+  const [bridgeOn, setBridgeOn] = import_react13.default.useState(false);
+  const [bridgeReload, setBridgeReload] = import_react13.default.useState(false);
+  const [bridgeEpoch, setBridgeEpoch] = import_react13.default.useState(0);
   const themeMode = sources?.settings?.theme ?? "auto";
   const resolvedDark = themeMode === "auto" ? environmentDark : themeMode === "dark";
   const showLayers = sources?.settings?.showLayers !== false;
@@ -7834,8 +7909,8 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     setLayers(layersRef.current.map((layer) => ({ id: layer.id, name: layer.name, visible: layer.visible })));
     markSceneDirty();
   };
-  const saveChainRef = import_react12.default.useRef(Promise.resolve());
-  const saveSeqRef = import_react12.default.useRef(0);
+  const saveChainRef = import_react13.default.useRef(Promise.resolve());
+  const saveSeqRef = import_react13.default.useRef(0);
   const commitSources = (next, notify) => {
     const previous = sourcesRef.current;
     sourcesRef.current = next;
@@ -8321,7 +8396,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
       setMeasureInfo({ text: t2("measure.start") });
     }
   }
-  const agentOverlayRef = import_react12.default.useRef({
+  const agentOverlayRef = import_react13.default.useRef({
     draw: [],
     measure: [],
     drawnFeatures: 0,
@@ -8332,7 +8407,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     // Entities per command (WeakMap keeps snapshots JSON-clean).
     entityGroups: /* @__PURE__ */ new WeakMap()
   });
-  const [agentOverlayCount, setAgentOverlayCount] = import_react12.default.useState(0);
+  const [agentOverlayCount, setAgentOverlayCount] = import_react13.default.useState(0);
   const syncAgentOverlayCount = () => {
     const state = agentOverlayRef.current;
     setAgentOverlayCount(state.draw.length + state.measure.length);
@@ -8691,8 +8766,8 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
   const shaderActiveList = () => shaderEngine.activeList();
   const detachShaderForLayer = (id, restore) => shaderEngine.detachForLayer(id, restore);
   const releaseShaderTick = () => shaderEngine.releaseTick();
-  const sceneDirtyRef = import_react12.default.useRef(false);
-  const sceneRestoredRef = import_react12.default.useRef(false);
+  const sceneDirtyRef = import_react13.default.useRef(false);
+  const sceneRestoredRef = import_react13.default.useRef(false);
   const hostSceneStore = createHostSceneStore({
     getMeta: () => metaRef.current,
     loadMeta,
@@ -8912,6 +8987,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     onFlyView: (view) => flyToBookmark(viewerRef.current, cesiumRef.current, view),
     onFinish: () => void screenshot()
   });
+  const sceneDetails = useSceneDetails({ t: t2, stats, config: sources, layers, analysis, shaderActive });
   const askAgentService = createAskAgent({
     getMeta: () => metaRef.current,
     getSession: () => sessionRef.current,
@@ -9182,7 +9258,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
   });
   const runCommand = (action, args = {}, session = null) => commandBridge.runCommand(action, args, session);
   commandRef.current = runCommand;
-  import_react12.default.useEffect(() => {
+  import_react13.default.useEffect(() => {
     if (!sessionId || !meta?.bridgeUrl) return void 0;
     const bridgeSession = sessionId;
     const endpoint = `${meta.bridgeUrl}?token=${encodeURIComponent(meta.token)}&session=${encodeURIComponent(bridgeSession)}`;
@@ -9262,7 +9338,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
       }
     };
   }, [sessionId, meta, bridgeEpoch]);
-  import_react12.default.useEffect(
+  import_react13.default.useEffect(
     () => () => {
       const current = accessRef.current;
       if (!current) return;
@@ -9272,7 +9348,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     },
     []
   );
-  import_react12.default.useEffect(() => {
+  import_react13.default.useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
@@ -9390,7 +9466,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
       layersRef.current = [];
     };
   }, []);
-  import_react12.default.useEffect(() => {
+  import_react13.default.useEffect(() => {
     if (phase !== "ready" || sceneRestoredRef.current) return void 0;
     if (typeof sessionId !== "string" || sessionId === "") return void 0;
     sceneRestoredRef.current = true;
@@ -9404,7 +9480,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
       cancelled = true;
     };
   }, [phase, sessionId]);
-  import_react12.default.useEffect(() => {
+  import_react13.default.useEffect(() => {
     const timer = setInterval(() => {
       if (sceneDirtyRef.current) saveSceneSnapshot();
     }, 3e3);
@@ -9422,7 +9498,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
       document.removeEventListener("visibilitychange", onVisibility);
     };
   }, []);
-  import_react12.default.useEffect(() => {
+  import_react13.default.useEffect(() => {
     if (!openMenu) return void 0;
     const close = (event) => {
       if (!menuRef.current?.contains(event.target)) setOpenMenu(null);
@@ -9430,10 +9506,10 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     document.addEventListener("pointerdown", close, true);
     return () => document.removeEventListener("pointerdown", close, true);
   }, [openMenu]);
-  import_react12.default.useEffect(() => {
+  import_react13.default.useEffect(() => {
     if (openMenu === "data") refreshRecentDirs();
   }, [openMenu, meta?.directoriesUrl]);
-  import_react12.default.useEffect(() => {
+  import_react13.default.useEffect(() => {
     if (phase !== "ready") return void 0;
     const element = globeRef.current;
     if (!element || typeof ResizeObserver === "undefined") return void 0;
@@ -9446,7 +9522,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     observer.observe(element);
     return () => observer.disconnect();
   }, [phase]);
-  import_react12.default.useEffect(() => {
+  import_react13.default.useEffect(() => {
     const onChange = () => {
       setFullscreen(document.fullscreenElement === rootRef.current);
       try {
@@ -9457,7 +9533,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     document.addEventListener("fullscreenchange", onChange);
     return () => document.removeEventListener("fullscreenchange", onChange);
   }, []);
-  import_react12.default.useEffect(() => {
+  import_react13.default.useEffect(() => {
     if (phase !== "ready") return void 0;
     const viewer = viewerRef.current;
     if (!viewer) return void 0;
@@ -9510,7 +9586,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
       canvas.removeEventListener("webglcontextrestored", onRestored);
     };
   }, [phase]);
-  import_react12.default.useEffect(() => {
+  import_react13.default.useEffect(() => {
     if (!scan) return void 0;
     const onKey = (event) => {
       if (event.key === "Escape") setScan(null);
@@ -9519,7 +9595,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     return () => document.removeEventListener("keydown", onKey);
   }, [scan]);
   const measureMode = tool === "distance" || tool === "area" || tool === "height";
-  import_react12.default.useEffect(() => {
+  import_react13.default.useEffect(() => {
     if (!measureMode) return void 0;
     const onKey = (event) => {
       if (event.key === "Escape") setToolMode(null);
@@ -9527,7 +9603,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [measureMode]);
-  import_react12.default.useEffect(() => {
+  import_react13.default.useEffect(() => {
     if (phase !== "ready") return void 0;
     let lastKey = "";
     const timer = setInterval(() => {
@@ -9539,7 +9615,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     }, 1e3);
     return () => clearInterval(timer);
   }, [phase]);
-  import_react12.default.useEffect(() => {
+  import_react13.default.useEffect(() => {
     const viewer = viewerRef.current;
     const Cesium = cesiumRef.current;
     if (phase !== "ready" || !viewer || !Cesium) return;
@@ -9548,12 +9624,12 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     if (viewer.scene.skyAtmosphere) viewer.scene.skyAtmosphere.show = resolvedDark;
     viewer.scene.requestRender?.();
   }, [phase, resolvedDark]);
-  const button = (label, onClick, active, extra, title) => h9(
+  const button = (label, onClick, active, extra, title) => h10(
     "button",
     { type: "button", className: `mv-btn${active ? " on" : ""}${extra ? ` ${extra}` : ""}`, onClick, title },
     label
   );
-  const iconButton = (icon, title, onClick, active) => h9(
+  const iconButton = (icon, title, onClick, active) => h10(
     "button",
     {
       type: "button",
@@ -9565,13 +9641,13 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     },
     icon
   );
-  const menu = (id, label, items, active) => h9(
+  const menu = (id, label, items, active) => h10(
     "div",
     { key: id, className: "mv-menu" },
     button(`${label} ▾`, () => setOpenMenu(openMenu === id ? null : id), active),
-    openMenu === id ? h9("div", { className: "mv-menu-panel mv-glass" }, items) : null
+    openMenu === id ? h10("div", { className: "mv-menu-panel mv-glass" }, items) : null
   );
-  const status = busy || (phase === "loading" ? t2("panel.status.loading") : layers.length ? t2("panel.status.layers", { n: layers.length }) : t2("panel.status.ready"));
+  const status = busy || (phase === "loading" ? t2("panel.status.loading") : t2("panel.status.ready"));
   const hudLabels = {
     pointer: t2("hud.pointer"),
     camera: t2("hud.camera"),
@@ -9591,7 +9667,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     t: t2,
     shaderCompare: (layer, enabled) => shaderEngine.compare(layer, enabled)
   });
-  return h9(
+  return h10(
     "div",
     {
       ref: rootRef,
@@ -9599,41 +9675,41 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
       "data-mv-theme": themeMode === "auto" ? void 0 : themeMode,
       "data-mv-scheme": resolvedDark ? "dark" : "light"
     },
-    h9("style", { key: "css" }, CSS),
-    h9("div", { key: "globe", ref: globeRef, className: "mv-globe" }),
-    activeImagery?.credit ? h9("div", { key: "attr", className: "mv-attr" }, `${t2("credit.imagery")} © ${activeImagery.credit}`) : null,
-    h9("div", { key: "credits", ref: creditRef, className: "mv-credits" }),
-    h9(
+    h10("style", { key: "css" }, CSS),
+    h10("div", { key: "globe", ref: globeRef, className: "mv-globe" }),
+    activeImagery?.credit ? h10("div", { key: "attr", className: "mv-attr" }, `${t2("credit.imagery")} © ${activeImagery.credit}`) : null,
+    h10("div", { key: "credits", ref: creditRef, className: "mv-credits" }),
+    h10(
       "div",
       { key: "top", className: "mv-top" },
-      h9(
+      h10(
         "div",
         { className: "mv-brand mv-glass" },
-        h9(ViewerIcon, { size: 18 }),
-        h9("b", null, t2("panel.title")),
-        h9("span", null, status)
+        h10(ViewerIcon, { size: 18 }),
+        h10("b", null, t2("panel.title")),
+        h10("span", null, status)
       ),
-      h9(
+      h10(
         "div",
         { ref: menuRef, className: "mv-actions mv-glass" },
         menu(
           "data",
           t2("btn.data"),
           [
-            h9(MenuItem, { key: "local", onClick: pickLocal }, t2("btn.openLocal")),
-            recentDirs.length ? h9(
-              import_react12.default.Fragment,
+            h10(MenuItem, { key: "local", onClick: pickLocal }, t2("btn.openLocal")),
+            recentDirs.length ? h10(
+              import_react13.default.Fragment,
               { key: "recent" },
-              h9("span", { className: "mv-menu-label" }, t2("menu.recentDirs")),
+              h10("span", { className: "mv-menu-label" }, t2("menu.recentDirs")),
               ...recentDirs.map(
-                (entry) => h9(
+                (entry) => h10(
                   MenuItem,
                   { key: entry.dir, title: entry.dir, onClick: () => openRecentDirectory(entry.dir) },
-                  h9("span", { className: "ellipsis" }, entry.name)
+                  h10("span", { className: "ellipsis" }, entry.name)
                 )
               )
             ) : null,
-            agentOverlayCount > 0 ? h9(
+            agentOverlayCount > 0 ? h10(
               MenuItem,
               {
                 key: "clearAgent",
@@ -9645,7 +9721,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
               },
               t2("menu.clearAgent")
             ) : null,
-            h9(
+            h10(
               MenuItem,
               {
                 key: "url",
@@ -9656,7 +9732,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
               },
               t2("btn.openUrl")
             ),
-            h9(
+            h10(
               MenuItem,
               {
                 key: "report",
@@ -9672,8 +9748,8 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
               },
               t2("menu.report")
             ),
-            h9("i", { key: "sep", className: "mv-sep", style: { width: "auto", height: ".5px", margin: "4px 8px" } }),
-            h9(
+            h10("i", { key: "sep", className: "mv-sep", style: { width: "auto", height: ".5px", margin: "4px 8px" } }),
+            h10(
               MenuItem,
               {
                 key: "clear",
@@ -9688,21 +9764,21 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
             )
           ]
         ),
-        h9("i", { key: "s1", className: "mv-sep" }),
+        h10("i", { key: "s1", className: "mv-sep" }),
         menu(
           "measure",
           t2("btn.measure"),
           [
-            h9(MenuItem, { key: "distance", active: tool === "distance", onClick: () => setToolMode(tool === "distance" ? null : "distance") }, t2("tool.distance")),
-            h9(MenuItem, { key: "area", active: tool === "area", onClick: () => setToolMode(tool === "area" ? null : "area") }, t2("tool.area")),
-            h9(MenuItem, { key: "height", active: tool === "height", onClick: () => setToolMode(tool === "height" ? null : "height") }, t2("tool.height")),
-            h9(MenuItem, { key: "pick", active: tool === "pick", onClick: () => setToolMode(tool === "pick" ? null : "pick") }, t2("tool.pick"))
+            h10(MenuItem, { key: "distance", active: tool === "distance", onClick: () => setToolMode(tool === "distance" ? null : "distance") }, t2("tool.distance")),
+            h10(MenuItem, { key: "area", active: tool === "area", onClick: () => setToolMode(tool === "area" ? null : "area") }, t2("tool.area")),
+            h10(MenuItem, { key: "height", active: tool === "height", onClick: () => setToolMode(tool === "height" ? null : "height") }, t2("tool.height")),
+            h10(MenuItem, { key: "pick", active: tool === "pick", onClick: () => setToolMode(tool === "pick" ? null : "pick") }, t2("tool.pick"))
           ],
           tool !== null
         ),
-        h9("i", { key: "s2", className: "mv-sep" }),
+        h10("i", { key: "s2", className: "mv-sep" }),
         button(
-          `${t2("btn.layers")}${layers.length ? ` ${layers.length}` : ""}`,
+          t2("btn.layers"),
           () => updateSettings({ showLayers: !showLayers }),
           // The panel is the only place to pick terrain/basemap now, so it must
           // be reachable even with zero 3D Tiles loaded.
@@ -9711,38 +9787,38 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
           showLayers ? t2("btn.layersHide") : t2("btn.layersShow")
         ),
         iconButton(
-          h9(HudIcon),
+          h10(HudIcon),
           showHud ? t2("btn.hudHide") : t2("btn.hudShow"),
           () => updateSettings({ showHud: !showHud }),
           showHud
         ),
         iconButton(
-          h9(ShaderIcon),
+          h10(ShaderIcon),
           shaderOpen ? t2("btn.shaderHide") : t2("btn.shaderShow"),
           () => setShaderOpen((value) => !value),
           shaderOpen
         ),
         // v1.7 P0: 指认 — click an object to read it (panel-only, no tool).
-        iconButton(h9(IdentifyIcon), t2("btn.identifyHint"), () => setToolMode(tool === "identify" ? null : "identify"), tool === "identify"),
+        iconButton(h10(IdentifyIcon), t2("btn.identifyHint"), () => setToolMode(tool === "identify" ? null : "identify"), tool === "identify"),
         // Action buttons are icon-only with a tooltip/aria-label: in the docked
         // narrow panel the text labels were what wrapped the toolbar onto a
         // second row. The four dropdown menus keep their text labels because a
         // bare icon does not tell the user what the menu contains.
-        iconButton(h9(ScreenshotIcon), t2("btn.screenshot"), screenshot),
-        sessionId ? iconButton(h9(AskAgentIcon), t2("btn.askAgent"), askAgent) : null,
-        iconButton(h9(ResetIcon), t2("btn.reset"), resetView),
+        iconButton(h10(ScreenshotIcon), t2("btn.screenshot"), screenshot),
+        sessionId ? iconButton(h10(AskAgentIcon), t2("btn.askAgent"), askAgent) : null,
+        iconButton(h10(ResetIcon), t2("btn.reset"), resetView),
         // Only the main panel offers "open beside chat"; the docked tab is
         // already beside the conversation.
         docked ? null : button(t2("btn.beside"), openBeside),
         // Single fullscreen entry point for both mounts (DOM Fullscreen API).
         // Expanding the sidebar is DSH's own feature, so the duplicate
         // "maximize sidebar" action is gone.
-        iconButton(h9(FullscreenIcon), fullscreen ? t2("btn.fullscreenExit") : t2("btn.fullscreenTitle"), toggleDomFullscreen, fullscreen),
-        h9("i", { key: "s3", className: "mv-sep" }),
-        h9(
+        iconButton(h10(FullscreenIcon), fullscreen ? t2("btn.fullscreenExit") : t2("btn.fullscreenTitle"), toggleDomFullscreen, fullscreen),
+        h10("i", { key: "s3", className: "mv-sep" }),
+        h10(
           "div",
           { key: "appearance", className: "mv-menu" },
-          h9(
+          h10(
             "button",
             {
               type: "button",
@@ -9751,9 +9827,9 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
               "aria-haspopup": "menu",
               onClick: () => setOpenMenu(openMenu === "appearance" ? null : "appearance")
             },
-            h9(ThemeIcon, { mode: resolvedDark ? "dark" : "light" })
+            h10(ThemeIcon, { mode: resolvedDark ? "dark" : "light" })
           ),
-          openMenu === "appearance" ? h9(
+          openMenu === "appearance" ? h10(
             "div",
             { className: "mv-menu-panel mv-glass" },
             [
@@ -9761,7 +9837,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
               ["light", "theme.light"],
               ["dark", "theme.dark"]
             ].map(
-              ([mode, label]) => h9(
+              ([mode, label]) => h10(
                 MenuItem,
                 {
                   key: mode,
@@ -9773,7 +9849,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
             )
           ) : null
         ),
-        h9(
+        h10(
           "button",
           {
             key: "settings",
@@ -9782,23 +9858,23 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
             title: t2("btn.settings"),
             onClick: () => setSettingsOpen(true)
           },
-          h9(
+          h10(
             "svg",
             { viewBox: "0 0 24 24", width: 16, height: 16, "aria-hidden": true, style: { display: "block" } },
-            h9(
+            h10(
               "g",
               { stroke: "currentColor", strokeWidth: 1.7, fill: "none", strokeLinecap: "round" },
-              h9("circle", { cx: 12, cy: 12, r: 3.2 }),
-              h9("path", { d: "M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.2a1.6 1.6 0 0 0-1-1.5 1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.2a1.6 1.6 0 0 0 1.5-1 1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.2a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.2a1.6 1.6 0 0 0-1.4 1z" })
+              h10("circle", { cx: 12, cy: 12, r: 3.2 }),
+              h10("path", { d: "M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.2a1.6 1.6 0 0 0-1-1.5 1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.2a1.6 1.6 0 0 0 1.5-1 1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.2a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.2a1.6 1.6 0 0 0-1.4 1z" })
             )
           )
         )
       )
     ),
-    urlBar ? h9(
+    urlBar ? h10(
       "div",
       { key: "urlbar", className: "mv-urlbar mv-glass" },
-      h9("input", {
+      h10("input", {
         autoFocus: true,
         value: urlInput,
         placeholder: t2("urlbar.placeholder"),
@@ -9808,9 +9884,9 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
           if (event.key === "Escape") setUrlBar(false);
         }
       }),
-      h9("button", { type: "button", onClick: submitUrl }, t2("urlbar.submit"))
+      h10("button", { type: "button", onClick: submitUrl }, t2("urlbar.submit"))
     ) : null,
-    shaderOpen ? h9(ShaderWorkbench, {
+    shaderOpen ? h10(ShaderWorkbench, {
       key: "shader",
       t: t2,
       layers,
@@ -9832,7 +9908,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
       onResetAll: workbench.resetAll
     }) : null,
     // v1.7 P0: 指认 card + corner brackets (panel-only) and the tour bar.
-    h9(SelectionOverlay, {
+    h10(SelectionOverlay, {
       key: "selection",
       active: tool === "identify",
       apiRef: selectionApiRef,
@@ -9843,11 +9919,12 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
       onMeasure: measureFromSelection
     }),
     tour.element,
-    analysis || showLayers ? h9(
+    sceneDetails.element,
+    analysis || showLayers ? h10(
       "div",
       { key: "right", className: "mv-right" },
-      analysis ? h9(AnalysisCard, { key: "analysis", state: analysis, t: t2, onClose: () => clearAnalysis() }) : null,
-      showLayers ? h9(LayersPanel, {
+      analysis ? h10(AnalysisCard, { key: "analysis", state: analysis, t: t2, onClose: () => clearAnalysis() }) : null,
+      showLayers ? h10(LayersPanel, {
         key: "layers",
         t: t2,
         config: sources,
@@ -9885,8 +9962,8 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
         // Camera bookmarks: panel-managed list, storage in localStorage.
         getCurrentView: () => currentSceneSnapshot()?.view ?? null,
         onFlyView: (view) => flyToBookmark(viewerRef.current, cesiumRef.current, view),
-        stats,
         onStartTour: tour.start,
+        onShowSceneDetails: sceneDetails.open,
         agentOverlays: buildAgentOverlayList(agentOverlayRef.current),
         onRemoveAgentOverlay: (kind, index) => {
           if (!removeAgentOverlay(agentOverlayRef.current, viewerRef.current, kind, index)) return;
@@ -9895,13 +9972,13 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
         }
       }) : null
     ) : null,
-    phase === "ready" && layers.length === 0 && !emptyDismissed && !restoringScene ? h9(
+    phase === "ready" && layers.length === 0 && !emptyDismissed && !restoringScene ? h10(
       "div",
       { key: "empty", className: "mv-overlay" },
-      h9(
+      h10(
         "div",
         { className: "mv-empty" },
-        h9(
+        h10(
           "button",
           {
             type: "button",
@@ -9912,35 +9989,35 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
           },
           "✕"
         ),
-        h9(ViewerIcon, { size: 30 }),
-        h9("h2", null, t2("panel.empty.title")),
-        h9("p", null, t2("panel.empty.body")),
-        h9(
+        h10(ViewerIcon, { size: 30 }),
+        h10("h2", null, t2("panel.empty.title")),
+        h10("p", null, t2("panel.empty.body")),
+        h10(
           "div",
           { className: "buttons" },
-          h9("button", { type: "button", className: "mv-cta primary", onClick: pickLocal }, t2("panel.empty.local")),
-          h9("button", { type: "button", className: "mv-cta", onClick: () => setUrlBar(true) }, t2("panel.empty.url"))
+          h10("button", { type: "button", className: "mv-cta primary", onClick: pickLocal }, t2("panel.empty.local")),
+          h10("button", { type: "button", className: "mv-cta", onClick: () => setUrlBar(true) }, t2("panel.empty.url"))
         )
       )
     ) : null,
-    phase === "loading" ? h9("div", { key: "loading", className: "mv-overlay dim", role: "status" }, h9("div", { className: "mv-empty" }, h9(LoadingGlobe), h9("p", null, t2("panel.status.loading")))) : null,
-    phase === "error" ? h9(
+    phase === "loading" ? h10("div", { key: "loading", className: "mv-overlay dim", role: "status" }, h10("div", { className: "mv-empty" }, h10(LoadingGlobe), h10("p", null, t2("panel.status.loading")))) : null,
+    phase === "error" ? h10(
       "div",
       { key: "error", className: "mv-overlay dim" },
-      h9(
+      h10(
         "div",
         { className: "mv-empty" },
-        h9("h2", null, "⚠"),
-        h9("p", null, error),
-        h9("div", { className: "buttons" }, h9("button", { type: "button", className: "mv-cta", onClick: () => location.reload() }, t2("btn.retry")))
+        h10("h2", null, "⚠"),
+        h10("p", null, error),
+        h10("div", { className: "buttons" }, h10("button", { type: "button", className: "mv-cta", onClick: () => location.reload() }, t2("btn.retry")))
       )
     ) : null,
-    stats && showHud ? h9(StatusHud, { key: "hud", fps, stats, viewerRef, cesiumRef, labels: hudLabels, readoutRef: captureReadoutRef, detailed: hudDetailed }) : null,
-    measureInfo ? h9(
+    stats && showHud ? h10(StatusHud, { key: "hud", fps, stats, viewerRef, cesiumRef, labels: hudLabels, readoutRef: captureReadoutRef, detailed: hudDetailed }) : null,
+    measureInfo ? h10(
       "div",
       { key: "measure", className: "mv-measure mv-glass" },
-      h9("span", { className: "text" }, measureInfo.text),
-      h9(
+      h10("span", { className: "text" }, measureInfo.text),
+      h10(
         "button",
         {
           type: "button",
@@ -9952,48 +10029,48 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
         t2("measure.end")
       )
     ) : null,
-    pickInfo ? h9(
+    pickInfo ? h10(
       "div",
       { key: "pick", className: "mv-pick mv-glass" },
-      h9(
+      h10(
         "header",
         null,
-        h9("span", null, pickInfo.title),
-        h9(
+        h10("span", null, pickInfo.title),
+        h10(
           "button",
           { type: "button", className: "mv-icon-btn", onClick: () => setPickInfo(null), title: t2("btn.close") },
           "✕"
         )
       ),
-      h9(
+      h10(
         "table",
         null,
-        h9(
+        h10(
           "tbody",
           null,
-          pickInfo.rows.map(([name, value]) => h9("tr", { key: name }, h9("td", null, name), h9("td", null, value)))
+          pickInfo.rows.map(([name, value]) => h10("tr", { key: name }, h10("td", null, name), h10("td", null, value)))
         )
       )
     ) : null,
-    toast ? h9("div", { key: "toast", className: "mv-toast" }, toast) : null,
-    scan ? h9(
+    toast ? h10("div", { key: "toast", className: "mv-toast" }, toast) : null,
+    scan ? h10(
       "div",
       { key: "scan", className: "mv-modal", onPointerDown: (event) => event.target === event.currentTarget && setScan(null) },
-      h9(
+      h10(
         "div",
         { className: "mv-dialog" },
-        h9(
+        h10(
           "header",
           null,
-          h9("b", null, t2("layers.title")),
-          h9("span", { className: "path", style: { fontWeight: 400, color: "var(--mv-dim)" } }, scan.dir),
-          h9("button", { type: "button", className: "mv-icon-btn", onClick: () => setScan(null), title: t2("btn.close") }, "✕")
+          h10("b", null, t2("layers.title")),
+          h10("span", { className: "path", style: { fontWeight: 400, color: "var(--mv-dim)" } }, scan.dir),
+          h10("button", { type: "button", className: "mv-icon-btn", onClick: () => setScan(null), title: t2("btn.close") }, "✕")
         ),
-        h9(
+        h10(
           "div",
           { className: "body" },
           scan.items.map(
-            (item) => h9(
+            (item) => h10(
               "button",
               {
                 key: item.url,
@@ -10005,13 +10082,13 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
                   path: joinLocalPath(scan.dir, item.name)
                 })
               },
-              h9("span", null, item.name)
+              h10("span", null, item.name)
             )
           )
         )
       )
     ) : null,
-    health ? h9(HealthDialog, {
+    health ? h10(HealthDialog, {
       key: "health",
       state: health,
       messages: t2,
@@ -10027,7 +10104,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
         }
       }
     }) : null,
-    settingsOpen && sources && defaults ? h9(SourcesDialog, {
+    settingsOpen && sources && defaults ? h10(SourcesDialog, {
       key: "settings",
       config: sources,
       defaults,
@@ -10041,7 +10118,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
       onSave: saveSources,
       onClose: () => setSettingsOpen(false)
     }) : null,
-    accessRequest ? h9(PathAccessDialog, {
+    accessRequest ? h10(PathAccessDialog, {
       key: "access",
       request: accessRequest,
       busy: accessBusy,
@@ -10049,29 +10126,29 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
       onAllow: allowPathAccess,
       onDeny: () => settleAccess({ allowed: false, message: t2("access.denied") })
     }) : null,
-    imageryBusy || terrainBusy ? h9("div", { key: "busy", className: "mv-measure mv-glass", style: { bottom: "44px" } }, t2("toast.loadingData")) : null
+    imageryBusy || terrainBusy ? h10("div", { key: "busy", className: "mv-measure mv-glass", style: { bottom: "44px" } }, t2("toast.loadingData")) : null
   );
 }
 
 // src/client/ui/layout.js
-var h10 = import_react13.default.createElement;
+var h11 = import_react14.default.createElement;
 function ViewerPanel(props) {
-  return h10(ViewerSurface, { t: props.t, sessionId: null, docked: false });
+  return h11(ViewerSurface, { t: props.t, sessionId: null, docked: false });
 }
 function EarthTabBody(props) {
   const info = typeof props.useTabInfo === "function" ? props.useTabInfo() : null;
   const sessionId = props.sessionId ?? info?.tab?.sessionId ?? info?.sessionId ?? null;
-  return h10(ViewerSurface, { t: props.t, sessionId, docked: true });
+  return h11(ViewerSurface, { t: props.t, sessionId, docked: true });
 }
 
 // src/client/ui/tool-row.js
-var import_react14 = __toESM(require("react"), 1);
-var h11 = import_react14.default.createElement;
+var import_react15 = __toESM(require("react"), 1);
+var h12 = import_react15.default.createElement;
 function HeaderButton(props) {
   const fallbackT = useTranslation();
   const t2 = typeof props.t === "function" ? props.t : fallbackT;
-  const [hover, setHover] = import_react14.default.useState(false);
-  return h11(
+  const [hover, setHover] = import_react15.default.useState(false);
+  return h12(
     "button",
     {
       type: "button",
@@ -10098,7 +10175,7 @@ function HeaderButton(props) {
       onMouseEnter: () => setHover(true),
       onMouseLeave: () => setHover(false)
     },
-    h11(ViewerIcon, { size: 16 })
+    h12(ViewerIcon, { size: 16 })
   );
 }
 var ensureToolCss = () => {
@@ -10155,8 +10232,8 @@ var TOOL_SUMMARY_KEYS = {
 var AUTO_OPENED_CALLS = /* @__PURE__ */ new Set();
 function EarthToolRow({ toolName, phase, block, callId }) {
   const t2 = useTranslation();
-  const openedRef = import_react14.default.useRef(false);
-  import_react14.default.useEffect(() => {
+  const openedRef = import_react15.default.useRef(false);
+  import_react15.default.useEffect(() => {
     if (phase === "result" || openedRef.current) return;
     if (typeof callId === "string" && AUTO_OPENED_CALLS.has(callId)) return;
     if (!readAutoOpen()) return;
@@ -10170,8 +10247,8 @@ function EarthToolRow({ toolName, phase, block, callId }) {
     } catch {
     }
   }, [phase, callId]);
-  const [thumbUrl, setThumbUrl] = import_react14.default.useState("");
-  import_react14.default.useEffect(() => {
+  const [thumbUrl, setThumbUrl] = import_react15.default.useState("");
+  import_react15.default.useEffect(() => {
     if (toolName !== "earth_capture" || phase !== "result" || block?.isError === true) return void 0;
     const content = Array.isArray(block?.content) ? block.content : [];
     const text = content.filter((part) => part?.type === "text" && typeof part.text === "string").map((part) => part.text).join("\n");
@@ -10194,14 +10271,14 @@ function EarthToolRow({ toolName, phase, block, callId }) {
   const failure = state === "error" ? resultFirstLine(block) : "";
   const summaryKey = toolName === "earth_scene" ? SCENE_ACTION_KEYS[action] ?? "tool.action.generic" : TOOL_SUMMARY_KEYS[toolName] ?? "tool.action.generic";
   const summary = failure !== "" ? failure : t2(summaryKey);
-  return h11(
+  return h12(
     "div",
     { className: "mv-toolrow", "data-state": state, "data-tool": toolName },
-    h11("span", { className: "glyph", "aria-hidden": true }, h11(ViewerIcon, { size: 14 })),
-    h11("span", { className: "title" }, t2("panel.title")),
-    h11("span", { className: "sep", "aria-hidden": true }),
-    h11("span", { className: "summary", title: failure !== "" ? failure : void 0 }, summary),
-    thumbUrl === "" ? null : h11(
+    h12("span", { className: "glyph", "aria-hidden": true }, h12(ViewerIcon, { size: 14 })),
+    h12("span", { className: "title" }, t2("panel.title")),
+    h12("span", { className: "sep", "aria-hidden": true }),
+    h12("span", { className: "summary", title: failure !== "" ? failure : void 0 }, summary),
+    thumbUrl === "" ? null : h12(
       "a",
       {
         className: "thumb",
@@ -10210,9 +10287,9 @@ function EarthToolRow({ toolName, phase, block, callId }) {
         rel: "noopener noreferrer",
         title: t2("tool.thumbOpen")
       },
-      h11("img", { src: thumbUrl, alt: "", loading: "lazy" })
+      h12("img", { src: thumbUrl, alt: "", loading: "lazy" })
     ),
-    h11(
+    h12(
       "button",
       { type: "button", className: "open", title: t2("tool.openTip"), onClick: openEarthPanel },
       t2("tool.open")
@@ -10221,7 +10298,7 @@ function EarthToolRow({ toolName, phase, block, callId }) {
 }
 
 // src/client/plugin.js
-var h12 = import_react15.default.createElement;
+var h13 = import_react16.default.createElement;
 var plugin = {
   inject: ["slots", "uiWorkspace", "locale", "theme"],
   apply(ctx) {
@@ -10272,7 +10349,7 @@ var plugin = {
       "conversation.session.header.utilities",
       () => ctx.slots.register(
         { name: "conversation.session.header.utilities", id: "digital-earth-open", order: 30, locale: NS },
-        (props) => h12(HeaderButton, { ...props, onOpen: openEarthPanel })
+        (props) => h13(HeaderButton, { ...props, onOpen: openEarthPanel })
       )
     );
     ctx.slots.inject("tool.call.toolview", function* () {

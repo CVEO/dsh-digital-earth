@@ -22,11 +22,15 @@ test('HUD 默认 ≤6 个常驻数字：详细模式才加朝向与逐层统计'
   assert.match(hud, /formatCount\(row\.tiles\)/)
   assert.match(hud, /formatBytes\(row\.memory\)/)
 
+  const details = readRepoFile('src/client/ui/scene-details.js')
+  assert.match(details, /t\('hud\.heading'\)/)
+  assert.match(details, /t\('sceneDetails\.layers'\)/)
+  assert.match(details, /formatCount\(layer\.tiles\)/)
+  assert.match(details, /formatBytes\(layer\.memory\)/)
+
   const panel = readRepoFile('src/client/ui/layers-panel.js')
-  assert.match(panel, /t\('layers\.details'\)/)
-  assert.match(panel, /t\('hud\.heading'\)/)
-  assert.match(panel, /formatCount\(row\.tiles\)/)
-  assert.match(panel, /formatBytes\(row\.memory\)/)
+  assert.doesNotMatch(panel, /className: 'mv-details'/)
+  assert.match(panel, /t\('sceneDetails\.openHint'\)/)
 })
 
 test('视觉包：四角压暗、卡片入场动效、截图时隐藏新浮层', () => {
@@ -48,7 +52,7 @@ test('视觉包：四角压暗、卡片入场动效、截图时隐藏新浮层',
   }
   assert.match(css, /\.mv-tour\{position:absolute/)
   assert.match(css, /\.mv-caption\{/)
-  assert.match(css, /\.mv-details \.row\{/)
+  assert.match(css, /\.mv-scene-details\{/)
 })
 
 test('指认卡片接线：三个动作都真实可用（无假按钮）', () => {
@@ -126,5 +130,5 @@ test('不回归：v1.6 的 HUD/图层/着色器接线仍在，新增面板未挤
   assert.match(client, /className: 'mv-hud mv-glass'/)
   // The new card renders at the panel root, next to the existing analysis column.
   assert.match(client, /h\(SelectionOverlay, \{/)
-  assert.match(client, /stats,\n\s*onStartTour: tour\.start,/)
+  assert.match(client, /onStartTour: tour\.start,\n\s*onShowSceneDetails: sceneDetails\.open,/)
 })

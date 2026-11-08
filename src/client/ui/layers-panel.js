@@ -18,7 +18,6 @@ import React from 'react'
 
 import { normalizeOverlayDraft } from '../scene/overlay-layers.js'
 import { addBookmark, loadBookmarks, removeBookmark, saveBookmarks, updateBookmarkCaption } from '../scene/bookmarks.js'
-import { formatBytes, formatCount } from '../format.js'
 import { shaderEntrySummary } from './workbench-wiring.js'
 
 const h = React.createElement
@@ -57,8 +56,8 @@ export function LayersPanel({
   onEditLayerShader,
   getCurrentView,
   onFlyView,
-  stats,
   onStartTour,
+  onShowSceneDetails,
 }) {
   const [adding, setAdding] = React.useState(false)
   const [draft, setDraft] = React.useState({ type: 'wms', name: '', url: '', layers: '', opacity: 0.7 })
@@ -139,6 +138,11 @@ export function LayersPanel({
       h(
         'div',
         { className: 'mv-head-actions' },
+        h(
+          'button',
+          { type: 'button', className: 'mv-icon-btn', title: t('sceneDetails.openHint'), 'aria-label': t('sceneDetails.openHint'), onClick: () => onShowSceneDetails?.() },
+          'ⓘ',
+        ),
         layers.length > 0
           ? h('button', { type: 'button', className: 'mv-icon-btn', title: t('layers.frameAll'), 'aria-label': t('layers.frameAll'), onClick: onFrameAll }, '⛶')
           : null,
@@ -400,37 +404,12 @@ export function LayersPanel({
               )
             : null,
           h('button', { type: 'button', className: `mv-icon-btn${layer.visible ? '' : ' on'}`, title: layer.visible ? t('btn.visible') : t('btn.hidden'), onClick: (event) => { stop(event); onToggleLayer(layer.id) } }, layer.visible ? '◉' : '◌'),
+          h('button', { type: 'button', className: 'mv-icon-btn', title: t('sceneDetails.openLayerHint'), 'aria-label': t('sceneDetails.openLayerHint'), onClick: (event) => { stop(event); onShowSceneDetails?.(layer.id) } }, 'ⓘ'),
           h('button', { type: 'button', className: 'mv-icon-btn', title: t('btn.flyTo'), 'aria-label': t('btn.flyTo'), onClick: (event) => { stop(event); onFlyLayer(layer.id) } }, '⌖'),
           h('button', { type: 'button', className: 'mv-icon-btn', title: t('btn.health'), 'aria-label': t('btn.health'), onClick: (event) => { stop(event); onInspectLayer(layer.id) } }, '⌕'),
           h('button', { type: 'button', className: 'mv-icon-btn', title: t('btn.delete'), 'aria-label': t('btn.delete'), onClick: (event) => { stop(event); onRemoveLayer(layer.id) } }, '✕'),
         )
       }),
-      // ---- technical telemetry ----------------------------------------------
-      // v1.7 P0: heading / pitch and the per-layer counters left the HUD so the
-      // instrument keeps at most six numbers; they still have a home here.
-      h('div', { key: 'g7', className: 'mv-group' }, h('div', { className: 'mv-group-title' }, t('layers.details'))),
-      h(
-        'div',
-        { key: 'details', className: 'mv-details' },
-        h(
-          'div',
-          { className: 'row' },
-          h('span', null, `${t('hud.camera')} ${stats?.height ?? '—'}`),
-          h('span', null, `${t('hud.heading')} ${stats?.heading ?? '—'} / ${stats?.pitch ?? '—'}`),
-        ),
-        ...(Array.isArray(stats?.layers) ? stats.layers : []).map((row) =>
-          h(
-            'div',
-            { key: `d-${row.id}`, className: 'row' },
-            h('b', null, row.name),
-            h(
-              'span',
-              null,
-              `${t('hud.tiles')} ${formatCount(row.tiles)} · ${t('hud.pending')} ${formatCount(row.pending)} · ${t('hud.triangles')} ${formatCount(row.triangles)} · ${t('hud.cache')} ${formatBytes(row.memory)}`,
-            ),
-          ),
-        ),
-      ),
     ),
   )
 }

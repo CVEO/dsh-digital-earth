@@ -263,7 +263,7 @@
   .mv-root.mv-docked .mv-shader{top:92px;left:12px;width:min(320px,calc(100% - 24px));max-height:calc(100% - 236px)}
 }
 /* Snapshot mode: the picture is meant to be clean, so every overlay is hidden. */
-.mv-root.mv-capturing .mv-top,.mv-root.mv-capturing .mv-urlbar,.mv-root.mv-capturing .mv-right,.mv-root.mv-capturing .mv-shader,.mv-root.mv-capturing .mv-layers,.mv-root.mv-capturing .mv-analysis,.mv-root.mv-capturing .mv-hud,.mv-root.mv-capturing .mv-attr,.mv-root.mv-capturing .mv-credits,.mv-root.mv-capturing .mv-pick,.mv-root.mv-capturing .mv-measure,.mv-root.mv-capturing .mv-toast,.mv-root.mv-capturing .mv-select,.mv-root.mv-capturing .mv-sel-anchor,.mv-root.mv-capturing .mv-sel-hint,.mv-root.mv-capturing .mv-tour,.mv-root.mv-capturing .mv-overlay,.mv-root.mv-capturing .mv-modal{visibility:hidden!important}
+.mv-root.mv-capturing .mv-top,.mv-root.mv-capturing .mv-urlbar,.mv-root.mv-capturing .mv-right,.mv-root.mv-capturing .mv-shader,.mv-root.mv-capturing .mv-layers,.mv-root.mv-capturing .mv-analysis,.mv-root.mv-capturing .mv-hud,.mv-root.mv-capturing .mv-attr,.mv-root.mv-capturing .mv-credits,.mv-root.mv-capturing .mv-pick,.mv-root.mv-capturing .mv-measure,.mv-root.mv-capturing .mv-toast,.mv-root.mv-capturing .mv-select,.mv-root.mv-capturing .mv-sel-anchor,.mv-root.mv-capturing .mv-sel-hint,.mv-root.mv-capturing .mv-tour,.mv-root.mv-capturing .mv-scene-details,.mv-root.mv-capturing .mv-overlay,.mv-root.mv-capturing .mv-modal{visibility:hidden!important}
 .mv-about{display:flex;flex-direction:column;gap:12px;padding:2px 0;font-size:12px}
 .mv-about .intro{margin:0;color:var(--mv-dim);line-height:1.75}
 .mv-about .row{display:flex;gap:12px;align-items:baseline}
@@ -336,6 +336,19 @@
 .mv-sel-anchor .leader{position:absolute;left:0;top:14px;width:1px;height:52px;background:linear-gradient(180deg,rgba(125,211,252,.9),rgba(125,211,252,.02))}
 .mv-sel-anchor .chip{position:absolute;left:8px;top:38px;padding:2px 6px;border-radius:5px;background:rgba(6,12,20,.78);color:#d8ecff;font:inherit;font-size:10.5px;font-variant-numeric:tabular-nums;white-space:nowrap;border:.5px solid rgba(125,211,252,.35)}
 .mv-select{position:absolute;left:0;right:0;margin:0 auto;bottom:18px;z-index:12;width:min(340px,calc(100% - 20px));border-radius:12px;padding:11px 13px 12px;display:flex;flex-direction:column;gap:7px;animation:mv-fade .2s cubic-bezier(.16,1,.3,1)}
+.mv-scene-details{position:absolute;top:64px;right:12px;z-index:30;width:min(360px,calc(100% - 24px));max-height:calc(100% - 130px);overflow:auto;border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:8px;animation:mv-fade .16s ease-out}
+.mv-scene-details>header{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px;font-weight:600;color:var(--mv-text)}
+.mv-sd-section{display:flex;flex-direction:column;gap:4px;border-top:.5px solid var(--mv-line);padding-top:7px}
+.mv-sd-section:first-of-type{border-top:0;padding-top:0}
+.mv-sd-title{font-size:10.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--mv-dim)}
+.mv-sd-row{display:flex;align-items:baseline;gap:8px;font-size:11.5px}
+.mv-sd-row span{color:var(--mv-dim);flex:none}
+.mv-sd-row b{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mv-sd-layer{display:flex;flex-direction:column;gap:2px;font-size:11.5px;padding:4px 0}
+.mv-sd-layer b{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mv-sd-layer span{color:var(--mv-dim);font-size:10.5px;font-variant-numeric:tabular-nums}
+.mv-sd-empty{font-size:11px;color:var(--mv-dim)}
+.mv-sd-warn{font-size:10.5px;line-height:1.45;color:#f0b84b;margin:0}
 .mv-select header{display:flex;align-items:center;justify-content:space-between;gap:8px;color:var(--mv-dim);font-size:10.5px;letter-spacing:.04em;text-transform:uppercase}
 .mv-select h3{margin:0;font-size:13px;font-weight:600;line-height:1.35;color:var(--mv-text)}
 .mv-select p{margin:0}
@@ -372,10 +385,6 @@
 .mv-caption{background:var(--mv-input);border:.5px solid var(--mv-line);color:var(--mv-text);border-radius:6px;padding:4px 7px;font:inherit;font-size:11px;margin:0 8px 4px;outline:none;min-width:0}
 .mv-caption:focus{border-color:var(--mv-accent)}
 .mv-caption::placeholder{color:color-mix(in srgb,var(--mv-dim) 70%,transparent)}
-.mv-details{padding:2px 6px 6px;display:flex;flex-direction:column;gap:3px}
-.mv-details .row{display:flex;gap:8px;align-items:baseline;font-size:10.5px;line-height:1.5;color:var(--mv-dim);flex-wrap:wrap}
-.mv-details .row b{font-weight:600;color:var(--mv-text);max-width:42%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.mv-details .row span{font-variant-numeric:tabular-nums}
 `
     /**
      * The panel's own stylesheet only exists inside an `mv-root`, but the tool
