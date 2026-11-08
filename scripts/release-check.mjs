@@ -15,7 +15,7 @@
  *   5. the git worktree is clean (warning only) and the intended tag is printed.
  *
  * Usage: npm run release:check
- * The version is intentionally held at 1.5.0; this script enforces whatever
+ * The version is intentionally held at 1.5.1; this script enforces whatever
  * package.json says instead of hard-coding a release number.
  */
 import { execFileSync } from 'node:child_process'

@@ -16,7 +16,7 @@
 
 </div>
 
-![3D Tiles over the CesiumJS globe](https://github.com/CVEO/dsh-digital-earth/raw/main/preview.png)
+![Digital Earth panel: shader workbench, two layer tabs and compass](https://github.com/CVEO/dsh-digital-earth/raw/main/assets/readme/panel-overview.jpg)
 
 Digital Earth is a DeepSeek Harness (DSH) plugin that puts a CesiumJS globe in the workspace, next to the conversation. It lets people browse photogrammetry and Gaussian-splatting deliverables, and it lets the Agent read, drive, measure and analyze that scene in natural language. CesiumJS 1.147 and the UI assets ship with the plugin — no Cesium ion token, no external static assets. Imagery basemaps, terrain and online tiles still reach the services you select.
 

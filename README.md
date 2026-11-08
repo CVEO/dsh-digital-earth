@@ -16,7 +16,7 @@
 
 </div>
 
-![数字地球：3D Tiles 实景城市叠加在 CesiumJS 地球上](https://github.com/CVEO/dsh-digital-earth/raw/main/preview.png)
+![数字地球面板：着色器工作台、两个 Tab 的图层与指南针](https://github.com/CVEO/dsh-digital-earth/raw/main/assets/readme/panel-overview.jpg)
 
 数字地球是 DeepSeek Harness（DSH）的一个插件：把 CesiumJS 三维地球放进工作区，与对话同屏。它既能让工程师浏览实景三维与高斯泼溅成果，也能让 Agent 通过自然语言读取、操控、量测和分析这套场景。CesiumJS 1.147 与界面资源随插件自托管，不需要 Cesium ion Token；影像底图、地形与在线瓦片按你选择的数据源访问网络。
 

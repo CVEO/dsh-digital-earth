@@ -33,7 +33,6 @@ dsh-digital-earth/
 ├── src/client/              # 客户端源码：面板、图层、量测 / 指认、分析、着色器、i18n
 ├── client.js                # 客户端产物（npm run build:client 生成）
 ├── assets/readme/           # README 截图
-├── preview.png              # README 头图
 ├── icon.svg                 # 插件市场图标
 ├── locale/                  # 插件市场元数据（zh / en）
 ├── vendor/cesium/           # 自托管 CesiumJS 1.147
