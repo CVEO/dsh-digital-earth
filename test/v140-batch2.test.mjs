@@ -705,7 +705,7 @@ test('client 分析卡与布局：右上方浮动卡、SVG 剖面、折叠/关�
   const layout = block(client, '.mv-right{', '.mv-analysis .hint{')
   assert.match(layout, /width:min\(300px,calc\(100% - 20px\)\)/)
   assert.match(layout, /max-height:calc\(100% - 150px\)/)
-  assert.match(layout, /\.mv-analysis\{[^}]*max-width:300px/)
+  assert.match(layout, /\.mv-analysis\{[^}]*max-width:100%/)
   assert.match(layout, /max-height:min\(72%,460px\)/)
   assert.match(layout, /\.mv-analysis>header \.title\{[^}]*text-overflow:ellipsis/)
 

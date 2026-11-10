@@ -640,7 +640,7 @@ test('client 工作台：可见图层/五预设可叠加/按预设并集参数/�
   assert.match(client, /onPreset: workbench\.toggle,/)
 })
 
-test('client 工作台 UI：工具栏按钮、可读卡片、三列缩略图、窄宽可滚动、截图隐藏', () => {
+test('client 工作台 UI：工具栏按钮、可读卡片、两列等宽缩略图、窄宽可滚动、截图隐藏', () => {
   assert.match(client, /function ShaderIcon\(/)
   assert.match(client, /h\(ShaderIcon\)/)
   assert.match(client, /shaderOpen \? t\('btn\.shaderHide'\) : t\('btn\.shaderShow'\)/)
@@ -656,7 +656,7 @@ test('client 工作台 UI：工具栏按钮、可读卡片、三列缩略图、�
   assert.match(rule, /max-height:calc\(100% - 150px\)/)
   assert.match(rule, /overflow:hidden/)
   assert.match(client, /\.mv-shader \.body\{[^}]*overflow:auto/)
-  assert.match(client, /\.mv-shader \.presets\{[^}]*grid-template-columns:repeat\(3,1fr\)/)
+  assert.match(client, /\.mv-shader \.presets\{[^}]*grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/)
   assert.match(client, /\.mv-shader \.preset \.thumb\{/)
   assert.match(client, /\.mv-shader \.param \.slider\{/)
   assert.match(client, /\.mv-shader \.order-badge\{/)

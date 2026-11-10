@@ -21,7 +21,7 @@ import {
   sampleLassoPath,
 } from '../src/client/scene/screen-geodesy.js'
 import { getSelectionTool, isSelectionActive, selectionRegion, selectionWaterHeight } from '../src/client/scene/selection-tools.js'
-import { mergeDrawGeoJSON, overlayRowsWithEntities, removeAgentOverlayRows } from '../src/client/scene/agent-overlays.js'
+import { mergeDrawGeoJSON, overlayRowsWithEntities, removeAgentOverlay, removeAgentOverlayRows, resolveOverlayRows } from '../src/client/scene/agent-overlays.js'
 import { clientSource, readRepoFile } from './helpers/source.mjs'
 
 /** Screen (x, y) in CSS pixels → a synthetic ground point: 1 px = 1 m near 0,0. */
@@ -144,11 +144,11 @@ function makeTool(viewer, Cesium, overrides = {}) {
   return { tool, events }
 }
 
-test('屏幕量测：CSS→canvas 缩放、矩形边采样、地面环闭合与 GeoJSON', () => {
+test('屏幕量测：保留 CSS 像素、矩形边采样、地面环闭合与 GeoJSON', () => {
   const Cesium = makeCesium()
   const viewer = makeViewer(Cesium)
   const pixel = canvasPosition(viewer, { x: 250, y: 200 }, Cesium)
-  assert.deepEqual({ x: pixel.x, y: pixel.y }, { x: 500, y: 400 })
+  assert.deepEqual({ x: pixel.x, y: pixel.y }, { x: 250, y: 200 })
 
   const ring = rectScreenRing({ x: 100, y: 100 }, { x: 300, y: 300 }, 6)
   assert.equal(ring.length, 24, '4 edges × 6 samples each')
@@ -168,7 +168,7 @@ test('屏幕量测：CSS→canvas 缩放、矩形边采样、地面环闭合与 
 
 test('天空/地平线命中失败：计数 misses，全部失败时不产出几何', () => {
   const Cesium = makeCesium()
-  const viewer = makeViewer(Cesium, { missAboveX: 500 })
+  const viewer = makeViewer(Cesium, { missAboveX: 250 })
   const ring = rectScreenRing({ x: 100, y: 100 }, { x: 300, y: 300 }, 6)
   const partial = groundRingFromScreen(viewer, Cesium, ring)
   assert.ok(partial.misses > 0)
@@ -243,6 +243,32 @@ test('会话：拖拽提交矩形、导出 GeoJSON、清除后不残留', () => 
   assert.equal(tool.getSelection(), null)
   assert.equal(tool.exportGeoJSON(), null)
   assert.equal(viewer._entities.length, 0, '清除后实体不残留')
+})
+
+test('框选反馈：拖动不反复读取深度，松开按最终位置采样；天空区域保留为可提问的画面范围', () => {
+  const Cesium = makeCesium()
+  const viewer = makeViewer(Cesium)
+  const original = viewer.scene.pickPosition
+  let picks = 0
+  viewer.scene.pickPosition = (position) => { picks++; return original(position) }
+  const { tool, events } = makeTool(viewer, Cesium)
+  tool.start('rect')
+  fire(viewer, Cesium, Cesium.ScreenSpaceEventType.LEFT_DOWN, { position: { x: 100, y: 100 } })
+  fire(viewer, Cesium, Cesium.ScreenSpaceEventType.MOUSE_MOVE, { endPosition: { x: 200, y: 200 } })
+  assert.equal(picks, 0)
+  fire(viewer, Cesium, Cesium.ScreenSpaceEventType.LEFT_UP, { position: { x: 300, y: 300 } })
+  assert.ok(picks >= 24 && picks <= 128)
+  assert.equal(events.commits[0].approximate, true)
+  assert.equal(events.commits[0].source, 'screen-visible-surface')
+  assert.equal(viewer._entities.find((item) => item.polyline).polyline.clampToGround, true)
+  tool.start('rect')
+  viewer.scene.pickPosition = () => null
+  fire(viewer, Cesium, Cesium.ScreenSpaceEventType.LEFT_DOWN, { position: { x: 100, y: 100 } })
+  fire(viewer, Cesium, Cesium.ScreenSpaceEventType.LEFT_UP, { position: { x: 300, y: 300 } })
+  assert.equal(tool.getSelection().kind, 'screen')
+  assert.equal(tool.exportGeoJSON(), null)
+  assert.equal(tool.getSelection().area_m2, undefined)
+  assert.equal(viewer._controller.enableRotate, true)
 })
 
 test('会话：右键取消恢复相机、不提交；再次框选替换旧结果', () => {
@@ -461,6 +487,35 @@ test('对象框选：投影命中已有标注，批量选择/删除，不新增�
   tool.clear()
 })
 
+test('对象选择：列表变动后导出和删除仍指向原对象，失效选择不会删除新对象', () => {
+  const Cesium = makeCesium()
+  const viewer = makeViewer(Cesium)
+  const commands = ['A', 'B', 'C'].map((name) => ({
+    caption: name,
+    drawn: 1,
+    geojson: { type: 'Feature', properties: { name }, geometry: { type: 'Point', coordinates: [0, 0] } },
+  }))
+  const state = { drawCommands: commands.slice(), measureCommands: [], draw: [], measure: [], drawnFeatures: 3, measuredCount: 0, entityGroups: new WeakMap() }
+  commands.forEach((command, index) => state.entityGroups.set(command, [{ position: { screen: { x: index === 1 ? 150 : 500, y: 150 } } }]))
+  const { tool } = makeTool(viewer, Cesium, { getOverlayRows: () => overlayRowsWithEntities(state) })
+  tool.start('objects')
+  fire(viewer, Cesium, Cesium.ScreenSpaceEventType.LEFT_DOWN, { position: { x: 100, y: 100 } })
+  fire(viewer, Cesium, Cesium.ScreenSpaceEventType.LEFT_UP, { position: { x: 200, y: 200 } })
+  const selected = tool.getSelection().rows
+  assert.equal(selected.length, 1)
+  assert.equal(selected[0].label, 'B')
+  removeAgentOverlay(state, viewer, 'draw', 0)
+  const exported = mergeDrawGeoJSON(resolveOverlayRows(selected, overlayRowsWithEntities(state)))
+  assert.deepEqual(exported.features, [commands[1].geojson])
+  assert.equal(removeAgentOverlayRows(state, viewer, [...selected, ...selected]), 1)
+  assert.deepEqual(state.drawCommands.map((command) => command.caption), ['C'])
+  assert.equal(removeAgentOverlayRows(state, viewer, selected), 0)
+  assert.equal(mergeDrawGeoJSON(resolveOverlayRows(selected, overlayRowsWithEntities(state))), null)
+  state.drawCommands = commands.map((command) => ({ ...command }))
+  assert.equal(removeAgentOverlayRows(state, viewer, selected), 0)
+  tool.dispose()
+})
+
 test('对象导出：合并选中标注的 GeoJSON，量测不参与', () => {
   const rows = [
     {
@@ -521,7 +576,8 @@ test('接线：工具卡包含选择工具，ViewerSurface 在选择时让出画
   assert.match(viewer, /showToast,/)
   assert.match(tools, /getOverlayRows/)
   assert.match(tools, /onRemoveOverlayRows/)
-  assert.match(viewer, /getOverlayRows: \(\) => overlayRowsWithEntities/)
+  assert.match(viewer, /getOverlayRows: \(\) => \{/)
+  assert.match(viewer, /manualMeasurementRow\(measureRef\.current\.entities/)
   assert.match(viewer, /removeAgentOverlayRows/)
   const selectionTool = readRepoFile('src/client/ui/selection-tool.js')
   assert.match(selectionTool, /selection\.objects/)

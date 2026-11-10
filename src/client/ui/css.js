@@ -6,10 +6,13 @@
  */
 
 import { VECTOR_CSS } from './vector-css.js'
+import { VISION_CSS } from './vision-css.js'
+import { SELECTION_QUESTION_CSS } from './selection-question-css.js'
 
     const CSS = `
 .mv-root{position:relative;flex:1 1 0;min-height:0;overflow:hidden;background:var(--mv-bg);color:var(--mv-text);font:12px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;--mv-bg:var(--dsw-alias-bg-base,#fff);--mv-text:var(--dsw-alias-label-primary,#0f1115);--mv-dim:var(--dsw-alias-label-secondary,#5b6068);--mv-line:var(--dsw-alias-border-l2,#0000001a);--mv-accent:var(--dsw-alias-state-business-primary,#4176e6);--mv-profile-line:#1d4ed8;--mv-profile-design:#c2610a;--mv-lift:var(--dsw-alias-interactive-bg-hover,#2631480f);--mv-glass:color-mix(in srgb,var(--dsw-alias-bg-layer-1,#fff) 88%,transparent);--mv-glass-strong:var(--dsw-alias-bg-layer-1,#fff);--mv-input:var(--dsw-alias-interactive-bg-hover,#2631480f);--mv-shadow:0 8px 28px rgba(15,23,42,.18);--mv-attrib:rgba(255,255,255,.62);--mv-attrib-shadow:0 1px 2px rgba(0,0,0,.6);--mv-overlay:transparent;--mv-scrim:rgba(24,34,50,.28)}
-.mv-root[data-mv-scheme="dark"]{--mv-attrib:rgba(255,255,255,.62);--mv-attrib-shadow:0 1px 2px rgba(0,0,0,.6);--mv-overlay:transparent;--mv-scrim:rgba(3,7,13,.62)}
+.mv-root[data-mv-scheme="dark"]{--mv-attrib:rgba(255,255,255,.62);--mv-attrib-shadow:0 1px 2px rgba(0,0,0,.6);--mv-overlay:transparent;--mv-scrim:rgba(3,7,13,.62);color-scheme:dark}
+.mv-root[data-mv-scheme="light"]{color-scheme:light}
 .mv-root[data-mv-theme="dark"]{--mv-bg:#151517;--mv-text:#ebeef2;--mv-dim:#adb2b8;--mv-line:#ffffff1f;--mv-accent:#7aaaff;--mv-profile-line:#8ab4ff;--mv-profile-design:#f0a04b;--mv-lift:#ffffff14;--mv-glass:rgba(21,21,23,.82);--mv-glass-strong:#232324;--mv-input:#ffffff14;--mv-shadow:0 8px 28px rgba(0,0,0,.34);color-scheme:dark}
 .mv-root[data-mv-theme="light"]{--mv-bg:#fff;--mv-text:#0f1115;--mv-dim:#5b6068;--mv-line:#0000001a;--mv-accent:#4176e6;--mv-profile-line:#1d4ed8;--mv-profile-design:#c2610a;--mv-lift:#2631480f;--mv-glass:rgba(255,255,255,.86);--mv-glass-strong:#fff;--mv-input:#2631480f;--mv-shadow:0 8px 28px rgba(15,23,42,.16);color-scheme:light}
 /* DOM fullscreen: the panel root owns the whole screen, so the flex sizing of
@@ -53,15 +56,26 @@ import { VECTOR_CSS } from './vector-css.js'
 .mv-urlbar button:hover{border-color:var(--mv-accent)}
 /* Right-hand floating column: the analysis card (Agent result) and the layer
    card share one stack so a new analysis never overlaps the layers list. */
-.mv-right{position:absolute;top:60px;right:10px;width:min(300px,calc(100% - 20px));max-height:calc(100% - 150px);display:flex;flex-direction:column;gap:10px;z-index:9;pointer-events:none}
-.mv-right>*{pointer-events:auto}
+.mv-right{position:absolute;top:60px;right:10px;width:min(300px,calc(100% - 20px));max-height:calc(100% - 150px);display:flex;flex-direction:column;gap:10px;z-index:9;pointer-events:none;overflow-y:auto;overflow-x:hidden;scrollbar-width:thin}
+.mv-right>*{pointer-events:auto;box-sizing:border-box;max-width:100%}
 .mv-card{background:var(--mv-glass);border:.5px solid var(--mv-line);box-shadow:var(--mv-shadow);border-radius:13px}
+/* Workbench resize grips: thin transparent edges, visible only on hover/focus. */
+.mv-resize-handle{position:absolute;z-index:40;touch-action:none;background:transparent;pointer-events:auto}
+.mv-resize-width{top:0;bottom:0;width:8px;cursor:ew-resize}
+.mv-resize-left{left:0}
+.mv-resize-right{right:0}
+.mv-resize-height{left:0;right:0;height:8px;cursor:ns-resize}
+.mv-resize-bottom{bottom:0}
+.mv-resize-corner{right:0;bottom:0;width:16px;height:16px;cursor:nwse-resize}
+.mv-resize-handle:hover,.mv-resize-handle:focus-visible{background:color-mix(in srgb,var(--mv-accent) 28%,transparent);outline:none}
+.mv-resize-handle:focus-visible{box-shadow:inset 0 0 0 1px var(--mv-accent)}
+.mv-tools,.mv-layers,.mv-analysis{position:relative}
 .mv-layers{width:100%;min-height:0;flex:1 1 auto;display:flex;flex-direction:column;border-radius:13px;overflow:hidden}
 /* Tools card: functions (measure / analysis / sun / effects / views) live here,
    never in the layer card. It caps its height so the layer list keeps room. */
 .mv-tools{width:100%;flex:0 1 auto;min-height:0;max-height:min(52%,400px);display:flex;flex-direction:column;border-radius:13px;overflow:hidden}
-.mv-tools>header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;font-size:13px;font-weight:600;color:var(--mv-text);border-bottom:.5px solid var(--mv-line)}
-.mv-tools .mv-tool-list{overflow:auto;padding:4px 10px 12px;min-height:0;overscroll-behavior:contain;scrollbar-width:thin}
+.mv-tools>header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;font-size:13px;font-weight:600;color:var(--mv-text);border-bottom:.5px solid var(--mv-line);flex-shrink:0}
+.mv-tools .mv-tool-list{overflow:auto;padding:4px 10px 10px;min-height:0;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-gutter:stable}
 .mv-tool-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin:3px 0 6px}
 .mv-tool-grid .mv-cta{padding:6px 8px;font-size:11px}
 /* Box-selection readout inside the Tools card (canvas gesture → area/GeoJSON). */
@@ -70,7 +84,7 @@ import { VECTOR_CSS } from './vector-css.js'
 .mv-selection .stat b{color:var(--mv-text);font-weight:600;font-variant-numeric:tabular-nums}
 .mv-selection-actions{display:flex;gap:5px;flex-wrap:wrap}
 .mv-selection-actions .mv-cta{flex:1;min-width:0;padding:6px 8px;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.mv-analysis{flex:0 1 auto;min-height:0;max-height:min(72%,460px);width:100%;max-width:300px;display:flex;flex-direction:column;overflow:hidden}
+.mv-analysis{flex:0 1 auto;min-height:0;max-height:min(72%,460px);width:100%;max-width:100%;display:flex;flex-direction:column;overflow:hidden}
 /* The chart is the first body child now; a docked (narrow) panel still gets the
    taller cap so the profile thumbnail is never squeezed to zero. */
 .mv-root.mv-docked .mv-analysis{max-height:min(72%,460px)}
@@ -121,8 +135,7 @@ import { VECTOR_CSS } from './vector-css.js'
 .mv-sun-note.mv-sun-night{color:color-mix(in srgb,var(--mv-dim) 70%,var(--mv-accent) 30%)}
 .mv-sun-note.mv-sun-alert{color:var(--mv-accent)}
 /* Shader workbench (B3): one compact card on the left, never wider than 320px. */
-.mv-shader{position:absolute;top:60px;left:10px;width:min(340px,calc(100% - 20px));max-height:calc(100% - 150px);z-index:14;display:flex;flex-direction:column;overflow:hidden;border-radius:14px;--shader-mint:#3ddc97;background:color-mix(in srgb,var(--mv-glass-strong) 94%,#0a0f15 6%);backdrop-filter:blur(14px) saturate(1.08);-webkit-backdrop-filter:blur(14px) saturate(1.08);border:.5px solid color-mix(in srgb,var(--mv-line) 65%,transparent);box-shadow:0 24px 64px rgba(2,8,20,.35)}
-.mv-shader>header{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:.5px solid var(--mv-line);background:linear-gradient(180deg,color-mix(in srgb,var(--shader-mint) 7%,transparent),transparent)}
+.mv-shader{position:absolute;top:60px;left:10px;width:min(340px,calc(100% - 20px));max-height:calc(100% - 150px);z-index:14;display:flex;flex-direction:column;overflow:hidden;border-radius:14px;--shader-mint:#3ddc97;background:color-mix(in srgb,var(--mv-glass-strong) 94%,#0a0f15 6%);backdrop-filter:blur(14px) saturate(1.08);-webkit-backdrop-filter:blur(14px) saturate(1.08);border:.5px solid color-mix(in srgb,var(--mv-line) 65%,transparent);box-shadow:0 24px 64px rgba(2,8,20,.35)}.mv-shader>header{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:.5px solid var(--mv-line);background:linear-gradient(180deg,color-mix(in srgb,var(--shader-mint) 7%,transparent),transparent)}
 .mv-shader>header .title{flex:none;font-size:13px;font-weight:650;letter-spacing:.01em}
 .mv-shader>header .subtitle{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;color:var(--mv-dim)}
 .mv-shader .body{padding:12px 13px 14px;overflow:auto;display:flex;flex-direction:column;gap:11px;min-height:0}
@@ -139,14 +152,11 @@ import { VECTOR_CSS } from './vector-css.js'
 .mv-shader .param .slider::-webkit-slider-thumb{appearance:none;-webkit-appearance:none;width:13px;height:13px;border-radius:50%;background:var(--shader-mint);border:2px solid #0b1512;box-shadow:0 1px 4px rgba(0,0,0,.35);cursor:pointer}
 .mv-shader .param .slider::-moz-range-thumb{width:12px;height:12px;border-radius:50%;background:var(--shader-mint);border:2px solid #0b1512;cursor:pointer}
 .mv-shader .param .number{padding:5px 6px;text-align:right;font-size:11.5px}
-.mv-shader .presets{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
-/* Four primary looks over three columns: the fourth chip spans the full row so the
-   grid reads as 3+1 instead of leaving two empty cells. */
-.mv-shader .presets.primary .preset:nth-child(4){grid-column:1/-1}
+.mv-shader .presets{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:1fr;gap:8px}
 .mv-shader .preset{position:relative;display:flex;flex-direction:column;gap:5px;appearance:none;border:.5px solid var(--mv-line);background:color-mix(in srgb,var(--mv-input) 82%,transparent);color:var(--mv-dim);font:inherit;font-size:11px;padding:5px;border-radius:9px;cursor:pointer;text-align:left;min-width:0}
-.mv-shader .preset .thumb{display:block;height:36px;border-radius:6px;overflow:hidden;background:#0a1018;border:.5px solid color-mix(in srgb,var(--mv-line) 60%,transparent)}
+.mv-shader .preset .thumb{display:block;height:48px;flex-shrink:0;border-radius:6px;overflow:hidden;background:#0a1018;border:.5px solid color-mix(in srgb,var(--mv-line) 60%,transparent)}
 .mv-shader .preset .thumb-svg{display:block;width:100%;height:100%}
-.mv-shader .preset .preset-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10.5px;color:var(--mv-dim)}
+.mv-shader .preset .preset-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;line-height:1.5;color:var(--mv-dim)}
 .mv-shader .preset:hover{border-color:color-mix(in srgb,var(--shader-mint) 40%,var(--mv-line));color:var(--mv-text)}
 .mv-shader .preset.on{border-color:var(--shader-mint);background:color-mix(in srgb,var(--shader-mint) 12%,transparent);box-shadow:0 0 0 1px color-mix(in srgb,var(--shader-mint) 55%,transparent),0 6px 18px rgba(0,0,0,.25);color:var(--mv-text)}
 .mv-shader .preset.on .preset-name{color:var(--mv-text);font-weight:600}
@@ -398,7 +408,7 @@ import { VECTOR_CSS } from './vector-css.js'
 .mv-sel-anchor .c.br{left:15px;top:15px;border-left:0;border-top:0}
 .mv-sel-anchor .leader{position:absolute;left:0;top:14px;width:1px;height:52px;background:linear-gradient(180deg,rgba(125,211,252,.9),rgba(125,211,252,.02))}
 .mv-sel-anchor .chip{position:absolute;left:8px;top:38px;padding:2px 6px;border-radius:5px;background:rgba(6,12,20,.78);color:#d8ecff;font:inherit;font-size:10.5px;font-variant-numeric:tabular-nums;white-space:nowrap;border:.5px solid rgba(125,211,252,.35)}
-.mv-select{position:absolute;left:0;right:0;margin:0 auto;bottom:18px;z-index:12;width:min(340px,calc(100% - 20px));border-radius:12px;padding:11px 13px 12px;display:flex;flex-direction:column;gap:7px;animation:mv-fade .2s cubic-bezier(.16,1,.3,1)}
+.mv-select{position:absolute;box-sizing:border-box;left:0;right:0;margin:0 auto;bottom:18px;z-index:12;width:min(360px,calc(100% - 24px));max-height:calc(100% - 132px);overflow:auto;overscroll-behavior:contain;scrollbar-width:thin;border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:9px;animation:mv-fade .16s cubic-bezier(.16,1,.3,1)}
 .mv-scene-details{position:absolute;top:64px;right:12px;z-index:30;width:min(360px,calc(100% - 24px));max-height:calc(100% - 130px);overflow:auto;border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:8px;animation:mv-fade .16s ease-out}
 .mv-scene-details>header{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px;font-weight:600;color:var(--mv-text)}
 .mv-sd-section{display:flex;flex-direction:column;gap:4px;border-top:.5px solid var(--mv-line);padding-top:7px}
@@ -413,7 +423,7 @@ import { VECTOR_CSS } from './vector-css.js'
 .mv-sd-empty{font-size:11px;color:var(--mv-dim)}
 .mv-sd-warn{font-size:10.5px;line-height:1.45;color:#f0b84b;margin:0}
 .mv-select header{display:flex;align-items:center;justify-content:space-between;gap:8px;color:var(--mv-dim);font-size:10.5px;letter-spacing:.04em;text-transform:uppercase}
-.mv-select h3{margin:0;font-size:13px;font-weight:600;line-height:1.35;color:var(--mv-text)}
+.mv-select h3{margin:0;font-size:15px;font-weight:600;line-height:1.4;color:var(--mv-text);overflow-wrap:anywhere}
 .mv-select p{margin:0}
 .mv-select .layer{font-size:11px;color:var(--mv-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mv-select .facts{display:flex;flex-direction:column;gap:4px;border-top:.5px solid var(--mv-line);border-bottom:.5px solid var(--mv-line);padding:7px 0}
@@ -432,7 +442,7 @@ import { VECTOR_CSS } from './vector-css.js'
 .mv-sel-conf.low{color:#ff8b8b}
 .mv-select .sampling{font-size:10px;color:var(--mv-dim);line-height:1.45}
 .mv-select .footnote{margin:0;font-size:9.5px;line-height:1.45;color:color-mix(in srgb,var(--mv-dim) 78%,transparent)}
-.mv-select .actions{display:flex;gap:6px;margin-top:2px}
+.mv-select .actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:2px}
 .mv-select .actions .mv-cta{flex:1;padding:6px 8px;font-size:11.5px;white-space:nowrap}
 .mv-select .actions .mv-cta:disabled{opacity:.5;cursor:default}
 .mv-select-loading{flex-direction:row;align-items:center;gap:9px;font-size:11.5px;color:var(--mv-dim)}
@@ -453,7 +463,49 @@ import { VECTOR_CSS } from './vector-css.js'
 .mv-caption{background:var(--mv-input);border:.5px solid var(--mv-line);color:var(--mv-text);border-radius:6px;padding:4px 7px;font:inherit;font-size:11px;margin:0 8px 4px;outline:none;min-width:0}
 .mv-caption:focus{border-color:var(--mv-accent)}
 .mv-caption::placeholder{color:color-mix(in srgb,var(--mv-dim) 70%,transparent)}
+.mv-tool-group{display:block;padding:8px 0 4px;border-top:.5px solid var(--mv-line);min-width:0}
+.mv-tool-group:first-child{border-top:0;padding-top:4px}
+.mv-tool-group>.mv-group-title{display:block;margin:0 0 5px;font-size:11px;line-height:1.4;color:var(--mv-dim);font-weight:600}
+.mv-tool-group-body{display:flex;flex-direction:column;gap:5px;min-width:0}
+.mv-tool-group-body>.mv-none,.mv-tool-group-body .mv-selection>.mv-none{margin:0;padding:1px 0 1px 8px;border-left:2px solid color-mix(in srgb,var(--mv-accent) 28%,var(--mv-line));font-size:11px;line-height:1.5;overflow-wrap:break-word}
+.mv-tool-group-body>.mv-tool-grid{margin:3px 0 6px}
+.mv-tool-group-body .mv-cta,.mv-selection-actions .mv-cta{box-sizing:border-box;min-height:0;font-size:11px;line-height:1.4}
+.mv-tools .mv-cta{border:.5px solid var(--mv-line);border-radius:8px;box-shadow:none;word-break:normal}
+.mv-tools .mv-cta[aria-pressed="true"]{border-color:var(--mv-accent);background:color-mix(in srgb,var(--mv-accent) 13%,var(--mv-glass));color:var(--mv-text);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--mv-accent) 22%,transparent)}
+.mv-tool-group-body>.mv-cta{width:100%;white-space:normal;text-wrap:pretty;padding:5px 8px}
+.mv-tool-group-body .mv-selection{margin:0;gap:5px;min-width:0}
+.mv-selection-modes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}
+.mv-selection-modes .mv-cta{width:100%;padding:6px 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mv-tools .mv-group-actions{display:flex;gap:6px}
+.mv-tools .mv-sun{margin:0}
+.mv-bookmark-name{appearance:none;background:transparent;border:0;color:inherit;font:inherit;text-align:left;cursor:pointer;padding:4px 0}
+.mv-root :is(button,input,select,textarea):focus-visible{outline:2px solid var(--mv-accent);outline-offset:2px}
+.mv-data-panel{display:flex;flex-direction:column;min-height:0;overflow:auto;overscroll-behavior:contain}
+.mv-select>*{flex-shrink:0}
+.mv-select .layer,.mv-select .prop,.mv-select .fact{font-size:12px}
+.mv-select .sampling,.mv-select .footnote,.mv-select .props-title,.mv-select .fact em{font-size:11px;line-height:1.5;color:var(--mv-dim)}
+.mv-select .fact .mv-sel-conf{font-size:11px;line-height:1.2}
+.mv-root .mv-sel-conf.high{color:light-dark(#167344,#76e0a4)}
+.mv-root .mv-sel-conf.medium{color:light-dark(#8a5208,#f0be65)}
+.mv-root .mv-sel-conf.low{color:light-dark(#b52b35,#ffadb4)}
 ${VECTOR_CSS}
+${VISION_CSS}
+${SELECTION_QUESTION_CSS}
+@container (max-width:480px){
+  .mv-root.mv-docked .mv-right{left:12px;right:12px;width:auto;max-height:calc(100% - 132px)}
+  .mv-root.mv-docked .mv-shader{box-sizing:border-box;left:12px;right:12px;width:auto;max-height:calc(100% - 132px)}
+  .mv-root.mv-docked .mv-tools{max-height:none}
+  .mv-root .mv-select,.mv-root .mv-vector-card{left:12px;right:12px;width:auto;margin:0;bottom:16px;max-height:calc(100% - 132px)}
+  .mv-root:has(.mv-shader) .mv-right,.mv-root:has(.mv-select) .mv-right,.mv-root:has(.mv-select) .mv-shader{visibility:hidden;pointer-events:none}
+  .mv-root:has(.mv-vector-card) :is(.mv-right,.mv-shader,.mv-select),.mv-root:has(.mv-scene-details) :is(.mv-right,.mv-shader,.mv-select,.mv-vector-card){visibility:hidden;pointer-events:none}
+  .mv-root .mv-select .actions .mv-cta{flex:1 1 100px;min-height:36px}
+}
+@media(pointer:coarse){
+  .mv-root .mv-icon-btn{width:44px;height:44px}
+  .mv-root .mv-layer{flex-wrap:wrap}
+  .mv-root .mv-cta,.mv-root .mv-layer-tab{min-height:44px}
+}
+@media(prefers-reduced-motion:reduce){.mv-root *,.mv-root *::before,.mv-root *::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 `
     /**
      * The panel's own stylesheet only exists inside an `mv-root`, but the tool

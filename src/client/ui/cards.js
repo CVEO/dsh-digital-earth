@@ -9,6 +9,7 @@ import { formatDistance, formatHeight } from '../format.js'
 import { profileCsv, profileMetrics, profileSvg } from '../analysis/profile-metrics.js'
 import { SHADER_PRIMARY_PRESETS } from '../shader/presets.js'
 import { ElevationLegend, elevationSliderBounds, useShaderElevation } from './shader-elevation.js'
+import { ResizeHandle, usePanelResize } from './resizable.js'
 
 const h = React.createElement
 
@@ -117,13 +118,23 @@ const h = React.createElement
 
     /** Full-size profile preview; the card keeps a thumbnail that opens this. */
     function ProfileChartDialog({ metrics, t, onClose }) {
+      const dialogRef = React.useRef(null)
       React.useEffect(() => {
+        const previous = document.activeElement
+        dialogRef.current?.focus()
         const onKey = (event) => {
-          if (event.key === 'Escape') onClose()
+          if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); onClose() }
+          if (event.key === 'Tab') {
+            const buttons = [...(dialogRef.current?.querySelectorAll('button:not([disabled]),[href],input,select,textarea,[tabindex="0"]') ?? [])]
+            const first = buttons[0], last = buttons.at(-1)
+            if (!first) { event.preventDefault(); return }
+            if (event.shiftKey && (document.activeElement === first || document.activeElement === dialogRef.current)) { event.preventDefault(); last.focus() }
+            else if (!event.shiftKey && (document.activeElement === last || document.activeElement === dialogRef.current)) { event.preventDefault(); first.focus() }
+          }
         }
-        document.addEventListener('keydown', onKey)
-        return () => document.removeEventListener('keydown', onKey)
-      }, [onClose])
+        document.addEventListener('keydown', onKey, true)
+        return () => { document.removeEventListener('keydown', onKey, true); if (previous?.isConnected) previous.focus() }
+      }, [])
 
       const svg = profileSvg(metrics, profileChartLabels(t))
       const src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
@@ -135,7 +146,7 @@ const h = React.createElement
         },
         h(
           'div',
-          { className: 'mv-chart-dialog', role: 'dialog', 'aria-modal': true, 'aria-labelledby': 'mv-chart-title' },
+          { ref: dialogRef, tabIndex: -1, className: 'mv-chart-dialog', role: 'dialog', 'aria-modal': true, 'aria-labelledby': 'mv-chart-title' },
           h(
             'header',
             null,
@@ -177,6 +188,7 @@ const h = React.createElement
       const [profileMode, setProfileMode] = React.useState('grade')
       const [profileWidth, setProfileWidth] = React.useState(7)
       const [chartOpen, setChartOpen] = React.useState(false)
+      const resize = usePanelResize({ storageKey: 'analysis', initialHeight: null, minHeight: 180, maxHeight: 680 })
       if (!state || !state.result) return null
       const result = state.result
       const operation = state.operation
@@ -277,7 +289,7 @@ const h = React.createElement
       }
       return h(
         'div',
-        { className: 'mv-card mv-analysis', role: 'region', 'aria-label': t(`analysis.title.${operation}`) },
+        { className: 'mv-card mv-analysis', ref: resize.ref, style: resize.style, role: 'region', 'aria-label': t(`analysis.title.${operation}`) },
         h(
           'header',
           null,
@@ -393,6 +405,14 @@ const h = React.createElement
         chartOpen && showProfile
           ? h(ProfileChartDialog, { key: 'chart-dialog', metrics: profile, t, onClose: () => setChartOpen(false) })
           : null,
+        h(ResizeHandle, {
+          axis: 'height',
+          edge: 'bottom',
+          label: t('resize.height'),
+          value: resize.size.height,
+          onPointerDown: resize.beginHeight,
+          onKeyDown: resize.keyHeight,
+        }),
       )
     }
     //#endregion analysis card
@@ -423,6 +443,15 @@ const h = React.createElement
       onResetLayer,
       onResetAll,
     }) {
+      const resize = usePanelResize({
+        storageKey: 'shader',
+        widthDirection: 'right',
+        initialWidth: 340,
+        minWidth: 260,
+        maxWidth: 720,
+        minHeight: 220,
+        maxHeight: 760,
+      })
       const visibleLayers = layers.filter((layer) => layer.visible)
       // form.preset is a string for one preset or an ordered array for a stack;
       // the helper keeps the rest of the card stack-agnostic.
@@ -710,7 +739,7 @@ const h = React.createElement
 
       return h(
         'div',
-        { className: 'mv-card mv-shader', role: 'region', 'aria-label': t('shader.title') },
+        { className: 'mv-card mv-shader', ref: resize.ref, style: resize.style, role: 'region', 'aria-label': t('shader.title') },
         h(
           'header',
           null,
@@ -821,6 +850,14 @@ const h = React.createElement
           ),
           visibleLayers.length === 0 ? h('p', { className: 'hint' }, t('shader.noLayers')) : null,
         ),
+        h(ResizeHandle, {
+          axis: 'corner',
+          edge: 'corner',
+          label: t('resize.size'),
+          value: resize.size.width,
+          onPointerDown: resize.beginCorner,
+          onKeyDown: resize.keyWidth,
+        }),
       )
     }
     //#endregion shader workbench

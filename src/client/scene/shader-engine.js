@@ -1,17 +1,13 @@
 /**
  * scene/shader-engine.js — the four whitelisted 3D Tiles look presets.
  *
- * Extracted verbatim from ViewerSurface in v1.6 Phase 2: one active preset per
- * layer, a single u_time tick shared by every animated preset, the original
- * customShader kept per layer for reset, and the bridge command entry
- * (apply / reset / list). The block text is unchanged so the existing structural
- * tests and the frozen B3 error wording keep working.
- *
  * Dependencies are injected (lazy ref getters + the two state refs + the layer
  * resolver), so the module never holds a stale viewer across panel remounts.
  */
 import { samePresetStack, shaderFail, shaderFragmentSource, shaderHeightRange, SHADER_PRESETS, shaderGaussianLayer, shaderUniforms, shaderValidateRequest } from '../shader/presets.js'
 import { message } from '../format.js'
+
+const comparisonSessions = new WeakMap()
 
 /**
  * @param {object} deps
@@ -33,7 +29,8 @@ export function createShaderEngine(deps) {
   const shaderTickRef = deps.tickRef
   const setShaderActive = deps.setShaderActive
   /** layer id -> { original } while the workbench previews the un-shaded look. */
-  const comparisons = new Map()
+  if (!comparisonSessions.has(shaderEntriesRef)) comparisonSessions.set(shaderEntriesRef, new Map())
+  const comparisons = comparisonSessions.get(shaderEntriesRef)
   /** How the last resolveShaderLayer() found its target: 'auto' or 'layer'. */
   let shaderResolveMode = 'auto'
 

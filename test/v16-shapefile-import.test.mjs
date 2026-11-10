@@ -135,7 +135,7 @@ test('点 + DBF：坐标、bbox、属性与名称回退', () => {
   assert.equal(parsed.geojson.features[0].properties.NAME, 'BuildingA')
   assert.equal(parsed.geojson.features[0].properties.name, 'BuildingA')
   assert.deepEqual(parsed.bbox, { west: 3.17, south: 45.79, east: 3.17, north: 45.79 })
-  assert.deepEqual(parsed.warnings, [])
+  assert.deepEqual(parsed.warnings, ['vector.warning.assumedWgs84'])
 })
 
 test('折线/多边形/多点：parts 拆分与环方向', () => {
@@ -170,6 +170,74 @@ test('DBF 独立解析：文本/数值/布尔与删除标记', () => {
   assert.equal(rows[0].NAME, 'A')
   assert.equal(rows[0].HEIGHT, 12.5)
   assert.equal(rows[0].OK, true)
+})
+
+test('DBF 删除槽位保持原记录对齐，删除记录对应几何跳过', () => {
+  const dbf = dbfFile([{ NAME: 'A' }, { NAME: 'B' }, { NAME: 'C' }])
+  const view = new DataView(dbf)
+  view.setUint8(view.getUint16(8, true) + view.getUint16(10, true), 0x2a)
+  assert.equal(parseDbf(dbf)[1], null)
+  const parsed = parseShapefile(shpFile(1, [pointContent(1, 1), pointContent(2, 2), pointContent(3, 3)]), dbf)
+  assert.deepEqual(parsed.geojson.features.map((feature) => [feature.geometry.coordinates[0], feature.properties.NAME]), [[1, 'A'], [3, 'C']])
+})
+
+test('SHP 局部记录不能跨记录取坐标，Z 必需字段和 parts 起点严格验证', () => {
+  const short = new Uint8Array(4)
+  new DataView(short.buffer).setInt32(0, 1, true)
+  assert.throws(() => parseShapefile(shpFile(1, [short, pointContent(1, 2)])), /记录长度/)
+  const z = pointContent(1, 2)
+  new DataView(z.buffer).setInt32(0, 11, true)
+  assert.throws(() => parseShapefile(shpFile(11, [z])), /记录长度/)
+  assert.throws(() => parseShapefile(shpFile(3, [partsContent(3, [1], [[0, 0], [1, 1]])])), /首索引/)
+  const validZ = new Uint8Array(28)
+  validZ.set(z)
+  assert.equal(parseShapefile(shpFile(11, [validZ])).featureCount, 1)
+})
+
+test('洞按包含关系归属，环顺序变化不改变拓扑', () => {
+  const outerA = [[0, 0], [0, 10], [10, 10], [10, 0], [0, 0]]
+  const outerB = outerA.map(([lon, lat]) => [lon + 20, lat])
+  const hole = [[2, 2], [4, 2], [4, 4], [2, 4], [2, 2]]
+  for (const rings of [[outerA, outerB, hole], [hole, outerB, outerA]]) {
+    const parsed = parseShapefile(shpFile(5, [partsContent(5, [0, 5, 10], rings.flat())]))
+    const withHole = parsed.geojson.features.find((feature) => feature.geometry.coordinates.length === 2)
+    assert.ok(withHole)
+    assert.ok(withHole.geometry.coordinates[0].every(([lon]) => lon <= 10))
+  }
+})
+
+test('Z/M 负载：接受完整或省略的可选 M，拒绝半截数组和跨记录补齐', () => {
+  const points = [[1, 2], [3, 4]]
+  const extend = (bytes, extra) => {
+    const result = new Uint8Array(bytes.length + extra)
+    result.set(bytes)
+    return result
+  }
+  for (const type of [13, 23]) {
+    const xy = partsContent(type, [0], points)
+    const minimum = type === 13 ? extend(xy, 16 + points.length * 8) : xy
+    for (const record of [minimum, extend(minimum, 16 + points.length * 8)]) {
+      const parsed = parseShapefile(shpFile(type, [record]))
+      assert.deepEqual(parsed.geojson.features[0].geometry.coordinates, points)
+      assert.ok(parsed.warnings.includes('vector.warning.flattened'))
+    }
+    assert.throws(() => parseShapefile(shpFile(type, [extend(minimum, 8), pointContent(1, 2)])), /Z\/M/)
+  }
+  const pointZ = extend(pointContent(1, 2), 8)
+  new DataView(pointZ.buffer).setInt32(0, 11, true)
+  assert.equal(parseShapefile(shpFile(11, [extend(pointZ, 8)])).featureCount, 1)
+  assert.throws(() => parseShapefile(shpFile(11, [extend(pointZ, 4)])), /Z\/M/)
+  const pointM = extend(pointContent(1, 2), 8)
+  new DataView(pointM.buffer).setInt32(0, 21, true)
+  assert.equal(parseShapefile(shpFile(21, [pointM])).featureCount, 1)
+})
+
+test('密集环超出计算预算时明确退出，避免阻塞场景交互', () => {
+  const rings = Array.from({ length: 1500 }, (_, index) => {
+    const lon = index * 0.01
+    return [[lon, 0], [lon, 0.001], [lon + 0.001, 0.001], [lon + 0.001, 0], [lon, 0]]
+  })
+  assert.throws(() => parseShapefile(shpFile(5, [partsContent(5, rings.map((_, index) => index * 5), rings.flat())])), /计算量过多/)
 })
 
 test('错误：magic/空文件/不支持类型/坐标越界总量', () => {

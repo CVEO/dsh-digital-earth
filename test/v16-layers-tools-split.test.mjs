@@ -123,7 +123,7 @@ test('工具栏外观/设置菜单独立：ViewerSurface 不再内联主题下�
   assert.doesNotMatch(surface, /ThemeIcon/)
 })
 
-test('AI 圈选入口：工具卡注入截图，Agent 读图后用 earth_draw 落图（无新工具）', () => {
+test('AI 看图入口：注入截图，落图必须有地理锚点支持（无新工具）', () => {
   const tools = readRepoFile('src/client/ui/tools-panel.js')
   assert.match(tools, /onAskAgent/)
   assert.match(tools, /tools\.askAgentLook/)
@@ -131,10 +131,33 @@ test('AI 圈选入口：工具卡注入截图，Agent 读图后用 earth_draw �
   assert.match(surface, /onAskAgent: askAgent/)
   const ask = readRepoFile('src/client/scene/ask-agent.js')
   assert.match(ask, /read_image on that snapshot/)
-  assert.match(ask, /draw the result with earth_draw/)
+  assert.match(ask, /Only draw with earth_draw when geographic anchors or verified geometry/)
+  assert.match(ask, /screen pixels alone cannot recover a precise building footprint/)
   const messages = readRepoFile('src/client/messages-v18.js')
   for (const key of ['tools.askAgentLook', 'tools.askAgentLookHint']) {
     const hits = messages.match(new RegExp(`'${key.replaceAll('.', '\\.')}':`, 'g')) ?? []
     assert.equal(hits.length, 2, `缺少中英 ${key}`)
+  }
+})
+
+test('工作台可缩放：右栏宽度 + 工具/图层/分析高度 + 着色器角手柄', () => {
+  const read = (path) => readRepoFile(path)
+  assert.match(read('src/client/ui/right-stack.js'), /usePanelResize/)
+  assert.match(read('src/client/ui/right-stack.js'), /ResizeHandle/)
+  for (const file of ['src/client/ui/tools-panel.js', 'src/client/ui/layers-panel.js', 'src/client/ui/cards.js']) {
+    assert.match(read(file), /usePanelResize/)
+    assert.match(read(file), /ResizeHandle/)
+  }
+  const cards = read('src/client/ui/cards.js')
+  assert.match(cards, /storageKey: 'shader'/)
+  assert.match(cards, /beginCorner/)
+  const css = read('src/client/ui/css.js')
+  for (const cls of ['.mv-resize-handle', '.mv-resize-width', '.mv-resize-height', '.mv-resize-corner']) {
+    assert.ok(css.includes(cls), '缺少 ' + cls)
+  }
+  const messages = read('src/client/messages-v18.js')
+  for (const key of ['resize.width', 'resize.height', 'resize.size']) {
+    const hits = messages.match(new RegExp("'" + key.replaceAll('.', '\\.') + "':", 'g')) ?? []
+    assert.equal(hits.length, 2, '缺少中英 ' + key)
   }
 })

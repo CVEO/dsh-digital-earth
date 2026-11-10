@@ -69,7 +69,7 @@ export function ToolsBookmarks({ t, getCurrentView, onFlyView, onStartTour }) {
             h(
               'div',
               { className: 'mv-layer' },
-              h('span', { className: 'name', title: t('bookmarks.flyHint'), onClick: () => onFlyView(item.view) }, item.name),
+              h('button', { type: 'button', className: 'name mv-bookmark-name', title: t('bookmarks.flyHint'), onClick: () => onFlyView(item.view) }, item.name),
               h('button', { type: 'button', className: 'mv-icon-btn', title: t('bookmarks.remove'), 'aria-label': t('bookmarks.remove'), onClick: () => remove(item.id) }, '✕'),
             ),
             h('input', {
@@ -77,6 +77,7 @@ export function ToolsBookmarks({ t, getCurrentView, onFlyView, onStartTour }) {
               value: item.caption ?? '',
               placeholder: t('bookmarks.captionPlaceholder'),
               title: t('bookmarks.captionPlaceholder'),
+              'aria-label': t('bookmarks.captionPlaceholder'),
               maxLength: 120,
               onChange: (event) => setCaption(item.id, event.target.value),
               onKeyDown: (event) => {

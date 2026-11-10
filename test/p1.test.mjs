@@ -478,7 +478,7 @@ test('P1 askAgent 走 meta.injectUrl，POST {session,text}，并区分成功/失
   assert.ok(askAgentSource.includes('fetch(meta.injectUrl, {'))
   assert.ok(askAgentSource.includes("method: 'POST',"))
   assert.ok(askAgentSource.includes('body: JSON.stringify({ session, text: lines.join(\'\\n\') })'))
-  assert.ok(askAgentSource.includes("showToast(t('toast.askAgentSent'))"))
+  assert.ok(askAgentSource.includes("showToast(t(snapshotPath ? 'toast.askAgentSent' : 'toast.askAgentTextOnly'))"))
   assert.ok(askAgentSource.includes("showToast(t('toast.askAgentFailed', { message: message(error) }))"))
   // 宿主契约：handler 读 payload.session / payload.text。
   assert.ok(askAgentSource.includes('{ session, text: lines.join'))
@@ -497,7 +497,8 @@ test('P1 askAgent 汇总相机/图层/叠加层、profile/flood/sunlight 分析�
   assert.ok(askAgentSource.includes("lines.push(`Snapshot: ${snapshotPath}`)"))
   // AI 圈选：截图是真实文件，Agent 可用 read_image 看图后 earth_draw 落图。
   assert.ok(askAgentSource.includes('call read_image on that snapshot'))
-  assert.ok(askAgentSource.includes('draw the result with earth_draw'))
+  assert.ok(askAgentSource.includes('Only draw with earth_draw when geographic anchors or verified geometry'))
+  assert.ok(askAgentSource.includes('screen pixels alone cannot recover a precise building footprint'))
   // 点选/对象框选也进入上下文，不只是多边形环。
   assert.ok(askAgentSource.includes("selection.kind === 'point'"))
   assert.ok(askAgentSource.includes("selection.kind === 'objects'"))

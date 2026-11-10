@@ -14,6 +14,8 @@ import { captureHandler, capturesHandler, reportHandler } from './storage.js'
 import { evidenceExportHandler } from './export.js'
 import { directoriesHandler } from './directories.js'
 import { injectHandler } from './inject.js'
+import { createVisionHandler } from './vision.js'
+import { createSelectionQuestionHandler } from './selection-question.js'
 import { inspectHandler } from './inspect/handler.js'
 import { requestPath, requestQuery, sendJson, sendText, serveFile, subPath } from './http.js'
 import { saveSourcesHandler, sourcesHandler } from './sources.js'
@@ -62,6 +64,8 @@ function metaHandler(req, res) {
     sceneUrl: `${SCENE_ROUTE}/${TOKEN}`,
     // "Ask Agent" pushes a bounded scene summary into the live conversation.
     injectUrl: `${INJECT_ROUTE}/${TOKEN}`,
+    visionUrl: `${API}/vision/${TOKEN}`,
+    questionUrl: `${API}/selection-question/${TOKEN}`,
     // Scene reports are written by the host under DSH_HOME/exports.
     reportUrl: `${REPORT_ROUTE}/${TOKEN}`,
     // Page-only "take away" evidence-pack destination (never a model-facing URL).
@@ -286,7 +290,7 @@ export function streamRemoteBody(source, req, res, options = {}) {
  * its own, so each route asks the DSH Connection service to reject foreign or
  * unauthenticated requests, and fails closed whenever that answer is doubtful.
  */
-export function registerRoutes(ctx, { allowedDirs, bridge, directories }) {
+export function registerRoutes(ctx, { allowedDirs, bridge, directories, getService }) {
   const rejection = (req) => {
     const headers = req.headers ?? {}
     const site = headers['sec-fetch-site']
@@ -343,6 +347,8 @@ export function registerRoutes(ctx, { allowedDirs, bridge, directories }) {
       ),
       register('exact', `${SCENE_ROUTE}/${TOKEN}`, sceneSnapshotHandler),
       register('exact', `${INJECT_ROUTE}/${TOKEN}`, (req, res) => injectHandler(ctx, req, res)),
+      register('exact', `${API}/vision/${TOKEN}`, createVisionHandler(ctx, { getService })),
+      register('exact', `${API}/selection-question/${TOKEN}`, createSelectionQuestionHandler(ctx, { getService })),
       register('exact', `${REPORT_ROUTE}/${TOKEN}`, reportHandler),
       register('exact', `${EXPORT_ROUTE}/${TOKEN}`, evidenceExportHandler),
       register('exact', BRIDGE_ROUTE, bridgeHandler(bridge)),

@@ -37,6 +37,15 @@ export function clearAgentOverlays(state, viewer, kind = 'all') {
   }
 }
 
+const commandIds = new WeakMap()
+let nextCommandId = 0
+
+function commandId(command) {
+  if (!command || typeof command !== 'object') return null
+  if (!commandIds.has(command)) commandIds.set(command, `overlay-${++nextCommandId}`)
+  return commandIds.get(command)
+}
+
 function geojsonFeatureCount(geojson) {
   if (geojson === null || typeof geojson !== 'object') return 0
   if (geojson.type === 'FeatureCollection') return Array.isArray(geojson.features) ? geojson.features.length : 0
@@ -88,8 +97,19 @@ export function overlayRowsWithEntities(state) {
   return buildAgentOverlayList(state).map((row) => {
     const command = row.kind === 'draw' ? state.drawCommands[row.index] : state.measureCommands[row.index]
     const entities = state.entityGroups?.get(command) ?? []
-    return { ...row, entities, geojson: row.kind === 'draw' ? command?.geojson ?? null : null }
+    return { ...row, selectionId: commandId(command), entities, geojson: row.kind === 'draw' ? command?.geojson ?? null : null }
   })
+}
+
+export function resolveOverlayRows(selected, current) {
+  const ids = new Set((Array.isArray(selected) ? selected : []).map((row) => row?.selectionId).filter(Boolean))
+  return (Array.isArray(current) ? current : []).filter((row) => ids.has(row.selectionId))
+}
+
+/** The live manual measurement is selectable by the object marquee too. */
+export function manualMeasurementRow(entities, label, detail = '') {
+  if (!Array.isArray(entities) || entities.length === 0) return null
+  return { selectionId: 'manual-measure', kind: 'manual', index: 0, label, detail, entities, geojson: null }
 }
 
 /** Merge the GeoJSON of selected draw rows (measures carry no geometry). */
@@ -110,7 +130,7 @@ export function mergeDrawGeoJSON(rows) {
 
 /** Remove several overlay rows at once (descending per kind keeps indexes valid). */
 export function removeAgentOverlayRows(state, viewer, rows) {
-  const list = Array.isArray(rows) ? rows : []
+  const list = resolveOverlayRows(rows, overlayRowsWithEntities(state))
   let removed = 0
   for (const kind of ['draw', 'measure']) {
     const indexes = list

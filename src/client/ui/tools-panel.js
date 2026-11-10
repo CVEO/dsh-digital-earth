@@ -10,6 +10,7 @@ import React from 'react'
 import { SunTimeline } from './sun-timeline.js'
 import { ToolsBookmarks } from './tools-bookmarks.js'
 import { SelectionTool } from './selection-tool.js'
+import { ResizeHandle, usePanelResize } from './resizable.js'
 
 const h = React.createElement
 
@@ -43,13 +44,17 @@ export function ToolsPanel({
   getOverlayRows,
   onRemoveOverlayRows,
   onAskAgent,
+  onAskSelection,
+  onVisionSelect,
+  onActivateSelection,
 }) {
+  const resize = usePanelResize({ storageKey: 'tools', initialHeight: null, minHeight: 160, maxHeight: 700 })
   const group = (key, title, children) =>
-    h('div', { key, className: 'mv-group' }, h('div', { className: 'mv-group-title' }, title), children)
+    h('section', { key, className: 'mv-tool-group' }, h('h3', { className: 'mv-group-title' }, title), h('div', { className: 'mv-tool-group-body' }, children))
 
   return h(
     'div',
-    { className: 'mv-tools mv-glass' },
+    { className: 'mv-tools mv-glass', ref: resize.ref, style: resize.style },
     h(
       'header',
       null,
@@ -98,7 +103,8 @@ export function ToolsPanel({
         h(
           React.Fragment,
           null,
-          h(SelectionTool, { t, getCesium, getViewer, showToast, runAnalysis, getTerrainActive, getOverlayRows, onRemoveOverlayRows }),
+          h(SelectionTool, { t, getCesium, getViewer, showToast, runAnalysis, getTerrainActive, getOverlayRows, onRemoveOverlayRows, onActivateSelection, onAskSelection }),
+          typeof onVisionSelect === 'function' ? h('button', { type: 'button', className: 'mv-cta', title: t('vision.actionHint'), onClick: onVisionSelect }, t('vision.title')) : null,
           // AI 圈选 entry: Ask Agent injects a fresh screenshot + scene summary; the
           // Agent can then read_image and draw with earth_draw. No new tool.
           typeof onAskAgent === 'function'
@@ -164,5 +170,13 @@ export function ToolsPanel({
       ),
       group('view', t('tools.view'), h(ToolsBookmarks, { t, getCurrentView, onFlyView, onStartTour })),
     ),
+    h(ResizeHandle, {
+      axis: 'height',
+      edge: 'bottom',
+      label: t('resize.height'),
+      value: resize.size.height,
+      onPointerDown: resize.beginHeight,
+      onKeyDown: resize.keyHeight,
+    }),
   )
 }

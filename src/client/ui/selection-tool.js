@@ -8,9 +8,10 @@
 import React from 'react'
 
 import { formatArea, formatDistance, formatHeight } from '../format.js'
-import { mergeDrawGeoJSON } from '../scene/agent-overlays.js'
+import { mergeDrawGeoJSON, resolveOverlayRows } from '../scene/agent-overlays.js'
 import { destinationPoint } from '../scene/screen-geodesy.js'
 import { getSelectionTool, selectionRegion, selectionWaterHeight } from '../scene/selection-tools.js'
+import { SelectionQuestion } from './selection-question.js'
 
 const h = React.createElement
 
@@ -30,6 +31,7 @@ function downloadText(filename, text, mime) {
 }
 
 function summaryText(t, selection) {
+  if (selection.kind === 'screen') return t('selection.surfaceUnavailable')
   if (selection.kind === 'objects') {
     return (selection.rows ?? []).map((row) => row.label).join('; ')
   }
@@ -44,7 +46,7 @@ function summaryText(t, selection) {
   return `${t('selection.area')}: ${area}; ${t('selection.perimeter')}: ${perimeter}; ${t('selection.vertices')}: ${verts}`
 }
 
-export function SelectionTool({ t, getCesium, getViewer, showToast, runAnalysis, getTerrainActive, getOverlayRows, onRemoveOverlayRows }) {
+export function SelectionTool({ t, getCesium, getViewer, showToast, runAnalysis, getTerrainActive, getOverlayRows, onRemoveOverlayRows, onActivateSelection, onAskSelection }) {
   const [selection, setSelection] = React.useState(null)
   const [activeMode, setActiveMode] = React.useState(null)
   const toolRef = React.useRef(null)
@@ -59,6 +61,7 @@ export function SelectionTool({ t, getCesium, getViewer, showToast, runAnalysis,
       t,
       showToast,
       getOverlayRows,
+      onActivate: onActivateSelection,
       onCommit: commit,
       onCancel: () => setActiveMode(null),
       onClear: () => {
@@ -73,7 +76,7 @@ export function SelectionTool({ t, getCesium, getViewer, showToast, runAnalysis,
     setActiveMode(toolRef.current?.isActive() ? toolRef.current?.getMode?.() ?? null : null)
   }, [viewer])
   // Closing the Tools card while drawing must not leave a dangling canvas handler.
-  React.useEffect(() => () => toolRef.current?.cancel(), [])
+  React.useEffect(() => { const session = toolRef.current; return () => session?.cancel() }, [viewer])
 
   const start = (mode) => {
     const tool = toolRef.current
@@ -162,6 +165,7 @@ export function SelectionTool({ t, getCesium, getViewer, showToast, runAnalysis,
 
   const isPoint = selection?.kind === 'point'
   const isObjects = selection?.kind === 'objects'
+  const isScreen = selection?.kind === 'screen'
   const removeObjects = () => {
     const rows = selection?.rows ?? []
     const removed = typeof onRemoveOverlayRows === 'function' ? onRemoveOverlayRows(rows) : 0
@@ -169,7 +173,7 @@ export function SelectionTool({ t, getCesium, getViewer, showToast, runAnalysis,
     clear()
   }
   const exportObjects = () => {
-    const merged = mergeDrawGeoJSON(selection?.rows ?? [])
+    const merged = mergeDrawGeoJSON(resolveOverlayRows(selection?.rows, getOverlayRows?.()))
     if (!merged) {
       showToast?.(t('selection.objectsNoGeometry'))
       return
@@ -202,7 +206,7 @@ export function SelectionTool({ t, getCesium, getViewer, showToast, runAnalysis,
         h('b', null, selection.height === null ? '—' : formatHeight(selection.height)),
       ),
     )
-  } else if (selection) {
+  } else if (selection && !isScreen) {
     stats.push(
       h('div', { key: 'area', className: 'stat' }, h('span', null, t('selection.area')), h('b', null, formatArea(selection.area_m2))),
       h('div', { key: 'perimeter', className: 'stat' }, h('span', null, t('selection.perimeter')), h('b', null, formatDistance(selection.perimeter_m))),
@@ -223,7 +227,7 @@ export function SelectionTool({ t, getCesium, getViewer, showToast, runAnalysis,
     { className: 'mv-selection' },
     h(
       'div',
-      { className: 'mv-selection-actions' },
+      { className: 'mv-selection-actions mv-selection-modes' },
       h(
         'button',
         { type: 'button', className: `mv-cta${activeMode === 'point' ? ' primary' : ''}`, 'aria-pressed': activeMode === 'point', onClick: () => start('point') },
@@ -264,10 +268,11 @@ export function SelectionTool({ t, getCesium, getViewer, showToast, runAnalysis,
       ? h(
           React.Fragment,
           null,
+          h(SelectionQuestion, { key: `${selection.created_at}-${selection.kind}`, selection, t, onAskSelection, showToast }),
           ...stats,
-          selection.approximate ? h('p', { key: 'approx', className: 'mv-none' }, t('selection.approximate')) : null,
-          selection.complete ? null : h('p', { key: 'partial', className: 'mv-none' }, t('selection.partial')),
-          isObjects
+          selection.approximate && !isScreen ? h('p', { key: 'approx', className: 'mv-none' }, t(selection.kind === 'vision' ? 'vision.selectionApproximate' : selection.source === 'screen-visible-surface' ? 'selection.surfaceApproximate' : 'selection.approximate')) : null,
+          selection.complete ? null : h('p', { key: 'partial', className: 'mv-none' }, t(isScreen ? 'selection.surfaceUnavailable' : 'selection.partial')),
+          isScreen ? null : isObjects
             ? h(
                 'div',
                 { className: 'mv-selection-actions' },
@@ -285,7 +290,7 @@ export function SelectionTool({ t, getCesium, getViewer, showToast, runAnalysis,
               : h(
                   'div',
                   { className: 'mv-selection-actions' },
-                  h('button', { type: 'button', className: 'mv-cta', onClick: () => void flood() }, t('selection.flood')),
+                  h('button', { type: 'button', className: 'mv-cta', title: t('selection.floodBounds'), onClick: () => void flood() }, t('selection.flood')),
                   h('button', { type: 'button', className: 'mv-cta', onClick: exportGeoJSON }, t('selection.export')),
                 ),
           h(

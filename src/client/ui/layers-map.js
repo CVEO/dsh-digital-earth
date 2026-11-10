@@ -10,6 +10,7 @@ import React from 'react'
 
 import { normalizeOverlayDraft } from '../scene/overlay-layers.js'
 import { readVectorFiles } from '../scene/vector-file.js'
+import { vectorErrorText } from '../scene/vector-errors.js'
 import { EyeIcon } from './icons.js'
 
 const h = React.createElement
@@ -155,7 +156,7 @@ export function LayersMap({
       ref: fileRef,
       type: 'file',
       multiple: true,
-      accept: '.geojson,.json,.shp,.dbf,application/geo+json,application/json',
+      accept: '.geojson,.json,.shp,.dbf,.prj,.cpg,application/geo+json,application/json',
       hidden: true,
       onChange: (event) => {
         const files = Array.from(event.target.files ?? [])
@@ -167,7 +168,7 @@ export function LayersMap({
             setVectorError('')
             onImportVector?.(parsed, name)
           } catch (failure) {
-            const reason = failure?.message === 'vector_file_unsupported' ? t('layers.importNeedFile') : failure?.message ?? String(failure)
+            const reason = failure?.message === 'vector_file_unsupported' ? t('layers.importNeedFile') : vectorErrorText(failure, t)
             setVectorError(t('layers.importFailed', { message: reason }))
           }
         })()

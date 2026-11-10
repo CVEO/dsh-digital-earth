@@ -117,7 +117,10 @@ export function createPointerTools(deps) {
       }
 
       function finishMeasure() {
-        if (toolRef.current === 'distance' || toolRef.current === 'area') {
+        // Height/profile are measurements too: previously only distance/area left
+        // the tool, so 结束 (or double-click/Esc) on a height result did nothing
+        // and the HUD kept offering 结束 forever.
+        if (['distance', 'area', 'height', 'profile'].includes(toolRef.current)) {
           toolRef.current = null
           onFinishTool()
         }

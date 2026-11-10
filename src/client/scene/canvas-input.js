@@ -5,6 +5,8 @@
  * stays inside its line budget and selection/profile gestures can yield the
  * canvas cleanly. Dependencies are injected; no React state lives here.
  */
+import { createPointerIntent, watchPointerCancellation } from './pointer-intent.js'
+
 export function installCanvasInput({
   Cesium,
   viewer,
@@ -18,9 +20,15 @@ export function installCanvasInput({
   onCancelProfile,
 }) {
   const handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas)
+  const intent = createPointerIntent(isSelectionActive)
+  handler.setInputAction((event) => intent.down(event.position), Cesium.ScreenSpaceEventType.LEFT_DOWN)
+  handler.setInputAction((event) => intent.move(event.endPosition), Cesium.ScreenSpaceEventType.MOUSE_MOVE)
+  const unwatch = watchPointerCancellation(viewer.scene.canvas, intent)
+  const destroy = handler.destroy.bind(handler)
+  handler.destroy = () => { unwatch(); return destroy() }
   handler.setInputAction(
     (event) => {
-      if (isSelectionActive?.()) return
+      if (isSelectionActive?.() || !intent.allowsClick()) return
       onCanvasClick(event.position)
     },
     Cesium.ScreenSpaceEventType.LEFT_CLICK,
@@ -28,7 +36,7 @@ export function installCanvasInput({
   handler.setInputAction(
     (event) => {
       // A canvas-selection gesture owns the canvas while it is drawing.
-      if (isSelectionActive?.()) return
+      if (isSelectionActive?.() || !intent.allowsClick()) return
       // A double click finishes a measurement when a measure tool is active; in
       // 指认 mode it still centres the point under the cursor.
       if (getTool?.() && getTool() !== 'identify') {

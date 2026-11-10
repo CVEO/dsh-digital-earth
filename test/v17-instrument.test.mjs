@@ -38,9 +38,8 @@ test('视觉包：四角压暗、卡片入场动效、截图时隐藏新浮层',
   assert.match(css, /\.mv-root::after\{content:"";position:absolute;inset:0;z-index:3;pointer-events:none;background:radial-gradient/)
   assert.match(css, /\.mv-root\[data-mv-theme="light"\]::after\{/)
   assert.match(css, /@keyframes mv-fade\{from\{opacity:0\}to\{opacity:1\}\}/)
-  assert.match(css, /\.mv-select\{[^}]*animation:mv-fade \.2s cubic-bezier\(\.16,1,\.3,1\)/)
-  // The card stays within the 340 px budget from the plan.
-  assert.match(css, /\.mv-select\{[^}]*width:min\(340px/)
+  assert.match(css, /\.mv-select\{[^}]*animation:mv-fade \.16s cubic-bezier\(\.16,1,\.3,1\)/)
+  assert.match(css, /\.mv-select\{[^}]*width:min\(360px/)
   // Corner brackets + height leader live in screen space.
   for (const marker of ['.mv-sel-anchor .c.tl', '.mv-sel-anchor .c.br', '.mv-sel-anchor .leader', '.mv-sel-anchor .chip']) {
     assert.ok(css.includes(marker), `缺少 ${marker}`)
@@ -103,7 +102,7 @@ test('测量模式可退出、提示不糊；抵近定位用包围球取景', ()
   const client = clientSource()
   // Esc leaves any active tool; the on-screen chip also carries an explicit End
   // button, so a measurement is never a dead end.
-  assert.match(client, /if \(event\.key === 'Escape'\) setToolMode\(null\)/)
+  assert.match(client, /if \(event\.key === 'Escape'\) finishMeasure\(\)/)
   assert.match(client, /className: 'mv-measure-end'/)
   assert.match(client, /t\('measure\.end'\)/)
 

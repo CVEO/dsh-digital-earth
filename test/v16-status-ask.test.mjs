@@ -122,6 +122,22 @@ test('askAgent：注入文本包含相机/图层/叠加/分析/着色器/快照'
   }
 })
 
+test('askAgent：截图失败诚实提示仅文字，近似区域保留 approximate', async () => {
+  const originalFetch = globalThis.fetch
+  const toasts = []
+  let sent
+  globalThis.fetch = async (url, options) => { sent = JSON.parse(options.body); return { ok: true, json: async () => ({ ok: true }) } }
+  try {
+    await createAskAgent({ getMeta: () => ({ injectUrl: '/inject' }), getSession: () => 's1', getAnalysis: () => null,
+      captureScene: async () => { throw new Error('capture failed') }, collectSceneStatus: async () => null,
+      getSelection: () => ({ kind: 'circle', ring: [[0, 0], [1, 0], [1, 1], [0, 0]], approximate: true }),
+      shaderActiveList: () => [], showToast: (text) => toasts.push(text), t, message: String }).askAgent()
+    assert.deepEqual(toasts, ['toast.askAgentTextOnly'])
+    assert.match(sent.text, /approximate=true/)
+    assert.doesNotMatch(sent.text, /Snapshot:/)
+  } finally { globalThis.fetch = originalFetch }
+})
+
 test('askAgent：无会话/无 injectUrl 只提示，不发请求', async () => {
   let fetchCalls = 0
   const originalFetch = globalThis.fetch

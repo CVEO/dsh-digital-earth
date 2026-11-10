@@ -174,6 +174,20 @@ test('engine：图层被隐藏后 activeList 清理 stale entry、恢复原有�
   assert.deepEqual(harness.updates.at(-1), [], 'refreshShaderActive 必须同步成空列表')
 })
 
+test('engine：Viewer 重渲染创建新引擎后仍能结束原图对比', async () => {
+  const layer = makeLayer('a')
+  const harness = createHarness([layer])
+  await harness.engine.command({ action: 'apply', preset: 'scan', layer: 'a' })
+  const shaded = layer.tileset.customShader
+  harness.engine.compare('a', true)
+  assert.notEqual(layer.tileset.customShader, shaded)
+  const refreshed = createShaderEngine({ getCesium: () => harness.Cesium, getViewer: () => harness.tickRef.current?.viewer,
+    getLayers: () => [layer], findLayer: () => layer, entries: harness.entries, tickRef: harness.tickRef, setShaderActive() {} })
+  refreshed.compare('a', false)
+  assert.equal(layer.tileset.customShader, shaded)
+  refreshed.command({ action: 'reset', layer: 'a' })
+})
+
 test('engine：图层被移除后 activeList 同样清理，且不会留下双 active', async () => {
   const a = makeLayer('a')
   const b = makeLayer('b')
@@ -296,9 +310,8 @@ test('cards/css：只展示四个主效果，等高线入口与高级区已移�
   }
   const css = readRepoFile('src/client/ui/css.js')
   assert.doesNotMatch(css, /\.mv-shader \.advanced\{/, '高级效果样式应一并移除')
-  // 旧的三列网格保持不变；四个主效果时第 4 个横跨整行，避免空单元格。
-  assert.match(css, /\.mv-shader \.presets\{display:grid;grid-template-columns:repeat\(3,1fr\)/)
-  assert.match(css, /\.mv-shader \.presets\.primary \.preset:nth-child\(4\)\{grid-column:1\/-1\}/)
+  assert.match(css, /\.mv-shader \.presets\{display:grid;grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/)
+  assert.doesNotMatch(css, /\.mv-shader \.presets\.primary \.preset:nth-child\(4\)/)
 })
 
 test('ViewerSurface：隐藏图层立即 detach 特效，行数仍在预算内', () => {

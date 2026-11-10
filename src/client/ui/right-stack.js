@@ -11,14 +11,24 @@ import React from 'react'
 import { AnalysisCard } from './cards.js'
 import { LayersPanel } from './layers-panel.js'
 import { ToolsPanel } from './tools-panel.js'
+import { ResizeHandle, usePanelResize } from './resizable.js'
 
 const h = React.createElement
 
 export function RightStack({ t, analysis, onCloseAnalysis, layersPanel, showLayers, toolsPanel, showTools }) {
+  const resize = usePanelResize({ storageKey: 'right-stack', initialWidth: 300, minWidth: 240, maxWidth: 720 })
   if (!analysis && !showLayers && !showTools) return null
   return h(
     'div',
-    { className: 'mv-right' },
+    { className: 'mv-right', ref: resize.ref, style: resize.style },
+    h(ResizeHandle, {
+      axis: 'width',
+      edge: 'left',
+      label: t('resize.width'),
+      value: resize.size.width,
+      onPointerDown: resize.beginWidth,
+      onKeyDown: resize.keyWidth,
+    }),
     analysis ? h(AnalysisCard, { key: 'analysis', state: analysis, t, onClose: onCloseAnalysis }) : null,
     showLayers ? h(LayersPanel, { key: 'layers', t, ...layersPanel }) : null,
     showTools ? h(ToolsPanel, { key: 'tools', t, ...toolsPanel }) : null,

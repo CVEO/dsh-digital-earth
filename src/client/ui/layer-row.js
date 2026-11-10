@@ -27,6 +27,7 @@ export function LayerRow({ t, layer, shader, onFlyLayer, onToggleLayer, onInspec
             tabIndex: 0,
             onClick: openShader,
             onKeyDown: (event) => {
+              if (event.target !== event.currentTarget) return
               if (event.key === 'Enter' || event.key === ' ') {
                 event.preventDefault()
                 openShader()

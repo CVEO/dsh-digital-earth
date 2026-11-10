@@ -6,7 +6,7 @@
  */
 import React from 'react'
 import { createAnalysisEngine } from '../analysis/engine.js'
-import { buildAgentOverlayList, clearAgentOverlays as clearAgentOverlaysInState, overlayRowsWithEntities, removeAgentOverlay, removeAgentOverlayRows } from '../scene/agent-overlays.js'
+import { buildAgentOverlayList, clearAgentOverlays as clearAgentOverlaysInState, manualMeasurementRow, overlayRowsWithEntities, removeAgentOverlay, removeAgentOverlayRows } from '../scene/agent-overlays.js'
 import { ACCESS_TIMEOUT_MS, imageryProvider, loadCesium, loadCesiumStyle, loadMeta, loadSources, persistSources, scanLocalDirectory, terrainProvider } from '../api.js'
 import { sampleCursor } from '../cursor.js'
 import { arrayBufferToBase64, b64url, clone, escapeHtml, formatArea, formatDistance, formatHeight, formatValue, geodesicLength, message, planarArea, redactUrl } from '../format.js'
@@ -30,7 +30,7 @@ import { createProfileTool } from '../scene/profile-tool.js'
 import { createVectorInteraction } from '../scene/vector-interaction.js'
 import { VECTOR_COLORS, vectorLabel } from '../scene/vector-style.js'
 import { createSelectionController } from '../scene/selection-controller.js'
-import { getSelectionTool, isSelectionActive, peekSelection } from '../scene/selection-tools.js'
+import { cancelSelection, disposeSelection, getSelectionTool, isSelectionActive, peekSelection } from '../scene/selection-tools.js'
 import { installCanvasInput } from '../scene/canvas-input.js'
 import { createCommandBridge } from '../scene/command-bridge.js'
 import { createSceneReport } from '../scene/report.js'
@@ -57,7 +57,9 @@ import { useTour } from '../ui/tour-bar.js'
 import { useSceneDetails } from '../ui/scene-details.js'
 import { useWorkbenchWiring } from '../ui/use-workbench.js'
 import { MenuItem } from '../ui/menu-item.js'
-import { hasVectorFile, readVectorFiles } from '../scene/vector-file.js'
+import { hasVectorFile, isVectorDrag, readVectorFiles } from '../scene/vector-file.js'
+import { vectorErrorText } from '../scene/vector-errors.js'
+import { runVectorImport } from '../scene/vector-import-transaction.js'
 const h = React.createElement
 
     /**
@@ -235,7 +237,7 @@ const h = React.createElement
         })
 
       const syncLayers = () => {
-        setLayers(layersRef.current.map((layer) => ({ id: layer.id, name: layer.name, visible: layer.visible })))
+        setLayers(layersRef.current.map((layer) => ({ id: layer.id, name: layer.name, visible: layer.visible, georefIssue: layer.georefIssue })))
         markSceneDirty()
       }
 
@@ -744,6 +746,7 @@ const h = React.createElement
       }
 
       function setToolMode(mode) {
+        cancelSelection(viewerRef.current)
         // Identify is the DEFAULT pointer behaviour (click an object → its card),
         // so leaving any other tool falls back to it instead of a dead canvas.
         const next = mode ?? 'identify'
@@ -872,12 +875,12 @@ const h = React.createElement
       // same overlay renderer as earth_draw, then refresh counts/snapshot state.
       const importVectorData = (parsed, name) => {
         try {
-          drawAgentOverlay(cesiumRef.current, viewerRef.current, parsed.geojson, 'accent', `GeoJSON: ${name}`)
+          runVectorImport(agentOverlayRef.current, viewerRef.current, () => drawAgentOverlay(cesiumRef.current, viewerRef.current, parsed.geojson, 'accent', `GeoJSON: ${name}`))
           syncAgentOverlayCount()
           markSceneDirty()
-          showToast(t('layers.imported', { name, n: parsed.featureCount }))
+          showToast([t('layers.imported', { name, n: parsed.featureCount }), ...(parsed.warnings ?? []).map((key) => t(key))].join(' · '))
         } catch (error) {
-          showToast(t('layers.importFailed', { message: message(error) }))
+          showToast(t('layers.importFailed', { message: vectorErrorText(error, t) }))
         }
       }
 
@@ -1048,6 +1051,9 @@ const h = React.createElement
           descriptor = { group: {}, kind: t('layers.vectorDrawn'), title: label || t('layers.vectorDrawn'), summary: t(`vector.geometry.${geometry.type.replace('Multi', '')}`),
             rows: Object.entries(properties ?? {}).filter(([key]) => key !== 'name').slice(0, 12).map(([key, value]) => [key, formatValue(value)]) }
           switch (geometry.type) {
+            case 'GeometryCollection':
+              for (const child of geometry.geometries ?? []) drawGeometry(child, properties)
+              break
             case 'Point':
               drawPoint(geometry.coordinates, label)
               break
@@ -1537,12 +1543,12 @@ const h = React.createElement
 
       // v1.7 P0 "指认": card data (pick + neighbour ring sampler) and the
       // evidence pack. React state stays in ui/selection-overlay.js.
-      const selectionController = createSelectionController({
+      const selectionController = React.useMemo(() => createSelectionController({
         getViewer: () => viewerRef.current,
         getCesium: () => cesiumRef.current,
         getLayers: () => layersRef.current,
         getMeta: () => metaRef.current,
-      })
+      }), [])
 
       /** "量一下" from the selection card: pre-fill the first height point. */
       function measureFromSelection(anchor) {
@@ -2158,6 +2164,7 @@ const h = React.createElement
             /* ignore */
           }
           handlerRef.current = null
+          disposeSelection(viewerRef.current)
           profileToolRef.current?.dispose()
           // B3: detach the u_time tick and forget per-layer shader entries before
           // the viewer goes away; the tilesets themselves are destroyed with it.
@@ -2344,7 +2351,7 @@ const h = React.createElement
       React.useEffect(() => {
         if (!measureMode) return undefined
         const onKey = (event) => {
-          if (event.key === 'Escape') setToolMode(null)
+          if (event.key === 'Escape') finishMeasure()
         }
         document.addEventListener('keydown', onKey)
         return () => document.removeEventListener('keydown', onKey)
@@ -2443,7 +2450,7 @@ const h = React.createElement
           'data-mv-theme': themeMode === 'auto' ? undefined : themeMode,
           'data-mv-scheme': resolvedDark ? 'dark' : 'light',
           onDragOver: (event) => {
-            if (!hasVectorFile(event.dataTransfer?.files)) return
+            if (!isVectorDrag(event.dataTransfer)) return
             event.preventDefault()
             event.stopPropagation()
           },
@@ -2457,7 +2464,7 @@ const h = React.createElement
               .catch((error) =>
                 showToast(
                   t('layers.importFailed', {
-                    message: error?.message === 'vector_file_unsupported' ? t('layers.importNeedFile') : message(error),
+                    message: error?.message === 'vector_file_unsupported' ? t('layers.importNeedFile') : vectorErrorText(error, t),
                   }),
                 ),
               )
@@ -2645,6 +2652,8 @@ const h = React.createElement
           t,
           showToast,
           onMeasure: measureFromSelection,
+          onVisionCommit: (ground) => { getSelectionTool(viewerRef.current, { getCesium: () => cesiumRef.current, t, showToast })?.commitVision(ground); setShowTools(true) },
+          onVisionManual: () => setShowTools(true),
           onSelectArea: (card) => {
             const viewerNow = viewerRef.current
             if (!viewerNow || !card?.point) return
@@ -2716,14 +2725,23 @@ const h = React.createElement
             showToast,
             runAnalysis: analyzeCommand,
             getTerrainActive: () => Boolean(sourcesRef.current?.settings?.terrain),
-            getOverlayRows: () => overlayRowsWithEntities(agentOverlayRef.current),
+            getOverlayRows: () => {
+              const rows = overlayRowsWithEntities(agentOverlayRef.current)
+              const manual = manualMeasurementRow(measureRef.current.entities, t('measure.objectRow'), measureInfo?.text ?? '')
+              return manual ? [...rows, manual] : rows
+            },
+            onActivateSelection: () => { setToolMode(null); selectionApiRef.current?.cancel?.() },
             onRemoveOverlayRows: (rows) => {
+              const manual = Array.isArray(rows) && rows.some((row) => row.kind === 'manual')
+              if (manual) clearMeasure()
               const removed = removeAgentOverlayRows(agentOverlayRef.current, viewerRef.current, rows)
               syncAgentOverlayCount()
               markSceneDirty()
-              return removed
+              return removed + (manual ? 1 : 0)
             },
             onAskAgent: askAgent,
+            onAskSelection: (options) => askAgentService.askSelection(options),
+            onVisionSelect: () => { selectionApiRef.current?.requestVision?.(); setToolMode(null); setShowTools(false) },
           },
         }),
         phase === 'ready' && layers.length === 0 && !emptyDismissed && !restoringScene
@@ -2785,11 +2803,11 @@ const h = React.createElement
                 {
                   type: 'button',
                   className: 'mv-measure-end',
-                  title: tool ? t('measure.endHint') : t('tool.clear'),
-                  'aria-label': tool ? t('measure.endHint') : t('tool.clear'),
-                  onClick: () => tool ? setToolMode(null) : clearMeasure(),
+                  title: measureMode ? t('measure.endHint') : t('tool.clear'),
+                  'aria-label': measureMode ? t('measure.endHint') : t('tool.clear'),
+                  onClick: () => (measureMode ? finishMeasure() : clearMeasure()),
                 },
-                tool ? t('measure.end') : t('tool.clear'),
+                measureMode ? t('measure.end') : t('tool.clear'),
               ),
             )
           : null,

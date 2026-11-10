@@ -5,8 +5,14 @@
  * and the sun-timeline copy. Merged into the base catalog in messages.js.
  */
 
+import { VECTOR_MESSAGES } from './messages-vector.js'
+import { VISION_MESSAGES } from './messages-vision.js'
+import { SELECTION_MESSAGES } from './messages-selection.js'
+
 export const V18_MESSAGES = {
   zh: {
+    ...VECTOR_MESSAGES.zh,
+    ...VISION_MESSAGES.zh,
     'panel.description': '在对话旁浏览、量测与分析 3D Tiles / 3DGS 场景。',
     'layers.tab.map': '地图',
     'layers.tab.3d': '三维',
@@ -14,7 +20,7 @@ export const V18_MESSAGES = {
     'layers.importVector': '导入矢量（GeoJSON / Shapefile）',
     'layers.imported': '已导入 {name}（{n} 个要素）',
     'layers.importFailed': '导入失败：{message}',
-    'layers.importNeedFile': '请选择 .geojson/.json，或 .shp（可同时选择 .dbf 属性表）',
+    'layers.importNeedFile': '请选择 .geojson/.json，或同名 .shp/.dbf；可附带 .prj 坐标系与 .cpg 编码文件',
     'btn.tools': '工具',
     'btn.toolsShow': '展开工具箱',
     'btn.toolsHide': '收起工具箱',
@@ -30,10 +36,13 @@ export const V18_MESSAGES = {
     'tools.effectsActive': '{n} 个图层有活动特效',
     'tools.effectsEmpty': '暂无活动特效；打开工作台应用。',
     'tools.select': '选择',
-    'tools.askAgentLook': 'AI 圈选（截图给 Agent）',
-    'tools.askAgentLookHint': '点击后把当前画面截图与场景摘要注入对话；再跟 Agent 说「圈出中间那栋楼」即可。',
-    'selection.rect': '框选区域',
-    'selection.rectActive': '取消框选',
+    'tools.askAgentLook': '当前视图发送至 AI',
+    'tools.askAgentLookHint': '将当前视图截图与场景摘要注入当前对话，随后请在对话中提出具体问题；不会自动执行，也不会凭空生成地理坐标。',
+    'resize.width': '拖动调整工作台宽度',
+    'resize.height': '拖动调整工作台高度',
+    'resize.size': '拖动调整工作台大小',
+    'selection.rect': '矩形框选',
+    'selection.rectActive': '取消矩形框选',
     'selection.point': '点选',
     'selection.pointActive': '取消点选',
     'selection.pointHint': '点击地面取一个点；右键或 Esc 取消。',
@@ -121,8 +130,11 @@ export const V18_MESSAGES = {
     'sun.zone.sceneLabel': '画面经度 {lon}° · UTC{offset}',
     'sun.zone.browserLabel': '{zone}（浏览器）· UTC{offset}',
     'sun.dateLocal': '日期（所选时区）',
+    ...SELECTION_MESSAGES.zh,
   },
   en: {
+    ...VECTOR_MESSAGES.en,
+    ...VISION_MESSAGES.en,
     'panel.description': 'Browse, measure and analyse 3D Tiles / 3DGS scenes beside the conversation.',
     'layers.tab.map': 'Map',
     'layers.tab.3d': '3D',
@@ -130,7 +142,7 @@ export const V18_MESSAGES = {
     'layers.importVector': 'Import vector (GeoJSON / Shapefile)',
     'layers.imported': 'Imported {name} ({n} features)',
     'layers.importFailed': 'Import failed: {message}',
-    'layers.importNeedFile': 'Choose a .geojson/.json file, or a .shp (optionally with its .dbf table)',
+    'layers.importNeedFile': 'Choose .geojson/.json or matching .shp/.dbf files; matching .prj and .cpg files are optional',
     'btn.tools': 'Tools',
     'btn.toolsShow': 'Show tools',
     'btn.toolsHide': 'Hide tools',
@@ -146,10 +158,13 @@ export const V18_MESSAGES = {
     'tools.effectsActive': '{n} layer(s) with an active effect',
     'tools.effectsEmpty': 'No active effect; open the workbench to apply one.',
     'tools.select': 'Select',
-    'tools.askAgentLook': 'AI select (screenshot to Agent)',
-    'tools.askAgentLookHint': 'Injects a fresh screenshot and scene summary; then tell the Agent "outline the building in the middle".',
-    'selection.rect': 'Box select',
-    'selection.rectActive': 'Cancel box select',
+    'tools.askAgentLook': 'Send current view to AI',
+    'tools.askAgentLookHint': 'Inject the current-view screenshot and scene summary into this conversation, then ask a specific question; nothing runs automatically and no geographic coordinates are invented.',
+    'resize.width': 'Drag to resize the workbench width',
+    'resize.height': 'Drag to resize the workbench height',
+    'resize.size': 'Drag to resize the workbench',
+    'selection.rect': 'Rectangle selection',
+    'selection.rectActive': 'Cancel rectangle selection',
     'selection.point': 'Point pick',
     'selection.pointActive': 'Cancel point pick',
     'selection.pointHint': 'Click the ground to pick a point; right-click or Esc cancels.',
@@ -237,5 +252,6 @@ export const V18_MESSAGES = {
     'sun.zone.sceneLabel': 'Scene lon {lon}° · UTC{offset}',
     'sun.zone.browserLabel': '{zone} (browser) · UTC{offset}',
     'sun.dateLocal': 'Date (selected zone)',
+    ...SELECTION_MESSAGES.en,
   },
 }

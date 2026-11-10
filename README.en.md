@@ -13,6 +13,7 @@ Built by the CVEO Research Group, Wuhan University — a 3D component for 3D cit
 ![version](https://img.shields.io/badge/version-1.5.2-4f8cff)
 ![license](https://img.shields.io/badge/license-MIT-2ea44f)
 ![DSH](https://img.shields.io/badge/DSH-plugin-0ea5e9)
+[![npm downloads](https://img.shields.io/npm/dm/@cveo/dsh-digital-earth?label=npm%20downloads&color=cb383f)](https://www.npmjs.com/package/@cveo/dsh-digital-earth)
 
 <img src="assets/readme/hero.jpg" alt="Digital Earth panel: the old town and cathedral of Clermont-Ferrand, France (public CRAIG 3D Tiles, dataset centre about 45.7944°N, 3.1676°E)" width="46%">
 
@@ -20,7 +21,7 @@ Built by the CVEO Research Group, Wuhan University — a 3D component for 3D cit
 
 After opening Digital Earth in DSH, the 3D scene panel appears beside the conversation. Load local or online 3D Tiles / 3DGS data, then browse, measure and run spatial analysis while continuing the conversation; the Agent can also read and write the scene, add annotations, capture images and export reports.
 
-The 3D engine and UI assets ship with the plugin, so no additional GIS server is required; user data stays on the local machine, while online imagery and terrain are accessed through the selected sources.
+The 3D engine and UI assets ship with the plugin, so no additional GIS server is required; local layers need not be uploaded, while online imagery and terrain use the selected sources. When you choose AI-assisted selection, the current image is sent to the configured model and saved as a host attachment.
 
 ## Quick start
 
@@ -77,7 +78,11 @@ All screenshots below are from real panel sessions. Sample data: the public Cler
 
 **Measure and annotate**: measure distance, area and height on the globe, or let the Agent draw points, lines and polygons from GeoJSON; results stay in the panel and can be captured at any time. **Clicking a scene object identifies it by default**: the card shows batch-table attributes (up to 8 when present), hit layer, coordinates, surface/geometric height and confidence — no tool mode to arm first. The card can also create a 15 m approximate AOI around the point (labelled as approximate, never as a building footprint).
 
-**Tools card**: the toolbar's 「工具」 button (no dropdown) opens a separate card that gathers measure, 3D profile, sun timeline, visual-effects entry and view bookmarks/tour. The layer card no longer mixes analysis tools with data layers. "Point pick / Lasso / Box select / Object marquee" grabs a ground point (lon/lat/elevation/skyline), traces a freehand region or drags a rectangle (area/perimeter/boundary height) with GeoJSON export and one-click flood analysis; "Object marquee" batch-deletes, exports selected annotations or copies the list; "AI select" hands a fresh screenshot plus scene summary to the Agent, which may read it and draw with earth_draw (depends on the model's vision support); "Ask Agent" injects the selection summary into the conversation — no coordinates to type.
+**Tools card**: the toolbar opens a separate card for measurement, profile, sunlight, visual effects and view bookmarks. Finishing a point, lasso, box or object selection expands a question composer. Enter a question or choose a suggested question, then select “Send to current conversation”. Selection details and an optional saved view accompany the question; the reply appears in chat, queued if the Agent is busy. Valid surface regions also offer approximate area/perimeter, GeoJSON export and existing analyses. Object marquee selects existing annotations for batch deletion or export. AI-assisted selection uses the separate direct-vision workflow below. The original toolbar “Ask Agent” remains a context-only action followed by typing a question in chat.
+
+**Ask after selecting**: open Tools → Box select, drag a region and release. The question card saves that view with the selected area outlined in cyan; moving the camera afterward does not change it. Images are limited to 1024 pixels on the longest side and sent only when you press Send. The host admits them as native image attachments to the current conversation model, so the Agent need not read a snapshot file. A model without image support produces an explicit error; switch models or send coordinates without the image when geometry is available. If the host lacks direct prompt support, copy the question and selection into chat. Context injection is never presented as an active answer. When delivery is uncertain, check chat first; retrying retains the same request identity.
+
+Drag previews use screen coordinates; depth is sampled only on release. Surface picking is not building segmentation: roofs, walls and ground can fold the geographic boundary. Area estimates the horizontal projection. Missing depth or a self-intersecting ring preserves a screen selection for visual questions while disabling area and geometry export; select from above to retry. Flood analysis uses the selection's bounding rectangle, not an exact volume within an arbitrary polygon.
 
 **3D profile**: choose Draw profile in the 3D tab. The first click on the start point shows a draft line immediately; move the mouse to preview it, then click the end point. The chart sits at the top of the analysis card, which also states whether the run used the 3D Tiles surface or terrain. It profiles the 3D surface (buildings and vegetation included), not the bare terrain.
 
@@ -94,6 +99,14 @@ All screenshots below are from real panel sessions. Sample data: the public Cler
 - **Large datasets**: reality-capture models of hundreds of MB and tilesets with thousands of tiles load directly; the snapshot and report folders keep the most recent files automatically.
 
 Public sample data: <a href="https://3d.craig.fr/datasets/Clermont/3dtiles/tileset.json">Clermont-Ferrand 3D Tiles</a> (France, published by CRAIG, dataset centre about 45.7944°N, 3.1676°E) — paste the address into the panel to open it.
+
+## AI-assisted selection (direct vision)
+
+Click a scene target and choose “Outline this target with AI” on its card. Check the image preview, then choose “Use approximate selection”. The Tools card can export GeoJSON with approximation metadata or run existing analyses. Results approximate visible surfaces; area and analysis are indicative only. This is not a building footprint, precise segmentation or mesh extraction.
+
+The panel calls the global default DSH vision model once, outside the Agent tool loop, without installing SAM or another inference runtime. The model must declare image support, and the host must provide LLM, attachment and default-model services; missing capabilities produce explicit messages. Images are limited to a 1024-pixel longest edge, with an approximately 20-second server timeout and no automatic retries. Model-provider charges apply. Cancellation signals the model to stop; it does not undo incurred charges or saved attachments.
+
+The view stays fixed during recognition. Camera, layer, tile-detail or panel-size changes invalidate the result. Confirmation requires reliable 3D depth; if unavailable, explicitly switch to manual lasso. “Ask Agent” remains a separate action. After updating the local plugin, quit DSH completely and restart it to load the new host route.
 
 ## Agent tools
 

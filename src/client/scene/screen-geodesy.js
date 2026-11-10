@@ -15,16 +15,14 @@ import { pickSurfaceAt } from './pick-surface.js'
 const EARTH_RADIUS_M = 6378137
 const DEG = 180 / Math.PI
 
-/** CSS pixel position → canvas pixel position (handles DPR / CSS scaling). */
 export function canvasPosition(viewer, position, Cesium) {
   const canvas = viewer?.canvas
   if (!canvas || !Cesium || typeof Cesium.Cartesian2 !== 'function') return null
   const cssWidth = canvas.clientWidth || canvas.width
   const cssHeight = canvas.clientHeight || canvas.height
   if (!(cssWidth > 0) || !(cssHeight > 0)) return null
-  const scaleX = canvas.width / cssWidth
-  const scaleY = canvas.height / cssHeight
-  return new Cesium.Cartesian2(Math.round(position.x * scaleX), Math.round(position.y * scaleY))
+  if (!Number.isFinite(position?.x) || !Number.isFinite(position?.y)) return null
+  return new Cesium.Cartesian2(position.x, position.y)
 }
 
 /**
@@ -99,7 +97,7 @@ export function groundRingFromScreen(viewer, Cesium, screenRing) {
   }
 }
 
-const roundCoordinate = (value) => Math.round(value * 1e6) / 1e6
+const roundCoordinate = (value) => Math.round(value * 1e8) / 1e8
 
 /** Min/max/mean boundary height (approximation; boundary samples only). */
 export function heightRange(heights) {
@@ -153,10 +151,10 @@ export function polygonAreaSquareMeters(ring) {
   for (let index = 0; index < unique.length; index += 1) {
     const current = unique[index]
     const next = unique[(index + 1) % unique.length]
-    const x1 = current[0] * scale * cosLat
-    const y1 = current[1] * scale
-    const x2 = next[0] * scale * cosLat
-    const y2 = next[1] * scale
+    const x1 = (current[0] - first[0]) * scale * cosLat
+    const y1 = (current[1] - first[1]) * scale
+    const x2 = (next[0] - first[0]) * scale * cosLat
+    const y2 = (next[1] - first[1]) * scale
     area += x1 * y2 - x2 * y1
   }
   return Math.abs(area) / 2
@@ -164,8 +162,9 @@ export function polygonAreaSquareMeters(ring) {
 
 /** GeoJSON Polygon (closed ring) for a selection's lon/lat ring. */
 export function ringToPolygon(ring) {
-  if (!Array.isArray(ring) || ring.length < 4) return null
+  if (!Array.isArray(ring) || ring.length < 3) return null
   const closed = ring[0][0] === ring[ring.length - 1][0] && ring[0][1] === ring[ring.length - 1][1]
+  if (closed && ring.length < 4) return null
   return { type: 'Polygon', coordinates: [closed ? ring.slice() : [...ring, ring[0].slice()]] }
 }
 

@@ -6,6 +6,9 @@
  * overlay renderer (same styling/clear path as `earth_draw`). Limits keep a huge
  * FeatureCollection from freezing the panel; every failure has a readable reason.
  */
+import { vectorError } from './vector-errors.js'
+import { validateVectorGeometry } from './vector-validation.js'
+
 export const VECTOR_IMPORT_LIMITS = {
   maxFeatures: 500,
   maxCoordinates: 20000,
@@ -22,13 +25,14 @@ const GEOMETRY_TYPES = new Set([
   'GeometryCollection',
 ])
 
-const importError = (message) => new Error(message)
+const importError = vectorError
 
 /** Recursively count coordinate pairs and reject non-finite numbers. */
 export function countCoordinates(value) {
   let count = 0
   let invalid = false
-  const visit = (node) => {
+  const visit = (node, depth = 0) => {
+    if (depth > 40) { invalid = true; return }
     if (invalid || node === null || node === undefined) return
     if (Array.isArray(node)) {
       // A coordinate pair is [number, number] (optionally with height).
@@ -37,12 +41,12 @@ export function countCoordinates(value) {
         else count += 1
         return
       }
-      for (const item of node) visit(item)
+      for (const item of node) visit(item, depth + 1)
       return
     }
     if (typeof node === 'object') {
-      if (node.type === 'GeometryCollection') return visit(node.geometries)
-      if (node.coordinates !== undefined) return visit(node.coordinates)
+      if (node.type === 'GeometryCollection') return visit(node.geometries, depth + 1)
+      if (node.coordinates !== undefined) return visit(node.coordinates, depth + 1)
     }
     invalid = true
   }
@@ -53,7 +57,7 @@ export function countCoordinates(value) {
 /** A GeoJSON FeatureCollection, normalised from FC / Feature / bare geometry. */
 export function normalizeVectorGeoJSON(text) {
   if (typeof text !== 'string' || text.trim() === '') throw importError('文件为空')
-  if (text.length > VECTOR_IMPORT_LIMITS.maxBytes) throw importError('文件超过 8 MB，请先裁剪')
+  if (text.length > VECTOR_IMPORT_LIMITS.maxBytes || new TextEncoder().encode(text).byteLength > VECTOR_IMPORT_LIMITS.maxBytes) throw importError('文件超过 8 MB，请先裁剪')
   let data
   try {
     data = JSON.parse(text)
@@ -97,6 +101,7 @@ export function normalizeVectorGeoJSON(text) {
     if (coordinates > VECTOR_IMPORT_LIMITS.maxCoordinates) {
       throw importError(`坐标点过多，最多 ${VECTOR_IMPORT_LIMITS.maxCoordinates} 个`)
     }
+    validateVectorGeometry(geometry)
     geometryTypes.add(geometry.type)
     const collected = collectLonLat(geometry)
     for (const point of collected) {

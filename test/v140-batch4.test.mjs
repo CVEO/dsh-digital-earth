@@ -172,7 +172,7 @@ test('B4 README 英文：版本徽章/安装示例、六工具与对应功能行
 test('B4 README 中英对齐：章节数、工具行、安装命令与代码围栏一致', () => {
   const zhHeadings = markdownHeadings(readmeZh)
   const enHeadings = markdownHeadings(readmeEn)
-  assert.equal(zhHeadings.length, 7, `README.md 章节数异常：${zhHeadings.length}`)
+  assert.equal(zhHeadings.length, 8, `README.md 章节数异常：${zhHeadings.length}`)
   assert.equal(enHeadings.length, zhHeadings.length, '中英 README 章节数必须一致')
   assert.equal(codeFences(readmeZh), 2)
   assert.equal(codeFences(readmeEn), 2)
@@ -190,7 +190,9 @@ test('B4 README 中英对齐：章节数、工具行、安装命令与代码围�
 test('B4 README 链接与本地资源：离线可判定的值均有效，无占位/死链', () => {
   const allowedHttp = [
     'https://img.shields.io/badge/',
+    'https://img.shields.io/npm/',
     'https://github.com/CVEO/dsh-digital-earth',
+    'https://www.npmjs.com/package/',
     'https://www.whu-cveo.com/',
   ]
   for (const [label, text] of [['README.md', readmeZh], ['README.en.md', readmeEn]]) {

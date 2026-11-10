@@ -11,8 +11,10 @@ import React from 'react'
 
 import { Layers3D } from './layers-3d.js'
 import { LayersMap, normalizeOverlayDraft } from './layers-map.js'
+import { ResizeHandle, usePanelResize } from './resizable.js'
 
 const h = React.createElement
+let nextTabsId = 0
 
 export { normalizeOverlayDraft }
 
@@ -48,12 +50,22 @@ export function LayersPanel({
   // The 3D data tab is primary: the 3D Tiles the user loaded is why the panel is
   // open, while the map holds the supporting 2D sources.
   const [tab, setTab] = React.useState('3d')
+  const resize = usePanelResize({ storageKey: 'layers', initialHeight: null, minHeight: 120, maxHeight: 620 })
+  const tabsId = React.useMemo(() => `mv-data-${++nextTabsId}`, [])
+  const tabsRef = React.useRef(null)
+  const onTabKey = (event) => {
+    if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return
+    event.preventDefault()
+    const next = event.key === 'Home' ? '3d' : event.key === 'End' ? 'map' : tab === '3d' ? 'map' : '3d'
+    setTab(next)
+    tabsRef.current?.querySelector(`[data-tab="${next}"]`)?.focus()
+  }
   const sourceName = (list, id) => list?.find((item) => item.id === id)?.name ?? null
   const terrainActive = sourceName(config?.terrain, settings?.terrain)
 
   return h(
     'div',
-    { className: 'mv-layers mv-glass' },
+    { className: 'mv-layers mv-glass', ref: resize.ref, style: resize.style },
     h(
       'header',
       null,
@@ -75,19 +87,19 @@ export function LayersPanel({
     ),
     h(
       'div',
-      { key: 'layer-tabs', className: 'mv-layer-tabs', role: 'tablist' },
+      { key: 'layer-tabs', ref: tabsRef, className: 'mv-layer-tabs', role: 'tablist', 'aria-label': t('layers.title'), onKeyDown: onTabKey },
       h(
         'button',
-        { type: 'button', role: 'tab', 'aria-selected': tab === '3d', className: `mv-layer-tab${tab === '3d' ? ' on' : ''}`, onClick: () => setTab('3d') },
+        { type: 'button', id: `${tabsId}-3d`, 'data-tab': '3d', role: 'tab', tabIndex: tab === '3d' ? 0 : -1, 'aria-controls': `${tabsId}-panel`, 'aria-selected': tab === '3d', className: `mv-layer-tab${tab === '3d' ? ' on' : ''}`, onClick: () => setTab('3d') },
         `${t('layers.tab.3d')}${layers.length ? ` · ${layers.length}` : ''}`,
       ),
       h(
         'button',
-        { type: 'button', role: 'tab', 'aria-selected': tab === 'map', className: `mv-layer-tab${tab === 'map' ? ' on' : ''}`, onClick: () => setTab('map') },
+        { type: 'button', id: `${tabsId}-map`, 'data-tab': 'map', role: 'tab', tabIndex: tab === 'map' ? 0 : -1, 'aria-controls': `${tabsId}-panel`, 'aria-selected': tab === 'map', className: `mv-layer-tab${tab === 'map' ? ' on' : ''}`, onClick: () => setTab('map') },
         t('layers.tab.map'),
       ),
     ),
-    tab === '3d'
+    h('div', { id: `${tabsId}-panel`, role: 'tabpanel', 'aria-labelledby': `${tabsId}-${tab}`, className: 'mv-data-panel' }, tab === '3d'
       ? h(Layers3D, {
           t,
           config,
@@ -121,6 +133,14 @@ export function LayersPanel({
           onClearVector,
           onRemoveAgentOverlay,
           onImportVector,
-        }),
+        })),
+    h(ResizeHandle, {
+      axis: 'height',
+      edge: 'bottom',
+      label: t('resize.height'),
+      value: resize.size.height,
+      onPointerDown: resize.beginHeight,
+      onKeyDown: resize.keyHeight,
+    }),
   )
 }

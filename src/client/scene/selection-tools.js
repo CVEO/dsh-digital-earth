@@ -20,10 +20,16 @@ import {
   ringToPolygon,
   sampleLassoPath,
 } from './screen-geodesy.js'
+import { createPointerIntent, watchPointerCancellation } from './pointer-intent.js'
+import { rowsInScreenBox } from './screen-intersection.js'
+import { captureSelectionFrame, createScreenSelectionOverlay, usableSurfaceRing } from './selection-frame.js'
 
 const sessions = new WeakMap()
-const SELECTION_COLOR = '#2563eb'
+const SELECTION_COLOR = '#22d3ee'
 const MIN_DRAG_PX = 4
+
+export function cancelSelection(viewer) { if (viewer) sessions.get(viewer)?.cancel() }
+export function disposeSelection(viewer) { if (viewer) sessions.get(viewer)?.dispose() }
 
 /** True while a selection gesture is installing its own canvas handler. */
 export function isSelectionActive(viewer) {
@@ -80,6 +86,7 @@ export function getSelectionTool(viewer, deps) {
 }
 
 function createSelectionSession(viewer) {
+  const screenOverlay = createScreenSelectionOverlay(viewer)
   const state = {
     mode: null,
     dragStart: null,
@@ -95,6 +102,7 @@ function createSelectionSession(viewer) {
     handler: null,
     keyHandler: null,
     savedController: null,
+    unwatch: null,
   }
 
   const t = (key, vars) => {
@@ -134,13 +142,10 @@ function createSelectionSession(viewer) {
   function disableCamera() {
     const controller = viewer.scene?.screenSpaceCameraController
     if (!controller || state.savedController) return
-    state.savedController = {
-      enableRotate: controller.enableRotate,
-      enableTranslate: controller.enableTranslate,
-    }
+    state.savedController = Object.fromEntries(['enableRotate', 'enableTranslate', 'enableTilt', 'enableLook', 'enableZoom']
+      .filter((key) => key in controller).map((key) => [key, controller[key]]))
     try {
-      controller.enableRotate = false
-      controller.enableTranslate = false
+      for (const key of Object.keys(state.savedController)) controller[key] = false
     } catch {
       /* older Cesium may lack the flags */
     }
@@ -152,14 +157,15 @@ function createSelectionSession(viewer) {
     state.savedController = null
     if (!controller || !saved) return
     try {
-      if (saved.enableRotate !== undefined) controller.enableRotate = saved.enableRotate
-      if (saved.enableTranslate !== undefined) controller.enableTranslate = saved.enableTranslate
+      for (const [key, value] of Object.entries(saved)) controller[key] = value
     } catch {
       /* best effort */
     }
   }
 
   function destroyHandler() {
+    state.unwatch?.()
+    state.unwatch = null
     if (state.handler) {
       try {
         state.handler.destroy()
@@ -176,6 +182,7 @@ function createSelectionSession(viewer) {
 
   /** Screen-space marquee box for object selection (DOM, independent of Cesium). */
   function clearObjectBox() {
+    screenOverlay.clear()
     if (state.objectBox?.parentNode) state.objectBox.parentNode.removeChild(state.objectBox)
     state.objectBox = null
     state.objectRect = null
@@ -183,87 +190,7 @@ function createSelectionSession(viewer) {
 
   function updateObjectBox(rect) {
     state.objectRect = rect
-    if (typeof document === 'undefined') return
-    const host = viewer.container ?? viewer.scene?.canvas?.parentElement
-    if (!host) return
-    if (!state.objectBox) {
-      const box = document.createElement('div')
-      box.className = 'mv-marquee'
-      box.style.cssText = 'position:absolute;pointer-events:none;z-index:9;border:1.5px dashed #2f81f7;background:rgba(47,129,247,.10);border-radius:2px'
-      host.appendChild(box)
-      state.objectBox = box
-    }
-    state.objectBox.style.left = `${Math.min(rect.x1, rect.x2)}px`
-    state.objectBox.style.top = `${Math.min(rect.y1, rect.y2)}px`
-    state.objectBox.style.width = `${Math.abs(rect.x2 - rect.x1)}px`
-    state.objectBox.style.height = `${Math.abs(rect.y2 - rect.y1)}px`
-  }
-
-  /** World positions of one overlay entity (position / polyline / polygon). */
-  function entityCartesians(viewerNow, entity) {
-    const time = viewerNow.clock?.currentTime
-    const valueOf = (property) => {
-      try {
-        const value = property && typeof property.getValue === 'function' ? property.getValue(time) : property
-        return Array.isArray(value) ? value : value ? [value] : []
-      } catch {
-        return []
-      }
-    }
-    const points = []
-    points.push(...valueOf(entity?.position))
-    points.push(...valueOf(entity?.polyline?.positions))
-    const hierarchy = valueOf(entity?.polygon?.hierarchy)[0]
-    if (Array.isArray(hierarchy?.positions)) points.push(...hierarchy.positions)
-    if (Array.isArray(entity?.polygon?.hierarchy?.getValue?.(time)?.positions)) {
-      points.push(...entity.polygon.hierarchy.getValue(time).positions)
-    }
-    return points
-  }
-
-  function rowsInScreenBox(Cesium, rows, rect) {
-    const viewerNow = viewer
-    const left = Math.min(rect.x1, rect.x2)
-    const right = Math.max(rect.x1, rect.x2)
-    const top = Math.min(rect.y1, rect.y2)
-    const bottom = Math.max(rect.y1, rect.y2)
-    const selected = []
-    for (const row of Array.isArray(rows) ? rows : []) {
-      const entities = Array.isArray(row?.entities) ? row.entities : []
-      const hit = entities.some((entity) =>
-        entityCartesians(viewerNow, entity).some((cartesian) => {
-          let point = null
-          try {
-            point = Cesium.SceneTransforms.worldToWindowCoordinates(viewerNow.scene, cartesian)
-          } catch {
-            point = null
-          }
-          if (!point || !Number.isFinite(point.x) || !Number.isFinite(point.y)) return false
-          return point.x >= left && point.x <= right && point.y >= top && point.y <= bottom
-        }),
-      )
-      if (hit) selected.push({ kind: row.kind, index: row.index, label: row.label, detail: row.detail })
-    }
-    return selected
-  }
-
-  function ensurePreview(Cesium) {    if (state.previewEntity) return
-    try {
-      state.previewEntity = viewer.entities.add({
-        id: `selection-preview-${Date.now()}`,
-        show: true,
-        polygon: {
-          hierarchy: new Cesium.CallbackProperty(
-            () => (state.previewPositions.length >= 3 ? new Cesium.PolygonHierarchy(state.previewPositions) : undefined),
-            false,
-          ),
-          material: color(Cesium, 0.18),
-          perPositionHeight: true,
-        },
-      })
-    } catch {
-      state.previewEntity = null
-    }
+    screenOverlay.update(rectScreenRing({ x: rect.x1, y: rect.y1 }, { x: rect.x2, y: rect.y2 }, 1))
   }
 
   /** Draw the committed polygon + outline (shared by gestures and AOI helper). */
@@ -273,18 +200,22 @@ function createSelectionSession(viewer) {
         viewer.entities.add({
           id: `selection-polygon-${Date.now()}`,
           polygon: {
-            hierarchy: new Cesium.PolygonHierarchy(selection.positions),
-            material: color(Cesium, 0.22),
-            perPositionHeight: true,
+            hierarchy: new Cesium.PolygonHierarchy(selection.ring.slice(0, -1).map(([lon, lat]) => Cesium.Cartesian3.fromDegrees(lon, lat))),
+            material: color(Cesium, 0.14),
+            classificationType: Cesium.ClassificationType?.BOTH,
           },
         }),
         viewer.entities.add({
           id: `selection-outline-${Date.now()}`,
           polyline: {
             positions: [...selection.positions, selection.positions[0]],
-            width: 3,
+            width: 4,
+            clampToGround: true,
+            classificationType: Cesium.ClassificationType?.BOTH,
             arcType: Cesium.ArcType?.GEODESIC,
-            material: color(Cesium),
+            material: Cesium.PolylineOutlineMaterialProperty
+              ? new Cesium.PolylineOutlineMaterialProperty({ color: color(Cesium), outlineColor: Cesium.Color.fromCssColorString('#082f49'), outlineWidth: 1.5 })
+              : color(Cesium),
             depthFailMaterial: color(Cesium, 0.5),
           },
         }),
@@ -294,7 +225,17 @@ function createSelectionSession(viewer) {
     }
   }
 
-  function commitSelection(Cesium, ground, kind = 'rectangle') {
+  function commitSelection(Cesium, ground, kind = 'rectangle', screenRing = []) {
+    if (!screenRing.length && typeof Cesium.SceneTransforms?.worldToWindowCoordinates === 'function') {
+      screenRing = ground.points.map((point) => Cesium.SceneTransforms.worldToWindowCoordinates(viewer.scene, point.cartesian)).filter(Boolean)
+    }
+    const frame = captureSelectionFrame(viewer, screenRing)
+    if (!usableSurfaceRing(ground)) {
+      state.selection = { kind: 'screen', requested_kind: kind, frame, complete: false, approximate: true, created_at: now() }
+      toast(t('selection.surfaceUnavailable'))
+      tool.deps?.onCommit?.(state.selection)
+      return
+    }
     const last = ground.ring[ground.ring.length - 1]
     const ring = last && last[0] === ground.ring[0][0] && last[1] === ground.ring[0][1] ? ground.ring.slice() : [...ground.ring, ground.ring[0].slice()]
     const selection = {
@@ -308,6 +249,9 @@ function createSelectionSession(viewer) {
       complete: ground.complete,
       misses: ground.misses,
       created_at: now(),
+      frame,
+      approximate: true,
+      source: kind === 'vision' ? 'ai-visible-surface' : 'screen-visible-surface',
     }
     drawCommittedShape(Cesium, selection)
     state.selection = selection
@@ -324,6 +268,7 @@ function createSelectionSession(viewer) {
     const Cesium = tool.deps?.getCesium?.()
     if (!Cesium || !Number.isFinite(lon) || !Number.isFinite(lat)) return null
     cancel()
+    tool.deps?.onActivate?.()
     clearSelection()
     const ring = circleAroundPoint([lon, lat], radiusM, 16)
     if (ring.length < 4) return null
@@ -340,6 +285,7 @@ function createSelectionSession(viewer) {
       complete: true,
       approximate: true,
       created_at: now(),
+      frame: captureSelectionFrame(viewer, positions.map((position) => Cesium.SceneTransforms?.worldToWindowCoordinates?.(viewer.scene, position)).filter(Boolean)),
     }
     state.selection = selection
     drawCommittedShape(Cesium, selection)
@@ -347,7 +293,7 @@ function createSelectionSession(viewer) {
     return selection
   }
 
-  function commitPoint(Cesium, ground) {
+  function commitPoint(Cesium, ground, screen) {
     const selection = {
       kind: 'point',
       lon: ground.lon,
@@ -361,6 +307,7 @@ function createSelectionSession(viewer) {
         : null,
       complete: true,
       created_at: now(),
+      frame: captureSelectionFrame(viewer, screen ? [screen] : []),
     }
     try {
       state.committedEntities.push(
@@ -383,9 +330,20 @@ function createSelectionSession(viewer) {
     tool.deps?.onCommit?.(selection)
   }
 
+  function commitVision(ground) {
+    const Cesium = tool.deps?.getCesium?.()
+    if (!Cesium || ground?.complete !== true || !Array.isArray(ground.points) || ground.points.length < 3) return false
+    cancel()
+    tool.deps?.onActivate?.()
+    clearSelection()
+    commitSelection(Cesium, ground, 'vision')
+    return true
+  }
+
   function finish() {
     const Cesium = tool.deps?.getCesium?.()
     const screenRing = state.lastScreenRing
+    clearObjectBox()
     state.mode = null
     destroyHandler()
     restoreCamera()
@@ -398,17 +356,13 @@ function createSelectionSession(viewer) {
       return
     }
     const ground = groundRingFromScreen(viewer, Cesium, screenRing)
-    if (ground.points.length < 3) {
-      toast(t('selection.tooSmall'))
-      tool.deps?.onCancel?.()
-      return
-    }
-    commitSelection(Cesium, ground, 'rectangle')
+    commitSelection(Cesium, ground, 'rectangle', screenRing)
   }
 
   function finishLasso() {
     const Cesium = tool.deps?.getCesium?.()
     const path = sampleLassoPath(state.lassoPath)
+    clearObjectBox()
     state.mode = null
     state.lassoPath = []
     destroyHandler()
@@ -422,12 +376,7 @@ function createSelectionSession(viewer) {
       return
     }
     const ground = groundRingFromScreen(viewer, Cesium, path)
-    if (ground.points.length < 3) {
-      toast(t('selection.tooSmall'))
-      tool.deps?.onCancel?.()
-      return
-    }
-    commitSelection(Cesium, ground, 'lasso')
+    commitSelection(Cesium, ground, 'lasso', path)
   }
 
   function finishObjects() {
@@ -442,13 +391,13 @@ function createSelectionSession(viewer) {
       return
     }
     const rows = tool.deps?.getOverlayRows?.() ?? []
-    const selected = rowsInScreenBox(Cesium, rows, rect)
+    const selected = rowsInScreenBox(Cesium, viewer, rows, rect)
     if (selected.length === 0) {
       toast(t('selection.objectsEmpty'))
       tool.deps?.onCancel?.()
       return
     }
-    const selection = { kind: 'objects', rows: selected, created_at: now() }
+    const selection = { kind: 'objects', rows: selected, frame: captureSelectionFrame(viewer, rectScreenRing({ x: rect.x1, y: rect.y1 }, { x: rect.x2, y: rect.y2 }, 1)), created_at: now() }
     state.selection = selection
     tool.deps?.onCommit?.(selection)
   }
@@ -478,6 +427,7 @@ function createSelectionSession(viewer) {
       return false
     }
     cancel()
+    tool.deps?.onActivate?.()
     clearSelection()
     state.mode = mode === 'point' || mode === 'lasso' || mode === 'objects' ? mode : 'rect'
     state.dragStart = null
@@ -489,8 +439,11 @@ function createSelectionSession(viewer) {
     try {
       const handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas)
       if (state.mode === 'point') {
+        const intent = createPointerIntent()
+        handler.setInputAction((event) => intent.down(event.position), Cesium.ScreenSpaceEventType.LEFT_DOWN)
+        handler.setInputAction((event) => intent.move(event.endPosition), Cesium.ScreenSpaceEventType.MOUSE_MOVE)
         handler.setInputAction((event) => {
-          if (!event?.position) return
+          if (!event?.position || !intent.allowsClick()) return
           const ground = groundPointFromScreen(viewer, Cesium, event.position)
           if (!ground) {
             toast(t('toast.noSurface'))
@@ -498,7 +451,7 @@ function createSelectionSession(viewer) {
           }
           state.mode = null
           destroyHandler()
-          commitPoint(Cesium, ground)
+          commitPoint(Cesium, ground, event.position)
         }, Cesium.ScreenSpaceEventType.LEFT_CLICK)
       } else if (state.mode === 'lasso') {
         handler.setInputAction((event) => {
@@ -512,16 +465,8 @@ function createSelectionSession(viewer) {
           const last = state.lassoPath[state.lassoPath.length - 1]
           if (Math.hypot(point.x - last.x, point.y - last.y) < 4) return
           state.lassoPath.push({ x: point.x, y: point.y })
-          // Preview is throttled: unprojecting the whole path every mouse move is
-          // wasteful, and the path is thinned before it reaches Cesium anyway.
-          const now = Date.now()
-          if (now - state.lastMoveAt < 60) return
-          state.lastMoveAt = now
           const previewPath = sampleLassoPath(state.lassoPath, { minSpacing: 4, maxPoints: 80 })
-          const ground = groundRingFromScreen(viewer, Cesium, previewPath)
-          state.previewPositions = ground.points.map((item) => item.cartesian)
-          ensurePreview(Cesium)
-          viewer.scene.requestRender?.()
+          screenOverlay.update(previewPath)
         }, Cesium.ScreenSpaceEventType.MOUSE_MOVE)
         handler.setInputAction((event) => {
           if (!state.mode) return
@@ -564,25 +509,23 @@ function createSelectionSession(viewer) {
           const dx = end.x - start.x
           const dy = end.y - start.y
           if (Math.hypot(dx, dy) < MIN_DRAG_PX) return
-          const screenRing = rectScreenRing(start, end, 6)
-          const ground = groundRingFromScreen(viewer, Cesium, screenRing)
+          const screenRing = rectScreenRing(start, end, Math.max(6, Math.min(32, Math.ceil(Math.max(Math.abs(dx), Math.abs(dy)) / 16))))
           state.lastScreenRing = screenRing
-          state.previewPositions = ground.points.map((point) => point.cartesian)
-          ensurePreview(Cesium)
-          viewer.scene.requestRender?.()
+          screenOverlay.update(screenRing)
         }, Cesium.ScreenSpaceEventType.MOUSE_MOVE)
         handler.setInputAction((event) => {
           if (!state.mode) return
           if (!state.dragStart) return
           const end = event?.position
           if (end && Math.hypot(end.x - state.dragStart.x, end.y - state.dragStart.y) >= MIN_DRAG_PX) {
-            state.lastScreenRing = rectScreenRing(state.dragStart, end, 6)
+            state.lastScreenRing = rectScreenRing(state.dragStart, end, Math.max(6, Math.min(32, Math.ceil(Math.max(Math.abs(end.x - state.dragStart.x), Math.abs(end.y - state.dragStart.y)) / 16))))
           }
           finish()
         }, Cesium.ScreenSpaceEventType.LEFT_UP)
       }
       handler.setInputAction(() => cancel(), Cesium.ScreenSpaceEventType.RIGHT_CLICK)
       state.handler = handler
+      state.unwatch = watchPointerCancellation(viewer.scene.canvas, { cancel })
       if (typeof document !== 'undefined') {
         state.keyHandler = (event) => {
           if (event.key === 'Escape') cancel()
@@ -619,7 +562,7 @@ function createSelectionSession(viewer) {
     if (!state.selection) return null
     const selection = state.selection
     // Object marquee selects existing panel rows, not a new spatial geometry.
-    if (selection.kind === 'objects') return null
+    if (selection.kind === 'objects' || selection.kind === 'screen') return null
     const point = selection.kind === 'point'
     const geometry = point ? { type: 'Point', coordinates: [selection.lon, selection.lat] } : selection.polygon
     return {
@@ -646,6 +589,8 @@ function createSelectionSession(viewer) {
             height_max_m: selection.heightRange ? round(selection.heightRange.max) : null,
             height_mean_m: selection.heightRange ? round(selection.heightRange.mean) : null,
             complete: selection.complete,
+            approximate: selection.approximate === true,
+            source: selection.source ?? 'manual',
             height_reference: 'ellipsoid',
             created_at: selection.created_at,
           },
@@ -657,8 +602,9 @@ function createSelectionSession(viewer) {
   const round = (value) => (Number.isFinite(value) ? Math.round(value * 10) / 10 : null)
 
   function dispose() {
-    clearSelection()
     cancel()
+    clearSelection()
+    tool.deps = {}
     sessions.delete(viewer)
   }
 
@@ -670,6 +616,7 @@ function createSelectionSession(viewer) {
     dispose,
     exportGeoJSON,
     selectAreaAround,
+    commitVision,
     isActive: () => Boolean(state.mode),
     getMode: () => state.mode,
     getSelection: () => state.selection,
