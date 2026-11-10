@@ -314,7 +314,9 @@ test('readout：返回夜间标志、浏览器时区与当前时刻的 UTC 偏�
   // The offset is local-minus-UTC for the SELECTED instant (DST aware).
   const sign = day.utcOffset.startsWith('-') ? -1 : 1
   const [hours, minutes] = day.utcOffset.slice(1).split(':').map(Number)
-  assert.equal(sign * (hours * 60 + minutes), -date.getTimezoneOffset())
+  // `-date.getTimezoneOffset()` is -0 in a UTC CI runner; compare numeric zero,
+  // not object identity (strictEqual distinguishes 0 from -0).
+  assert.equal(sign * (hours * 60 + minutes), -date.getTimezoneOffset() || 0)
 
   // Below the horizon: night flag, UI can explain the darker frame.
   const nightSun = makeSun(makeCesium({ sunInertial: () => new Vec(0, 0, -1) }), viewer, [layer])
