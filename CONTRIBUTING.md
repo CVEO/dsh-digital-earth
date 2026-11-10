@@ -35,13 +35,20 @@ dsh-digital-earth/
 ├── assets/readme/           # README 截图
 ├── icon.svg                 # 插件市场图标
 ├── locale/                  # 插件市场元数据（zh / en）
-├── vendor/cesium/           # 自托管 CesiumJS 1.147
+├── vendor/cesium/           # 自托管三维引擎（第三方声明见 THIRD-PARTY.md / NOTICE）
 ├── scripts/                 # 构建、行数预算、地理配准修复、发布自检
 ├── test/                    # 单元 / 契约 / 产物冒烟测试
 ├── CHANGELOG.md
+├── THIRD-PARTY.md
 ├── NOTICE
 └── package.json
 ```
+
+## 分支 / Branches
+
+- `develop`：日常开发与集成分支。功能从 `feature/*` 切出，PR 合并回 `develop`。
+- `main`：稳定与发布分支。只接收 `develop` 的发布合并和紧急修复。
+- 功能开发期间在 `develop` 上持续提交、跑测试；准备发布时再合并到 `main`。
 
 ## 约定 / Rules
 
@@ -53,10 +60,13 @@ dsh-digital-earth/
 
 ## 发布 / Release
 
-- 发布是 tag-only + GitHub Actions OIDC：在 `main` 上打与 `package.json` 版本一致的 tag，由工作流发布。
-- 本地 `npm run release:check` 只做只读自检，不会 tag / push / publish。
-- 版本号以 `package.json` 为单一来源；README 徽章、About、CHANGELOG 顶部跟随它。
+1. 在 `develop` 上完成功能与 `npm run check`、`npm run release:check`。
+2. 合并到 `main`，在 `main` 上再跑一次 `npm run check` 与 `npm run release:check`。
+3. 打与 `package.json` 版本一致的 tag（例如 `v1.5.2`），推送 `main` 和 tag。
+4. 在 GitHub 创建 Release；tag 工作流通过 OIDC 发布 npm（已存在的版本会自动跳过）。
+
+本地 `npm run release:check` 只做只读自检，不会 tag / push / publish。版本号以 `package.json` 为单一来源；README 徽章、Host / Client About、CHANGELOG 顶部跟随它。
 
 ## License
 
-MIT；CesiumJS 以 Apache-2.0 分发，第三方声明见 [NOTICE](NOTICE)。
+MIT；第三方组件与数据声明见 [THIRD-PARTY.md](THIRD-PARTY.md) 与 [NOTICE](NOTICE)。
