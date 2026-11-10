@@ -30,9 +30,11 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)))
 const readText = (name) => readFile(join(root, name), 'utf8').then((text) => text.replace(/\r\n/g, '\n'))
 // Authored client source (src/client/**), not the generated client.js artifact.
 const client = clientSource()
-const [packageText, analyzeSource, sceneSource] = await Promise.all([
+const [packageText, analyzeSource, analyzeRenderSource, sourcePolicySource, sceneSource] = await Promise.all([
   readText('package.json'),
   readText('src/host/tools/analyze.js'),
+  readText('src/host/tools/analyze-render.js'),
+  readText('src/client/analysis/source-policy.js'),
   readText('src/host/tools/scene.js'),
 ])
 const host = hostSource()
@@ -282,11 +284,11 @@ test('normalizeAnalyzeRequest：所有拒绝都走统一 earth_analyze 错误前
 // Host：工具 schema / 描述 / 桥接 / 渲染 / 提示词
 // ---------------------------------------------------------------------------
 
-test('earth_analyze schema：注册于六工具集，12 个参数、required action、两处 additionalProperties:false', () => {
+test('earth_analyze schema：注册于六工具集，13 个参数、required action、两处 additionalProperties:false', () => {
   const params = block(analyzeSource, 'const ANALYZE_PARAMETERS = {', '\n}')
   const properties = [...params.matchAll(/^    ([a-z_]+): \{/gm)].map((match) => match[1])
   assert.deepEqual(properties, [
-    'action', 'layer', 'from', 'to', 'samples', 'region', 'water_height', 'grid', 'datetime', 'show_shadows', 'height', 'keep',
+    'action', 'layer', 'from', 'to', 'samples', 'region', 'water_height', 'grid', 'datetime', 'show_shadows', 'height', 'keep', 'source',
   ])
   assert.match(params, /enum: ANALYZE_ACTIONS/)
   assert.match(params, /required: \['action'\]/)
@@ -317,7 +319,7 @@ test('earth_analyze schema：注册于六工具集，12 个参数、required act
   assert.match(host, /const ANALYZE_TOOL_NAME = 'earth_analyze'/)
 })
 
-test('earth_analyze 工具描述 ≤1200 字符，覆盖单活动/clear/坐标来源/数据已加载/不猜数值', () => {
+test('earth_analyze 工具描述 ≤1200 字符，覆盖单活动/clear/单高程源/坐标来源/不猜数值', () => {
   // 描述是源码里的字符串数组，测试按实现拼回来量预算，避免硬编码字符数。
   const descBlock = block(analyzeSource, 'const ANALYZE_DESCRIPTION = [', "].join('")
   const lines = [...descBlock.matchAll(/'((?:[^'\\]|\\.)*)'/g)].map((match) =>
@@ -330,11 +332,12 @@ test('earth_analyze 工具描述 ≤1200 字符，覆盖单活动/clear/坐标�
 
   assert.match(description, /One analysis at a time: profile, flood, sunlight, clip and skyline replace the previous active analysis; clear removes it/)
   assert.match(description, /reports what was cleared/)
-  assert.match(description, /load data first/)
-  assert.match(description, /never guess missing values/)
-  assert.match(description, /the panel returns an error when it has no height data/)
+  // v1.5.2: exactly one height source per run, never a per-sample mix.
+  assert.match(description, /Height source is explicit and single per run/)
+  assert.match(description, /Never mixes 3D Tiles and terrain heights in one result/)
+  assert.match(description, /clip works on mesh 3D Tiles only/)
   assert.match(description, /Take coordinates from the user/)
-  assert.match(description, /topmost visible 3D Tiles layer/)
+  assert.match(description, /never guess/)
   assert.match(description, /compact metrics, not a full sampling grid/)
   assert.match(description, /earth_capture/)
   // D-16：skyline 是 1.6 的正式分析，描述里出现是预期；只禁止未批准的能力话术。
@@ -356,14 +359,14 @@ test('earth_analyze 执行：30 s 超时、analyze 桥命令、scrubToken/asResu
 })
 
 test('earth_analyze 渲染：8 KB 上限、UTF-8 安全截断、四种 operation 的字段与 JSON 兜底', () => {
-  assert.match(host, /const ANALYZE_RENDER_LIMIT = 8 \* 1024/)
-  const truncate = block(analyzeSource, 'function truncateAnalyzeText(text, note) {', '\n}')
+  assert.match(analyzeRenderSource, /const ANALYZE_RENDER_LIMIT = 8 \* 1024/)
+  const truncate = block(analyzeRenderSource, 'function truncateAnalyzeText(text, note) {', '\n}')
   assert.match(truncate, /Buffer\.byteLength\(text, 'utf8'\) <= ANALYZE_RENDER_LIMIT/)
   assert.match(truncate, /for \(const character of text\)/)
   assert.match(truncate, /Buffer\.byteLength\(character, 'utf8'\)/)
   assert.match(truncate, /return `\$\{head\}\$\{note\}`/)
 
-  const render = block(analyzeSource, 'function renderAnalyzeResult(value) {', '\n}')
+  const render = block(analyzeRenderSource, 'function renderAnalyzeResult(value) {', '\n}')
   for (const operation of ['profile', 'flood', 'sunlight', 'clear']) {
     assert.match(render, new RegExp(`operation === '${operation}'`))
   }
@@ -460,12 +463,23 @@ test('client analyze 桥分支：先于就绪守卫，失败强制带 next:，cl
   assert.match(command, /return \{ operation: 'clear', layer: null, cleared \}/)
   assert.match(command, /不支持的分析类型/)
   assert.match(command, /next: 使用 profile \/ flood \/ skyline \/ sunlight \/ clip \/ clear/)
-  // 先解析图层再清旧分析：图层写错不会破坏屏幕上的有效分析。
-  assert.match(command, /const requested = typeof args\.layer === 'string' \? args\.layer\.trim\(\) : ''/)
-  assert.match(command, /layer = findLayer\(requested\)/)
-  assert.match(command, /未找到图层/)
-  assert.match(command, /for \(let index = layersRef\.current\.length - 1; index >= 0; index -= 1\)/)
-  assert.match(command, /if \(layersRef\.current\[index\]\.visible\)/)
+  // v1.5.2: source/layer resolution moved to source-policy.js so one explicit
+  // height source is chosen per run (never a per-sample tiles/terrain mix).
+  assert.match(command, /const target = resolveAnalysisTarget\(\{ operation, args, layers: layersRef\.current, findLayer \}\)/)
+  assert.match(sourcePolicySource, /const heightOperation = operation === 'profile'/)
+  assert.match(sourcePolicySource, /allowedSourcesFor/)
+  assert.match(sourcePolicySource, /layer\.kind === '3dgs'/)
+  assert.match(sourcePolicySource, /for \(let index = layers\.length - 1; index >= 0; index -= 1\)/)
+  assert.match(sourcePolicySource, /未找到图层/)
+  assert.match(sourcePolicySource, /\[no_height_data\]/)
+  // Every policy throw also carries a next: (the envelope is still asserted by
+  // the engine-level loop below).
+  const policyThrows = [...sourcePolicySource.matchAll(/throw new Error\(/g)]
+  assert.ok(policyThrows.length >= 3, `source-policy 异常分支过少：${policyThrows.length}`)
+  for (const match of policyThrows) {
+    const tail = sourcePolicySource.slice(match.index, match.index + 600)
+    assert.match(tail, /next:/, `缺少 next: 的分析错误：${tail.slice(0, 120)}`)
+  }
   assert.match(command, /\/\/ Single active analysis: the new result replaces the previous one\./)
   assert.match(command, /clearAnalysis\(\)/)
   assert.match(command, /const sampler = createHeightService\(\{ Cesium, viewer, layer \}\)/)
@@ -511,8 +525,11 @@ test('client profile 引擎：samples 8..64 默认 32、测地线采样、≥2 �
   assert.match(profile, /new Cesium\.EllipsoidGeodesic\(/)
   assert.match(profile, /geodesic\.interpolateUsingFraction\(fraction/)
   assert.match(profile, /if \(withData < ANALYSIS_MIN_SAMPLES\)/)
-  assert.match(profile, /当前视图中没有可采样的高程数据，先加载 3D Tiles 或地形再试。/)
-  assert.match(profile, /next: 用 earth_scene 的 list 查看可见图层/)
+  // v1.5.2: one explicit source per run (tiles or terrain), no silent fall-back.
+  assert.match(profile, /const heightMode = args\.source === 'terrain' \? 'terrain' : 'tiles'/)
+  assert.match(profile, /sampler\.sample\(carto, \{ mode: heightMode \}\)/)
+  assert.match(profile, /\[no_height_data\]/)
+  assert.match(profile, /3DGS 不提供表面高程/)
   for (const field of ['min_height', 'max_height', 'relief_m', 'gain_m', 'loss_m']) {
     assert.match(profile, new RegExp(`${field}: analysisRound`))
   }
@@ -542,8 +559,10 @@ test('client flood 引擎：region/water_height/grid 校验、格元面积有限
   assert.match(flood, /if \(!Number\.isFinite\(cellArea\) \|\| cellArea <= 0\)/)
   assert.match(flood, /for \(let row = 0; row < grid; row \+= 1\)/)
   assert.match(flood, /for \(let column = 0; column < grid; column \+= 1\)/)
-  // v1.6：采样统一走 HeightService；淹没是"地面"分析，有地形时不得读 3D Tiles 屋顶。
-  assert.match(flood, /const heightMode = sampler\.hasRealTerrain\(\) \? 'ground' : 'surface'/)
+  // v1.5.2：淹没默认只用地形；source="surface" 是显式近似且单独标注，绝不混源。
+  assert.match(flood, /const floodSource = args\.source === 'surface' \? 'surface' : 'terrain'/)
+  assert.match(flood, /if \(floodSource === 'terrain' && !sampler\.hasRealTerrain\(\)\)/)
+  assert.match(flood, /const heightMode = floodSource === 'surface' \? 'tiles' : 'terrain'/)
   assert.match(flood, /sampler\.sampleMany\(probes, \{ mode: heightMode \}\)/)
   assert.match(flood, /if \(withData === 0\)/)
   // 水面矩形在 water_height 处，半透明 + 边框；另有边框线与水位标签。

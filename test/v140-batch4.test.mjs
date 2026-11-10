@@ -348,7 +348,7 @@ test('B4 F2：自动选层从最上层向下跳过 3DGS，显式图层与全 3DG
 
   assert.match(resolve, /for \(let index = layersRef\.current\.length - 1; index >= 0; index -= 1\)/)
   assert.match(resolve, /if \(!layer\.visible\) continue/)
-  const gaussianStart = resolve.indexOf('if (shaderGaussianLayer(layer.tileset)) {')
+  const gaussianStart = resolve.indexOf('if (shaderGaussianLayer(layer.tileset, layer)) {')
   assert.ok(gaussianStart > 0, 'resolveShaderLayer 缺少 3DGS 跳过分支')
   const skip = resolve.slice(gaussianStart, resolve.indexOf('return layer', gaussianStart))
   assert.match(skip, /gaussianOnly = true/)

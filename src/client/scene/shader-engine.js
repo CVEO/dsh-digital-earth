@@ -144,7 +144,7 @@ export function createShaderEngine(deps) {
           if (!layer.visible) continue
           // Auto-selection skips 3DGS so a splat layer on top cannot shadow a usable
           // 3D Tiles layer below; an explicit layer still gets the exact 3DGS error.
-          if (shaderGaussianLayer(layer.tileset)) {
+          if (shaderGaussianLayer(layer.tileset, layer)) {
             gaussianOnly = true
             continue
           }
@@ -167,7 +167,7 @@ export function createShaderEngine(deps) {
           throw shaderFail('当前 Cesium 不支持 CustomShader。', '升级 Cesium 版本或换用其他可视化方式。')
         }
         const layer = resolveShaderLayer(request.layer)
-        if (shaderGaussianLayer(layer.tileset)) {
+        if (shaderGaussianLayer(layer.tileset, layer)) {
           // Exact wording from the frozen B3 contract (used by QA and the model).
           throw new Error('shader: 3DGS 图层不支持该预设。next: 换 3D Tiles 图层。')
         }

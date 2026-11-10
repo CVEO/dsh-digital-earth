@@ -162,8 +162,14 @@ import { cachedElevationRange } from './elevation-range.js'
       return values
     }
 
-    /** 3DGS splats have no per-vertex GLSL material Cesium.CustomShader can edit. */
-    function shaderGaussianLayer(tileset) {
+    /**
+     * 3DGS splats have no per-vertex GLSL material Cesium.CustomShader can edit.
+     * `layer.kind` is set by the load-time content inspection (v1.5.2): a dataset
+     * can declare KHR_gaussian_splatting inside its GLBs only, where the tileset
+     * extension list never shows it.
+     */
+    function shaderGaussianLayer(tileset, layer = null) {
+      if (layer !== null && typeof layer === 'object' && layer.kind === '3dgs') return true
       if (shaderTilesetExtensions(tileset).includes('KHR_gaussian_splatting')) return true
       if (typeof tileset?.hasExtension === 'function') {
         try {

@@ -12,6 +12,7 @@
  * module never holds a stale viewer/layer list across panel remounts.
  */
 import { createHeightService } from './height-service.js'
+import { resolveAnalysisTarget } from './source-policy.js'
 import { ANALYSIS_ENTITY_PREFIX, ANALYSIS_MIN_SAMPLES, analysisClipPlane, analysisColorAt, analysisInteger, analysisLonLat, analysisObserver, analysisRegion, analysisRound, analysisSunAngles } from './math.js'
 import { formatHeight } from '../format.js'
 import { vectorLabel } from '../scene/vector-style.js'
@@ -121,6 +122,7 @@ export function createAnalysisEngine(deps) {
           throw new Error('analysis: `from`/`to` must be [lon, lat] pairs. next: pass two legal WGS84 [lon, lat] arrays.')
         }
         const samples = analysisInteger(args.samples, 32, 8, 64)
+        const heightMode = args.source === 'terrain' ? 'terrain' : 'tiles'
         const ellipsoid = viewer.scene.globe.ellipsoid
         const geodesic = new Cesium.EllipsoidGeodesic(
           Cesium.Cartographic.fromDegrees(from[0], from[1]),
@@ -133,7 +135,7 @@ export function createAnalysisEngine(deps) {
         for (let index = 0; index < samples; index += 1) {
           const fraction = samples === 1 ? 0 : index / (samples - 1)
           const carto = geodesic.interpolateUsingFraction(fraction, new Cesium.Cartographic())
-          const probe = carto ? await sampler.sample(carto) : null
+          const probe = carto ? await sampler.sample(carto, { mode: heightMode }) : null
           const height = probe ? probe.height : null
           if (height !== null) withData += 1
           points.push({
@@ -143,7 +145,9 @@ export function createAnalysisEngine(deps) {
         }
         if (withData < ANALYSIS_MIN_SAMPLES) {
           throw new Error(
-            'analysis: 当前视图中没有可采样的高程数据，先加载 3D Tiles 或地形再试。next: 用 earth_scene 的 list 查看可见图层，或先 load 3D Tiles / 地形后重试。',
+            heightMode === 'terrain'
+              ? 'analysis: [no_height_data] 地形没有返回可采样的高程。next: 在「地图」Tab 打开地形，或改用 source="tiles" 的 mesh 图层。'
+              : 'analysis: [no_height_data] 所选图层没有返回可采样的表面高程（3DGS 不提供表面高程）。next: 选择 source="terrain" 并加载地形，或改用 mesh 3D Tiles 图层。',
           )
         }
         const heights = points.filter((point) => point.height_m !== null).map((point) => point.height_m)
@@ -225,6 +229,7 @@ export function createAnalysisEngine(deps) {
           to,
           samples,
           length_m: analysisRound(length, 1),
+          height_mode: heightMode,
           stats,
           points,
           ...sampler.report(),
@@ -235,10 +240,10 @@ export function createAnalysisEngine(deps) {
       }
 
       /**
-       * D-16 skyline: sample the terrain along the from→to direction and report the
-       * maximum elevation angle seen from the observer (eye height 1.7 m). A skyline
-       * is a terrain horizon, so it samples GROUND when a real terrain provider is
-       * installed and falls back to the 3D Tiles surface (with a warning) otherwise.
+       * D-16 skyline: sample along the from→to direction and report the maximum
+       * elevation angle seen from the observer (eye height 1.7 m). Exactly one
+       * source per run: `terrain` (relief horizon) or `tiles` (visible surface,
+       * e.g. roofs/foliage). A 3DGS layer cannot supply either.
        */
       const analyzeSkyline = async (Cesium, viewer, layer, args, sampler) => {
         const from = analysisLonLat(args.from)
@@ -259,7 +264,7 @@ export function createAnalysisEngine(deps) {
         if (length <= 0) {
           throw new Error('analysis: skyline 起终点重合或距离为 0。next: 给出两个不同的位置。')
         }
-        const heightMode = sampler.hasRealTerrain() ? 'ground' : 'surface'
+        const heightMode = args.source === 'terrain' ? 'terrain' : 'tiles'
         const fractions = []
         const probes = []
         for (let index = 0; index < samples; index += 1) {
@@ -270,7 +275,11 @@ export function createAnalysisEngine(deps) {
         const sampled = await sampler.sampleMany(probes, { mode: heightMode })
         const eyeSample = sampled.values[0]
         if (!eyeSample) {
-          throw new Error('analysis: 观察点没有可采样的高程。next: 换一个观察位置，或先加载地形 / 3D Tiles 后重试。')
+          throw new Error(
+            heightMode === 'terrain'
+              ? 'analysis: [no_height_data] 观察点没有可采样的地形高程。next: 在「地图」Tab 打开地形后重试。'
+              : 'analysis: [no_height_data] 观察点没有可采样的 3D 表面高程（3DGS 不提供表面高程，或该点不在 mesh 覆盖范围内）。next: 改用地形模式，或把观察点移到 mesh 覆盖范围内。',
+          )
         }
         // 1.7 m eye height keeps the angle meaningful for a person-sized observer.
         const eyeHeight = eyeSample.height + 1.7
@@ -281,16 +290,21 @@ export function createAnalysisEngine(deps) {
           if (!sample) continue
           withData += 1
           const distance = length * fractions[index]
-          const angle = distance > 0 ? (Math.atan2(sample.height - eyeHeight, distance) * 180) / Math.PI : -90
+          // distance 0 is the observer itself: its angle is undefined (-90°) and
+          // must not enter the statistics or the drawn profile.
+          if (distance <= 0) continue
+          const angle = (Math.atan2(sample.height - eyeHeight, distance) * 180) / Math.PI
           points.push({
             distance_m: analysisRound(distance, 1),
             height_m: analysisRound(sample.height, 1),
             angle_deg: analysisRound(angle, 3),
           })
         }
-        if (withData < ANALYSIS_MIN_SAMPLES) {
+        if (withData < ANALYSIS_MIN_SAMPLES || points.length === 0) {
           throw new Error(
-            'analysis: 当前视图中没有可采样的高程数据，先加载 3D Tiles 或地形再试。next: 用 earth_scene 的 list 查看可见图层，或先 load 3D Tiles / 地形后重试。',
+            heightMode === 'terrain'
+              ? 'analysis: [no_height_data] 地形没有返回可采样的高程。next: 在「地图」Tab 打开地形后重试。'
+              : 'analysis: [no_height_data] 所选图层没有返回可采样的表面高程（3DGS 不提供表面高程）。next: 选择 source="terrain" 并加载地形，或改用 mesh 3D Tiles 图层。',
           )
         }
         let maxPoint = points[0]
@@ -300,12 +314,16 @@ export function createAnalysisEngine(deps) {
           const carto = geodesic.interpolateUsingFraction(fraction, new Cesium.Cartographic())
           return Cesium.Cartesian3.fromRadians(carto.longitude, carto.latitude, height + 2)
         }
+        const fractionAt = (point) => (length > 0 ? point.distance_m / length : 0)
         for (let index = 1; index < points.length; index += 1) {
           const ratio = points.length > 1 ? index / (points.length - 1) : 0
           analysisAdd(Cesium, viewer, {
             id: `skyline-line-${index}`,
             polyline: {
-              positions: [positionAt(fractions[index - 1], points[index - 1].height_m), positionAt(fractions[index], points[index].height_m)],
+              positions: [
+                positionAt(fractionAt(points[index - 1]), points[index - 1].height_m),
+                positionAt(fractionAt(points[index]), points[index].height_m),
+              ],
               width: 3,
               arcType: Cesium.ArcType.NONE,
               material: analysisColorAt(Cesium, ratio),
@@ -313,10 +331,9 @@ export function createAnalysisEngine(deps) {
             },
           })
         }
-        const maxIndex = points.indexOf(maxPoint)
         analysisAdd(Cesium, viewer, {
           id: 'skyline-max',
-          position: positionAt(fractions[maxIndex], maxPoint.height_m),
+          position: positionAt(fractionAt(maxPoint), maxPoint.height_m),
           point: {
             pixelSize: 10,
             color: Cesium.Color.fromCssColorString('#ddbb83'),
@@ -394,12 +411,24 @@ export function createAnalysisEngine(deps) {
             probes.push(Cesium.Cartographic.fromDegrees(lon, lat))
           }
         }
-        // Flood is a GROUND analysis: with a real terrain provider we must not read
-        // the 3D Tiles surface, because `getHeight` there returns roofs/foliage and
-        // the inundated area would be wrong. Without terrain we still sample the
-        // tileset surface, but the result says so (`height_source: tiles` + warning).
-        const heightMode = sampler.hasRealTerrain() ? 'ground' : 'surface'
+        // Flood is a GROUND analysis by default. `source: "terrain"` is the only
+        // strict mode; `source: "surface"` is an explicit approximation on the
+        // visible 3D Tiles surface (roofs/foliage included) and is labelled as
+        // such. The two are never mixed inside one run.
+        const floodSource = args.source === 'surface' ? 'surface' : 'terrain'
+        if (floodSource === 'terrain' && !sampler.hasRealTerrain()) {
+          throw new Error(
+            'analysis: [no_height_data] 淹没默认使用地形，但当前没有加载地形。next: 在「地图」Tab 打开地形；或用 source="surface" 对 3D Tiles 表面做近似（含屋顶/植被，非严格地面）。',
+          )
+        }
+        if (floodSource === 'surface' && (!layer || layer.visible === false || !layer.tileset)) {
+          throw new Error(
+            'analysis: [no_height_data] source="surface" 需要可见的 mesh 3D Tiles 图层。next: 加载或显示 mesh 3D Tiles 图层，或改用 source="terrain"。',
+          )
+        }
+        const heightMode = floodSource === 'surface' ? 'tiles' : 'terrain'
         const sampled = await sampler.sampleMany(probes, { mode: heightMode })
+        if (floodSource === 'surface') sampled.warnings.push('surface_approx_includes_roofs')
         let withData = 0
         let inundated = 0
         let depthMaximum = 0
@@ -417,7 +446,9 @@ export function createAnalysisEngine(deps) {
         }
         if (withData === 0) {
           throw new Error(
-            'analysis: 当前视图中没有可采样的高程数据，先加载 3D Tiles 或地形再试。next: 用 earth_scene 的 list 查看可见图层，或先 load 3D Tiles / 地形后重试。',
+            floodSource === 'surface'
+              ? 'analysis: [no_height_data] 3D 表面没有返回可采样的高程（3DGS 不提供表面高程）。next: 改用 source="terrain" 并加载地形，或加载 mesh 3D Tiles。'
+              : 'analysis: [no_height_data] 地形没有返回可采样的高程。next: 在「地图」Tab 打开地形后重试，或改用 source="surface" 做近似。',
           )
         }
         beginAnalysis('flood', layer)
@@ -470,6 +501,8 @@ export function createAnalysisEngine(deps) {
           samples_with_data: withData,
           samples_inundated: inundated,
           // Provenance is additive: old fields keep their names/semantics.
+          source: floodSource,
+          surface_approx: floodSource === 'surface',
           height_mode: heightMode,
           height_source: sampled.height_source,
           height_sources: sampled.height_sources,
@@ -560,6 +593,11 @@ export function createAnalysisEngine(deps) {
         if (!layer || layer.visible === false || !layer.tileset) {
           throw new Error('analysis: clip 需要可见的 3D Tiles 图层。next: 先加载或显示 3D Tiles 图层后重试。')
         }
+        if (layer.kind === '3dgs') {
+          throw new Error(
+            'analysis: [unsupported_layer] 3DGS 图层不支持剖切：clippingPlanes 不会作用于 splat 渲染。next: 选择 mesh 3D Tiles 图层，或改用剖面/日照分析。',
+          )
+        }
         const tileset = layer.tileset
         const center = tileset.boundingSphere && tileset.boundingSphere.center
         if (!center) {
@@ -621,23 +659,11 @@ export function createAnalysisEngine(deps) {
             `analysis: 不支持的分析类型 "${String(args.action)}"。next: 使用 profile / flood / skyline / sunlight / clip / clear。`,
           )
         }
-        // Resolve the layer before clearing the previous result, so a typo does not
-        // destroy a valid analysis that is already on screen.
-        let layer = null
-        const requested = typeof args.layer === 'string' ? args.layer.trim() : ''
-        if (requested !== '') {
-          layer = findLayer(requested)
-          if (!layer) {
-            throw new Error(`analysis: 未找到图层 "${requested}"。next: 用 earth_scene 的 list 动作查看当前图层名。`)
-          }
-        } else {
-          for (let index = layersRef.current.length - 1; index >= 0; index -= 1) {
-            if (layersRef.current[index].visible) {
-              layer = layersRef.current[index]
-              break
-            }
-          }
-        }
+        // Source/layer resolution lives in source-policy.js: exactly one height
+        // source per run, and a 3DGS layer is never silently sampled.
+        const target = resolveAnalysisTarget({ operation, args, layers: layersRef.current, findLayer })
+        args = target.args
+        let layer = target.layer
         // Single active analysis: the new result replaces the previous one.
         clearAnalysis()
         // One sampler per run: it caches probes and reports which source the

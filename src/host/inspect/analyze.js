@@ -5,7 +5,7 @@
  */
 import { dirname } from 'node:path'
 import { INSPECT_FETCH_TIMEOUT_MS, MAX_INSPECT_TILESETS } from '../constants.js'
-import { INSPECT_FORBIDDEN_MESSAGE, INSPECT_SUPPORTED_EXTENSIONS, InspectError, inspectAllowedLocalPath, inspectBoundingVolume, inspectDeepContents, inspectDocTiles, inspectExternalLoadIssueCode, inspectFetchRemote, inspectIssue, inspectLocalPath, inspectParseJson, inspectReadLocalJson, inspectSourceLabel, normalizeInspectRuntime } from './fetch.js'
+import { INSPECT_FORBIDDEN_MESSAGE, INSPECT_SUPPORTED_EXTENSIONS, InspectError, MAX_GLB_CONTENT_CHECKS, inspectAllowedLocalPath, inspectBoundingVolume, inspectDeepContents, inspectDocTiles, inspectExternalLoadIssueCode, inspectFetchRemote, inspectGlbHeaderLocal, inspectGlbHeaderRemote, inspectIssue, inspectLocalPath, inspectParseJson, inspectReadLocalJson, inspectRemaining, inspectSourceLabel, normalizeInspectRuntime } from './fetch.js'
 import { blockedHost } from '../paths.js'
 import { isPlainObject } from '../sanitize.js'
 import { scrubToken } from '../session.js'
@@ -14,6 +14,49 @@ function inspectRootGeometricError(doc) {
   if (!isPlainObject(doc?.root)) return null
   const error = doc.root.geometricError
   return typeof error === 'number' && Number.isFinite(error) ? error : null
+}
+
+/**
+ * Classify content kinds by reading a bounded number of GLB JSON chunks.
+ * v1.5.1 trusted tileset-level extensions only, so GLB-embedded
+ * KHR_gaussian_splatting datasets were reported as mesh. This pass is cheap:
+ * at most MAX_GLB_CONTENT_CHECKS headers and only the JSON chunk of each GLB.
+ */
+async function detectContentKinds(state, allowedDirs, deadline) {
+  const seen = new Set()
+  let checked = 0
+  for (const item of state.contentRefs) {
+    if (checked >= MAX_GLB_CONTENT_CHECKS) break
+    if (item.resolved === null) continue
+    if (item.extension !== 'glb' && item.extension !== 'gltf') continue
+    const key = item.resolved.kind === 'local' ? item.resolved.value : item.resolved.value
+    if (seen.has(key)) continue
+    seen.add(key)
+    checked += 1
+    if (inspectRemaining(deadline) <= 0) break
+    let header = null
+    if (item.resolved.kind === 'local') {
+      const target = await inspectAllowedLocalPath(item.resolved.value, allowedDirs, { derived: true })
+      if (target === null) continue
+      header = await inspectGlbHeaderLocal(target, deadline)
+    } else {
+      header = await inspectGlbHeaderRemote(item.resolved.value, deadline)
+    }
+    if (header === null) continue
+    state.contentChecked = checked
+    if (typeof header.asset?.generator === 'string' && header.asset.generator.trim() !== '' && state.generator === null) {
+      state.generator = header.asset.generator.trim()
+    }
+    const extensions = [
+      ...(Array.isArray(header.extensionsUsed) ? header.extensionsUsed : []),
+      ...(Array.isArray(header.extensionsRequired) ? header.extensionsRequired : []),
+    ].filter((value) => typeof value === 'string')
+    if (extensions.includes('KHR_gaussian_splatting')) {
+      state.kinds.gaussianSplatGlb += 1
+      state.gaussianSplatSource = state.gaussianSplatSource ?? 'content'
+      if (extensions.some((value) => value.startsWith('KHR_gaussian_splatting_compression_spz'))) state.kinds.spz = true
+    }
+  }
 }
 
 export async function analyzeTileset(source, options = {}) {
@@ -36,7 +79,7 @@ export async function analyzeTileset(source, options = {}) {
     contents: 0,
     externalFiles: 0,
     maxDepth: 0,
-    kinds: { b3dm: 0, glb: 0, pnts: 0, gaussianSplatting: false, spz: false },
+    kinds: { b3dm: 0, glb: 0, pnts: 0, gaussianSplatting: false, spz: false, gaussianSplatGlb: 0, meshGlb: 0 },
     extensionsUsed: new Set(),
     extensionsRequired: new Set(),
     issues: [],
@@ -45,6 +88,9 @@ export async function analyzeTileset(source, options = {}) {
     externalTilesets: [],
     documents: 0,
     spzCount: 0,
+    generator: null,
+    contentChecked: 0,
+    gaussianSplatSource: null,
   }
   let rootDoc = null
   let rootBytes = 0
@@ -113,16 +159,37 @@ export async function analyzeTileset(source, options = {}) {
       inspectIssue(state.issues, 'warn', 'unsupported_extension', `the tileset requires extension "${extension}", which this inspection does not verify.`)
     }
   }
+  // Content-level pass: a tileset produced by 3dgs-ply-3dtiles-converter only
+  // declares KHR_gaussian_splatting inside each GLB, so the tileset document
+  // alone cannot tell splat data from mesh data. Read a bounded number of GLB
+  // JSON chunks (never the binary chunks) before deciding the content kind.
+  await detectContentKinds(state, allowedDirs, deadline)
   const hasSplatExtension = state.extensionsUsed.has('KHR_gaussian_splatting') || state.extensionsRequired.has('KHR_gaussian_splatting')
-  state.kinds.spz = state.spzCount > 0
-  state.kinds.gaussianSplatting = hasSplatExtension || state.kinds.spz
+  if (hasSplatExtension) state.gaussianSplatSource = state.gaussianSplatSource ?? 'tileset'
+  state.kinds.spz = state.spzCount > 0 || state.kinds.spz === true
+  state.kinds.gaussianSplatting = hasSplatExtension || state.kinds.gaussianSplatGlb > 0 || state.kinds.spz
+  state.kinds.meshGlb = Math.max(0, state.kinds.glb - state.kinds.gaussianSplatGlb)
   if (state.kinds.gaussianSplatting) {
     inspectIssue(
       state.issues,
       'info',
       'gaussian_splatting_ok',
-      hasSplatExtension ? 'KHR_gaussian_splatting extension detected; the panel can render these Gaussian splats.' : '.spz content detected (Gaussian splatting).',
+      hasSplatExtension
+        ? 'KHR_gaussian_splatting extension detected in tileset.json; the panel can render these Gaussian splats.'
+        : state.kinds.gaussianSplatGlb > 0
+          ? 'KHR_gaussian_splatting detected inside GLB content; the panel can render these Gaussian splats.'
+          : '.spz content detected (Gaussian splatting).',
     )
+    if (state.kinds.gaussianSplatGlb > 0 && !hasSplatExtension) {
+      inspectIssue(
+        state.issues,
+        'info',
+        'gaussian_splatting_extension_in_content',
+        'the Gaussian-splatting extension is declared inside the GLB files, not in tileset.json; detection reads the content headers.',
+      )
+    }
+  } else if (state.kinds.glb > 0) {
+    inspectIssue(state.issues, 'info', 'content_glb_mesh', `inspected ${state.contentChecked} GLB header(s); no Gaussian-splatting extension found.`)
   }
   if (deep) await inspectDeepContents(state, source, deadline, allowedDirs)
   // The issue list itself stays at the limit; the truncation count is a
@@ -130,6 +197,17 @@ export async function analyzeTileset(source, options = {}) {
   const droppedIssues = Number.isInteger(state.issues.dropped) ? state.issues.dropped : 0
   const rootBoundingVolume = inspectBoundingVolume(rootDoc?.root?.boundingVolume)
   const rootGeometricError = inspectRootGeometricError(rootDoc)
+  const rootTransform = Array.isArray(rootDoc?.root?.transform) && rootDoc.root.transform.length === 16
+  const rootHasRegion = rootBoundingVolume?.type === 'region'
+  const rootHasWorldPlacement = rootTransform || rootHasRegion
+  if (rootDoc !== null && !rootHasWorldPlacement) {
+    inspectIssue(
+      state.issues,
+      'warn',
+      'missing_world_placement',
+      'the root tile has neither a transform nor a region; local coordinates may be read as ECEF (the layer can appear near the Earth centre). Use georef-osgb or a world-placed tileset.',
+    )
+  }
   const ok = !state.issues.some((issue) => issue.level === 'error')
   const scenes = isPlainObject(rootDoc) && Array.isArray(rootDoc.scenes) && rootDoc.scenes.length > 0
     ? rootDoc.scenes.filter((scene) => isPlainObject(scene)).map((scene) => ({
@@ -143,7 +221,14 @@ export async function analyzeTileset(source, options = {}) {
     asset: {
       version: typeof rootDoc?.asset?.version === 'string' ? rootDoc.asset.version : null,
       minVersion: typeof rootDoc?.asset?.minVersion === 'string' ? rootDoc.asset.minVersion : null,
-      generator: typeof rootDoc?.asset?.generator === 'string' ? rootDoc.asset.generator : null,
+      // 3D Tiles `asset.generator`, then its `extras.generator`, then the GLB
+      // asset generator read from content headers (3dgs converters set the last).
+      generator:
+        typeof rootDoc?.asset?.generator === 'string'
+          ? rootDoc.asset.generator
+          : typeof rootDoc?.asset?.extras?.generator === 'string'
+            ? rootDoc.asset.extras.generator
+            : state.generator,
     },
     root: {
       geometricError: rootGeometricError,
@@ -152,6 +237,8 @@ export async function analyzeTileset(source, options = {}) {
         center: rootBoundingVolume?.center ?? null,
         region: rootBoundingVolume?.region ?? null,
       },
+      transform: rootTransform,
+      hasWorldPlacement: rootHasWorldPlacement,
       children: isPlainObject(rootDoc?.root) && Array.isArray(rootDoc.root.children) ? rootDoc.root.children.length : 0,
       depth: state.maxDepth,
     },
@@ -162,6 +249,8 @@ export async function analyzeTileset(source, options = {}) {
       extensionsUsed: [...state.extensionsUsed].sort(),
     },
     kinds: state.kinds,
+    gaussianSplatSource: state.gaussianSplatSource,
+    contentChecked: state.contentChecked,
     scenes,
     issues: state.issues,
   }

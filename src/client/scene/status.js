@@ -43,6 +43,9 @@ export function createSceneStatus(deps) {
               id: layer.id,
               name: layer.name,
               visible: layer.visible,
+              // '3dgs' | 'mesh' | null (content inspection pending / unavailable).
+              // An Agent otherwise cannot explain why a splat layer reports 0 triangles.
+              kind: layer.kind ?? null,
               url: redactUrl(layer.url),
               tiles: statistics.numberOfTilesWithContentReady ?? statistics.numberOfTilesLoaded ?? 0,
               pending: statistics.numberOfPendingRequests ?? 0,

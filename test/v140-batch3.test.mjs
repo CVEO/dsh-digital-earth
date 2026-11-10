@@ -367,7 +367,7 @@ test('回归：earth_scene 12 action（含 report），earth_analyze 契约与�
   assert.match(host, /const ANALYZE_TIMEOUT_MS = 30000/)
   assert.match(host, /scope\.tools\.register\(createAnalyzeTool\(bridge\)\)/)
   const analyzeParams = block(analyzeSource, 'const ANALYZE_PARAMETERS = {', '\n}')
-  assert.equal([...analyzeParams.matchAll(/^    ([a-z_]+): \{/gm)].length, 12)
+  assert.equal([...analyzeParams.matchAll(/^    ([a-z_]+): \{/gm)].length, 13)
   assert.doesNotMatch(analyzeParams, /preset|min_height|interval|amplitude|opacity/)
 })
 
@@ -553,7 +553,7 @@ test('client 错误：3DGS/无 CustomShader/无可见图层/未知图层都是 s
   assert.ok(fail, '找不到 shaderFail 定义')
   assert.match(fail[0], /new Error\(`shader: \$\{message\} next: \$\{next\}`\)/)
 
-  const gaussian = block(client, 'function shaderGaussianLayer(tileset) {', '\n    }')
+  const gaussian = block(client, 'function shaderGaussianLayer(tileset, layer = null) {', '\n    }')
   assert.match(gaussian, /KHR_gaussian_splatting/)
   assert.match(gaussian, /hasExtension\('KHR_gaussian_splatting'\)/)
   const extensions = block(client, 'function shaderTilesetExtensions(tileset) {', '\n    }')

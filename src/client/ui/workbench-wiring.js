@@ -87,7 +87,7 @@ export function resolveWorkbenchTarget(layers, form) {
   for (let index = list.length - 1; index >= 0; index -= 1) {
     const layer = list[index]
     if (!layer.visible) continue
-    if (shaderGaussianLayer(layer.tileset)) {
+    if (shaderGaussianLayer(layer.tileset, layer)) {
       gaussianOnly = true
       continue
     }
