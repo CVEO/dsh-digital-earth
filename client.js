@@ -1390,6 +1390,11 @@ function resolveAnalysisTarget({ operation, args = {}, layers = [], findLayer })
           break;
         }
       }
+      if (operation === "sunlight" && layer?.kind === "3dgs") {
+        throw new Error(
+          "analysis: [unsupported_layer] 3DGS 图层没有可投影的三角面，日照阴影不会生效。next: 选择 mesh 3D Tiles 图层，或改用不依赖阴影的分析。"
+        );
+      }
     }
   }
   return { args: nextArgs, source, layer };

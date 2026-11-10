@@ -73,6 +73,8 @@ test('flood summary separates area ratio from sampled-cell ratio', () => {
   assert.match(analyzeRenderSource, /Surface approximation: heights come from the 3D Tiles surface/)
 })
 
-test('3DGS clip is rejected with an actionable next step', () => {
+test('3DGS clip and sunlight shadows are rejected with an actionable next step', () => {
   assert.match(engineSource, /\[unsupported_layer\] 3DGS 图层不支持剖切/)
+  assert.match(sourcePolicy, /operation === 'sunlight' && layer\?\.kind === '3dgs'/)
+  assert.match(sourcePolicy, /日照阴影不会生效/)
 })
