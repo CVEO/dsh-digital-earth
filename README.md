@@ -14,7 +14,7 @@
 ![许可](https://img.shields.io/badge/许可-MIT-2ea44f)
 ![DSH](https://img.shields.io/badge/DSH-插件-0ea5e9)
 
-<img src="assets/readme/hero.jpg" alt="数字地球面板：东京千代田建筑三维场景" width="46%">
+<img src="assets/readme/hero.jpg" alt="数字地球面板：法国克莱蒙费朗老城与大教堂" width="46%">
 
 </div>
 
@@ -55,25 +55,25 @@ dsh plugin --profile <profile> add ./cveo-dsh-digital-earth-1.5.1.tgz
 
 ## 界面与交互
 
-以下截图均来自真实面板操作。示例数据为日本 PLATEAU 2025 千代田区建筑 LOD2（国土交通省，CC BY 4.0）。
+以下截图均来自真实面板操作。示例数据为法国克莱蒙费朗（Clermont-Ferrand）公开 3D Tiles，可直接加载：<a href="https://3d.craig.fr/datasets/Clermont/3dtiles/tileset.json">3d.craig.fr/datasets/Clermont/3dtiles/tileset.json</a>。
 
 <div align="center">
 
-<img src="assets/readme/measure.jpg" alt="在地球上量测两栋建筑之间的距离" width="32%">
-<img src="assets/readme/shader.jpg" alt="高程渐变着色器：按建筑高度着色" width="32%">
-<img src="assets/readme/sunlight.jpg" alt="下午四点左右的建筑阴影" width="32%">
+<img src="assets/readme/measure.jpg" alt="在克莱蒙费朗老城量测大教堂到雅德广场的距离" width="32%">
+<img src="assets/readme/shader.jpg" alt="高程渐变着色器：按老城建筑高度着色" width="32%">
+<img src="assets/readme/sunlight.jpg" alt="傍晚时分的建筑阴影" width="32%">
 
-<p align="center"><img src="assets/readme/tour.gif" alt="绕着东京千代田建筑群浏览" width="320"></p>
+<p align="center"><img src="assets/readme/tour.gif" alt="绕着克莱蒙费朗老城浏览" width="320"></p>
 
 </div>
 
 **对话示例**（真实运行记录，保留同一次会话里的工具调用）：
 
-> **你**：加载东京千代田的 3D Tiles，量一下这两栋楼之间的距离，再截图。
+> **你**：加载克莱蒙费朗的 3D Tiles，量一下大教堂到雅德广场的距离，再截图。
 >
 > **Agent**：`earth_scene load` → `earth_measure distance` → `earth_capture`
 >
-> **结果**：504.19 m；截图保存到截图目录，面板里同时保留量测标注。
+> **结果**：381.12 m；截图保存到截图目录，面板里同时保留量测标注。
 
 **量测与标注**：在地球上测距、测面、测高，或让 Agent 用 GeoJSON 画点线面；结果留在面板里，可随时截图。
 
@@ -88,6 +88,8 @@ dsh plugin --profile <profile> add ./cveo-dsh-digital-earth-1.5.1.tgz
 - **底图与地形**：内置 Esri 影像、ArcGIS 地形等常用服务，也可在设置里换成自己的 XYZ / ArcGIS / WMS 源；离线时可关闭底图。
 - **高程与面积**：面板高度来自 3D 表面或在线地形，使用椭球高；面积是局部平面近似。对精度敏感的业务请以专业软件成果为准，并把期望口径告诉我们。
 - **大体量数据**：几百 MB 的实景模型与上千个瓦片可以直接加载；截图与报告目录会自动保留最近的文件。
+
+公开示例数据：<a href="https://3d.craig.fr/datasets/Clermont/3dtiles/tileset.json">Clermont-Ferrand 3D Tiles</a>（法国克莱蒙费朗，由 CRAIG 发布），填入面板的地址栏即可打开。
 
 ## Agent 工具
 
@@ -106,20 +108,7 @@ dsh plugin --profile <profile> add ./cveo-dsh-digital-earth-1.5.1.tgz
 
 ## 引用与论文
 
-数字地球是武汉大学 CVEO 课题组长期研究工作的一部分。如果它帮到了你的研究、教学或项目，欢迎引用（不强制，但对我们很重要）：
-
-> 武汉大学 CVEO 课题组. 数字地球：面向 DSH 的三维地球插件（v1.5.1）[CP/OL]. 2026.
-
-    @software{cveo_digital_earth_2026,
-      author  = {{CVEO Research Group, Wuhan University}},
-      title   = {Digital Earth: a 3D globe plugin for DeepSeek Harness},
-      year    = {2026},
-      version = {1.5.1},
-      url     = {https://www.whu-cveo.com/},
-      note    = {3D digital earth component for DSH}
-    }
-
-与三维城市建模、三维重建最相关的两篇课题组论文：
+数字地球是武汉大学 CVEO 课题组长期研究工作的一部分。如果它帮到了你的研究、教学或项目，欢迎引用下列与三维城市建模、三维重建最相关的论文：
 
 [1] CHENG J X, HUANG X R, CHEN G Z, et al. FACTS: training-free zero-shot diffusion framework for facade texture restoration in 3D urban models[J]. Advanced Engineering Informatics, 2026, 71: 104385. DOI: 10.1016/j.aei.2026.104385.
 
@@ -142,6 +131,6 @@ dsh plugin --profile <profile> add ./cveo-dsh-digital-earth-1.5.1.tgz
 
 ### 许可与致谢
 
-本项目以 MIT 发布，完整文本见 [LICENSE](LICENSE)；第三方许可见 [NOTICE](NOTICE)。CesiumJS 以 Apache-2.0 分发并随插件自托管；影像与地形在运行时访问 ArcGIS 公共服务，版权归各自提供方；加载动画使用 CesiumJS 附带的 Natural Earth II 公有领域数据。示例截图的 PLATEAU 数据由日本国土交通省以 CC BY 4.0 发布。
+本项目以 MIT 发布，完整文本见 [LICENSE](LICENSE)；第三方许可见 [NOTICE](NOTICE)。CesiumJS 以 Apache-2.0 分发并随插件自托管；影像与地形在运行时访问 ArcGIS 公共服务，版权归各自提供方；加载动画使用 CesiumJS 附带的 Natural Earth II 公有领域数据。示例截图使用 CRAIG 公开发布的法国克莱蒙费朗 3D Tiles 数据。
 
 由**武汉大学 CVEO 课题组**维护 · <a href="https://www.whu-cveo.com/">www.whu-cveo.com</a>

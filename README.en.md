@@ -14,7 +14,7 @@ Built by the CVEO Research Group, Wuhan University — a 3D component for 3D cit
 ![license](https://img.shields.io/badge/license-MIT-2ea44f)
 ![DSH](https://img.shields.io/badge/DSH-plugin-0ea5e9)
 
-<img src="assets/readme/hero.jpg" alt="Digital Earth panel: 3D buildings in Chiyoda, Tokyo" width="46%">
+<img src="assets/readme/hero.jpg" alt="Digital Earth panel: the old town and cathedral of Clermont-Ferrand, France" width="46%">
 
 </div>
 
@@ -55,25 +55,25 @@ When an unauthorised folder is accessed for the first time, the panel requests a
 
 ## Interface and interaction
 
-All screenshots below are from real panel sessions. Sample data: PLATEAU 2025 Chiyoda building LOD2, Japan (MLIT, CC BY 4.0).
+All screenshots below are from real panel sessions. Sample data: the public Clermont-Ferrand 3D Tiles dataset (France), ready to load: <a href="https://3d.craig.fr/datasets/Clermont/3dtiles/tileset.json">3d.craig.fr/datasets/Clermont/3dtiles/tileset.json</a>.
 
 <div align="center">
 
-<img src="assets/readme/measure.jpg" alt="Measuring the distance between two buildings on the globe" width="32%">
-<img src="assets/readme/shader.jpg" alt="Height false-colour shader: buildings coloured by height" width="32%">
-<img src="assets/readme/sunlight.jpg" alt="Building shadows around 4 pm" width="32%">
+<img src="assets/readme/measure.jpg" alt="Measuring the distance from the cathedral to Place de Jaude in Clermont-Ferrand" width="32%">
+<img src="assets/readme/shader.jpg" alt="Height false-colour shader over the old town" width="32%">
+<img src="assets/readme/sunlight.jpg" alt="Long evening shadows over the old town" width="32%">
 
-<p align="center"><img src="assets/readme/tour.gif" alt="Orbiting the Chiyoda building cluster in Tokyo" width="320"></p>
+<p align="center"><img src="assets/readme/tour.gif" alt="Orbiting the old town of Clermont-Ferrand" width="320"></p>
 
 </div>
 
 **Example conversation** (a real run; the tool calls below come from the same session):
 
-> **You**: Load the 3D Tiles for Chiyoda, Tokyo, measure the distance between these two buildings, and take a snapshot.
+> **You**: Load the Clermont-Ferrand 3D Tiles, measure the distance from the cathedral to Place de Jaude, and take a snapshot.
 >
 > **Agent**: `earth_scene load` → `earth_measure distance` → `earth_capture`
 >
-> **Result**: 504.19 m; the snapshot is saved in the snapshot folder and the measurement stays on the globe.
+> **Result**: 381.12 m; the snapshot is saved in the snapshot folder and the measurement stays on the globe.
 
 **Measure and annotate**: measure distance, area and height on the globe, or let the Agent draw points, lines and polygons from GeoJSON; results stay in the panel and can be captured at any time.
 
@@ -88,6 +88,8 @@ All screenshots below are from real panel sessions. Sample data: PLATEAU 2025 Ch
 - **Basemaps and terrain**: built-in Esri imagery, ArcGIS terrain and other common services, or your own XYZ / ArcGIS / WMS sources; turn the basemap off when offline.
 - **Heights and areas**: heights come from the 3D surface or online terrain and are ellipsoidal; areas are a local planar approximation. For accuracy-critical work, use the results of your professional software and tell us the convention you need.
 - **Large datasets**: reality-capture models of hundreds of MB and tilesets with thousands of tiles load directly; the snapshot and report folders keep the most recent files automatically.
+
+Public sample data: <a href="https://3d.craig.fr/datasets/Clermont/3dtiles/tileset.json">Clermont-Ferrand 3D Tiles</a> (France, published by CRAIG) — paste the address into the panel to open it.
 
 ## Agent tools
 
@@ -106,20 +108,7 @@ Besides the tools, `/earth` commands in the conversation can read status, captur
 
 ## Citation and papers
 
-Digital Earth is part of the CVEO Research Group's long-term research. If it helps your research, teaching or project, a citation is welcome (never required, but it matters to us):
-
-> CVEO Research Group, Wuhan University. Digital Earth: a 3D globe plugin for DSH (v1.5.1) [CP/OL]. 2026.
-
-    @software{cveo_digital_earth_2026,
-      author  = {{CVEO Research Group, Wuhan University}},
-      title   = {Digital Earth: a 3D globe plugin for DeepSeek Harness},
-      year    = {2026},
-      version = {1.5.1},
-      url     = {https://www.whu-cveo.com/},
-      note    = {3D digital earth component for DSH}
-    }
-
-Two group papers most relevant to 3D city modelling and reconstruction:
+Digital Earth is part of the CVEO Research Group's long-term research. If it helps your research, teaching or project, a citation is welcome — these two papers are the most relevant to 3D city modelling and reconstruction:
 
 [1] CHENG J X, HUANG X R, CHEN G Z, et al. FACTS: training-free zero-shot diffusion framework for facade texture restoration in 3D urban models[J]. Advanced Engineering Informatics, 2026, 71: 104385. DOI: 10.1016/j.aei.2026.104385.
 
@@ -142,6 +131,6 @@ Contact: collaboration page <a href="https://www.whu-cveo.com/collaboration/">wh
 
 ### License and credits
 
-Released under MIT; see [LICENSE](LICENSE) for the full text and [NOTICE](NOTICE) for third-party licences. CesiumJS is distributed under Apache-2.0 and self-hosted with the plugin; imagery and terrain use ArcGIS public services at runtime and remain the property of their providers; the loading animation uses the public-domain Natural Earth II data shipped with CesiumJS. The PLATEAU sample data in the screenshots is published by Japan's Ministry of Land, Infrastructure, Transport and Tourism under CC BY 4.0.
+Released under MIT; see [LICENSE](LICENSE) for the full text and [NOTICE](NOTICE) for third-party licences. CesiumJS is distributed under Apache-2.0 and self-hosted with the plugin; imagery and terrain use ArcGIS public services at runtime and remain the property of their providers; the loading animation uses the public-domain Natural Earth II data shipped with CesiumJS. The screenshots use the publicly released Clermont-Ferrand 3D Tiles dataset published by CRAIG.
 
 Maintained by the **CVEO Research Group, Wuhan University** · <a href="https://www.whu-cveo.com/">www.whu-cveo.com</a>
