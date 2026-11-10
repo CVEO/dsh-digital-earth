@@ -557,6 +557,7 @@ var MESSAGES = {
     "health.unknown": "—",
     "agent.unknownSource": "无法确定图层「{name}」的数据来源：请重新加载该图层后再体检。",
     "agent.notReady": "三维引擎尚未就绪，请稍后再试。",
+    "agent.commandTimeout": "这条场景命令在 {seconds} 秒内没有完成，已停止等待以免堵住后续命令。next: 重新调用该工具，或先确认面板可见、网络与数据可达。",
     "agent.hiddenPanel": "数字地球面板当前不可见（已切到别的页签或窗口在后台），无法渲染截图。请先切到右侧「数字地球」页签、保持窗口在前台，再重试。",
     "agent.captureTooLarge": "截图体积超过上限，请降低 width 后重试。",
     "agent.noViewer": "数字地球画布不可用，请刷新页面后重试。",
@@ -969,6 +970,7 @@ var MESSAGES = {
     "health.unknown": "—",
     "agent.unknownSource": 'Cannot determine the data source of layer "{name}"; reload the layer and inspect it again.',
     "agent.notReady": "The 3D engine is not ready yet; retry in a moment.",
+    "agent.commandTimeout": "This scene command did not finish within {seconds}s and was abandoned so later commands can run. next: call the tool again, or check that the panel is visible and the data source reachable.",
     "agent.hiddenPanel": "The Digital Earth panel is not visible (another tab is selected or the window is in the background), so no frame can be rendered. Switch to the Digital Earth tab in the right sidebar, keep the window in the foreground, then retry.",
     "agent.captureTooLarge": "The screenshot exceeds the size limit; retry with a smaller width.",
     "agent.noViewer": "The 3D canvas is unavailable; refresh the page and retry.",
@@ -1278,30 +1280,30 @@ function createHeightService({ Cesium, viewer, layer = null } = {}) {
     }
     return null;
   }
-  async function sample(carto, { mode = "surface" } = {}) {
+  async function sample(carto, { mode = "tiles" } = {}) {
     if (!carto) return null;
-    const key = cacheKey(carto, mode);
+    const heightMode = mode === "terrain" ? "terrain" : "tiles";
+    const key = cacheKey(carto, heightMode);
     if (cache.has(key)) return cache.get(key);
     let result = null;
-    if (mode === "ground") {
+    if (heightMode === "terrain") {
       const terrain = fromTerrain(carto);
       if (terrain !== null) result = { height: terrain, source: "terrain" };
-      else warnings.add("ground_height_unavailable");
+      else warnings.add("terrain_height_unavailable");
     } else {
       const tiles = await fromTiles(carto);
       if (tiles !== null) {
         result = { height: tiles, source: "tiles" };
         warnings.add("surface_height_from_tiles");
       } else {
-        const terrain = fromTerrain(carto);
-        if (terrain !== null) result = { height: terrain, source: "terrain" };
+        warnings.add("tiles_height_unavailable");
       }
     }
     counts[result ? result.source : "none"] += 1;
     cache.set(key, result);
     return result;
   }
-  async function sampleMany(cartos, { mode = "surface", budget = DEFAULT_SAMPLE_BUDGET } = {}) {
+  async function sampleMany(cartos, { mode = "tiles", budget = DEFAULT_SAMPLE_BUDGET } = {}) {
     const list = Array.isArray(cartos) ? cartos : [];
     const values = [];
     for (let index = 0; index < list.length; index += 1) {
@@ -1334,6 +1336,63 @@ function createHeightService({ Cesium, viewer, layer = null } = {}) {
       counts.none = 0;
     }
   };
+}
+
+// src/client/analysis/source-policy.js
+var allowedSourcesFor = (operation) => operation === "flood" ? ["terrain", "surface"] : ["tiles", "terrain"];
+function resolveAnalysisTarget({ operation, args = {}, layers = [], findLayer }) {
+  const heightOperation = operation === "profile" || operation === "flood" || operation === "skyline";
+  let source = "";
+  let nextArgs = args;
+  if (heightOperation) {
+    const rawSource = typeof args.source === "string" ? args.source.trim() : "";
+    const allowedSources = allowedSourcesFor(operation);
+    if (rawSource !== "" && !allowedSources.includes(rawSource)) {
+      throw new Error(
+        `analysis: source "${rawSource}" 不适用于 ${operation}。next: 使用 ${allowedSources.map((item) => `"${item}"`).join(" 或 ")}。`
+      );
+    }
+    source = rawSource !== "" ? rawSource : operation === "flood" ? "terrain" : "tiles";
+    nextArgs = { ...args, source };
+  }
+  let layer = null;
+  if (heightOperation && source === "terrain") {
+    layer = null;
+  } else {
+    const requested = typeof args.layer === "string" ? args.layer.trim() : "";
+    if (requested !== "") {
+      layer = findLayer(requested);
+      if (!layer) {
+        throw new Error(`analysis: 未找到图层 "${requested}"。next: 用 earth_scene 的 list 动作查看当前图层名。`);
+      }
+      if (source !== "" && source !== "terrain" && layer.kind === "3dgs") {
+        throw new Error(
+          'analysis: [unsupported_layer] 3DGS 图层不提供可采样的表面高程。next: 选择 source="terrain" 并加载地形，或改用 mesh 3D Tiles 图层。'
+        );
+      }
+    } else if (heightOperation) {
+      for (let index = layers.length - 1; index >= 0; index -= 1) {
+        const candidate = layers[index];
+        if (candidate.visible && candidate.kind !== "3dgs") {
+          layer = candidate;
+          break;
+        }
+      }
+      if (layer === null) {
+        throw new Error(
+          'analysis: [no_height_data] 当前没有可用于高程采样的 mesh 3D Tiles 图层（3DGS 不提供表面高程）。next: 加载 mesh 3D Tiles，或改用 source="terrain" 并先加载地形。'
+        );
+      }
+    } else {
+      for (let index = layers.length - 1; index >= 0; index -= 1) {
+        if (layers[index].visible) {
+          layer = layers[index];
+          break;
+        }
+      }
+    }
+  }
+  return { args: nextArgs, source, layer };
 }
 
 // src/client/analysis/math.js
@@ -1728,6 +1787,7 @@ function createAnalysisEngine(deps) {
       throw new Error("analysis: `from`/`to` must be [lon, lat] pairs. next: pass two legal WGS84 [lon, lat] arrays.");
     }
     const samples = analysisInteger(args.samples, 32, 8, 64);
+    const heightMode = args.source === "terrain" ? "terrain" : "tiles";
     const ellipsoid = viewer.scene.globe.ellipsoid;
     const geodesic = new Cesium.EllipsoidGeodesic(
       Cesium.Cartographic.fromDegrees(from[0], from[1]),
@@ -1740,7 +1800,7 @@ function createAnalysisEngine(deps) {
     for (let index = 0; index < samples; index += 1) {
       const fraction = samples === 1 ? 0 : index / (samples - 1);
       const carto = geodesic.interpolateUsingFraction(fraction, new Cesium.Cartographic());
-      const probe = carto ? await sampler.sample(carto) : null;
+      const probe = carto ? await sampler.sample(carto, { mode: heightMode }) : null;
       const height = probe ? probe.height : null;
       if (height !== null) withData += 1;
       points.push({
@@ -1750,7 +1810,7 @@ function createAnalysisEngine(deps) {
     }
     if (withData < ANALYSIS_MIN_SAMPLES) {
       throw new Error(
-        "analysis: 当前视图中没有可采样的高程数据，先加载 3D Tiles 或地形再试。next: 用 earth_scene 的 list 查看可见图层，或先 load 3D Tiles / 地形后重试。"
+        heightMode === "terrain" ? 'analysis: [no_height_data] 地形没有返回可采样的高程。next: 在「地图」Tab 打开地形，或改用 source="tiles" 的 mesh 图层。' : 'analysis: [no_height_data] 所选图层没有返回可采样的表面高程（3DGS 不提供表面高程）。next: 选择 source="terrain" 并加载地形，或改用 mesh 3D Tiles 图层。'
       );
     }
     const heights = points.filter((point) => point.height_m !== null).map((point) => point.height_m);
@@ -1828,6 +1888,7 @@ function createAnalysisEngine(deps) {
       to,
       samples,
       length_m: analysisRound(length, 1),
+      height_mode: heightMode,
       stats,
       points,
       ...sampler.report()
@@ -1855,7 +1916,7 @@ function createAnalysisEngine(deps) {
     if (length <= 0) {
       throw new Error("analysis: skyline 起终点重合或距离为 0。next: 给出两个不同的位置。");
     }
-    const heightMode = sampler.hasRealTerrain() ? "ground" : "surface";
+    const heightMode = args.source === "terrain" ? "terrain" : "tiles";
     const fractions = [];
     const probes = [];
     for (let index = 0; index < samples; index += 1) {
@@ -1866,7 +1927,9 @@ function createAnalysisEngine(deps) {
     const sampled = await sampler.sampleMany(probes, { mode: heightMode });
     const eyeSample = sampled.values[0];
     if (!eyeSample) {
-      throw new Error("analysis: 观察点没有可采样的高程。next: 换一个观察位置，或先加载地形 / 3D Tiles 后重试。");
+      throw new Error(
+        heightMode === "terrain" ? "analysis: [no_height_data] 观察点没有可采样的地形高程。next: 在「地图」Tab 打开地形后重试。" : "analysis: [no_height_data] 观察点没有可采样的 3D 表面高程（3DGS 不提供表面高程，或该点不在 mesh 覆盖范围内）。next: 改用地形模式，或把观察点移到 mesh 覆盖范围内。"
+      );
     }
     const eyeHeight = eyeSample.height + 1.7;
     const points = [];
@@ -1876,16 +1939,17 @@ function createAnalysisEngine(deps) {
       if (!sample) continue;
       withData += 1;
       const distance = length * fractions[index];
-      const angle = distance > 0 ? Math.atan2(sample.height - eyeHeight, distance) * 180 / Math.PI : -90;
+      if (distance <= 0) continue;
+      const angle = Math.atan2(sample.height - eyeHeight, distance) * 180 / Math.PI;
       points.push({
         distance_m: analysisRound(distance, 1),
         height_m: analysisRound(sample.height, 1),
         angle_deg: analysisRound(angle, 3)
       });
     }
-    if (withData < ANALYSIS_MIN_SAMPLES) {
+    if (withData < ANALYSIS_MIN_SAMPLES || points.length === 0) {
       throw new Error(
-        "analysis: 当前视图中没有可采样的高程数据，先加载 3D Tiles 或地形再试。next: 用 earth_scene 的 list 查看可见图层，或先 load 3D Tiles / 地形后重试。"
+        heightMode === "terrain" ? "analysis: [no_height_data] 地形没有返回可采样的高程。next: 在「地图」Tab 打开地形后重试。" : 'analysis: [no_height_data] 所选图层没有返回可采样的表面高程（3DGS 不提供表面高程）。next: 选择 source="terrain" 并加载地形，或改用 mesh 3D Tiles 图层。'
       );
     }
     let maxPoint = points[0];
@@ -1895,12 +1959,16 @@ function createAnalysisEngine(deps) {
       const carto = geodesic.interpolateUsingFraction(fraction, new Cesium.Cartographic());
       return Cesium.Cartesian3.fromRadians(carto.longitude, carto.latitude, height + 2);
     };
+    const fractionAt = (point) => length > 0 ? point.distance_m / length : 0;
     for (let index = 1; index < points.length; index += 1) {
       const ratio = points.length > 1 ? index / (points.length - 1) : 0;
       analysisAdd(Cesium, viewer, {
         id: `skyline-line-${index}`,
         polyline: {
-          positions: [positionAt(fractions[index - 1], points[index - 1].height_m), positionAt(fractions[index], points[index].height_m)],
+          positions: [
+            positionAt(fractionAt(points[index - 1]), points[index - 1].height_m),
+            positionAt(fractionAt(points[index]), points[index].height_m)
+          ],
           width: 3,
           arcType: Cesium.ArcType.NONE,
           material: analysisColorAt(Cesium, ratio),
@@ -1908,10 +1976,9 @@ function createAnalysisEngine(deps) {
         }
       });
     }
-    const maxIndex = points.indexOf(maxPoint);
     analysisAdd(Cesium, viewer, {
       id: "skyline-max",
-      position: positionAt(fractions[maxIndex], maxPoint.height_m),
+      position: positionAt(fractionAt(maxPoint), maxPoint.height_m),
       point: {
         pixelSize: 10,
         color: Cesium.Color.fromCssColorString("#ddbb83"),
@@ -1985,8 +2052,20 @@ function createAnalysisEngine(deps) {
         probes.push(Cesium.Cartographic.fromDegrees(lon, lat));
       }
     }
-    const heightMode = sampler.hasRealTerrain() ? "ground" : "surface";
+    const floodSource = args.source === "surface" ? "surface" : "terrain";
+    if (floodSource === "terrain" && !sampler.hasRealTerrain()) {
+      throw new Error(
+        'analysis: [no_height_data] 淹没默认使用地形，但当前没有加载地形。next: 在「地图」Tab 打开地形；或用 source="surface" 对 3D Tiles 表面做近似（含屋顶/植被，非严格地面）。'
+      );
+    }
+    if (floodSource === "surface" && (!layer || layer.visible === false || !layer.tileset)) {
+      throw new Error(
+        'analysis: [no_height_data] source="surface" 需要可见的 mesh 3D Tiles 图层。next: 加载或显示 mesh 3D Tiles 图层，或改用 source="terrain"。'
+      );
+    }
+    const heightMode = floodSource === "surface" ? "tiles" : "terrain";
     const sampled = await sampler.sampleMany(probes, { mode: heightMode });
+    if (floodSource === "surface") sampled.warnings.push("surface_approx_includes_roofs");
     let withData = 0;
     let inundated = 0;
     let depthMaximum = 0;
@@ -2004,7 +2083,7 @@ function createAnalysisEngine(deps) {
     }
     if (withData === 0) {
       throw new Error(
-        "analysis: 当前视图中没有可采样的高程数据，先加载 3D Tiles 或地形再试。next: 用 earth_scene 的 list 查看可见图层，或先 load 3D Tiles / 地形后重试。"
+        floodSource === "surface" ? 'analysis: [no_height_data] 3D 表面没有返回可采样的高程（3DGS 不提供表面高程）。next: 改用 source="terrain" 并加载地形，或加载 mesh 3D Tiles。' : 'analysis: [no_height_data] 地形没有返回可采样的高程。next: 在「地图」Tab 打开地形后重试，或改用 source="surface" 做近似。'
       );
     }
     beginAnalysis("flood", layer);
@@ -2057,6 +2136,8 @@ function createAnalysisEngine(deps) {
       samples_with_data: withData,
       samples_inundated: inundated,
       // Provenance is additive: old fields keep their names/semantics.
+      source: floodSource,
+      surface_approx: floodSource === "surface",
       height_mode: heightMode,
       height_source: sampled.height_source,
       height_sources: sampled.height_sources,
@@ -2135,6 +2216,11 @@ function createAnalysisEngine(deps) {
     if (!layer || layer.visible === false || !layer.tileset) {
       throw new Error("analysis: clip 需要可见的 3D Tiles 图层。next: 先加载或显示 3D Tiles 图层后重试。");
     }
+    if (layer.kind === "3dgs") {
+      throw new Error(
+        "analysis: [unsupported_layer] 3DGS 图层不支持剖切：clippingPlanes 不会作用于 splat 渲染。next: 选择 mesh 3D Tiles 图层，或改用剖面/日照分析。"
+      );
+    }
     const tileset = layer.tileset;
     const center = tileset.boundingSphere && tileset.boundingSphere.center;
     if (!center) {
@@ -2194,21 +2280,9 @@ function createAnalysisEngine(deps) {
         `analysis: 不支持的分析类型 "${String(args.action)}"。next: 使用 profile / flood / skyline / sunlight / clip / clear。`
       );
     }
-    let layer = null;
-    const requested = typeof args.layer === "string" ? args.layer.trim() : "";
-    if (requested !== "") {
-      layer = findLayer(requested);
-      if (!layer) {
-        throw new Error(`analysis: 未找到图层 "${requested}"。next: 用 earth_scene 的 list 动作查看当前图层名。`);
-      }
-    } else {
-      for (let index = layersRef.current.length - 1; index >= 0; index -= 1) {
-        if (layersRef.current[index].visible) {
-          layer = layersRef.current[index];
-          break;
-        }
-      }
-    }
+    const target = resolveAnalysisTarget({ operation, args, layers: layersRef.current, findLayer });
+    args = target.args;
+    let layer = target.layer;
     clearAnalysis();
     const sampler = createHeightService({ Cesium, viewer, layer });
     let result;
@@ -2430,7 +2504,7 @@ var scanLocalDirectory = async (meta, directory) => {
   if (!response.ok) throw new Error(`HTTP ${response.status}`);
   return response.json().catch(() => ({}));
 };
-var ACCESS_TIMEOUT_MS = 32e3;
+var ACCESS_TIMEOUT_MS = 28e3;
 async function imageryProvider(Cesium, source) {
   const options = {};
   if (source.credit) options.credit = source.credit;
@@ -2821,6 +2895,32 @@ function createOverlayLayers({ Cesium, viewer, providerFactory, onError = () => 
   };
 }
 
+// src/client/scene/layer-kind.js
+function createLayerKindProbe({ getMeta, sourceOfLayer, layerRuntime }) {
+  return async function hydrateLayerKind(layer) {
+    const meta = getMeta();
+    const source = sourceOfLayer(layer);
+    if (!meta?.token || !source) return;
+    const endpoint = typeof meta.inspectUrl === "string" && meta.inspectUrl !== "" ? meta.inspectUrl : typeof meta.scanUrl === "string" ? `${meta.scanUrl.replace(/\/scan$/, "")}/inspect` : "";
+    if (endpoint === "") return;
+    try {
+      const response = await fetch(`${endpoint}?token=${encodeURIComponent(meta.token)}`, {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "content-type": "application/json", "x-dsh-panel": "1" },
+        body: JSON.stringify({ source, deep: false, runtime: layerRuntime(layer) })
+      });
+      if (!response.ok) return;
+      const data = await response.json().catch(() => null);
+      const kinds = data?.report?.kinds;
+      if (!kinds) return;
+      layer.kind = kinds.gaussianSplatting === true ? "3dgs" : "mesh";
+      layer.kindGenerator = typeof data.report.asset?.generator === "string" ? data.report.asset.generator : null;
+    } catch {
+    }
+  };
+}
+
 // src/client/scene/motion.js
 var EARTH_RADIUS_M = 63710088e-1;
 var toRad = (degrees) => degrees * Math.PI / 180;
@@ -3151,24 +3251,37 @@ function createAskAgent(deps) {
 }
 
 // src/client/scene/capture.js
-function createCaptureService({ getViewer, getRoot, getSettings, getMeta, getSession, t: t2, showToast, setChromeHidden, nextFrames, drawCaptureOverlay, drawVectorLabels }) {
+function createCaptureService({ getViewer, getRoot, getSettings, getMeta, getSession, t: t2, showToast, setChromeHidden, nextFrames, revealPanel: revealPanel2, drawCaptureOverlay, drawVectorLabels }) {
   const MAX_CAPTURE_DATAURL = 75e5;
+  const panelIsHidden = () => {
+    const root = getRoot();
+    return !root || root.offsetWidth < 32 || root.offsetHeight < 32 || typeof document !== "undefined" && document.visibilityState === "hidden";
+  };
   async function renderSnapshot(options = {}) {
     const viewer = getViewer();
     if (!viewer) throw new Error(t2("agent.noViewer"));
-    const root = getRoot();
-    const hidden = !root || root.offsetWidth < 32 || root.offsetHeight < 32 || typeof document !== "undefined" && document.visibilityState === "hidden";
-    if (hidden) throw new Error(t2("agent.hiddenPanel"));
+    let hidden = panelIsHidden();
+    if (hidden && typeof revealPanel2 === "function") {
+      try {
+        revealPanel2();
+      } catch {
+      }
+      await new Promise((resolve) => setTimeout(resolve, 180));
+      hidden = panelIsHidden();
+    }
     const width = Math.round(Math.min(Math.max(Number(options.width) || 1280, 480), 2560));
     const format = options.format === "png" ? "png" : "jpeg";
     const settings = getSettings()?.settings ?? {};
     const includeHud = typeof options.include_hud === "boolean" ? options.include_hud : settings.screenshotHud === true;
-    if (!includeHud) setChromeHidden(true);
+    const chromeHidden = !includeHud && !hidden;
+    if (chromeHidden) setChromeHidden(true);
     try {
-      await Promise.race([
-        nextFrames(2),
-        new Promise((_, reject) => setTimeout(() => reject(new Error(t2("agent.hiddenPanel"))), 1500))
-      ]);
+      if (!hidden) {
+        await Promise.race([
+          nextFrames(2),
+          new Promise((_, reject) => setTimeout(() => reject(new Error(t2("agent.hiddenPanel"))), 1500))
+        ]);
+      }
       const previousResolutionScale = viewer.resolutionScale;
       viewer.resolutionScale = 1;
       try {
@@ -3206,7 +3319,7 @@ function createCaptureService({ getViewer, getRoot, getSettings, getMeta, getSes
         viewer.resize();
       }
     } finally {
-      if (!includeHud) setChromeHidden(false);
+      if (chromeHidden) setChromeHidden(false);
     }
   }
   async function screenshot() {
@@ -4758,6 +4871,9 @@ function createSceneStatus(deps) {
           id: layer.id,
           name: layer.name,
           visible: layer.visible,
+          // '3dgs' | 'mesh' | null (content inspection pending / unavailable).
+          // An Agent otherwise cannot explain why a splat layer reports 0 triangles.
+          kind: layer.kind ?? null,
           url: redactUrl2(layer.url),
           tiles: statistics.numberOfTilesWithContentReady ?? statistics.numberOfTilesLoaded ?? 0,
           pending: statistics.numberOfPendingRequests ?? 0,
@@ -5075,7 +5191,8 @@ function shaderTilesetExtensions(tileset) {
   }
   return values;
 }
-function shaderGaussianLayer(tileset) {
+function shaderGaussianLayer(tileset, layer = null) {
+  if (layer !== null && typeof layer === "object" && layer.kind === "3dgs") return true;
   if (shaderTilesetExtensions(tileset).includes("KHR_gaussian_splatting")) return true;
   if (typeof tileset?.hasExtension === "function") {
     try {
@@ -5402,7 +5519,7 @@ function createShaderEngine(deps) {
     for (let index = layersRef.current.length - 1; index >= 0; index -= 1) {
       const layer = layersRef.current[index];
       if (!layer.visible) continue;
-      if (shaderGaussianLayer(layer.tileset)) {
+      if (shaderGaussianLayer(layer.tileset, layer)) {
         gaussianOnly = true;
         continue;
       }
@@ -5424,7 +5541,7 @@ function createShaderEngine(deps) {
       throw shaderFail("当前 Cesium 不支持 CustomShader。", "升级 Cesium 版本或换用其他可视化方式。");
     }
     const layer = resolveShaderLayer(request.layer);
-    if (shaderGaussianLayer(layer.tileset)) {
+    if (shaderGaussianLayer(layer.tileset, layer)) {
       throw new Error("shader: 3DGS 图层不支持该预设。next: 换 3D Tiles 图层。");
     }
     finishCompare(layer.id);
@@ -7094,6 +7211,27 @@ var TOOL_CSS = `
 .mv-toolrow .thumb img{display:block;width:100%;height:100%;object-fit:cover}
 `;
 
+// src/client/ui/reveal-panel.js
+function revealPanel() {
+  try {
+    const rightbar = service("sidebarRight");
+    if (rightbar && typeof rightbar.openTab === "function") {
+      rightbar.openTab("digital-earth");
+      return true;
+    }
+  } catch {
+  }
+  try {
+    const layout = service("layout");
+    if (layout && typeof layout.selectPanel === "function") {
+      layout.selectPanel("digital-earth");
+      return true;
+    }
+  } catch {
+  }
+  return false;
+}
+
 // src/client/ui/dialogs.js
 var import_react6 = __toESM(require("react"), 1);
 var h4 = import_react6.default.createElement;
@@ -8052,7 +8190,7 @@ function resolveWorkbenchTarget(layers, form) {
   for (let index = list.length - 1; index >= 0; index -= 1) {
     const layer = list[index];
     if (!layer.visible) continue;
-    if (shaderGaussianLayer(layer.tileset)) {
+    if (shaderGaussianLayer(layer.tileset, layer)) {
       gaussianOnly = true;
       continue;
     }
@@ -9599,7 +9737,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
       else waiter.reject(error2);
     }
   };
-  const waitForPanelReady = (timeoutMs = 3e4) => new Promise((resolve, reject) => {
+  const waitForPanelReady = (timeoutMs = 12e3) => new Promise((resolve, reject) => {
     const gate = readyGateRef.current;
     if (gate.ready) {
       resolve();
@@ -9684,6 +9822,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
   };
   const askPathAccess = (request) => new Promise((resolve) => {
     if (accessRef.current) settleAccess({ allowed: false, message: t2("access.denied") });
+    revealPanel();
     const timer = setTimeout(() => settleAccess({ allowed: false, message: t2("access.denied") }), ACCESS_TIMEOUT_MS);
     accessRef.current = { resolve, timer };
     setAccessBusy(false);
@@ -9719,6 +9858,11 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     await scanLocalDirectory(meta2, dir);
     return `${meta2.tilesBase}${encodeURIComponent(b64url(dir))}/${encodeURIComponent(rel)}`;
   };
+  const hydrateLayerKind = createLayerKindProbe({
+    getMeta: () => metaRef.current,
+    sourceOfLayer,
+    layerRuntime
+  });
   async function loadTileset(url, name, source = null, options = {}) {
     const Cesium = cesiumRef.current;
     const viewer = viewerRef.current;
@@ -9751,9 +9895,13 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
       layersRef.current.push(layer);
       syncLayers();
       setScan(null);
+      void hydrateLayerKind(layer);
       if (georefIssue !== null) {
         if (options.fly !== false) showToast(t2("toast.notGeoreferenced"));
-      } else if (options.fly !== false) await viewer.flyTo(tileset, { duration: 1.2 });
+      } else if (options.fly !== false) {
+        void viewer.flyTo(tileset, { duration: 1.2 }).catch(() => {
+        });
+      }
       return layer;
     } finally {
       setBusy("");
@@ -10682,6 +10830,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     showToast,
     setChromeHidden,
     nextFrames,
+    revealPanel,
     drawCaptureOverlay,
     drawVectorLabels: (context, width, height) => vectorRef.current?.drawLabels(context, width, height)
   });
@@ -11018,13 +11167,25 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
         return;
       }
       if (!payload?.id) return;
+      const commandBudgets = { capture: 4e4, report: 45e3, load: 4e4 };
       commandChainRef.current = commandChainRef.current.then(async () => {
+        let watchdog = null;
         try {
           if (payload.action !== "authorize") await waitForPanelReady();
-          const result = await commandRef.current(payload.action, payload.args ?? {}, bridgeSession);
+          const budgetMs = commandBudgets[payload.action] ?? 15e3;
+          const command = commandRef.current(payload.action, payload.args ?? {}, bridgeSession);
+          const budget = new Promise((_, reject) => {
+            watchdog = setTimeout(
+              () => reject(new Error(t2("agent.commandTimeout", { seconds: Math.round(budgetMs / 1e3) }))),
+              budgetMs
+            );
+          });
+          const result = await Promise.race([command, budget]);
           await ack({ session: bridgeSession, id: payload.id, ok: true, result });
         } catch (error2) {
           await ack({ session: bridgeSession, id: payload.id, ok: false, error: message(error2) });
+        } finally {
+          if (watchdog !== null) clearTimeout(watchdog);
         }
       }).catch(() => {
       });

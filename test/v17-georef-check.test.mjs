@@ -37,7 +37,7 @@ test('接线：加载图层时检测并提示，图层行显示警告标记', ()
   assert.match(client, /if \(georefIssue !== null\) \{/)
   assert.match(client, /t\('toast\.notGeoreferenced'\)/)
   // A broken layer must not trigger the auto-fly into the planet.
-  assert.match(client, /if \(georefIssue !== null\) \{\s*\n\s*if \(options\.fly !== false\) showToast\(t\('toast\.notGeoreferenced'\)\)\s*\n\s*\} else if \(options\.fly !== false\) await viewer\.flyTo/)
+  assert.match(client, /if \(georefIssue !== null\) \{\s*\n\s*if \(options\.fly !== false\) showToast\(t\('toast\.notGeoreferenced'\)\)\s*\n\s*\} else if \(options\.fly !== false\) \{/)
 
   const panel = readRepoFile('src/client/ui/layers-panel.js')
   assert.match(panel, /layer\.georefIssue/)

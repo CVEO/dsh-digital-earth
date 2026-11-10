@@ -15,6 +15,7 @@ import { folderName } from '../preferences.js'
 import { service } from '../runtime.js'
 import { normalizeSceneSnapshot, readSceneSnapshot, writeSceneSnapshot } from '../scene-store.js'
 import { createOverlayLayers } from '../scene/overlay-layers.js'
+import { createLayerKindProbe } from '../scene/layer-kind.js'
 import { flyToBookmark } from '../scene/bookmarks.js'
 import { flyToCartographic, frameAllLayers } from '../scene/frame.js'
 import { flyToCoordinates, parseLonLat } from '../scene/fly-target.js'
@@ -38,6 +39,7 @@ import { createShaderEngine } from '../scene/shader-engine.js'
 import { useEnvironmentDark } from '../theme.js'
 import { AnalysisCard, ShaderWorkbench } from '../ui/cards.js'
 import { CSS } from '../ui/css.js'
+import { revealPanel } from '../ui/reveal-panel.js'
 import { HealthDialog, PathAccessDialog, SourcesDialog } from '../ui/dialogs.js'
 import { UrlBar } from '../ui/url-bar.js'
 import { Compass } from '../ui/compass.js'
@@ -197,7 +199,7 @@ const h = React.createElement
        * Host timeout too; the local timeout only keeps a dead panel from stalling
        * the command chain forever.
        */
-      const waitForPanelReady = (timeoutMs = 30000) =>
+      const waitForPanelReady = (timeoutMs = 12000) =>
         new Promise((resolve, reject) => {
           const gate = readyGateRef.current
           if (gate.ready) {
@@ -303,13 +305,16 @@ const h = React.createElement
       }
 
       /**
-       * Open the dialog and wait for the user. The 32 s cleanup timer unblocks this
-       * panel's serialised command chain after the Host's own 30 s deadline; the
-       * late ack is ignored by the Host and never retried.
+       * Open the dialog and wait for the user. The 28 s cleanup timer stays under
+       * the Host's 30 s authorisation deadline; the late ack is ignored by the
+       * Host and never retried.
        */
       const askPathAccess = (request) =>
         new Promise((resolve) => {
           if (accessRef.current) settleAccess({ allowed: false, message: t('access.denied') })
+          // A path dialog that opens in a hidden tab is invisible to the user and
+          // always ends in an access timeout. Bring the panel forward first.
+          revealPanel()
           const timer = setTimeout(() => settleAccess({ allowed: false, message: t('access.denied') }), ACCESS_TIMEOUT_MS)
           accessRef.current = { resolve, timer }
           setAccessBusy(false)
@@ -360,6 +365,18 @@ const h = React.createElement
         return `${meta.tilesBase}${encodeURIComponent(b64url(dir))}/${encodeURIComponent(rel)}`
       }
 
+      /**
+       * Ask the Host to classify a freshly loaded layer (mesh vs 3DGS). The
+       * content-level check lives in the Host inspector because only it can read
+       * the content headers under the folder allowlist. The result is cached on
+       * the layer so shader rejection and status stay consistent.
+       */
+      const hydrateLayerKind = createLayerKindProbe({
+        getMeta: () => metaRef.current,
+        sourceOfLayer,
+        layerRuntime,
+      })
+
       /** Add a 3D Tiles layer; flies to it unless the caller restores a saved view. */
       async function loadTileset(url, name, source = null, options = {}) {
         const Cesium = cesiumRef.current
@@ -399,9 +416,20 @@ const h = React.createElement
           layersRef.current.push(layer)
           syncLayers()
           setScan(null)
+          // Classify the content in the background (shader rejection, layer badge,
+          // analysis errors). The load already succeeded: a failed inspection must
+          // never fail or delay the load itself.
+          void hydrateLayerKind(layer)
           if (georefIssue !== null) {
             if (options.fly !== false) showToast(t('toast.notGeoreferenced'))
-          } else if (options.fly !== false) await viewer.flyTo(tileset, { duration: 1.2 })
+          } else if (options.fly !== false) {
+            // Never block the command acknowledgement on the camera flight: the
+            // flight is driven by the render loop and never resolves while the
+            // panel is hidden or the window is in the background (v1.5.1 A1).
+            // The layer is already added, so treating the load as done is both
+            // correct and the only way later commands are not stalled behind it.
+            void viewer.flyTo(tileset, { duration: 1.2 }).catch(() => {})
+          }
           return layer
         } finally {
           setBusy('')
@@ -1478,6 +1506,7 @@ const h = React.createElement
         showToast,
         setChromeHidden,
         nextFrames,
+        revealPanel,
         drawCaptureOverlay,
         drawVectorLabels: (context, width, height) => vectorRef.current?.drawLabels(context, width, height),
       })
@@ -1893,17 +1922,34 @@ const h = React.createElement
             return
           }
           if (!payload?.id) return
+          // Per-command watchdogs: a command that never settles (a camera flight
+          // driven by a paused render loop, a stalled terrain fetch, a bug) must
+          // not wedge every later command. On timeout the panel acknowledges the
+          // failure and the command chain moves on; late work is ignored by the
+          // Host because the pending command id is already settled.
+          const commandBudgets = { capture: 40000, report: 45000, load: 40000 }
           commandChainRef.current = commandChainRef.current
             .then(async () => {
+              let watchdog = null
               try {
                 // The authorisation dialog only needs meta + DOM: answer it while
                 // Cesium is still booting so the Host's 30 s deadline is not spent
                 // waiting for the engine.
                 if (payload.action !== 'authorize') await waitForPanelReady()
-                const result = await commandRef.current(payload.action, payload.args ?? {}, bridgeSession)
+                const budgetMs = commandBudgets[payload.action] ?? 15000
+                const command = commandRef.current(payload.action, payload.args ?? {}, bridgeSession)
+                const budget = new Promise((_, reject) => {
+                  watchdog = setTimeout(
+                    () => reject(new Error(t('agent.commandTimeout', { seconds: Math.round(budgetMs / 1000) }))),
+                    budgetMs,
+                  )
+                })
+                const result = await Promise.race([command, budget])
                 await ack({ session: bridgeSession, id: payload.id, ok: true, result })
               } catch (error) {
                 await ack({ session: bridgeSession, id: payload.id, ok: false, error: message(error) })
+              } finally {
+                if (watchdog !== null) clearTimeout(watchdog)
               }
             })
             .catch(() => {})

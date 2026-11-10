@@ -93,13 +93,21 @@ test('renderSnapshot：隐藏 chrome、强制满分辨率、结束后恢复质�
   }
 })
 
-test('renderSnapshot：面板不可见/尺寸过小直接报 hiddenPanel，不渲染', async () => {
+test('renderSnapshot：面板不可见时走离屏渲染（v1.5.2），画布不可绘制才报 hiddenPanel', async () => {
   const { service, viewer, restore } = makeService({ root: { offsetWidth: 10, offsetHeight: 10 } })
   try {
-    await assert.rejects(() => service.renderSnapshot(), /agent\.hiddenPanel/)
-    assert.equal(viewer.rendered, 0)
+    const shot = await service.renderSnapshot()
+    assert.ok(shot.dataUrl.startsWith('data:image/'), 'a hidden tab with a live canvas must still get a picture')
+    assert.equal(viewer.rendered, 1, 'the off-screen path performs one explicit render')
   } finally {
     restore()
+  }
+  // A canvas with no drawable area still fails clearly instead of returning a blank image.
+  const blank = makeService({ root: { offsetWidth: 10, offsetHeight: 10 }, viewer: { canvas: { width: 0, height: 0 } } })
+  try {
+    await assert.rejects(() => blank.service.renderSnapshot(), /agent\.hiddenPanel/)
+  } finally {
+    blank.restore()
   }
 })
 

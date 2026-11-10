@@ -333,7 +333,7 @@ test('client 授权接线：authorize 内部命令、PathAccessDialog、先 /sca
   assert.match(branch, /const decision = await askPathAccess\(request\)/)
   assert.equal((branch.match(/askPathAccess\(/g) ?? []).length, 1)
   assert.doesNotMatch(branch, /for\s*\(|while\s*\(/)
-  assert.match(client, /ACCESS_TIMEOUT_MS = 32000/)
+  assert.match(client, /ACCESS_TIMEOUT_MS = 28000/)
   // 授权只需要 DOM，不需要等 Cesium 就绪（否则会吃掉 Host 的 30 s 期限）。
   assert.match(client, /if \(payload\.action !== 'authorize'\) await waitForPanelReady\(\)/)
 })

@@ -292,6 +292,7 @@ import { V18_MESSAGES } from './messages-v18.js'
         'health.unknown': '—',
         'agent.unknownSource': '无法确定图层「{name}」的数据来源：请重新加载该图层后再体检。',
         'agent.notReady': '三维引擎尚未就绪，请稍后再试。',
+        'agent.commandTimeout': '这条场景命令在 {seconds} 秒内没有完成，已停止等待以免堵住后续命令。next: 重新调用该工具，或先确认面板可见、网络与数据可达。',
         'agent.hiddenPanel': '数字地球面板当前不可见（已切到别的页签或窗口在后台），无法渲染截图。请先切到右侧「数字地球」页签、保持窗口在前台，再重试。',
         'agent.captureTooLarge': '截图体积超过上限，请降低 width 后重试。',
         'agent.noViewer': '数字地球画布不可用，请刷新页面后重试。',
@@ -712,6 +713,7 @@ import { V18_MESSAGES } from './messages-v18.js'
         'health.unknown': '—',
         'agent.unknownSource': 'Cannot determine the data source of layer "{name}"; reload the layer and inspect it again.',
         'agent.notReady': 'The 3D engine is not ready yet; retry in a moment.',
+        'agent.commandTimeout': 'This scene command did not finish within {seconds}s and was abandoned so later commands can run. next: call the tool again, or check that the panel is visible and the data source reachable.',
         'agent.hiddenPanel':
           'The Digital Earth panel is not visible (another tab is selected or the window is in the background), so no frame can be rendered. Switch to the Digital Earth tab in the right sidebar, keep the window in the foreground, then retry.',
         'agent.captureTooLarge': 'The screenshot exceeds the size limit; retry with a smaller width.',

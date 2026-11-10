@@ -11,32 +11,56 @@
  * Dependencies are injected so this module holds no React state: viewer/root refs
  * arrive as getters, and chrome/HUD helpers plus the frame scheduler are passed in.
  */
-export function createCaptureService({ getViewer, getRoot, getSettings, getMeta, getSession, t, showToast, setChromeHidden, nextFrames, drawCaptureOverlay, drawVectorLabels }) {
+export function createCaptureService({ getViewer, getRoot, getSettings, getMeta, getSession, t, showToast, setChromeHidden, nextFrames, revealPanel, drawCaptureOverlay, drawVectorLabels }) {
   const MAX_CAPTURE_DATAURL = 7_500_000
+
+  /** The panel is "hidden" when its tab is not laid out or the whole window is hidden. */
+  const panelIsHidden = () => {
+    const root = getRoot()
+    return (
+      !root ||
+      root.offsetWidth < 32 ||
+      root.offsetHeight < 32 ||
+      (typeof document !== 'undefined' && document.visibilityState === 'hidden')
+    )
+  }
 
   /** Render the canvas at the requested width and return a data URL. */
   async function renderSnapshot(options = {}) {
     const viewer = getViewer()
     if (!viewer) throw new Error(t('agent.noViewer'))
-    const root = getRoot()
-    const hidden =
-      !root ||
-      root.offsetWidth < 32 ||
-      root.offsetHeight < 32 ||
-      (typeof document !== 'undefined' && document.visibilityState === 'hidden')
-    if (hidden) throw new Error(t('agent.hiddenPanel'))
+    let hidden = panelIsHidden()
+    // A screenshot belongs to the user, not to whichever tab happens to be
+    // focused: try to bring the panel forward first, then render it off-screen.
+    // v1.5.1 refused outright, so agent runs could never capture while the user
+    // was reading the chat or the window was in the background.
+    if (hidden && typeof revealPanel === 'function') {
+      try {
+        revealPanel()
+      } catch {
+        // Revealing is best-effort; the off-screen path below still runs.
+      }
+      await new Promise((resolve) => setTimeout(resolve, 180))
+      hidden = panelIsHidden()
+    }
     const width = Math.round(Math.min(Math.max(Number(options.width) || 1280, 480), 2560))
     const format = options.format === 'png' ? 'png' : 'jpeg'
     const settings = getSettings()?.settings ?? {}
     const includeHud = typeof options.include_hud === 'boolean' ? options.include_hud : settings.screenshotHud === true
-    if (!includeHud) setChromeHidden(true)
+    const chromeHidden = !includeHud && !hidden
+    if (chromeHidden) setChromeHidden(true)
     try {
-      // Let CSS hide the chrome before the next frame is drawn, with a bound
-      // so a backgrounded tab fails clearly instead of timing out later.
-      await Promise.race([
-        nextFrames(2),
-        new Promise((_, reject) => setTimeout(() => reject(new Error(t('agent.hiddenPanel'))), 1500)),
-      ])
+      // A hidden tab has no next animation frame to wait for. Cesium can still
+      // render into its existing canvas on demand, so skip the two-frame wait and
+      // let the explicit render below produce the picture.
+      if (!hidden) {
+        // Let CSS hide the chrome before the next frame is drawn, with a bound
+        // so a backgrounded tab fails clearly instead of timing out later.
+        await Promise.race([
+          nextFrames(2),
+          new Promise((_, reject) => setTimeout(() => reject(new Error(t('agent.hiddenPanel'))), 1500)),
+        ])
+      }
       // Captures always use the full-quality buffer: the balanced tier trades
       // sharpness for motion, and the user asked for a picture, not a frame
       // budget. The tier's scale is restored afterwards.
@@ -77,7 +101,7 @@ export function createCaptureService({ getViewer, getRoot, getSettings, getMeta,
         viewer.resize()
       }
     } finally {
-      if (!includeHud) setChromeHidden(false)
+      if (chromeHidden) setChromeHidden(false)
     }
   }
 
