@@ -139,9 +139,9 @@ More publications: <a href="https://www.whu-cveo.com/research/">whu-cveo.com/res
 
 The plugin is released under MIT and is free to use commercially. The group also offers team-oriented services:
 
-- **Private deployment**: on-premises / private-cloud deployment, offline tiles and terrain, upgrades and maintenance.
+- **Private deployment**: on-premises / private-cloud deployment, offline tiles and terrain, upgrades and maintenance, plus large-scale spatio-temporal data governance and domestic Xinchuang hardware deployment.
 - **Team access control**: multi-user and role permissions, project and data isolation, audit logs, single sign-on.
-- **Multimodal Earth-observation intelligence**: perception, understanding and analysis for SAR, multispectral, hyperspectral and point-cloud data — not just 8-bit RGB. General-purpose LLMs usually only handle 8-bit RGB imagery; these data need dedicated pipelines and models, which is one of our long-term research directions.
+- **Multimodal Earth-observation intelligence**: perception, understanding and analysis for SAR, multispectral, hyperspectral and point-cloud data — not just 8-bit RGB.
 - **Jingwei Guanshu spatio-temporal agents**: industry collaborations, custom development and integration, training and technical support.
 
 Contact: collaboration page <a href="https://www.whu-cveo.com/collaboration/">whu-cveo.com/collaboration</a> · WeChat official accounts "CVEO课题组" and "珞珈经纬".
