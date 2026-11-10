@@ -73,6 +73,11 @@ export const MAX_CAPTURE_FILES = 50
 // the panel appends verbatim to the proxy path. Keep it bounded: the proxy must
 // never turn into a way to make the host issue very long upstream URLs.
 export const MAX_REMOTE_QUERY = 2048
+// Remote tileset proxy: a browser whose direct request is blocked (CORS, mixed
+// content) falls back to this proxy. Bound the upstream exchange so a stalled or
+// hostile server cannot hold a response forever or stream unbounded data.
+export const REMOTE_PROXY_TIMEOUT_MS = 30000
+export const REMOTE_PROXY_MAX_BYTES = 512 * 1024 * 1024
 // Static tileset health check: bounded request/response sizes, bounded BFS and
 // one shared 8 s budget for every remote read of a single inspection.
 export const INSPECT_ROUTE = `${API}/inspect`
@@ -94,6 +99,10 @@ export const REPORT_DIR = resolve(STATE_DIR, 'reports')
 export const SPZ_MAGIC = 0x5053474e
 export const BRIDGE_HEARTBEAT_MS = 15000
 export const SCENE_TIMEOUT_MS = 20000
+// Loading a remote/local tileset can legitimately take longer than a scene read:
+// a direct fetch plus the CORS proxy fallback each get a 15 s client budget, so
+// the Host must allow the whole load rather than time out between the two.
+export const LOAD_TIMEOUT_MS = 40000
 export const CAPTURE_TIMEOUT_MS = 40000
 // Drawing and measurement are browser-side and synchronous, so a stuck tab is
 // the only slow case; 15 s leaves room for a first frame without holding a turn.

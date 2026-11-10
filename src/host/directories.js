@@ -6,7 +6,7 @@
 import { promises as fs } from 'node:fs'
 import { basename, resolve } from 'node:path'
 import { DIRECTORIES_FILE, MAX_RECENT_DIRECTORIES } from './constants.js'
-import { isFilesystemRoot, realPathOr } from './paths.js'
+import { isSafeOpenedDirectory, realPathOr } from './paths.js'
 import { sendJson } from './http.js'
 import { writeJsonAtomic } from './fs-util.js'
 
@@ -127,7 +127,7 @@ export function createRecentDirectories(allowedDirs) {
       try {
         const directory = resolve(entry.path)
         // A drive/share root would hand the agent every file on it.
-        if (isFilesystemRoot(directory)) continue
+        if (!isSafeOpenedDirectory(directory)) continue
         restored.push(entry)
         try {
           await fs.access(directory)
@@ -137,9 +137,10 @@ export function createRecentDirectories(allowedDirs) {
         allowedDirs.add(directory)
         // Restore has no user gesture behind it, so it must not follow a folder
         // that was since replaced by a junction to a drive root: that would hand
-        // the agent a whole drive. `/scan` keeps its own realpath check.
+        // the agent a whole drive. `/scan` keeps its own realpath check, and
+        // tilesHandler re-checks the real path before every serve.
         const realDirectory = await realPathOr(directory)
-        if (!isFilesystemRoot(realDirectory)) allowedDirs.add(realDirectory)
+        if (isSafeOpenedDirectory(realDirectory)) allowedDirs.add(realDirectory)
       } catch {
         // Best effort: keep loading the remaining entries.
       }
