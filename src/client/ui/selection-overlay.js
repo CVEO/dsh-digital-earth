@@ -11,6 +11,8 @@
  * DOM writes, so following the camera costs no React re-render.
  */
 import React from 'react'
+import { VisionSelect } from './vision-select.js'
+import { getSelectionTool } from '../scene/selection-tools.js'
 
 const h = React.createElement
 
@@ -52,54 +54,96 @@ function numberText(value, suffix = ' m', digits = 0) {
   return `${rounded}${suffix}`
 }
 
-export function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t, showToast, onMeasure }) {
+export function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t, showToast, onMeasure, onSelectArea, onVisionCommit, onVisionManual }) {
   const [card, setCard] = React.useState(null)
   const [busy, setBusy] = React.useState(false)
   const [errorLine, setErrorLine] = React.useState('')
   const [exporting, setExporting] = React.useState(false)
+  const [visionOpen, setVisionOpen] = React.useState(false)
+  const visionPendingRef = React.useRef(false)
   const anchorRef = React.useRef(null)
   const bracketRef = React.useRef(null)
   const chipRef = React.useRef(null)
+  const requestRef = React.useRef(null)
+  const validityRef = React.useRef(null)
+  const dismiss = React.useCallback(() => {
+    requestRef.current?.abort()
+    requestRef.current = null
+    validityRef.current = null
+    anchorRef.current = null
+    visionPendingRef.current = false
+    if (bracketRef.current) bracketRef.current.style.display = 'none'
+    setCard(null)
+    setBusy(false)
+    setErrorLine('')
+    setVisionOpen(false)
+  }, [])
+  // Tools-card "AI 目标圈选" arms this: the next successful identify opens the
+  // vision dialog directly instead of showing a blocking toast.
+  const requestVision = React.useCallback(() => {
+    visionPendingRef.current = true
+    setVisionOpen(false)
+  }, [])
 
   const identify = React.useCallback(
     async (position) => {
       if (!controller) return
+      requestRef.current?.abort()
+      const request = new AbortController()
+      requestRef.current = request
+      const current = () => requestRef.current === request && !request.signal.aborted
       setBusy(true)
       setErrorLine('')
       setCard(null)
+      setVisionOpen(false)
       try {
-        const result = await controller.identifyAt(position)
+        const result = await controller.identifyAt(position, { signal: request.signal })
+        if (!current()) return
+        if (result?.isValid && !result.isValid()) { dismiss(); return }
+        validityRef.current = result?.isValid ?? null
         anchorRef.current = result?.anchor ?? null
         setCard(result?.card ?? null)
+        if (visionPendingRef.current) {
+          visionPendingRef.current = false
+          setVisionOpen(true)
+        }
       } catch (error) {
+        if (!current()) return
         const reason = error instanceof Error ? error.message : String(error)
-        setErrorLine(reason === 'no_surface' ? t('selection.noSurface') : reason === 'not_ready' ? t('selection.notReady') : t('selection.failed'))
-        setCard(null)
+        // A click on the sky is a normal miss, not an error: stay quiet and let the
+        // user pick again (identify is the default pointer mode now).
+        if (reason === 'no_surface' || reason === 'cancelled') {
+          setErrorLine('')
+          setCard(null)
+        } else {
+          setErrorLine(reason === 'not_ready' ? t('selection.notReady') : t('selection.failed'))
+          setCard(null)
+        }
       } finally {
-        setBusy(false)
+        if (current()) setBusy(false)
       }
     },
-    [controller, t],
+    [controller, t, dismiss],
   )
 
   // The panel's canvas-click path calls whatever this ref holds while the tool is
   // active (ViewerSurface keeps the click loop in scene/pointer-tools.js).
   React.useEffect(() => {
     if (!apiRef) return undefined
+    identify.cancel = dismiss
+    identify.requestVision = requestVision
     apiRef.current = active ? identify : null
     return () => {
       if (apiRef) apiRef.current = null
     }
-  }, [apiRef, active, identify])
+  }, [apiRef, active, identify, dismiss, requestVision])
 
   // Leaving the tool drops the selection; the player can always pick again.
   React.useEffect(() => {
     if (active) return
-    anchorRef.current = null
-    setCard(null)
-    setBusy(false)
-    setErrorLine('')
-  }, [active])
+    dismiss()
+  }, [active, dismiss])
+  React.useEffect(() => () => { requestRef.current?.abort(); if (bracketRef.current) bracketRef.current.style.display = 'none' }, [])
 
   // Keep the brackets glued to the picked point. Direct style writes only.
   React.useEffect(() => {
@@ -110,6 +154,7 @@ export function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t
     if (!viewer || !Cesium || !anchor) return undefined
     const scene = viewer.scene
     const update = () => {
+      if (validityRef.current && !validityRef.current()) { dismiss(); return }
       const element = bracketRef.current
       if (!element) return
       let point = null
@@ -128,26 +173,26 @@ export function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t
     scene.postRender.addEventListener(update)
     update()
     return () => {
+      if (bracketRef.current) bracketRef.current.style.display = 'none'
       try {
         scene.postRender.removeEventListener(update)
       } catch {
         /* viewer already destroyed */
       }
     }
-  }, [active, card, controller])
+  }, [active, card, controller, dismiss])
 
   // Esc closes the card but keeps the tool armed for the next pick.
   React.useEffect(() => {
-    if (!card) return undefined
+    if (!active) return undefined
     const onKey = (event) => {
       if (event.key === 'Escape') {
-        setCard(null)
-        anchorRef.current = null
+        dismiss()
       }
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
-  }, [card])
+  }, [active, dismiss])
 
   const flyNear = () => {
     const viewer = controller?.getViewer?.()
@@ -175,8 +220,7 @@ export function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t
   const measure = () => {
     if (!card || typeof onMeasure !== 'function') return
     onMeasure(anchorRef.current ?? null, card)
-    setCard(null)
-    anchorRef.current = null
+    dismiss()
   }
 
   const takeAway = async () => {
@@ -193,6 +237,14 @@ export function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t
     }
   }
 
+  // Turn the picked point into an honest approximate AOI in the Tools card; it is
+  // deliberately NOT called a building footprint (pick data cannot supply that).
+  const selectAround = () => {
+    if (!card || typeof onSelectArea !== 'function') return
+    onSelectArea(card)
+    dismiss()
+  }
+
   if (!active) return null
 
   const surface = factOf(card, 'surface_height')
@@ -204,6 +256,9 @@ export function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t
   }
   const limitations = Array.isArray(card?.limitations) ? card.limitations : []
   const radii = card?.sampling?.radii_m ?? [30, 60, 120]
+  // Batch-table attributes are the real answer to "what is this object"; show a
+  // bounded list (8) so a wide table cannot turn the card into a spreadsheet.
+  const properties = Array.isArray(card?.identity?.properties) ? card.identity.properties.slice(0, 8) : []
   // The card stays quiet: only the one caveat a user must not miss stays visible,
   // and it is a single small line. The full unknowns/limitations still travel in
   // the exported evidence JSON.
@@ -232,7 +287,11 @@ export function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t
           h('div', { className: 'mv-select-error' }, h('span', null, errorLine)),
         )
       : null,
-    card
+    card && visionOpen
+      ? h(VisionSelect, { controller, anchor: anchorRef.current, t, onClose: () => setVisionOpen(false), onCommit: onVisionCommit,
+          onManual: () => { onVisionManual?.(); getSelectionTool(controller.getViewer(), { getCesium: controller.getCesium, t, showToast })?.start('lasso') } })
+      : null,
+    card && !visionOpen
       ? h(
           'div',
           { className: 'mv-select mv-glass' },
@@ -242,7 +301,7 @@ export function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t
             h('span', { className: 'kind' }, t('selection.resultLabel')),
             h(
               'button',
-              { type: 'button', className: 'mv-icon-btn', title: t('btn.close'), 'aria-label': t('btn.close'), onClick: () => { setCard(null); anchorRef.current = null } },
+              { type: 'button', className: 'mv-icon-btn', title: t('btn.close'), 'aria-label': t('btn.close'), onClick: dismiss },
               '✕',
             ),
           ),
@@ -289,6 +348,21 @@ export function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t
                 )
               : null,
           ),
+          properties.length > 0
+            ? h(
+                'div',
+                { className: 'props' },
+                h('span', { className: 'props-title' }, t('selection.properties')),
+                ...properties.map((property, index) =>
+                  h(
+                    'div',
+                    { key: `${property.name}-${index}`, className: 'prop' },
+                    h('span', { title: property.name }, property.name),
+                    h('b', { title: property.value }, property.value),
+                  ),
+                ),
+              )
+            : null,
           h(
             'p',
             { className: 'sampling', title: t('selection.samplingHint') },
@@ -298,6 +372,7 @@ export function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t
           h(
             'div',
             { className: 'actions' },
+            typeof onVisionCommit === 'function' ? h('button', { type: 'button', className: 'mv-cta', title: t('vision.actionHint'), onClick: () => setVisionOpen(true) }, t('vision.action')) : null,
             h('button', { type: 'button', className: 'mv-cta', title: t('selection.flyHint'), onClick: flyNear }, t('selection.fly')),
             h('button', { type: 'button', className: 'mv-cta', title: t('selection.measureHint'), onClick: measure }, t('selection.measure')),
             h(
@@ -306,10 +381,18 @@ export function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t
               exporting ? t('selection.exporting') : t('selection.takeAway'),
             ),
           ),
+          typeof onSelectArea === 'function'
+            ? h(
+                'div',
+                { className: 'actions secondary' },
+                h(
+                  'button',
+                  { type: 'button', className: 'mv-cta', title: t('selection.approximate'), onClick: selectAround },
+                  t('selection.areaAction'),
+                ),
+              )
+            : null,
         )
-      : null,
-    active && !card && !busy && errorLine === ''
-      ? h('div', { className: 'mv-sel-hint mv-glass' }, t('selection.hint'))
       : null,
   )
 }

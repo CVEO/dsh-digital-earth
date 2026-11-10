@@ -250,11 +250,32 @@ test('接线：指认模式走既有 canvas 点击循环，卡片不进入任何
   assert.match(client, /selection\.unnamed\.tileset/)
   assert.match(client, /TITLE_KEY\[card\.identity\?\.kind\]/)
   assert.match(client, /t\('selection\.takeAway'\)/)
-  assert.match(client, /iconButton\(h\(IdentifyIcon\)/)
+  // Identify is the default pointer behavior; a dedicated toolbar toggle is gone.
+  assert.match(client, /const \[tool, setTool\] = React\.useState\('identify'\)/)
+  assert.doesNotMatch(client, /iconButton\(h\(IdentifyIcon\)/)
   // Zero tool-contract change: no identify/select/evidence action appears in the
   // host tool catalog.
   const sceneTool = readRepoFile('src/host/tools/scene.js')
   assert.doesNotMatch(sceneTool, /identify:|select:|evidence:/)
   const registry = readRepoFile('src/host/tools/registry.js')
   assert.doesNotMatch(registry, /earth_identify|earth_select|earth_extract/)
+})
+
+test('默认指认：单击场景对象直接出卡，卡片显示批量表属性，天空误点静默', () => {
+  const overlay = readRepoFile('src/client/ui/selection-overlay.js')
+  assert.match(overlay, /card\?\.identity\?\.properties/)
+  assert.match(overlay, /t\('selection\.properties'\)/)
+  assert.match(overlay, /className: 'props'/)
+  // A sky miss is a normal miss: no error card while identify is the default mode.
+  assert.match(overlay, /reason === 'no_surface'/)
+  assert.match(overlay, /setErrorLine\(''\)/)
+
+  const pointer = readRepoFile('src/client/scene/pointer-tools.js')
+  // Vector overlays win over the default identify click.
+  assert.match(pointer, /mode === 'pick' \|\| mode === 'identify'/)
+  const viewer = readRepoFile('src/client/viewer/ViewerSurface.js')
+  // Leaving a tool falls back to identify instead of a dead canvas.
+  assert.match(viewer, /const next = mode \?\? 'identify'/)
+  const status = readRepoFile('src/client/scene/status.js')
+  assert.match(status, /measureTool: toolRef\.current === 'identify' \? null : toolRef\.current/)
 })

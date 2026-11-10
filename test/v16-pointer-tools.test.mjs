@@ -161,7 +161,7 @@ test('onCanvasClick：测距/测面累加点并重绘；测高最多保留两点
   assert.equal(state.points.length, 0)
 })
 
-test('finishMeasure：距离/面积结束工具，测高保持', () => {
+test('finishMeasure：距离/面积/测高都能一键结束，测高不再卡在结束态', () => {
   const distance = makeTools({ tool: 'distance' })
   distance.tools.finishMeasure()
   assert.equal(distance.state.tool, null)
@@ -169,6 +169,6 @@ test('finishMeasure：距离/面积结束工具，测高保持', () => {
 
   const height = makeTools({ tool: 'height' })
   height.tools.finishMeasure()
-  assert.equal(height.state.tool, 'height')
-  assert.equal(height.state.finished, 0)
+  assert.equal(height.state.tool, null)
+  assert.equal(height.state.finished, 1)
 })

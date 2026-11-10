@@ -168,4 +168,20 @@ const h = React.createElement
       )
     }
 
-export { ViewerIcon, ThemeIcon, FullscreenIcon, HudIcon, CollapseIcon, LayerActionIcon, ShaderIcon, ScreenshotIcon, IdentifyIcon, ResetIcon, AskAgentIcon }
+    /** Layer visibility: an eye reads as "show/hide" at a glance (crossed = hidden). */
+    const EyeIcon = ({ size = 15, off = false }) =>
+      h(
+        'svg',
+        { viewBox: '0 0 24 24', width: size, height: size, 'aria-hidden': true, style: { display: 'block' } },
+        h('path', {
+          d: 'M2.5 12s3.6-6.2 9.5-6.2S21.5 12 21.5 12s-3.6 6.2-9.5 6.2S2.5 12 2.5 12z',
+          stroke: 'currentColor',
+          strokeWidth: 1.7,
+          fill: 'none',
+          strokeLinejoin: 'round',
+        }),
+        h('circle', { cx: 12, cy: 12, r: 2.9, stroke: 'currentColor', strokeWidth: 1.7, fill: 'none' }),
+        off ? h('path', { d: 'M4 20 20 4', stroke: 'currentColor', strokeWidth: 1.7, strokeLinecap: 'round' }) : null,
+      )
+
+export { ViewerIcon, ThemeIcon, FullscreenIcon, HudIcon, CollapseIcon, LayerActionIcon, ShaderIcon, ScreenshotIcon, IdentifyIcon, ResetIcon, AskAgentIcon, EyeIcon }

@@ -148,7 +148,7 @@ test('B4 README 中文：版本徽章/安装示例、六工具与新增功能行
   assert.doesNotMatch(readmeZh, /1\.3\.0/)
   for (const name of TOOL_NAMES) assert.ok(readmeZh.includes(`\`${name}\``), `README.md 缺少工具 ${name}`)
   assert.equal((readmeZh.match(/^\| `earth_[a-z]+` \|/gm) ?? []).length, 6, 'README.md 工具表应为 6 行')
-  for (const phrase of ['内置六个工具', '地形分析', '着色器预设', '可折叠面板', '干净截图', '本机绝对路径', '约 5–6 Hz']) {
+  for (const phrase of ['内置六个工具', '空间分析', '视觉特效', '可折叠面板', '干净截图', '本机绝对路径', '约 5–6 Hz']) {
     assert.ok(readmeZh.includes(phrase), `README.md 缺少功能说明：${phrase}`)
   }
   assert.match(readmeZh, /白名单预设/)
@@ -161,7 +161,7 @@ test('B4 README 英文：版本徽章/安装示例、六工具与对应功能行
   for (const name of TOOL_NAMES) assert.ok(readmeEn.includes(`\`${name}\``), `README.en.md 缺少工具 ${name}`)
   assert.equal((readmeEn.match(/^\| `earth_[a-z]+` \|/gm) ?? []).length, 6, 'README.en.md 工具表应为 6 行')
   for (const phrase of [
-    'Six built-in tools', 'Terrain analysis', 'Shader presets', 'Collapsible panels',
+    'Six built-in tools', 'Spatial analysis', 'Visual effects', 'Collapsible panels',
     'Clean snapshots', 'absolute local path', '5–6 Hz',
   ]) {
     assert.ok(readmeEn.includes(phrase), `README.en.md 缺少功能说明：${phrase}`)
@@ -172,7 +172,7 @@ test('B4 README 英文：版本徽章/安装示例、六工具与对应功能行
 test('B4 README 中英对齐：章节数、工具行、安装命令与代码围栏一致', () => {
   const zhHeadings = markdownHeadings(readmeZh)
   const enHeadings = markdownHeadings(readmeEn)
-  assert.equal(zhHeadings.length, 7, `README.md 章节数异常：${zhHeadings.length}`)
+  assert.equal(zhHeadings.length, 8, `README.md 章节数异常：${zhHeadings.length}`)
   assert.equal(enHeadings.length, zhHeadings.length, '中英 README 章节数必须一致')
   assert.equal(codeFences(readmeZh), 2)
   assert.equal(codeFences(readmeEn), 2)
@@ -190,7 +190,9 @@ test('B4 README 中英对齐：章节数、工具行、安装命令与代码围�
 test('B4 README 链接与本地资源：离线可判定的值均有效，无占位/死链', () => {
   const allowedHttp = [
     'https://img.shields.io/badge/',
+    'https://img.shields.io/npm/',
     'https://github.com/CVEO/dsh-digital-earth',
+    'https://www.npmjs.com/package/',
     'https://www.whu-cveo.com/',
   ]
   for (const [label, text] of [['README.md', readmeZh], ['README.en.md', readmeEn]]) {
@@ -348,7 +350,7 @@ test('B4 F2：自动选层从最上层向下跳过 3DGS，显式图层与全 3DG
 
   assert.match(resolve, /for \(let index = layersRef\.current\.length - 1; index >= 0; index -= 1\)/)
   assert.match(resolve, /if \(!layer\.visible\) continue/)
-  const gaussianStart = resolve.indexOf('if (shaderGaussianLayer(layer.tileset)) {')
+  const gaussianStart = resolve.indexOf('if (shaderGaussianLayer(layer.tileset, layer)) {')
   assert.ok(gaussianStart > 0, 'resolveShaderLayer 缺少 3DGS 跳过分支')
   const skip = resolve.slice(gaussianStart, resolve.indexOf('return layer', gaussianStart))
   assert.match(skip, /gaussianOnly = true/)

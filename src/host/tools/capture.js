@@ -82,6 +82,72 @@ function normalizeCaptureRequest(raw) {
   return { args, includeHud }
 }
 
+// ---------------------------------------------------------------------------
+// Capture provenance (P0 4.1)
+//
+// The panel reports the camera pose and scene context with the picture. Values
+// are copied only when they are numbers/strings of the expected shape: a missing
+// field is dropped from the tool result instead of being filled with a guess.
+// ---------------------------------------------------------------------------
+
+const CAPTURE_CAMERA_FIELDS = ['lon', 'lat', 'height', 'heading', 'pitch']
+const CAPTURE_LAYERS_MAX = 200
+
+/** A plain JSON object, or null for arrays/primitives. */
+const resultObject = (value) => (value !== null && typeof value === 'object' && !Array.isArray(value) ? value : null)
+
+/** A finite number, or null. Never coerces strings. */
+const resultNumber = (value) => (typeof value === 'number' && Number.isFinite(value) ? value : null)
+
+/** Camera pose; metadata wins over the legacy `view` field. */
+function cameraValue(value) {
+  const source = resultObject(value)
+  if (source === null) return null
+  const camera = {}
+  for (const field of CAPTURE_CAMERA_FIELDS) {
+    const number = resultNumber(source[field])
+    if (number !== null) camera[field] = number
+  }
+  return Object.keys(camera).length > 0 ? camera : null
+}
+
+/** The point under the view centre: lon/lat are required, height is optional. */
+function centerValue(value) {
+  const source = resultObject(value)
+  if (source === null) return null
+  const lon = resultNumber(source.lon)
+  const lat = resultNumber(source.lat)
+  if (lon === null || lat === null) return null
+  const center = { lon, lat }
+  const height = resultNumber(source.height)
+  if (height !== null) center.height = height
+  return center
+}
+
+/** Layer list with only the fields the sidecar keeps. */
+function layersValue(value) {
+  if (!Array.isArray(value)) return []
+  const layers = []
+  for (const item of value) {
+    if (layers.length >= CAPTURE_LAYERS_MAX) break
+    const layer = resultObject(item)
+    if (layer === null || typeof layer.name !== 'string' || layer.name === '') continue
+    layers.push({
+      name: layer.name,
+      visible: layer.visible === true,
+      kind: typeof layer.kind === 'string' ? layer.kind : null,
+    })
+  }
+  return layers
+}
+
+/** Capture time as an ISO-8601 string, or null when the panel sent garbage. */
+function capturedAtValue(value) {
+  if (typeof value !== 'string' || value.trim() === '') return null
+  const time = new Date(value.trim())
+  return Number.isNaN(time.getTime()) ? null : time.toISOString()
+}
+
 /** Turn a capture acknowledgement into the tool result, verified against the disk. */
 async function captureResultValue(ack, request) {
   const result = asResultObject(ack)
@@ -111,10 +177,21 @@ async function captureResultValue(ack, request) {
   }
   if (Number.isInteger(result.width) && result.width > 0) value.width = result.width
   if (Number.isInteger(result.height) && result.height > 0) value.height = result.height
-  // The page reports the camera as `view`; expose it as `camera` so the model
-  // gets place context next to the image.
-  const view = result.view !== null && typeof result.view === 'object' && !Array.isArray(result.view) ? result.view : null
-  if (view !== null) value.camera = view
+  // Camera pose at capture time; an older panel only reports the same numbers as
+  // `view`, so that stays the fallback.
+  const camera = cameraValue(result.camera) ?? cameraValue(result.view)
+  if (camera !== null) value.camera = camera
+  const center = centerValue(result.center)
+  if (center !== null) value.center = center
+  const capturedAt = capturedAtValue(result.captured_at)
+  if (capturedAt !== null) value.captured_at = capturedAt
+  const layers = layersValue(result.layers)
+  if (layers.length > 0) value.layers = layers
+  const metadataPath = typeof result.metadata_path === 'string' ? result.metadata_path.trim() : ''
+  if (metadataPath !== '') {
+    const sidecar = resolve(metadataPath)
+    if (isWithinDirectory(sidecar, CAPTURES_DIR)) value.metadata_path = sidecar
+  }
   if (Number.isInteger(result.layers_visible) && result.layers_visible >= 0) value.layers_visible = result.layers_visible
   return value
 }
@@ -129,14 +206,28 @@ function renderCaptureResult(value) {
       : ''
   lines.push(`${dimensions}${value.bytes} bytes${hud}.`)
   const context = []
-  const camera = value.camera !== null && typeof value.camera === 'object' && !Array.isArray(value.camera) ? value.camera : null
+  const camera = resultObject(value.camera)
   if (camera !== null) {
     if (Number.isFinite(camera.lon)) context.push(`lon=${camera.lon}`)
     if (Number.isFinite(camera.lat)) context.push(`lat=${camera.lat}`)
     if (Number.isFinite(camera.height)) context.push(`height=${camera.height}m`)
+    if (Number.isFinite(camera.heading)) context.push(`heading=${camera.heading}°`)
+    if (Number.isFinite(camera.pitch)) context.push(`pitch=${camera.pitch}°`)
   }
+  if (typeof value.captured_at === 'string') context.push(`time=${value.captured_at}`)
   if (Number.isInteger(value.layers_visible)) context.push(`layers_visible=${value.layers_visible}`)
   if (context.length > 0) lines.push(`Camera and scene context: ${context.join(', ')}.`)
+  const center = resultObject(value.center)
+  if (center !== null && Number.isFinite(center.lon) && Number.isFinite(center.lat)) {
+    const heightText = Number.isFinite(center.height) ? `, height=${center.height}m` : ''
+    lines.push(`View center: lon=${center.lon}, lat=${center.lat}${heightText}.`)
+  }
+  if (Array.isArray(value.layers) && value.layers.length > 0) {
+    const shown = value.layers.slice(0, 8).map((layer) => (layer.visible === false ? `${layer.name} (hidden)` : layer.name))
+    const more = value.layers.length > shown.length ? `, +${value.layers.length - shown.length} more` : ''
+    lines.push(`Layers: ${shown.join(', ')}${more}.`)
+  }
+  if (typeof value.metadata_path === 'string') lines.push(`Capture metadata sidecar: ${value.metadata_path}`)
   if (typeof value.note === 'string') lines.push(value.note)
   // C1: every successful tool result should end with one actionable next step so
   // a model plans the follow-up instead of stopping after a bare file path.

@@ -126,7 +126,7 @@ import { clone } from './format.js'
      * panel's serialised command chain from waiting forever after that, and the Host
      * ignores the late ack.
      */
-    const ACCESS_TIMEOUT_MS = 32000
+    const ACCESS_TIMEOUT_MS = 28000
 
     async function imageryProvider(Cesium, source) {
       const options = {}

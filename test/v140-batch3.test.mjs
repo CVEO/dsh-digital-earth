@@ -367,7 +367,7 @@ test('回归：earth_scene 12 action（含 report），earth_analyze 契约与�
   assert.match(host, /const ANALYZE_TIMEOUT_MS = 30000/)
   assert.match(host, /scope\.tools\.register\(createAnalyzeTool\(bridge\)\)/)
   const analyzeParams = block(analyzeSource, 'const ANALYZE_PARAMETERS = {', '\n}')
-  assert.equal([...analyzeParams.matchAll(/^    ([a-z_]+): \{/gm)].length, 12)
+  assert.equal([...analyzeParams.matchAll(/^    ([a-z_]+): \{/gm)].length, 13)
   assert.doesNotMatch(analyzeParams, /preset|min_height|interval|amplitude|opacity/)
 })
 
@@ -553,7 +553,7 @@ test('client 错误：3DGS/无 CustomShader/无可见图层/未知图层都是 s
   assert.ok(fail, '找不到 shaderFail 定义')
   assert.match(fail[0], /new Error\(`shader: \$\{message\} next: \$\{next\}`\)/)
 
-  const gaussian = block(client, 'function shaderGaussianLayer(tileset) {', '\n    }')
+  const gaussian = block(client, 'function shaderGaussianLayer(tileset, layer = null) {', '\n    }')
   assert.match(gaussian, /KHR_gaussian_splatting/)
   assert.match(gaussian, /hasExtension\('KHR_gaussian_splatting'\)/)
   const extensions = block(client, 'function shaderTilesetExtensions(tileset) {', '\n    }')
@@ -576,7 +576,10 @@ test('client 工作台：可见图层/五预设可叠加/按预设并集参数/�
   assert.match(card, /const visibleLayers = layers\.filter\(\(layer\) => layer\.visible\)/)
   assert.match(card, /t\('shader\.layerAuto'\)/)
   assert.match(card, /const selectedPresets = Array\.isArray\(form\.preset\) \? form\.preset : \[form\.preset\]/)
-  assert.match(card, /\.\.\.SHADER_PRESETS\.map\(/)
+  // 视觉特效：主网格四个日常效果，等高线入口已从界面移除（工具白名单保留）。
+  assert.match(card, /\.\.\.SHADER_PRIMARY_PRESETS\.map\(/)
+  assert.doesNotMatch(card, /SHADER_ADVANCED_PRESETS/)
+  assert.match(card, /t\('shader\.targetHint'\)/)
   assert.match(card, /t\(`shader\.preset\.\$\{preset\}`\)/)
   // v1.6 工作台 2.0：滑杆 + 缩略图 + 目标图层 + 顺序 + 实时预览 + 原图对比。
   for (const key of ['minHeight', 'maxHeight', 'interval', 'speed', 'amplitude', 'opacity', 'waterHeight', 'depthMax']) {
@@ -637,7 +640,7 @@ test('client 工作台：可见图层/五预设可叠加/按预设并集参数/�
   assert.match(client, /onPreset: workbench\.toggle,/)
 })
 
-test('client 工作台 UI：工具栏按钮、可读卡片、三列缩略图、窄宽可滚动、截图隐藏', () => {
+test('client 工作台 UI：工具栏按钮、可读卡片、两列等宽缩略图、窄宽可滚动、截图隐藏', () => {
   assert.match(client, /function ShaderIcon\(/)
   assert.match(client, /h\(ShaderIcon\)/)
   assert.match(client, /shaderOpen \? t\('btn\.shaderHide'\) : t\('btn\.shaderShow'\)/)
@@ -653,7 +656,7 @@ test('client 工作台 UI：工具栏按钮、可读卡片、三列缩略图、�
   assert.match(rule, /max-height:calc\(100% - 150px\)/)
   assert.match(rule, /overflow:hidden/)
   assert.match(client, /\.mv-shader \.body\{[^}]*overflow:auto/)
-  assert.match(client, /\.mv-shader \.presets\{[^}]*grid-template-columns:repeat\(3,1fr\)/)
+  assert.match(client, /\.mv-shader \.presets\{[^}]*grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/)
   assert.match(client, /\.mv-shader \.preset \.thumb\{/)
   assert.match(client, /\.mv-shader \.param \.slider\{/)
   assert.match(client, /\.mv-shader \.order-badge\{/)
@@ -672,8 +675,8 @@ test('client 接线与 i18n：六 toolview 含 earth_shader、摘要键、shader
   ])
   assert.match(client, /earth_shader: 'tool\.action\.shader'/)
   assert.equal((client.match(/'tool\.action\.shader':/g) ?? []).length, 2)
-  assert.match(client, /'tool\.action\.shader': '着色器'/)
-  assert.match(client, /'tool\.action\.shader': 'Shader'/)
+  assert.match(client, /'tool\.action\.shader': '视觉特效'/)
+  assert.match(client, /'tool\.action\.shader': 'Visual effects'/)
 
   const zhStart = client.indexOf('\n      zh: {')
   const enStart = client.indexOf('\n      en: {', zhStart)
@@ -686,7 +689,7 @@ test('client 接线与 i18n：六 toolview 含 earth_shader、摘要键、shader
   assert.deepEqual(zhKeys, enKeys, '中英字典键集合/顺序必须完全一致')
 
   const shaderKeys = zhKeys.filter((key) => key.startsWith('shader.'))
-  assert.equal(shaderKeys.length, 44)
+  assert.equal(shaderKeys.length, 46)
   for (const key of [
     'shader.title',
     'shader.close',

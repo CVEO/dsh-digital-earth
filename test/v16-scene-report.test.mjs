@@ -58,7 +58,7 @@ test('Markdown 报告：相机/图层表/环境/叠加/量测/分析/着色器/�
   assert.match(report.content, /\| B \| hidden \|/)
   assert.match(report.content, /Distance: 1234 m/)
   assert.match(report.content, /Area: 5000 m²/)
-  assert.match(report.content, /Profile: 2000 m/)
+  assert.match(report.content, /3D profile: 2000 m/)
   assert.match(report.content, /A — contour/)
   assert.match(report.content, /!\[Current view\]\(\/tmp\/shot\.jpg\)/)
   assert.deepEqual(report.failed, [])

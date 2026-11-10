@@ -4,7 +4,7 @@
  * v1.5 host split: implementation moved verbatim from the index.js monolith.
  */
 import { PANEL_CLOSED_MESSAGE, SESSION_FALLBACK_NOTE, asResultObject, resolveSessionTarget, sceneError, scrubToken } from '../session.js'
-import { REPORT_FORMATS, REPORT_TIMEOUT_MS, SCENE_TIMEOUT_MS } from '../constants.js'
+import { LOAD_TIMEOUT_MS, REPORT_FORMATS, REPORT_TIMEOUT_MS, SCENE_TIMEOUT_MS } from '../constants.js'
 import { inspectSceneAction, renderInspectResult } from './scene-inspect.js'
 import { isHttpUrl, isPlainObject } from '../sanitize.js'
 
@@ -302,7 +302,12 @@ export function createSceneTool(bridge, allowedDirs) {
       if (request.action === 'inspect') return inspectSceneAction(bridge, allowedDirs, request.args, exec)
       const target = resolveSessionTarget(bridge, exec)
       if (target === null) throw new Error(PANEL_CLOSED_MESSAGE)
-      const timeout = request.action === 'report' ? REPORT_TIMEOUT_MS : SCENE_TIMEOUT_MS
+      const timeout =
+        request.action === 'report'
+          ? REPORT_TIMEOUT_MS
+          : request.action === 'load'
+            ? LOAD_TIMEOUT_MS
+            : SCENE_TIMEOUT_MS
       const value = scrubToken(asResultObject(await bridge.run(target.sessionId, request.action, request.args, timeout, exec.signal)))
       if (target.fallback) value.session_fallback = SESSION_FALLBACK_NOTE
       return value

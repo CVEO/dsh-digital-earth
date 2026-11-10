@@ -1,17 +1,13 @@
 /**
  * scene/shader-engine.js — the four whitelisted 3D Tiles look presets.
  *
- * Extracted verbatim from ViewerSurface in v1.6 Phase 2: one active preset per
- * layer, a single u_time tick shared by every animated preset, the original
- * customShader kept per layer for reset, and the bridge command entry
- * (apply / reset / list). The block text is unchanged so the existing structural
- * tests and the frozen B3 error wording keep working.
- *
  * Dependencies are injected (lazy ref getters + the two state refs + the layer
  * resolver), so the module never holds a stale viewer across panel remounts.
  */
 import { samePresetStack, shaderFail, shaderFragmentSource, shaderHeightRange, SHADER_PRESETS, shaderGaussianLayer, shaderUniforms, shaderValidateRequest } from '../shader/presets.js'
 import { message } from '../format.js'
+
+const comparisonSessions = new WeakMap()
 
 /**
  * @param {object} deps
@@ -33,7 +29,10 @@ export function createShaderEngine(deps) {
   const shaderTickRef = deps.tickRef
   const setShaderActive = deps.setShaderActive
   /** layer id -> { original } while the workbench previews the un-shaded look. */
-  const comparisons = new Map()
+  if (!comparisonSessions.has(shaderEntriesRef)) comparisonSessions.set(shaderEntriesRef, new Map())
+  const comparisons = comparisonSessions.get(shaderEntriesRef)
+  /** How the last resolveShaderLayer() found its target: 'auto' or 'layer'. */
+  let shaderResolveMode = 'auto'
 
       //#region shader engine ----------------------------------------------------
       // One active preset per layer. The active presets are part of the persisted
@@ -43,6 +42,8 @@ export function createShaderEngine(deps) {
         operation,
         preset: preset ?? null,
         layer: layer ?? null,
+        // Apply tells the model whether the layer was picked automatically or named.
+        ...(operation === 'apply' ? { target: shaderResolveMode } : {}),
         // D-18 additive: the ordered stack (one entry for a single preset).
         stack: Array.isArray(preset) ? preset.slice() : preset ? [preset] : [],
         active: shaderActiveList(),
@@ -50,6 +51,8 @@ export function createShaderEngine(deps) {
       })
 
       const shaderActiveList = () => {
+        // A stale entry (removed or hidden layer) must never show up as active.
+        pruneShaderEntries()
         const order = new Map(layersRef.current.map((layer, index) => [layer.id, index]))
         return [...shaderEntriesRef.current.values()]
           .sort((left, right) => (order.get(left.layer.id) ?? 0) - (order.get(right.layer.id) ?? 0))
@@ -91,6 +94,37 @@ export function createShaderEngine(deps) {
         } catch {
           /* the viewer may already be destroyed */
         }
+      }
+
+      /**
+       * Defensive cleanup before any read of the active list: a layer can vanish
+       * (removed) or be switched off while its entry is still in the map — e.g. a
+       * visibility change from the layer panel or the earth_scene visible command.
+       * Such an entry would otherwise report an invisible layer as shaded and keep
+       * the shared u_time tick alive, so it is restored to the layer's original
+       * shader and dropped. A refreshed layer row for the same id is re-pointed at
+       * the new object so the workbench list keeps naming the live layer.
+       */
+      function pruneShaderEntries() {
+        let pruned = false
+        for (const entry of [...shaderEntriesRef.current.values()]) {
+          const layer = layersRef.current.find((item) => item.id === entry.layer.id)
+          if (layer && layer.visible !== false) {
+            entry.layer = layer
+            entry.layerName = layer.name
+            continue
+          }
+          pruned = true
+          shaderEntriesRef.current.delete(entry.layer.id)
+          comparisons.delete(entry.layer.id)
+          // A removed layer needs no restore; a hidden one gets its original shader back.
+          if (layer) restoreShaderEntry(entry)
+        }
+        if (pruned) {
+          if (shaderEntriesRef.current.size === 0) releaseShaderTick()
+          refreshShaderActive()
+        }
+        return pruned
       }
 
       /** End the original-look comparison on one layer and put the preset back. */
@@ -136,6 +170,7 @@ export function createShaderEngine(deps) {
           if (!layer) {
             throw shaderFail(`未找到图层 "${token}"。`, '用 earth_scene 的 list 动作查看当前图层名。')
           }
+          shaderResolveMode = 'layer'
           return layer
         }
         let gaussianOnly = false
@@ -144,10 +179,11 @@ export function createShaderEngine(deps) {
           if (!layer.visible) continue
           // Auto-selection skips 3DGS so a splat layer on top cannot shadow a usable
           // 3D Tiles layer below; an explicit layer still gets the exact 3DGS error.
-          if (shaderGaussianLayer(layer.tileset)) {
+          if (shaderGaussianLayer(layer.tileset, layer)) {
             gaussianOnly = true
             continue
           }
+          shaderResolveMode = 'auto'
           return layer
         }
         if (gaussianOnly) {
@@ -167,7 +203,12 @@ export function createShaderEngine(deps) {
           throw shaderFail('当前 Cesium 不支持 CustomShader。', '升级 Cesium 版本或换用其他可视化方式。')
         }
         const layer = resolveShaderLayer(request.layer)
-        if (shaderGaussianLayer(layer.tileset)) {
+        if (layer.visible === false) {
+          // The scene would immediately prune an effect on an invisible layer, so
+          // report the real reason instead of a false "applied" success.
+          throw shaderFail(`图层 "${layer.name}" 当前为隐藏状态。`, '先在图层面板显示该图层，再应用视觉特效。')
+        }
+        if (shaderGaussianLayer(layer.tileset, layer)) {
           // Exact wording from the frozen B3 contract (used by QA and the model).
           throw new Error('shader: 3DGS 图层不支持该预设。next: 换 3D Tiles 图层。')
         }
@@ -258,6 +299,9 @@ export function createShaderEngine(deps) {
       }
 
       function resetShader(layerToken) {
+        // Drop entries for layers that disappeared or were hidden first, so reset
+        // never restores an original shader onto an entry the scene already lost.
+        pruneShaderEntries()
         const entries = shaderEntriesRef.current
         let targetLayerName = null
         let targets = []
@@ -279,6 +323,9 @@ export function createShaderEngine(deps) {
           const error = restoreShaderEntry(entry)
           if (error && !failure) failure = error
         }
+        // No comparison may survive a reset: the workbench must not keep showing the
+        // original look as if a preset were still applied.
+        comparisons.clear()
         if (entries.size === 0) releaseShaderTick()
         refreshShaderActive()
         if (failure) {

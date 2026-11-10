@@ -4,15 +4,18 @@
  * v1.5 host split: implementation moved verbatim from the index.js monolith.
  */
 import { resolve, sep } from 'node:path'
-import { Readable } from 'node:stream'
+import { promises as fs } from 'node:fs'
+import { Readable, pipeline } from 'node:stream'
 import { ABOUT } from './about.js'
-import { API, BRIDGE_ROUTE, CAPTURE_ROUTE, CESIUM_DIR, CESIUM_ROUTE, DIRECTORIES_ROUTE, EXPORT_ROUTE, FILES_ROUTE, INJECT_ROUTE, INSPECT_ROUTE, MAX_REMOTE_QUERY, PANEL_HEADER, REMOTE_ROUTE, REPORT_ROUTE, SCENE_ROUTE, SOURCES_ROUTE, TILES_ROUTE, TOKEN } from './constants.js'
-import { blockedHost, decodeSegment, fromB64, isFilesystemRoot, realPathOr, segments, toB64 } from './paths.js'
+import { API, BRIDGE_ROUTE, CAPTURE_ROUTE, CESIUM_DIR, CESIUM_ROUTE, DIRECTORIES_ROUTE, EXPORT_ROUTE, FILES_ROUTE, INJECT_ROUTE, INSPECT_ROUTE, MAX_REMOTE_QUERY, PANEL_HEADER, REMOTE_PROXY_MAX_BYTES, REMOTE_PROXY_TIMEOUT_MS, REMOTE_ROUTE, REPORT_ROUTE, SCENE_ROUTE, SOURCES_ROUTE, TILES_ROUTE, TOKEN } from './constants.js'
+import { blockedHost, decodeSegment, fromB64, isFilesystemRoot, isSafeOpenedDirectory, isUncPath, realPathOr, segments, toB64 } from './paths.js'
 import { bridgeHandler } from './bridge.js'
 import { captureHandler, capturesHandler, reportHandler } from './storage.js'
 import { evidenceExportHandler } from './export.js'
 import { directoriesHandler } from './directories.js'
 import { injectHandler } from './inject.js'
+import { createVisionHandler } from './vision.js'
+import { createSelectionQuestionHandler } from './selection-question.js'
 import { inspectHandler } from './inspect/handler.js'
 import { requestPath, requestQuery, sendJson, sendText, serveFile, subPath } from './http.js'
 import { saveSourcesHandler, sourcesHandler } from './sources.js'
@@ -61,6 +64,8 @@ function metaHandler(req, res) {
     sceneUrl: `${SCENE_ROUTE}/${TOKEN}`,
     // "Ask Agent" pushes a bounded scene summary into the live conversation.
     injectUrl: `${INJECT_ROUTE}/${TOKEN}`,
+    visionUrl: `${API}/vision/${TOKEN}`,
+    questionUrl: `${API}/selection-question/${TOKEN}`,
     // Scene reports are written by the host under DSH_HOME/exports.
     reportUrl: `${REPORT_ROUTE}/${TOKEN}`,
     // Page-only "take away" evidence-pack destination (never a model-facing URL).
@@ -85,7 +90,7 @@ function cesiumHandler(req, res) {
   serveFile(req, res, resolve(CESIUM_DIR), relPath, 'public, max-age=86400')
 }
 
-async function tilesHandler(req, res, allowedDirs) {
+export async function tilesHandler(req, res, allowedDirs) {
   const raw = subPath(requestPath(req), TILES_ROUTE)
   if (raw === null) return sendText(res, 403, 'forbidden')
   const parts = segments(raw)
@@ -95,6 +100,10 @@ async function tilesHandler(req, res, allowedDirs) {
   if (!/^([a-zA-Z]:[\\/]|\\\\|\/)/.test(dir)) return sendText(res, 403, 'forbidden')
   const resolvedDir = resolve(dir)
   const realDir = await realPathOr(resolvedDir)
+  // Defend against a remembered entry from an older build whose allowlist may
+  // have been widened by a junction: the served root itself must never be a
+  // drive/share root.
+  if (!isSafeOpenedDirectory(resolvedDir) || !isSafeOpenedDirectory(realDir)) return sendText(res, 403, 'forbidden')
   if (!allowedDirs.has(resolvedDir) && !allowedDirs.has(realDir)) return sendText(res, 403, 'forbidden')
   const relParts = []
   for (const part of parts.slice(2)) {
@@ -105,11 +114,12 @@ async function tilesHandler(req, res, allowedDirs) {
     relParts.push(decoded)
   }
   const relPath = relParts.join(sep)
-  // serveFile repeats the real-path containment check on the target file.
-  await serveFile(req, res, resolvedDir, relPath, 'public, max-age=60')
+  // Serve from the real path: a junction's lexical root is not its real root,
+  // and serveFile repeats the containment check on the target file.
+  await serveFile(req, res, realDir, relPath, 'public, max-age=60')
 }
 
-async function scanHandler(req, res, allowedDirs, onOpened) {
+export async function scanHandler(req, res, allowedDirs, onOpened) {
   let parsed
   try {
     parsed = new URL(req.url, 'http://localhost')
@@ -123,10 +133,25 @@ async function scanHandler(req, res, allowedDirs, onOpened) {
   if (req.headers?.[PANEL_HEADER] !== '1') return sendText(res, 403, 'scan requests must come from the panel')
   const resolvedDir = resolve(dir)
   // Registering a drive/UNC/share root would hand the agent every file on it.
-  if (isFilesystemRoot(resolvedDir)) return sendText(res, 400, 'scanning a filesystem root is not allowed')
-  // Record both spellings so a path remembered by the page still matches after
-  // a symlinked or junctioned folder is resolved by the filesystem.
+  // Check the raw spelling too: `\\?\C:\` and junctions only reveal their real
+  // target after realpath, which is checked below before anything is added.
+  if (!isSafeOpenedDirectory(dir) || !isSafeOpenedDirectory(resolvedDir)) {
+    return sendText(res, 400, 'scanning a filesystem root, UNC path or non-absolute path is not allowed')
+  }
   const realDir = await realPathOr(resolvedDir)
+  if (!isSafeOpenedDirectory(realDir)) {
+    return sendText(res, 400, 'the folder resolves to a filesystem root or network share; open a subfolder instead')
+  }
+  let stat
+  try {
+    stat = await fs.stat(realDir)
+  } catch {
+    return sendText(res, 404, 'folder not found')
+  }
+  if (!stat.isDirectory()) return sendText(res, 400, 'the scanned path is not a folder')
+  // Record both spellings so a path remembered by the page still matches after
+  // a symlinked or junctioned folder is resolved by the filesystem. Both have
+  // already passed the root/UNC check, and tilesHandler re-checks the real path.
   allowedDirs.add(resolvedDir)
   allowedDirs.add(realDir)
   // This gesture is the user's decision, so remember the folder (and its
@@ -178,22 +203,86 @@ async function remoteHandler(req, res) {
   // Re-check the final URL: a malformed target or a query that made the parser
   // pick a different host must never reach the network.
   if (blockedHost(target)) return sendText(res, 403, 'forbidden')
+  let upstream
+  const controller = new AbortController()
+  const timer = setTimeout(() => {
+    controller.abort()
+  }, REMOTE_PROXY_TIMEOUT_MS)
+  timer.unref?.()
   try {
     // Redirects are refused: a harmless host could otherwise bounce the proxy
     // to a loopback/private address that `blockedHost` already rejected.
-    const upstream = await fetch(target, { redirect: 'manual' })
-    if (upstream.status >= 300 && upstream.status < 400) return sendText(res, 403, 'forbidden')
-    if (!upstream.ok || upstream.body === null) {
-      return sendText(res, upstream.status === 200 ? 502 : upstream.status, `upstream ${upstream.status}`)
-    }
-    res.writeHead(200, {
-      'content-type': upstream.headers.get('content-type') ?? 'application/octet-stream',
-      'cache-control': 'no-store',
-    })
-    Readable.fromWeb(upstream.body).pipe(res)
+    upstream = await fetch(target, { redirect: 'manual', signal: controller.signal })
   } catch (error) {
-    sendText(res, 502, `proxy failed: ${error instanceof Error ? error.message : String(error)}`)
+    clearTimeout(timer)
+    return sendText(res, 502, `proxy failed: ${error instanceof Error ? error.message : String(error)}`)
   }
+  if (upstream.status >= 300 && upstream.status < 400) {
+    clearTimeout(timer)
+    return sendText(res, 403, 'forbidden')
+  }
+  if (!upstream.ok || upstream.body === null) {
+    clearTimeout(timer)
+    return sendText(res, upstream.status === 200 ? 502 : upstream.status, `upstream ${upstream.status}`)
+  }
+  res.writeHead(200, {
+    'content-type': upstream.headers.get('content-type') ?? 'application/octet-stream',
+    'cache-control': 'no-store',
+  })
+  streamRemoteBody(Readable.fromWeb(upstream.body), req, res, { controller, timer })
+}
+
+/**
+ * Pipe one proxied upstream body to the page without ever leaving an unhandled
+ * stream error behind. Upstream servers can abort mid-body (CDN hiccups, a
+ * hostile tileset host); before this helper existed the raw `.pipe()` let that
+ * error escape as an uncaught exception and could take the Host process down.
+ *
+ * Exported as a test seam: `streamRemoteBody` is exercised with a Readable that
+ * errors after the first chunk and a fake response, and must neither throw nor
+ * leave the response open.
+ */
+export function streamRemoteBody(source, req, res, options = {}) {
+  const controller = options.controller ?? new AbortController()
+  const timer = options.timer ?? null
+  const maxBytes =
+    Number.isFinite(options.maxBytes) && options.maxBytes > 0 ? Math.floor(options.maxBytes) : REMOTE_PROXY_MAX_BYTES
+  let finished = false
+  let bytes = 0
+  const finish = () => {
+    if (finished) return
+    finished = true
+    if (timer !== null) clearTimeout(timer)
+    try {
+      controller.abort()
+    } catch {
+      /* aborting an already settled fetch is a no-op */
+    }
+  }
+  // A page that navigates away or a browser that retries must cancel upstream:
+  // otherwise the host keeps streaming a response nobody will read.
+  req?.on?.('close', () => {
+    finish()
+    if (typeof source.destroy === 'function') source.destroy()
+  })
+  res?.on?.('close', finish)
+  source.on?.('data', (chunk) => {
+    if (finished) return
+    bytes += chunk?.length ?? 0
+    if (bytes > maxBytes) {
+      finish()
+      try {
+        source.destroy(new Error('upstream body exceeds the proxy size limit'))
+      } catch {
+        /* already destroyed */
+      }
+      if (typeof res.destroy === 'function') res.destroy()
+    }
+  })
+  pipeline(source, res, (error) => {
+    finish()
+    if (error && typeof res.destroy === 'function') res.destroy()
+  })
 }
 
 /**
@@ -201,7 +290,7 @@ async function remoteHandler(req, res) {
  * its own, so each route asks the DSH Connection service to reject foreign or
  * unauthenticated requests, and fails closed whenever that answer is doubtful.
  */
-export function registerRoutes(ctx, { allowedDirs, bridge, directories }) {
+export function registerRoutes(ctx, { allowedDirs, bridge, directories, getService }) {
   const rejection = (req) => {
     const headers = req.headers ?? {}
     const site = headers['sec-fetch-site']
@@ -258,6 +347,8 @@ export function registerRoutes(ctx, { allowedDirs, bridge, directories }) {
       ),
       register('exact', `${SCENE_ROUTE}/${TOKEN}`, sceneSnapshotHandler),
       register('exact', `${INJECT_ROUTE}/${TOKEN}`, (req, res) => injectHandler(ctx, req, res)),
+      register('exact', `${API}/vision/${TOKEN}`, createVisionHandler(ctx, { getService })),
+      register('exact', `${API}/selection-question/${TOKEN}`, createSelectionQuestionHandler(ctx, { getService })),
       register('exact', `${REPORT_ROUTE}/${TOKEN}`, reportHandler),
       register('exact', `${EXPORT_ROUTE}/${TOKEN}`, evidenceExportHandler),
       register('exact', BRIDGE_ROUTE, bridgeHandler(bridge)),

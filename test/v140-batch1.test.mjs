@@ -333,7 +333,7 @@ test('client 授权接线：authorize 内部命令、PathAccessDialog、先 /sca
   assert.match(branch, /const decision = await askPathAccess\(request\)/)
   assert.equal((branch.match(/askPathAccess\(/g) ?? []).length, 1)
   assert.doesNotMatch(branch, /for\s*\(|while\s*\(/)
-  assert.match(client, /ACCESS_TIMEOUT_MS = 32000/)
+  assert.match(client, /ACCESS_TIMEOUT_MS = 28000/)
   // 授权只需要 DOM，不需要等 Cesium 就绪（否则会吃掉 Host 的 30 s 期限）。
   assert.match(client, /if \(payload\.action !== 'authorize'\) await waitForPanelReady\(\)/)
 })
@@ -342,8 +342,10 @@ test('client showLayers/showHud：默认可见、工具栏切换、收起、设�
   assert.match(client, /const showLayers = sources\?\.settings\?\.showLayers !== false/)
   assert.match(client, /const showHud = sources\?\.settings\?\.showHud !== false/)
   // 图层面板（v1.6 起是唯一入口）：默认可见、标题栏可收起；即使没有加载
-  // 3D Tiles 也能打开，因为地形/底图的选择只能从面板里做。
-  assert.match(client, /analysis \|\| showLayers/)
+  // 3D Tiles 也能打开，因为地形/底图的选择只能从面板里做。右栈已抽成组件。
+  assert.match(client, /h\(RightStack, \{/)
+  assert.match(client, /showLayers,/)
+  assert.match(client, /showTools,/)
   assert.match(client, /onCollapse: \(\) => updateSettings\(\{ showLayers: false \}\)/)
   assert.match(client, /t\('layers\.collapse'\)/)
   // 工具栏两个图标按钮写回设置。
@@ -392,8 +394,7 @@ test('client HUD 采样：拖动不采样、停手一次 depth read、周期不 
   assert.match(hud, /clearInterval\(timer\)/)
   assert.match(hud, /readoutRef\.current = null/)
 
-  // HUD 不再使用 scene.pick()；两处合法用法是 earth_scene pick 与 v1.7 指认卡片。
-  assert.equal((client.match(/scene\.pick\(/g) ?? []).length, 4)
+  assert.doesNotMatch(hud, /scene\.pick\(/)
   assert.match(client, /const picked = viewer\.scene\.pick\(position\)/)
   assert.match(client, /const classified = classifyPick\(viewer\.scene\.pick\(position\), Cesium\)/)
   // 截图是“已停稳”的显式读取：显式要求 pickPosition。

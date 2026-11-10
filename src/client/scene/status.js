@@ -43,6 +43,9 @@ export function createSceneStatus(deps) {
               id: layer.id,
               name: layer.name,
               visible: layer.visible,
+              // '3dgs' | 'mesh' | null (content inspection pending / unavailable).
+              // An Agent otherwise cannot explain why a splat layer reports 0 triangles.
+              kind: layer.kind ?? null,
               url: redactUrl(layer.url),
               tiles: statistics.numberOfTilesWithContentReady ?? statistics.numberOfTilesLoaded ?? 0,
               pending: statistics.numberOfPendingRequests ?? 0,
@@ -73,7 +76,9 @@ export function createSceneStatus(deps) {
             globe_maximum_screen_space_error: viewer.scene.globe.maximumScreenSpaceError,
           },
           snapshot: { includeHud: config.settings.screenshotHud === true },
-          measureTool: toolRef.current,
+          // Identify is the default pointer mode, not a measuring tool: the Agent
+          // sees null unless the user explicitly armed distance/area/height/pick.
+          measureTool: toolRef.current === 'identify' ? null : toolRef.current,
           annotations: {
             drawn_features: agentOverlayRef.current.drawnFeatures,
             measured_points: agentOverlayRef.current.measuredCount,

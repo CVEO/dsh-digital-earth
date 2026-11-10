@@ -10,7 +10,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 
-import { SHADER_MAX_STACK, SHADER_PRESETS, shaderFragmentSource, shaderUniforms, shaderValidateRequest } from '../src/client/shader/presets.js'
+import { SHADER_ADVANCED_PRESETS, SHADER_MAX_STACK, SHADER_PRESETS, SHADER_PRIMARY_PRESETS, shaderFragmentSource, shaderUniforms, shaderValidateRequest } from '../src/client/shader/presets.js'
 import { normalizeShaderRequest } from '../src/host/tools/shader.js'
 import { hostSource, readRepoFile } from './helpers/source.mjs'
 
@@ -137,3 +137,16 @@ test('engine：apply 使用 presets 数组，并识别 water/water-depth 的透�
 test('client 预设清单仍冻结为五个（叠加不新增预设）', () => {
   assert.deepEqual([...SHADER_PRESETS], ['height-false-color', 'contour', 'scan', 'water', 'water-depth'])
 })
+
+test('工具白名单/叠加契约不变：contour 仍可经 earth_shader 叠加（界面不再展示）', () => {
+  assert.deepEqual([...SHADER_PRIMARY_PRESETS], ['height-false-color', 'scan', 'water', 'water-depth'])
+  assert.deepEqual([...SHADER_ADVANCED_PRESETS], ['contour'])
+  assert.deepEqual([...SHADER_PRIMARY_PRESETS, ...SHADER_ADVANCED_PRESETS].sort(), [...SHADER_PRESETS].sort(), '两个 UI 分组并集必须等于白名单')
+  // 主网格分组后，工具层仍然接受 contour 叠加，引擎仍会组合成同一个着色器。
+  const request = shaderValidateRequest({ action: 'apply', preset: ['contour', 'height-false-color'], interval: 25 })
+  assert.deepEqual(request.presets, ['contour', 'height-false-color'])
+  const composed = shaderFragmentSource(['contour', 'height-false-color'])
+  assert.match(composed, /\/\/ contour\n\s+\{[\s\S]*?u_interval/)
+  assert.match(composed, /\/\/ height-false-color\n\s+\{[\s\S]*?u_minHeight/)
+})
+

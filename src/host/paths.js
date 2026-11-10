@@ -4,7 +4,7 @@
  * v1.5 host split: implementation moved verbatim from the index.js monolith.
  */
 import { promises as fs } from 'node:fs'
-import { parse, resolve, sep } from 'node:path'
+import { isAbsolute, parse, resolve, sep } from 'node:path'
 
 export const toB64 = (value) => Buffer.from(value, 'utf8').toString('base64url')
 export const fromB64 = (value) => Buffer.from(value, 'base64url').toString('utf8')
@@ -71,6 +71,24 @@ export function isWithinDirectory(target, root) {
 export function isUncPath(value) {
   const text = typeof value === 'string' ? value : ''
   return text.startsWith('\\\\') || /^\/\/[^/]/.test(text)
+}
+
+/**
+ * A folder the panel may open or serve: absolute, not a filesystem/share root
+ * and not a UNC / extended-length / device path.
+ *
+ * Junction and symlink targets are checked with this too, so a harmless-looking
+ * folder name that resolves to `C:\` (or to a share) never enters the allowlist.
+ */
+export function isSafeOpenedDirectory(value) {
+  if (typeof value !== 'string' || value.trim() === '') return false
+  if (!isAbsolute(value)) return false
+  const resolved = resolve(value)
+  if (isFilesystemRoot(resolved) || isUncPath(resolved)) return false
+  // `\\?\C:\` and `\\.\C:` resolve to a drive root / UNC spelling on Windows;
+  // reject the raw spelling as well so no parser difference can slip through.
+  if (/^\\\\[?.]\\/.test(value) || /^\\\\[?.]\\/.test(resolved)) return false
+  return true
 }
 
 export function sanitizeLabel(value) {

@@ -26,7 +26,8 @@ test('场景详情是独立浮层：可从整场景或单个图层打开', () =>
   assert.doesNotMatch(panel, /className: 'mv-details'/)
   assert.doesNotMatch(panel, /t\('layers\.details'\)/)
   assert.match(panel, /onShowSceneDetails\?\.\(\)/)
-  assert.match(panel, /onShowSceneDetails\?\.\(layer\.id\)/)
+  const row = readRepoFile('src/client/ui/layer-row.js')
+  assert.match(row, /onShowSceneDetails\?\.\(layer\.id\)/)
 
   const client = clientSource()
   assert.match(client, /useSceneDetails\(\{/)

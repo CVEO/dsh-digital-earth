@@ -14,6 +14,30 @@ import { mountAgentTools } from './src/host/tools/registry.js'
 export const inject = ['webServer', 'connection']
 
 export function apply(ctx) {
+  // Optional Host services: the panel's AI helpers must keep working (or degrade
+  // with a clear error) in profiles where llm/attachments/session prompting are
+  // absent. A plain ctx.get() does not put them in this plugin's service scope,
+  // so bind them through optional inject children and resolve lazily per request.
+  const optional = { llm: null, attachments: null, agentDefaultModel: null, sessionController: null }
+  const bind = (names) => {
+    if (typeof ctx.inject !== 'function') return
+    ctx.inject(names, (scope) => {
+      for (const name of names) if (scope[name]) optional[name] = scope[name]
+      return () => {
+        for (const name of names) optional[name] = null
+      }
+    })
+  }
+  bind(['llm', 'attachments', 'agentDefaultModel'])
+  bind(['sessionController'])
+  const getService = (name) => {
+    if (optional[name]) return optional[name]
+    try {
+      return ctx.get?.(name) ?? ctx[name] ?? null
+    } catch {
+      return null
+    }
+  }
   // Directories this page opened through `/scan`; tile files are served only from
   // them, so a token holder cannot read arbitrary paths on the machine.
   const allowedDirs = new Set()
@@ -22,7 +46,7 @@ export function apply(ctx) {
   // Remembered folders are re-allowed in the background: apply() never blocks on disk.
   const directories = createRecentDirectories(allowedDirs)
   void directories.restore().catch(() => {})
-  registerRoutes(ctx, { allowedDirs, bridge, directories })
+  registerRoutes(ctx, { allowedDirs, bridge, directories, getService })
   mountAgentTools(ctx, bridge, allowedDirs)
   mountEarthCommand(ctx, bridge)
 }

@@ -6,7 +6,7 @@
  */
 import React from 'react'
 import { createAnalysisEngine } from '../analysis/engine.js'
-import { buildAgentOverlayList, clearAgentOverlays as clearAgentOverlaysInState, removeAgentOverlay } from '../scene/agent-overlays.js'
+import { buildAgentOverlayList, clearAgentOverlays as clearAgentOverlaysInState, manualMeasurementRow, overlayRowsWithEntities, removeAgentOverlay, removeAgentOverlayRows } from '../scene/agent-overlays.js'
 import { ACCESS_TIMEOUT_MS, imageryProvider, loadCesium, loadCesiumStyle, loadMeta, loadSources, persistSources, scanLocalDirectory, terrainProvider } from '../api.js'
 import { sampleCursor } from '../cursor.js'
 import { arrayBufferToBase64, b64url, clone, escapeHtml, formatArea, formatDistance, formatHeight, formatValue, geodesicLength, message, planarArea, redactUrl } from '../format.js'
@@ -15,6 +15,7 @@ import { folderName } from '../preferences.js'
 import { service } from '../runtime.js'
 import { normalizeSceneSnapshot, readSceneSnapshot, writeSceneSnapshot } from '../scene-store.js'
 import { createOverlayLayers } from '../scene/overlay-layers.js'
+import { createLayerKindProbe } from '../scene/layer-kind.js'
 import { flyToBookmark } from '../scene/bookmarks.js'
 import { flyToCartographic, frameAllLayers } from '../scene/frame.js'
 import { flyToCoordinates, parseLonLat } from '../scene/fly-target.js'
@@ -29,6 +30,8 @@ import { createProfileTool } from '../scene/profile-tool.js'
 import { createVectorInteraction } from '../scene/vector-interaction.js'
 import { VECTOR_COLORS, vectorLabel } from '../scene/vector-style.js'
 import { createSelectionController } from '../scene/selection-controller.js'
+import { cancelSelection, disposeSelection, getSelectionTool, isSelectionActive, peekSelection } from '../scene/selection-tools.js'
+import { installCanvasInput } from '../scene/canvas-input.js'
 import { createCommandBridge } from '../scene/command-bridge.js'
 import { createSceneReport } from '../scene/report.js'
 import { createSceneStatus } from '../scene/status.js'
@@ -36,14 +39,17 @@ import { createHostSceneStore } from '../scene/host-scene-store.js'
 import { applyQuality, normalizeQuality, qualityProfile } from '../scene/quality.js'
 import { createShaderEngine } from '../scene/shader-engine.js'
 import { useEnvironmentDark } from '../theme.js'
-import { AnalysisCard, ShaderWorkbench } from '../ui/cards.js'
+import { ShaderWorkbench } from '../ui/cards.js'
 import { CSS } from '../ui/css.js'
+import { revealPanel } from '../ui/reveal-panel.js'
 import { HealthDialog, PathAccessDialog, SourcesDialog } from '../ui/dialogs.js'
 import { UrlBar } from '../ui/url-bar.js'
 import { Compass } from '../ui/compass.js'
 import { StatusHud } from '../ui/hud.js'
-import { AskAgentIcon, FullscreenIcon, HudIcon, IdentifyIcon, ResetIcon, ScreenshotIcon, ShaderIcon, ThemeIcon, ViewerIcon } from '../ui/icons.js'
-import { LayersPanel } from '../ui/layers-panel.js'
+import { AskAgentIcon, FullscreenIcon, HudIcon, ResetIcon, ScreenshotIcon, ShaderIcon, ViewerIcon } from '../ui/icons.js'
+import { ToolbarQuick } from '../ui/toolbar-quick.js'
+import { ToolbarMenus } from '../ui/toolbar-menus.js'
+import { RightStack } from '../ui/right-stack.js'
 import { LoadingGlobe } from '../ui/loading-globe.js'
 import { SelectionOverlay } from '../ui/selection-overlay.js'
 import { VectorCard } from '../ui/vector-card.js'
@@ -51,7 +57,9 @@ import { useTour } from '../ui/tour-bar.js'
 import { useSceneDetails } from '../ui/scene-details.js'
 import { useWorkbenchWiring } from '../ui/use-workbench.js'
 import { MenuItem } from '../ui/menu-item.js'
-
+import { hasVectorFile, isVectorDrag, readVectorFiles } from '../scene/vector-file.js'
+import { vectorErrorText } from '../scene/vector-errors.js'
+import { runVectorImport } from '../scene/vector-import-transaction.js'
 const h = React.createElement
 
     /**
@@ -71,7 +79,7 @@ const h = React.createElement
       const cesiumRef = React.useRef(null)
       const metaRef = React.useRef(null)
       const layersRef = React.useRef([])
-      const toolRef = React.useRef(null)
+      const toolRef = React.useRef('identify')
       const profileToolRef = React.useRef(null)
       const measureRef = React.useRef({ points: [], entities: [] })
       const vectorRef = React.useRef(null)
@@ -111,7 +119,7 @@ const h = React.createElement
       const [layers, setLayers] = React.useState([])
       const [sources, setSources] = React.useState(null)
       const [defaults, setDefaults] = React.useState(null)
-      const [tool, setTool] = React.useState(null)
+      const [tool, setTool] = React.useState('identify')
       const [fps, setFps] = React.useState(null)
       // True while the panel root is the document's fullscreen element.
       const [fullscreen, setFullscreen] = React.useState(false)
@@ -134,6 +142,7 @@ const h = React.createElement
       const [accessBusy, setAccessBusy] = React.useState(false)
       const [analysis, setAnalysis] = React.useState(null)
       const [shaderOpen, setShaderOpen] = React.useState(false)
+      const [showTools, setShowTools] = React.useState(true)
       const [shaderActive, setShaderActive] = React.useState([])
       const [shaderForm, setShaderForm] = React.useState({
         layerId: '',
@@ -197,7 +206,7 @@ const h = React.createElement
        * Host timeout too; the local timeout only keeps a dead panel from stalling
        * the command chain forever.
        */
-      const waitForPanelReady = (timeoutMs = 30000) =>
+      const waitForPanelReady = (timeoutMs = 12000) =>
         new Promise((resolve, reject) => {
           const gate = readyGateRef.current
           if (gate.ready) {
@@ -228,7 +237,7 @@ const h = React.createElement
         })
 
       const syncLayers = () => {
-        setLayers(layersRef.current.map((layer) => ({ id: layer.id, name: layer.name, visible: layer.visible })))
+        setLayers(layersRef.current.map((layer) => ({ id: layer.id, name: layer.name, visible: layer.visible, georefIssue: layer.georefIssue })))
         markSceneDirty()
       }
 
@@ -303,13 +312,16 @@ const h = React.createElement
       }
 
       /**
-       * Open the dialog and wait for the user. The 32 s cleanup timer unblocks this
-       * panel's serialised command chain after the Host's own 30 s deadline; the
-       * late ack is ignored by the Host and never retried.
+       * Open the dialog and wait for the user. The 28 s cleanup timer stays under
+       * the Host's 30 s authorisation deadline; the late ack is ignored by the
+       * Host and never retried.
        */
       const askPathAccess = (request) =>
         new Promise((resolve) => {
           if (accessRef.current) settleAccess({ allowed: false, message: t('access.denied') })
+          // A path dialog that opens in a hidden tab is invisible to the user and
+          // always ends in an access timeout. Bring the panel forward first.
+          revealPanel()
           const timer = setTimeout(() => settleAccess({ allowed: false, message: t('access.denied') }), ACCESS_TIMEOUT_MS)
           accessRef.current = { resolve, timer }
           setAccessBusy(false)
@@ -360,6 +372,18 @@ const h = React.createElement
         return `${meta.tilesBase}${encodeURIComponent(b64url(dir))}/${encodeURIComponent(rel)}`
       }
 
+      /**
+       * Ask the Host to classify a freshly loaded layer (mesh vs 3DGS). The
+       * content-level check lives in the Host inspector because only it can read
+       * the content headers under the folder allowlist. The result is cached on
+       * the layer so shader rejection and status stay consistent.
+       */
+      const hydrateLayerKind = createLayerKindProbe({
+        getMeta: () => metaRef.current,
+        sourceOfLayer,
+        layerRuntime,
+      })
+
       /** Add a 3D Tiles layer; flies to it unless the caller restores a saved view. */
       async function loadTileset(url, name, source = null, options = {}) {
         const Cesium = cesiumRef.current
@@ -399,9 +423,20 @@ const h = React.createElement
           layersRef.current.push(layer)
           syncLayers()
           setScan(null)
+          // Classify the content in the background (shader rejection, layer badge,
+          // analysis errors). The load already succeeded: a failed inspection must
+          // never fail or delay the load itself.
+          void hydrateLayerKind(layer)
           if (georefIssue !== null) {
             if (options.fly !== false) showToast(t('toast.notGeoreferenced'))
-          } else if (options.fly !== false) await viewer.flyTo(tileset, { duration: 1.2 })
+          } else if (options.fly !== false) {
+            // Never block the command acknowledgement on the camera flight: the
+            // flight is driven by the render loop and never resolves while the
+            // panel is hidden or the window is in the background (v1.5.1 A1).
+            // The layer is already added, so treating the load as done is both
+            // correct and the only way later commands are not stalled behind it.
+            void viewer.flyTo(tileset, { duration: 1.2 }).catch(() => {})
+          }
           return layer
         } finally {
           setBusy('')
@@ -711,12 +746,16 @@ const h = React.createElement
       }
 
       function setToolMode(mode) {
-        toolRef.current = mode
-        setTool(mode)
-        if (mode !== 'profile') profileToolRef.current?.clear()
+        cancelSelection(viewerRef.current)
+        // Identify is the DEFAULT pointer behaviour (click an object → its card),
+        // so leaving any other tool falls back to it instead of a dead canvas.
+        const next = mode ?? 'identify'
+        toolRef.current = next
+        setTool(next)
+        if (next !== 'profile') profileToolRef.current?.clear()
         vectorRef.current?.clearSelection()
-        if (mode !== null || measureRef.current.points.length < (measureRef.current.mode === 'area' ? 3 : 2)) clearMeasure()
-        if (mode) setPickInfo(null)
+        if (next !== 'identify' || measureRef.current.points.length < (measureRef.current.mode === 'area' ? 3 : 2)) clearMeasure()
+        if (next) setPickInfo(null)
         setOpenMenu(null)
       }
 
@@ -830,6 +869,19 @@ const h = React.createElement
       const syncAgentOverlayCount = () => {
         const state = agentOverlayRef.current
         setAgentOverlayCount(state.draw.length + state.measure.length)
+      }
+
+      // Local vector import (file picker or drop on the globe): draw through the
+      // same overlay renderer as earth_draw, then refresh counts/snapshot state.
+      const importVectorData = (parsed, name) => {
+        try {
+          runVectorImport(agentOverlayRef.current, viewerRef.current, () => drawAgentOverlay(cesiumRef.current, viewerRef.current, parsed.geojson, 'accent', `GeoJSON: ${name}`))
+          syncAgentOverlayCount()
+          markSceneDirty()
+          showToast([t('layers.imported', { name, n: parsed.featureCount }), ...(parsed.warnings ?? []).map((key) => t(key))].join(' · '))
+        } catch (error) {
+          showToast(t('layers.importFailed', { message: vectorErrorText(error, t) }))
+        }
       }
 
       // Clear/remove helpers live in src/client/scene/agent-overlays.js.
@@ -999,6 +1051,9 @@ const h = React.createElement
           descriptor = { group: {}, kind: t('layers.vectorDrawn'), title: label || t('layers.vectorDrawn'), summary: t(`vector.geometry.${geometry.type.replace('Multi', '')}`),
             rows: Object.entries(properties ?? {}).filter(([key]) => key !== 'name').slice(0, 12).map(([key, value]) => [key, formatValue(value)]) }
           switch (geometry.type) {
+            case 'GeometryCollection':
+              for (const child of geometry.geometries ?? []) drawGeometry(child, properties)
+              break
             case 'Point':
               drawPoint(geometry.coordinates, label)
               break
@@ -1474,10 +1529,13 @@ const h = React.createElement
         getSettings: () => sourcesRef.current,
         getMeta: () => metaRef.current,
         getSession: () => sessionRef.current,
+        getCesium: () => cesiumRef.current,
+        getLayers: () => layersRef.current,
         t,
         showToast,
         setChromeHidden,
         nextFrames,
+        revealPanel,
         drawCaptureOverlay,
         drawVectorLabels: (context, width, height) => vectorRef.current?.drawLabels(context, width, height),
       })
@@ -1485,12 +1543,12 @@ const h = React.createElement
 
       // v1.7 P0 "指认": card data (pick + neighbour ring sampler) and the
       // evidence pack. React state stays in ui/selection-overlay.js.
-      const selectionController = createSelectionController({
+      const selectionController = React.useMemo(() => createSelectionController({
         getViewer: () => viewerRef.current,
         getCesium: () => cesiumRef.current,
         getLayers: () => layersRef.current,
         getMeta: () => metaRef.current,
-      })
+      }), [])
 
       /** "量一下" from the selection card: pre-fill the first height point. */
       function measureFromSelection(anchor) {
@@ -1524,6 +1582,7 @@ const h = React.createElement
         getMeta: () => metaRef.current,
         getSession: () => sessionRef.current,
         getAnalysis: () => analysis,
+        getSelection: () => peekSelection(viewerRef.current),
         showToast,
         t,
         captureScene,
@@ -1558,6 +1617,7 @@ const h = React.createElement
       function setLayerVisible(id, visible) {
         const layer = layersRef.current.find((item) => item.id === id)
         if (!layer) return null
+        if (!visible) detachShaderForLayer(id, true) // hiding a layer ends its visual effect
         layer.visible = visible
         layer.tileset.show = visible
         syncLayers()
@@ -1893,17 +1953,34 @@ const h = React.createElement
             return
           }
           if (!payload?.id) return
+          // Per-command watchdogs: a command that never settles (a camera flight
+          // driven by a paused render loop, a stalled terrain fetch, a bug) must
+          // not wedge every later command. On timeout the panel acknowledges the
+          // failure and the command chain moves on; late work is ignored by the
+          // Host because the pending command id is already settled.
+          const commandBudgets = { capture: 40000, report: 45000, load: 40000 }
           commandChainRef.current = commandChainRef.current
             .then(async () => {
+              let watchdog = null
               try {
                 // The authorisation dialog only needs meta + DOM: answer it while
                 // Cesium is still booting so the Host's 30 s deadline is not spent
                 // waiting for the engine.
                 if (payload.action !== 'authorize') await waitForPanelReady()
-                const result = await commandRef.current(payload.action, payload.args ?? {}, bridgeSession)
+                const budgetMs = commandBudgets[payload.action] ?? 15000
+                const command = commandRef.current(payload.action, payload.args ?? {}, bridgeSession)
+                const budget = new Promise((_, reject) => {
+                  watchdog = setTimeout(
+                    () => reject(new Error(t('agent.commandTimeout', { seconds: Math.round(budgetMs / 1000) }))),
+                    budgetMs,
+                  )
+                })
+                const result = await Promise.race([command, budget])
                 await ack({ session: bridgeSession, id: payload.id, ok: true, result })
               } catch (error) {
                 await ack({ session: bridgeSession, id: payload.id, ok: false, error: message(error) })
+              } finally {
+                if (watchdog !== null) clearTimeout(watchdog)
               }
             })
             .catch(() => {})
@@ -2035,30 +2112,18 @@ const h = React.createElement
               // A hung overlay provider keeps syncing in the background; the panel
               // becomes ready and the failed overlay reports itself through onError.
             }
-            const handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas)
-            handler.setInputAction((event) => onCanvasClick(event.position), Cesium.ScreenSpaceEventType.LEFT_CLICK)
-            handler.setInputAction(
-              (event) => {
-                // A double click finishes a measurement when a measure tool is
-                // active; in 指认 mode it still centres the point under the cursor.
-                if (toolRef.current && toolRef.current !== 'identify') {
-                  finishMeasure()
-                  return
-                }
-                const viewerNow = viewerRef.current
-                const scene = viewerNow?.scene
-                if (!viewerNow || !scene) return
-                const carto = sampleCursor(viewerNow, Cesium, event.position, { pickPosition: true })
-                if (carto) flyToCartographic(viewerNow, Cesium, carto)
-              },
-              Cesium.ScreenSpaceEventType.LEFT_DOUBLE_CLICK,
-            )
-            handler.setInputAction(
-              () => {
-                if (toolRef.current === 'profile') profileTool.cancel()
-              },
-              Cesium.ScreenSpaceEventType.RIGHT_CLICK,
-            )
+            const handler = installCanvasInput({
+              Cesium,
+              viewer,
+              getViewer: () => viewerRef.current,
+              getTool: () => toolRef.current,
+              onCanvasClick,
+              finishMeasure,
+              sampleCursor,
+              flyToCartographic,
+              isSelectionActive: () => isSelectionActive(viewerRef.current),
+              onCancelProfile: () => profileTool.cancel(),
+            })
             handlerRef.current = handler
             // A camera move is the most frequent scene change: mark it dirty and
             // let the short timer batch the localStorage write.
@@ -2099,6 +2164,8 @@ const h = React.createElement
             /* ignore */
           }
           handlerRef.current = null
+          disposeSelection(viewerRef.current)
+          profileToolRef.current?.dispose()
           // B3: detach the u_time tick and forget per-layer shader entries before
           // the viewer goes away; the tilesets themselves are destroyed with it.
           releaseShaderTick()
@@ -2284,7 +2351,7 @@ const h = React.createElement
       React.useEffect(() => {
         if (!measureMode) return undefined
         const onKey = (event) => {
-          if (event.key === 'Escape') setToolMode(null)
+          if (event.key === 'Escape') finishMeasure()
         }
         document.addEventListener('keydown', onKey)
         return () => document.removeEventListener('keydown', onKey)
@@ -2382,6 +2449,26 @@ const h = React.createElement
           className: `mv-root${docked ? ' mv-docked' : ''}`,
           'data-mv-theme': themeMode === 'auto' ? undefined : themeMode,
           'data-mv-scheme': resolvedDark ? 'dark' : 'light',
+          onDragOver: (event) => {
+            if (!isVectorDrag(event.dataTransfer)) return
+            event.preventDefault()
+            event.stopPropagation()
+          },
+          onDrop: (event) => {
+            const files = Array.from(event.dataTransfer?.files ?? [])
+            if (!hasVectorFile(files)) return
+            event.preventDefault()
+            event.stopPropagation()
+            void readVectorFiles(files)
+              .then(({ parsed, name }) => importVectorData(parsed, name))
+              .catch((error) =>
+                showToast(
+                  t('layers.importFailed', {
+                    message: error?.message === 'vector_file_unsupported' ? t('layers.importNeedFile') : vectorErrorText(error, t),
+                  }),
+                ),
+              )
+          },
         },
         h('style', { key: 'css' }, CSS),
         h('div', { key: 'globe', ref: globeRef, className: 'mv-globe' }),
@@ -2480,27 +2567,14 @@ const h = React.createElement
               ],
             ),
             h('i', { key: 's1', className: 'mv-sep' }),
-            menu(
-              'measure',
-              t('btn.measure'),
-              [
-                h(MenuItem, { key: 'distance', active: tool === 'distance', onClick: () => setToolMode(tool === 'distance' ? null : 'distance') }, t('tool.distance')),
-                h(MenuItem, { key: 'area', active: tool === 'area', onClick: () => setToolMode(tool === 'area' ? null : 'area') }, t('tool.area')),
-                h(MenuItem, { key: 'height', active: tool === 'height', onClick: () => setToolMode(tool === 'height' ? null : 'height') }, t('tool.height')),
-                h(MenuItem, { key: 'pick', active: tool === 'pick', onClick: () => setToolMode(tool === 'pick' ? null : 'pick') }, t('tool.pick')),
-              ],
-              tool !== null,
-            ),
-            h('i', { key: 's2', className: 'mv-sep' }),
-            button(
-              t('btn.layers'),
-              () => updateSettings({ showLayers: !showLayers }),
-              // The panel is the only place to pick terrain/basemap now, so it must
-              // be reachable even with zero 3D Tiles loaded.
+            h(ToolbarQuick, {
+              t,
               showLayers,
-              undefined,
-              showLayers ? t('btn.layersHide') : t('btn.layersShow'),
-            ),
+              showTools,
+              onToggleLayers: () => updateSettings({ showLayers: !showLayers }),
+              onToggleTools: () => setShowTools((value) => !value),
+              button,
+            }),
             iconButton(
               h(HudIcon),
               showHud ? t('btn.hudHide') : t('btn.hudShow'),
@@ -2514,7 +2588,8 @@ const h = React.createElement
               shaderOpen,
             ),
             // v1.7 P0: 指认 — click an object to read it (panel-only, no tool).
-            iconButton(h(IdentifyIcon), t('btn.identifyHint'), () => setToolMode(tool === 'identify' ? null : 'identify'), tool === 'identify'),
+            // Identify is now the default pointer behaviour, so no dedicated
+            // toolbar toggle is needed; measure/profile temporarily override it.
             // Action buttons are icon-only with a tooltip/aria-label: in the docked
             // narrow panel the text labels were what wrapped the toolbar onto a
             // second row. The four dropdown menus keep their text labels because a
@@ -2530,60 +2605,7 @@ const h = React.createElement
             // "maximize sidebar" action is gone.
             iconButton(h(FullscreenIcon), fullscreen ? t('btn.fullscreenExit') : t('btn.fullscreenTitle'), toggleDomFullscreen, fullscreen),
             h('i', { key: 's3', className: 'mv-sep' }),
-            h(
-              'div',
-              { key: 'appearance', className: 'mv-menu' },
-              h(
-                'button',
-                {
-                  type: 'button',
-                  className: 'mv-btn icon',
-                  title: `${t('btn.appearance')} · ${t(themeMode === 'auto' ? 'theme.auto' : themeMode === 'light' ? 'theme.light' : 'theme.dark')}`,
-                  'aria-haspopup': 'menu',
-                  onClick: () => setOpenMenu(openMenu === 'appearance' ? null : 'appearance'),
-                },
-                h(ThemeIcon, { mode: resolvedDark ? 'dark' : 'light' }),
-              ),
-              openMenu === 'appearance'
-                ? h(
-                    'div',
-                    { className: 'mv-menu-panel mv-glass' },
-                    [
-                      ['auto', 'theme.auto'],
-                      ['light', 'theme.light'],
-                      ['dark', 'theme.dark'],
-                    ].map(([mode, label]) =>
-                      h(
-                        MenuItem,
-                        {
-                          key: mode,
-                          active: themeMode === mode,
-                          onClick: () => setTheme(mode),
-                        },
-                        t(label),
-                      ),
-                    ),
-                  )
-                : null,
-            ),
-            h(
-              'button',
-              {
-                key: 'settings',
-                type: 'button',
-                className: 'mv-btn icon',
-                title: t('btn.settings'),
-                onClick: () => setSettingsOpen(true),
-              },
-              h(
-                'svg',
-                { viewBox: '0 0 24 24', width: 16, height: 16, 'aria-hidden': true, style: { display: 'block' } },
-                h('g', { stroke: 'currentColor', strokeWidth: 1.7, fill: 'none', strokeLinecap: 'round' },
-                  h('circle', { cx: 12, cy: 12, r: 3.2 }),
-                  h('path', { d: 'M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.2a1.6 1.6 0 0 0-1-1.5 1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.2a1.6 1.6 0 0 0 1.5-1 1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.2a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.2a1.6 1.6 0 0 0-1.4 1z' }),
-                ),
-              ),
-            ),
+            h(ToolbarMenus, { t, themeMode, resolvedDark, openMenu, setOpenMenu, setTheme, setSettingsOpen }),
           ),
         ),
         urlBar
@@ -2630,70 +2652,98 @@ const h = React.createElement
           t,
           showToast,
           onMeasure: measureFromSelection,
+          onVisionCommit: (ground) => { getSelectionTool(viewerRef.current, { getCesium: () => cesiumRef.current, t, showToast })?.commitVision(ground); setShowTools(true) },
+          onVisionManual: () => setShowTools(true),
+          onSelectArea: (card) => {
+            const viewerNow = viewerRef.current
+            if (!viewerNow || !card?.point) return
+            const selectionTool = getSelectionTool(viewerNow, { getCesium: () => cesiumRef.current, t, showToast })
+            selectionTool?.selectAreaAround?.({ lon: card.point.lon, lat: card.point.lat, radiusM: 15, height: card.point.surface_height_m ?? 0 })
+            setShowTools(true)
+          },
         }),
         tour.element,
         sceneDetails.element,
-        analysis || showLayers
-          ? h(
-              'div',
-              { key: 'right', className: 'mv-right' },
-              analysis
-                ? h(AnalysisCard, { key: 'analysis', state: analysis, t, onClose: () => clearAnalysis() })
-                : null,
-              showLayers
-                ? h(LayersPanel, {
-                    key: 'layers',
-                    t,
-                    config: sources,
-                    settings: sources?.settings ?? {},
-                    layers,
-                    annotations: {
-                      drawn_features: agentOverlayRef.current.drawnFeatures,
-                      measured_points: agentOverlayRef.current.measuredCount,
-                    },
-                    onCollapse: () => updateSettings({ showLayers: false }),
-                    onSelectTerrain: changeTerrain,
-                    onSelectImagery: changeImagery,
-                    terrainError,
-                    onRetryTerrain: () => applyTerrain(sourcesRef.current?.settings?.terrain ?? null, true),
-                    onFlyLayer: flyToLayer,
-                    onFrameAll: () => frameAllLayers(viewerRef.current, cesiumRef.current, layersRef.current),
-                    analysis,
-                    onClearAnalysis: () => clearAnalysis(),
-                    onStartProfile: () => profileTool.start(),
-                    getViewer: () => viewerRef.current,
-                    getCesium: () => cesiumRef.current,
-                    // Shader effects hang off their 3D Tiles layer row: hover shows
-                    // the effect, clicking the row loads it into the workbench.
-                    shaderActive,
-                    onEditLayerShader: (layer, entry) => {
-                      workbench.loadEntry(entry ?? { layer: layer.name, layerId: layer.id, preset: 'height-false-color' })
-                      setShaderOpen(true)
-                    },
-                    onToggleLayer: toggleLayer,
-                    onInspectLayer: inspectLayer,
-                    onRemoveLayer: removeLayer,
-                    onOverlayAdd: addOverlay,
-                    onOverlayRemove: removeOverlay,
-                    onOverlayOpacity: setOverlayOpacity,
-                    onOverlayVisible: setOverlayVisible,
-                    onOverlayMove: moveOverlay,
-                    onClearVector: () => clearAgentOverlays('all'),
-                    // Camera bookmarks: panel-managed list, storage in localStorage.
-                    getCurrentView: () => currentSceneSnapshot()?.view ?? null,
-                    onFlyView: (view) => flyToBookmark(viewerRef.current, cesiumRef.current, view),
-                    onStartTour: tour.start,
-                    onShowSceneDetails: sceneDetails.open,
-                    agentOverlays: buildAgentOverlayList(agentOverlayRef.current),
-                    onRemoveAgentOverlay: (kind, index) => {
-                      if (!removeAgentOverlay(agentOverlayRef.current, viewerRef.current, kind, index)) return
-                      syncAgentOverlayCount()
-                      markSceneDirty()
-                    },
-                  })
-                : null,
-            )
-          : null,
+        h(RightStack, {
+          t,
+          analysis,
+          onCloseAnalysis: () => clearAnalysis(),
+          showLayers,
+          showTools,
+          layersPanel: {
+            config: sources,
+            settings: sources?.settings ?? {},
+            layers,
+            annotations: { drawn_features: agentOverlayRef.current.drawnFeatures, measured_points: agentOverlayRef.current.measuredCount },
+            onCollapse: () => updateSettings({ showLayers: false }),
+            onSelectTerrain: changeTerrain,
+            onSelectImagery: changeImagery,
+            terrainError,
+            onRetryTerrain: () => applyTerrain(sourcesRef.current?.settings?.terrain ?? null, true),
+            onFlyLayer: flyToLayer,
+            onFrameAll: () => frameAllLayers(viewerRef.current, cesiumRef.current, layersRef.current),
+            onToggleLayer: toggleLayer,
+            onInspectLayer: inspectLayer,
+            onRemoveLayer: removeLayer,
+            shaderActive,
+            onEditLayerShader: (layer, entry) => {
+              workbench.loadEntry(entry ?? { layer: layer.name, layerId: layer.id, preset: 'height-false-color' })
+              setShaderOpen(true)
+            },
+            onOverlayAdd: addOverlay,
+            onOverlayRemove: removeOverlay,
+            onOverlayOpacity: setOverlayOpacity,
+            onOverlayVisible: setOverlayVisible,
+            onOverlayMove: moveOverlay,
+            onImportVector: importVectorData,
+            onClearVector: () => clearAgentOverlays('all'),
+            agentOverlays: buildAgentOverlayList(agentOverlayRef.current),
+            onRemoveAgentOverlay: (kind, index) => {
+              if (!removeAgentOverlay(agentOverlayRef.current, viewerRef.current, kind, index)) return
+              syncAgentOverlayCount()
+              markSceneDirty()
+            },
+            onShowSceneDetails: sceneDetails.open,
+          },
+          toolsPanel: {
+            tool,
+            analysis,
+            shaderActive,
+            onCollapse: () => setShowTools(false),
+            onStartTool: (mode) => setToolMode(mode),
+            onClearMeasure: clearMeasure,
+            onStartProfile: () => profileTool.start(),
+            onClearAnalysis: () => clearAnalysis(),
+            onOpenShader: () => setShaderOpen(true),
+            getCesium: () => cesiumRef.current,
+            getViewer: () => viewerRef.current,
+            getLayers: () => layersRef.current,
+            // Camera bookmarks: panel-managed list, storage in localStorage.
+            getCurrentView: () => currentSceneSnapshot()?.view ?? null,
+            onFlyView: (view) => flyToBookmark(viewerRef.current, cesiumRef.current, view),
+            onStartTour: tour.start,
+            showToast,
+            runAnalysis: analyzeCommand,
+            getTerrainActive: () => Boolean(sourcesRef.current?.settings?.terrain),
+            getOverlayRows: () => {
+              const rows = overlayRowsWithEntities(agentOverlayRef.current)
+              const manual = manualMeasurementRow(measureRef.current.entities, t('measure.objectRow'), measureInfo?.text ?? '')
+              return manual ? [...rows, manual] : rows
+            },
+            onActivateSelection: () => { setToolMode(null); selectionApiRef.current?.cancel?.() },
+            onRemoveOverlayRows: (rows) => {
+              const manual = Array.isArray(rows) && rows.some((row) => row.kind === 'manual')
+              if (manual) clearMeasure()
+              const removed = removeAgentOverlayRows(agentOverlayRef.current, viewerRef.current, rows)
+              syncAgentOverlayCount()
+              markSceneDirty()
+              return removed + (manual ? 1 : 0)
+            },
+            onAskAgent: askAgent,
+            onAskSelection: (options) => askAgentService.askSelection(options),
+            onVisionSelect: () => { selectionApiRef.current?.requestVision?.(); setToolMode(null); setShowTools(false) },
+          },
+        }),
         phase === 'ready' && layers.length === 0 && !emptyDismissed && !restoringScene
           ? h(
               'div',
@@ -2753,11 +2803,11 @@ const h = React.createElement
                 {
                   type: 'button',
                   className: 'mv-measure-end',
-                  title: tool ? t('measure.endHint') : t('tool.clear'),
-                  'aria-label': tool ? t('measure.endHint') : t('tool.clear'),
-                  onClick: () => tool ? setToolMode(null) : clearMeasure(),
+                  title: measureMode ? t('measure.endHint') : t('tool.clear'),
+                  'aria-label': measureMode ? t('measure.endHint') : t('tool.clear'),
+                  onClick: () => (measureMode ? finishMeasure() : clearMeasure()),
                 },
-                tool ? t('measure.end') : t('tool.clear'),
+                measureMode ? t('measure.end') : t('tool.clear'),
               ),
             )
           : null,

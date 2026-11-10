@@ -122,7 +122,7 @@ export async function inspectLocalPath(path, allowedDirs) {
   return target
 }
 
-const inspectRemaining = (deadline) => deadline - Date.now()
+export const inspectRemaining = (deadline) => deadline - Date.now()
 
 export async function inspectReadLocalJson(path, deadline) {
   let stat
@@ -322,6 +322,109 @@ export function inspectDocTiles(doc, docLabel, state, base, isRootDoc) {
     }
   }
   return { roots: roots.length, docDepth }
+}
+
+// ---------------------------------------------------------------------------
+// GLB header inspection (content-level Gaussian splatting detection).
+//
+// The v1.5.1 inspector only looked at extensions declared by tileset.json, so a
+// dataset produced by `3dgs-ply-3dtiles-converter` (which declares
+// KHR_gaussian_splatting inside each GLB, not in the tileset) was reported as
+// plain mesh. Reading the GLB JSON chunk is enough to classify the content and
+// stays within a small budget: only the first chunks of a bounded number of
+// contents are read.
+// ---------------------------------------------------------------------------
+
+export const MAX_GLB_CONTENT_CHECKS = 16
+const MAX_GLB_JSON_CHUNK = 2 * 1024 * 1024
+const GLB_MAGIC = 0x46546c67
+const GLB_JSON_CHUNK = 0x4e4f534a
+
+/** Parse the JSON chunk of a GLB buffer, or null when it is not a valid GLB. */
+function glbJsonFromBuffer(buffer) {
+  if (buffer.length < 20) return null
+  if (buffer.readUInt32LE(0) !== GLB_MAGIC) return null
+  const chunkLength = buffer.readUInt32LE(12)
+  const chunkType = buffer.readUInt32LE(16)
+  if (chunkType !== GLB_JSON_CHUNK || chunkLength <= 0 || chunkLength > MAX_GLB_JSON_CHUNK) return null
+  if (buffer.length < 20 + chunkLength) return null
+  try {
+    const value = JSON.parse(buffer.subarray(20, 20 + chunkLength).toString('utf8'))
+    return isPlainObject(value) ? value : null
+  } catch {
+    return null
+  }
+}
+
+/** Read only the JSON chunk of a local GLB; never reads texture/binary chunks. */
+export async function inspectGlbHeaderLocal(path, deadline) {
+  if (inspectRemaining(deadline) <= 0) return null
+  let handle
+  try {
+    handle = await fs.open(path, 'r')
+    const head = Buffer.alloc(20)
+    const { bytesRead } = await handle.read(head, 0, 20, 0)
+    if (bytesRead < 20) return null
+    const chunkLength = head.readUInt32LE(12)
+    if (head.readUInt32LE(0) !== GLB_MAGIC || head.readUInt32LE(16) !== GLB_JSON_CHUNK) return null
+    if (chunkLength <= 0 || chunkLength > MAX_GLB_JSON_CHUNK) return null
+    const body = Buffer.alloc(chunkLength)
+    const bodyRead = await handle.read(body, 0, chunkLength, 20)
+    if (bodyRead.bytesRead < chunkLength) return null
+    return glbJsonFromBuffer(Buffer.concat([head, body]))
+  } catch {
+    // A missing, unreadable or malformed content file is reported elsewhere.
+    return null
+  } finally {
+    if (handle !== undefined) await handle.close().catch(() => {})
+  }
+}
+
+/** Stream just enough of a remote GLB to parse its JSON chunk. */
+export async function inspectGlbHeaderRemote(url, deadline) {
+  if (blockedHost(url)) return null
+  const remaining = inspectRemaining(deadline)
+  if (remaining <= 0) return null
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), Math.max(1, Math.min(remaining, INSPECT_FETCH_TIMEOUT_MS)))
+  timer.unref?.()
+  try {
+    const response = await fetch(url, { redirect: 'manual', signal: controller.signal })
+    if (response.status >= 300 && response.status < 400) return null
+    if (!response.ok || response.body === null) return null
+    const reader = response.body.getReader()
+    const chunks = []
+    let total = 0
+    let json = null
+    try {
+      for (;;) {
+        const step = await reader.read()
+        if (step.done) break
+        chunks.push(Buffer.from(step.value))
+        total += step.value.byteLength
+        const buffer = Buffer.concat(chunks, total)
+        if (buffer.length < 20) {
+          if (total > 20 + MAX_GLB_JSON_CHUNK) break
+          continue
+        }
+        const chunkLength = buffer.readUInt32LE(12)
+        if (buffer.readUInt32LE(0) !== GLB_MAGIC || buffer.readUInt32LE(16) !== GLB_JSON_CHUNK) break
+        if (chunkLength <= 0 || chunkLength > MAX_GLB_JSON_CHUNK) break
+        if (buffer.length >= 20 + chunkLength) {
+          json = glbJsonFromBuffer(buffer)
+          break
+        }
+        if (inspectRemaining(deadline) <= 0) break
+      }
+    } finally {
+      reader.cancel().catch(() => {})
+    }
+    return json
+  } catch {
+    return null
+  } finally {
+    clearTimeout(timer)
+  }
 }
 
 async function inspectSpzHeader(path) {

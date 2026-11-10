@@ -86,7 +86,9 @@ export function createPointerTools(deps) {
 
       function onCanvasClick(position) {
         const mode = toolRef.current
-        if ((!mode || mode === 'pick') && deps.onOverlayClick?.(position)) return
+        // Vector selections win over the default identify click, otherwise a user
+        // could never select an annotation again after identify became default.
+        if ((!mode || mode === 'pick' || mode === 'identify') && deps.onOverlayClick?.(position)) return
         if (mode === null) return
         // v1.7 P0 "指认": the overlay owns the read, this module only routes the
         // click so the measure loop below is untouched.
@@ -115,7 +117,10 @@ export function createPointerTools(deps) {
       }
 
       function finishMeasure() {
-        if (toolRef.current === 'distance' || toolRef.current === 'area') {
+        // Height/profile are measurements too: previously only distance/area left
+        // the tool, so 结束 (or double-click/Esc) on a height result did nothing
+        // and the HUD kept offering 结束 forever.
+        if (['distance', 'area', 'height', 'profile'].includes(toolRef.current)) {
           toolRef.current = null
           onFinishTool()
         }

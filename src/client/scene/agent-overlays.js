@@ -37,6 +37,15 @@ export function clearAgentOverlays(state, viewer, kind = 'all') {
   }
 }
 
+const commandIds = new WeakMap()
+let nextCommandId = 0
+
+function commandId(command) {
+  if (!command || typeof command !== 'object') return null
+  if (!commandIds.has(command)) commandIds.set(command, `overlay-${++nextCommandId}`)
+  return commandIds.get(command)
+}
+
 function geojsonFeatureCount(geojson) {
   if (geojson === null || typeof geojson !== 'object') return 0
   if (geojson.type === 'FeatureCollection') return Array.isArray(geojson.features) ? geojson.features.length : 0
@@ -77,6 +86,62 @@ export function buildAgentOverlayList(state) {
     })
   }
   return rows
+}
+
+/**
+ * Overlay rows plus their Cesium entities (screen-space object marquee). The
+ * entityGroups WeakMap is kept inside this module's state; rows are throwaway.
+ */
+export function overlayRowsWithEntities(state) {
+  if (!state) return []
+  return buildAgentOverlayList(state).map((row) => {
+    const command = row.kind === 'draw' ? state.drawCommands[row.index] : state.measureCommands[row.index]
+    const entities = state.entityGroups?.get(command) ?? []
+    return { ...row, selectionId: commandId(command), entities, geojson: row.kind === 'draw' ? command?.geojson ?? null : null }
+  })
+}
+
+export function resolveOverlayRows(selected, current) {
+  const ids = new Set((Array.isArray(selected) ? selected : []).map((row) => row?.selectionId).filter(Boolean))
+  return (Array.isArray(current) ? current : []).filter((row) => ids.has(row.selectionId))
+}
+
+/** The live manual measurement is selectable by the object marquee too. */
+export function manualMeasurementRow(entities, label, detail = '') {
+  if (!Array.isArray(entities) || entities.length === 0) return null
+  return { selectionId: 'manual-measure', kind: 'manual', index: 0, label, detail, entities, geojson: null }
+}
+
+/** Merge the GeoJSON of selected draw rows (measures carry no geometry). */
+export function mergeDrawGeoJSON(rows) {
+  const features = []
+  for (const row of Array.isArray(rows) ? rows : []) {
+    if (!row || row.kind !== 'draw' || !row.geojson) continue
+    if (row.geojson.type === 'FeatureCollection' && Array.isArray(row.geojson.features)) {
+      features.push(...row.geojson.features)
+    } else if (row.geojson.type === 'Feature') {
+      features.push(row.geojson)
+    } else if (typeof row.geojson.type === 'string') {
+      features.push({ type: 'Feature', properties: {}, geometry: row.geojson })
+    }
+  }
+  return features.length > 0 ? { type: 'FeatureCollection', features } : null
+}
+
+/** Remove several overlay rows at once (descending per kind keeps indexes valid). */
+export function removeAgentOverlayRows(state, viewer, rows) {
+  const list = resolveOverlayRows(rows, overlayRowsWithEntities(state))
+  let removed = 0
+  for (const kind of ['draw', 'measure']) {
+    const indexes = list
+      .filter((row) => row && row.kind === kind && Number.isInteger(row.index))
+      .map((row) => row.index)
+      .sort((a, b) => b - a)
+    for (const index of indexes) {
+      if (removeAgentOverlay(state, viewer, kind, index)) removed += 1
+    }
+  }
+  return removed
 }
 
 /**

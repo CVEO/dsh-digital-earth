@@ -402,7 +402,10 @@ test('P2 normalizeSceneRequest 处理 report 默认值/标题截断/参数校验
 
   assert.ok(constantsSource.includes('const REPORT_TIMEOUT_MS = 45000'))
   const createScene = sceneSource.slice(sceneSource.indexOf('function createSceneTool'))
-  assert.ok(createScene.includes("const timeout = request.action === 'report' ? REPORT_TIMEOUT_MS : SCENE_TIMEOUT_MS"))
+  assert.ok(createScene.includes("request.action === 'report'"))
+  assert.ok(createScene.includes("request.action === 'load'"))
+  assert.ok(createScene.includes('LOAD_TIMEOUT_MS'))
+  assert.ok(createScene.includes('REPORT_TIMEOUT_MS'))
   assert.ok(createScene.includes("value.operation === 'report'"))
 })
 

@@ -7,8 +7,9 @@
 import React from 'react'
 import { formatDistance, formatHeight } from '../format.js'
 import { profileCsv, profileMetrics, profileSvg } from '../analysis/profile-metrics.js'
-import { SHADER_PRESETS } from '../shader/presets.js'
+import { SHADER_PRIMARY_PRESETS } from '../shader/presets.js'
 import { ElevationLegend, elevationSliderBounds, useShaderElevation } from './shader-elevation.js'
+import { ResizeHandle, usePanelResize } from './resizable.js'
 
 const h = React.createElement
 
@@ -117,13 +118,23 @@ const h = React.createElement
 
     /** Full-size profile preview; the card keeps a thumbnail that opens this. */
     function ProfileChartDialog({ metrics, t, onClose }) {
+      const dialogRef = React.useRef(null)
       React.useEffect(() => {
+        const previous = document.activeElement
+        dialogRef.current?.focus()
         const onKey = (event) => {
-          if (event.key === 'Escape') onClose()
+          if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); onClose() }
+          if (event.key === 'Tab') {
+            const buttons = [...(dialogRef.current?.querySelectorAll('button:not([disabled]),[href],input,select,textarea,[tabindex="0"]') ?? [])]
+            const first = buttons[0], last = buttons.at(-1)
+            if (!first) { event.preventDefault(); return }
+            if (event.shiftKey && (document.activeElement === first || document.activeElement === dialogRef.current)) { event.preventDefault(); last.focus() }
+            else if (!event.shiftKey && (document.activeElement === last || document.activeElement === dialogRef.current)) { event.preventDefault(); first.focus() }
+          }
         }
-        document.addEventListener('keydown', onKey)
-        return () => document.removeEventListener('keydown', onKey)
-      }, [onClose])
+        document.addEventListener('keydown', onKey, true)
+        return () => { document.removeEventListener('keydown', onKey, true); if (previous?.isConnected) previous.focus() }
+      }, [])
 
       const svg = profileSvg(metrics, profileChartLabels(t))
       const src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
@@ -135,7 +146,7 @@ const h = React.createElement
         },
         h(
           'div',
-          { className: 'mv-chart-dialog', role: 'dialog', 'aria-modal': true, 'aria-labelledby': 'mv-chart-title' },
+          { ref: dialogRef, tabIndex: -1, className: 'mv-chart-dialog', role: 'dialog', 'aria-modal': true, 'aria-labelledby': 'mv-chart-title' },
           h(
             'header',
             null,
@@ -177,11 +188,37 @@ const h = React.createElement
       const [profileMode, setProfileMode] = React.useState('grade')
       const [profileWidth, setProfileWidth] = React.useState(7)
       const [chartOpen, setChartOpen] = React.useState(false)
+      const resize = usePanelResize({ storageKey: 'analysis', initialHeight: null, minHeight: 180, maxHeight: 680 })
       if (!state || !state.result) return null
       const result = state.result
       const operation = state.operation
       const profile = operation === 'profile' ? profileMetrics(result.points, { mode: profileMode, width_m: profileWidth }) : null
       const showProfile = Boolean(profile && profile.valid_count >= 2)
+      // v1.5.2: the chart is the first thing in the body (the stats below used to
+      // push it out of the card), the source row pins the single height source of
+      // this run, and at most two warnings explain any approximation.
+      const heightSource =
+        typeof result.height_source === 'string' && result.height_source !== '' ? result.height_source : null
+      const warningCodes = (Array.isArray(result.warnings) ? result.warnings : [])
+        .filter((code) => typeof code === 'string' && code.trim() !== '')
+        .slice(0, 2)
+      const chartBlock =
+        operation === 'profile'
+          ? showProfile
+            ? h(
+                'button',
+                {
+                  type: 'button',
+                  className: 'profile-chart-thumb',
+                  title: t('profile.expandChart'),
+                  'aria-label': t('profile.expandChart'),
+                  onClick: () => setChartOpen(true),
+                },
+                h(AnalysisProfileChart, { points: result.points, t }),
+                h('span', { className: 'profile-chart-hint' }, t('profile.expandChart')),
+              )
+            : h(AnalysisProfileChart, { points: result.points, t })
+          : null
       const rows = []
       const row = (key, label, value) =>
         rows.push(h('div', { key, className: 'stat' }, h('span', null, label), h('b', null, value)))
@@ -252,7 +289,7 @@ const h = React.createElement
       }
       return h(
         'div',
-        { className: 'mv-card mv-analysis', role: 'region', 'aria-label': t(`analysis.title.${operation}`) },
+        { className: 'mv-card mv-analysis', ref: resize.ref, style: resize.style, role: 'region', 'aria-label': t(`analysis.title.${operation}`) },
         h(
           'header',
           null,
@@ -279,25 +316,26 @@ const h = React.createElement
           ? h(
               'div',
               { className: 'body' },
+              chartBlock,
+              heightSource
+                ? h(
+                    'div',
+                    { key: 'source', className: 'stat' },
+                    h('span', null, t('analysis.source')),
+                    h('b', null, t(`analysis.source.${heightSource}`)),
+                  )
+                : null,
+              warningCodes.length > 0
+                ? h(
+                    'p',
+                    { key: 'warnings', className: 'warnings', title: warningCodes.join(' · ') },
+                    `${t('analysis.warnings')}: ${warningCodes.join(' · ')}`,
+                  )
+                : null,
               state.layerName
                 ? h('div', { className: 'layer', title: state.layerName }, `${t('analysis.layer')}: ${state.layerName}`)
                 : null,
               ...rows,
-              operation === 'profile' && !showProfile ? h(AnalysisProfileChart, { points: result.points, t }) : null,
-              showProfile
-                ? h(
-                    'button',
-                    {
-                      type: 'button',
-                      className: 'profile-chart-thumb',
-                      title: t('profile.expandChart'),
-                      'aria-label': t('profile.expandChart'),
-                      onClick: () => setChartOpen(true),
-                    },
-                    h(AnalysisProfileChart, { points: result.points, t }),
-                    h('span', { className: 'profile-chart-hint' }, t('profile.expandChart')),
-                  )
-                : null,
               showProfile
                 ? h(
                     'div',
@@ -367,6 +405,14 @@ const h = React.createElement
         chartOpen && showProfile
           ? h(ProfileChartDialog, { key: 'chart-dialog', metrics: profile, t, onClose: () => setChartOpen(false) })
           : null,
+        h(ResizeHandle, {
+          axis: 'height',
+          edge: 'bottom',
+          label: t('resize.height'),
+          value: resize.size.height,
+          onPointerDown: resize.beginHeight,
+          onKeyDown: resize.keyHeight,
+        }),
       )
     }
     //#endregion analysis card
@@ -397,12 +443,24 @@ const h = React.createElement
       onResetLayer,
       onResetAll,
     }) {
+      const resize = usePanelResize({
+        storageKey: 'shader',
+        widthDirection: 'right',
+        initialWidth: 340,
+        minWidth: 260,
+        maxWidth: 720,
+        minHeight: 220,
+        maxHeight: 760,
+      })
       const visibleLayers = layers.filter((layer) => layer.visible)
       // form.preset is a string for one preset or an ordered array for a stack;
       // the helper keeps the rest of the card stack-agnostic.
       const selectedPresets = Array.isArray(form.preset) ? form.preset : [form.preset]
       const presetLabel = (value) =>
         (Array.isArray(value) ? value : [value]).map((item) => t(`shader.preset.${item}`)).join(' + ')
+      // The workbench presents the four everyday looks. `contour` stays in the
+      // tool whitelist for contract compatibility but is not offered here: on a
+      // 3D mesh it renders as jagged bands, and the meeting asked to drop it.
       const [live, setLive] = React.useState(false)
       const [comparing, setComparing] = React.useState(false)
       const comparingRef = React.useRef(false)
@@ -415,6 +473,19 @@ const h = React.createElement
       )
       const targetName = target?.layer?.name ?? ''
       const elevation = useShaderElevation(target, getScene)
+      // The engine's default range comes from the tileset bounding volume, which
+      // can span far beyond the visible roofs and flatten the ramp into one colour.
+      // Once the visible-surface sampling finishes, seed the form with that range
+      // so the default look matches what the user sees (the button can resample).
+      const sampledRange = elevation.range?.source === 'visible_surface' ? elevation.range : null
+      const heightPreset = selectedPresets.includes('height-false-color')
+      const sampledRangeKey = sampledRange ? `${sampledRange.minimum}|${sampledRange.maximum}` : ''
+      React.useEffect(() => {
+        if (!sampledRange || !heightPreset) return
+        if (form.minHeight !== '' || form.maxHeight !== '') return
+        onField('minHeight', String(sampledRange.minimum))
+        onField('maxHeight', String(sampledRange.maximum))
+      }, [sampledRangeKey, heightPreset, form.minHeight, form.maxHeight])
       const bounds = elevationSliderBounds(elevation.range, form)
       const rangeMinimum = form.minHeight === '' ? elevation.range?.minimum ?? 0 : Number(form.minHeight)
       const rangeMaximum = form.maxHeight === '' ? elevation.range?.maximum ?? 200 : Number(form.maxHeight)
@@ -618,6 +689,27 @@ const h = React.createElement
         )
       }
 
+      // One chip per preset; primary and advanced sections share the same behaviour
+      // (toggle inside the ordered stack, order badge).
+      const presetChip = (preset) => {
+        const selected = selectedPresets.includes(preset)
+        const order = selected ? selectedPresets.indexOf(preset) + 1 : 0
+        return h(
+          'button',
+          {
+            key: preset,
+            type: 'button',
+            className: `preset${selected ? ' on' : ''}`,
+            title: t(`shader.preset.${preset}`),
+            'aria-pressed': selected,
+            onClick: () => onPreset(preset),
+          },
+          h('span', { className: 'thumb' }, thumb(preset)),
+          h('span', { className: 'preset-name' }, t(`shader.preset.${preset}`)),
+          order > 0 ? h('span', { className: 'order-badge', 'aria-hidden': true }, `${order}`) : null,
+        )
+      }
+
       const orderList =
         selectedPresets.length > 1
           ? h(
@@ -647,7 +739,7 @@ const h = React.createElement
 
       return h(
         'div',
-        { className: 'mv-card mv-shader', role: 'region', 'aria-label': t('shader.title') },
+        { className: 'mv-card mv-shader', ref: resize.ref, style: resize.style, role: 'region', 'aria-label': t('shader.title') },
         h(
           'header',
           null,
@@ -686,6 +778,7 @@ const h = React.createElement
                   ? t('shader.targetAuto', { name: targetName })
                   : t('shader.targetFixed', { name: targetName }),
             ),
+            h('p', { className: 'hint target-hint' }, t('shader.targetHint')),
           ),
           h(
             'div',
@@ -693,27 +786,11 @@ const h = React.createElement
             h('label', null, t('shader.presetLabel')),
             h(
               'div',
-              { className: 'presets' },
-              ...SHADER_PRESETS.map((preset) => {
-                const selected = selectedPresets.includes(preset)
-                const order = selected ? selectedPresets.indexOf(preset) + 1 : 0
-                return h(
-                  'button',
-                  {
-                    key: preset,
-                    type: 'button',
-                    className: `preset${selected ? ' on' : ''}`,
-                    title: t(`shader.preset.${preset}`),
-                    'aria-pressed': selected,
-                    onClick: () => onPreset(preset),
-                  },
-                  h('span', { className: 'thumb' }, thumb(preset)),
-                  h('span', { className: 'preset-name' }, t(`shader.preset.${preset}`)),
-                  order > 0 ? h('span', { className: 'order-badge', 'aria-hidden': true }, `${order}`) : null,
-                )
-              }),
+              { className: 'presets primary' },
+              ...SHADER_PRIMARY_PRESETS.map((preset) => presetChip(preset)),
             ),
             h('p', { className: 'hint' }, t('shader.stackHint')),
+            h('p', { className: 'hint single-hint' }, t('shader.singleHint')),
           ),
           orderList,
           selectedPresets.includes('height-false-color') ? h(ElevationLegend, { range: elevation.range, minimum: rangeMinimum, maximum: rangeMaximum, t, busy: elevation.busy, onFit: fitRange }) : null,
@@ -773,6 +850,14 @@ const h = React.createElement
           ),
           visibleLayers.length === 0 ? h('p', { className: 'hint' }, t('shader.noLayers')) : null,
         ),
+        h(ResizeHandle, {
+          axis: 'corner',
+          edge: 'corner',
+          label: t('resize.size'),
+          value: resize.size.width,
+          onPointerDown: resize.beginCorner,
+          onKeyDown: resize.keyWidth,
+        }),
       )
     }
     //#endregion shader workbench

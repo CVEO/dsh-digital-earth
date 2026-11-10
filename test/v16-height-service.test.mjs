@@ -46,7 +46,7 @@ test('height service：source 枚举固定', () => {
   assert.equal(DEFAULT_SAMPLE_BUDGET >= 576, true, '默认预算必须覆盖 24×24 的淹没网格')
 })
 
-test('surface 模式：3D Tiles 优先（含 Promise），无 tiles 时回退地形，两者都无返回 null', async () => {
+test('tiles 模式：只读 3D Tiles（含 Promise），无 tiles 时返回 null，不回退地形', async () => {
   const tilesFirst = createHeightService({ Cesium, viewer: fakeViewer({ terrainHeight: 20 }), layer: tilesLayer(55) })
   assert.deepEqual(await tilesFirst.sample(carto()), { height: 55, source: 'tiles' })
   assert.equal(tilesFirst.hasRealTerrain(), true)
@@ -54,29 +54,31 @@ test('surface 模式：3D Tiles 优先（含 Promise），无 tiles 时回退地
   const asyncTiles = createHeightService({ Cesium, viewer: fakeViewer({ terrainHeight: 20 }), layer: tilesLayer(60, { thenable: true }) })
   assert.deepEqual(await asyncTiles.sample(carto(1, 2)), { height: 60, source: 'tiles' })
 
+  // v1.5.2: a tiles run must never silently borrow a terrain height.
   const terrainOnly = createHeightService({ Cesium, viewer: fakeViewer({ terrainHeight: 20 }), layer: null })
-  assert.deepEqual(await terrainOnly.sample(carto(3, 4)), { height: 20, source: 'terrain' })
+  assert.equal(await terrainOnly.sample(carto(3, 4)), null)
+  assert.ok(terrainOnly.report().warnings.includes('tiles_height_unavailable'))
 
   const nothing = createHeightService({ Cesium, viewer: fakeViewer({ realTerrain: false }), layer: null })
   assert.equal(await nothing.sample(carto(5, 6)), null)
   assert.equal(nothing.hasRealTerrain(), false)
 })
 
-test('surface 模式：隐藏图层与非 3D Tiles 图层不参与采样', async () => {
+test('tiles 模式：隐藏图层与非 3D Tiles 图层不参与采样，也不回退地形', async () => {
   const hidden = createHeightService({ Cesium, viewer: fakeViewer({ terrainHeight: 12 }), layer: tilesLayer(99, { visible: false }) })
-  assert.deepEqual(await hidden.sample(carto()), { height: 12, source: 'terrain' })
+  assert.equal(await hidden.sample(carto()), null)
 
   const noHeightApi = createHeightService({ Cesium, viewer: fakeViewer({ terrainHeight: 12 }), layer: { visible: true, tileset: {} } })
-  assert.deepEqual(await noHeightApi.sample(carto()), { height: 12, source: 'terrain' })
+  assert.equal(await noHeightApi.sample(carto()), null)
 })
 
-test('ground 模式：只用地形，即使有 3D Tiles 也不读屋顶；无地形时明确告警', async () => {
+test('terrain 模式：只用地形，即使有 3D Tiles 也不读屋顶；无地形时明确告警', async () => {
   const withTiles = createHeightService({ Cesium, viewer: fakeViewer({ terrainHeight: 8 }), layer: tilesLayer(120) })
-  assert.deepEqual(await withTiles.sample(carto(), { mode: 'ground' }), { height: 8, source: 'terrain' })
+  assert.deepEqual(await withTiles.sample(carto(), { mode: 'terrain' }), { height: 8, source: 'terrain' })
 
   const noTerrain = createHeightService({ Cesium, viewer: fakeViewer({ realTerrain: false }), layer: tilesLayer(120) })
-  assert.equal(await noTerrain.sample(carto(7, 8), { mode: 'ground' }), null)
-  assert.deepEqual(noTerrain.report().warnings, ['ground_height_unavailable'])
+  assert.equal(await noTerrain.sample(carto(7, 8), { mode: 'terrain' }), null)
+  assert.deepEqual(noTerrain.report().warnings, ['terrain_height_unavailable'])
 })
 
 test('sampleMany：按预算截断、返回顺序与输入一致、聚合来源与告警', async () => {
@@ -114,7 +116,7 @@ test('接线：profile/flood 走 HeightService，结果带 height_source/warning
   assert.match(client, /const sampler = createHeightService\(\{ Cesium, viewer, layer \}\)/)
   assert.match(client, /analyzeProfile\(Cesium, viewer, layer, args, sampler\)/)
   assert.match(client, /analyzeFlood\(Cesium, viewer, layer, args, sampler\)/)
-  assert.match(client, /const probe = carto \? await sampler\.sample\(carto\) : null/)
+  assert.match(client, /const probe = carto \? await sampler\.sample\(carto, \{ mode: heightMode \}\) : null/)
   // 旧结果字段仍在，provenance 是加法。
   for (const field of ['operation: ', 'length_m: ', 'points,', 'stats,']) assert.ok(client.includes(field), `profile 旧字段丢失：${field}`)
   assert.match(client, /\.\.\.sampler\.report\(\)/)

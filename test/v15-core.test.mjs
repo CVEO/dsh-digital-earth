@@ -95,7 +95,7 @@ test('v2 数据契约：宿主不再读取或改写 tileset_info.json 等厂商 
     assert.doesNotMatch(host, new RegExp(`\\b${removed}\\b`), `兼容层残留：${removed}`)
   }
   // /tiles must be a plain static file server again (no JSON rewrite stage).
-  assert.match(host, /await serveFile\(req, res, resolvedDir, relPath/)
+  assert.match(host, /await serveFile\(req, res, realDir, relPath/)
 })
 
 test('v2 数据契约：inspect 用 tileset_not_georeferenced 错误报告缺失的世界定位', () => {

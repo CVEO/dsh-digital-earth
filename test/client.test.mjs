@@ -95,10 +95,10 @@ test('report 工具行与商店描述覆盖新能力', () => {
   // 商店简介要提到 1.4–1.7 新增能力，避免 npm 页面信息过时。
   const zh = JSON.parse(readText('locale/zh.json'))
   const en = JSON.parse(readText('locale/en.json'))
-  for (const phrase of ['地形分析', '着色器', '/earth', '问 Agent', '报告']) {
+  for (const phrase of ['空间分析', '视觉特效', '/earth', '问 Agent', '报告']) {
     assert.ok(zh.meta.description.includes(phrase), `locale/zh.json 简介缺少：${phrase}`)
   }
-  for (const phrase of ['terrain', 'shader', '/earth', 'Ask Agent', 'report']) {
+  for (const phrase of ['spatial', 'visual effects', '/earth', 'Ask Agent', 'report']) {
     assert.ok(en.meta.description.toLowerCase().includes(phrase.toLowerCase()), `locale/en.json 简介缺少：${phrase}`)
   }
 })

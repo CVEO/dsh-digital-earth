@@ -148,6 +148,13 @@ test('cards：缩略图、目标行、顺序控件、滑杆、实时预览、对
   ]) {
     assert.ok(cards.includes(marker), `工作台缺少 ${marker}`)
   }
+  // 视觉特效产品化：只展示四个主效果，等高线入口不再出现在界面。
+  assert.match(cards, /SHADER_PRIMARY_PRESETS\.map\(\(preset\) => presetChip\(preset\)\)/)
+  assert.doesNotMatch(cards, /SHADER_ADVANCED_PRESETS/, '工作台不得再引用等高线分组')
+  assert.doesNotMatch(cards, /shader\.advanced/, '高级效果分组已移除')
+  assert.match(cards, /t\('shader\.targetHint'\)/)
+  assert.match(cards, /t\('shader\.singleHint'\)/)
+  assert.doesNotMatch(cards, /\.\.\.SHADER_PRESETS\.map/, '主网格不应再直接列出全部五个预设')
   // 关闭时通过 onClose 恢复原图对比，避免把图层留在原始外观。
   const viewer = readRepoFile('src/client/viewer/ViewerSurface.js')
   assert.match(viewer, /onClose: \(\) => \{\n\s+void workbench\.compare\(false\)/)

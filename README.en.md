@@ -1,145 +1,153 @@
 <div align="center">
 
-<img src="https://github.com/CVEO/dsh-digital-earth/raw/main/icon.svg" width="72" height="72" alt="Digital Earth icon">
+<img src="icon.svg" width="76" height="76" alt="Digital Earth icon">
 
-# Digital Earth
+# Digital Earth · 数字地球
 
-**3D Tiles and 3DGS in the DSH conversation workspace, readable and testable by the Agent.**
+**Digital Earth is a 3D scene plugin for DeepSeek Harness: it loads, browses, measures and analyses 3D Tiles / 3DGS data, and lets the Agent read and write the current scene.**
 
-[中文](README.md) · [English](README.en.md) · [Issues](https://github.com/CVEO/dsh-digital-earth/issues) · [Changelog](CHANGELOG.md)
+Built by the CVEO Research Group, Wuhan University — a 3D component for 3D cities, reality capture and multimodal Earth-observation data
 
-![version](https://img.shields.io/badge/version-1.5.1-4f8cff)
-![CI](https://github.com/CVEO/dsh-digital-earth/actions/workflows/ci.yml/badge.svg)
+[中文](README.md) · [English](README.en.md) · [Changelog](CHANGELOG.md) · [License](LICENSE)
+
+![version](https://img.shields.io/badge/version-1.5.2-4f8cff)
 ![license](https://img.shields.io/badge/license-MIT-2ea44f)
-![DSH plugin](https://img.shields.io/badge/DSH-plugin-0ea5e9)
-![platform](https://img.shields.io/badge/platform-Web-64748b)
+![DSH](https://img.shields.io/badge/DSH-plugin-0ea5e9)
+[![npm downloads](https://img.shields.io/npm/dm/@cveo/dsh-digital-earth?label=npm%20downloads&color=cb383f)](https://www.npmjs.com/package/@cveo/dsh-digital-earth)
+
+<img src="assets/readme/hero.jpg" alt="Digital Earth panel: the old town and cathedral of Clermont-Ferrand, France (public CRAIG 3D Tiles, dataset centre about 45.7944°N, 3.1676°E)" width="46%">
 
 </div>
 
-![Digital Earth panel: shader workbench, two layer tabs and compass](https://github.com/CVEO/dsh-digital-earth/raw/main/assets/readme/panel-overview.jpg)
+After opening Digital Earth in DSH, the 3D scene panel appears beside the conversation. Load local or online 3D Tiles / 3DGS data, then browse, measure and run spatial analysis while continuing the conversation; the Agent can also read and write the scene, add annotations, capture images and export reports.
 
-Digital Earth brings a CesiumJS 3D scene into the DeepSeek Harness (DSH) conversation workspace: browse 3D Tiles and 3DGS, and let the Agent read and drive the scene, annotate, measure, analyze terrain and apply shader presets. CesiumJS and the UI assets ship with the plugin — no external static assets and no Cesium ion token.
+The 3D engine and UI assets ship with the plugin, so no additional GIS server is required; local layers need not be uploaded, while online imagery and terrain use the selected sources. When you choose AI-assisted selection, the current image is sent to the configured model and saved as a host attachment.
 
-## Screenshots
+## Quick start
 
-**Annotate and measure**: draw an extent, measure a distance on the globe, or annotate from GeoJSON; coordinates, areas and results stay in the panel.
-
-![Annotate and measure](https://github.com/CVEO/dsh-digital-earth/raw/main/assets/readme/identify.jpg)
-
-**Profile**: in the 3D tab select "Draw profile", then choose the start and end points on the globe; the card reports relief, slope, cut/fill and the profile line.
-
-![Profile](https://github.com/CVEO/dsh-digital-earth/raw/main/assets/readme/analysis.jpg)
-
-**Shaders**: five white-listed presets per 3D Tiles layer, such as water and elevation; the workbench stacks 1–3 presets, tunes sliders and compares against the original look.
-
-![Shaders](https://github.com/CVEO/dsh-digital-earth/raw/main/assets/readme/shader.jpg)
-
-## Features
-
-- **Scene**: 3D Tiles 1.0 / 1.1 (b3dm, glb) and 3DGS (`KHR_gaussian_splatting`, SPZ included); multiple layers with show / hide, fly-to and remove.
-- **Data entry**: recursively scan a local folder for `tileset.json`, paste an `http(s)` URL, or use an absolute local path; paths outside the whitelist ask for one authorisation in the panel.
-- **Layer groups**: L1 terrain, L2 imagery, L3 raster overlays (WMS / XYZ / ArcGIS), L4 vector overlays; terrain, basemap and rasters remain reachable even without 3D Tiles.
-- **Measure and identify**: distance, area, height and 3D Tiles property picking; the identify card shows coordinates, surface elevation, a geometric height estimate and confidence, and exports an evidence pack.
-- **Terrain analysis**: profile, flood, sunlight, clip and skyline; one active analysis at a time, shown as a scene overlay plus an analysis card.
-- **Shader presets**: elevation ramp, contour, scan, water and water-depth; one shader per layer, with 1–3 presets stacked.
-- **Hand-off**: Clean snapshots (Manual and Agent snapshots keep only the 3D view by default), HTML / Markdown scene reports, evidence packs and per-session scene restore.
-- **Local data**: reads only folders opened in the panel or authorised once; it does not upload scenes, snapshots or annotations.
-- **Interface**: bilingual UI, light / dark themes, Collapsible panels; the layer card has Map / 3D tabs, the compass faces north on click, and the coordinate HUD samples at 5–6 Hz.
-- **Six built-in tools**: `earth_scene`, `earth_capture`, `earth_draw`, `earth_measure`, `earth_analyze`, `earth_shader`; every call gets a tool row in the conversation.
-
-## Install & quick start
-
-**Requirements**
-
-- DeepSeek Harness `>=0.2.1-rc.1 <0.3.0-0` (same range as `engines.dsh` in `package.json`).
-- A modern browser with WebGL / WebGL2; the panel is part of the DSH Web UI.
-- Online basemaps, terrain and tiles need to reach the selected public services; offline, use local tiles or turn the basemap off.
-- Node.js 22 or 24 is needed only for development and builds; there are no runtime dependencies.
-
-**Data requirement**: standard 3D Tiles 1.0 / 1.1 with a world placement on the root tile (`root.transform` or `root.boundingVolume.region`). OSGB conversions can add the root `transform` once with `scripts/georef-osgb.mjs`.
-
-**Install**
+Search for "Digital Earth" in the plugin market, or install from npm / a local tgz:
 
 ```bash
-# from the npm registry
+# npm
 dsh plugin --profile <profile> add @cveo/dsh-digital-earth
 
-# or from a local tarball (run in the repository root)
-dsh plugin --profile <profile> add ./cveo-dsh-digital-earth-1.5.1.tgz
+# local tarball
+dsh plugin --profile <profile> add ./cveo-dsh-digital-earth-1.5.2.tgz
 ```
 
-You can also search for "Digital Earth" in the plugin market. After installing or updating, **fully quit and reopen DSH**: client bundles are registered when the host starts, so reloading the page is not enough. The globe button then appears in the chat header and a Digital Earth entry appears in the sidebar.
+1. Quit DSH completely and start it again (the client bundle registers at startup; a page refresh is not enough).
+2. Click the "Digital Earth" card on the start page, or the globe button in the chat header, to open the Digital Earth tab on the right.
+3. Data ▾ → open a local folder that contains a `tileset.json`, or paste an online URL / enter coordinates to fly there.
 
-**Load your first dataset**
+After loading data, send the Agent a direct instruction:
 
-1. Select the globe button in the chat header, or have the Agent call an earth tool; the panel opens and waits for the connection.
-2. Use **Data ▾ → Open local folder…** and pick a folder containing `tileset.json`, or **Data ▾ → Load address or coordinates…** and paste an `http(s)` URL / absolute local path, or enter `lon,lat[,height]` to fly there.
-3. If the folder is outside the whitelist, the panel requests authorisation once; grant it to continue.
-4. Drag to explore, use Measure to take a distance, or ask the Agent: "run a data health check on the current layer".
+> Load the tileset.json in the folder I just opened, fly to the centre, measure the distance between two buildings, and take a snapshot.
 
-Quick check: open the globe, load one tileset, measure a distance and ask the Agent for a snapshot. Use standard 3D Tiles; example prompt: `Load D:\data\city\tileset.json, fly to the city centre and take a snapshot` (replace the path with your data path).
+When an unauthorised folder is accessed for the first time, the panel requests authorisation once; after approval the folder loads directly.
 
-## Using the panel
+## Core capabilities
 
-| Entry | What it does |
-| --- | --- |
-| Globe button | Opens the Digital Earth tab beside the conversation; the toolbar has the fullscreen entry (DOM Fullscreen, Esc exits) |
-| Data ▾ | Open a local folder, re-scan a recent one, load an address or coordinates, clear Agent annotations and measurements, export a scene report |
-| Measure ▾ | Distance / area / height / property picking; left click to add a point, double click to finish, Esc or "End" to leave |
-| Draw profile | In the 3D tab select "Draw profile", then choose the start and end points; the result opens in the analysis card |
-| Sun timeline | In the 3D tab enable it, then drag the date / time to watch day/night tone and terrain shadow changes |
-| Identify | Select an object to open the selection card with approach, height measurement and evidence export |
-| Layers | Two tabs: Map (terrain / imagery / raster) and 3D (vector / 3D content / spatial analysis / sun / view bookmarks) |
-| Shader | Opens the workbench: choose a 3D Tiles layer and a preset, tune parameters, apply / reset / compare with the original |
-| Ask Agent | Adds the current view and a concise scene summary to the current conversation context, then lets you type the question; it applies on the next step and does not start an idle conversation |
-| Settings | Data sources, appearance, render quality, Detailed HUD, snapshot annotation and an About tab |
+- **Scene browsing**: stack multiple 3D Tiles / 3DGS layers with visibility, fly-to and attribute identification; the layer card manages data only — the 3D tab holds terrain and 3D Tiles/3DGS, the Map tab holds imagery, raster and vector overlays; measure, profile, sun, analysis, visual effects and view bookmarks live in a separate Tools card. Collapsible panels and a compass that resets north keep the globe readable.
+- **Measurement and identification**: distance, area and height, plus drag-box ground selection that reports area/perimeter/boundary height and exports GeoJSON; the coordinate HUD samples at 5–6 Hz and the identify card reports surface height and an estimated geometric height.
+- **Spatial analysis**: 3D profile, flood, sunlight, clip and skyline — one active analysis at a time, drawn in the scene with the height source (3D Tiles surface or terrain) stated in the result.
+- **Deliverables**: Clean snapshots (Manual and Agent snapshots keep only the 3D view by default), HTML / Markdown scene reports, evidence packs and per-session scene restore; the snapshot folder keeps the last 50 files, suitable for reports, presentations and archives. Snapshots also report camera longitude/latitude, height, heading, pitch, time and visible layers, and write a JSON sidecar next to the image.
+- **Agent integration**: Six built-in tools (`earth_scene`, `earth_capture`, `earth_draw`, `earth_measure`, `earth_analyze`, `earth_shader`) let the conversation read and write the scene; visual effects are white-listed presets (no custom GLSL), applied per layer with an original-look comparison.
+- **Data access**: recursive local folder scan, an absolute local path and `http(s)` URLs; a local path is authorised once and never read outside the granted folders. The Map tab can also import a local GeoJSON or Shapefile (`.shp`, optionally with its `.dbf` table; up to 500 features / 20k coordinates), or you can drop the file straight onto the globe, as a vector overlay sharing the Agent overlay rendering and clear path.
 
-Local folders are remembered in `$DSH_HOME/digital-earth/directories.json`; the scene is saved per session — camera, layers, annotations / measurements, analysis results and shader presets survive switching sessions or restarting DSH. Snapshots keep only the 3D view by default, and the capture folder keeps the latest 50 images; reports and exports return their paths.
+## Interface and interaction
+
+All screenshots below are from real panel sessions. Sample data: the public Clermont-Ferrand 3D Tiles dataset (France), ready to load: <a href="https://3d.craig.fr/datasets/Clermont/3dtiles/tileset.json">3d.craig.fr/datasets/Clermont/3dtiles/tileset.json</a>. The dataset root region is centred at about **45.7944°N, 3.1676°E (WGS84)**, and every screenshot below falls inside that old town.
+
+<div align="center">
+
+<img src="assets/readme/measure.jpg" alt="Measuring the distance from the cathedral to Place de Jaude in Clermont-Ferrand (public CRAIG 3D Tiles, centre about 45.7944°N, 3.1676°E)" width="32%">
+<img src="assets/readme/shader.jpg" alt="Elevation-ramp visual effect over the old town (about 45.79°N, 3.17°E)" width="32%">
+<img src="assets/readme/sunlight.jpg" alt="Evening shadows over Clermont-Ferrand (local time zone Europe/Paris)" width="32%">
+
+<p align="center"><img src="assets/readme/tour.gif" alt="Orbiting the old town of Clermont-Ferrand" width="320"></p>
+
+</div>
+
+**Example conversation** (a real run; the tool calls below come from the same session):
+
+> **You**: Load the Clermont-Ferrand 3D Tiles, measure the distance from the cathedral to Place de Jaude, and take a snapshot.
+>
+> **Agent**: `earth_scene load` → `earth_measure distance` → `earth_capture`
+>
+> **Result**: 381.12 m; the snapshot is saved in the snapshot folder with camera metadata and a JSON sidecar, and the measurement stays on the globe.
+
+**Measure and annotate**: measure distance, area and height on the globe, or let the Agent draw points, lines and polygons from GeoJSON; results stay in the panel and can be captured at any time. **Clicking a scene object identifies it by default**: the card shows batch-table attributes (up to 8 when present), hit layer, coordinates, surface/geometric height and confidence — no tool mode to arm first. The card can also create a 15 m approximate AOI around the point (labelled as approximate, never as a building footprint).
+
+**Tools card**: the toolbar opens a separate card for measurement, profile, sunlight, visual effects and view bookmarks. Finishing a point, lasso, box or object selection expands a question composer. Enter a question or choose a suggested question, then select “Send to current conversation”. Selection details and an optional saved view accompany the question; the reply appears in chat, queued if the Agent is busy. Valid surface regions also offer approximate area/perimeter, GeoJSON export and existing analyses. Object marquee selects existing annotations for batch deletion or export. AI-assisted selection uses the separate direct-vision workflow below. The original toolbar “Ask Agent” remains a context-only action followed by typing a question in chat.
+
+**Ask after selecting**: open Tools → Box select, drag a region and release. The question card saves that view with the selected area outlined in cyan; moving the camera afterward does not change it. Images are limited to 1024 pixels on the longest side and sent only when you press Send. The host admits them as native image attachments to the current conversation model, so the Agent need not read a snapshot file. A model without image support produces an explicit error; switch models or send coordinates without the image when geometry is available. If the host lacks direct prompt support, copy the question and selection into chat. Context injection is never presented as an active answer. When delivery is uncertain, check chat first; retrying retains the same request identity.
+
+Drag previews use screen coordinates; depth is sampled only on release. Surface picking is not building segmentation: roofs, walls and ground can fold the geographic boundary. Area estimates the horizontal projection. Missing depth or a self-intersecting ring preserves a screen selection for visual questions while disabling area and geometry export; select from above to retry. Flood analysis uses the selection's bounding rectangle, not an exact volume within an arbitrary polygon.
+
+**3D profile**: choose Draw profile in the 3D tab. The first click on the start point shows a draft line immediately; move the mouse to preview it, then click the end point. The chart sits at the top of the analysis card, which also states whether the run used the 3D Tiles surface or terrain. It profiles the 3D surface (buildings and vegetation included), not the bare terrain.
+
+**Visual effects**: elevation ramp, height scan, water ripples and flood analysis are the four primary effects, applied to one explicit target layer; the elevation ramp uses the sampled visible-surface range by default, ripples animate over time and nothing is left behind after reset or when a layer is hidden. Contours look jagged on 3D meshes, so they are removed from the UI (the tool whitelist still accepts the preset, so existing calls keep working).
+
+**Sun timeline**: enable it in the 3D tab and drag the date/time slider; the zone can be scene mean solar time (default, derived from the current scene/layer longitude with its UTC offset shown), browser local (IANA zone) or UTC. With the timeline on, sky and sun are visible, darkness after sunset is labelled as real day/night rather than a render fault, and closing the timeline restores the original lighting.
+
+## Data and accuracy
+
+- **3D Tiles**: standard 1.0 / 1.1 (b3dm, glb); the root tile must carry a world placement (`root.transform` or `root.boundingVolume.region`). If an OSGB-converted dataset lacks that transform, run the `georef-osgb` script once in the repository (the npm package does not include the script).
+- **3DGS**: `KHR_gaussian_splatting` (including SPZ compression). The panel reads content headers to tell mesh from 3DGS. Splats are great for browsing, identification and annotations, but they do not provide a sampleable surface height: 3D profile / flood / skyline need terrain or a mesh 3D Tiles layer.
+- **Basemaps and terrain**: built-in Esri imagery, ArcGIS terrain and other common services, or your own XYZ / ArcGIS / WMS sources; turn the basemap off when offline.
+- **Heights and areas**: heights come from the 3D surface or online terrain and are ellipsoidal; areas are a local planar approximation. One analysis uses exactly one height source (never mixed). For accuracy-critical work, use the results of your professional software and tell us the convention you need.
+- **Large datasets**: reality-capture models of hundreds of MB and tilesets with thousands of tiles load directly; the snapshot and report folders keep the most recent files automatically.
+
+Public sample data: <a href="https://3d.craig.fr/datasets/Clermont/3dtiles/tileset.json">Clermont-Ferrand 3D Tiles</a> (France, published by CRAIG, dataset centre about 45.7944°N, 3.1676°E) — paste the address into the panel to open it.
+
+## AI-assisted selection (direct vision)
+
+Click a scene target and choose “Outline this target with AI” on its card. Check the image preview, then choose “Use approximate selection”. The Tools card can export GeoJSON with approximation metadata or run existing analyses. Results approximate visible surfaces; area and analysis are indicative only. This is not a building footprint, precise segmentation or mesh extraction.
+
+The panel calls the global default DSH vision model once, outside the Agent tool loop, without installing SAM or another inference runtime. The model must declare image support, and the host must provide LLM, attachment and default-model services; missing capabilities produce explicit messages. Images are limited to a 1024-pixel longest edge, with an approximately 20-second server timeout and no automatic retries. Model-provider charges apply. Cancellation signals the model to stop; it does not undo incurred charges or saved attachments.
+
+The view stays fixed during recognition. Camera, layer, tile-detail or panel-size changes invalidate the result. Confirmation requires reliable 3D depth; if unavailable, explicitly switch to manual lasso. “Ask Agent” remains a separate action. After updating the local plugin, quit DSH completely and restart it to load the new host route.
 
 ## Agent tools
 
-Six tools are registered by the host with stable names and parameters. Tool results describe scene state and file paths; they do not replace the rendered frame. Analysis runs through `earth_analyze`; profile and sun are also available in the panel.
+Six tools are registered by the Host; their names and parameters are a stable contract, and the panel and the conversation share the same operations:
 
-| Tool | What it does |
+| Tool | Purpose |
 | --- | --- |
-| `earth_scene` | Read and modify camera, layers, basemap, terrain and visibility; `load` / `remove` / `visible` / `fly` / `pick` / `inspect` / `report` |
-| `earth_capture` | Captures a snapshot and returns its absolute host path; optional JPEG / PNG, size and HUD |
-| `earth_draw` | Draws points, lines, polygons and labels from GeoJSON; clears earlier Agent overlays |
-| `earth_measure` | Measures geodesic distance, planar area or height difference; points use `[lon, lat]` or `[lon, lat, height]` |
-| `earth_analyze` | Terrain analysis: `profile` / `flood` / `sunlight` / `clip` / `skyline` / `clear` |
-| `earth_shader` | Applies, resets or lists white-listed shader presets |
+| `earth_scene` | Read or change camera, layers, basemap, terrain and visibility; `load` / `remove` / `visible` / `fly` / `reset` / `pick` / `inspect` / `report` |
+| `earth_capture` | Save a snapshot and return its host path plus camera metadata (lon/lat/height/heading/pitch/time/visible layers); a JSON sidecar is written next to the image; optional JPEG / PNG, size and HUD |
+| `earth_draw` | Draw points, lines, polygons and labels from GeoJSON; clear previous Agent overlays |
+| `earth_measure` | Measure geodesic distance, polygon area and height difference, with values and labels |
+| `earth_analyze` | Spatial analysis: `profile` (3D profile) / `flood` / `sunlight` / `clip` / `skyline` / `clear`; one height source (3D surface or terrain) per run |
+| `earth_shader` | Apply / reset / list white-listed visual-effect presets; 1–3 presets can be composed |
 
-**Example prompts**
+Besides the tools, `/earth` commands in the conversation can read status, capture, write a report or clear annotations.
 
-> Load `D:\data\city\tileset.json`, switch to satellite imagery, fly to the scene centre and take a snapshot.
+## Citation and papers
 
-> Run a data health check on the current layer and list the content-integrity results; then measure the height difference from the view centre to a point 300 m north-east.
+Digital Earth is part of the CVEO Research Group's long-term research. If it helps your research, teaching or project, a citation is welcome — these two papers are the most relevant to 3D city modelling and reconstruction:
 
-**`/earth` commands**
+[1] CHENG J X, HUANG X R, CHEN G Z, et al. FACTS: training-free zero-shot diffusion framework for facade texture restoration in 3D urban models[J]. Advanced Engineering Informatics, 2026, 71: 104385. DOI: 10.1016/j.aei.2026.104385.
 
-- `/earth status`: camera, layers, basemap / terrain and Agent overlay summary.
-- `/earth capture [label]`: capture a snapshot and return its absolute host path.
-- `/earth report [html|markdown]`: export a scene report.
-- `/earth clear`: clear Agent-drawn annotations and measurements.
-- `/earth open`: guidance for opening the panel.
+[2] WANG J Q, CHEN G Z, ZHANG X D, et al. Utilizing geometric primitives for depicting planar building roof structure from high-resolution remote sensing imagery[J]. International Journal of Applied Earth Observation and Geoinformation, 2025, 141: 104630. DOI: 10.1016/j.jag.2025.104630.
 
-**Return convention**
+More publications: <a href="https://www.whu-cveo.com/research/">whu-cveo.com/research</a>.
 
-- Tool results include a `[code]` and a `next:` step.
-- A local path outside the whitelist returns `access_denied` or `access_timeout`; the user can authorise it again from the panel.
-- When elevation data is unavailable, the shader target is unsupported or the panel is hidden, the tool returns the relevant error code and next step.
+## Team and business collaboration
 
-## Contributing
+**Official channels**: npm (`@cveo/dsh-digital-earth`), the DSH plugin market (publisher CVEO) and the group website <a href="https://www.whu-cveo.com/">whu-cveo.com</a>. For questions, data-compatibility reports or feature requests, contact us through the group website.
 
-Issues and suggestions are welcome in the [issue tracker](https://github.com/CVEO/dsh-digital-earth/issues). Development, build, test and release steps are in [CONTRIBUTING.md](CONTRIBUTING.md); keep the six tools' names, parameters and action sets unchanged.
+The plugin is released under MIT and is free to use commercially. The group also offers team-oriented services:
 
-## License & credits
+- **Private deployment**: on-premises / private-cloud deployment, offline tiles and terrain, upgrades and maintenance.
+- **Team access control**: multi-user and role permissions, project and data isolation, audit logs, single sign-on.
+- **Multimodal Earth-observation intelligence**: perception, understanding and analysis for SAR, multispectral, hyperspectral and point-cloud data — not just 8-bit RGB. General-purpose LLMs usually only handle 8-bit RGB imagery; these data need dedicated pipelines and models, which is one of our long-term research directions.
+- **Jingwei Guanshu spatio-temporal agents**: industry collaborations, custom development and integration, training and technical support.
 
-Released under the MIT license; see [LICENSE](LICENSE) and [NOTICE](NOTICE) for third-party attribution.
+Contact: collaboration page <a href="https://www.whu-cveo.com/collaboration/">whu-cveo.com/collaboration</a> · WeChat official accounts "CVEO课题组" and "珞珈经纬".
 
-- CesiumJS 1.147, distributed under Apache-2.0 and self-hosted with the plugin.
-- DeepSeek Harness for the plugin runtime, command bridge and tool-call UI.
-- Sample data: a project-owned LOD18 photogrammetry scene; the 3DGS sample Svirnas Alyt comes from WilliamLiu's 3D-Tiles-RendererJS-3DGS-Plugin (Apache-2.0).
-- Imagery and terrain come from public ArcGIS services accessed at runtime and remain subject to their providers' terms.
+### License and credits
 
-Maintained by the **CVEO Research Group, Wuhan University** · <https://www.whu-cveo.com/>
+Released under MIT; see [LICENSE](LICENSE) for the full text and [THIRD-PARTY.md](THIRD-PARTY.md) / [NOTICE](NOTICE) for third-party components and data. The 3D engine CesiumJS is distributed under Apache-2.0 and self-hosted with the plugin; imagery and terrain use ArcGIS public services at runtime and remain the property of their providers; the loading animation uses the public-domain Natural Earth II data shipped with CesiumJS. The screenshots use the publicly released Clermont-Ferrand 3D Tiles dataset published by CRAIG.
+
+Maintained by the **CVEO Research Group, Wuhan University** · <a href="https://www.whu-cveo.com/">www.whu-cveo.com</a>

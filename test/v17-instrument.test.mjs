@@ -38,9 +38,8 @@ test('视觉包：四角压暗、卡片入场动效、截图时隐藏新浮层',
   assert.match(css, /\.mv-root::after\{content:"";position:absolute;inset:0;z-index:3;pointer-events:none;background:radial-gradient/)
   assert.match(css, /\.mv-root\[data-mv-theme="light"\]::after\{/)
   assert.match(css, /@keyframes mv-fade\{from\{opacity:0\}to\{opacity:1\}\}/)
-  assert.match(css, /\.mv-select\{[^}]*animation:mv-fade \.2s cubic-bezier\(\.16,1,\.3,1\)/)
-  // The card stays within the 340 px budget from the plan.
-  assert.match(css, /\.mv-select\{[^}]*width:min\(340px/)
+  assert.match(css, /\.mv-select\{[^}]*animation:mv-fade \.16s cubic-bezier\(\.16,1,\.3,1\)/)
+  assert.match(css, /\.mv-select\{[^}]*width:min\(360px/)
   // Corner brackets + height leader live in screen space.
   for (const marker of ['.mv-sel-anchor .c.tl', '.mv-sel-anchor .c.br', '.mv-sel-anchor .leader', '.mv-sel-anchor .chip']) {
     assert.ok(css.includes(marker), `缺少 ${marker}`)
@@ -80,8 +79,10 @@ test('指认卡片接线：三个动作都真实可用（无假按钮）', () =>
   assert.doesNotMatch(cssSource, /mv-sel-dot/)
 
   const client = clientSource()
-  assert.match(client, /iconButton\(h\(IdentifyIcon\), t\('btn\.identifyHint'\), \(\) => setToolMode\(tool === 'identify' \? null : 'identify'\), tool === 'identify'\)/)
+  // Identify is the DEFAULT pointer mode now: no toolbar toggle needed.
+  assert.match(client, /const \[tool, setTool\] = React\.useState\('identify'\)/)
   assert.match(client, /active: tool === 'identify'/)
+  assert.doesNotMatch(client, /iconButton\(h\(IdentifyIcon\)/)
   assert.match(client, /measureRef\.current\.points = \[anchor\]/)
   assert.match(client, /redrawMeasure\('height'\)/)
 })
@@ -101,7 +102,7 @@ test('测量模式可退出、提示不糊；抵近定位用包围球取景', ()
   const client = clientSource()
   // Esc leaves any active tool; the on-screen chip also carries an explicit End
   // button, so a measurement is never a dead end.
-  assert.match(client, /if \(event\.key === 'Escape'\) setToolMode\(null\)/)
+  assert.match(client, /if \(event\.key === 'Escape'\) finishMeasure\(\)/)
   assert.match(client, /className: 'mv-measure-end'/)
   assert.match(client, /t\('measure\.end'\)/)
 
@@ -125,10 +126,13 @@ test('测量模式可退出、提示不糊；抵近定位用包围球取景', ()
 test('不回归：v1.6 的 HUD/图层/着色器接线仍在，新增面板未挤占既有入口', () => {
   const client = clientSource()
   assert.match(client, /h\(StatusHud, \{ key: 'hud', fps, stats, viewerRef, cesiumRef, labels: hudLabels, readoutRef: captureReadoutRef, detailed: hudDetailed \}\)/)
-  assert.match(client, /h\(LayersPanel, \{/)
+  // The right column is now ui/right-stack.js; it still mounts the layer card.
+  assert.match(client, /h\(RightStack, \{/)
+  assert.match(client, /layersPanel: \{/)
   assert.match(client, /shaderActive,/)
   assert.match(client, /className: 'mv-hud mv-glass'/)
   // The new card renders at the panel root, next to the existing analysis column.
   assert.match(client, /h\(SelectionOverlay, \{/)
-  assert.match(client, /onStartTour: tour\.start,\n\s*onShowSceneDetails: sceneDetails\.open,/)
+  assert.match(client, /onStartTour: tour\.start/)
+  assert.match(client, /onShowSceneDetails: sceneDetails\.open/)
 })

@@ -1,6 +1,6 @@
 {
   "meta": {
     "title": "Digital Earth",
-    "description": "3D Tiles / 3DGS on a CesiumJS globe beside the chat; the Agent reads and drives the scene, annotates, measures, analyzes terrain, applies shader presets and exports HTML/Markdown reports, with /earth commands, Ask Agent, scene restore and a bilingual UI."
+    "description": "3D Tiles / 3DGS on a 3D globe beside the chat; the Agent reads and drives the scene, annotates, measures, runs spatial analyses, applies visual effects and exports HTML/Markdown reports, with /earth commands, Ask Agent, scene restore and a bilingual UI."
   }
 }

@@ -94,27 +94,29 @@ export function createHeightService({ Cesium, viewer, layer = null } = {}) {
   }
 
   /**
-   * Sample one position. Returns `{ height, source }` or null when nothing
-   * reliable exists. `mode: 'ground'` never reads the 3D Tiles surface.
+   * Sample one position. Returns `{ height, source }` or null when the chosen
+   * source has no value. v1.5.2 uses exactly one source per run:
+   *   - `tiles`   only `3D Tiles getHeight` (never falls back to terrain);
+   *   - `terrain` only the terrain provider (never reads roofs).
    */
-  async function sample(carto, { mode = 'surface' } = {}) {
+  async function sample(carto, { mode = 'tiles' } = {}) {
     if (!carto) return null
-    const key = cacheKey(carto, mode)
+    const heightMode = mode === 'terrain' ? 'terrain' : 'tiles'
+    const key = cacheKey(carto, heightMode)
     if (cache.has(key)) return cache.get(key)
 
     let result = null
-    if (mode === 'ground') {
+    if (heightMode === 'terrain') {
       const terrain = fromTerrain(carto)
       if (terrain !== null) result = { height: terrain, source: 'terrain' }
-      else warnings.add('ground_height_unavailable')
+      else warnings.add('terrain_height_unavailable')
     } else {
       const tiles = await fromTiles(carto)
       if (tiles !== null) {
         result = { height: tiles, source: 'tiles' }
         warnings.add('surface_height_from_tiles')
       } else {
-        const terrain = fromTerrain(carto)
-        if (terrain !== null) result = { height: terrain, source: 'terrain' }
+        warnings.add('tiles_height_unavailable')
       }
     }
     counts[result ? result.source : 'none'] += 1
@@ -125,9 +127,9 @@ export function createHeightService({ Cesium, viewer, layer = null } = {}) {
   /**
    * Sample many positions sequentially (Cesium tileset.getHeight is synchronous
    * but terrain pick can be async) with a hard budget. Returns the values in
-   * input order plus the run's dominant source and warnings.
+   * input order plus the run's single source and warnings.
    */
-  async function sampleMany(cartos, { mode = 'surface', budget = DEFAULT_SAMPLE_BUDGET } = {}) {
+  async function sampleMany(cartos, { mode = 'tiles', budget = DEFAULT_SAMPLE_BUDGET } = {}) {
     const list = Array.isArray(cartos) ? cartos : []
     const values = []
     for (let index = 0; index < list.length; index += 1) {

@@ -56,10 +56,10 @@ test('skyline：模型面文本含最大仰角与下一步', () => {
   assert.match(host, /skyline profile/)
 })
 
-test('engine：skyline 走 HeightService（有地形时 ground 模式），角度用 atan2，结果字段齐全', () => {
+test('engine：skyline 走 HeightService（显式 tiles/terrain 单源），角度用 atan2，结果字段齐全', () => {
   const engine = readRepoFile('src/client/analysis/engine.js')
   assert.match(engine, /const analyzeSkyline = async \(Cesium, viewer, layer, args, sampler\) => \{/)
-  assert.match(engine, /const heightMode = sampler\.hasRealTerrain\(\) \? 'ground' : 'surface'/)
+  assert.match(engine, /const heightMode = args\.source === 'terrain' \? 'terrain' : 'tiles'/)
   assert.match(engine, /const sampled = await sampler\.sampleMany\(probes, \{ mode: heightMode \}\)/)
   assert.match(engine, /Math\.atan2\(sample\.height - eyeHeight, distance\)/)
   // 1.7 m eye height keeps the profile person-sized.

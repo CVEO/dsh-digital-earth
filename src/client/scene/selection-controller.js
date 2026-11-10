@@ -74,7 +74,7 @@ export function createSelectionController({ getViewer, getCesium, getLayers, get
    * Resolves `{ card, anchor }`; rejects with `no_surface` / `not_ready` when the
    * pixel has no usable surface under it.
    */
-  async function identifyAt(position) {
+  async function identifyAt(position, { signal } = {}) {
     const viewer = getViewer()
     const Cesium = getCesium()
     if (!viewer || !Cesium) throw new Error('not_ready')
@@ -95,6 +95,7 @@ export function createSelectionController({ getViewer, getCesium, getLayers, get
     const heightService = createHeightService({ Cesium, viewer, layer })
     const samples = []
     for (const offset of selectionOffsets({ lon, lat })) {
+      if (signal?.aborted) throw new Error('cancelled')
       const probe = new Cesium.Cartographic(Cesium.Math.toRadians(offset.lon), Cesium.Math.toRadians(offset.lat))
       let sample = null
       try {
@@ -109,13 +110,14 @@ export function createSelectionController({ getViewer, getCesium, getLayers, get
         source: sample?.source ?? 'none',
       })
     }
+    if (signal?.aborted || getViewer() !== viewer || (layer && !(getLayers?.() ?? []).includes(layer))) throw new Error('cancelled')
     const card = buildSelectionCard({
       point: { lon, lat, surface_height_m: carto.height },
       layer,
       identity,
       samples,
     })
-    return { card, anchor }
+    return { card, anchor, isValid: () => getViewer() === viewer && (!layer || ((getLayers?.() ?? []).includes(layer) && layer.visible !== false)) }
   }
 
   /**
@@ -134,5 +136,5 @@ export function createSelectionController({ getViewer, getCesium, getLayers, get
     })
   }
 
-  return { identifyAt, exportEvidence, currentView, getViewer, getCesium }
+  return { identifyAt, exportEvidence, currentView, getViewer, getCesium, getLayers, getMeta }
 }
