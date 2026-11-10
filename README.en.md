@@ -4,7 +4,7 @@
 
 # Digital Earth · 数字地球
 
-**Browse, measure and analyse 3D Tiles and 3DGS inside a DSH conversation.**
+**Digital Earth is a 3D scene plugin for DeepSeek Harness: it loads, browses, measures and analyses 3D Tiles / 3DGS data, and lets the Agent read and write the current scene.**
 
 Built by the CVEO Research Group, Wuhan University — a 3D component for 3D cities, reality capture and multimodal Earth-observation data
 
@@ -18,15 +18,19 @@ Built by the CVEO Research Group, Wuhan University — a 3D component for 3D cit
 
 </div>
 
-Open DSH, click the globe button in the chat header, and a 3D globe opens on the right. Load local or online 3D Tiles / 3DGS data, then browse, measure and run terrain analysis while you keep chatting — or let the Agent read the scene, annotate, capture and write reports for you.
+After opening Digital Earth in DSH, the 3D scene panel appears beside the conversation. Load local or online 3D Tiles / 3DGS data, then browse, measure and run terrain analysis while continuing the conversation; the Agent can also read and write the scene, add annotations, capture images and export reports.
 
-The 3D engine and UI assets ship with the plugin: no GIS server, no 3D-engine learning curve, and your data stays on your machine.
+The 3D engine and UI assets ship with the plugin, so no additional GIS server is required; user data stays on the local machine, while online imagery and terrain are accessed through the selected sources.
 
 ## Quick start
 
+Search for "Digital Earth" in the plugin market, or install from npm / a local tgz:
+
 ```bash
-# Search "Digital Earth" in the plugin market, or install from npm / a tgz:
+# npm
 dsh plugin --profile <profile> add @cveo/dsh-digital-earth
+
+# local tarball
 dsh plugin --profile <profile> add ./cveo-dsh-digital-earth-1.5.1.tgz
 ```
 
@@ -34,24 +38,24 @@ dsh plugin --profile <profile> add ./cveo-dsh-digital-earth-1.5.1.tgz
 2. Click the globe button in the chat header to open the Digital Earth tab on the right.
 3. Data ▾ → open a local folder that contains a `tileset.json`, or paste an online URL / enter coordinates to fly there.
 
-Then just ask the Agent:
+After loading data, send the Agent a direct instruction:
 
 > Load the tileset.json in the folder I just opened, fly to the centre, measure the distance between two buildings, and take a snapshot.
 
-The first time you open a new folder the panel asks for permission once; after that the same folder loads directly.
+When an unauthorised folder is accessed for the first time, the panel requests authorisation once; after approval the folder loads directly.
 
-## What it does
+## Core capabilities
 
-- **See**: stack multiple 3D Tiles / 3DGS layers, toggle visibility, frame them, identify attributes; the layer list has Map / 3D tabs, Collapsible panels, and a compass that resets north.
-- **Measure**: distance, area and height difference, each with on-globe labels; the coordinate HUD samples at 5–6 Hz and the identify card reports surface height and an estimated geometric height.
-- **Terrain analysis**: profile, flood, sunlight, clip and skyline — one active analysis at a time, drawn in the scene, with the height source (3D surface or terrain) stated in the result.
-- **Deliver**: Clean snapshots (Manual and Agent snapshots keep only the 3D view by default), HTML / Markdown scene reports, evidence packs and per-session scene restore; the snapshot folder keeps the last 50 files, ready for slides and archives.
-- **Hand it to the Agent**: Six built-in tools (`earth_scene`, `earth_capture`, `earth_draw`, `earth_measure`, `earth_analyze`, `earth_shader`) let the conversation read and write the scene; Shader presets are white-listed, and 1–3 presets can be composed and compared with the original view.
-- **Data entry**: recursive local folder scan, absolute local path, and `http(s)` URLs; a local path is authorised once and never read outside the granted folders.
+- **Scene browsing**: stack multiple 3D Tiles / 3DGS layers with visibility, fly-to and attribute identification; the layer list has Map / 3D tabs, Collapsible panels and a compass that resets north.
+- **Measurement and identification**: distance, area and height difference, with results and annotations kept in the panel; the coordinate HUD samples at 5–6 Hz and the identify card reports surface height and an estimated geometric height.
+- **Terrain analysis**: profile, flood, sunlight, clip and skyline — one active analysis at a time, drawn in the scene with the height source (3D surface or terrain) stated in the result.
+- **Deliverables**: Clean snapshots (Manual and Agent snapshots keep only the 3D view by default), HTML / Markdown scene reports, evidence packs and per-session scene restore; the snapshot folder keeps the last 50 files, suitable for reports, presentations and archives.
+- **Agent integration**: Six built-in tools (`earth_scene`, `earth_capture`, `earth_draw`, `earth_measure`, `earth_analyze`, `earth_shader`) let the conversation read and write the scene; Shader presets are white-listed, with 1–3 presets composed and compared against the original view.
+- **Data access**: recursive local folder scan, absolute local path and `http(s)` URLs; a local path is authorised once and never read outside the granted folders.
 
-## Interface and conversation
+## Interface and interaction
 
-All images below are real screenshots. Sample data: PLATEAU 2025 Chiyoda building LOD2, Japan (MLIT, CC BY 4.0).
+All screenshots below are from real panel sessions. Sample data: PLATEAU 2025 Chiyoda building LOD2, Japan (MLIT, CC BY 4.0).
 
 <div align="center">
 
