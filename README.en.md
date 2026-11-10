@@ -1,145 +1,134 @@
 <div align="center">
 
-<img src="https://github.com/CVEO/dsh-digital-earth/raw/main/icon.svg" width="72" height="72" alt="Digital Earth icon">
+<img src="https://cdn.jsdelivr.net/npm/@cveo/dsh-digital-earth@1.5.1/icon.svg" width="76" height="76" alt="Digital Earth icon">
 
 # Digital Earth
 
-**3D Tiles and 3DGS in the DSH conversation workspace, readable and testable by the Agent.**
+**Browse, measure and analyze 3D Tiles and 3DGS right inside the DSH chat.**
 
-[中文](README.md) · [English](README.en.md) · [Issues](https://github.com/CVEO/dsh-digital-earth/issues) · [Changelog](CHANGELOG.md)
+By the CVEO Research Group, Wuhan University · the 3D component of the Jingwei Guanshu spatio-temporal agent family
+
+[中文](README.md) · [English](README.en.md) · [Changelog](CHANGELOG.md) · [License](LICENSE)
 
 ![version](https://img.shields.io/badge/version-1.5.1-4f8cff)
-![CI](https://github.com/CVEO/dsh-digital-earth/actions/workflows/ci.yml/badge.svg)
 ![license](https://img.shields.io/badge/license-MIT-2ea44f)
-![DSH plugin](https://img.shields.io/badge/DSH-plugin-0ea5e9)
-![platform](https://img.shields.io/badge/platform-Web-64748b)
+![DSH](https://img.shields.io/badge/DSH-plugin-0ea5e9)
+
+<img src="https://cdn.jsdelivr.net/npm/@cveo/dsh-digital-earth@1.5.1/preview.png" alt="Digital Earth: globe panel, layers and measurements beside the chat" width="100%">
 
 </div>
 
-![Digital Earth panel: shader workbench, two layer tabs and compass](https://github.com/CVEO/dsh-digital-earth/raw/main/assets/readme/panel-overview.jpg)
+Open DSH, click the globe button in the chat header, and a CesiumJS globe opens in the right sidebar. Load local or online 3D Tiles and 3DGS next to the conversation, browse, measure and analyze, or let the Agent read the scene, annotate, capture screenshots and write reports.
 
-Digital Earth brings a CesiumJS 3D scene into the DeepSeek Harness (DSH) conversation workspace: browse 3D Tiles and 3DGS, and let the Agent read and drive the scene, annotate, measure, analyze terrain and apply shader presets. CesiumJS and the UI assets ship with the plugin — no external static assets and no Cesium ion token.
+No GIS server, no Cesium ion token, no CesiumJS learning curve. CesiumJS and the UI assets ship with the plugin, so it works offline and your data stays on your machine.
 
-## Screenshots
-
-**Annotate and measure**: draw an extent, measure a distance on the globe, or annotate from GeoJSON; coordinates, areas and results stay in the panel.
-
-![Annotate and measure](https://github.com/CVEO/dsh-digital-earth/raw/main/assets/readme/identify.jpg)
-
-**Profile**: in the 3D tab select "Draw profile", then choose the start and end points on the globe; the card reports relief, slope, cut/fill and the profile line.
-
-![Profile](https://github.com/CVEO/dsh-digital-earth/raw/main/assets/readme/analysis.jpg)
-
-**Shaders**: five white-listed presets per 3D Tiles layer, such as water and elevation; the workbench stacks 1–3 presets, tunes sliders and compares against the original look.
-
-![Shaders](https://github.com/CVEO/dsh-digital-earth/raw/main/assets/readme/shader.jpg)
-
-## Features
-
-- **Scene**: 3D Tiles 1.0 / 1.1 (b3dm, glb) and 3DGS (`KHR_gaussian_splatting`, SPZ included); multiple layers with show / hide, fly-to and remove.
-- **Data entry**: recursively scan a local folder for `tileset.json`, paste an `http(s)` URL, or use an absolute local path; paths outside the whitelist ask for one authorisation in the panel.
-- **Layer groups**: L1 terrain, L2 imagery, L3 raster overlays (WMS / XYZ / ArcGIS), L4 vector overlays; terrain, basemap and rasters remain reachable even without 3D Tiles.
-- **Measure and identify**: distance, area, height and 3D Tiles property picking; the identify card shows coordinates, surface elevation, a geometric height estimate and confidence, and exports an evidence pack.
-- **Terrain analysis**: profile, flood, sunlight, clip and skyline; one active analysis at a time, shown as a scene overlay plus an analysis card.
-- **Shader presets**: elevation ramp, contour, scan, water and water-depth; one shader per layer, with 1–3 presets stacked.
-- **Hand-off**: Clean snapshots (Manual and Agent snapshots keep only the 3D view by default), HTML / Markdown scene reports, evidence packs and per-session scene restore.
-- **Local data**: reads only folders opened in the panel or authorised once; it does not upload scenes, snapshots or annotations.
-- **Interface**: bilingual UI, light / dark themes, Collapsible panels; the layer card has Map / 3D tabs, the compass faces north on click, and the coordinate HUD samples at 5–6 Hz.
-- **Six built-in tools**: `earth_scene`, `earth_capture`, `earth_draw`, `earth_measure`, `earth_analyze`, `earth_shader`; every call gets a tool row in the conversation.
-
-## Install & quick start
-
-**Requirements**
-
-- DeepSeek Harness `>=0.2.1-rc.1 <0.3.0-0` (same range as `engines.dsh` in `package.json`).
-- A modern browser with WebGL / WebGL2; the panel is part of the DSH Web UI.
-- Online basemaps, terrain and tiles need to reach the selected public services; offline, use local tiles or turn the basemap off.
-- Node.js 22 or 24 is needed only for development and builds; there are no runtime dependencies.
-
-**Data requirement**: standard 3D Tiles 1.0 / 1.1 with a world placement on the root tile (`root.transform` or `root.boundingVolume.region`). OSGB conversions can add the root `transform` once with `scripts/georef-osgb.mjs`.
-
-**Install**
+## 30-second setup
 
 ```bash
-# from the npm registry
+# Search "Digital Earth" in the plugin market, or install from npm / a tgz:
 dsh plugin --profile <profile> add @cveo/dsh-digital-earth
-
-# or from a local tarball (run in the repository root)
 dsh plugin --profile <profile> add ./cveo-dsh-digital-earth-1.5.1.tgz
 ```
 
-You can also search for "Digital Earth" in the plugin market. After installing or updating, **fully quit and reopen DSH**: client bundles are registered when the host starts, so reloading the page is not enough. The globe button then appears in the chat header and a Digital Earth entry appears in the sidebar.
+1. Quit and reopen DSH completely (the client bundle is registered at startup; a page refresh is not enough).
+2. Click the globe button in the chat header to open the Digital Earth tab.
+3. Data ▾ → Open local folder and pick a folder containing `tileset.json`; or paste an online URL / enter lon,lat to fly there.
 
-**Load your first dataset**
+Then just tell the Agent:
 
-1. Select the globe button in the chat header, or have the Agent call an earth tool; the panel opens and waits for the connection.
-2. Use **Data ▾ → Open local folder…** and pick a folder containing `tileset.json`, or **Data ▾ → Load address or coordinates…** and paste an `http(s)` URL / absolute local path, or enter `lon,lat[,height]` to fly there.
-3. If the folder is outside the whitelist, the panel requests authorisation once; grant it to continue.
-4. Drag to explore, use Measure to take a distance, or ask the Agent: "run a data health check on the current layer".
+> Load the tileset.json from that folder, fly to its centre, switch to satellite imagery and take a screenshot.
 
-Quick check: open the globe, load one tileset, measure a distance and ask the Agent for a snapshot. Use standard 3D Tiles; example prompt: `Load D:\data\city\tileset.json, fly to the city centre and take a snapshot` (replace the path with your data path).
+The first time you open a new folder the panel asks for one confirmation; after that the folder loads directly.
 
-## Using the panel
+## What it does
 
-| Entry | What it does |
-| --- | --- |
-| Globe button | Opens the Digital Earth tab beside the conversation; the toolbar has the fullscreen entry (DOM Fullscreen, Esc exits) |
-| Data ▾ | Open a local folder, re-scan a recent one, load an address or coordinates, clear Agent annotations and measurements, export a scene report |
-| Measure ▾ | Distance / area / height / property picking; left click to add a point, double click to finish, Esc or "End" to leave |
-| Draw profile | In the 3D tab select "Draw profile", then choose the start and end points; the result opens in the analysis card |
-| Sun timeline | In the 3D tab enable it, then drag the date / time to watch day/night tone and terrain shadow changes |
-| Identify | Select an object to open the selection card with approach, height measurement and evidence export |
-| Layers | Two tabs: Map (terrain / imagery / raster) and 3D (vector / 3D content / spatial analysis / sun / view bookmarks) |
-| Shader | Opens the workbench: choose a 3D Tiles layer and a preset, tune parameters, apply / reset / compare with the original |
-| Ask Agent | Adds the current view and a concise scene summary to the current conversation context, then lets you type the question; it applies on the next step and does not start an idle conversation |
-| Settings | Data sources, appearance, render quality, Detailed HUD, snapshot annotation and an About tab |
+- **View** — stack multiple 3D Tiles / 3DGS layers, toggle, fly to and pick objects. Layers live in two tabs (map / 3D), with Collapsible panels, and a compass that resets north on click.
+- **Measure** — distance, area and height difference with on-globe results and labels; the cursor readout samples at about 5–6 Hz and the identify card reports surface height plus a geometric height estimate.
+- **Terrain analysis** — profile, flood, sunlight, clipping and skyline, one analysis at a time, drawn directly in the scene.
+- **Deliver** — Clean snapshots (Manual and Agent snapshots keep only the 3D view by default), HTML / Markdown scene reports, evidence packs and per-session scene restore; the capture folder keeps the latest 50 files, ready for documents, reviews and handover.
+- **Agent-ready** — Six built-in tools (`earth_scene`, `earth_capture`, `earth_draw`, `earth_measure`, `earth_analyze`, `earth_shader`) let the chat read and drive the scene. Shader presets are white-listed, support 1–3 stacked presets and a before/after comparison.
+- **Data entry** — Scan a local folder, use an absolute local path or an `http(s)` URL; local paths are authorised once and never read outside that folder.
 
-Local folders are remembered in `$DSH_HOME/digital-earth/directories.json`; the scene is saved per session — camera, layers, annotations / measurements, analysis results and shader presets survive switching sessions or restarting DSH. Snapshots keep only the 3D view by default, and the capture folder keeps the latest 50 images; reports and exports return their paths.
+## Screenshots
+
+<div align="center">
+
+<img src="https://cdn.jsdelivr.net/npm/@cveo/dsh-digital-earth@1.5.1/assets/readme/identify.jpg" alt="Annotations and measurement: distance, area and result labels" width="49%">
+<img src="https://cdn.jsdelivr.net/npm/@cveo/dsh-digital-earth@1.5.1/assets/readme/analysis.jpg" alt="Profile analysis: relief, slope and cut/fill" width="49%">
+
+<img src="https://cdn.jsdelivr.net/npm/@cveo/dsh-digital-earth@1.5.1/assets/readme/shader.jpg" alt="Shader workbench: stacked presets and parameter sliders" width="100%">
+
+</div>
+
+**Annotate and measure**: measure distance, area and height on the globe, or let the Agent draw GeoJSON points, lines and polygons; results stay in the panel and can be captured at any time.
+
+**Profile**: in the 3D tab choose "Draw profile" and pick the start and end points; the card reports relief, slope, cut/fill and the profile line.
+
+**Shaders**: five white-listed presets — elevation ramp, contour, scan, water and water depth — applied per layer, with stacking, sliders and an original-view comparison.
+
+## Data and accuracy
+
+- **3D Tiles**: standard 1.0 / 1.1 (b3dm, glb); the root tile must carry a world placement (`root.transform` or `root.boundingVolume.region`).
+- **3DGS**: `KHR_gaussian_splatting`, including SPZ compression. Splats are great for browsing, picking and overlays; they do not provide a sampleable surface height, so profile / flood / skyline should be used with terrain or mesh 3D Tiles.
+- **Imagery and terrain**: built-in Esri imagery, ArcGIS terrain and other common services; add your own XYZ / ArcGIS / WMS sources in Settings, or turn the basemap off when offline.
+- **Heights and areas**: panel heights come from the 3D Tiles surface or online terrain and Cesium uses ellipsoidal heights; areas are local planar approximations. For precision-critical work, trust your production GIS results and tell us which convention you need.
+- **Large data**: hundreds of MB of photogrammetry and thousands of tiles load directly; captures and reports keep only the most recent files.
 
 ## Agent tools
 
-Six tools are registered by the host with stable names and parameters. Tool results describe scene state and file paths; they do not replace the rendered frame. Analysis runs through `earth_analyze`; profile and sun are also available in the panel.
+Six tools are registered by the Host with stable names and parameters, shared by the panel and the chat:
 
 | Tool | What it does |
 | --- | --- |
-| `earth_scene` | Read and modify camera, layers, basemap, terrain and visibility; `load` / `remove` / `visible` / `fly` / `pick` / `inspect` / `report` |
-| `earth_capture` | Captures a snapshot and returns its absolute host path; optional JPEG / PNG, size and HUD |
-| `earth_draw` | Draws points, lines, polygons and labels from GeoJSON; clears earlier Agent overlays |
-| `earth_measure` | Measures geodesic distance, planar area or height difference; points use `[lon, lat]` or `[lon, lat, height]` |
+| `earth_scene` | Read or change camera, layers, imagery, terrain and visibility; `load` / `remove` / `visible` / `fly` / `reset` / `pick` / `inspect` / `report` |
+| `earth_capture` | Save a snapshot and return its absolute host path; JPEG / PNG, size and HUD options |
+| `earth_draw` | Draw GeoJSON points, lines, polygons and labels; clear earlier Agent overlays |
+| `earth_measure` | Geodesic distance, polygon area and height difference with on-globe labels |
 | `earth_analyze` | Terrain analysis: `profile` / `flood` / `sunlight` / `clip` / `skyline` / `clear` |
-| `earth_shader` | Applies, resets or lists white-listed shader presets |
+| `earth_shader` | Apply / reset / list white-listed shader presets; 1–3 presets can be stacked |
 
-**Example prompts**
+The `/earth` command in chat covers status, capture, report and clearing annotations.
 
-> Load `D:\data\city\tileset.json`, switch to satellite imagery, fly to the scene centre and take a snapshot.
+## Citation and papers
 
-> Run a data health check on the current layer and list the content-integrity results; then measure the height difference from the view centre to a point 300 m north-east.
+If Digital Earth helps your research, teaching or project, a citation is appreciated (not required, but it genuinely helps us):
 
-**`/earth` commands**
+> CVEO Research Group, Wuhan University. Digital Earth: a CesiumJS 3D globe plugin for DeepSeek Harness (v1.5.1) [CP/OL]. 2026.
 
-- `/earth status`: camera, layers, basemap / terrain and Agent overlay summary.
-- `/earth capture [label]`: capture a snapshot and return its absolute host path.
-- `/earth report [html|markdown]`: export a scene report.
-- `/earth clear`: clear Agent-drawn annotations and measurements.
-- `/earth open`: guidance for opening the panel.
+    @software{cveo_digital_earth_2026,
+      author  = {{CVEO Research Group, Wuhan University}},
+      title   = {Digital Earth: a CesiumJS 3D globe plugin for DeepSeek Harness},
+      year    = {2026},
+      version = {1.5.1},
+      url     = {https://www.whu-cveo.com/},
+      note    = {Jingwei Guanshu spatio-temporal agent product line}
+    }
 
-**Return convention**
+Recent papers from the group on 3D reconstruction, digital twins and spatio-temporal intelligence:
 
-- Tool results include a `[code]` and a `next:` step.
-- A local path outside the whitelist returns `access_denied` or `access_timeout`; the user can authorise it again from the panel.
-- When elevation data is unavailable, the shader target is unsupported or the panel is hidden, the tool returns the relevant error code and next step.
+- FACTS: Training-free zero-shot diffusion framework for facade texture restoration in 3D urban models — *Advanced Engineering Informatics*, 2026. <a href="https://doi.org/10.1016/j.aei.2026.104385">paper</a>
+- From Roof Structure to 3D Building Models: A RoofStructNet-Based Framework for Roof Extraction Towards Multi-Level 3D Reconstruction — *Expert Systems with Applications*, 2026. <a href="https://www.sciencedirect.com/science/article/pii/S0957417426023006">paper</a>
+- TriGeoNet: A Triple-Feature-Split network with geometry-statistics co-optimization for high-accuracy satellite stereo matching — *International Journal of Applied Earth Observation and Geoinformation*, 2026. <a href="https://doi.org/10.1016/j.jag.2026.105232">paper</a>
+- RoofMapNet: Utilizing geometric primitives for depicting planar building roof structure from high-resolution remote sensing imagery — *International Journal of Applied Earth Observation and Geoinformation*, 2025. <a href="https://doi.org/10.1016/j.jag.2025.104630">paper</a>
+- STARS: Shared-specific Translation and Alignment for missing-modality Remote Sensing Semantic Segmentation — *International Journal of Applied Earth Observation and Geoinformation*, 2026. <a href="https://www.sciencedirect.com/science/article/pii/S1569843226002943">paper</a>
+- MSSDF: Modality-shared self-supervised distillation for high-resolution multi-modal remote sensing image learning — *Information Fusion*, 2026. <a href="https://doi.org/10.1016/j.inffus.2025.104006">paper</a>
 
-## Contributing
+The full publication list is on the group website: <a href="https://www.whu-cveo.com/research/">whu-cveo.com/research</a>.
 
-Issues and suggestions are welcome in the [issue tracker](https://github.com/CVEO/dsh-digital-earth/issues). Development, build, test and release steps are in [CONTRIBUTING.md](CONTRIBUTING.md); keep the six tools' names, parameters and action sets unchanged.
+## Team and commercial services
 
-## License & credits
+**Official releases**: npm (`@cveo/dsh-digital-earth`), the DSH plugin market (publisher CVEO) and the group website <a href="https://www.whu-cveo.com/">whu-cveo.com</a>. The source repository is in private development and will be opened later; please verify the publisher when installing from anywhere else.
 
-Released under the MIT license; see [LICENSE](LICENSE) and [NOTICE](NOTICE) for third-party attribution.
+The plugin itself is free under the MIT license. The group also offers services for teams:
 
-- CesiumJS 1.147, distributed under Apache-2.0 and self-hosted with the plugin.
-- DeepSeek Harness for the plugin runtime, command bridge and tool-call UI.
-- Sample data: a project-owned LOD18 photogrammetry scene; the 3DGS sample Svirnas Alyt comes from WilliamLiu's 3D-Tiles-RendererJS-3DGS-Plugin (Apache-2.0).
-- Imagery and terrain come from public ArcGIS services accessed at runtime and remain subject to their providers' terms.
+- **Private deployment** — intranet / private cloud, offline tiles and terrain, upgrades and maintenance.
+- **Team access control** — users and roles, project and data isolation, audit logs, single sign-on.
+- **Jingwei Guanshu spatio-temporal agent** — industry collaboration, custom development and integration, training and support.
 
-Maintained by the **CVEO Research Group, Wuhan University** · <https://www.whu-cveo.com/>
+Contact: collaboration page <a href="https://www.whu-cveo.com/collaboration/">whu-cveo.com/collaboration</a> · zxdlmars@whu.edu.cn · WeChat: CVEO课题组, 珞珈经纬.
+
+### License and credits
+
+Released under the MIT license; see [LICENSE](LICENSE) and [NOTICE](NOTICE). CesiumJS is distributed under Apache-2.0 and shipped with the plugin; imagery and terrain are streamed from public ArcGIS services at runtime and remain subject to their providers' terms; the loading globe uses the public-domain Natural Earth II data bundled with CesiumJS.
+
+Maintained by the **CVEO Research Group, Wuhan University** · <a href="https://www.whu-cveo.com/">www.whu-cveo.com</a>
