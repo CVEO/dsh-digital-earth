@@ -76,6 +76,13 @@ export function createCommandBridge(deps) {
             },
             session,
           )
+          const status = await collectSceneStatus()
+          // P0 4.1: capture provenance is additive — the panel computed it at
+          // capture time and the Host validated/stored it beside the image. `view`
+          // stays for older readers, and every value is null when unknown.
+          const metadata = saved.metadata !== null && typeof saved.metadata === 'object' && !Array.isArray(saved.metadata) ? saved.metadata : null
+          const metadataCamera = metadata?.camera !== null && typeof metadata?.camera === 'object' && !Array.isArray(metadata.camera) ? metadata.camera : null
+          const metadataCenter = metadata?.center !== null && typeof metadata?.center === 'object' && !Array.isArray(metadata.center) ? metadata.center : null
           return {
             path: saved.path,
             url: redactUrl(saved.url),
@@ -84,7 +91,12 @@ export function createCommandBridge(deps) {
             bytes: saved.bytes,
             hud_hidden: saved.hud !== true,
             layers_visible: layersRef.current.filter((layer) => layer.visible).length,
-            view: (await collectSceneStatus()).view,
+            view: status.view,
+            captured_at: typeof metadata?.captured_at === 'string' ? metadata.captured_at : null,
+            camera: metadataCamera ?? status.view,
+            center: metadataCenter,
+            layers: Array.isArray(metadata?.layers) ? metadata.layers : [],
+            metadata_path: typeof saved.metadata_path === 'string' ? saved.metadata_path : null,
           }
         }
         // B2 analysis bridge: profile / flood / sunlight / clear (Host tool

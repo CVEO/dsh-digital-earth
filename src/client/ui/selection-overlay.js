@@ -52,7 +52,7 @@ function numberText(value, suffix = ' m', digits = 0) {
   return `${rounded}${suffix}`
 }
 
-export function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t, showToast, onMeasure }) {
+export function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t, showToast, onMeasure, onSelectArea }) {
   const [card, setCard] = React.useState(null)
   const [busy, setBusy] = React.useState(false)
   const [errorLine, setErrorLine] = React.useState('')
@@ -73,8 +73,15 @@ export function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t
         setCard(result?.card ?? null)
       } catch (error) {
         const reason = error instanceof Error ? error.message : String(error)
-        setErrorLine(reason === 'no_surface' ? t('selection.noSurface') : reason === 'not_ready' ? t('selection.notReady') : t('selection.failed'))
-        setCard(null)
+        // A click on the sky is a normal miss, not an error: stay quiet and let the
+        // user pick again (identify is the default pointer mode now).
+        if (reason === 'no_surface') {
+          setErrorLine('')
+          setCard(null)
+        } else {
+          setErrorLine(reason === 'not_ready' ? t('selection.notReady') : t('selection.failed'))
+          setCard(null)
+        }
       } finally {
         setBusy(false)
       }
@@ -193,6 +200,15 @@ export function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t
     }
   }
 
+  // Turn the picked point into an honest approximate AOI in the Tools card; it is
+  // deliberately NOT called a building footprint (pick data cannot supply that).
+  const selectAround = () => {
+    if (!card || typeof onSelectArea !== 'function') return
+    onSelectArea(card)
+    setCard(null)
+    anchorRef.current = null
+  }
+
   if (!active) return null
 
   const surface = factOf(card, 'surface_height')
@@ -204,6 +220,9 @@ export function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t
   }
   const limitations = Array.isArray(card?.limitations) ? card.limitations : []
   const radii = card?.sampling?.radii_m ?? [30, 60, 120]
+  // Batch-table attributes are the real answer to "what is this object"; show a
+  // bounded list (8) so a wide table cannot turn the card into a spreadsheet.
+  const properties = Array.isArray(card?.identity?.properties) ? card.identity.properties.slice(0, 8) : []
   // The card stays quiet: only the one caveat a user must not miss stays visible,
   // and it is a single small line. The full unknowns/limitations still travel in
   // the exported evidence JSON.
@@ -289,6 +308,21 @@ export function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t
                 )
               : null,
           ),
+          properties.length > 0
+            ? h(
+                'div',
+                { className: 'props' },
+                h('span', { className: 'props-title' }, t('selection.properties')),
+                ...properties.map((property, index) =>
+                  h(
+                    'div',
+                    { key: `${property.name}-${index}`, className: 'prop' },
+                    h('span', { title: property.name }, property.name),
+                    h('b', { title: property.value }, property.value),
+                  ),
+                ),
+              )
+            : null,
           h(
             'p',
             { className: 'sampling', title: t('selection.samplingHint') },
@@ -306,10 +340,18 @@ export function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t
               exporting ? t('selection.exporting') : t('selection.takeAway'),
             ),
           ),
+          typeof onSelectArea === 'function'
+            ? h(
+                'div',
+                { className: 'actions secondary' },
+                h(
+                  'button',
+                  { type: 'button', className: 'mv-cta', title: t('selection.approximate'), onClick: selectAround },
+                  t('selection.areaAction'),
+                ),
+              )
+            : null,
         )
-      : null,
-    active && !card && !busy && errorLine === ''
-      ? h('div', { className: 'mv-sel-hint mv-glass' }, t('selection.hint'))
       : null,
   )
 }

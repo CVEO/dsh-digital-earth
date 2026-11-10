@@ -76,7 +76,9 @@ export function createSceneStatus(deps) {
             globe_maximum_screen_space_error: viewer.scene.globe.maximumScreenSpaceError,
           },
           snapshot: { includeHud: config.settings.screenshotHud === true },
-          measureTool: toolRef.current,
+          // Identify is the default pointer mode, not a measuring tool: the Agent
+          // sees null unless the user explicitly armed distance/area/height/pick.
+          measureTool: toolRef.current === 'identify' ? null : toolRef.current,
           annotations: {
             drawn_features: agentOverlayRef.current.drawnFeatures,
             measured_points: agentOverlayRef.current.measuredCount,

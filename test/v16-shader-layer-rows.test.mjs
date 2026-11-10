@@ -74,17 +74,20 @@ test('wiring：层行点击可加载效果；resetLayerFor 仍可单层重置', 
 })
 
 test('图层行：有效果的层带 ✦ 标记、悬停摘要、点击整行载入工作台；无独立效果列表', () => {
-  const panel = readRepoFile('src/client/ui/layers-panel.js')
+  // Row markup moved to ui/layer-row.js; ui/layers-3d.js resolves the effect.
+  const panel = readRepoFile('src/client/ui/layer-row.js')
+  const layers3d = readRepoFile('src/client/ui/layers-3d.js')
   // 效果信息挂在 3D Tiles 图层行上，而不是单独分组。
-  assert.match(panel, /const shader =\n\s+\(shaderActive \?\? \[\]\)\.find\(/)
-  assert.match(panel, /entry\.layerId === layer\.id/)
+  assert.match(layers3d, /const shaderFor = \(layer\) =>/)
+  assert.match(layers3d, /entry\.layerId === layer\.id/)
   assert.match(panel, /className: `mv-layer\$\{layer\.visible \? '' : ' off'\}\$\{shader \? ' has-shader' : ''\}`/)
   assert.match(panel, /title: shader \? `\$\{layer\.name\} — \$\{summary\}` : layer\.name/)
-  assert.match(panel, /const openShader = \(\) => onEditLayerShader\(layer, shader\)/)
+  assert.match(panel, /const openShader = \(\) => onEditShader\(layer, shader\)/)
   assert.match(panel, /className: 'mv-icon-btn mv-shader-edit'/)
   assert.match(panel, /'✦'/)
   assert.match(panel, /stop\(event\)\n\s+onFlyLayer\(layer\.id\)/)
-  assert.doesNotMatch(panel, /layers\.shader'/, '不应再有独立的“着色器效果”分组')
+  const layersCard = readRepoFile('src/client/ui/layers-panel.js')
+  assert.doesNotMatch(layersCard, /layers\.shader'/, '图层卡不应有独立的“着色器效果”分组')
   assert.doesNotMatch(panel, /mv-shader-layer/, '不应再有独立的效果行样式')
 })
 

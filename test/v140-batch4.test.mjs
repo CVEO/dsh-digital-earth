@@ -148,7 +148,7 @@ test('B4 README 中文：版本徽章/安装示例、六工具与新增功能行
   assert.doesNotMatch(readmeZh, /1\.3\.0/)
   for (const name of TOOL_NAMES) assert.ok(readmeZh.includes(`\`${name}\``), `README.md 缺少工具 ${name}`)
   assert.equal((readmeZh.match(/^\| `earth_[a-z]+` \|/gm) ?? []).length, 6, 'README.md 工具表应为 6 行')
-  for (const phrase of ['内置六个工具', '地形分析', '着色器预设', '可折叠面板', '干净截图', '本机绝对路径', '约 5–6 Hz']) {
+  for (const phrase of ['内置六个工具', '空间分析', '视觉特效', '可折叠面板', '干净截图', '本机绝对路径', '约 5–6 Hz']) {
     assert.ok(readmeZh.includes(phrase), `README.md 缺少功能说明：${phrase}`)
   }
   assert.match(readmeZh, /白名单预设/)
@@ -161,7 +161,7 @@ test('B4 README 英文：版本徽章/安装示例、六工具与对应功能行
   for (const name of TOOL_NAMES) assert.ok(readmeEn.includes(`\`${name}\``), `README.en.md 缺少工具 ${name}`)
   assert.equal((readmeEn.match(/^\| `earth_[a-z]+` \|/gm) ?? []).length, 6, 'README.en.md 工具表应为 6 行')
   for (const phrase of [
-    'Six built-in tools', 'Terrain analysis', 'Shader presets', 'Collapsible panels',
+    'Six built-in tools', 'Spatial analysis', 'Visual effects', 'Collapsible panels',
     'Clean snapshots', 'absolute local path', '5–6 Hz',
   ]) {
     assert.ok(readmeEn.includes(phrase), `README.en.md 缺少功能说明：${phrase}`)

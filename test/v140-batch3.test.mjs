@@ -576,7 +576,10 @@ test('client 工作台：可见图层/五预设可叠加/按预设并集参数/�
   assert.match(card, /const visibleLayers = layers\.filter\(\(layer\) => layer\.visible\)/)
   assert.match(card, /t\('shader\.layerAuto'\)/)
   assert.match(card, /const selectedPresets = Array\.isArray\(form\.preset\) \? form\.preset : \[form\.preset\]/)
-  assert.match(card, /\.\.\.SHADER_PRESETS\.map\(/)
+  // 视觉特效：主网格四个日常效果，等高线入口已从界面移除（工具白名单保留）。
+  assert.match(card, /\.\.\.SHADER_PRIMARY_PRESETS\.map\(/)
+  assert.doesNotMatch(card, /SHADER_ADVANCED_PRESETS/)
+  assert.match(card, /t\('shader\.targetHint'\)/)
   assert.match(card, /t\(`shader\.preset\.\$\{preset\}`\)/)
   // v1.6 工作台 2.0：滑杆 + 缩略图 + 目标图层 + 顺序 + 实时预览 + 原图对比。
   for (const key of ['minHeight', 'maxHeight', 'interval', 'speed', 'amplitude', 'opacity', 'waterHeight', 'depthMax']) {
@@ -672,8 +675,8 @@ test('client 接线与 i18n：六 toolview 含 earth_shader、摘要键、shader
   ])
   assert.match(client, /earth_shader: 'tool\.action\.shader'/)
   assert.equal((client.match(/'tool\.action\.shader':/g) ?? []).length, 2)
-  assert.match(client, /'tool\.action\.shader': '着色器'/)
-  assert.match(client, /'tool\.action\.shader': 'Shader'/)
+  assert.match(client, /'tool\.action\.shader': '视觉特效'/)
+  assert.match(client, /'tool\.action\.shader': 'Visual effects'/)
 
   const zhStart = client.indexOf('\n      zh: {')
   const enStart = client.indexOf('\n      en: {', zhStart)
@@ -686,7 +689,7 @@ test('client 接线与 i18n：六 toolview 含 earth_shader、摘要键、shader
   assert.deepEqual(zhKeys, enKeys, '中英字典键集合/顺序必须完全一致')
 
   const shaderKeys = zhKeys.filter((key) => key.startsWith('shader.'))
-  assert.equal(shaderKeys.length, 44)
+  assert.equal(shaderKeys.length, 46)
   for (const key of [
     'shader.title',
     'shader.close',

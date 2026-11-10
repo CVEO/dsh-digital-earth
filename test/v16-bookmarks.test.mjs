@@ -107,14 +107,17 @@ test('flyToBookmark：把视角换算成弧度并调用相机；非法输入返�
   assert.equal(flyToBookmark(null, Cesium, view()), false)
 })
 
-test('接线：面板有收藏区，ViewerSurface 传入当前视角与飞行回调', () => {
-  const panel = readRepoFile('src/client/ui/layers-panel.js')
+test('接线：工具卡有收藏区，ViewerSurface 传入当前视角与飞行回调', () => {
+  // Bookmarks are a tool, not a layer: they moved to ui/tools-bookmarks.js during
+  // the data/tools split, and the tools card owns the group title.
+  const panel = readRepoFile('src/client/ui/tools-bookmarks.js')
   assert.match(panel, /loadBookmarks\(\)/)
   assert.match(panel, /addBookmark\(bookmarks, view, null\)/)
   assert.match(panel, /saveBookmarks\(result\.list\)/)
   assert.match(panel, /removeBookmark\(bookmarks, id\)/)
-  assert.match(panel, /t\('bookmarks\.title'\)/)
   assert.match(panel, /t\('bookmarks\.save'\)/)
+  const tools = readRepoFile('src/client/ui/tools-panel.js')
+  assert.match(tools, /t\('tools\.view'\)/)
 
   const client = clientSource()
   assert.match(client, /getCurrentView: \(\) => currentSceneSnapshot\(\)\?\.view \?\? null/)

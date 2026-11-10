@@ -80,6 +80,51 @@ export function buildAgentOverlayList(state) {
 }
 
 /**
+ * Overlay rows plus their Cesium entities (screen-space object marquee). The
+ * entityGroups WeakMap is kept inside this module's state; rows are throwaway.
+ */
+export function overlayRowsWithEntities(state) {
+  if (!state) return []
+  return buildAgentOverlayList(state).map((row) => {
+    const command = row.kind === 'draw' ? state.drawCommands[row.index] : state.measureCommands[row.index]
+    const entities = state.entityGroups?.get(command) ?? []
+    return { ...row, entities, geojson: row.kind === 'draw' ? command?.geojson ?? null : null }
+  })
+}
+
+/** Merge the GeoJSON of selected draw rows (measures carry no geometry). */
+export function mergeDrawGeoJSON(rows) {
+  const features = []
+  for (const row of Array.isArray(rows) ? rows : []) {
+    if (!row || row.kind !== 'draw' || !row.geojson) continue
+    if (row.geojson.type === 'FeatureCollection' && Array.isArray(row.geojson.features)) {
+      features.push(...row.geojson.features)
+    } else if (row.geojson.type === 'Feature') {
+      features.push(row.geojson)
+    } else if (typeof row.geojson.type === 'string') {
+      features.push({ type: 'Feature', properties: {}, geometry: row.geojson })
+    }
+  }
+  return features.length > 0 ? { type: 'FeatureCollection', features } : null
+}
+
+/** Remove several overlay rows at once (descending per kind keeps indexes valid). */
+export function removeAgentOverlayRows(state, viewer, rows) {
+  const list = Array.isArray(rows) ? rows : []
+  let removed = 0
+  for (const kind of ['draw', 'measure']) {
+    const indexes = list
+      .filter((row) => row && row.kind === kind && Number.isInteger(row.index))
+      .map((row) => row.index)
+      .sort((a, b) => b - a)
+    for (const index of indexes) {
+      if (removeAgentOverlay(state, viewer, kind, index)) removed += 1
+    }
+  }
+  return removed
+}
+
+/**
  * Remove one listed row: its entities, its command and its contribution to the
  * counters. Returns false when the row no longer exists.
  */

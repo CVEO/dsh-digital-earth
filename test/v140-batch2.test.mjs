@@ -24,7 +24,7 @@ import {
   normalizeAnalyzeRequest,
   SYSTEM_PROMPT_SECTION,
 } from '../index.js'
-import { clientSource, hostSource } from './helpers/source.mjs'
+import { clientSource, hostSource, readRepoFile } from './helpers/source.mjs'
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)))
 const readText = (name) => readFile(join(root, name), 'utf8').then((text) => text.replace(/\r\n/g, '\n'))
@@ -706,7 +706,7 @@ test('client 分析卡与布局：右上方浮动卡、SVG 剖面、折叠/关�
   assert.match(layout, /width:min\(300px,calc\(100% - 20px\)\)/)
   assert.match(layout, /max-height:calc\(100% - 150px\)/)
   assert.match(layout, /\.mv-analysis\{[^}]*max-width:300px/)
-  assert.match(layout, /max-height:min\(62%,380px\)/)
+  assert.match(layout, /max-height:min\(72%,460px\)/)
   assert.match(layout, /\.mv-analysis>header \.title\{[^}]*text-overflow:ellipsis/)
 
   // 窄宽（docked 420px 容器）不越界，且不与图层卡重叠。
@@ -719,9 +719,10 @@ test('client 分析卡与布局：右上方浮动卡、SVG 剖面、折叠/关�
   assert.match(client, /\.mv-root\.mv-capturing[^{]*\.mv-analysis/)
   assert.match(client, /\.mv-root\.mv-capturing[^{]*\.mv-right/)
 
-  // 面板把分析卡挂在右栈，关闭按钮走 clearAnalysis。
-  assert.match(client, /key: 'right', className: 'mv-right'/)
-  assert.match(client, /h\(AnalysisCard, \{ key: 'analysis', state: analysis, t, onClose: \(\) => clearAnalysis\(\) \}\)/)
+  // 面板把分析卡挂在右栈，关闭按钮走 clearAnalysis；右栈已抽成 ui/right-stack.js。
+  const stack = readRepoFile('src/client/ui/right-stack.js')
+  assert.match(stack, /className: 'mv-right'/)
+  assert.match(stack, /h\(AnalysisCard, \{ key: 'analysis', state: analysis, t, onClose: onCloseAnalysis \}\)/)
 })
 
 test('client i18n：analysis.* 49 个键中英对齐，关键文案都在', () => {
@@ -736,7 +737,7 @@ test('client i18n：analysis.* 49 个键中英对齐，关键文案都在', () =
   assert.deepEqual(zhKeys, enKeys, '中英字典键集合/顺序必须完全一致')
 
   const analysisKeys = zhKeys.filter((key) => key.startsWith('analysis.'))
-  assert.equal(analysisKeys.length, 49)
+  assert.equal(analysisKeys.length, 56)
   for (const key of [
     'analysis.title.profile',
     'analysis.title.flood',

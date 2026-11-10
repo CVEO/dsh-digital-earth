@@ -161,12 +161,16 @@ test('i18n：导览/指认文案中英齐全（含 caption 占位符）', () => 
   }
 })
 
-test('接线：媒体面板有播放按钮 + 说明输入，面板根渲染故事条并支持拖动接管', () => {
-  const panel = readRepoFile('src/client/ui/layers-panel.js')
+test('接线：工具卡有播放按钮 + 说明输入，面板根渲染故事条并支持拖动接管', () => {
+  // Bookmarks/tour are tools (data/tools split), so the editing UI lives in
+  // ui/tools-bookmarks.js and the group in ui/tools-panel.js.
+  const panel = readRepoFile('src/client/ui/tools-bookmarks.js')
   assert.match(panel, /onStartTour/)
   assert.match(panel, /t\('tour\.start'\)/)
   assert.match(panel, /className: 'mv-caption'/)
   assert.match(panel, /updateBookmarkCaption/)
+  const tools = readRepoFile('src/client/ui/tools-panel.js')
+  assert.match(tools, /t\('tools\.view'\)/)
 
   const bar = readRepoFile('src/client/ui/tour-bar.js')
   assert.match(bar, /document\.addEventListener\('pointerdown', onPointerDown, true\)/)

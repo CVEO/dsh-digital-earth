@@ -1,6 +1,6 @@
 {
   "meta": {
     "title": "数字地球",
-    "description": "在 CesiumJS 地球上叠加 3D Tiles / 3DGS 图层，与对话同屏；Agent 可读写场景、标注、量测、地形分析与着色器预设，支持 /earth 命令、问 Agent 场景注入与 HTML/Markdown 报告导出，内置数据体检、多期场景恢复与双语界面。"
+    "description": "在三维地球上叠加 3D Tiles / 3DGS 图层，与对话同屏；Agent 可读写场景、标注、量测、空间分析与视觉特效，支持 /earth 命令、问 Agent 场景注入与 HTML/Markdown 报告导出，内置数据体检、多期场景恢复与双语界面。"
   }
 }

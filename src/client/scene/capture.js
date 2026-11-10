@@ -10,8 +10,111 @@
  *
  * Dependencies are injected so this module holds no React state: viewer/root refs
  * arrive as getters, and chrome/HUD helpers plus the frame scheduler are passed in.
+ *
+ * v1.5.2 P0 4.1: an Agent capture also reports the camera pose and scene context
+ * it was taken from (lon/lat/height/heading/pitch, view centre, layers, imagery,
+ * terrain, plugin version) so the Host can store a provenance sidecar next to the
+ * image. Every number is read from Cesium and null when unavailable — never
+ * guessed.
  */
-export function createCaptureService({ getViewer, getRoot, getSettings, getMeta, getSession, t, showToast, setChromeHidden, nextFrames, revealPanel, drawCaptureOverlay, drawVectorLabels }) {
+import { pickSurfaceAt } from './pick-surface.js'
+
+const RAD_TO_DEG = 180 / Math.PI
+const roundCoordinate = (value) => Math.round(value * 1e6) / 1e6
+
+/** A finite number, or null: capture metadata must never invent a value. */
+const finiteNumber = (value) => (typeof value === 'number' && Number.isFinite(value) ? value : null)
+
+/** A drawable size (>= 2): `clientWidth` is 0 while a background tab is laid out. */
+const positiveNumber = (value) => {
+  const number = finiteNumber(value)
+  return number === null || number < 2 ? null : number
+}
+
+/** Camera pose at capture time (degrees, metres), or null before the viewer is ready. */
+function cameraMetadata(viewer) {
+  const camera = viewer?.camera
+  const carto = camera?.positionCartographic
+  if (!carto) return null
+  const lon = finiteNumber(carto.longitude)
+  const lat = finiteNumber(carto.latitude)
+  const height = finiteNumber(carto.height)
+  if (lon === null || lat === null || height === null) return null
+  const heading = finiteNumber(camera.heading)
+  const pitch = finiteNumber(camera.pitch)
+  return {
+    lon: roundCoordinate(lon * RAD_TO_DEG),
+    lat: roundCoordinate(lat * RAD_TO_DEG),
+    height: Math.round(height),
+    heading: heading === null ? null : Math.round(heading * RAD_TO_DEG),
+    pitch: pitch === null ? null : Math.round(pitch * RAD_TO_DEG),
+  }
+}
+
+/**
+ * The point under the middle of the canvas: the 3D surface first, the ellipsoid
+ * as the fallback. Null when the ray misses the globe (sky) or Cesium is absent.
+ */
+function centerMetadata(viewer, Cesium) {
+  if (!viewer || !Cesium || typeof Cesium.Cartesian2 !== 'function') return null
+  const canvas = viewer.canvas
+  if (!canvas || !viewer.camera || !viewer.scene) return null
+  const width = positiveNumber(canvas.clientWidth) ?? positiveNumber(canvas.width)
+  const height = positiveNumber(canvas.clientHeight) ?? positiveNumber(canvas.height)
+  if (width === null || height === null) return null
+  const position = new Cesium.Cartesian2(Math.round(width / 2), Math.round(height / 2))
+  let cartesian = null
+  try {
+    cartesian = pickSurfaceAt(viewer, position) ?? viewer.camera.pickEllipsoid(position, viewer.scene.globe?.ellipsoid) ?? null
+  } catch {
+    cartesian = null
+  }
+  if (!cartesian) return null
+  let carto = null
+  try {
+    if (typeof Cesium.Cartographic?.fromCartesian === 'function') {
+      carto = Cesium.Cartographic.fromCartesian(cartesian)
+    } else if (typeof viewer.scene.globe?.ellipsoid?.cartesianToCartographic === 'function') {
+      carto = viewer.scene.globe.ellipsoid.cartesianToCartographic(cartesian)
+    }
+  } catch {
+    carto = null
+  }
+  const lon = finiteNumber(carto?.longitude)
+  const lat = finiteNumber(carto?.latitude)
+  if (lon === null || lat === null) return null
+  const elevation = finiteNumber(carto.height)
+  return {
+    lon: roundCoordinate(lon * RAD_TO_DEG),
+    lat: roundCoordinate(lat * RAD_TO_DEG),
+    height: elevation === null ? null : Math.round(elevation),
+  }
+}
+
+/**
+ * Scene provenance for one capture. Shape is fixed and additive-only; the Host
+ * re-validates every field before it reaches disk or a tool result.
+ */
+function captureMetadata({ viewer, Cesium, meta, config, layers }) {
+  const imageryId = config?.settings?.imagery
+  const terrainId = config?.settings?.terrain
+  const imagery = Array.isArray(config?.imagery) ? config.imagery.find((item) => item?.id === imageryId) : null
+  const terrain = Array.isArray(config?.terrain) ? config.terrain.find((item) => item?.id === terrainId) : null
+  return {
+    captured_at: new Date().toISOString(),
+    camera: cameraMetadata(viewer),
+    center: centerMetadata(viewer, Cesium),
+    layers: (Array.isArray(layers) ? layers : [])
+      .filter((layer) => typeof layer?.name === 'string' && layer.name !== '')
+      .slice(0, 200)
+      .map((layer) => ({ name: layer.name, visible: layer.visible === true, kind: typeof layer.kind === 'string' ? layer.kind : null })),
+    imagery: typeof imagery?.name === 'string' ? imagery.name : null,
+    terrain: typeof terrain?.name === 'string' ? terrain.name : null,
+    plugin_version: typeof meta?.version === 'string' ? meta.version : null,
+  }
+}
+
+export function createCaptureService({ getViewer, getRoot, getSettings, getMeta, getSession, getCesium, getLayers, t, showToast, setChromeHidden, nextFrames, revealPanel, drawCaptureOverlay, drawVectorLabels }) {
   const MAX_CAPTURE_DATAURL = 7_500_000
 
   /** The panel is "hidden" when its tab is not laid out or the whole window is hidden. */
@@ -123,6 +226,13 @@ export function createCaptureService({ getViewer, getRoot, getSettings, getMeta,
     const meta = getMeta()
     if (!meta?.captureUrl) throw new Error(t('agent.notReady'))
     const shot = await renderSnapshot(options)
+    const metadata = captureMetadata({
+      viewer: getViewer(),
+      Cesium: typeof getCesium === 'function' ? getCesium() : null,
+      meta,
+      config: typeof getSettings === 'function' ? getSettings() : null,
+      layers: typeof getLayers === 'function' ? getLayers() : [],
+    })
     const response = await fetch(`${meta.captureUrl}?token=${encodeURIComponent(meta.token)}`, {
       method: 'POST',
       credentials: 'same-origin',
@@ -134,10 +244,14 @@ export function createCaptureService({ getViewer, getRoot, getSettings, getMeta,
         height: shot.height,
         hud: shot.includeHud,
         label: typeof options.label === 'string' ? options.label : '',
+        metadata,
       }),
     })
     if (!response.ok) throw new Error(`HTTP ${response.status}`)
     const saved = await response.json()
+    // The Host echoes the validated metadata back, so the caller reports exactly
+    // what the sidecar holds; an older Host has no echo and the page's copy stays.
+    const echoed = saved !== null && typeof saved === 'object' && saved.metadata !== null && typeof saved.metadata === 'object' && !Array.isArray(saved.metadata) ? saved.metadata : null
     showToast(
       t('toast.captureSaved', {
         width: saved.width,
@@ -145,7 +259,12 @@ export function createCaptureService({ getViewer, getRoot, getSettings, getMeta,
         path: saved.name ?? saved.path ?? '',
       }),
     )
-    return { ...saved, hud: shot.includeHud }
+    return {
+      ...saved,
+      hud: shot.includeHud,
+      metadata: echoed ?? metadata,
+      metadata_path: typeof saved.metadata_path === 'string' ? saved.metadata_path : null,
+    }
   }
 
   return { renderSnapshot, screenshot, captureScene }

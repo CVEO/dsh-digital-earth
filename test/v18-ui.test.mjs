@@ -6,7 +6,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 
 import { headingDegrees } from '../src/client/scene/heading.js'
-import { createSunTimeline, nightBrightness } from '../src/client/scene/sun-timeline.js'
+import { createSunTimeline, nightBrightness, SUN_NIGHT_MIN_BRIGHTNESS } from '../src/client/scene/sun-timeline.js'
 import { createProfileTool } from '../src/client/scene/profile-tool.js'
 import { readRepoFile } from './helpers/source.mjs'
 
@@ -19,14 +19,17 @@ test('指南针：heading 弧度到 0..360 度，非法值回 0', () => {
   assert.equal(headingDegrees(undefined), 0)
 })
 
-test('夜间滤镜：太阳高度决定压暗强度，白天为 0，夜间封顶', () => {
-  assert.equal(nightBrightness(30), 0)
-  assert.equal(nightBrightness(12), 0)
-  assert.ok(nightBrightness(0) < -0.2)
-  assert.ok(nightBrightness(0) > -0.38)
-  assert.equal(nightBrightness(-6), -0.38)
-  assert.equal(nightBrightness(-20), -0.38)
-  assert.equal(nightBrightness(Number.NaN), 0)
+test('夜间滤镜：太阳高度决定压暗强度，白天为 1，夜间有下限', () => {
+  assert.equal(nightBrightness(30), 1)
+  assert.equal(nightBrightness(12), 1)
+  // v1.5.2: Cesium's brightness stage is mix(black, color, factor), so the old
+  // negative value rendered a fully black frame at night; the factor stays > 0.
+  assert.equal(SUN_NIGHT_MIN_BRIGHTNESS, 0.5)
+  assert.ok(nightBrightness(0) < 1)
+  assert.ok(nightBrightness(0) > SUN_NIGHT_MIN_BRIGHTNESS)
+  assert.equal(nightBrightness(-6), SUN_NIGHT_MIN_BRIGHTNESS)
+  assert.equal(nightBrightness(-20), SUN_NIGHT_MIN_BRIGHTNESS)
+  assert.equal(nightBrightness(Number.NaN), 1)
 })
 
 test('日照：apply 写入时钟/光照/阴影，restore 恢复进入前状态', () => {
@@ -157,12 +160,28 @@ test('剖面卡：缩略图可展开大图，大图内继续导出', () => {
 test('两个 Tab + 指南针 + 日照/剖面接线都在源码里', () => {
   const layers = readRepoFile('src/client/ui/layers-panel.js')
   assert.match(layers, /className: 'mv-layer-tabs'/)
-  assert.match(layers, /key: 'list-map'/)
-  assert.match(layers, /key: 'list-3d'/)
+  // 3D 数据优先：三维 Tab 在前且默认打开，地图 Tab 在后。
+  assert.match(layers, /useState\('3d'\)/)
+  assert.ok(
+    layers.indexOf("t('layers.tab.3d')") < layers.indexOf("t('layers.tab.map')"),
+    '三维 Tab 必须排在 地图 Tab 前面',
+  )
   assert.match(layers, /t\('layers\.tab\.map'\)/)
   assert.match(layers, /t\('layers\.tab\.3d'\)/)
-  assert.match(layers, /t\('profile\.draw'\)/)
-  assert.match(layers, /h\(SunTimeline,/)
+  // Data tabs are separate modules; tools (profile/sun) live in the tools card.
+  assert.match(readRepoFile('src/client/ui/layers-map.js'), /key: 'list-map'/)
+  assert.match(readRepoFile('src/client/ui/layers-3d.js'), /key: 'list-3d'/)
+  const tools = readRepoFile('src/client/ui/tools-panel.js')
+  assert.match(tools, /t\('profile\.draw'\)/)
+  assert.match(tools, /h\(SunTimeline,/)
+  // IA guard: the layer card never grows tools back, the tools card never grows
+  // data-layer rows. This is what keeps the refactor from turning into a pile.
+  for (const forbidden of ['SunTimeline', 'loadBookmarks', 'profile.draw', 'tools.analysis']) {
+    assert.doesNotMatch(layers, new RegExp(forbidden.replaceAll('.', '\\.')), `图层卡不应包含工具：${forbidden}`)
+  }
+  for (const forbidden of ['Layers3D', 'LayersMap', 'LayerRow', 'onOverlayAdd']) {
+    assert.doesNotMatch(tools, new RegExp(forbidden.replaceAll('.', '\\.')), `工具卡不应包含数据图层：${forbidden}`)
+  }
 
   const messages = readRepoFile('src/client/messages-v18.js')
   for (const key of ['layers.tab.map', 'layers.tab.3d', 'compass.reset', 'profile.draw', 'sun.title', 'sun.hint']) {
@@ -173,8 +192,16 @@ test('两个 Tab + 指南针 + 日照/剖面接线都在源码里', () => {
   assert.match(surface, /h\(Compass,/)
   assert.match(surface, /createProfileTool/)
   assert.match(surface, /onProfilePoint/)
-  assert.match(surface, /RIGHT_CLICK/)
   assert.match(surface, /profileTool\.cancel/)
+  // Canvas input routing (click / double-click / right-click) lives in its own module.
+  const input = readRepoFile('src/client/scene/canvas-input.js')
+  assert.match(input, /RIGHT_CLICK/)
+  assert.match(input, /LEFT_DOUBLE_CLICK/)
+  assert.match(input, /isSelectionActive/)
+  const pluginSource = readRepoFile('src/client/plugin.js')
+  assert.match(pluginSource, /betterSidebar/)
+  assert.match(pluginSource, /registerTab/)
+  assert.match(pluginSource, /order: -1/)
   assert.match(readRepoFile('src/client/scene/pointer-tools.js'), /mode === 'profile'/)
   assert.match(readRepoFile('src/client/ui/compass.js'), /headingDegrees/)
   assert.match(readRepoFile('src/client/ui/compass.js'), /mv-compass-rose/)

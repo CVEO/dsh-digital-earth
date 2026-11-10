@@ -86,7 +86,9 @@ export function createPointerTools(deps) {
 
       function onCanvasClick(position) {
         const mode = toolRef.current
-        if ((!mode || mode === 'pick') && deps.onOverlayClick?.(position)) return
+        // Vector selections win over the default identify click, otherwise a user
+        // could never select an annotation again after identify became default.
+        if ((!mode || mode === 'pick' || mode === 'identify') && deps.onOverlayClick?.(position)) return
         if (mode === null) return
         // v1.7 P0 "指认": the overlay owns the read, this module only routes the
         // click so the measure loop below is untouched.

@@ -12,7 +12,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 
 import { combinedBoundingSphere, flyToCartographic, frameAllLayers } from '../src/client/scene/frame.js'
-import { clientSource, hostSource } from './helpers/source.mjs'
+import { clientSource, hostSource, readRepoFile } from './helpers/source.mjs'
 
 /** Tiny stand-in for the Cesium maths used by scene/frame.js. */
 const Cartesian3 = class Cartesian3 {
@@ -114,10 +114,13 @@ test('双击飞向光标：保持当前朝向与高度，只把目标点移到�
 test('接线：双击在测量工具激活时结束测量，否则飞向光标点', () => {
   const client = clientSource()
   assert.match(client, /Cesium\.ScreenSpaceEventType\.LEFT_DOUBLE_CLICK/)
+  // Canvas input routing moved to scene/canvas-input.js; the behavior is the same.
+  const input = readRepoFile('src/client/scene/canvas-input.js')
   // v1.7 P0: 指认 mode is not a measurement, so double click still recentres.
-  assert.match(client, /if \(toolRef\.current && toolRef\.current !== 'identify'\) \{\s*\n\s*finishMeasure\(\)/)
-  assert.match(client, /sampleCursor\(viewerNow, Cesium, event\.position, \{ pickPosition: true \}\)/)
-  assert.match(client, /flyToCartographic\(viewerNow, Cesium, carto\)/)
+  assert.match(input, /getTool\?\.\(\) && getTool\(\) !== 'identify'/)
+  assert.match(input, /finishMeasure\(\)/)
+  assert.match(input, /sampleCursor\(viewerNow, Cesium, event\.position, \{ pickPosition: true \}\)/)
+  assert.match(input, /flyToCartographic\(viewerNow, Cesium, carto\)/)
 })
 
 test('接线：面板标题栏有「框全」按钮，并传入可见图层', () => {
@@ -128,10 +131,11 @@ test('接线：面板标题栏有「框全」按钮，并传入可见图层', ()
 
 test('接线：面板显示当前分析并可一键清除', () => {
   const client = clientSource()
-  assert.match(client, /analysis,\n\s*onClearAnalysis: \(\) => clearAnalysis\(\)/)
+  assert.match(client, /onClearAnalysis: \(\) => clearAnalysis\(\)/)
   assert.match(client, /t\('layers\.analysis'\)/)
   assert.match(client, /t\('layers\.analysisClear'\)/)
-  assert.match(client, /t\('layers\.analysisHint'\)/)
+  // The hint moved with the analysis tool into the tools card (data/tools split).
+  assert.match(client, /t\('tools\.analysisHint'\)/)
 })
 
 test('C1：截图结果以可执行的下一步结束（与 draw/measure/analyze 一致）', () => {

@@ -13,6 +13,14 @@ import { cachedElevationRange } from './elevation-range.js'
     // only the fragment material (diffuse/alpha), so lighting and geometry stay
     // untouched and a broken shader cannot corrupt the scene.
     const SHADER_PRESETS = ['height-false-color', 'contour', 'scan', 'water', 'water-depth']
+    /**
+     * Contract-compatibility grouping only: the workbench now offers the four
+     * primary looks. `contour` stays in the tool whitelist (frozen preset enum)
+     * but is no longer presented in the UI — on a 3D mesh it renders as jagged
+     * bands, so the meeting asked to drop it from the product surface.
+     */
+    const SHADER_PRIMARY_PRESETS = ['height-false-color', 'scan', 'water', 'water-depth']
+    const SHADER_ADVANCED_PRESETS = ['contour']
     /** D-17: at most three presets may be stacked into one composed shader. */
     const SHADER_MAX_STACK = 3
     /** Hard cap from the B3 contract: one preset source stays well under 8 KB. */
@@ -378,32 +386,41 @@ import { cachedElevationRange } from './elevation-range.js'
   float height = length(fsInput.attributes.positionWC) - length(u_center) + u_centerHeight;
   float span = max(u_maxHeight - u_minHeight, 1.0);
   float t = clamp((height - u_minHeight) / span, 0.0, 1.0);
-  float sweep = fract(u_time * max(u_speed, 0.1) * 0.09);
+  // Aligned with the 1.5 sweep: one full pass in ~8 s, a band about 5% of the
+  // height span, so the moving stripe is obvious from the default camera.
+  float sweep = fract(u_time * max(u_speed, 0.1) * 0.12);
   float distanceToBand = abs(t - sweep);
-  // A soft wide glow with a thin bright core reads as a live instrument sweep;
-  // the rest of the surface is only slightly dimmed so context stays visible.
-  float glow = exp(-distanceToBand * 22.0);
-  float core = 1.0 - smoothstep(0.0, 0.012, distanceToBand);
-  vec3 scanTint = mix(vec3(0.12, 0.62, 0.86), vec3(0.72, 1.0, 0.94), glow);
-  material.diffuse *= 0.88;
-  material.diffuse = mix(material.diffuse, scanTint, clamp(glow * 0.8 + core * 0.2, 0.0, 1.0));
+  float band = 1.0 - smoothstep(0.0, 0.045, distanceToBand);
+  float glow = exp(-distanceToBand * 18.0);
+  vec3 scanTint = mix(vec3(0.12, 0.62, 0.86), vec3(0.72, 1.0, 0.94), band);
+  // Dim the surface a little so the bright band reads as a live instrument sweep,
+  // but keep enough baked detail to place the swept height in context.
+  material.diffuse *= 0.72;
+  material.diffuse = mix(material.diffuse, scanTint, clamp(glow * 0.45 + band * 0.55, 0.0, 1.0));
 }`,
       water: `void fragmentMain(FragmentInput fsInput, inout czm_modelMaterial material) {
   vec3 local = fsInput.attributes.positionWC - u_center;
   vec3 up = normalize(u_center);
   vec3 east = normalize(cross(vec3(0.0, 0.0, 1.0), up) + vec3(0.00001, 0.0, 0.0));
   vec3 north = cross(up, east);
-  vec2 position = vec2(dot(local, east), dot(local, north));
-  float time = u_time * max(u_speed, 0.1) * 0.55;
+  // Position in metres, scaled down ~0.06: the ripples are ~50-100 m long, so they
+  // stay visible from a city overview instead of collapsing into one flat colour.
+  vec2 position = vec2(dot(local, east), dot(local, north)) * 0.06;
+  float time = u_time * max(u_speed, 0.1) * 0.9;
   float w1 = sin(dot(position, vec2(1.7, 0.65)) - time);
   float w2 = sin(dot(position, vec2(-0.8, 2.1)) - time * 0.73);
   float w3 = sin(dot(position, vec2(3.1, 1.8)) + time * 1.13);
-  float detail = (w1 * 0.5 + w2 * 0.3 + w3 * 0.2) * (u_amplitude / (1.0 + u_amplitude)) * 1.5;
+  float detail = (w1 * 0.5 + w2 * 0.3 + w3 * 0.2) * (u_amplitude / (1.0 + u_amplitude)) * 3.0;
+  // fwidth(position) is metres per pixel: the 50-100 m waves fade out between 5 and
+  // 40 m/px so a close-up view loses the texture instead of shimmering.
   float footprint = max(length(fwidth(position)), 0.01);
-  float fade = 1.0 - smoothstep(0.35, 2.0, footprint);
+  float fade = 1.0 - smoothstep(5.0, 40.0, footprint);
   float ripple = detail * fade;
-  vec3 waterColor = mix(vec3(0.045, 0.18, 0.23), vec3(0.10, 0.32, 0.35), 0.5 + ripple * 0.12);
-  float glint = pow(max(0.0, ripple), 6.0) * 0.06;
+  // The default amplitude (1) must already read as moving water, not a flat tint:
+  // crest swings across most of the ramp and a stronger glint marks the wave tops.
+  float crest = clamp(0.5 + ripple * 0.5, 0.0, 1.0);
+  vec3 waterColor = mix(vec3(0.015, 0.12, 0.22), vec3(0.13, 0.42, 0.50), crest);
+  float glint = pow(clamp(ripple, 0.0, 1.0), 3.0) * 0.32;
   waterColor += vec3(0.55, 0.75, 0.77) * glint;
   float height = length(fsInput.attributes.positionWC) - length(u_center) + u_centerHeight;
   float coverage = mix(1.0, 1.0 - smoothstep(u_waterHeight - 0.3, u_waterHeight + 0.3, height), u_waterMask);
@@ -431,4 +448,4 @@ import { cachedElevationRange } from './elevation-range.js'
     }
     //#endregion shader core
 
-export { SHADER_PRESETS, SHADER_MAX_STACK, samePresetStack, SHADER_SOURCE_LIMIT, SHADER_HEIGHT_FLOOR, SHADER_HEIGHT_CEILING, SHADER_PARAM_LIMITS, SHADER_PRESET_PARAMS, SHADER_PRESET_DEFAULTS, shaderClamp, shaderFinite, shaderFail, shaderValidateRequest, shaderTilesetExtensions, shaderGaussianLayer, shaderTilesetExtent, shaderHeightRange, shaderUniforms, shaderFragmentSource, SHADER_FRAGMENT_SOURCES }
+export { SHADER_PRESETS, SHADER_PRIMARY_PRESETS, SHADER_ADVANCED_PRESETS, SHADER_MAX_STACK, samePresetStack, SHADER_SOURCE_LIMIT, SHADER_HEIGHT_FLOOR, SHADER_HEIGHT_CEILING, SHADER_PARAM_LIMITS, SHADER_PRESET_PARAMS, SHADER_PRESET_DEFAULTS, shaderClamp, shaderFinite, shaderFail, shaderValidateRequest, shaderTilesetExtensions, shaderGaussianLayer, shaderTilesetExtent, shaderHeightRange, shaderUniforms, shaderFragmentSource, SHADER_FRAGMENT_SOURCES }

@@ -342,8 +342,10 @@ test('client showLayers/showHud：默认可见、工具栏切换、收起、设�
   assert.match(client, /const showLayers = sources\?\.settings\?\.showLayers !== false/)
   assert.match(client, /const showHud = sources\?\.settings\?\.showHud !== false/)
   // 图层面板（v1.6 起是唯一入口）：默认可见、标题栏可收起；即使没有加载
-  // 3D Tiles 也能打开，因为地形/底图的选择只能从面板里做。
-  assert.match(client, /analysis \|\| showLayers/)
+  // 3D Tiles 也能打开，因为地形/底图的选择只能从面板里做。右栈已抽成组件。
+  assert.match(client, /h\(RightStack, \{/)
+  assert.match(client, /showLayers,/)
+  assert.match(client, /showTools,/)
   assert.match(client, /onCollapse: \(\) => updateSettings\(\{ showLayers: false \}\)/)
   assert.match(client, /t\('layers\.collapse'\)/)
   // 工具栏两个图标按钮写回设置。

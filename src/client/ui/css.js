@@ -57,7 +57,23 @@ import { VECTOR_CSS } from './vector-css.js'
 .mv-right>*{pointer-events:auto}
 .mv-card{background:var(--mv-glass);border:.5px solid var(--mv-line);box-shadow:var(--mv-shadow);border-radius:13px}
 .mv-layers{width:100%;min-height:0;flex:1 1 auto;display:flex;flex-direction:column;border-radius:13px;overflow:hidden}
-.mv-analysis{flex:0 1 auto;min-height:0;max-height:min(62%,380px);width:100%;max-width:300px;display:flex;flex-direction:column;overflow:hidden}
+/* Tools card: functions (measure / analysis / sun / effects / views) live here,
+   never in the layer card. It caps its height so the layer list keeps room. */
+.mv-tools{width:100%;flex:0 1 auto;min-height:0;max-height:min(52%,400px);display:flex;flex-direction:column;border-radius:13px;overflow:hidden}
+.mv-tools>header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;font-size:13px;font-weight:600;color:var(--mv-text);border-bottom:.5px solid var(--mv-line)}
+.mv-tools .mv-tool-list{overflow:auto;padding:4px 10px 12px;min-height:0;overscroll-behavior:contain;scrollbar-width:thin}
+.mv-tool-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin:3px 0 6px}
+.mv-tool-grid .mv-cta{padding:6px 8px;font-size:11px}
+/* Box-selection readout inside the Tools card (canvas gesture → area/GeoJSON). */
+.mv-selection{display:flex;flex-direction:column;gap:5px;margin-top:5px}
+.mv-selection .stat{display:flex;align-items:baseline;justify-content:space-between;gap:8px;font-size:11px;color:var(--mv-dim)}
+.mv-selection .stat b{color:var(--mv-text);font-weight:600;font-variant-numeric:tabular-nums}
+.mv-selection-actions{display:flex;gap:5px;flex-wrap:wrap}
+.mv-selection-actions .mv-cta{flex:1;min-width:0;padding:6px 8px;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mv-analysis{flex:0 1 auto;min-height:0;max-height:min(72%,460px);width:100%;max-width:300px;display:flex;flex-direction:column;overflow:hidden}
+/* The chart is the first body child now; a docked (narrow) panel still gets the
+   taller cap so the profile thumbnail is never squeezed to zero. */
+.mv-root.mv-docked .mv-analysis{max-height:min(72%,460px)}
 .mv-analysis>header{display:flex;align-items:center;gap:2px;padding:7px 7px 7px 11px;border-bottom:.5px solid var(--mv-line)}
 .mv-analysis>header .title{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;font-weight:600}
 .mv-analysis .body{padding:8px 11px 10px;overflow:auto;display:flex;flex-direction:column;gap:5px;min-height:0}
@@ -65,9 +81,10 @@ import { VECTOR_CSS } from './vector-css.js'
 .mv-analysis .stat{display:flex;align-items:baseline;justify-content:space-between;gap:10px;font-size:11.5px;line-height:1.5}
 .mv-analysis .stat span{flex:none;color:var(--mv-dim)}
 .mv-analysis .stat b{text-align:right;font-weight:600;font-variant-numeric:tabular-nums;word-break:break-word}
-.mv-analysis .chart{width:100%;height:auto;display:block;margin-top:2px;border:.5px solid var(--mv-line);border-radius:8px;background:color-mix(in srgb,var(--mv-bg) 45%,transparent)}
+.mv-analysis .chart{width:100%;height:auto;display:block;margin-top:0;border:.5px solid var(--mv-line);border-radius:8px;background:color-mix(in srgb,var(--mv-bg) 45%,transparent)}
 .mv-analysis .chart text{fill:var(--mv-dim);font-size:8px}
 .mv-analysis .hint{margin:2px 0 0;color:var(--mv-dim);font-size:10px;line-height:1.5}
+.mv-analysis .warnings{margin:0;color:var(--mv-dim);font-size:10px;line-height:1.45;word-break:break-word}
 .mv-analysis .profile-tools{display:flex;flex-direction:column;gap:6px;border-top:.5px solid var(--mv-line);padding-top:7px;margin-top:3px}
 .mv-analysis .profile-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .mv-analysis .profile-row select,.mv-analysis .profile-row input{background:var(--mv-input);border:.5px solid var(--mv-line);color:var(--mv-text);border-radius:6px;padding:4px 6px;font:inherit;font-size:11px;min-width:0}
@@ -75,7 +92,7 @@ import { VECTOR_CSS } from './vector-css.js'
 .mv-analysis .profile-width input{width:52px}
 .mv-analysis .profile-row .mv-cta{flex:1;padding:5px 6px;font-size:10.5px;white-space:nowrap}
 .mv-analysis .profile-note{margin:0;color:var(--mv-dim);font-size:9.5px;line-height:1.45}
-.mv-analysis .profile-chart-thumb{appearance:none;display:flex;flex-direction:column;gap:2px;width:100%;padding:0;border:0;background:transparent;text-align:right;cursor:zoom-in}
+.mv-analysis .profile-chart-thumb{appearance:none;display:flex;flex-direction:column;gap:2px;width:100%;padding:0;border:0;background:transparent;text-align:right;cursor:zoom-in;flex:none}
 .mv-analysis .profile-chart-hint{font-size:9.5px;color:var(--mv-dim)}
 .mv-chart-modal{position:fixed;inset:0;z-index:80;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(10,18,30,.55)}
 .mv-chart-dialog{width:min(980px,94vw);max-height:90vh;display:flex;flex-direction:column;border-radius:14px;overflow:hidden;background:var(--mv-glass-strong);border:.5px solid var(--mv-line);box-shadow:var(--mv-shadow)}
@@ -94,11 +111,15 @@ import { VECTOR_CSS } from './vector-css.js'
 .mv-sun-toggle{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;color:var(--mv-dim);cursor:pointer}
 .mv-sun-row{display:flex;align-items:center;gap:6px;font-size:10.5px;color:var(--mv-dim)}
 .mv-sun-row input[type=date]{background:var(--mv-input);border:.5px solid var(--mv-line);color:var(--mv-text);border-radius:6px;padding:3px 5px;font:inherit;font-size:10.5px;min-width:0}
+.mv-sun-row select{background:var(--mv-input);border:.5px solid var(--mv-line);color:var(--mv-text);border-radius:6px;padding:3px 5px;font:inherit;font-size:10.5px;min-width:0;flex:1}
 .mv-sun-clock{margin-left:auto;font-variant-numeric:tabular-nums}
 .mv-sun-range{width:100%}
 .mv-sun-readout{display:flex;gap:10px;font-size:10.5px;color:var(--mv-dim);font-variant-numeric:tabular-nums}
 .mv-sun-check{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;color:var(--mv-dim);cursor:pointer}
 .mv-sun-note{margin:0;font-size:9.5px;line-height:1.45;color:var(--mv-dim)}
+.mv-sun-zone{font-size:10px;color:var(--mv-dim);font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mv-sun-note.mv-sun-night{color:color-mix(in srgb,var(--mv-dim) 70%,var(--mv-accent) 30%)}
+.mv-sun-note.mv-sun-alert{color:var(--mv-accent)}
 /* Shader workbench (B3): one compact card on the left, never wider than 320px. */
 .mv-shader{position:absolute;top:60px;left:10px;width:min(340px,calc(100% - 20px));max-height:calc(100% - 150px);z-index:14;display:flex;flex-direction:column;overflow:hidden;border-radius:14px;--shader-mint:#3ddc97;background:color-mix(in srgb,var(--mv-glass-strong) 94%,#0a0f15 6%);backdrop-filter:blur(14px) saturate(1.08);-webkit-backdrop-filter:blur(14px) saturate(1.08);border:.5px solid color-mix(in srgb,var(--mv-line) 65%,transparent);box-shadow:0 24px 64px rgba(2,8,20,.35)}
 .mv-shader>header{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:.5px solid var(--mv-line);background:linear-gradient(180deg,color-mix(in srgb,var(--shader-mint) 7%,transparent),transparent)}
@@ -119,6 +140,9 @@ import { VECTOR_CSS } from './vector-css.js'
 .mv-shader .param .slider::-moz-range-thumb{width:12px;height:12px;border-radius:50%;background:var(--shader-mint);border:2px solid #0b1512;cursor:pointer}
 .mv-shader .param .number{padding:5px 6px;text-align:right;font-size:11.5px}
 .mv-shader .presets{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
+/* Four primary looks over three columns: the fourth chip spans the full row so the
+   grid reads as 3+1 instead of leaving two empty cells. */
+.mv-shader .presets.primary .preset:nth-child(4){grid-column:1/-1}
 .mv-shader .preset{position:relative;display:flex;flex-direction:column;gap:5px;appearance:none;border:.5px solid var(--mv-line);background:color-mix(in srgb,var(--mv-input) 82%,transparent);color:var(--mv-dim);font:inherit;font-size:11px;padding:5px;border-radius:9px;cursor:pointer;text-align:left;min-width:0}
 .mv-shader .preset .thumb{display:block;height:36px;border-radius:6px;overflow:hidden;background:#0a1018;border:.5px solid color-mix(in srgb,var(--mv-line) 60%,transparent)}
 .mv-shader .preset .thumb-svg{display:block;width:100%;height:100%}
@@ -298,6 +322,7 @@ import { VECTOR_CSS } from './vector-css.js'
   .mv-root.mv-docked .mv-right{top:92px;right:12px;width:min(300px,calc(100% - 24px));max-height:calc(100% - 236px)}
   .mv-root.mv-docked .mv-right .mv-layers{position:static;top:auto;right:auto;width:100%;max-height:none}
   .mv-root.mv-docked .mv-right .mv-analysis{max-width:100%}
+  .mv-root.mv-docked .mv-tools{max-height:min(48%,360px)}
   .mv-root.mv-docked .mv-shader{top:92px;left:12px;width:min(320px,calc(100% - 24px));max-height:calc(100% - 236px)}
 }
 /* Snapshot mode: the picture is meant to be clean, so every overlay is hidden. */
@@ -397,6 +422,11 @@ import { VECTOR_CSS } from './vector-css.js'
 .mv-select .fact b{font-weight:600;font-variant-numeric:tabular-nums}
 .mv-select .fact em{flex:1;min-width:0;text-align:right;font-style:normal;font-size:10.5px;color:var(--mv-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .mv-select .fact .mv-sel-conf{margin-left:auto;flex:none;font-size:9.5px;line-height:1;padding:2px 5px;border-radius:5px;border:1px solid color-mix(in srgb,currentColor 45%,transparent);background:color-mix(in srgb,currentColor 12%,transparent);white-space:nowrap}
+.mv-select .props{display:flex;flex-direction:column;gap:3px;border-bottom:.5px solid var(--mv-line);padding:6px 0;min-height:0}
+.mv-select .props-title{font-size:10px;letter-spacing:.04em;text-transform:uppercase;color:var(--mv-dim)}
+.mv-select .prop{display:flex;align-items:baseline;gap:8px;font-size:11px;min-width:0}
+.mv-select .prop span{flex:none;max-width:42%;color:var(--mv-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mv-select .prop b{flex:1;min-width:0;text-align:right;font-weight:600;font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mv-sel-conf.high{color:#4ade80}
 .mv-sel-conf.medium{color:#f0b84b}
 .mv-sel-conf.low{color:#ff8b8b}

@@ -15,6 +15,7 @@ export function createAskAgent(deps) {
   const collectSceneStatus = deps.collectSceneStatus
   const shaderActiveList = deps.shaderActiveList
   const message = deps.message
+  const getSelection = deps.getSelection
 
       async function askAgent() {
         const analysis = deps.getAnalysis()
@@ -58,6 +59,23 @@ export function createAskAgent(deps) {
             `Agent overlays: ${annotations.drawn_features ?? 0} annotated features, ${annotations.measured_points ?? 0} measured points.`,
           )
         }
+        // A canvas selection is the user's current spatial context; send a compact
+        // ring so the Agent can reason about "this area" without asking for coords.
+        const selection = typeof getSelection === 'function' ? getSelection() : null
+        if (selection && selection.kind === 'point') {
+          lines.push(
+            `Selection (point): lon=${selection.lon}, lat=${selection.lat}, height=${selection.height ?? 'unknown'} m.`,
+          )
+        } else if (selection && selection.kind === 'objects' && Array.isArray(selection.rows)) {
+          lines.push(
+            `Selected overlays (${selection.rows.length}): ${selection.rows.map((row) => row.label).filter(Boolean).join('; ')}`,
+          )
+        } else if (selection && Array.isArray(selection.ring) && selection.ring.length >= 4) {
+          const rounded = selection.ring.map((point) => [Number(point[0].toFixed(6)), Number(point[1].toFixed(6))])
+          lines.push(
+            `Selection (${selection.kind ?? 'polygon'}): area=${Math.round(selection.area_m2 ?? 0)} m², perimeter=${Math.round(selection.perimeter_m ?? 0)} m, vertices=${Math.max(0, selection.ring.length - 1)}, complete=${selection.complete !== false}; ring=${JSON.stringify(rounded)}`,
+          )
+        }
         if (analysis !== null && analysis.result) {
           const result = analysis.result
           if (result.operation === 'profile' && result.stats) {
@@ -78,7 +96,14 @@ export function createAskAgent(deps) {
         if (shaders.length > 0) {
           lines.push(`Shaders: ${shaders.map((item) => `${item.layer}=${item.preset}`).join(', ')}.`)
         }
-        if (snapshotPath !== '') lines.push(`Snapshot: ${snapshotPath}`)
+        if (snapshotPath !== '') {
+          lines.push(`Snapshot: ${snapshotPath}`)
+          // AI 圈选 through the normal Agent: the screenshot is a real file, so the
+          // Agent can read it and draw the result with the frozen earth_draw tool.
+          lines.push(
+            'If the user asks to identify, outline or locate what is visible, call read_image on that snapshot first, then draw the result with earth_draw; never guess unseen geometry.',
+          )
+        }
         lines.push('Answer from the scene state above; do not invent data that is not in it.')
         try {
           const response = await fetch(meta.injectUrl, {

@@ -495,6 +495,12 @@ test('P1 askAgent 汇总相机/图层/叠加层、profile/flood/sunlight 分析�
   assert.ok(askAgentSource.includes('const saved = await captureScene({}, session)'))
   assert.ok(askAgentSource.includes("snapshotPath = typeof saved.path === 'string' ? saved.path : ''"))
   assert.ok(askAgentSource.includes("lines.push(`Snapshot: ${snapshotPath}`)"))
+  // AI 圈选：截图是真实文件，Agent 可用 read_image 看图后 earth_draw 落图。
+  assert.ok(askAgentSource.includes('call read_image on that snapshot'))
+  assert.ok(askAgentSource.includes('draw the result with earth_draw'))
+  // 点选/对象框选也进入上下文，不只是多边形环。
+  assert.ok(askAgentSource.includes("selection.kind === 'point'"))
+  assert.ok(askAgentSource.includes("selection.kind === 'objects'"))
 
   // 相机与图层摘要来自 collectSceneStatus。
   assert.ok(askAgentSource.includes('status = await collectSceneStatus()'))
