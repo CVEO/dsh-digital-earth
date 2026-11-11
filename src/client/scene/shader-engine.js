@@ -59,7 +59,7 @@ export function createShaderEngine(deps) {
           .map((entry) => ({ layer: entry.layerName, layerId: entry.layer.id, preset: entry.preset, params: { ...entry.params } }))
       }
 
-      const refreshShaderActive = () => setShaderActive(shaderActiveList())
+      const refreshShaderActive = () => (setShaderActive(shaderActiveList()), viewerRef.current?.scene?.requestRender?.())
 
       /** Register the single u_time tick only when the first preset becomes active. */
       function ensureShaderTick() {
@@ -67,15 +67,18 @@ export function createShaderEngine(deps) {
         if (!viewer || shaderTickRef.current) return
         const tick = () => {
           const seconds = (typeof performance !== 'undefined' ? performance.now() : Date.now()) / 1000
+          let animated = false
           for (const entry of shaderEntriesRef.current.values()) {
             const shader = entry.shader
             if (!shader || !shader.uniforms || !('u_time' in shader.uniforms)) continue
             try {
               shader.setUniform('u_time', seconds)
+              animated = true
             } catch {
               /* an already replaced shader is detached from the tileset */
             }
           }
+          if (animated) viewer.scene?.requestRender?.()
         }
         try {
           viewer.scene.preRender.addEventListener(tick)
@@ -229,11 +232,12 @@ export function createShaderEngine(deps) {
         if (existing && samePresetStack(existing.preset, request.preset) && typeof existing.shader?.setUniform === 'function') {
           const uniforms = shaderUniforms(Cesium, request.presets ?? request.preset, request.params, range)
           try {
-            for (const [name, uniform] of Object.entries(uniforms)) existing.shader.setUniform(name, uniform.value)
+            for (const [name, uniform] of Object.entries(uniforms)) if (name !== 'u_time') existing.shader.setUniform(name, uniform.value)
           } catch (error) {
             throw shaderFail(`更新着色器参数失败（${message(error)}）。`, '换一个预设或重置后重试。')
           }
           existing.params = { ...request.params }
+          refreshShaderActive()
           return shaderResult('apply', request.preset, layer.name)
         }
         const options = {

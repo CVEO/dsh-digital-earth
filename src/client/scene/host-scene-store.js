@@ -26,6 +26,8 @@ export function createHostSceneStore({
   }
   const HOST_SCENE_TIMEOUT_MS = hostTimeoutMs
   const lastHostSceneSaveRef = { current: 0 }
+  let pendingTimer = null
+  let pendingPayload = null
 
   /** Read the host-persisted snapshot; null when absent or unreachable. */
   async function readHostSceneSnapshot(session) {
@@ -40,7 +42,16 @@ export function createHostSceneStore({
       )
       if (!response.ok) return null
       const data = await response.json()
-      return normalizeSceneSnapshot(data?.snapshot)
+      const normalized = normalizeSceneSnapshot(data?.snapshot)
+      const savedAt = typeof data?.snapshot?.savedAt === 'string' && data.snapshot.savedAt !== ''
+        ? data.snapshot.savedAt
+        : typeof data?.savedAt === 'string' && data.savedAt !== ''
+          ? data.savedAt
+          : ''
+      if (normalized !== null && !normalized.savedAt && savedAt !== '') {
+        normalized.savedAt = savedAt
+      }
+      return normalized
     } catch {
       return null
     } finally {
@@ -53,7 +64,25 @@ export function createHostSceneStore({
     const meta = metaRef.current
     if (!meta?.sceneUrl) return
     const now = Date.now()
-    if (!force && now - lastHostSceneSaveRef.current < saveIntervalMs) return
+    if (!force && now - lastHostSceneSaveRef.current < saveIntervalMs) {
+      pendingPayload = { session, body }
+      if (pendingTimer === null) {
+        const waitMs = Math.max(50, saveIntervalMs - (now - lastHostSceneSaveRef.current))
+        pendingTimer = setTimeout(() => {
+          pendingTimer = null
+          const next = pendingPayload
+          pendingPayload = null
+          if (next) saveHostSceneSnapshot(next.session, next.body, true)
+        }, waitMs)
+        pendingTimer?.unref?.()
+      }
+      return
+    }
+    if (pendingTimer !== null) {
+      clearTimeout(pendingTimer)
+      pendingTimer = null
+    }
+    pendingPayload = null
     lastHostSceneSaveRef.current = now
     let text = ''
     try {
@@ -76,10 +105,25 @@ export function createHostSceneStore({
     }
   }
 
-  /** Prefer the host snapshot (survives origin changes), fall back to local. */
+  /** Prefer the fresher snapshot between host and local; fall back when offline. */
   async function loadSceneSnapshot(session) {
     const hostSnapshot = await readHostSceneSnapshot(session)
     if (hostSnapshot !== null) {
+      let localSnapshot = null
+      try {
+        localSnapshot = readSceneSnapshot(session)
+      } catch {
+        localSnapshot = null
+      }
+      if (
+        localSnapshot !== null &&
+        typeof localSnapshot.savedAt === 'string' &&
+        typeof hostSnapshot.savedAt === 'string' &&
+        localSnapshot.savedAt > hostSnapshot.savedAt
+      ) {
+        saveHostSceneSnapshot(session, localSnapshot, true)
+        return localSnapshot
+      }
       try {
         writeSceneSnapshot(session, hostSnapshot)
       } catch {

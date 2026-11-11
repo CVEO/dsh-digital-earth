@@ -782,6 +782,7 @@ const h = React.createElement
           runVectorImport(agentOverlayRef.current, viewerRef.current, () => drawAgentOverlay(cesiumRef.current, viewerRef.current, parsed.geojson, 'accent', `GeoJSON: ${name}`))
           syncAgentOverlayCount()
           markSceneDirty()
+          saveSceneSnapshot(true)
           if (parsed?.bbox) flyToBbox(viewerRef.current, cesiumRef.current, parsed.bbox)
           showToast([t('layers.imported', { name, n: parsed.featureCount }), ...(parsed.warnings ?? []).map((key) => t(key))].join(' · '))
         } catch (error) {
@@ -794,6 +795,7 @@ const h = React.createElement
         clearAgentOverlaysInState(agentOverlayRef.current, viewerRef.current, kind)
         syncAgentOverlayCount()
         markSceneDirty()
+        saveSceneSnapshot(true)
       }
 
       const AGENT_OVERLAY_COLORS = VECTOR_COLORS
@@ -1175,7 +1177,10 @@ const h = React.createElement
         findLayer,
         entries: shaderEntriesRef,
         tickRef: shaderTickRef,
-        setShaderActive,
+        setShaderActive: (list) => {
+          setShaderActive(list)
+          markSceneDirty()
+        },
       })
       const shaderCommand = (args = {}) => shaderEngine.command(args)
       const shaderActiveList = () => shaderEngine.activeList()
@@ -1189,6 +1194,7 @@ const h = React.createElement
       // rebuilt into the next viewer. Writes are debounced through a dirty flag
       // plus a short timer, and flushed synchronously on unmount/page hide.
       const sceneDirtyRef = React.useRef(false)
+      const restoringRef = React.useRef(false)
       // Whether a restore decision was already made for this mount; a session id
       // that arrives after the viewer is ready gets exactly one late restore.
       const sceneRestoredRef = React.useRef(false)
@@ -1245,6 +1251,7 @@ const h = React.createElement
 
       /** Persist the current scene locally and hand the body to the host store. */
       const saveSceneSnapshot = (forceHost = false) => {
+        if (restoringRef.current) return
         const session = sessionRef.current
         if (typeof session !== 'string' || session === '') return
         try {
@@ -1274,6 +1281,7 @@ const h = React.createElement
         const Cesium = cesiumRef.current
         const viewer = viewerRef.current
         if (!Cesium || !viewer || snapshot === null) return
+        restoringRef.current = true
         setRestoringScene(snapshot.layers.length > 0)
         try {
           // Camera first: the saved viewpoint is local data, so applying it before
@@ -1352,6 +1360,7 @@ const h = React.createElement
             }
           }
         } finally {
+          restoringRef.current = false
           setRestoringScene(false)
           sceneDirtyRef.current = false
         }
@@ -1526,6 +1535,7 @@ const h = React.createElement
         layer.visible = visible
         layer.tileset.show = visible
         syncLayers()
+        saveSceneSnapshot(true)
         return layer
       }
 
@@ -1620,6 +1630,7 @@ const h = React.createElement
           /* already detached */
         }
         syncLayers()
+        saveSceneSnapshot(true)
         return layer
       }
 
@@ -2621,6 +2632,7 @@ const h = React.createElement
               if (!removeAgentOverlay(agentOverlayRef.current, viewerRef.current, kind, index)) return
               syncAgentOverlayCount()
               markSceneDirty()
+              saveSceneSnapshot(true)
             },
             onShowSceneDetails: sceneDetails.open,
           },
@@ -2656,6 +2668,7 @@ const h = React.createElement
               const removed = removeAgentOverlayRows(agentOverlayRef.current, viewerRef.current, rows)
               syncAgentOverlayCount()
               markSceneDirty()
+              saveSceneSnapshot(true)
               return removed + (manual ? 1 : 0)
             },
             onAskAgent: askAgent,

@@ -3175,8 +3175,10 @@ var isSnapshotView = (view) => view !== null && typeof view === "object" && ["lo
 );
 var isSnapshotLayer = (layer) => layer !== null && typeof layer === "object" && typeof layer.name === "string" && layer.source !== null && typeof layer.source === "object" && (typeof layer.source.path === "string" || typeof layer.source.url === "string");
 var SNAPSHOT_ANALYSIS_ACTIONS = ["profile", "flood", "sunlight"];
-var isSnapshotAnalysis = (analysis) => analysis !== null && typeof analysis === "object" && typeof analysis.action === "string" && SNAPSHOT_ANALYSIS_ACTIONS.includes(analysis.action);
-var isSnapshotShader = (item) => item !== null && typeof item === "object" && typeof item.layer === "string" && typeof item.preset === "string";
+var SNAPSHOT_EXTRA_ANALYSIS_ACTIONS = ["clip", "skyline"];
+var isSnapshotAnalysis = (analysis) => analysis !== null && typeof analysis === "object" && typeof analysis.action === "string" && (SNAPSHOT_ANALYSIS_ACTIONS.includes(analysis.action) || SNAPSHOT_EXTRA_ANALYSIS_ACTIONS.includes(analysis.action));
+var isSnapshotPresetStack = (preset) => Array.isArray(preset) && preset.length >= 1 && preset.length <= 3 && preset.every((entry) => typeof entry === "string" && entry.trim() !== "");
+var isSnapshotShader = (item) => item !== null && typeof item === "object" && (typeof item.layer === "string" && typeof item.preset === "string" || typeof item.layer === "string" && isSnapshotPresetStack(item.preset));
 function normalizeSceneSnapshot(snapshot) {
   if (snapshot === null || typeof snapshot !== "object" || snapshot.v !== SCENE_STORE_VERSION) return null;
   const layers = (Array.isArray(snapshot.layers) ? snapshot.layers : []).filter(isSnapshotLayer).map((layer) => ({ name: layer.name, source: layer.source, visible: layer.visible !== false }));
@@ -3186,10 +3188,11 @@ function normalizeSceneSnapshot(snapshot) {
   ) : [];
   const shaders = Array.isArray(snapshot.shaders) ? snapshot.shaders.filter(isSnapshotShader).map((item) => ({
     layer: item.layer,
-    preset: item.preset,
+    preset: Array.isArray(item.preset) ? item.preset.slice() : item.preset,
     params: item.params !== null && typeof item.params === "object" ? item.params : {}
   })) : [];
   return {
+    ...typeof snapshot.savedAt === "string" && snapshot.savedAt !== "" ? { savedAt: snapshot.savedAt } : {},
     view: isSnapshotView(snapshot.view) ? snapshot.view : null,
     layers,
     annotations: { draw, measure },
@@ -3229,20 +3232,111 @@ function trimSceneSnapshots(store, keepKey) {
   } catch {
   }
 }
+function compactSnapshotCoords(coords) {
+  if (!Array.isArray(coords)) return coords;
+  if (typeof coords[0] === "number") {
+    const lon = Math.round(coords[0] * 1e6) / 1e6;
+    const lat = typeof coords[1] === "number" ? Math.round(coords[1] * 1e6) / 1e6 : 0;
+    return [lon, lat];
+  }
+  return coords.map(compactSnapshotCoords);
+}
+function compactSnapshotGeometry(geometry) {
+  if (geometry === null || typeof geometry !== "object") return geometry;
+  if (geometry.type === "GeometryCollection" && Array.isArray(geometry.geometries)) {
+    return { type: "GeometryCollection", geometries: geometry.geometries.map(compactSnapshotGeometry) };
+  }
+  return { type: geometry.type, coordinates: compactSnapshotCoords(geometry.coordinates) };
+}
+function compactSnapshotProperties(properties) {
+  if (properties === null || typeof properties !== "object") return void 0;
+  const out = {};
+  if (typeof properties.name === "string" && properties.name !== "") out.name = properties.name.slice(0, 160);
+  let count = 0;
+  for (const [key, value] of Object.entries(properties)) {
+    if (key === "name" || value === null || value === void 0) continue;
+    if (count >= 12) break;
+    out[key] = typeof value === "string" && value.length > 160 ? value.slice(0, 160) : value;
+    count += 1;
+  }
+  return Object.keys(out).length > 0 ? out : void 0;
+}
+function compactDrawCommand(command) {
+  if (command === null || typeof command !== "object" || !Array.isArray(command.geojson?.features)) return command;
+  const features = command.geojson.features.map((feature) => {
+    if (feature === null || typeof feature !== "object") return feature;
+    const props = compactSnapshotProperties(feature.properties);
+    return {
+      type: "Feature",
+      ...feature.id !== void 0 ? { id: feature.id } : {},
+      geometry: compactSnapshotGeometry(feature.geometry),
+      ...props ? { properties: props } : {}
+    };
+  });
+  return { ...command, geojson: { type: "FeatureCollection", features } };
+}
+function fitSnapshotBodyToBudget(body, maxBytes = SCENE_STORE_MAX_BYTES) {
+  const budget = Math.max(1024, maxBytes - 1024);
+  const drawList = Array.isArray(body.annotations?.draw) ? body.annotations.draw.map(compactDrawCommand) : [];
+  const measureList = Array.isArray(body.annotations?.measure) ? body.annotations.measure : [];
+  body.annotations = { draw: drawList, measure: measureList };
+  let text = JSON.stringify(body);
+  if (text.length <= budget) return text;
+  const keptDraw = [];
+  body.annotations = { draw: keptDraw, measure: measureList };
+  text = JSON.stringify(body);
+  for (let index = drawList.length - 1; index >= 0; index -= 1) {
+    const cmd = drawList[index];
+    keptDraw.unshift(cmd);
+    const candidate = JSON.stringify(body);
+    if (candidate.length <= budget) {
+      text = candidate;
+      continue;
+    }
+    keptDraw.shift();
+    const features = Array.isArray(cmd?.geojson?.features) ? cmd.geojson.features : [];
+    if (features.length > 1) {
+      let low = 1;
+      let high = features.length;
+      let best = null;
+      while (low <= high) {
+        const mid = low + high >> 1;
+        const partial = { ...cmd, drawn: mid, geojson: { type: "FeatureCollection", features: features.slice(0, mid) } };
+        keptDraw.unshift(partial);
+        const attempt = JSON.stringify(body);
+        keptDraw.shift();
+        if (attempt.length <= budget) {
+          best = { partial, attempt };
+          low = mid + 1;
+        } else {
+          high = mid - 1;
+        }
+      }
+      if (best) {
+        keptDraw.unshift(best.partial);
+        text = best.attempt;
+      }
+    }
+    break;
+  }
+  if (text.length <= maxBytes) return text;
+  body.annotations = { draw: [], measure: [] };
+  body.analysis = null;
+  return JSON.stringify(body);
+}
 function writeSceneSnapshot(sessionId, snapshot) {
   if (typeof sessionId !== "string" || sessionId === "") return null;
-  const body = { v: SCENE_STORE_VERSION, savedAt: (/* @__PURE__ */ new Date()).toISOString(), ...snapshot };
+  const savedAt = typeof snapshot?.savedAt === "string" && snapshot.savedAt !== "" ? snapshot.savedAt : (/* @__PURE__ */ new Date()).toISOString();
+  const body = { v: SCENE_STORE_VERSION, ...snapshot, savedAt };
   let text = "";
   try {
     text = JSON.stringify(body);
   } catch {
     return null;
   }
-  if (text.length > SCENE_STORE_MAX_BYTES) {
-    body.annotations = { draw: [], measure: [] };
-    body.analysis = null;
+  if (text.length > SCENE_STORE_MAX_BYTES - 1024) {
     try {
-      text = JSON.stringify(body);
+      text = fitSnapshotBodyToBudget(body, SCENE_STORE_MAX_BYTES);
     } catch {
       return null;
     }
@@ -3251,8 +3345,8 @@ function writeSceneSnapshot(sessionId, snapshot) {
   const store = sceneStorage();
   if (store) {
     try {
-      store.setItem(sceneStoreKey(sessionId), text);
       trimSceneSnapshots(store, sceneStoreKey(sessionId));
+      store.setItem(sceneStoreKey(sessionId), text);
     } catch {
     }
   }
@@ -6756,6 +6850,8 @@ function createHostSceneStore({
   };
   const HOST_SCENE_TIMEOUT_MS = hostTimeoutMs;
   const lastHostSceneSaveRef = { current: 0 };
+  let pendingTimer = null;
+  let pendingPayload = null;
   async function readHostSceneSnapshot(session) {
     const meta = metaRef.current ?? await loadMeta2().catch(() => null);
     if (!meta?.sceneUrl) return null;
@@ -6768,7 +6864,12 @@ function createHostSceneStore({
       );
       if (!response.ok) return null;
       const data = await response.json();
-      return normalizeSceneSnapshot2(data?.snapshot);
+      const normalized = normalizeSceneSnapshot2(data?.snapshot);
+      const savedAt = typeof data?.snapshot?.savedAt === "string" && data.snapshot.savedAt !== "" ? data.snapshot.savedAt : typeof data?.savedAt === "string" && data.savedAt !== "" ? data.savedAt : "";
+      if (normalized !== null && !normalized.savedAt && savedAt !== "") {
+        normalized.savedAt = savedAt;
+      }
+      return normalized;
     } catch {
       return null;
     } finally {
@@ -6779,7 +6880,25 @@ function createHostSceneStore({
     const meta = metaRef.current;
     if (!meta?.sceneUrl) return;
     const now = Date.now();
-    if (!force && now - lastHostSceneSaveRef.current < saveIntervalMs) return;
+    if (!force && now - lastHostSceneSaveRef.current < saveIntervalMs) {
+      pendingPayload = { session, body };
+      if (pendingTimer === null) {
+        const waitMs = Math.max(50, saveIntervalMs - (now - lastHostSceneSaveRef.current));
+        pendingTimer = setTimeout(() => {
+          pendingTimer = null;
+          const next = pendingPayload;
+          pendingPayload = null;
+          if (next) saveHostSceneSnapshot(next.session, next.body, true);
+        }, waitMs);
+        pendingTimer?.unref?.();
+      }
+      return;
+    }
+    if (pendingTimer !== null) {
+      clearTimeout(pendingTimer);
+      pendingTimer = null;
+    }
+    pendingPayload = null;
     lastHostSceneSaveRef.current = now;
     let text = "";
     try {
@@ -6803,6 +6922,16 @@ function createHostSceneStore({
   async function loadSceneSnapshot(session) {
     const hostSnapshot = await readHostSceneSnapshot(session);
     if (hostSnapshot !== null) {
+      let localSnapshot = null;
+      try {
+        localSnapshot = readSceneSnapshot2(session);
+      } catch {
+        localSnapshot = null;
+      }
+      if (localSnapshot !== null && typeof localSnapshot.savedAt === "string" && typeof hostSnapshot.savedAt === "string" && localSnapshot.savedAt > hostSnapshot.savedAt) {
+        saveHostSceneSnapshot(session, localSnapshot, true);
+        return localSnapshot;
+      }
       try {
         writeSceneSnapshot2(session, hostSnapshot);
       } catch {
@@ -7213,10 +7342,12 @@ var SHADER_FRAGMENT_SOURCES = {
   float w3 = sin(dot(position, vec2(3.1, 1.8)) + time * 1.13);
   float detail = (w1 * 0.5 + w2 * 0.3 + w3 * 0.2) * (u_amplitude / (1.0 + u_amplitude)) * 3.0;
   // fwidth(position) is metres per pixel: the 50-100 m waves fade out between 5 and
-  // 40 m/px so a close-up view loses the texture instead of shimmering.
+  // 40 m/px so a close-up view loses the texture instead of shimmering, while a
+  // near-field octave (~10 m waves) fades in at street/building scale.
   float footprint = max(length(fwidth(position)), 0.01);
   float fade = 1.0 - smoothstep(5.0, 40.0, footprint);
-  float ripple = detail * fade;
+  float fine = (sin(dot(position * 6.5, vec2(1.35, -0.95)) - time * 1.35) * 0.6 + sin(dot(position * 6.5, vec2(-1.1, 1.45)) + time * 1.05) * 0.4) * (u_amplitude / (1.0 + u_amplitude)) * 1.35 * (1.0 - smoothstep(0.08, 0.45, footprint));
+  float ripple = detail * fade + fine;
   // The default amplitude (1) must already read as moving water, not a flat tint:
   // crest swings across most of the ramp and a stronger glint marks the wave tops.
   float crest = clamp(0.5 + ripple * 0.5, 0.0, 1.0);
@@ -7283,20 +7414,23 @@ function createShaderEngine(deps) {
     const order = new Map(layersRef.current.map((layer, index) => [layer.id, index]));
     return [...shaderEntriesRef.current.values()].sort((left, right) => (order.get(left.layer.id) ?? 0) - (order.get(right.layer.id) ?? 0)).map((entry) => ({ layer: entry.layerName, layerId: entry.layer.id, preset: entry.preset, params: { ...entry.params } }));
   };
-  const refreshShaderActive = () => setShaderActive(shaderActiveList());
+  const refreshShaderActive = () => (setShaderActive(shaderActiveList()), viewerRef.current?.scene?.requestRender?.());
   function ensureShaderTick() {
     const viewer = viewerRef.current;
     if (!viewer || shaderTickRef.current) return;
     const tick = () => {
       const seconds = (typeof performance !== "undefined" ? performance.now() : Date.now()) / 1e3;
+      let animated = false;
       for (const entry of shaderEntriesRef.current.values()) {
         const shader = entry.shader;
         if (!shader || !shader.uniforms || !("u_time" in shader.uniforms)) continue;
         try {
           shader.setUniform("u_time", seconds);
+          animated = true;
         } catch {
         }
       }
+      if (animated) viewer.scene?.requestRender?.();
     };
     try {
       viewer.scene.preRender.addEventListener(tick);
@@ -7418,11 +7552,12 @@ function createShaderEngine(deps) {
     if (existing && samePresetStack(existing.preset, request.preset) && typeof existing.shader?.setUniform === "function") {
       const uniforms = shaderUniforms(Cesium, request.presets ?? request.preset, request.params, range);
       try {
-        for (const [name, uniform] of Object.entries(uniforms)) existing.shader.setUniform(name, uniform.value);
+        for (const [name, uniform] of Object.entries(uniforms)) if (name !== "u_time") existing.shader.setUniform(name, uniform.value);
       } catch (error) {
         throw shaderFail(`更新着色器参数失败（${message(error)}）。`, "换一个预设或重置后重试。");
       }
       existing.params = { ...request.params };
+      refreshShaderActive();
       return shaderResult("apply", request.preset, layer.name);
     }
     const options = {
@@ -14832,6 +14967,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
       runVectorImport(agentOverlayRef.current, viewerRef.current, () => drawAgentOverlay(cesiumRef.current, viewerRef.current, parsed.geojson, "accent", `GeoJSON: ${name}`));
       syncAgentOverlayCount();
       markSceneDirty();
+      saveSceneSnapshot(true);
       if (parsed?.bbox) flyToBbox(viewerRef.current, cesiumRef.current, parsed.bbox);
       showToast([t2("layers.imported", { name, n: parsed.featureCount }), ...(parsed.warnings ?? []).map((key) => t2(key))].join(" · "));
     } catch (error2) {
@@ -14842,6 +14978,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     clearAgentOverlays(agentOverlayRef.current, viewerRef.current, kind);
     syncAgentOverlayCount();
     markSceneDirty();
+    saveSceneSnapshot(true);
   };
   const AGENT_OVERLAY_COLORS = VECTOR_COLORS;
   const agentOverlayColor = (Cesium, style) => {
@@ -15199,13 +15336,17 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     findLayer,
     entries: shaderEntriesRef,
     tickRef: shaderTickRef,
-    setShaderActive
+    setShaderActive: (list) => {
+      setShaderActive(list);
+      markSceneDirty();
+    }
   });
   const shaderCommand = (args = {}) => shaderEngine.command(args);
   const shaderActiveList = () => shaderEngine.activeList();
   const detachShaderForLayer = (id, restore) => shaderEngine.detachForLayer(id, restore);
   const releaseShaderTick = () => shaderEngine.releaseTick();
   const sceneDirtyRef = import_react31.default.useRef(false);
+  const restoringRef = import_react31.default.useRef(false);
   const sceneRestoredRef = import_react31.default.useRef(false);
   const hostSceneStore = createHostSceneStore({
     getMeta: () => metaRef.current,
@@ -15248,6 +15389,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     };
   };
   const saveSceneSnapshot = (forceHost = false) => {
+    if (restoringRef.current) return;
     const session = sessionRef.current;
     if (typeof session !== "string" || session === "") return;
     try {
@@ -15266,6 +15408,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     const Cesium = cesiumRef.current;
     const viewer = viewerRef.current;
     if (!Cesium || !viewer || snapshot === null) return;
+    restoringRef.current = true;
     setRestoringScene(snapshot.layers.length > 0);
     try {
       if (snapshot.view !== null) {
@@ -15335,6 +15478,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
         }
       }
     } finally {
+      restoringRef.current = false;
       setRestoringScene(false);
       sceneDirtyRef.current = false;
     }
@@ -15468,6 +15612,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     layer.visible = visible;
     layer.tileset.show = visible;
     syncLayers();
+    saveSceneSnapshot(true);
     return layer;
   }
   function toggleLayer(id) {
@@ -15543,6 +15688,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     } catch {
     }
     syncLayers();
+    saveSceneSnapshot(true);
     return layer;
   }
   function collectStats() {
@@ -16407,6 +16553,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
           if (!removeAgentOverlay(agentOverlayRef.current, viewerRef.current, kind, index)) return;
           syncAgentOverlayCount();
           markSceneDirty();
+          saveSceneSnapshot(true);
         },
         onShowSceneDetails: sceneDetails.open
       },
@@ -16445,6 +16592,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
           const removed = removeAgentOverlayRows(agentOverlayRef.current, viewerRef.current, rows);
           syncAgentOverlayCount();
           markSceneDirty();
+          saveSceneSnapshot(true);
           return removed + (manual ? 1 : 0);
         },
         onAskAgent: askAgent,

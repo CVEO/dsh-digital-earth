@@ -412,10 +412,12 @@ import { cachedElevationRange } from './elevation-range.js'
   float w3 = sin(dot(position, vec2(3.1, 1.8)) + time * 1.13);
   float detail = (w1 * 0.5 + w2 * 0.3 + w3 * 0.2) * (u_amplitude / (1.0 + u_amplitude)) * 3.0;
   // fwidth(position) is metres per pixel: the 50-100 m waves fade out between 5 and
-  // 40 m/px so a close-up view loses the texture instead of shimmering.
+  // 40 m/px so a close-up view loses the texture instead of shimmering, while a
+  // near-field octave (~10 m waves) fades in at street/building scale.
   float footprint = max(length(fwidth(position)), 0.01);
   float fade = 1.0 - smoothstep(5.0, 40.0, footprint);
-  float ripple = detail * fade;
+  float fine = (sin(dot(position * 6.5, vec2(1.35, -0.95)) - time * 1.35) * 0.6 + sin(dot(position * 6.5, vec2(-1.1, 1.45)) + time * 1.05) * 0.4) * (u_amplitude / (1.0 + u_amplitude)) * 1.35 * (1.0 - smoothstep(0.08, 0.45, footprint));
+  float ripple = detail * fade + fine;
   // The default amplitude (1) must already read as moving water, not a flat tint:
   // crest swings across most of the ramp and a stronger glint marks the wave tops.
   float crest = clamp(0.5 + ripple * 0.5, 0.0, 1.0);
