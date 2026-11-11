@@ -36,6 +36,8 @@ export function LayersMap({
   onFlyAgentOverlay,
   onImportVector,
   onPickLocalTiles,
+  swipeState,
+  onOverlaySwipe,
 }) {
   const [adding, setAdding] = React.useState(false)
   const [draft, setDraft] = React.useState({ type: 'wms', name: '', url: '', layers: '', opacity: 0.7 })
@@ -167,6 +169,21 @@ export function LayersMap({
               },
               h(EyeIcon, { size: 15, off: overlay.visible === false }),
             ),
+            onOverlaySwipe
+              ? h(
+                  'button',
+                  {
+                    type: 'button',
+                    className: `mv-icon-btn${swipeState?.kind === 'raster' && swipeState?.id === overlay.id ? ' on' : ''}`,
+                    disabled: overlay.visible === false,
+                    title: t('swipe.toggle'),
+                    'aria-label': t('swipe.toggle'),
+                    'aria-pressed': Boolean(swipeState?.kind === 'raster' && swipeState?.id === overlay.id),
+                    onClick: () => onOverlaySwipe(overlay.id),
+                  },
+                  '◧',
+                )
+              : null,
             h('button', { type: 'button', className: 'mv-icon-btn', title: t('layers.overlayDown'), 'aria-label': t('layers.overlayDown'), disabled: index === 0, onClick: () => onOverlayMove(overlay.id, -1) }, '↑'),
             h('button', { type: 'button', className: 'mv-icon-btn', title: t('layers.overlayUp'), 'aria-label': t('layers.overlayUp'), disabled: index === overlays.length - 1, onClick: () => onOverlayMove(overlay.id, 1) }, '↓'),
             h('button', { type: 'button', className: 'mv-icon-btn', title: t('layers.overlayRemove'), 'aria-label': t('layers.overlayRemove'), onClick: () => onOverlayRemove(overlay.id) }, '✕'),

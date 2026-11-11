@@ -5,7 +5,7 @@
  */
 import { dirname } from 'node:path'
 import { INSPECT_FETCH_TIMEOUT_MS, MAX_INSPECT_TILESETS } from '../constants.js'
-import { INSPECT_FORBIDDEN_MESSAGE, INSPECT_SUPPORTED_EXTENSIONS, InspectError, MAX_GLB_CONTENT_CHECKS, inspectAllowedLocalPath, inspectBoundingVolume, inspectDeepContents, inspectDocTiles, inspectExternalLoadIssueCode, inspectFetchRemote, inspectGlbHeaderLocal, inspectGlbHeaderRemote, inspectIssue, inspectLocalPath, inspectParseJson, inspectReadLocalJson, inspectRemaining, inspectSourceLabel, normalizeInspectRuntime } from './fetch.js'
+import { INSPECT_FORBIDDEN_MESSAGE, INSPECT_SUPPORTED_EXTENSIONS, InspectError, MAX_GLB_CONTENT_CHECKS, inspectAllowedLocalPath, inspectBoundingVolume, inspectDeepContents, inspectDocTiles, inspectExternalLoadIssueCode, inspectFetchRemote, inspectGlbHeaderLocal, inspectGlbHeaderRemote, inspectHasEcefPlacement, inspectIssue, inspectLocalPath, inspectParseJson, inspectReadLocalJson, inspectRemaining, inspectSourceLabel, normalizeInspectRuntime } from './fetch.js'
 import { blockedHost } from '../paths.js'
 import { isPlainObject } from '../sanitize.js'
 import { scrubToken } from '../session.js'
@@ -55,6 +55,8 @@ async function detectContentKinds(state, allowedDirs, deadline) {
       state.kinds.gaussianSplatGlb += 1
       state.gaussianSplatSource = state.gaussianSplatSource ?? 'content'
       if (extensions.some((value) => value.startsWith('KHR_gaussian_splatting_compression_spz'))) state.kinds.spz = true
+    } else {
+      state.kinds.meshGlb += 1
     }
   }
 }
@@ -168,7 +170,10 @@ export async function analyzeTileset(source, options = {}) {
   if (hasSplatExtension) state.gaussianSplatSource = state.gaussianSplatSource ?? 'tileset'
   state.kinds.spz = state.spzCount > 0 || state.kinds.spz === true
   state.kinds.gaussianSplatting = hasSplatExtension || state.kinds.gaussianSplatGlb > 0 || state.kinds.spz
-  state.kinds.meshGlb = Math.max(0, state.kinds.glb - state.kinds.gaussianSplatGlb)
+  if (state.contentChecked === 0 && !hasSplatExtension) {
+    state.kinds.meshGlb = state.kinds.glb
+  }
+  state.kinds.uninspectedGlb = Math.max(0, state.kinds.glb - state.contentChecked)
   if (state.kinds.gaussianSplatting) {
     inspectIssue(
       state.issues,
@@ -199,7 +204,7 @@ export async function analyzeTileset(source, options = {}) {
   const rootGeometricError = inspectRootGeometricError(rootDoc)
   const rootTransform = Array.isArray(rootDoc?.root?.transform) && rootDoc.root.transform.length === 16
   const rootHasRegion = rootBoundingVolume?.type === 'region'
-  const rootHasWorldPlacement = rootTransform || rootHasRegion
+  const rootHasWorldPlacement = rootTransform || rootHasRegion || inspectHasEcefPlacement(rootDoc?.root) || state.treeHasWorldPlacement === true
   if (rootDoc !== null && !rootHasWorldPlacement) {
     inspectIssue(
       state.issues,
@@ -286,7 +291,8 @@ function inspectRootDocument(doc, label, state) {
     // served bytes differ from the bytes on disk.
     const hasTransform = Array.isArray(root.transform) && root.transform.length === 16
     const hasRegion = isPlainObject(root.boundingVolume) && root.boundingVolume.region !== undefined
-    if (!hasTransform && !hasRegion) {
+    const hasEcefOrChild = inspectHasEcefPlacement(root) || (Array.isArray(root.children) && root.children.some((child) => inspectHasEcefPlacement(child)))
+    if (!hasTransform && !hasRegion && !hasEcefOrChild) {
       inspectIssue(
         state.issues,
         'error',

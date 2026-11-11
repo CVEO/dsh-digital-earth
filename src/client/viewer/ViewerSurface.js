@@ -54,6 +54,7 @@ import { LoadingGlobe } from '../ui/loading-globe.js'
 import { SelectionOverlay } from '../ui/selection-overlay.js'
 import { VectorCard } from '../ui/vector-card.js'
 import { useTour } from '../ui/tour-bar.js'
+import { useSwipe } from '../ui/swipe-bar.js'
 import { useSceneDetails } from '../ui/scene-details.js'
 import { useWorkbenchWiring } from '../ui/use-workbench.js'
 import { createLocalDirectoryWiring, formatScanFailure } from '../ui/workbench-wiring.js'
@@ -2388,6 +2389,15 @@ const h = React.createElement
         },
         pickLocalTiles,
       })
+      const swipe = useSwipe({
+        t,
+        showToast,
+        layers,
+        overlays: sources?.rasterOverlays ?? [],
+        getCesium: () => cesiumRef.current,
+        getViewer: () => viewerRef.current,
+        getOverlayLayers: () => overlayLayersRef.current,
+      })
 
       return h(
         'div',
@@ -2610,6 +2620,7 @@ const h = React.createElement
           },
         }),
         tour.element,
+        swipe.element,
         sceneDetails.element,
         h(RightStack, {
           t,
@@ -2659,6 +2670,9 @@ const h = React.createElement
               saveSceneSnapshot(true)
             },
             onShowSceneDetails: sceneDetails.open,
+            swipeState: swipe.state,
+            onSwipeLayer: swipe.toggle3d,
+            onOverlaySwipe: swipe.toggleRaster,
           },
           toolsPanel: {
             tool,

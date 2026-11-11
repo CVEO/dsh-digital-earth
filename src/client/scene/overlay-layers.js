@@ -242,6 +242,11 @@ export function createOverlayLayers({ Cesium, viewer, providerFactory, onError =
       return entries.size
     },
 
+    /** Underlying Cesium ImageryLayer for a source id (used by swipe comparison). */
+    getLayer(id) {
+      return entries.get(id)?.layer ?? null
+    },
+
     /** Remove every layer and forget the stack (viewer teardown). */
     dispose() {
       return enqueue(() => {

@@ -45,7 +45,15 @@ const INSPECT_CONTENT_KINDS = {
   spz: 'spz',
 }
 
-export const INSPECT_SUPPORTED_EXTENSIONS = new Set(['KHR_gaussian_splatting'])
+export const INSPECT_SUPPORTED_EXTENSIONS = new Set([
+  'KHR_gaussian_splatting',
+  'KHR_gaussian_splatting_compression_spz_2',
+  '3DTILES_content_gltf',
+  '3DTILES_implicit_tiling',
+  '3DTILES_metadata',
+  '3DTILES_multiple_contents',
+  '3DTILES_bounding_volume_S2',
+])
 
 export function inspectSourceLabel(source) {
   if (source.kind === 'remote') {
@@ -252,6 +260,20 @@ export function inspectBoundingVolume(value) {
   return { type: key, center: key === 'region' ? null : numbers.slice(0, 3), region: key === 'region' ? numbers.slice() : null }
 }
 
+export function inspectHasEcefPlacement(tile) {
+  if (!isPlainObject(tile)) return false
+  if (Array.isArray(tile.transform) && tile.transform.length === 16) return true
+  const bv = inspectBoundingVolume(tile.boundingVolume)
+  if (!bv) return false
+  if (bv.type === 'region') return true
+  if (Array.isArray(bv.center) && bv.center.length === 3) {
+    const dist = Math.hypot(bv.center[0], bv.center[1], bv.center[2])
+    if (dist >= 6_000_000 && dist <= 6_800_000) return true
+    if (bv.type === 'sphere' && Number(tile.boundingVolume?.sphere?.[3]) >= 6_000_000) return true
+  }
+  return false
+}
+
 function inspectContentRefs(tile) {
   const refs = []
   const push = (content) => {
@@ -263,6 +285,9 @@ function inspectContentRefs(tile) {
     for (const content of tile.content) push(content)
   } else {
     push(tile.content)
+  }
+  if (Array.isArray(tile.contents)) {
+    for (const content of tile.contents) push(content)
   }
   return refs
 }
@@ -289,6 +314,7 @@ export function inspectDocTiles(doc, docLabel, state, base, isRootDoc) {
     const { tile, path, depth } = stack.pop()
     state.tiles += 1
     if (depth > docDepth) docDepth = depth
+    if (inspectHasEcefPlacement(tile)) state.treeHasWorldPlacement = true
     const children = Array.isArray(tile.children) ? tile.children.filter((item) => isPlainObject(item)) : []
     const refs = inspectContentRefs(tile)
     if (Array.isArray(tile.children) && children.length === 0 && refs.length === 0) {

@@ -52,6 +52,9 @@ export function LayersPanel({
   recentDirs,
   onOpenRecent,
   onShowSceneDetails,
+  swipeState,
+  onSwipeLayer,
+  onOverlaySwipe,
 }) {
   // The 3D data tab is primary: the 3D Tiles the user loaded is why the panel is
   // open, while the map holds the supporting 2D sources.
@@ -123,6 +126,8 @@ export function LayersPanel({
           shaderActive,
           onEditLayerShader,
           onShowSceneDetails,
+          swipeState,
+          onSwipeLayer,
           onOpenLocal,
           onOpenUrl,
           recentDirs,
@@ -145,6 +150,8 @@ export function LayersPanel({
           onFlyAgentOverlay,
           onImportVector,
           onPickLocalTiles,
+          swipeState,
+          onOverlaySwipe,
         })),
     h(ResizeHandle, {
       axis: 'height',

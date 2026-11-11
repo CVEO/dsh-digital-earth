@@ -12,10 +12,11 @@ import { shaderEntrySummary } from './workbench-wiring.js'
 
 const h = React.createElement
 
-export function LayerRow({ t, layer, shader, onFlyLayer, onToggleLayer, onInspectLayer, onRemoveLayer, onEditShader, onShowSceneDetails }) {
+export function LayerRow({ t, layer, shader, swipeActive, onFlyLayer, onToggleLayer, onInspectLayer, onRemoveLayer, onEditShader, onShowSceneDetails, onSwipeLayer }) {
   const stop = (event) => event.stopPropagation()
   const summary = shader ? shaderEntrySummary(t, shader) : ''
   const openShader = () => onEditShader(layer, shader)
+  const is3dgs = layer.kind === '3dgs'
   return h(
     'div',
     {
@@ -82,6 +83,24 @@ export function LayerRow({ t, layer, shader, onFlyLayer, onToggleLayer, onInspec
       h(EyeIcon, { size: 15, off: !layer.visible }),
     ),
     h('button', { type: 'button', className: 'mv-icon-btn', title: t('sceneDetails.openLayerHint'), 'aria-label': t('sceneDetails.openLayerHint'), onClick: (event) => { stop(event); onShowSceneDetails?.(layer.id) } }, 'ⓘ'),
+    onSwipeLayer
+      ? h(
+          'button',
+          {
+            type: 'button',
+            className: `mv-icon-btn${swipeActive ? ' on' : ''}`,
+            disabled: is3dgs || !layer.visible,
+            title: is3dgs ? t('swipe.unsupported3dgs') : t('swipe.toggle'),
+            'aria-label': is3dgs ? t('swipe.unsupported3dgs') : t('swipe.toggle'),
+            'aria-pressed': Boolean(swipeActive),
+            onClick: (event) => {
+              stop(event)
+              onSwipeLayer(layer.id)
+            },
+          },
+          '◧',
+        )
+      : null,
     h('button', { type: 'button', className: 'mv-icon-btn', title: t('btn.flyTo'), 'aria-label': t('btn.flyTo'), onClick: (event) => { stop(event); onFlyLayer(layer.id) } }, '⌖'),
     h('button', { type: 'button', className: 'mv-icon-btn', title: t('btn.health'), 'aria-label': t('btn.health'), onClick: (event) => { stop(event); onInspectLayer(layer.id) } }, '⌕'),
     h('button', { type: 'button', className: 'mv-icon-btn', title: t('btn.delete'), 'aria-label': t('btn.delete'), onClick: (event) => { stop(event); onRemoveLayer(layer.id) } }, '✕'),

@@ -490,6 +490,19 @@ import { SELECTION_QUESTION_CSS } from './selection-question-css.js'
 .mv-root .mv-sel-conf.high{color:light-dark(#167344,#76e0a4)}
 .mv-root .mv-sel-conf.medium{color:light-dark(#8a5208,#f0be65)}
 .mv-root .mv-sel-conf.low{color:light-dark(#b52b35,#ffadb4)}
+.mv-swipe{position:absolute;inset:0;pointer-events:none;z-index:18;overflow:hidden}
+.mv-swipe-line{position:absolute;background:var(--mv-accent,#38bdf8);box-shadow:0 0 8px rgba(0,0,0,.45)}
+.mv-swipe.vert .mv-swipe-line{top:0;bottom:0;width:2px;transform:translateX(-1px)}
+.mv-swipe.horiz .mv-swipe-line{left:0;right:0;height:2px;transform:translateY(-1px)}
+.mv-swipe-handle{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:32px;height:32px;border-radius:999px;background:var(--mv-surface-hi,rgba(15,23,42,.92));border:1.5px solid var(--mv-accent,#38bdf8);color:var(--mv-fg,#f8fafc);display:flex;align-items:center;justify-content:center;font-size:13px;cursor:ew-resize;pointer-events:auto;user-select:none;box-shadow:0 2px 10px rgba(0,0,0,.4)}
+.mv-swipe.horiz .mv-swipe-handle{cursor:ns-resize}
+.mv-swipe-badge{position:absolute;padding:3px 8px;border-radius:999px;background:rgba(15,23,42,.82);color:#f8fafc;font-size:11px;white-space:nowrap;max-width:160px;overflow:hidden;text-overflow:ellipsis;border:.5px solid rgba(255,255,255,.18)}
+.mv-swipe.vert .mv-swipe-badge.with{top:56px;right:10px}
+.mv-swipe.vert .mv-swipe-badge.without{top:56px;left:10px}
+.mv-swipe.horiz .mv-swipe-badge.with{left:16px;bottom:10px}
+.mv-swipe.horiz .mv-swipe-badge.without{left:16px;top:10px}
+.mv-swipe-bar{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:999px;pointer-events:auto;font-size:12px}
+.mv-swipe-title{max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 4px}
 ${VECTOR_CSS}
 ${VISION_CSS}
 ${SELECTION_QUESTION_CSS}

@@ -47,7 +47,7 @@ __export(index_exports, {
 module.exports = __toCommonJS(index_exports);
 
 // src/client/plugin.js
-var import_react34 = __toESM(require("react"), 1);
+var import_react35 = __toESM(require("react"), 1);
 
 // src/client/messages-v17.js
 var V17_MESSAGES = {
@@ -530,6 +530,18 @@ var V18_MESSAGES = {
     "sun.zone.sceneLabel": "画面经度 {lon}° · UTC{offset}",
     "sun.zone.browserLabel": "{zone}（浏览器）· UTC{offset}",
     "sun.dateLocal": "日期（所选时区）",
+    "swipe.title": "卷帘对比",
+    "swipe.toggle": "卷帘对比（左右/上下分屏对比该图层）",
+    "swipe.dragHint": "拖动分割线对比图层有无（方向键可微调，Esc 退出）",
+    "swipe.withLayer": "有：{name}",
+    "swipe.withoutLayer": "无：{name}",
+    "swipe.vertical": "左右分割",
+    "swipe.horizontal": "上下分割",
+    "swipe.switchAxis": "切换水平/垂直分割方向",
+    "swipe.rasterVerticalOnly": "2D 栅格叠加层仅支持左右分割对比",
+    "swipe.exit": "退出对比",
+    "swipe.unsupported3dgs": "3DGS 图层不支持裁剪卷帘对比（仅支持网格 3D Tiles 与 2D 栅格图层）",
+    "swipe.unavailable": "请先显示该图层后再开启卷帘对比",
     ...SELECTION_MESSAGES.zh
   },
   en: {
@@ -659,6 +671,18 @@ var V18_MESSAGES = {
     "sun.zone.sceneLabel": "Scene lon {lon}° · UTC{offset}",
     "sun.zone.browserLabel": "{zone} (browser) · UTC{offset}",
     "sun.dateLocal": "Date (selected zone)",
+    "swipe.title": "Swipe compare",
+    "swipe.toggle": "Swipe comparison (compare with / without this layer)",
+    "swipe.dragHint": "Drag the divider to compare with and without this layer (arrow keys adjust, Esc exits)",
+    "swipe.withLayer": "With: {name}",
+    "swipe.withoutLayer": "Without: {name}",
+    "swipe.vertical": "Vertical split",
+    "swipe.horizontal": "Horizontal split",
+    "swipe.switchAxis": "Switch between vertical and horizontal split",
+    "swipe.rasterVerticalOnly": "2D raster overlays only support vertical split comparison",
+    "swipe.exit": "Exit swipe",
+    "swipe.unsupported3dgs": "3DGS layers do not support clipping swipe comparison (mesh 3D Tiles and 2D raster only)",
+    "swipe.unavailable": "Make sure the layer is visible before starting swipe comparison",
     ...SELECTION_MESSAGES.en
   }
 };
@@ -1636,10 +1660,10 @@ var EyeIcon = ({ size = 15, off = false }) => h(
 );
 
 // src/client/ui/layout.js
-var import_react32 = __toESM(require("react"), 1);
+var import_react33 = __toESM(require("react"), 1);
 
 // src/client/viewer/ViewerSurface.js
-var import_react31 = __toESM(require("react"), 1);
+var import_react32 = __toESM(require("react"), 1);
 
 // src/client/analysis/height-service.js
 var CACHE_DEGREES = 1e-7;
@@ -3574,6 +3598,10 @@ function createOverlayLayers({ Cesium, viewer, providerFactory, onError = () => 
     /** Number of live overlays. */
     size() {
       return entries.size;
+    },
+    /** Underlying Cesium ImageryLayer for a source id (used by swipe comparison). */
+    getLayer(id) {
+      return entries.get(id)?.layer ?? null;
     },
     /** Remove every layer and forget the stack (viewer teardown). */
     dispose() {
@@ -9632,6 +9660,19 @@ var CSS = `
 .mv-root .mv-sel-conf.high{color:light-dark(#167344,#76e0a4)}
 .mv-root .mv-sel-conf.medium{color:light-dark(#8a5208,#f0be65)}
 .mv-root .mv-sel-conf.low{color:light-dark(#b52b35,#ffadb4)}
+.mv-swipe{position:absolute;inset:0;pointer-events:none;z-index:18;overflow:hidden}
+.mv-swipe-line{position:absolute;background:var(--mv-accent,#38bdf8);box-shadow:0 0 8px rgba(0,0,0,.45)}
+.mv-swipe.vert .mv-swipe-line{top:0;bottom:0;width:2px;transform:translateX(-1px)}
+.mv-swipe.horiz .mv-swipe-line{left:0;right:0;height:2px;transform:translateY(-1px)}
+.mv-swipe-handle{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:32px;height:32px;border-radius:999px;background:var(--mv-surface-hi,rgba(15,23,42,.92));border:1.5px solid var(--mv-accent,#38bdf8);color:var(--mv-fg,#f8fafc);display:flex;align-items:center;justify-content:center;font-size:13px;cursor:ew-resize;pointer-events:auto;user-select:none;box-shadow:0 2px 10px rgba(0,0,0,.4)}
+.mv-swipe.horiz .mv-swipe-handle{cursor:ns-resize}
+.mv-swipe-badge{position:absolute;padding:3px 8px;border-radius:999px;background:rgba(15,23,42,.82);color:#f8fafc;font-size:11px;white-space:nowrap;max-width:160px;overflow:hidden;text-overflow:ellipsis;border:.5px solid rgba(255,255,255,.18)}
+.mv-swipe.vert .mv-swipe-badge.with{top:56px;right:10px}
+.mv-swipe.vert .mv-swipe-badge.without{top:56px;left:10px}
+.mv-swipe.horiz .mv-swipe-badge.with{left:16px;bottom:10px}
+.mv-swipe.horiz .mv-swipe-badge.without{left:16px;top:10px}
+.mv-swipe-bar{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:999px;pointer-events:auto;font-size:12px}
+.mv-swipe-title{max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 4px}
 ${VECTOR_CSS}
 ${VISION_CSS}
 ${SELECTION_QUESTION_CSS}
@@ -11119,10 +11160,11 @@ function createLocalDirectoryWiring({
 
 // src/client/ui/layer-row.js
 var h12 = import_react14.default.createElement;
-function LayerRow({ t: t2, layer, shader, onFlyLayer, onToggleLayer, onInspectLayer, onRemoveLayer, onEditShader, onShowSceneDetails }) {
+function LayerRow({ t: t2, layer, shader, swipeActive, onFlyLayer, onToggleLayer, onInspectLayer, onRemoveLayer, onEditShader, onShowSceneDetails, onSwipeLayer }) {
   const stop = (event) => event.stopPropagation();
   const summary = shader ? shaderEntrySummary(t2, shader) : "";
   const openShader = () => onEditShader(layer, shader);
+  const is3dgs = layer.kind === "3dgs";
   return h12(
     "div",
     {
@@ -11186,6 +11228,22 @@ function LayerRow({ t: t2, layer, shader, onFlyLayer, onToggleLayer, onInspectLa
       stop(event);
       onShowSceneDetails?.(layer.id);
     } }, "ⓘ"),
+    onSwipeLayer ? h12(
+      "button",
+      {
+        type: "button",
+        className: `mv-icon-btn${swipeActive ? " on" : ""}`,
+        disabled: is3dgs || !layer.visible,
+        title: is3dgs ? t2("swipe.unsupported3dgs") : t2("swipe.toggle"),
+        "aria-label": is3dgs ? t2("swipe.unsupported3dgs") : t2("swipe.toggle"),
+        "aria-pressed": Boolean(swipeActive),
+        onClick: (event) => {
+          stop(event);
+          onSwipeLayer(layer.id);
+        }
+      },
+      "◧"
+    ) : null,
     h12("button", { type: "button", className: "mv-icon-btn", title: t2("btn.flyTo"), "aria-label": t2("btn.flyTo"), onClick: (event) => {
       stop(event);
       onFlyLayer(layer.id);
@@ -11220,6 +11278,8 @@ function Layers3D({
   onRemoveLayer,
   onEditLayerShader,
   onShowSceneDetails,
+  swipeState,
+  onSwipeLayer,
   onOpenLocal,
   onOpenUrl,
   recentDirs,
@@ -11351,12 +11411,14 @@ function Layers3D({
         t: t2,
         layer,
         shader: shaderFor(layer),
+        swipeActive: swipeState?.kind === "3d" && swipeState?.id === layer.id,
         onFlyLayer,
         onToggleLayer,
         onInspectLayer,
         onRemoveLayer,
         onEditShader: onEditLayerShader,
-        onShowSceneDetails
+        onShowSceneDetails,
+        onSwipeLayer
       })
     )
   );
@@ -11939,7 +12001,9 @@ function LayersMap({
   onRemoveAgentOverlay,
   onFlyAgentOverlay,
   onImportVector,
-  onPickLocalTiles
+  onPickLocalTiles,
+  swipeState,
+  onOverlaySwipe
 }) {
   const [adding, setAdding] = import_react16.default.useState(false);
   const [draft, setDraft] = import_react16.default.useState({ type: "wms", name: "", url: "", layers: "", opacity: 0.7 });
@@ -12060,6 +12124,19 @@ function LayersMap({
           },
           h14(EyeIcon, { size: 15, off: overlay.visible === false })
         ),
+        onOverlaySwipe ? h14(
+          "button",
+          {
+            type: "button",
+            className: `mv-icon-btn${swipeState?.kind === "raster" && swipeState?.id === overlay.id ? " on" : ""}`,
+            disabled: overlay.visible === false,
+            title: t2("swipe.toggle"),
+            "aria-label": t2("swipe.toggle"),
+            "aria-pressed": Boolean(swipeState?.kind === "raster" && swipeState?.id === overlay.id),
+            onClick: () => onOverlaySwipe(overlay.id)
+          },
+          "◧"
+        ) : null,
         h14("button", { type: "button", className: "mv-icon-btn", title: t2("layers.overlayDown"), "aria-label": t2("layers.overlayDown"), disabled: index === 0, onClick: () => onOverlayMove(overlay.id, -1) }, "↑"),
         h14("button", { type: "button", className: "mv-icon-btn", title: t2("layers.overlayUp"), "aria-label": t2("layers.overlayUp"), disabled: index === overlays.length - 1, onClick: () => onOverlayMove(overlay.id, 1) }, "↓"),
         h14("button", { type: "button", className: "mv-icon-btn", title: t2("layers.overlayRemove"), "aria-label": t2("layers.overlayRemove"), onClick: () => onOverlayRemove(overlay.id) }, "✕")
@@ -12164,7 +12241,10 @@ function LayersPanel({
   onOpenUrl,
   recentDirs,
   onOpenRecent,
-  onShowSceneDetails
+  onShowSceneDetails,
+  swipeState,
+  onSwipeLayer,
+  onOverlaySwipe
 }) {
   const [tab, setTab] = import_react17.default.useState("3d");
   const resize = usePanelResize({ storageKey: "layers", initialHeight: null, minHeight: 120, maxHeight: 620 });
@@ -12232,6 +12312,8 @@ function LayersPanel({
       shaderActive,
       onEditLayerShader,
       onShowSceneDetails,
+      swipeState,
+      onSwipeLayer,
       onOpenLocal,
       onOpenUrl,
       recentDirs,
@@ -12252,7 +12334,9 @@ function LayersPanel({
       onRemoveAgentOverlay,
       onFlyAgentOverlay,
       onImportVector,
-      onPickLocalTiles
+      onPickLocalTiles,
+      swipeState,
+      onOverlaySwipe
     })),
     h15(ResizeHandle, {
       axis: "height",
@@ -14400,14 +14484,450 @@ function useTour({ t: t2, showToast, getCurrentView, onFlyView, onFinish }) {
   return { start, stop, element };
 }
 
-// src/client/ui/scene-details.js
+// src/client/ui/swipe-bar.js
 var import_react29 = __toESM(require("react"), 1);
+
+// src/client/scene/swipe.js
+var clampSwipeRatio = (value) => {
+  const num = Number(value);
+  if (!Number.isFinite(num)) return 0.5;
+  return Math.min(0.95, Math.max(0.05, num));
+};
+function computeSwipeClipPlane(Cesium, camera, tileset, { ratio = 0.5, orientation = "vertical", canvas = null } = {}) {
+  if (!Cesium || !camera || !tileset) return null;
+  const eye = camera.positionWC ?? camera.position;
+  const dir = camera.directionWC ?? camera.direction;
+  const right = camera.rightWC ?? camera.right;
+  const up = camera.upWC ?? camera.up;
+  if (!eye || !dir || !right || !up) return null;
+  const r = clampSwipeRatio(ratio);
+  const aspect = Number(camera.frustum?.aspectRatio) || (canvas?.clientWidth > 0 && canvas?.clientHeight > 0 ? canvas.clientWidth / canvas.clientHeight : 1);
+  const fov = Number(camera.frustum?.fov) || Math.PI / 3;
+  const fovy = Number(camera.frustum?.fovy) || (aspect > 1 ? 2 * Math.atan(Math.tan(fov / 2) / aspect) : fov);
+  const tanHalfY = Math.tan(fovy / 2);
+  const tanHalfX = tanHalfY * aspect;
+  let nx = 0;
+  let ny = 0;
+  let nz = 0;
+  if (orientation === "horizontal") {
+    const v = 1 - 2 * r;
+    const k = v * tanHalfY;
+    nx = up.x - k * dir.x;
+    ny = up.y - k * dir.y;
+    nz = up.z - k * dir.z;
+  } else {
+    const u = 2 * r - 1;
+    const k = u * tanHalfX;
+    nx = -right.x + k * dir.x;
+    ny = -right.y + k * dir.y;
+    nz = -right.z + k * dir.z;
+  }
+  const len = Math.hypot(nx, ny, nz);
+  if (!(len > 0)) return null;
+  nx /= len;
+  ny /= len;
+  nz /= len;
+  const normal = new Cesium.Cartesian3(nx, ny, nz);
+  const distance = -(nx * eye.x + ny * eye.y + nz * eye.z);
+  const plane = { normal, distance, pointOnPlane: eye, keep: orientation === "horizontal" ? "top" : "left" };
+  const center = tileset.boundingSphere?.center ?? null;
+  return analysisLocalizeClipPlane(Cesium, plane, tileset, center);
+}
+function createSwipeSession({ getCesium, getViewer, getLayers, getOverlayLayers } = {}) {
+  let active = null;
+  function requestRender() {
+    try {
+      getViewer?.()?.scene?.requestRender?.();
+    } catch {
+    }
+  }
+  function update3dPlane() {
+    if (!active || active.kind !== "3d") return;
+    const Cesium = getCesium?.();
+    const viewer = getViewer?.();
+    if (!Cesium || !viewer?.camera || !active.tileset || !active.collection) return;
+    const localized = computeSwipeClipPlane(Cesium, viewer.camera, active.tileset, {
+      ratio: active.ratio,
+      orientation: active.orientation,
+      canvas: viewer.canvas ?? viewer.scene?.canvas ?? null
+    });
+    if (!localized) return;
+    const targetPlane = typeof active.collection.get === "function" ? active.collection.get(0) : active.plane;
+    if (targetPlane) {
+      if (targetPlane.normal && typeof targetPlane.normal === "object") {
+        targetPlane.normal.x = localized.normal.x;
+        targetPlane.normal.y = localized.normal.y;
+        targetPlane.normal.z = localized.normal.z;
+      } else {
+        targetPlane.normal = localized.normal;
+      }
+      targetPlane.distance = localized.distance;
+    }
+  }
+  function stop() {
+    if (!active) return false;
+    const current = active;
+    active = null;
+    const viewer = getViewer?.();
+    const Cesium = getCesium?.();
+    if (current.kind === "3d") {
+      if (current.removePreRender) {
+        try {
+          current.removePreRender();
+        } catch {
+        }
+      }
+      if (current.tileset) {
+        try {
+          current.tileset.clippingPlanes = current.previousClipping ?? void 0;
+        } catch {
+        }
+      }
+    } else if (current.kind === "raster") {
+      if (current.imageryLayer) {
+        try {
+          current.imageryLayer.splitDirection = current.previousSplitDirection ?? (Cesium?.SplitDirection?.NONE ?? 0);
+        } catch {
+        }
+      }
+      if (viewer?.scene) {
+        try {
+          viewer.scene.splitPosition = current.previousSplitPosition ?? 0.5;
+        } catch {
+        }
+      }
+    }
+    requestRender();
+    return true;
+  }
+  function start3d(layerId, { ratio = 0.5, orientation = "vertical" } = {}) {
+    const Cesium = getCesium?.();
+    const viewer = getViewer?.();
+    const layers = getLayers?.() ?? [];
+    const layer = layers.find((item) => item.id === layerId);
+    if (!Cesium || !viewer || !layer || layer.visible === false || !layer.tileset) {
+      return { ok: false, reason: "unavailable" };
+    }
+    if (layer.kind === "3dgs") {
+      return { ok: false, reason: "unsupported_3dgs" };
+    }
+    if (typeof Cesium.ClippingPlaneCollection !== "function" || typeof Cesium.ClippingPlane !== "function") {
+      return { ok: false, reason: "unavailable" };
+    }
+    stop();
+    const r = clampSwipeRatio(ratio);
+    const orient = orientation === "horizontal" ? "horizontal" : "vertical";
+    const initial = computeSwipeClipPlane(Cesium, viewer.camera, layer.tileset, {
+      ratio: r,
+      orientation: orient,
+      canvas: viewer.canvas ?? viewer.scene?.canvas ?? null
+    });
+    if (!initial) return { ok: false, reason: "unavailable" };
+    const previousClipping = layer.tileset.clippingPlanes ?? null;
+    const clipPlane = new Cesium.ClippingPlane(initial.normal, initial.distance);
+    const collection = new Cesium.ClippingPlaneCollection({
+      planes: [clipPlane],
+      enabled: true,
+      edgeWidth: 1.5,
+      edgeColor: Cesium.Color?.fromCssColorString?.("#38bdf8") ?? void 0
+    });
+    try {
+      layer.tileset.clippingPlanes = collection;
+    } catch {
+      return { ok: false, reason: "unavailable" };
+    }
+    const onPreRender = () => update3dPlane();
+    let removePreRender = null;
+    if (typeof viewer.scene?.preRender?.addEventListener === "function") {
+      removePreRender = viewer.scene.preRender.addEventListener(onPreRender);
+    }
+    active = {
+      kind: "3d",
+      id: layer.id,
+      name: layer.name,
+      ratio: r,
+      orientation: orient,
+      tileset: layer.tileset,
+      collection,
+      plane: clipPlane,
+      previousClipping,
+      removePreRender: typeof removePreRender === "function" ? removePreRender : () => viewer.scene?.preRender?.removeEventListener?.(onPreRender)
+    };
+    requestRender();
+    return { ok: true, state: getState() };
+  }
+  function startRaster(overlayId, { ratio = 0.5 } = {}) {
+    const Cesium = getCesium?.();
+    const viewer = getViewer?.();
+    const overlayLayers = getOverlayLayers?.();
+    const list = overlayLayers?.list?.() ?? [];
+    const meta = list.find((item) => item.id === overlayId);
+    const imageryLayer = overlayLayers?.getLayer?.(overlayId) ?? null;
+    if (!viewer?.scene || !meta || meta.visible === false || !imageryLayer) {
+      return { ok: false, reason: "unavailable" };
+    }
+    stop();
+    const r = clampSwipeRatio(ratio);
+    const previousSplitDirection = imageryLayer.splitDirection;
+    const previousSplitPosition = viewer.scene.splitPosition;
+    imageryLayer.splitDirection = Cesium?.SplitDirection?.LEFT ?? -1;
+    viewer.scene.splitPosition = r;
+    active = {
+      kind: "raster",
+      id: meta.id,
+      name: meta.name,
+      ratio: r,
+      orientation: "vertical",
+      imageryLayer,
+      previousSplitDirection,
+      previousSplitPosition
+    };
+    requestRender();
+    return { ok: true, state: getState() };
+  }
+  function setRatio(nextRatio) {
+    if (!active) return null;
+    active.ratio = clampSwipeRatio(nextRatio);
+    if (active.kind === "3d") {
+      update3dPlane();
+    } else if (active.kind === "raster") {
+      const viewer = getViewer?.();
+      if (viewer?.scene) viewer.scene.splitPosition = active.ratio;
+    }
+    requestRender();
+    return getState();
+  }
+  function setOrientation(nextOrientation) {
+    if (!active) return null;
+    if (active.kind === "raster") return getState();
+    active.orientation = nextOrientation === "horizontal" ? "horizontal" : "vertical";
+    update3dPlane();
+    requestRender();
+    return getState();
+  }
+  function reconcile({ layers = [], overlays = [] } = {}) {
+    if (!active) return false;
+    if (active.kind === "3d") {
+      const found = layers.find((item) => item.id === active.id);
+      if (!found || found.visible === false || !found.tileset) {
+        stop();
+        return true;
+      }
+    } else if (active.kind === "raster") {
+      const found = overlays.find((item) => item.id === active.id);
+      if (!found || found.visible === false) {
+        stop();
+        return true;
+      }
+    }
+    return false;
+  }
+  function getState() {
+    if (!active) return null;
+    return {
+      kind: active.kind,
+      id: active.id,
+      name: active.name,
+      ratio: active.ratio,
+      orientation: active.orientation
+    };
+  }
+  return {
+    start3d,
+    startRaster,
+    setRatio,
+    setOrientation,
+    reconcile,
+    stop,
+    getState
+  };
+}
+
+// src/client/ui/swipe-bar.js
 var h26 = import_react29.default.createElement;
-function useSceneDetails({ t: t2, stats, config, layers, analysis, shaderActive }) {
-  const [focus, setFocus] = import_react29.default.useState(null);
-  const open = import_react29.default.useCallback((layerId) => setFocus({ layerId: typeof layerId === "string" ? layerId : null }), []);
-  const close = import_react29.default.useCallback(() => setFocus(null), []);
+function useSwipe({ t: t2, showToast, layers, overlays, getCesium, getViewer, getOverlayLayers }) {
+  const [state, setState] = import_react29.default.useState(null);
+  const containerRef = import_react29.default.useRef(null);
+  const draggingRef = import_react29.default.useRef(false);
+  const depsRef = import_react29.default.useRef({});
+  depsRef.current = { t: t2, showToast, layers, overlays, getCesium, getViewer, getOverlayLayers };
+  const sessionRef = import_react29.default.useRef(null);
+  if (!sessionRef.current) {
+    sessionRef.current = createSwipeSession({
+      getCesium: () => depsRef.current.getCesium?.(),
+      getViewer: () => depsRef.current.getViewer?.(),
+      getLayers: () => depsRef.current.layers ?? [],
+      getOverlayLayers: () => depsRef.current.getOverlayLayers?.()
+    });
+  }
+  const stop = import_react29.default.useCallback(() => {
+    sessionRef.current?.stop();
+    setState(null);
+  }, []);
+  const toggle3d = import_react29.default.useCallback((layerId) => {
+    const current = sessionRef.current?.getState();
+    if (current && current.kind === "3d" && current.id === layerId) {
+      stop();
+      return false;
+    }
+    const res = sessionRef.current.start3d(layerId);
+    if (!res.ok) {
+      const api = depsRef.current;
+      const msgKey = res.reason === "unsupported_3dgs" ? "swipe.unsupported3dgs" : "swipe.unavailable";
+      api.showToast?.(api.t?.(msgKey) ?? msgKey);
+      return false;
+    }
+    setState(res.state);
+    return true;
+  }, [stop]);
+  const toggleRaster = import_react29.default.useCallback((overlayId) => {
+    const current = sessionRef.current?.getState();
+    if (current && current.kind === "raster" && current.id === overlayId) {
+      stop();
+      return false;
+    }
+    const res = sessionRef.current.startRaster(overlayId);
+    if (!res.ok) {
+      const api = depsRef.current;
+      api.showToast?.(api.t?.("swipe.unavailable") ?? "swipe.unavailable");
+      return false;
+    }
+    setState(res.state);
+    return true;
+  }, [stop]);
   import_react29.default.useEffect(() => {
+    if (!state) return;
+    if (sessionRef.current?.reconcile({ layers: layers ?? [], overlays: overlays ?? [] })) {
+      setState(null);
+    }
+  }, [state, layers, overlays]);
+  import_react29.default.useEffect(() => {
+    if (!state || typeof document === "undefined") return void 0;
+    const onKeyDown = (event) => {
+      if (event.key !== "Escape") return;
+      event.stopPropagation();
+      stop();
+    };
+    document.addEventListener("keydown", onKeyDown, true);
+    return () => document.removeEventListener("keydown", onKeyDown, true);
+  }, [state, stop]);
+  import_react29.default.useEffect(() => () => sessionRef.current?.stop(), []);
+  const updateRatioFromClient = (clientX, clientY) => {
+    const current = sessionRef.current?.getState();
+    if (!current) return;
+    const viewer = depsRef.current.getViewer?.();
+    const box = containerRef.current?.getBoundingClientRect?.() ?? viewer?.canvas?.getBoundingClientRect?.() ?? { left: 0, top: 0, width: viewer?.canvas?.clientWidth || 1, height: viewer?.canvas?.clientHeight || 1 };
+    const raw = current.orientation === "horizontal" ? (clientY - box.top) / Math.max(1, box.height) : (clientX - box.left) / Math.max(1, box.width);
+    const next = sessionRef.current.setRatio(clampSwipeRatio(raw));
+    if (next) setState(next);
+  };
+  const onHandlePointerDown = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    draggingRef.current = true;
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+  };
+  const onHandlePointerMove = (event) => {
+    if (!draggingRef.current) return;
+    event.preventDefault();
+    updateRatioFromClient(event.clientX, event.clientY);
+  };
+  const onHandlePointerUp = (event) => {
+    if (!draggingRef.current) return;
+    draggingRef.current = false;
+    event.currentTarget.releasePointerCapture?.(event.pointerId);
+  };
+  const onHandleKeyDown = (event) => {
+    const current = sessionRef.current?.getState();
+    if (!current) return;
+    const delta = event.key === "ArrowLeft" || event.key === "ArrowUp" ? -0.05 : event.key === "ArrowRight" || event.key === "ArrowDown" ? 0.05 : 0;
+    if (delta === 0) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const next = sessionRef.current.setRatio(current.ratio + delta);
+    if (next) setState(next);
+  };
+  const toggleOrientation = () => {
+    const current = sessionRef.current?.getState();
+    if (!current || current.kind === "raster") return;
+    const next = sessionRef.current.setOrientation(current.orientation === "horizontal" ? "vertical" : "horizontal");
+    if (next) setState(next);
+  };
+  const horiz = state?.orientation === "horizontal";
+  const pct = state ? `${(state.ratio * 100).toFixed(1)}%` : "50%";
+  const element = state ? h26(
+    "div",
+    {
+      key: "swipe",
+      ref: containerRef,
+      className: `mv-swipe ${horiz ? "horiz" : "vert"}`,
+      "data-capture-hide": "1"
+    },
+    h26(
+      "div",
+      {
+        className: "mv-swipe-line",
+        style: horiz ? { top: pct } : { left: pct }
+      },
+      h26("span", { className: "mv-swipe-badge with" }, t2("swipe.withLayer", { name: state.name })),
+      h26(
+        "div",
+        {
+          className: "mv-swipe-handle",
+          role: "slider",
+          tabIndex: 0,
+          title: t2("swipe.dragHint"),
+          "aria-label": t2("swipe.dragHint"),
+          "aria-valuemin": 5,
+          "aria-valuemax": 95,
+          "aria-valuenow": Math.round(state.ratio * 100),
+          onPointerDown: onHandlePointerDown,
+          onPointerMove: onHandlePointerMove,
+          onPointerUp: onHandlePointerUp,
+          onPointerCancel: onHandlePointerUp,
+          onKeyDown: onHandleKeyDown
+        },
+        horiz ? "═" : "║"
+      ),
+      h26("span", { className: "mv-swipe-badge without" }, t2("swipe.withoutLayer", { name: state.name }))
+    ),
+    h26(
+      "div",
+      { className: "mv-swipe-bar mv-glass" },
+      h26("span", { className: "mv-swipe-title" }, `${t2("swipe.title")} · ${state.name}`),
+      h26(
+        "button",
+        {
+          type: "button",
+          className: "mv-cta",
+          disabled: state.kind === "raster",
+          title: state.kind === "raster" ? t2("swipe.rasterVerticalOnly") : t2("swipe.switchAxis"),
+          onClick: toggleOrientation
+        },
+        horiz ? t2("swipe.vertical") : t2("swipe.horizontal")
+      ),
+      h26(
+        "button",
+        {
+          type: "button",
+          className: "mv-cta",
+          onClick: stop
+        },
+        t2("swipe.exit")
+      )
+    )
+  ) : null;
+  return { state, toggle3d, toggleRaster, stop, element };
+}
+
+// src/client/ui/scene-details.js
+var import_react30 = __toESM(require("react"), 1);
+var h27 = import_react30.default.createElement;
+function useSceneDetails({ t: t2, stats, config, layers, analysis, shaderActive }) {
+  const [focus, setFocus] = import_react30.default.useState(null);
+  const open = import_react30.default.useCallback((layerId) => setFocus({ layerId: typeof layerId === "string" ? layerId : null }), []);
+  const close = import_react30.default.useCallback(() => setFocus(null), []);
+  import_react30.default.useEffect(() => {
     if (!focus) return void 0;
     const onKey = (event) => {
       if (event.key === "Escape") setFocus(null);
@@ -14417,23 +14937,23 @@ function useSceneDetails({ t: t2, stats, config, layers, analysis, shaderActive 
   }, [focus]);
   const focusedLayer = focus?.layerId ? (layers ?? []).find((layer) => layer.id === focus.layerId) ?? null : null;
   const sourceName = (list, id) => (Array.isArray(list) ? list.find((source) => source.id === id)?.name : null) ?? t2("sceneDetails.none");
-  const row = (label, value) => h26("div", { className: "mv-sd-row" }, h26("span", null, label), h26("b", null, value));
+  const row = (label, value) => h27("div", { className: "mv-sd-row" }, h27("span", null, label), h27("b", null, value));
   const layerRows = (stats?.layers ?? (layers ?? []).map((layer) => ({ id: layer.id, name: layer.name }))).filter(
     (layer) => focusedLayer === null || layer.id === focusedLayer.id
   );
-  const element = focus ? h26(
+  const element = focus ? h27(
     "div",
     { className: "mv-scene-details mv-glass", role: "dialog", "aria-label": focusedLayer ? t2("sceneDetails.layerTitle") : t2("sceneDetails.title") },
-    h26(
+    h27(
       "header",
       null,
-      h26("b", null, focusedLayer ? t2("sceneDetails.layerTitle") : t2("sceneDetails.title")),
-      h26("button", { type: "button", className: "mv-icon-btn", title: t2("btn.close"), "aria-label": t2("btn.close"), onClick: close }, "✕")
+      h27("b", null, focusedLayer ? t2("sceneDetails.layerTitle") : t2("sceneDetails.title")),
+      h27("button", { type: "button", className: "mv-icon-btn", title: t2("btn.close"), "aria-label": t2("btn.close"), onClick: close }, "✕")
     ),
-    h26(
+    h27(
       "div",
       { className: "mv-sd-section" },
-      h26("div", { className: "mv-sd-title" }, t2("sceneDetails.scene")),
+      h27("div", { className: "mv-sd-title" }, t2("sceneDetails.scene")),
       row(t2("hud.camera"), stats?.height ?? "—"),
       row(t2("hud.heading"), `${stats?.heading ?? "—"} / ${stats?.pitch ?? "—"}`),
       row(t2("layers.imagery"), sourceName(config?.imagery, config?.settings?.imagery)),
@@ -14444,17 +14964,17 @@ function useSceneDetails({ t: t2, stats, config, layers, analysis, shaderActive 
       ),
       row(t2("sceneDetails.shader"), shaderActive?.length ? String(shaderActive.length) : t2("sceneDetails.none"))
     ),
-    focusedLayer?.georefIssue ? h26("p", { className: "mv-sd-warn" }, `⚠ ${t2("layers.georefWarning")}`) : null,
-    h26(
+    focusedLayer?.georefIssue ? h27("p", { className: "mv-sd-warn" }, `⚠ ${t2("layers.georefWarning")}`) : null,
+    h27(
       "div",
       { className: "mv-sd-section" },
-      h26("div", { className: "mv-sd-title" }, focusedLayer ? t2("sceneDetails.layer") : t2("sceneDetails.layers")),
-      layerRows.length === 0 ? h26("div", { className: "mv-sd-empty" }, t2("sceneDetails.none")) : layerRows.map(
-        (layer) => h26(
+      h27("div", { className: "mv-sd-title" }, focusedLayer ? t2("sceneDetails.layer") : t2("sceneDetails.layers")),
+      layerRows.length === 0 ? h27("div", { className: "mv-sd-empty" }, t2("sceneDetails.none")) : layerRows.map(
+        (layer) => h27(
           "div",
           { key: layer.id, className: "mv-sd-layer" },
-          h26("b", null, layer.name ?? "—"),
-          h26(
+          h27("b", null, layer.name ?? "—"),
+          h27(
             "span",
             null,
             `${t2("hud.tiles")} ${formatCount(layer.tiles)} · ${t2("hud.pending")} ${formatCount(layer.pending)} · ${t2("hud.triangles")} ${formatCount(layer.triangles)} · ${t2("hud.cache")} ${formatBytes(layer.memory)}`
@@ -14467,13 +14987,13 @@ function useSceneDetails({ t: t2, stats, config, layers, analysis, shaderActive 
 }
 
 // src/client/ui/use-workbench.js
-var import_react30 = __toESM(require("react"), 1);
+var import_react31 = __toESM(require("react"), 1);
 function useWorkbenchWiring(deps) {
-  const latest = import_react30.default.useRef(deps);
+  const latest = import_react31.default.useRef(deps);
   latest.current = deps;
-  const service2 = import_react30.default.useRef(null);
+  const service2 = import_react31.default.useRef(null);
   if (!service2.current) service2.current = createWorkbenchWiring(Object.fromEntries(Object.keys(deps).map((key) => [key, (...args) => latest.current[key]?.(...args)])));
-  import_react30.default.useEffect(() => {
+  import_react31.default.useEffect(() => {
     service2.current.activate();
     return () => service2.current.dispose();
   }, []);
@@ -14501,69 +15021,69 @@ function runVectorImport(state, viewer, draw) {
 }
 
 // src/client/viewer/ViewerSurface.js
-var h27 = import_react31.default.createElement;
+var h28 = import_react32.default.createElement;
 function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
   const fallbackT = useTranslation();
   const t2 = typeof injectedT === "function" ? injectedT : fallbackT;
   const environmentDark = useEnvironmentDark();
-  const rootRef = import_react31.default.useRef(null);
-  const globeRef = import_react31.default.useRef(null);
-  const creditRef = import_react31.default.useRef(null);
-  const menuRef = import_react31.default.useRef(null);
-  const viewerRef = import_react31.default.useRef(null);
-  const cesiumRef = import_react31.default.useRef(null);
-  const metaRef = import_react31.default.useRef(null);
-  const layersRef = import_react31.default.useRef([]);
-  const toolRef = import_react31.default.useRef("identify");
-  const profileToolRef = import_react31.default.useRef(null);
-  const measureRef = import_react31.default.useRef({ points: [], entities: [] });
-  const vectorRef = import_react31.default.useRef(null);
-  const handlerRef = import_react31.default.useRef(null);
-  const imageryRef = import_react31.default.useRef(null);
-  const overlayLayersRef = import_react31.default.useRef(null);
-  const sourcesRef = import_react31.default.useRef(null);
-  const toastTimer = import_react31.default.useRef(0);
-  const captureReadoutRef = import_react31.default.useRef(null);
-  const commandChainRef = import_react31.default.useRef(Promise.resolve());
-  const commandRef = import_react31.default.useRef(null);
-  const selectionApiRef = import_react31.default.useRef(null);
-  const accessRef = import_react31.default.useRef(null);
-  const analysisRef = import_react31.default.useRef({ operation: null, layerId: null, layerName: null, entities: [], restore: null });
-  const analysisCommandRef = import_react31.default.useRef(null);
-  const shaderEntriesRef = import_react31.default.useRef(/* @__PURE__ */ new Map());
-  const shaderTickRef = import_react31.default.useRef(null);
-  const readyGateRef = import_react31.default.useRef({ ready: false, error: null, waiters: [] });
-  const healthSeqRef = import_react31.default.useRef(0);
-  const sessionRef = import_react31.default.useRef(sessionId);
+  const rootRef = import_react32.default.useRef(null);
+  const globeRef = import_react32.default.useRef(null);
+  const creditRef = import_react32.default.useRef(null);
+  const menuRef = import_react32.default.useRef(null);
+  const viewerRef = import_react32.default.useRef(null);
+  const cesiumRef = import_react32.default.useRef(null);
+  const metaRef = import_react32.default.useRef(null);
+  const layersRef = import_react32.default.useRef([]);
+  const toolRef = import_react32.default.useRef("identify");
+  const profileToolRef = import_react32.default.useRef(null);
+  const measureRef = import_react32.default.useRef({ points: [], entities: [] });
+  const vectorRef = import_react32.default.useRef(null);
+  const handlerRef = import_react32.default.useRef(null);
+  const imageryRef = import_react32.default.useRef(null);
+  const overlayLayersRef = import_react32.default.useRef(null);
+  const sourcesRef = import_react32.default.useRef(null);
+  const toastTimer = import_react32.default.useRef(0);
+  const captureReadoutRef = import_react32.default.useRef(null);
+  const commandChainRef = import_react32.default.useRef(Promise.resolve());
+  const commandRef = import_react32.default.useRef(null);
+  const selectionApiRef = import_react32.default.useRef(null);
+  const accessRef = import_react32.default.useRef(null);
+  const analysisRef = import_react32.default.useRef({ operation: null, layerId: null, layerName: null, entities: [], restore: null });
+  const analysisCommandRef = import_react32.default.useRef(null);
+  const shaderEntriesRef = import_react32.default.useRef(/* @__PURE__ */ new Map());
+  const shaderTickRef = import_react32.default.useRef(null);
+  const readyGateRef = import_react32.default.useRef({ ready: false, error: null, waiters: [] });
+  const healthSeqRef = import_react32.default.useRef(0);
+  const sessionRef = import_react32.default.useRef(sessionId);
   sessionRef.current = sessionId;
-  const [phase, setPhase] = import_react31.default.useState("loading");
-  const [error, setError] = import_react31.default.useState("");
-  const [layers, setLayers] = import_react31.default.useState([]);
-  const [sources, setSources] = import_react31.default.useState(null);
-  const [defaults, setDefaults] = import_react31.default.useState(null);
-  const [tool, setTool] = import_react31.default.useState("identify");
-  const [fps, setFps] = import_react31.default.useState(null);
-  const [fullscreen, setFullscreen] = import_react31.default.useState(false);
-  const [stats, setStats] = import_react31.default.useState(null);
-  const [pickInfo, setPickInfo] = import_react31.default.useState(null);
-  const [measureInfo, setMeasureInfo] = import_react31.default.useState(null);
-  const [vectorSelection, setVectorSelection] = import_react31.default.useState(null);
-  const [scan, setScan] = import_react31.default.useState(null);
-  const [emptyDismissed, setEmptyDismissed] = import_react31.default.useState(false);
-  const [restoringScene, setRestoringScene] = import_react31.default.useState(false);
-  const [urlBar, setUrlBar] = import_react31.default.useState(false);
-  const [urlInput, setUrlInput] = import_react31.default.useState("");
-  const [busy, setBusy] = import_react31.default.useState("");
-  const [toast, setToast] = import_react31.default.useState("");
-  const [openMenu, setOpenMenu] = import_react31.default.useState(null);
-  const [recentDirs, setRecentDirs] = import_react31.default.useState([]);
-  const [accessRequest, setAccessRequest] = import_react31.default.useState(null);
-  const [accessBusy, setAccessBusy] = import_react31.default.useState(false);
-  const [analysis, setAnalysis] = import_react31.default.useState(null);
-  const [shaderOpen, setShaderOpen] = import_react31.default.useState(false);
-  const [showTools, setShowTools] = import_react31.default.useState(true);
-  const [shaderActive, setShaderActive] = import_react31.default.useState([]);
-  const [shaderForm, setShaderForm] = import_react31.default.useState({
+  const [phase, setPhase] = import_react32.default.useState("loading");
+  const [error, setError] = import_react32.default.useState("");
+  const [layers, setLayers] = import_react32.default.useState([]);
+  const [sources, setSources] = import_react32.default.useState(null);
+  const [defaults, setDefaults] = import_react32.default.useState(null);
+  const [tool, setTool] = import_react32.default.useState("identify");
+  const [fps, setFps] = import_react32.default.useState(null);
+  const [fullscreen, setFullscreen] = import_react32.default.useState(false);
+  const [stats, setStats] = import_react32.default.useState(null);
+  const [pickInfo, setPickInfo] = import_react32.default.useState(null);
+  const [measureInfo, setMeasureInfo] = import_react32.default.useState(null);
+  const [vectorSelection, setVectorSelection] = import_react32.default.useState(null);
+  const [scan, setScan] = import_react32.default.useState(null);
+  const [emptyDismissed, setEmptyDismissed] = import_react32.default.useState(false);
+  const [restoringScene, setRestoringScene] = import_react32.default.useState(false);
+  const [urlBar, setUrlBar] = import_react32.default.useState(false);
+  const [urlInput, setUrlInput] = import_react32.default.useState("");
+  const [busy, setBusy] = import_react32.default.useState("");
+  const [toast, setToast] = import_react32.default.useState("");
+  const [openMenu, setOpenMenu] = import_react32.default.useState(null);
+  const [recentDirs, setRecentDirs] = import_react32.default.useState([]);
+  const [accessRequest, setAccessRequest] = import_react32.default.useState(null);
+  const [accessBusy, setAccessBusy] = import_react32.default.useState(false);
+  const [analysis, setAnalysis] = import_react32.default.useState(null);
+  const [shaderOpen, setShaderOpen] = import_react32.default.useState(false);
+  const [showTools, setShowTools] = import_react32.default.useState(true);
+  const [shaderActive, setShaderActive] = import_react32.default.useState([]);
+  const [shaderForm, setShaderForm] = import_react32.default.useState({
     layerId: "",
     preset: "height-false-color",
     minHeight: "",
@@ -14575,15 +15095,15 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     waterHeight: "",
     depthMax: ""
   });
-  const [settingsOpen, setSettingsOpen] = import_react31.default.useState(false);
-  const [health, setHealth] = import_react31.default.useState(null);
-  const [terrainBusy, setTerrainBusy] = import_react31.default.useState(false);
-  const [terrainError, setTerrainError] = import_react31.default.useState("");
-  const [imageryBusy, setImageryBusy] = import_react31.default.useState(false);
-  const [meta, setMeta] = import_react31.default.useState(null);
-  const [bridgeOn, setBridgeOn] = import_react31.default.useState(false);
-  const [bridgeReload, setBridgeReload] = import_react31.default.useState(false);
-  const [bridgeEpoch, setBridgeEpoch] = import_react31.default.useState(0);
+  const [settingsOpen, setSettingsOpen] = import_react32.default.useState(false);
+  const [health, setHealth] = import_react32.default.useState(null);
+  const [terrainBusy, setTerrainBusy] = import_react32.default.useState(false);
+  const [terrainError, setTerrainError] = import_react32.default.useState("");
+  const [imageryBusy, setImageryBusy] = import_react32.default.useState(false);
+  const [meta, setMeta] = import_react32.default.useState(null);
+  const [bridgeOn, setBridgeOn] = import_react32.default.useState(false);
+  const [bridgeReload, setBridgeReload] = import_react32.default.useState(false);
+  const [bridgeEpoch, setBridgeEpoch] = import_react32.default.useState(0);
   const themeMode = sources?.settings?.theme ?? "auto";
   const resolvedDark = themeMode === "auto" ? environmentDark : themeMode === "dark";
   const showLayers = sources?.settings?.showLayers !== false;
@@ -14640,8 +15160,8 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     setLayers(layersRef.current.map((layer) => ({ id: layer.id, name: layer.name, visible: layer.visible, georefIssue: layer.georefIssue })));
     markSceneDirty();
   };
-  const saveChainRef = import_react31.default.useRef(Promise.resolve());
-  const saveSeqRef = import_react31.default.useRef(0);
+  const saveChainRef = import_react32.default.useRef(Promise.resolve());
+  const saveSeqRef = import_react32.default.useRef(0);
   const commitSources = (next, notify) => {
     const previous = sourcesRef.current;
     sourcesRef.current = next;
@@ -14814,8 +15334,8 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
       )
     ]);
   }
-  const imagerySeqRef = import_react31.default.useRef(0);
-  const terrainSeqRef = import_react31.default.useRef(0);
+  const imagerySeqRef = import_react32.default.useRef(0);
+  const terrainSeqRef = import_react32.default.useRef(0);
   async function applyImagery(id, notify) {
     const Cesium = cesiumRef.current;
     const viewer = viewerRef.current;
@@ -15060,7 +15580,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     descriptor.summary = state.entities.map((entity) => entity.label?.text?.getValue?.()).filter(Boolean).join(" · ");
     vectorRef.current.refresh(descriptor);
   }
-  const agentOverlayRef = import_react31.default.useRef({
+  const agentOverlayRef = import_react32.default.useRef({
     draw: [],
     measure: [],
     drawnFeatures: 0,
@@ -15071,7 +15591,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     // Entities per command (WeakMap keeps snapshots JSON-clean).
     entityGroups: /* @__PURE__ */ new WeakMap()
   });
-  const [agentOverlayCount, setAgentOverlayCount] = import_react31.default.useState(0);
+  const [agentOverlayCount, setAgentOverlayCount] = import_react32.default.useState(0);
   const syncAgentOverlayCount = () => {
     const state = agentOverlayRef.current;
     setAgentOverlayCount(state.draw.length + state.measure.length);
@@ -15459,9 +15979,9 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
   const shaderActiveList = () => shaderEngine.activeList();
   const detachShaderForLayer = (id, restore) => shaderEngine.detachForLayer(id, restore);
   const releaseShaderTick = () => shaderEngine.releaseTick();
-  const sceneDirtyRef = import_react31.default.useRef(false);
-  const restoringRef = import_react31.default.useRef(false);
-  const sceneRestoredRef = import_react31.default.useRef(false);
+  const sceneDirtyRef = import_react32.default.useRef(false);
+  const restoringRef = import_react32.default.useRef(false);
+  const sceneRestoredRef = import_react32.default.useRef(false);
   const hostSceneStore = createHostSceneStore({
     getMeta: () => metaRef.current,
     loadMeta,
@@ -15671,7 +16191,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     drawVectorLabels: (context, width, height) => vectorRef.current?.drawLabels(context, width, height)
   });
   const { renderSnapshot, screenshot, captureScene } = capture;
-  const selectionController = import_react31.default.useMemo(() => createSelectionController({
+  const selectionController = import_react32.default.useMemo(() => createSelectionController({
     getViewer: () => viewerRef.current,
     getCesium: () => cesiumRef.current,
     getLayers: () => layersRef.current,
@@ -15971,7 +16491,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
   });
   const runCommand = (action, args = {}, session = null) => commandBridge.runCommand(action, args, session);
   commandRef.current = runCommand;
-  import_react31.default.useEffect(() => {
+  import_react32.default.useEffect(() => {
     if (!sessionId || !meta?.bridgeUrl) return void 0;
     const bridgeSession = sessionId;
     const endpoint = `${meta.bridgeUrl}?token=${encodeURIComponent(meta.token)}&session=${encodeURIComponent(bridgeSession)}`;
@@ -16080,7 +16600,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
       }
     };
   }, [sessionId, meta, bridgeEpoch]);
-  import_react31.default.useEffect(
+  import_react32.default.useEffect(
     () => () => {
       const current = accessRef.current;
       if (!current) return;
@@ -16090,7 +16610,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     },
     []
   );
-  import_react31.default.useEffect(() => {
+  import_react32.default.useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
@@ -16218,7 +16738,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
       layersRef.current = [];
     };
   }, []);
-  import_react31.default.useEffect(() => {
+  import_react32.default.useEffect(() => {
     if (phase !== "ready" || sceneRestoredRef.current) return void 0;
     if (typeof sessionId !== "string" || sessionId === "") return void 0;
     sceneRestoredRef.current = true;
@@ -16232,7 +16752,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
       cancelled = true;
     };
   }, [phase, sessionId]);
-  import_react31.default.useEffect(() => {
+  import_react32.default.useEffect(() => {
     const timer = setInterval(() => {
       if (sceneDirtyRef.current) saveSceneSnapshot();
     }, 3e3);
@@ -16250,7 +16770,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
       document.removeEventListener("visibilitychange", onVisibility);
     };
   }, []);
-  import_react31.default.useEffect(() => {
+  import_react32.default.useEffect(() => {
     if (!openMenu) return void 0;
     const close = (event) => {
       if (!menuRef.current?.contains(event.target)) setOpenMenu(null);
@@ -16258,10 +16778,10 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     document.addEventListener("pointerdown", close, true);
     return () => document.removeEventListener("pointerdown", close, true);
   }, [openMenu]);
-  import_react31.default.useEffect(() => {
+  import_react32.default.useEffect(() => {
     if (openMenu === "data" || showLayers) refreshRecentDirs();
   }, [openMenu, showLayers, meta?.directoriesUrl]);
-  import_react31.default.useEffect(() => {
+  import_react32.default.useEffect(() => {
     if (phase !== "ready") return void 0;
     const element = globeRef.current;
     if (!element || typeof ResizeObserver === "undefined") return void 0;
@@ -16274,7 +16794,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     observer.observe(element);
     return () => observer.disconnect();
   }, [phase]);
-  import_react31.default.useEffect(() => {
+  import_react32.default.useEffect(() => {
     const onChange = () => {
       setFullscreen(document.fullscreenElement === rootRef.current);
       try {
@@ -16285,7 +16805,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     document.addEventListener("fullscreenchange", onChange);
     return () => document.removeEventListener("fullscreenchange", onChange);
   }, []);
-  import_react31.default.useEffect(() => {
+  import_react32.default.useEffect(() => {
     if (phase !== "ready") return void 0;
     const viewer = viewerRef.current;
     if (!viewer) return void 0;
@@ -16338,7 +16858,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
       canvas.removeEventListener("webglcontextrestored", onRestored);
     };
   }, [phase]);
-  import_react31.default.useEffect(() => {
+  import_react32.default.useEffect(() => {
     if (!scan) return void 0;
     const onKey = (event) => {
       if (event.key === "Escape") setScan(null);
@@ -16347,7 +16867,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     return () => document.removeEventListener("keydown", onKey);
   }, [scan]);
   const measureMode = tool === "distance" || tool === "area" || tool === "height" || tool === "profile";
-  import_react31.default.useEffect(() => {
+  import_react32.default.useEffect(() => {
     if (!measureMode) return void 0;
     const onKey = (event) => {
       if (event.key === "Escape") finishMeasure();
@@ -16355,7 +16875,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [measureMode]);
-  import_react31.default.useEffect(() => {
+  import_react32.default.useEffect(() => {
     if (phase !== "ready") return void 0;
     let lastKey = "";
     const timer = setInterval(() => {
@@ -16367,7 +16887,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     }, 1e3);
     return () => clearInterval(timer);
   }, [phase]);
-  import_react31.default.useEffect(() => {
+  import_react32.default.useEffect(() => {
     const viewer = viewerRef.current;
     const Cesium = cesiumRef.current;
     if (phase !== "ready" || !viewer || !Cesium) return;
@@ -16376,12 +16896,12 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     if (viewer.scene.skyAtmosphere) viewer.scene.skyAtmosphere.show = resolvedDark;
     viewer.scene.requestRender?.();
   }, [phase, resolvedDark]);
-  const button = (label, onClick, active, extra, title) => h27(
+  const button = (label, onClick, active, extra, title) => h28(
     "button",
     { type: "button", className: `mv-btn${active ? " on" : ""}${extra ? ` ${extra}` : ""}`, onClick, title },
     label
   );
-  const iconButton = (icon, title, onClick, active) => h27(
+  const iconButton = (icon, title, onClick, active) => h28(
     "button",
     {
       type: "button",
@@ -16393,11 +16913,11 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     },
     icon
   );
-  const menu = (id, label, items, active) => h27(
+  const menu = (id, label, items, active) => h28(
     "div",
     { key: id, className: "mv-menu" },
     button(`${label} ▾`, () => setOpenMenu(openMenu === id ? null : id), active),
-    openMenu === id ? h27("div", { className: "mv-menu-panel mv-glass" }, items) : null
+    openMenu === id ? h28("div", { className: "mv-menu-panel mv-glass" }, items) : null
   );
   const status = busy || (phase === "loading" ? t2("panel.status.loading") : t2("panel.status.ready"));
   const hudLabels = {
@@ -16426,7 +16946,16 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     },
     pickLocalTiles
   });
-  return h27(
+  const swipe = useSwipe({
+    t: t2,
+    showToast,
+    layers,
+    overlays: sources?.rasterOverlays ?? [],
+    getCesium: () => cesiumRef.current,
+    getViewer: () => viewerRef.current,
+    getOverlayLayers: () => overlayLayersRef.current
+  });
+  return h28(
     "div",
     {
       ref: rootRef,
@@ -16452,42 +16981,42 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
         );
       }
     },
-    h27("style", { key: "css" }, CSS),
-    h27("div", { key: "globe", ref: globeRef, className: "mv-globe" }),
-    activeImagery?.credit ? h27("div", { key: "attr", className: "mv-attr" }, `${t2("credit.imagery")} © ${activeImagery.credit}`) : null,
-    h27("div", { key: "credits", ref: creditRef, className: "mv-credits" }),
-    h27(Compass, { key: "compass", getViewer: () => viewerRef.current, t: t2 }),
-    h27(
+    h28("style", { key: "css" }, CSS),
+    h28("div", { key: "globe", ref: globeRef, className: "mv-globe" }),
+    activeImagery?.credit ? h28("div", { key: "attr", className: "mv-attr" }, `${t2("credit.imagery")} © ${activeImagery.credit}`) : null,
+    h28("div", { key: "credits", ref: creditRef, className: "mv-credits" }),
+    h28(Compass, { key: "compass", getViewer: () => viewerRef.current, t: t2 }),
+    h28(
       "div",
       { key: "top", className: "mv-top" },
-      h27(
+      h28(
         "div",
         { className: "mv-brand mv-glass" },
-        h27(ViewerIcon, { size: 18 }),
-        h27("b", null, t2("panel.title")),
-        h27("span", null, status)
+        h28(ViewerIcon, { size: 18 }),
+        h28("b", null, t2("panel.title")),
+        h28("span", null, status)
       ),
-      h27(
+      h28(
         "div",
         { ref: menuRef, className: "mv-actions mv-glass" },
         menu(
           "data",
           t2("btn.data"),
           [
-            h27(MenuItem, { key: "local", onClick: pickLocal }, t2("btn.openLocal")),
-            recentDirs.length ? h27(
-              import_react31.default.Fragment,
+            h28(MenuItem, { key: "local", onClick: pickLocal }, t2("btn.openLocal")),
+            recentDirs.length ? h28(
+              import_react32.default.Fragment,
               { key: "recent" },
-              h27("span", { className: "mv-menu-label" }, t2("menu.recentDirs")),
+              h28("span", { className: "mv-menu-label" }, t2("menu.recentDirs")),
               ...recentDirs.map(
-                (entry) => h27(
+                (entry) => h28(
                   MenuItem,
                   { key: entry.dir, title: entry.dir, onClick: () => openRecentDirectory(entry.dir) },
-                  h27("span", { className: "ellipsis" }, entry.name)
+                  h28("span", { className: "ellipsis" }, entry.name)
                 )
               )
             ) : null,
-            agentOverlayCount > 0 ? h27(
+            agentOverlayCount > 0 ? h28(
               MenuItem,
               {
                 key: "clearAgent",
@@ -16499,7 +17028,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
               },
               t2("menu.clearAgent")
             ) : null,
-            h27(
+            h28(
               MenuItem,
               {
                 key: "url",
@@ -16510,7 +17039,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
               },
               t2("btn.openUrl")
             ),
-            h27(
+            h28(
               MenuItem,
               {
                 key: "report",
@@ -16526,8 +17055,8 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
               },
               t2("menu.report")
             ),
-            h27("i", { key: "sep", className: "mv-sep", style: { width: "auto", height: ".5px", margin: "4px 8px" } }),
-            h27(
+            h28("i", { key: "sep", className: "mv-sep", style: { width: "auto", height: ".5px", margin: "4px 8px" } }),
+            h28(
               MenuItem,
               {
                 key: "clear",
@@ -16542,8 +17071,8 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
             )
           ]
         ),
-        h27("i", { key: "s1", className: "mv-sep" }),
-        h27(ToolbarQuick, {
+        h28("i", { key: "s1", className: "mv-sep" }),
+        h28(ToolbarQuick, {
           t: t2,
           showLayers,
           showTools,
@@ -16552,13 +17081,13 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
           button
         }),
         iconButton(
-          h27(HudIcon),
+          h28(HudIcon),
           showHud ? t2("btn.hudHide") : t2("btn.hudShow"),
           () => updateSettings({ showHud: !showHud }),
           showHud
         ),
         iconButton(
-          h27(ShaderIcon),
+          h28(ShaderIcon),
           shaderOpen ? t2("btn.shaderHide") : t2("btn.shaderShow"),
           () => setShaderOpen((value) => !value),
           shaderOpen
@@ -16570,21 +17099,21 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
         // narrow panel the text labels were what wrapped the toolbar onto a
         // second row. The four dropdown menus keep their text labels because a
         // bare icon does not tell the user what the menu contains.
-        iconButton(h27(ScreenshotIcon), t2("btn.screenshot"), screenshot),
-        sessionId ? iconButton(h27(AskAgentIcon), t2("btn.askAgent"), askAgent) : null,
-        iconButton(h27(ResetIcon), t2("btn.reset"), resetView),
+        iconButton(h28(ScreenshotIcon), t2("btn.screenshot"), screenshot),
+        sessionId ? iconButton(h28(AskAgentIcon), t2("btn.askAgent"), askAgent) : null,
+        iconButton(h28(ResetIcon), t2("btn.reset"), resetView),
         // Only the main panel offers "open beside chat"; the docked tab is
         // already beside the conversation.
         docked ? null : button(t2("btn.beside"), openBeside),
         // Single fullscreen entry point for both mounts (DOM Fullscreen API).
         // Expanding the sidebar is DSH's own feature, so the duplicate
         // "maximize sidebar" action is gone.
-        iconButton(h27(FullscreenIcon), fullscreen ? t2("btn.fullscreenExit") : t2("btn.fullscreenTitle"), toggleDomFullscreen, fullscreen),
-        h27("i", { key: "s3", className: "mv-sep" }),
-        h27(ToolbarMenus, { t: t2, themeMode, resolvedDark, openMenu, setOpenMenu, setTheme, setSettingsOpen })
+        iconButton(h28(FullscreenIcon), fullscreen ? t2("btn.fullscreenExit") : t2("btn.fullscreenTitle"), toggleDomFullscreen, fullscreen),
+        h28("i", { key: "s3", className: "mv-sep" }),
+        h28(ToolbarMenus, { t: t2, themeMode, resolvedDark, openMenu, setOpenMenu, setTheme, setSettingsOpen })
       )
     ),
-    urlBar ? h27(UrlBar, {
+    urlBar ? h28(UrlBar, {
       key: "urlbar",
       value: urlInput,
       placeholder: t2("urlbar.placeholder"),
@@ -16593,7 +17122,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
       onSubmit: submitUrl,
       onClose: () => setUrlBar(false)
     }) : null,
-    shaderOpen ? h27(ShaderWorkbench, {
+    shaderOpen ? h28(ShaderWorkbench, {
       key: "shader",
       t: t2,
       layers,
@@ -16616,7 +17145,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
       onResetAll: workbench.resetAll
     }) : null,
     // v1.7 P0: 指认 card + corner brackets (panel-only) and the tour bar.
-    h27(SelectionOverlay, {
+    h28(SelectionOverlay, {
       key: "selection",
       active: tool === "identify",
       apiRef: selectionApiRef,
@@ -16639,8 +17168,9 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
       }
     }),
     tour.element,
+    swipe.element,
     sceneDetails.element,
-    h27(RightStack, {
+    h28(RightStack, {
       t: t2,
       analysis,
       onCloseAnalysis: () => clearAnalysis(),
@@ -16686,7 +17216,10 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
           markSceneDirty();
           saveSceneSnapshot(true);
         },
-        onShowSceneDetails: sceneDetails.open
+        onShowSceneDetails: sceneDetails.open,
+        swipeState: swipe.state,
+        onSwipeLayer: swipe.toggle3d,
+        onOverlaySwipe: swipe.toggleRaster
       },
       toolsPanel: {
         tool,
@@ -16735,13 +17268,13 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
         }
       }
     }),
-    phase === "ready" && layers.length === 0 && !emptyDismissed && !restoringScene ? h27(
+    phase === "ready" && layers.length === 0 && !emptyDismissed && !restoringScene ? h28(
       "div",
       { key: "empty", className: "mv-overlay" },
-      h27(
+      h28(
         "div",
         { className: "mv-empty" },
-        h27(
+        h28(
           "button",
           {
             type: "button",
@@ -16752,35 +17285,35 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
           },
           "✕"
         ),
-        h27(ViewerIcon, { size: 30 }),
-        h27("h2", null, t2("panel.empty.title")),
-        h27("p", null, t2("panel.empty.body")),
-        h27(
+        h28(ViewerIcon, { size: 30 }),
+        h28("h2", null, t2("panel.empty.title")),
+        h28("p", null, t2("panel.empty.body")),
+        h28(
           "div",
           { className: "buttons" },
-          h27("button", { type: "button", className: "mv-cta primary", onClick: pickLocal }, t2("panel.empty.local")),
-          h27("button", { type: "button", className: "mv-cta", onClick: () => setUrlBar(true) }, t2("panel.empty.url"))
+          h28("button", { type: "button", className: "mv-cta primary", onClick: pickLocal }, t2("panel.empty.local")),
+          h28("button", { type: "button", className: "mv-cta", onClick: () => setUrlBar(true) }, t2("panel.empty.url"))
         )
       )
     ) : null,
-    phase === "loading" ? h27("div", { key: "loading", className: "mv-overlay dim", role: "status" }, h27("div", { className: "mv-empty" }, h27(LoadingGlobe), h27("p", null, t2("panel.status.loading")))) : null,
-    phase === "error" ? h27(
+    phase === "loading" ? h28("div", { key: "loading", className: "mv-overlay dim", role: "status" }, h28("div", { className: "mv-empty" }, h28(LoadingGlobe), h28("p", null, t2("panel.status.loading")))) : null,
+    phase === "error" ? h28(
       "div",
       { key: "error", className: "mv-overlay dim" },
-      h27(
+      h28(
         "div",
         { className: "mv-empty" },
-        h27("h2", null, "⚠"),
-        h27("p", null, error),
-        h27("div", { className: "buttons" }, h27("button", { type: "button", className: "mv-cta", onClick: () => location.reload() }, t2("btn.retry")))
+        h28("h2", null, "⚠"),
+        h28("p", null, error),
+        h28("div", { className: "buttons" }, h28("button", { type: "button", className: "mv-cta", onClick: () => location.reload() }, t2("btn.retry")))
       )
     ) : null,
-    stats && showHud ? h27(StatusHud, { key: "hud", fps, stats, viewerRef, cesiumRef, labels: hudLabels, readoutRef: captureReadoutRef, detailed: hudDetailed }) : null,
-    measureInfo ? h27(
+    stats && showHud ? h28(StatusHud, { key: "hud", fps, stats, viewerRef, cesiumRef, labels: hudLabels, readoutRef: captureReadoutRef, detailed: hudDetailed }) : null,
+    measureInfo ? h28(
       "div",
       { key: "measure", className: "mv-measure mv-glass" },
-      h27("span", { className: "text" }, measureInfo.text),
-      h27(
+      h28("span", { className: "text" }, measureInfo.text),
+      h28(
         "button",
         {
           type: "button",
@@ -16792,32 +17325,32 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
         measureMode ? t2("measure.end") : t2("tool.clear")
       )
     ) : null,
-    h27(VectorCard, { key: "vector-selection", selection: vectorSelection, onClose: () => vectorRef.current?.clearSelection(), t: t2 }),
-    pickInfo && !vectorSelection ? h27(
+    h28(VectorCard, { key: "vector-selection", selection: vectorSelection, onClose: () => vectorRef.current?.clearSelection(), t: t2 }),
+    pickInfo && !vectorSelection ? h28(
       "div",
       { key: "pick", className: "mv-pick mv-glass" },
-      h27(
+      h28(
         "header",
         null,
-        h27("span", null, pickInfo.title),
-        h27(
+        h28("span", null, pickInfo.title),
+        h28(
           "button",
           { type: "button", className: "mv-icon-btn", onClick: () => setPickInfo(null), title: t2("btn.close") },
           "✕"
         )
       ),
-      h27(
+      h28(
         "table",
         null,
-        h27(
+        h28(
           "tbody",
           null,
-          pickInfo.rows.map(([name, value]) => h27("tr", { key: name }, h27("td", null, name), h27("td", null, value)))
+          pickInfo.rows.map(([name, value]) => h28("tr", { key: name }, h28("td", null, name), h28("td", null, value)))
         )
       )
     ) : null,
-    toast ? h27("div", { key: "toast", className: "mv-toast" }, toast) : null,
-    scan ? h27(ScanDialog, {
+    toast ? h28("div", { key: "toast", className: "mv-toast" }, toast) : null,
+    scan ? h28(ScanDialog, {
       key: "scan",
       scan,
       t: t2,
@@ -16827,7 +17360,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
         path: joinLocalPath(scan.dir, item.name)
       })
     }) : null,
-    health ? h27(HealthDialog, {
+    health ? h28(HealthDialog, {
       key: "health",
       state: health,
       messages: t2,
@@ -16843,7 +17376,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
         }
       }
     }) : null,
-    settingsOpen && sources && defaults ? h27(SourcesDialog, {
+    settingsOpen && sources && defaults ? h28(SourcesDialog, {
       key: "settings",
       config: sources,
       defaults,
@@ -16857,7 +17390,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
       onSave: saveSources,
       onClose: () => setSettingsOpen(false)
     }) : null,
-    accessRequest ? h27(PathAccessDialog, {
+    accessRequest ? h28(PathAccessDialog, {
       key: "access",
       request: accessRequest,
       busy: accessBusy,
@@ -16865,29 +17398,29 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
       onAllow: allowPathAccess,
       onDeny: () => settleAccess({ allowed: false, message: t2("access.denied") })
     }) : null,
-    imageryBusy || terrainBusy ? h27("div", { key: "busy", className: "mv-measure mv-glass", style: { bottom: "44px" } }, t2("toast.loadingData")) : null
+    imageryBusy || terrainBusy ? h28("div", { key: "busy", className: "mv-measure mv-glass", style: { bottom: "44px" } }, t2("toast.loadingData")) : null
   );
 }
 
 // src/client/ui/layout.js
-var h28 = import_react32.default.createElement;
+var h29 = import_react33.default.createElement;
 function ViewerPanel(props) {
-  return h28(ViewerSurface, { t: props.t, sessionId: null, docked: false });
+  return h29(ViewerSurface, { t: props.t, sessionId: null, docked: false });
 }
 function EarthTabBody(props) {
   const info = typeof props.useTabInfo === "function" ? props.useTabInfo() : null;
   const sessionId = props.sessionId ?? info?.tab?.sessionId ?? info?.sessionId ?? null;
-  return h28(ViewerSurface, { t: props.t, sessionId, docked: true });
+  return h29(ViewerSurface, { t: props.t, sessionId, docked: true });
 }
 
 // src/client/ui/tool-row.js
-var import_react33 = __toESM(require("react"), 1);
-var h29 = import_react33.default.createElement;
+var import_react34 = __toESM(require("react"), 1);
+var h30 = import_react34.default.createElement;
 function HeaderButton(props) {
   const fallbackT = useTranslation();
   const t2 = typeof props.t === "function" ? props.t : fallbackT;
-  const [hover, setHover] = import_react33.default.useState(false);
-  return h29(
+  const [hover, setHover] = import_react34.default.useState(false);
+  return h30(
     "button",
     {
       type: "button",
@@ -16914,7 +17447,7 @@ function HeaderButton(props) {
       onMouseEnter: () => setHover(true),
       onMouseLeave: () => setHover(false)
     },
-    h29(ViewerIcon, { size: 16 })
+    h30(ViewerIcon, { size: 16 })
   );
 }
 var ensureToolCss = () => {
@@ -16971,8 +17504,8 @@ var TOOL_SUMMARY_KEYS = {
 var AUTO_OPENED_CALLS = /* @__PURE__ */ new Set();
 function EarthToolRow({ toolName, phase, block, callId }) {
   const t2 = useTranslation();
-  const openedRef = import_react33.default.useRef(false);
-  import_react33.default.useEffect(() => {
+  const openedRef = import_react34.default.useRef(false);
+  import_react34.default.useEffect(() => {
     if (phase === "result" || openedRef.current) return;
     if (typeof callId === "string" && AUTO_OPENED_CALLS.has(callId)) return;
     if (!readAutoOpen()) return;
@@ -16986,8 +17519,8 @@ function EarthToolRow({ toolName, phase, block, callId }) {
     } catch {
     }
   }, [phase, callId]);
-  const [thumbUrl, setThumbUrl] = import_react33.default.useState("");
-  import_react33.default.useEffect(() => {
+  const [thumbUrl, setThumbUrl] = import_react34.default.useState("");
+  import_react34.default.useEffect(() => {
     if (toolName !== "earth_capture" || phase !== "result" || block?.isError === true) return void 0;
     const content = Array.isArray(block?.content) ? block.content : [];
     const text = content.filter((part) => part?.type === "text" && typeof part.text === "string").map((part) => part.text).join("\n");
@@ -17010,14 +17543,14 @@ function EarthToolRow({ toolName, phase, block, callId }) {
   const failure = state === "error" ? resultFirstLine(block) : "";
   const summaryKey = toolName === "earth_scene" ? SCENE_ACTION_KEYS[action] ?? "tool.action.generic" : TOOL_SUMMARY_KEYS[toolName] ?? "tool.action.generic";
   const summary = failure !== "" ? failure : t2(summaryKey);
-  return h29(
+  return h30(
     "div",
     { className: "mv-toolrow", "data-state": state, "data-tool": toolName },
-    h29("span", { className: "glyph", "aria-hidden": true }, h29(ViewerIcon, { size: 14 })),
-    h29("span", { className: "title" }, t2("panel.title")),
-    h29("span", { className: "sep", "aria-hidden": true }),
-    h29("span", { className: "summary", title: failure !== "" ? failure : void 0 }, summary),
-    thumbUrl === "" ? null : h29(
+    h30("span", { className: "glyph", "aria-hidden": true }, h30(ViewerIcon, { size: 14 })),
+    h30("span", { className: "title" }, t2("panel.title")),
+    h30("span", { className: "sep", "aria-hidden": true }),
+    h30("span", { className: "summary", title: failure !== "" ? failure : void 0 }, summary),
+    thumbUrl === "" ? null : h30(
       "a",
       {
         className: "thumb",
@@ -17026,9 +17559,9 @@ function EarthToolRow({ toolName, phase, block, callId }) {
         rel: "noopener noreferrer",
         title: t2("tool.thumbOpen")
       },
-      h29("img", { src: thumbUrl, alt: "", loading: "lazy" })
+      h30("img", { src: thumbUrl, alt: "", loading: "lazy" })
     ),
-    h29(
+    h30(
       "button",
       { type: "button", className: "open", title: t2("tool.openTip"), onClick: openEarthPanel },
       t2("tool.open")
@@ -17037,7 +17570,7 @@ function EarthToolRow({ toolName, phase, block, callId }) {
 }
 
 // src/client/plugin.js
-var h30 = import_react34.default.createElement;
+var h31 = import_react35.default.createElement;
 var plugin = {
   inject: ["slots", "uiWorkspace", "locale", "theme"],
   apply(ctx) {
@@ -17088,7 +17621,7 @@ var plugin = {
       "conversation.session.header.utilities",
       () => ctx.slots.register(
         { name: "conversation.session.header.utilities", id: "digital-earth-open", order: -1, locale: NS },
-        (props) => h30(HeaderButton, { ...props, onOpen: openEarthPanel })
+        (props) => h31(HeaderButton, { ...props, onOpen: openEarthPanel })
       )
     );
     ctx.inject(["betterSidebar"], (betterScope) => {
@@ -17099,12 +17632,12 @@ var plugin = {
           id: "dsh-digital-earth",
           title: () => translate2("panel.title"),
           description: () => translate2("panel.description"),
-          icon: (size) => h30(ViewerIcon, { size }),
+          icon: (size) => h31(ViewerIcon, { size }),
           order: 15,
           // One Digital Earth pane per session: clicking the start-page card
           // again should focus the existing tab, never stack duplicates.
           single: true,
-          component: ({ scope: tabScope }) => h30(EarthTabBody, { t: translate2, sessionId: tabScope?.sessionId ?? null })
+          component: ({ scope: tabScope }) => h31(EarthTabBody, { t: translate2, sessionId: tabScope?.sessionId ?? null })
         }),
         "dsh-digital-earth: better-sidebar tab"
       );
