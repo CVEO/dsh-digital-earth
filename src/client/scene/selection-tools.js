@@ -230,7 +230,8 @@ function createSelectionSession(viewer) {
       screenRing = ground.points.map((point) => Cesium.SceneTransforms.worldToWindowCoordinates(viewer.scene, point.cartesian)).filter(Boolean)
     }
     const frame = captureSelectionFrame(viewer, screenRing)
-    if (!usableSurfaceRing(ground)) {
+    const ringCandidate = kind === 'vision' && ground?.points?.length >= 3 ? { ...ground, complete: true } : ground
+    if (!usableSurfaceRing(ringCandidate)) {
       state.selection = { kind: 'screen', requested_kind: kind, frame, complete: false, approximate: true, created_at: now() }
       toast(t('selection.surfaceUnavailable'))
       tool.deps?.onCommit?.(state.selection)
@@ -238,6 +239,13 @@ function createSelectionSession(viewer) {
     }
     const last = ground.ring[ground.ring.length - 1]
     const ring = last && last[0] === ground.ring[0][0] && last[1] === ground.ring[0][1] ? ground.ring.slice() : [...ground.ring, ground.ring[0].slice()]
+    const totalSamples = ground.points.length + (ground.misses ?? 0)
+    const missRatio =
+      typeof ground.missRatio === 'number'
+        ? ground.missRatio
+        : totalSamples > 0 && ground.misses > 0
+          ? Math.round((ground.misses / totalSamples) * 1000) / 1000
+          : 0
     const selection = {
       kind,
       ring,
@@ -247,7 +255,10 @@ function createSelectionSession(viewer) {
       perimeter_m: polygonPerimeterMeters(ring),
       heightRange: ground.heightRange,
       complete: ground.complete,
-      misses: ground.misses,
+      misses: ground.misses ?? 0,
+      miss_ratio: missRatio,
+      depth_source: ground.depth_source ?? (kind === 'vision' ? 'scene_depth' : 'screen_surface'),
+      warnings: Array.isArray(ground.warnings) ? ground.warnings.slice() : [],
       created_at: now(),
       frame,
       approximate: true,
@@ -332,7 +343,7 @@ function createSelectionSession(viewer) {
 
   function commitVision(ground) {
     const Cesium = tool.deps?.getCesium?.()
-    if (!Cesium || ground?.complete !== true || !Array.isArray(ground.points) || ground.points.length < 3) return false
+    if (!Cesium || !Array.isArray(ground?.points) || ground.points.length < 3) return false
     cancel()
     tool.deps?.onActivate?.()
     clearSelection()
@@ -589,6 +600,9 @@ function createSelectionSession(viewer) {
             height_max_m: selection.heightRange ? round(selection.heightRange.max) : null,
             height_mean_m: selection.heightRange ? round(selection.heightRange.mean) : null,
             complete: selection.complete,
+            ...(typeof selection.misses === 'number' && selection.misses > 0 ? { misses: selection.misses, miss_ratio: selection.miss_ratio ?? 0 } : {}),
+            ...(selection.depth_source ? { depth_source: selection.depth_source } : {}),
+            ...(Array.isArray(selection.warnings) && selection.warnings.length > 0 ? { warnings: selection.warnings } : {}),
             approximate: selection.approximate === true,
             source: selection.source ?? 'manual',
             height_reference: 'ellipsoid',

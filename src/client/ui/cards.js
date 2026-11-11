@@ -255,6 +255,16 @@ const h = React.createElement
           t('analysis.inundatedSamples'),
           `${result.samples_inundated ?? 0} / ${result.samples_with_data ?? 0}`,
         )
+        if (typeof result.coverage_ratio === 'number') {
+          row(
+            'coverage',
+            t('flood.coverage'),
+            `${analysisMetric(result.coverage_ratio * 100, 1)}% (${result.samples_with_data ?? 0}/${result.samples_total ?? result.samples_with_data ?? 0})`,
+          )
+        }
+        if (typeof result.unknown_km2 === 'number' && result.unknown_km2 > 0) {
+          row('unknownArea', t('flood.unknownArea'), `${analysisMetric(result.unknown_km2, 3)} km²`)
+        }
         const region = result.region ?? {}
         row(
           'region',

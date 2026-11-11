@@ -489,20 +489,25 @@ const h = React.createElement
         ])
       }
 
+      const imagerySeqRef = React.useRef(0)
+      const terrainSeqRef = React.useRef(0)
+
       async function applyImagery(id, notify) {
         const Cesium = cesiumRef.current
         const viewer = viewerRef.current
         if (!Cesium || !viewer) return { ok: false, error: t('agent.notReady') }
         const config = sourcesRef.current
         const source = config?.imagery.find((item) => item.id === id) ?? null
+        const seq = (imagerySeqRef.current += 1)
         setImageryBusy(true)
         try {
+          const provider = source ? await withNetworkTimeout(imageryProvider(Cesium, source)) : null
+          if (seq !== imagerySeqRef.current) return { ok: false, stale: true }
           if (imageryRef.current) {
             viewer.scene.imageryLayers.remove(imageryRef.current, true)
             imageryRef.current = null
           }
-          if (source) {
-            const provider = await withNetworkTimeout(imageryProvider(Cesium, source))
+          if (source && provider) {
             // Index 0: the basemap is always the BOTTOM imagery layer, so switching
             // it never covers the L3 raster overlays stacked above it.
             imageryRef.current = viewer.scene.imageryLayers.addImageryProvider(provider, 0)
@@ -512,10 +517,11 @@ const h = React.createElement
           }
           return { ok: true, source }
         } catch (error) {
+          if (seq !== imagerySeqRef.current) return { ok: false, stale: true }
           showToast(t('toast.basemapFailed', { message: message(error) }))
           return { ok: false, error: message(error) }
         } finally {
-          setImageryBusy(false)
+          if (seq === imagerySeqRef.current) setImageryBusy(false)
         }
       }
 
@@ -525,11 +531,14 @@ const h = React.createElement
         if (!Cesium || !viewer) return { ok: false, error: t('agent.notReady') }
         const config = sourcesRef.current
         const source = config?.terrain.find((item) => item.id === id) ?? null
+        const seq = (terrainSeqRef.current += 1)
         setTerrainBusy(true)
         if (notify) setBusy(t('toast.terrainLoading'))
         try {
           if (source) {
-            viewer.terrainProvider = await withNetworkTimeout(terrainProvider(Cesium, source))
+            const nextProvider = await withNetworkTimeout(terrainProvider(Cesium, source))
+            if (seq !== terrainSeqRef.current) return { ok: false, stale: true }
+            viewer.terrainProvider = nextProvider
             setTerrainError('')
             showToast(t('toast.terrainOn', { name: source.name }))
           } else {
@@ -542,6 +551,7 @@ const h = React.createElement
           applyGlobeDepthTest()
           return { ok: true, source }
         } catch (error) {
+          if (seq !== terrainSeqRef.current) return { ok: false, stale: true }
           viewer.terrainProvider = new Cesium.EllipsoidTerrainProvider()
           const text = message(error)
           // A blocked terrain host makes every automatic restore fail. Keep the
@@ -553,8 +563,10 @@ const h = React.createElement
           if (notify) showToast(t(network ? 'toast.terrainNetwork' : 'toast.terrainFailed', { message: text }))
           return { ok: false, error: text }
         } finally {
-          setTerrainBusy(false)
-          if (notify) setBusy('')
+          if (seq === terrainSeqRef.current) {
+            setTerrainBusy(false)
+            if (notify) setBusy('')
+          }
         }
       }
 
@@ -628,6 +640,8 @@ const h = React.createElement
         void run()
       }
 
+      const sameSourceSpec = (a, b) => a?.type === b?.type && a?.url === b?.url && (a?.layers ?? '') === (b?.layers ?? '')
+
       const saveSources = (draft) => {
         const current = sourcesRef.current
         const meta = metaRef.current
@@ -635,8 +649,13 @@ const h = React.createElement
         const next = { ...draft }
         commitSources(next, true)
         setSettingsOpen(false)
-        if (current?.settings?.imagery !== next.settings.imagery) applyImagery(next.settings.imagery, false)
-        if (current?.settings?.terrain !== next.settings.terrain) applyTerrain(next.settings.terrain, false)
+        const findById = (list, id) => list?.find((item) => item.id === id)
+        if (current?.settings?.imagery !== next.settings.imagery || !sameSourceSpec(findById(current?.imagery, current?.settings?.imagery), findById(next.imagery, next.settings?.imagery))) {
+          applyImagery(next.settings.imagery, false)
+        }
+        if (current?.settings?.terrain !== next.settings.terrain || !sameSourceSpec(findById(current?.terrain, current?.settings?.terrain), findById(next.terrain, next.settings?.terrain))) {
+          applyTerrain(next.settings.terrain, false)
+        }
         if (normalizeQuality(current?.settings?.quality) !== normalizeQuality(next.settings.quality)) {
           applyQuality(
             viewerRef.current,
@@ -1861,41 +1880,44 @@ const h = React.createElement
           setBridgeReload(false)
           setBridgeOn(true)
         }
+        const cancelledIds = new Set()
+        let activeCancel = null
+        const onCancel = (event) => {
+          try {
+            const payload = JSON.parse(event.data)
+            if (payload?.id) cancelledIds.add(payload.id)
+            if (payload?.action === 'authorize' || accessRef.current) settleAccess({ allowed: false, message: t('access.denied') })
+            if (activeCancel && (!payload?.id || activeCancel.id === payload.id)) activeCancel.reject(new Error('cancelled'))
+          } catch { /* ignore malformed cancel frame */ }
+        }
         const onCommand = (event) => {
           let payload
-          try {
-            payload = JSON.parse(event.data)
-          } catch {
-            return
-          }
+          try { payload = JSON.parse(event.data) } catch { return }
           if (!payload?.id) return
-          // Per-command watchdogs: a command that never settles (a camera flight
-          // driven by a paused render loop, a stalled terrain fetch, a bug) must
-          // not wedge every later command. On timeout the panel acknowledges the
-          // failure and the command chain moves on; late work is ignored by the
-          // Host because the pending command id is already settled.
+          // Per-command watchdogs: a command that never settles must not wedge later commands.
           const commandBudgets = { capture: 40000, report: 45000, load: 40000 }
           commandChainRef.current = commandChainRef.current
             .then(async () => {
+              if (cancelledIds.has(payload.id)) return
               let watchdog = null
               try {
-                // The authorisation dialog only needs meta + DOM: answer it while
-                // Cesium is still booting so the Host's 30 s deadline is not spent
-                // waiting for the engine.
                 if (payload.action !== 'authorize') await waitForPanelReady()
+                if (cancelledIds.has(payload.id)) return
                 const budgetMs = commandBudgets[payload.action] ?? 15000
                 const command = commandRef.current(payload.action, payload.args ?? {}, bridgeSession)
                 const budget = new Promise((_, reject) => {
+                  activeCancel = { id: payload.id, reject }
                   watchdog = setTimeout(
                     () => reject(new Error(t('agent.commandTimeout', { seconds: Math.round(budgetMs / 1000) }))),
                     budgetMs,
                   )
                 })
                 const result = await Promise.race([command, budget])
-                await ack({ session: bridgeSession, id: payload.id, ok: true, result })
+                if (!cancelledIds.has(payload.id)) await ack({ session: bridgeSession, id: payload.id, ok: true, result })
               } catch (error) {
-                await ack({ session: bridgeSession, id: payload.id, ok: false, error: message(error) })
+                if (!cancelledIds.has(payload.id)) await ack({ session: bridgeSession, id: payload.id, ok: false, error: message(error) })
               } finally {
+                activeCancel = null
                 if (watchdog !== null) clearTimeout(watchdog)
               }
             })
@@ -1927,12 +1949,14 @@ const h = React.createElement
         }
         source.addEventListener('hello', onHello)
         source.addEventListener('command', onCommand)
+        source.addEventListener('cancel', onCancel)
         source.addEventListener('error', onError)
         setBridgeOn(false)
         return () => {
           if (retryTimer !== null) clearTimeout(retryTimer)
           source.removeEventListener('hello', onHello)
           source.removeEventListener('command', onCommand)
+          source.removeEventListener('cancel', onCancel)
           source.removeEventListener('error', onError)
           try {
             source.close()

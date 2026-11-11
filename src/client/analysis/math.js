@@ -208,6 +208,50 @@
         keep: keepBelow ? 'below' : 'above',
       }
     }
+
+    /**
+     * F03: Cesium evaluates `tileset.clippingPlanes` in the tileset's local clipping
+     * frame (`clippingPlanesOriginMatrix`, or `modelMatrix`, or the local ENU frame at
+     * the bounding sphere centre), NOT in ECEF world coordinates. Project the world
+     * Hessian plane `(n_w, d_w, pointOnPlane)` into the local frame `M` via the exact
+     * affine identity: for any local point `X`, `P_w(X) = O_w + x*c0 + y*c1 + z*c2`,
+     * so `n_w · (P_w(X) - P_plane) = (n_w·c0)x + (n_w·c1)y + (n_w·c2)z + n_w·(O_w - P_plane)`.
+     */
+    const analysisLocalizeClipPlane = (Cesium, plane, tileset, center) => {
+      if (!plane || !plane.normal || !plane.pointOnPlane) return plane
+      const matrix =
+        tileset?.clippingPlanesOriginMatrix ??
+        tileset?.root?.transform ??
+        tileset?.modelMatrix ??
+        (typeof Cesium?.Transforms?.eastNorthUpToFixedFrame === 'function' && center
+          ? Cesium.Transforms.eastNorthUpToFixedFrame(center)
+          : null)
+      if (!matrix) return plane
+      const m = Array.isArray(matrix)
+        ? matrix
+        : typeof matrix[0] === 'number'
+          ? matrix
+          : [
+              matrix[0], matrix[1], matrix[2], matrix[3],
+              matrix[4], matrix[5], matrix[6], matrix[7],
+              matrix[8], matrix[9], matrix[10], matrix[11],
+              matrix[12], matrix[13], matrix[14], matrix[15],
+            ]
+      if (!m.slice(0, 15).every((v) => typeof v === 'number' && Number.isFinite(v))) return plane
+      const nw = plane.normal
+      const p = plane.pointOnPlane
+      const nx = nw.x * m[0] + nw.y * m[1] + nw.z * m[2]
+      const ny = nw.x * m[4] + nw.y * m[5] + nw.z * m[6]
+      const nz = nw.x * m[8] + nw.y * m[9] + nw.z * m[10]
+      const len = Math.hypot(nx, ny, nz)
+      if (!(len > 0)) return plane
+      const rawDist = nw.x * (m[12] - p.x) + nw.y * (m[13] - p.y) + nw.z * (m[14] - p.z)
+      plane.worldNormal = plane.normal
+      plane.worldDistance = plane.distance
+      plane.normal = new Cesium.Cartesian3(nx / len, ny / len, nz / len)
+      plane.distance = rawDist / len
+      return plane
+    }
     //#endregion analysis core
 
-export { ANALYSIS_ENTITY_PREFIX, ANALYSIS_MIN_SAMPLES, ANALYSIS_ELEVATION_STOPS, analysisRound, analysisInteger, analysisLonLat, analysisRegion, analysisColorAt, analysisElevation, analysisSunAngles, analysisObserver, analysisClipPlane }
+export { ANALYSIS_ENTITY_PREFIX, ANALYSIS_MIN_SAMPLES, ANALYSIS_ELEVATION_STOPS, analysisRound, analysisInteger, analysisLonLat, analysisRegion, analysisColorAt, analysisElevation, analysisSunAngles, analysisObserver, analysisClipPlane, analysisLocalizeClipPlane }

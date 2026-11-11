@@ -196,6 +196,31 @@ export function createOverlayLayers({ Cesium, viewer, providerFactory, onError =
           applyStyle(existing)
           summary.updated += 1
         }
+        // F09: Reorder both the entries Map and the live Cesium ImageryLayerCollection
+        // so moving an overlay up/down in the UI actually changes the draw stack order.
+        const currentOrder = [...entries.keys()]
+        const orderedEntries = []
+        for (const source of next) {
+          const entry = entries.get(source.id)
+          if (entry) orderedEntries.push([source.id, entry])
+        }
+        const orderChanged =
+          orderedEntries.length === currentOrder.length &&
+          orderedEntries.some(([id], idx) => currentOrder[idx] !== id)
+        if (orderChanged) {
+          entries.clear()
+          const layers = collection()
+          for (const [id, entry] of orderedEntries) {
+            entries.set(id, entry)
+            try {
+              if (layers && entry.layer && typeof layers.raiseToTop === 'function') {
+                layers.raiseToTop(entry.layer)
+              }
+            } catch {
+              /* viewer may be tearing down */
+            }
+          }
+        }
         return summary
       })
     },

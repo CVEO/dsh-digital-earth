@@ -1017,6 +1017,8 @@ var MESSAGES = {
     "analysis.depthMax": "最大水深",
     "analysis.depthMean": "平均水深",
     "analysis.inundatedSamples": "淹没格点",
+    "flood.coverage": "有效采样率",
+    "flood.unknownArea": "未采样面积",
     "analysis.altitude": "高度角",
     "analysis.azimuth": "方位角",
     "analysis.datetime": "时间",
@@ -1440,6 +1442,8 @@ var MESSAGES = {
     "analysis.depthMax": "Max depth",
     "analysis.depthMean": "Mean depth",
     "analysis.inundatedSamples": "Inundated cells",
+    "flood.coverage": "Valid coverage",
+    "flood.unknownArea": "Unsampled area",
     "analysis.altitude": "Solar altitude",
     "analysis.azimuth": "Solar azimuth",
     "analysis.datetime": "Time",
@@ -1934,6 +1938,43 @@ var analysisClipPlane = (Cesium, center, height, keep = "below") => {
     pointOnPlane,
     keep: keepBelow ? "below" : "above"
   };
+};
+var analysisLocalizeClipPlane = (Cesium, plane, tileset, center) => {
+  if (!plane || !plane.normal || !plane.pointOnPlane) return plane;
+  const matrix = tileset?.clippingPlanesOriginMatrix ?? tileset?.root?.transform ?? tileset?.modelMatrix ?? (typeof Cesium?.Transforms?.eastNorthUpToFixedFrame === "function" && center ? Cesium.Transforms.eastNorthUpToFixedFrame(center) : null);
+  if (!matrix) return plane;
+  const m = Array.isArray(matrix) ? matrix : typeof matrix[0] === "number" ? matrix : [
+    matrix[0],
+    matrix[1],
+    matrix[2],
+    matrix[3],
+    matrix[4],
+    matrix[5],
+    matrix[6],
+    matrix[7],
+    matrix[8],
+    matrix[9],
+    matrix[10],
+    matrix[11],
+    matrix[12],
+    matrix[13],
+    matrix[14],
+    matrix[15]
+  ];
+  if (!m.slice(0, 15).every((v) => typeof v === "number" && Number.isFinite(v))) return plane;
+  const nw = plane.normal;
+  const p = plane.pointOnPlane;
+  const nx = nw.x * m[0] + nw.y * m[1] + nw.z * m[2];
+  const ny = nw.x * m[4] + nw.y * m[5] + nw.z * m[6];
+  const nz = nw.x * m[8] + nw.y * m[9] + nw.z * m[10];
+  const len = Math.hypot(nx, ny, nz);
+  if (!(len > 0)) return plane;
+  const rawDist = nw.x * (m[12] - p.x) + nw.y * (m[13] - p.y) + nw.z * (m[14] - p.z);
+  plane.worldNormal = plane.normal;
+  plane.worldDistance = plane.distance;
+  plane.normal = new Cesium.Cartesian3(nx / len, ny / len, nz / len);
+  plane.distance = rawDist / len;
+  return plane;
 };
 
 // src/client/i18n.js
@@ -2511,13 +2552,7 @@ function createAnalysisEngine(deps) {
         outlineColor: borderColor
       }
     });
-    const corners = [
-      [region.west, region.south],
-      [region.east, region.south],
-      [region.east, region.north],
-      [region.west, region.north],
-      [region.west, region.south]
-    ];
+    const corners = [[region.west, region.south], [region.east, region.south], [region.east, region.north], [region.west, region.north], [region.west, region.south]];
     analysisAdd(Cesium, viewer, {
       id: "flood-border",
       polyline: {
@@ -2532,7 +2567,11 @@ function createAnalysisEngine(deps) {
       position: Cesium.Cartesian3.fromDegrees(middleLon, middleLat, waterHeight + 2),
       label: analysisLabel(Cesium, t2("analysis.waterLabel", { value: formatHeight(waterHeight) }))
     });
-    const regionArea = grid * grid * cellArea;
+    const totalSamples = grid * grid;
+    const missingSamples = Math.max(0, totalSamples - withData);
+    const coverageRatio = totalSamples > 0 ? analysisRound(withData / totalSamples, 4) : 0;
+    if (coverageRatio < 0.5 && !sampled.warnings.includes("low_sample_coverage")) sampled.warnings.push("low_sample_coverage");
+    const regionArea = totalSamples * cellArea;
     const result = {
       operation: "flood",
       layer: layer ? layer.name : null,
@@ -2542,10 +2581,14 @@ function createAnalysisEngine(deps) {
       cell_area_m2: analysisRound(cellArea, 1),
       area_km2: analysisRound(regionArea / 1e6, 6),
       inundated_km2: analysisRound(inundated * cellArea / 1e6, 6),
+      unknown_km2: analysisRound(missingSamples * cellArea / 1e6, 6),
       inundated_ratio: analysisRound(withData > 0 ? inundated / withData : 0, 4),
+      coverage_ratio: coverageRatio,
       depth_max_m: analysisRound(depthMaximum, 2),
       depth_mean_m: analysisRound(inundated > 0 ? depthSum / inundated : 0, 2),
+      samples_total: totalSamples,
       samples_with_data: withData,
+      samples_missing: missingSamples,
       samples_inundated: inundated,
       // Provenance is additive: old fields keep their names/semantics.
       source: floodSource,
@@ -2561,15 +2604,11 @@ function createAnalysisEngine(deps) {
   };
   const analyzeSunlight = (Cesium, viewer, layer, args) => {
     const date = args.datetime === void 0 || args.datetime === null ? /* @__PURE__ */ new Date() : new Date(args.datetime);
-    if (Number.isNaN(date.getTime())) {
-      throw new Error("analysis: `datetime` must be a valid ISO 8601 date. next: pass an ISO timestamp, or omit it for the current time.");
-    }
+    if (Number.isNaN(date.getTime())) throw new Error("analysis: `datetime` must be a valid ISO 8601 date. next: pass an ISO timestamp, or omit it for the current time.");
     const showShadows = args.show_shadows !== false;
     const observer = analysisObserver(Cesium, viewer, layer);
     const sun = analysisSunAngles(Cesium, date, observer);
-    if (!sun) {
-      throw new Error("analysis: 无法计算太阳位置（Cesium 星历不可用）。next: 检查浏览器控制台后重试，或先执行 clear。");
-    }
+    if (!sun) throw new Error("analysis: 无法计算太阳位置（Cesium 星历不可用）。next: 检查浏览器控制台后重试，或先执行 clear。");
     const scene = viewer.scene;
     const restore = {
       enableLighting: scene.globe.enableLighting,
@@ -2642,6 +2681,7 @@ function createAnalysisEngine(deps) {
     if (!plane) {
       throw new Error("analysis: 无法计算剖切面。next: 重新加载图层后重试，或改用其他分析。");
     }
+    analysisLocalizeClipPlane(Cesium, plane, tileset, center);
     if (typeof Cesium.ClippingPlaneCollection !== "function" || typeof Cesium.ClippingPlane !== "function") {
       throw new Error("analysis: 当前 Cesium 不支持剖切（ClippingPlane）。next: 升级 Cesium 后重试。");
     }
@@ -3497,6 +3537,26 @@ function createOverlayLayers({ Cesium, viewer, providerFactory, onError = () => 
           applyStyle(existing);
           summary.updated += 1;
         }
+        const currentOrder = [...entries.keys()];
+        const orderedEntries = [];
+        for (const source of next) {
+          const entry = entries.get(source.id);
+          if (entry) orderedEntries.push([source.id, entry]);
+        }
+        const orderChanged = orderedEntries.length === currentOrder.length && orderedEntries.some(([id], idx) => currentOrder[idx] !== id);
+        if (orderChanged) {
+          entries.clear();
+          const layers = collection();
+          for (const [id, entry] of orderedEntries) {
+            entries.set(id, entry);
+            try {
+              if (layers && entry.layer && typeof layers.raiseToTop === "function") {
+                layers.raiseToTop(entry.layer);
+              }
+            } catch {
+            }
+          }
+        }
         return summary;
       });
     },
@@ -3878,9 +3938,11 @@ function createAskAgent(deps) {
       return;
     }
     let snapshotPath = "";
+    let savedMetadata = null;
     try {
       const saved = await captureScene({}, session);
       snapshotPath = typeof saved.path === "string" ? saved.path : "";
+      savedMetadata = saved?.metadata !== null && typeof saved?.metadata === "object" ? saved.metadata : null;
     } catch {
     }
     let status = null;
@@ -3892,14 +3954,18 @@ function createAskAgent(deps) {
     const lines = [
       "[Digital Earth scene context] The user is looking at this scene and will ask a follow-up about it."
     ];
+    if (typeof savedMetadata?.captured_at === "string" && savedMetadata.captured_at !== "") {
+      lines.push(`Captured at: ${savedMetadata.captured_at}.`);
+    }
     if (status !== null) {
-      const view = status.view ?? {};
+      const view = savedMetadata?.camera !== null && typeof savedMetadata?.camera === "object" ? savedMetadata.camera : status.view ?? {};
       if (Number.isFinite(view.lon) && Number.isFinite(view.lat)) {
         lines.push(
           `Camera: lon=${view.lon}, lat=${view.lat}, height=${view.height} m, heading=${view.heading}°, pitch=${view.pitch}°.`
         );
       }
-      const layerText = Array.isArray(status.layers) && status.layers.length > 0 ? status.layers.map((layer) => `${layer.name}${layer.visible === false ? " (hidden)" : ""}`).join(", ") : "none";
+      const capturedLayers = Array.isArray(savedMetadata?.layers) && savedMetadata.layers.length > 0 ? savedMetadata.layers : status.layers;
+      const layerText = Array.isArray(capturedLayers) && capturedLayers.length > 0 ? capturedLayers.map((layer) => `${layer.name}${layer.visible === false ? " (hidden)" : ""}`).join(", ") : "none";
       lines.push(`Layers: ${layerText}.`);
       lines.push(`Imagery: ${status.imagery?.name ?? "none"}; terrain: ${status.terrain?.name ?? "none"}.`);
       const annotations = status.annotations ?? {};
@@ -3936,6 +4002,10 @@ function createAskAgent(deps) {
         lines.push(
           `Analysis (sunlight): datetime=${result.datetime}, altitude=${result.sun?.altitude_deg}°, azimuth=${result.sun?.azimuth_deg}°, shadows=${result.shadows_enabled === true ? "on" : "off"}.`
         );
+      } else if (result.operation === "clip") {
+        lines.push(`Analysis (clip): height=${result.height} m, keep=${result.keep}.`);
+      } else if (result.operation === "skyline") {
+        lines.push(`Analysis (skyline): max_angle=${result.max_angle_deg}°, max_distance=${result.max_distance_m} m, eye=${result.eye_height_m} m.`);
       }
     }
     const shaders = shaderActiveList();
@@ -5821,7 +5891,8 @@ function createSelectionSession(viewer) {
       screenRing = ground.points.map((point) => Cesium.SceneTransforms.worldToWindowCoordinates(viewer.scene, point.cartesian)).filter(Boolean);
     }
     const frame = captureSelectionFrame(viewer, screenRing);
-    if (!usableSurfaceRing(ground)) {
+    const ringCandidate = kind === "vision" && ground?.points?.length >= 3 ? { ...ground, complete: true } : ground;
+    if (!usableSurfaceRing(ringCandidate)) {
       state.selection = { kind: "screen", requested_kind: kind, frame, complete: false, approximate: true, created_at: now() };
       toast(t2("selection.surfaceUnavailable"));
       tool.deps?.onCommit?.(state.selection);
@@ -5829,6 +5900,8 @@ function createSelectionSession(viewer) {
     }
     const last = ground.ring[ground.ring.length - 1];
     const ring = last && last[0] === ground.ring[0][0] && last[1] === ground.ring[0][1] ? ground.ring.slice() : [...ground.ring, ground.ring[0].slice()];
+    const totalSamples = ground.points.length + (ground.misses ?? 0);
+    const missRatio = typeof ground.missRatio === "number" ? ground.missRatio : totalSamples > 0 && ground.misses > 0 ? Math.round(ground.misses / totalSamples * 1e3) / 1e3 : 0;
     const selection = {
       kind,
       ring,
@@ -5838,7 +5911,10 @@ function createSelectionSession(viewer) {
       perimeter_m: polygonPerimeterMeters(ring),
       heightRange: ground.heightRange,
       complete: ground.complete,
-      misses: ground.misses,
+      misses: ground.misses ?? 0,
+      miss_ratio: missRatio,
+      depth_source: ground.depth_source ?? (kind === "vision" ? "scene_depth" : "screen_surface"),
+      warnings: Array.isArray(ground.warnings) ? ground.warnings.slice() : [],
       created_at: now(),
       frame,
       approximate: true,
@@ -5912,7 +5988,7 @@ function createSelectionSession(viewer) {
   }
   function commitVision(ground) {
     const Cesium = tool.deps?.getCesium?.();
-    if (!Cesium || ground?.complete !== true || !Array.isArray(ground.points) || ground.points.length < 3) return false;
+    if (!Cesium || !Array.isArray(ground?.points) || ground.points.length < 3) return false;
     cancel();
     tool.deps?.onActivate?.();
     clearSelection();
@@ -6158,6 +6234,9 @@ function createSelectionSession(viewer) {
             height_max_m: selection.heightRange ? round2(selection.heightRange.max) : null,
             height_mean_m: selection.heightRange ? round2(selection.heightRange.mean) : null,
             complete: selection.complete,
+            ...typeof selection.misses === "number" && selection.misses > 0 ? { misses: selection.misses, miss_ratio: selection.miss_ratio ?? 0 } : {},
+            ...selection.depth_source ? { depth_source: selection.depth_source } : {},
+            ...Array.isArray(selection.warnings) && selection.warnings.length > 0 ? { warnings: selection.warnings } : {},
             approximate: selection.approximate === true,
             source: selection.source ?? "manual",
             height_reference: "ellipsoid",
@@ -8432,6 +8511,16 @@ function AnalysisCard({ state, t: t2, onClose }) {
       t2("analysis.inundatedSamples"),
       `${result.samples_inundated ?? 0} / ${result.samples_with_data ?? 0}`
     );
+    if (typeof result.coverage_ratio === "number") {
+      row(
+        "coverage",
+        t2("flood.coverage"),
+        `${analysisMetric(result.coverage_ratio * 100, 1)}% (${result.samples_with_data ?? 0}/${result.samples_total ?? result.samples_with_data ?? 0})`
+      );
+    }
+    if (typeof result.unknown_km2 === "number" && result.unknown_km2 > 0) {
+      row("unknownArea", t2("flood.unknownArea"), `${analysisMetric(result.unknown_km2, 3)} km²`);
+    }
     const region = result.region ?? {};
     row(
       "region",
@@ -13650,16 +13739,24 @@ function projectVisionPolygon(frame, result) {
   }
   if (points.length < 3) throw visionError("depth_unavailable");
   if (!frame.isValid()) throw visionError("scene_changed");
+  const totalSamples = polygon.length * 2;
+  const missRatio = totalSamples > 0 ? Math.round(misses / totalSamples * 1e3) / 1e3 : 0;
+  const depthSource = fallback === 0 ? "scene_depth" : fallback < points.length ? "mixed_ground_fallback" : "ground_fallback";
+  const warnings = [];
+  if (fallback > 0) warnings.push("depth_fallback");
+  if (misses > 0) warnings.push("depth_partial");
   const ring = points.map((point) => [point.lon, point.lat]);
   ring.push(ring[0].slice());
   return {
     points,
     ring,
-    complete: true,
+    complete: misses === 0,
     misses,
+    missRatio,
+    depth_source: depthSource,
     heightRange: heightRange(points.map((point) => point.height)),
     approximate: true,
-    warnings: fallback > 0 ? ["depth_fallback"] : []
+    warnings
   };
 }
 
@@ -14717,20 +14814,24 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
       )
     ]);
   }
+  const imagerySeqRef = import_react31.default.useRef(0);
+  const terrainSeqRef = import_react31.default.useRef(0);
   async function applyImagery(id, notify) {
     const Cesium = cesiumRef.current;
     const viewer = viewerRef.current;
     if (!Cesium || !viewer) return { ok: false, error: t2("agent.notReady") };
     const config = sourcesRef.current;
     const source = config?.imagery.find((item) => item.id === id) ?? null;
+    const seq = imagerySeqRef.current += 1;
     setImageryBusy(true);
     try {
+      const provider = source ? await withNetworkTimeout(imageryProvider(Cesium, source)) : null;
+      if (seq !== imagerySeqRef.current) return { ok: false, stale: true };
       if (imageryRef.current) {
         viewer.scene.imageryLayers.remove(imageryRef.current, true);
         imageryRef.current = null;
       }
-      if (source) {
-        const provider = await withNetworkTimeout(imageryProvider(Cesium, source));
+      if (source && provider) {
         imageryRef.current = viewer.scene.imageryLayers.addImageryProvider(provider, 0);
         if (notify) showToast(t2("toast.basemap", { name: source.name }));
       } else if (notify) {
@@ -14738,10 +14839,11 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
       }
       return { ok: true, source };
     } catch (error2) {
+      if (seq !== imagerySeqRef.current) return { ok: false, stale: true };
       showToast(t2("toast.basemapFailed", { message: message(error2) }));
       return { ok: false, error: message(error2) };
     } finally {
-      setImageryBusy(false);
+      if (seq === imagerySeqRef.current) setImageryBusy(false);
     }
   }
   async function applyTerrain(id, notify) {
@@ -14750,11 +14852,14 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     if (!Cesium || !viewer) return { ok: false, error: t2("agent.notReady") };
     const config = sourcesRef.current;
     const source = config?.terrain.find((item) => item.id === id) ?? null;
+    const seq = terrainSeqRef.current += 1;
     setTerrainBusy(true);
     if (notify) setBusy(t2("toast.terrainLoading"));
     try {
       if (source) {
-        viewer.terrainProvider = await withNetworkTimeout(terrainProvider(Cesium, source));
+        const nextProvider = await withNetworkTimeout(terrainProvider(Cesium, source));
+        if (seq !== terrainSeqRef.current) return { ok: false, stale: true };
+        viewer.terrainProvider = nextProvider;
         setTerrainError("");
         showToast(t2("toast.terrainOn", { name: source.name }));
       } else {
@@ -14765,6 +14870,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
       applyGlobeDepthTest();
       return { ok: true, source };
     } catch (error2) {
+      if (seq !== terrainSeqRef.current) return { ok: false, stale: true };
       viewer.terrainProvider = new Cesium.EllipsoidTerrainProvider();
       const text = message(error2);
       const network = /Request has failed|Failed to fetch|NetworkError|timed out|timeout|超时|网络/i.test(text);
@@ -14773,8 +14879,10 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
       if (notify) showToast(t2(network ? "toast.terrainNetwork" : "toast.terrainFailed", { message: text }));
       return { ok: false, error: text };
     } finally {
-      setTerrainBusy(false);
-      if (notify) setBusy("");
+      if (seq === terrainSeqRef.current) {
+        setTerrainBusy(false);
+        if (notify) setBusy("");
+      }
     }
   }
   function applyGlobeDepthTest() {
@@ -14828,6 +14936,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     };
     void run();
   };
+  const sameSourceSpec = (a, b) => a?.type === b?.type && a?.url === b?.url && (a?.layers ?? "") === (b?.layers ?? "");
   const saveSources = (draft) => {
     const current = sourcesRef.current;
     const meta2 = metaRef.current;
@@ -14835,8 +14944,13 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     const next = { ...draft };
     commitSources(next, true);
     setSettingsOpen(false);
-    if (current?.settings?.imagery !== next.settings.imagery) applyImagery(next.settings.imagery, false);
-    if (current?.settings?.terrain !== next.settings.terrain) applyTerrain(next.settings.terrain, false);
+    const findById = (list, id) => list?.find((item) => item.id === id);
+    if (current?.settings?.imagery !== next.settings.imagery || !sameSourceSpec(findById(current?.imagery, current?.settings?.imagery), findById(next.imagery, next.settings?.imagery))) {
+      applyImagery(next.settings.imagery, false);
+    }
+    if (current?.settings?.terrain !== next.settings.terrain || !sameSourceSpec(findById(current?.terrain, current?.settings?.terrain), findById(next.terrain, next.settings?.terrain))) {
+      applyTerrain(next.settings.terrain, false);
+    }
     if (normalizeQuality(current?.settings?.quality) !== normalizeQuality(next.settings.quality)) {
       applyQuality(
         viewerRef.current,
@@ -15885,6 +15999,17 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
       setBridgeReload(false);
       setBridgeOn(true);
     };
+    const cancelledIds = /* @__PURE__ */ new Set();
+    let activeCancel = null;
+    const onCancel = (event) => {
+      try {
+        const payload = JSON.parse(event.data);
+        if (payload?.id) cancelledIds.add(payload.id);
+        if (payload?.action === "authorize" || accessRef.current) settleAccess({ allowed: false, message: t2("access.denied") });
+        if (activeCancel && (!payload?.id || activeCancel.id === payload.id)) activeCancel.reject(new Error("cancelled"));
+      } catch {
+      }
+    };
     const onCommand = (event) => {
       let payload;
       try {
@@ -15895,22 +16020,26 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
       if (!payload?.id) return;
       const commandBudgets = { capture: 4e4, report: 45e3, load: 4e4 };
       commandChainRef.current = commandChainRef.current.then(async () => {
+        if (cancelledIds.has(payload.id)) return;
         let watchdog = null;
         try {
           if (payload.action !== "authorize") await waitForPanelReady();
+          if (cancelledIds.has(payload.id)) return;
           const budgetMs = commandBudgets[payload.action] ?? 15e3;
           const command = commandRef.current(payload.action, payload.args ?? {}, bridgeSession);
           const budget = new Promise((_, reject) => {
+            activeCancel = { id: payload.id, reject };
             watchdog = setTimeout(
               () => reject(new Error(t2("agent.commandTimeout", { seconds: Math.round(budgetMs / 1e3) }))),
               budgetMs
             );
           });
           const result = await Promise.race([command, budget]);
-          await ack({ session: bridgeSession, id: payload.id, ok: true, result });
+          if (!cancelledIds.has(payload.id)) await ack({ session: bridgeSession, id: payload.id, ok: true, result });
         } catch (error2) {
-          await ack({ session: bridgeSession, id: payload.id, ok: false, error: message(error2) });
+          if (!cancelledIds.has(payload.id)) await ack({ session: bridgeSession, id: payload.id, ok: false, error: message(error2) });
         } finally {
+          activeCancel = null;
           if (watchdog !== null) clearTimeout(watchdog);
         }
       }).catch(() => {
@@ -15936,12 +16065,14 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     };
     source.addEventListener("hello", onHello);
     source.addEventListener("command", onCommand);
+    source.addEventListener("cancel", onCancel);
     source.addEventListener("error", onError);
     setBridgeOn(false);
     return () => {
       if (retryTimer !== null) clearTimeout(retryTimer);
       source.removeEventListener("hello", onHello);
       source.removeEventListener("command", onCommand);
+      source.removeEventListener("cancel", onCancel);
       source.removeEventListener("error", onError);
       try {
         source.close();

@@ -13,7 +13,7 @@
  */
 import { createHeightService } from './height-service.js'
 import { resolveAnalysisTarget } from './source-policy.js'
-import { ANALYSIS_ENTITY_PREFIX, ANALYSIS_MIN_SAMPLES, analysisClipPlane, analysisColorAt, analysisInteger, analysisLonLat, analysisObserver, analysisRegion, analysisRound, analysisSunAngles } from './math.js'
+import { ANALYSIS_ENTITY_PREFIX, ANALYSIS_MIN_SAMPLES, analysisClipPlane, analysisColorAt, analysisInteger, analysisLocalizeClipPlane, analysisLonLat, analysisObserver, analysisRegion, analysisRound, analysisSunAngles } from './math.js'
 import { formatHeight } from '../format.js'
 import { vectorLabel } from '../scene/vector-style.js'
 
@@ -464,13 +464,7 @@ export function createAnalysisEngine(deps) {
             outlineColor: borderColor,
           },
         })
-        const corners = [
-          [region.west, region.south],
-          [region.east, region.south],
-          [region.east, region.north],
-          [region.west, region.north],
-          [region.west, region.south],
-        ]
+        const corners = [[region.west, region.south], [region.east, region.south], [region.east, region.north], [region.west, region.north], [region.west, region.south]]
         analysisAdd(Cesium, viewer, {
           id: 'flood-border',
           polyline: {
@@ -485,7 +479,11 @@ export function createAnalysisEngine(deps) {
           position: Cesium.Cartesian3.fromDegrees(middleLon, middleLat, waterHeight + 2),
           label: analysisLabel(Cesium, t('analysis.waterLabel', { value: formatHeight(waterHeight) })),
         })
-        const regionArea = grid * grid * cellArea
+        const totalSamples = grid * grid
+        const missingSamples = Math.max(0, totalSamples - withData)
+        const coverageRatio = totalSamples > 0 ? analysisRound(withData / totalSamples, 4) : 0
+        if (coverageRatio < 0.5 && !sampled.warnings.includes('low_sample_coverage')) sampled.warnings.push('low_sample_coverage')
+        const regionArea = totalSamples * cellArea
         const result = {
           operation: 'flood',
           layer: layer ? layer.name : null,
@@ -495,10 +493,14 @@ export function createAnalysisEngine(deps) {
           cell_area_m2: analysisRound(cellArea, 1),
           area_km2: analysisRound(regionArea / 1e6, 6),
           inundated_km2: analysisRound((inundated * cellArea) / 1e6, 6),
+          unknown_km2: analysisRound((missingSamples * cellArea) / 1e6, 6),
           inundated_ratio: analysisRound(withData > 0 ? inundated / withData : 0, 4),
+          coverage_ratio: coverageRatio,
           depth_max_m: analysisRound(depthMaximum, 2),
           depth_mean_m: analysisRound(inundated > 0 ? depthSum / inundated : 0, 2),
+          samples_total: totalSamples,
           samples_with_data: withData,
+          samples_missing: missingSamples,
           samples_inundated: inundated,
           // Provenance is additive: old fields keep their names/semantics.
           source: floodSource,
@@ -515,15 +517,11 @@ export function createAnalysisEngine(deps) {
 
       const analyzeSunlight = (Cesium, viewer, layer, args) => {
         const date = args.datetime === undefined || args.datetime === null ? new Date() : new Date(args.datetime)
-        if (Number.isNaN(date.getTime())) {
-          throw new Error('analysis: `datetime` must be a valid ISO 8601 date. next: pass an ISO timestamp, or omit it for the current time.')
-        }
+        if (Number.isNaN(date.getTime())) throw new Error('analysis: `datetime` must be a valid ISO 8601 date. next: pass an ISO timestamp, or omit it for the current time.')
         const showShadows = args.show_shadows !== false
         const observer = analysisObserver(Cesium, viewer, layer)
         const sun = analysisSunAngles(Cesium, date, observer)
-        if (!sun) {
-          throw new Error('analysis: 无法计算太阳位置（Cesium 星历不可用）。next: 检查浏览器控制台后重试，或先执行 clear。')
-        }
+        if (!sun) throw new Error('analysis: 无法计算太阳位置（Cesium 星历不可用）。next: 检查浏览器控制台后重试，或先执行 clear。')
         const scene = viewer.scene
         const restore = {
           enableLighting: scene.globe.enableLighting,
@@ -607,6 +605,7 @@ export function createAnalysisEngine(deps) {
         if (!plane) {
           throw new Error('analysis: 无法计算剖切面。next: 重新加载图层后重试，或改用其他分析。')
         }
+        analysisLocalizeClipPlane(Cesium, plane, tileset, center)
         if (typeof Cesium.ClippingPlaneCollection !== 'function' || typeof Cesium.ClippingPlane !== 'function') {
           throw new Error('analysis: 当前 Cesium 不支持剖切（ClippingPlane）。next: 升级 Cesium 后重试。')
         }

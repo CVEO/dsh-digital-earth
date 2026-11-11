@@ -28,9 +28,11 @@ export function createAskAgent(deps) {
           return
         }
         let snapshotPath = ''
+        let savedMetadata = null
         try {
           const saved = await captureScene({}, session)
           snapshotPath = typeof saved.path === 'string' ? saved.path : ''
+          savedMetadata = saved?.metadata !== null && typeof saved?.metadata === 'object' ? saved.metadata : null
         } catch {
           // A fresh image is a bonus; the textual summary still helps.
         }
@@ -43,16 +45,23 @@ export function createAskAgent(deps) {
         const lines = [
           '[Digital Earth scene context] The user is looking at this scene and will ask a follow-up about it.',
         ]
+        if (typeof savedMetadata?.captured_at === 'string' && savedMetadata.captured_at !== '') {
+          lines.push(`Captured at: ${savedMetadata.captured_at}.`)
+        }
         if (status !== null) {
-          const view = status.view ?? {}
+          const view =
+            savedMetadata?.camera !== null && typeof savedMetadata?.camera === 'object'
+              ? savedMetadata.camera
+              : status.view ?? {}
           if (Number.isFinite(view.lon) && Number.isFinite(view.lat)) {
             lines.push(
               `Camera: lon=${view.lon}, lat=${view.lat}, height=${view.height} m, heading=${view.heading}°, pitch=${view.pitch}°.`,
             )
           }
+          const capturedLayers = Array.isArray(savedMetadata?.layers) && savedMetadata.layers.length > 0 ? savedMetadata.layers : status.layers
           const layerText =
-            Array.isArray(status.layers) && status.layers.length > 0
-              ? status.layers.map((layer) => `${layer.name}${layer.visible === false ? ' (hidden)' : ''}`).join(', ')
+            Array.isArray(capturedLayers) && capturedLayers.length > 0
+              ? capturedLayers.map((layer) => `${layer.name}${layer.visible === false ? ' (hidden)' : ''}`).join(', ')
               : 'none'
           lines.push(`Layers: ${layerText}.`)
           lines.push(`Imagery: ${status.imagery?.name ?? 'none'}; terrain: ${status.terrain?.name ?? 'none'}.`)
@@ -92,6 +101,10 @@ export function createAskAgent(deps) {
             lines.push(
               `Analysis (sunlight): datetime=${result.datetime}, altitude=${result.sun?.altitude_deg}°, azimuth=${result.sun?.azimuth_deg}°, shadows=${result.shadows_enabled === true ? 'on' : 'off'}.`,
             )
+          } else if (result.operation === 'clip') {
+            lines.push(`Analysis (clip): height=${result.height} m, keep=${result.keep}.`)
+          } else if (result.operation === 'skyline') {
+            lines.push(`Analysis (skyline): max_angle=${result.max_angle_deg}°, max_distance=${result.max_distance_m} m, eye=${result.eye_height_m} m.`)
           }
         }
         const shaders = shaderActiveList()

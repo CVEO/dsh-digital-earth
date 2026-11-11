@@ -199,16 +199,25 @@ export function createBridge(allowedDirs, options = {}) {
         else resolveCommand(value === undefined ? {} : value)
       },
     }
-    abortListener = () => job.finish(bridgeFailure('cancelled', `The "${action}" command was cancelled.`))
+    // Only the newest attachment executes: an older tab that still has the
+    // panel open must stay idle instead of running the command a second time.
+    const newest = [...connections].pop()
+    abortListener = () => {
+      if (newest) {
+        try {
+          writeFrame(newest, `event: cancel\ndata: ${JSON.stringify({ id, action })}\n\n`)
+        } catch {
+          /* ignore closed socket on cancel */
+        }
+      }
+      job.finish(bridgeFailure('cancelled', `The "${action}" command was cancelled.`))
+    }
     signal?.addEventListener?.('abort', abortListener, { once: true })
     pending.set(id, job)
     const timerMessage = timeoutMessage(action, timeoutMs) + (connections.size > 1 ? MULTI_TAB_HINT : '')
     job.timer = setTimeout(() => job.finish(bridgeFailure('timeout', timerMessage)), timeoutMs)
     job.timer.unref?.()
     const frame = `event: command\ndata: ${JSON.stringify({ id, action, args })}\n\n`
-    // Only the newest attachment executes: an older tab that still has the
-    // panel open must stay idle instead of running the command a second time.
-    const newest = [...connections].pop()
     if (!newest || !writeFrame(newest, frame)) job.finish(bridgeFailure('closed', PANEL_CLOSED_MESSAGE))
   })
 

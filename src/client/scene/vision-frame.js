@@ -164,15 +164,24 @@ export function projectVisionPolygon(frame, result) {
   }
   if (points.length < 3) throw visionError('depth_unavailable')
   if (!frame.isValid()) throw visionError('scene_changed')
+  const totalSamples = polygon.length * 2
+  const missRatio = totalSamples > 0 ? Math.round((misses / totalSamples) * 1000) / 1000 : 0
+  const depthSource =
+    fallback === 0 ? 'scene_depth' : fallback < points.length ? 'mixed_ground_fallback' : 'ground_fallback'
+  const warnings = []
+  if (fallback > 0) warnings.push('depth_fallback')
+  if (misses > 0) warnings.push('depth_partial')
   const ring = points.map((point) => [point.lon, point.lat])
   ring.push(ring[0].slice())
   return {
     points,
     ring,
-    complete: true,
+    complete: misses === 0,
     misses,
+    missRatio,
+    depth_source: depthSource,
     heightRange: heightRange(points.map((point) => point.height)),
     approximate: true,
-    warnings: fallback > 0 ? ['depth_fallback'] : [],
+    warnings,
   }
 }
