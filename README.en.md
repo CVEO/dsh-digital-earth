@@ -15,7 +15,7 @@ Built by the CVEO Research Group, Wuhan University — a 3D component for 3D cit
 ![DSH](https://img.shields.io/badge/DSH-plugin-0ea5e9)
 [![npm downloads](https://img.shields.io/npm/dm/@cveo/dsh-digital-earth?label=npm%20downloads&color=cb383f)](https://www.npmjs.com/package/@cveo/dsh-digital-earth)
 
-<img src="assets/readme/hero.jpg" alt="Digital Earth panel: the old town and cathedral of Clermont-Ferrand, France (public CRAIG 3D Tiles, dataset centre about 45.7944°N, 3.1676°E)" width="46%">
+<img src="assets/readme/hero.jpg" alt="Digital Earth panel: the old town and cathedral of Clermont-Ferrand, France (public CRAIG 3D Tiles, dataset centre about 45.7944°N, 3.1676°E)" width="78%">
 
 </div>
 
@@ -23,9 +23,14 @@ After opening Digital Earth in DSH, the 3D scene panel appears beside the conver
 
 The 3D engine and UI assets ship with the plugin, so no additional GIS server is required; local layers need not be uploaded, while online imagery and terrain use the selected sources. When you choose AI-assisted selection, the current image is sent to the configured model and saved as a host attachment.
 
+<p align="center"><img src="assets/readme/split-view.jpg" alt="DSH conversation and Digital Earth split view: chat on the left, 3D scene and tools on the right (real screenshot)" width="92%"></p>
+<p align="center"><sub>DSH conversation and Digital Earth split view: chat on the left, 3D scene, layers and tools on the right</sub></p>
+
 ## Quick start
 
-Search for "Digital Earth" in the plugin market, or install from npm / a local tgz:
+**Easiest install**: open the desktop DeepSeek Harness, click **Plugins** in the top-right corner, enter the full package name `@cveo/dsh-digital-earth` in the plugin market search box, and install "Digital Earth". Then restart DSH as described in step 1.
+
+You can also install from npm or a local tgz in a terminal:
 
 ```bash
 # npm
@@ -45,6 +50,21 @@ After loading data, send the Agent a direct instruction:
 
 When an unauthorised folder is accessed for the first time, the panel requests authorisation once; after approval the folder loads directly.
 
+## Three-minute tour
+
+No tool names or coordinates are required. After loading the sample data, say any of the following to the Agent, or use the panel directly.
+
+| Say / do this | The plugin does | You see |
+| --- | --- | --- |
+| "Colour the buildings by height, then take a snapshot." | Applies the elevation-ramp effect and captures a clean image | A coloured scene and the snapshot path with camera metadata |
+| "Take a clean snapshot of this view and tell me where the camera is." | Captures the image and reads camera longitude/latitude, height, heading, pitch and visible layers | A clean 3D image plus a JSON sidecar of the same name |
+| "Generate a Markdown report of the current scene." | Collects layers, camera, measurements, analyses and captures | A report path with a ready-to-share Markdown / HTML file |
+| Click a building or the ground. | Default identification reads the hit layer, coordinates, surface/geometric height and attributes | An identify card and object attributes; "Select around this point" creates a 15 m approximate AOI |
+| Tools → Rectangle selection → drag → ask "What buildings and vegetation are in this area?" | Saves the selection image and coordinates, then sends them to the current conversation | A chat answer; the selection can be measured, exported or used for flood analysis |
+| Tools → AI selection → click a target | Sends the image to the vision model and projects an approximate visible-surface outline | An approximate selection you can confirm; the default model must accept images |
+
+> For a README screenshot, start with the first row: the elevation-ramp effect is visually obvious and shows both chat and the plugin at work.
+
 ## Core capabilities
 
 - **Scene browsing**: stack multiple 3D Tiles / 3DGS layers with visibility, fly-to and attribute identification; the layer card manages data only — the 3D tab holds terrain and 3D Tiles/3DGS, the Map tab holds imagery, raster and vector overlays; measure, profile, sun, analysis, visual effects and view bookmarks live in a separate Tools card. Collapsible panels and a compass that resets north keep the globe readable.
@@ -60,11 +80,12 @@ All screenshots below are from real panel sessions. Sample data: the public Cler
 
 <div align="center">
 
-<img src="assets/readme/measure.jpg" alt="Measuring the distance from the cathedral to Place de Jaude in Clermont-Ferrand (public CRAIG 3D Tiles, centre about 45.7944°N, 3.1676°E)" width="32%">
-<img src="assets/readme/shader.jpg" alt="Elevation-ramp visual effect over the old town (about 45.79°N, 3.17°E)" width="32%">
-<img src="assets/readme/sunlight.jpg" alt="Evening shadows over Clermont-Ferrand (local time zone Europe/Paris)" width="32%">
+<img src="assets/readme/profile.jpg" alt="3D profile from the cathedral across the old town, with elevation source, relief and cut/fill statistics (public CRAIG Clermont-Ferrand 3D Tiles)" width="32%">
+<img src="assets/readme/shader.jpg" alt="Visual-effects workbench: elevation-ramp colouring with adjustable height range (public CRAIG Clermont-Ferrand 3D Tiles)" width="32%">
+<img src="assets/readme/tools.jpg" alt="Tools card: point, lasso, rectangle/object selection, AI selection, profile and sun timeline" width="32%">
 
-<p align="center"><img src="assets/readme/tour.gif" alt="Orbiting the old town of Clermont-Ferrand" width="320"></p>
+<p align="center"><img src="assets/readme/tour.gif" alt="Digital Earth panel demo: identify, selection question, flood analysis, tools card and view tour" width="640"></p>
+
 
 </div>
 

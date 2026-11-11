@@ -15,7 +15,7 @@
 ![DSH](https://img.shields.io/badge/DSH-插件-0ea5e9)
 [![npm downloads](https://img.shields.io/npm/dm/@cveo/dsh-digital-earth?label=npm%20downloads&color=cb383f)](https://www.npmjs.com/package/@cveo/dsh-digital-earth)
 
-<img src="assets/readme/hero.jpg" alt="数字地球面板：法国克莱蒙费朗老城与大教堂（CRAIG 公开 3D Tiles，数据集中心约 45.7944°N, 3.1676°E）" width="46%">
+<img src="assets/readme/hero.jpg" alt="数字地球面板：法国克莱蒙费朗老城与大教堂（CRAIG 公开 3D Tiles，数据集中心约 45.7944°N, 3.1676°E）" width="78%">
 
 </div>
 
@@ -23,9 +23,14 @@
 
 三维引擎与界面资源随插件分发，无需额外的 GIS 服务端；本地图层无需上传，在线底图与地形按所选数据源访问。主动使用 AI 辅助圈选时，当前截图会发送给所选模型并存为宿主附件。
 
+<p align="center"><img src="assets/readme/split-view.jpg" alt="DSH 对话与数字地球分屏：左侧对话、右侧三维场景与工具面板（真实运行截图）" width="92%"></p>
+<p align="center"><sub>DSH 对话与数字地球分屏：左侧对话，右侧三维场景、图层与工具面板</sub></p>
+
 ## 快速开始
 
-可在插件市场搜索「数字地球」，或通过 npm / 本地 tgz 安装：
+**最简单的安装方式**：打开桌面版 DeepSeek Harness，点击右上角「插件」，在插件市场搜索框输入完整包名 `@cveo/dsh-digital-earth`，选择「数字地球」安装即可；安装完成后按第 1 步重启 DSH。
+
+也可以在终端通过 npm / 本地 tgz 安装：
 
 ```bash
 # npm
@@ -45,6 +50,21 @@ dsh plugin --profile <profile> add ./cveo-dsh-digital-earth-1.5.2.tgz
 
 首次访问未授权目录时，面板会请求一次授权；授权后该目录可直接加载。
 
+## 三分钟上手：照着说就行
+
+不需要记工具名，也不用写经纬度。加载示例数据后，可以直接对 Agent 说下面任意一句；也可以直接用面板操作。
+
+| 你只要说 / 做 | 插件会自动完成 | 你会看到 |
+| --- | --- | --- |
+| 「把当前画面里的建筑按高度上色，然后截一张图」 | 应用高程渐变视觉特效，再执行干净截图 | 彩色建筑画面；回复给出截图路径与相机位置 |
+| 「截一张当前视角的干净图，并告诉我相机在哪」 | 截图并读取相机经纬度、高度、朝向、俯仰与可见图层 | 只有三维画面的图片，图片旁有同名 JSON sidecar |
+| 「生成当前场景的 Markdown 报告」 | 汇总图层、相机、量测、分析与截图 | 报告路径，以及可继续转发的 Markdown / HTML |
+| 直接单击画面中的建筑或地面 | 默认识别：读取命中图层、坐标、表面/几何高程与属性 | 识别卡与对象属性；可「框选此点周围」生成 15 m 近似选区 |
+| 工具 → 矩形框选 → 拖框 → 输入「这里主要有哪些建筑和植被？」 | 保存当时的画面与选区，发送到当前对话 | 对话区回答；选区可量测、导出 GeoJSON 或做淹没分析 |
+| 工具 → AI 圈选 → 单击目标 | 截图交给视觉模型，反投影为可见表面近似轮廓 | 可确认采用的近似选区；需要默认模型支持图片输入 |
+
+> 想直接截图：推荐先做第一行「按高度上色」，右侧画面变化明显，适合作为 README 首图。
+
 ## 核心能力
 
 - **场景浏览**：叠加多份 3D Tiles / 3DGS，支持显隐、定位与属性指认；图层面板只管理数据——「三维」放地形与 3D Tiles/3DGS，「地图」放影像、栅格与矢量；量测、剖面、日照、分析、视觉特效与视角收藏收进独立「工具」卡，可折叠面板，右下角指南针点击回正北。
@@ -60,11 +80,12 @@ dsh plugin --profile <profile> add ./cveo-dsh-digital-earth-1.5.2.tgz
 
 <div align="center">
 
-<img src="assets/readme/measure.jpg" alt="在克莱蒙费朗老城量测大教堂到雅德广场的距离（数据：CRAIG Clermont-Ferrand 公开 3D Tiles，中心约 45.7944°N, 3.1676°E）" width="32%">
-<img src="assets/readme/shader.jpg" alt="高程渐变视觉特效：按老城建筑高度着色（约 45.79°N, 3.17°E）" width="32%">
-<img src="assets/readme/sunlight.jpg" alt="傍晚时分的建筑阴影（法国克莱蒙费朗，当地时区 Europe/Paris）" width="32%">
+<img src="assets/readme/profile.jpg" alt="三维剖面：从大教堂到老城的剖面分析，显示高程来源、起伏与挖填方（CRAIG Clermont-Ferrand 3D Tiles）" width="32%">
+<img src="assets/readme/shader.jpg" alt="视觉特效工作台：按建筑高度渐变着色，可调高程范围（CRAIG Clermont-Ferrand 3D Tiles）" width="32%">
+<img src="assets/readme/tools.jpg" alt="工具卡：点选、套索、矩形/对象框选、AI 圈选、剖面与日照时间轴" width="32%">
 
-<p align="center"><img src="assets/readme/tour.gif" alt="绕着克莱蒙费朗老城浏览" width="320"></p>
+<p align="center"><img src="assets/readme/tour.gif" alt="数字地球面板功能演示：单击识别、框选提问、淹没分析、工具卡与视角导览" width="640"></p>
+
 
 </div>
 
