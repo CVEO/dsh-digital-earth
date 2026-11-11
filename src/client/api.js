@@ -116,7 +116,13 @@ import { clone } from './format.js'
         `${meta.scanUrl}?token=${encodeURIComponent(meta.token)}&dir=${encodeURIComponent(directory)}`,
         { credentials: 'same-origin', headers: { 'x-dsh-panel': '1' } },
       )
-      if (!response.ok) throw new Error(`HTTP ${response.status}`)
+      if (!response.ok) {
+        const detail = (await response.text().catch(() => '')).trim()
+        const error = new Error(detail ? `HTTP ${response.status}: ${detail}` : `HTTP ${response.status}`)
+        error.status = response.status
+        error.detail = detail
+        throw error
+      }
       return response.json().catch(() => ({}))
     }
 

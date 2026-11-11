@@ -200,6 +200,8 @@ import { SELECTION_QUESTION_CSS } from './selection-question-css.js'
 /* Layer panel v1.6: four groups (L1 terrain / L2 basemap / L3 raster / L4 vector)
    plus the 3D Tiles list. */
 .mv-group{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:13px 4px 5px;margin-top:3px;border-top:.5px solid var(--mv-line)}
+.mv-group-actions{display:inline-flex;align-items:center;gap:4px;flex:none}
+.mv-add3d-menu .mv-cta{text-align:left;width:100%}
 .mv-group:first-child{border-top:0;margin-top:0;padding-top:9px}
 .mv-group-title{min-width:0;font-size:11px;line-height:1.4;font-weight:600;letter-spacing:0;color:var(--mv-dim)}
 .mv-layers .mv-layer{min-height:30px;box-sizing:border-box;padding:5px 8px}

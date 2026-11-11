@@ -171,7 +171,19 @@ export function shaderStackLabel(t, preset) {
  * @param {Function} deps.showToast (text) => void
  * @param {Function} deps.t translate function
  */
-export function createWorkbenchWiring({ getForm, getLayers, setShaderForm, shaderCommand, showToast, t, shaderCompare }) {
+export function createWorkbenchWiring({
+  getForm,
+  getLayers,
+  setShaderForm,
+  shaderCommand,
+  showToast,
+  t,
+  shaderCompare,
+  openLocal,
+  openRecent,
+  openUrl,
+  pickLocalTiles,
+}) {
   const field = (key, value) => setShaderForm((form) => ({ ...form, [key]: value }))
   const formLayer = () => getLayers().find((layer) => layer.id === getForm().layerId) ?? null
   const target = () => resolveWorkbenchTarget(getLayers(), getForm())
@@ -210,6 +222,14 @@ export function createWorkbenchWiring({ getForm, getLayers, setShaderForm, shade
     target,
     /** Load an applied shader row into the form (edit-in-place). */
     loadEntry: (entry) => setShaderForm(formFromShaderEntry(entry)),
+    /** Open local 3D directory picker from the 3D layer tab. */
+    openLocal: (...args) => openLocal?.(...args),
+    /** Re-open a recently authorised directory from the 3D layer tab. */
+    openRecent: (...args) => openRecent?.(...args),
+    /** Open the online/local address bar from the 3D layer tab. */
+    openUrl: (...args) => openUrl?.(...args),
+    /** Pick a local XYZ tile pyramid folder from the Map tab. */
+    pickLocalTiles: (...args) => pickLocalTiles?.(...args),
     /** Reset one specific layer's shader (used by the layer-panel row ✕). */
     async resetLayerFor(token) {
       try {
@@ -296,4 +316,145 @@ export function createWorkbenchWiring({ getForm, getLayers, setShaderForm, shade
 /** Local copy so this module does not pull the whole format/i18n graph. */
 function messageOf(error) {
   return error && typeof error.message === 'string' && error.message !== '' ? error.message : String(error)
+}
+
+/**
+ * Translate a `/scan` or local-path error into task-language copy:
+ *   - 403 / forbidden -> directory not authorised or token expired;
+ *   - 404 / folder not found -> path unreadable on the Host machine;
+ *   - 400 / root / UNC -> unsupported root or network share;
+ *   - anything else -> fallback `toast.scanFailed`.
+ */
+export function formatScanFailure(t, error) {
+  const status = error?.status
+  const raw = `${error?.detail ?? ''} ${messageOf(error)}`
+  if (status === 403 || /\b403\b|forbidden|access_denied|not been opened/i.test(raw)) {
+    return t('toast.scanForbidden')
+  }
+  if (status === 404 || /\b404\b|folder not found|ENOENT|does not exist/i.test(raw)) {
+    return t('toast.scanNotFound')
+  }
+  if (status === 400 || /\b400\b|filesystem root|UNC path|network share|not a folder/i.test(raw)) {
+    return t('toast.scanInvalidDir')
+  }
+  return t('toast.scanFailed', { message: messageOf(error) })
+}
+
+/**
+ * Local directory picker, remembered-folder loader and multi-tileset scan handoff.
+ * Extracted from ViewerSurface so the 3D tab, Map tab, Data menu and empty overlay
+ * share one implementation and ViewerSurface stays below its line budget.
+ */
+export function createLocalDirectoryWiring({
+  metaRef,
+  getWorkspace,
+  scanLocalDirectory,
+  addTileset,
+  joinLocalPath,
+  b64url,
+  folderName,
+  setRecentDirs,
+  setScan,
+  setBusy,
+  setOpenMenu,
+  showToast,
+  t,
+}) {
+  const itemLabel = (name) => String(name ?? '').split(/[\\/]/).filter(Boolean).slice(-2).join('/')
+
+  const handleScannedItems = async (dir, data) => {
+    const items = Array.isArray(data?.items) ? data.items : []
+    if (items.length === 0) {
+      showToast(t('toast.scanEmpty'))
+      return
+    }
+    if (items.length === 1 && (!data?.truncated || String(items[0]?.name ?? '').toLowerCase() === 'tileset.json')) {
+      const [item] = items
+      await addTileset(item.url, itemLabel(item.name), {
+        kind: 'local',
+        path: joinLocalPath(dir, item.name),
+      })
+      return
+    }
+    setScan({ dir, items, truncated: Boolean(data?.truncated), limit: data?.limit })
+  }
+
+  const refreshRecentDirs = async () => {
+    const url = metaRef.current?.directoriesUrl
+    if (typeof url !== 'string' || url === '') return
+    try {
+      const response = await fetch(url, { credentials: 'same-origin' })
+      if (!response.ok) throw new Error(`HTTP ${response.status}`)
+      const data = await response.json()
+      const list = Array.isArray(data?.directories) ? data.directories : []
+      const entries = []
+      for (const entry of list) {
+        const dir = typeof entry === 'string' ? entry : entry?.path
+        if (typeof dir !== 'string' || dir === '') continue
+        entries.push({ dir, name: typeof entry?.name === 'string' && entry.name !== '' ? entry.name : folderName(dir) })
+        if (entries.length >= 5) break
+      }
+      setRecentDirs(entries)
+    } catch (error) {
+      setRecentDirs([])
+      showToast(formatScanFailure(t, error))
+    }
+  }
+
+  async function openRecentDirectory(dir) {
+    setOpenMenu(null)
+    setBusy(t('toast.busyDirectory'))
+    try {
+      const data = await scanLocalDirectory(metaRef.current, dir)
+      void refreshRecentDirs()
+      await handleScannedItems(dir, data)
+    } catch (error) {
+      showToast(formatScanFailure(t, error))
+    } finally {
+      setBusy('')
+    }
+  }
+
+  async function pickLocal() {
+    setOpenMenu(null)
+    const workspace = getWorkspace()
+    if (!workspace) {
+      showToast(t('toast.dialogUnavailable'))
+      return
+    }
+    setBusy(t('toast.busyDirectory'))
+    try {
+      const dir = await workspace.pickDirectory()
+      if (!dir) return
+      const data = await scanLocalDirectory(metaRef.current, dir)
+      void refreshRecentDirs()
+      await handleScannedItems(dir, data)
+    } catch (error) {
+      showToast(formatScanFailure(t, error))
+    } finally {
+      setBusy('')
+    }
+  }
+
+  async function pickLocalTiles(options = {}) {
+    const workspace = getWorkspace()
+    if (!workspace) {
+      showToast(t('toast.dialogUnavailable'))
+      return null
+    }
+    try {
+      const dir = await workspace.pickDirectory()
+      if (!dir) return null
+      await scanLocalDirectory(metaRef.current, dir)
+      void refreshRecentDirs()
+      const folder = dir.replace(/\\/g, '/').replace(/\/+$/, '')
+      const url = `${metaRef.current.tilesBase}${encodeURIComponent(b64url(folder))}/{z}/{x}/{y}.png`
+      return options?.withMeta ? { url, name: folderName(folder) } : url
+    } catch (error) {
+      showToast(formatScanFailure(t, error))
+      return null
+    }
+  }
+
+  return { refreshRecentDirs, openRecentDirectory, pickLocal, pickLocalTiles }
 }

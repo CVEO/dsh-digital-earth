@@ -44,7 +44,13 @@ export function LayersPanel({
   onClearVector,
   agentOverlays,
   onRemoveAgentOverlay,
+  onFlyAgentOverlay,
   onImportVector,
+  onPickLocalTiles,
+  onOpenLocal,
+  onOpenUrl,
+  recentDirs,
+  onOpenRecent,
   onShowSceneDetails,
 }) {
   // The 3D data tab is primary: the 3D Tiles the user loaded is why the panel is
@@ -117,6 +123,10 @@ export function LayersPanel({
           shaderActive,
           onEditLayerShader,
           onShowSceneDetails,
+          onOpenLocal,
+          onOpenUrl,
+          recentDirs,
+          onOpenRecent,
         })
       : h(LayersMap, {
           t,
@@ -132,7 +142,9 @@ export function LayersPanel({
           agentOverlays,
           onClearVector,
           onRemoveAgentOverlay,
+          onFlyAgentOverlay,
           onImportVector,
+          onPickLocalTiles,
         })),
     h(ResizeHandle, {
       axis: 'height',

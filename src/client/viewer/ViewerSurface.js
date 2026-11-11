@@ -6,7 +6,7 @@
  */
 import React from 'react'
 import { createAnalysisEngine } from '../analysis/engine.js'
-import { buildAgentOverlayList, clearAgentOverlays as clearAgentOverlaysInState, manualMeasurementRow, overlayRowsWithEntities, removeAgentOverlay, removeAgentOverlayRows } from '../scene/agent-overlays.js'
+import { buildAgentOverlayList, clearAgentOverlays as clearAgentOverlaysInState, flyToAgentOverlay, flyToBbox, manualMeasurementRow, overlayRowsWithEntities, removeAgentOverlay, removeAgentOverlayRows } from '../scene/agent-overlays.js'
 import { ACCESS_TIMEOUT_MS, imageryProvider, loadCesium, loadCesiumStyle, loadMeta, loadSources, persistSources, scanLocalDirectory, terrainProvider } from '../api.js'
 import { sampleCursor } from '../cursor.js'
 import { arrayBufferToBase64, b64url, clone, escapeHtml, formatArea, formatDistance, formatHeight, formatValue, geodesicLength, message, planarArea, redactUrl } from '../format.js'
@@ -42,7 +42,7 @@ import { useEnvironmentDark } from '../theme.js'
 import { ShaderWorkbench } from '../ui/cards.js'
 import { CSS } from '../ui/css.js'
 import { revealPanel } from '../ui/reveal-panel.js'
-import { HealthDialog, PathAccessDialog, SourcesDialog } from '../ui/dialogs.js'
+import { HealthDialog, PathAccessDialog, ScanDialog, SourcesDialog } from '../ui/dialogs.js'
 import { UrlBar } from '../ui/url-bar.js'
 import { Compass } from '../ui/compass.js'
 import { StatusHud } from '../ui/hud.js'
@@ -56,6 +56,7 @@ import { VectorCard } from '../ui/vector-card.js'
 import { useTour } from '../ui/tour-bar.js'
 import { useSceneDetails } from '../ui/scene-details.js'
 import { useWorkbenchWiring } from '../ui/use-workbench.js'
+import { createLocalDirectoryWiring, formatScanFailure } from '../ui/workbench-wiring.js'
 import { MenuItem } from '../ui/menu-item.js'
 import { hasVectorFile, isVectorDrag, readVectorFiles } from '../scene/vector-file.js'
 import { vectorErrorText } from '../scene/vector-errors.js'
@@ -456,118 +457,21 @@ const h = React.createElement
         }
       }
 
-      /**
-       * Load the folders the Host remembers from earlier `/scan` calls (newest
-       * first). Older Hosts do not send `directoriesUrl`: hide the section then
-       * rather than failing a menu that otherwise works.
-       */
-      const refreshRecentDirs = async () => {
-        const url = metaRef.current?.directoriesUrl
-        if (typeof url !== 'string' || url === '') return
-        try {
-          const response = await fetch(url, { credentials: 'same-origin' })
-          if (!response.ok) throw new Error(`HTTP ${response.status}`)
-          const data = await response.json()
-          const list = Array.isArray(data?.directories) ? data.directories : []
-          const entries = []
-          for (const entry of list) {
-            const dir = typeof entry === 'string' ? entry : entry?.path
-            if (typeof dir !== 'string' || dir === '') continue
-            entries.push({ dir, name: typeof entry?.name === 'string' && entry.name !== '' ? entry.name : folderName(dir) })
-            if (entries.length >= 5) break
-          }
-          setRecentDirs(entries)
-        } catch (error) {
-          // A stale endpoint must not break the data menu; surface it like a scan error.
-          setRecentDirs([])
-          showToast(t('toast.scanFailed', { message: message(error) }))
-        }
-      }
-
-      /** Re-open a remembered folder exactly like the picker would. */
-      async function openRecentDirectory(dir) {
-        setOpenMenu(null)
-        setBusy(t('toast.busyDirectory'))
-        try {
-          const meta = metaRef.current
-          const response = await fetch(
-            `${meta.scanUrl}?token=${encodeURIComponent(meta.token)}&dir=${encodeURIComponent(dir)}`,
-            { credentials: 'same-origin', headers: { 'x-dsh-panel': '1' } },
-          )
-          if (!response.ok) throw new Error(`HTTP ${response.status}`)
-          const data = await response.json()
-          refreshRecentDirs()
-          if (!data.items || data.items.length === 0) {
-            showToast(t('toast.scanEmpty'))
-            return
-          }
-          setScan({ dir, items: data.items })
-        } catch (error) {
-          showToast(t('toast.scanFailed', { message: message(error) }))
-        } finally {
-          setBusy('')
-        }
-      }
-
-      async function pickLocal() {
-        setOpenMenu(null)
-        const workspace = service('uiWorkspace')
-        if (!workspace) {
-          showToast(t('toast.dialogUnavailable'))
-          return
-        }
-        setBusy(t('toast.busyDirectory'))
-        try {
-          const dir = await workspace.pickDirectory()
-          if (!dir) return
-          const meta = metaRef.current
-          const response = await fetch(
-            `${meta.scanUrl}?token=${encodeURIComponent(meta.token)}&dir=${encodeURIComponent(dir)}`,
-            { credentials: 'same-origin', headers: { 'x-dsh-panel': '1' } },
-          )
-          if (!response.ok) throw new Error(`HTTP ${response.status}`)
-          const data = await response.json()
-          // `/scan` records the folder on the Host, so the recent list is stale now.
-          refreshRecentDirs()
-          if (!data.items || data.items.length === 0) {
-            showToast(t('toast.scanEmpty'))
-            return
-          }
-          setScan({ dir, items: data.items })
-        } catch (error) {
-          showToast(t('toast.scanFailed', { message: message(error) }))
-        } finally {
-          setBusy('')
-        }
-      }
-
-      /**
-       * Pick a local tile pyramid folder and turn it into a `/tiles` template.
-       * Opening the folder through /scan is what whitelists it on the host, so a
-       * local XYZ pyramid needs no extra permission plumbing.
-       */
-      async function pickLocalTiles() {
-        const workspace = service('uiWorkspace')
-        if (!workspace) {
-          showToast(t('toast.dialogUnavailable'))
-          return null
-        }
-        try {
-          const dir = await workspace.pickDirectory()
-          if (!dir) return null
-          const meta = metaRef.current
-          const response = await fetch(
-            `${meta.scanUrl}?token=${encodeURIComponent(meta.token)}&dir=${encodeURIComponent(dir)}`,
-            { credentials: 'same-origin', headers: { 'x-dsh-panel': '1' } },
-          )
-          if (!response.ok) throw new Error(`HTTP ${response.status}`)
-          const folder = dir.replace(/\\/g, '/').replace(/\/+$/, '')
-          return `${meta.tilesBase}${encodeURIComponent(b64url(folder))}/{z}/{x}/{y}.png`
-        } catch (error) {
-          showToast(t('toast.scanFailed', { message: message(error) }))
-          return null
-        }
-      }
+      const { refreshRecentDirs, openRecentDirectory, pickLocal, pickLocalTiles } = createLocalDirectoryWiring({
+        metaRef,
+        getWorkspace: () => service('uiWorkspace'),
+        scanLocalDirectory,
+        addTileset,
+        joinLocalPath,
+        b64url,
+        folderName,
+        setRecentDirs,
+        setScan,
+        setBusy,
+        setOpenMenu,
+        showToast,
+        t,
+      })
 
       /**
        * Provider/service requests (terrain metadata, imagery capabilities, tileset
@@ -878,6 +782,7 @@ const h = React.createElement
           runVectorImport(agentOverlayRef.current, viewerRef.current, () => drawAgentOverlay(cesiumRef.current, viewerRef.current, parsed.geojson, 'accent', `GeoJSON: ${name}`))
           syncAgentOverlayCount()
           markSceneDirty()
+          if (parsed?.bbox) flyToBbox(viewerRef.current, cesiumRef.current, parsed.bbox)
           showToast([t('layers.imported', { name, n: parsed.featureCount }), ...(parsed.warnings ?? []).map((key) => t(key))].join(' · '))
         } catch (error) {
           showToast(t('layers.importFailed', { message: vectorErrorText(error, t) }))
@@ -1821,7 +1726,7 @@ const h = React.createElement
           try {
             url = await localPathToUrl(value)
           } catch (error) {
-            showToast(message(error))
+            showToast(formatScanFailure(t, error))
             return
           }
         } else if (!/^https?:\/\//i.test(value)) {
@@ -2240,9 +2145,9 @@ const h = React.createElement
       // The recent-folder list is Host state, so fetch it when the menu opens rather
       // than at panel start: a closed menu costs no request, an open one is current.
       React.useEffect(() => {
-        if (openMenu === 'data') refreshRecentDirs()
+        if (openMenu === 'data' || showLayers) refreshRecentDirs()
         // eslint-disable-next-line react-hooks/exhaustive-deps
-      }, [openMenu, meta?.directoriesUrl])
+      }, [openMenu, showLayers, meta?.directoriesUrl])
 
       React.useEffect(() => {
         if (phase !== 'ready') return undefined
@@ -2440,6 +2345,13 @@ const h = React.createElement
         showToast,
         t,
         shaderCompare: (layer, enabled) => shaderEngine.compare(layer, enabled),
+        openLocal: pickLocal,
+        openRecent: openRecentDirectory,
+        openUrl: () => {
+          setOpenMenu(null)
+          setUrlBar(true)
+        },
+        pickLocalTiles,
       })
 
       return h(
@@ -2696,8 +2608,15 @@ const h = React.createElement
             onOverlayVisible: setOverlayVisible,
             onOverlayMove: moveOverlay,
             onImportVector: importVectorData,
+            onPickLocalTiles: () => workbench.pickLocalTiles({ withMeta: true }),
+            onOpenLocal: workbench.openLocal,
+            onOpenUrl: workbench.openUrl,
+            recentDirs,
+            onOpenRecent: workbench.openRecent,
             onClearVector: () => clearAgentOverlays('all'),
             agentOverlays: buildAgentOverlayList(agentOverlayRef.current),
+            onFlyAgentOverlay: (kind, index) =>
+              flyToAgentOverlay(agentOverlayRef.current, viewerRef.current, cesiumRef.current, kind, index),
             onRemoveAgentOverlay: (kind, index) => {
               if (!removeAgentOverlay(agentOverlayRef.current, viewerRef.current, kind, index)) return
               syncAgentOverlayCount()
@@ -2839,42 +2758,17 @@ const h = React.createElement
           : null,
         toast ? h('div', { key: 'toast', className: 'mv-toast' }, toast) : null,
         scan
-          ? h(
-              'div',
-              { key: 'scan', className: 'mv-modal', onPointerDown: (event) => event.target === event.currentTarget && setScan(null) },
-              h(
-                'div',
-                { className: 'mv-dialog' },
-                h(
-                  'header',
-                  null,
-                  h('b', null, t('layers.title')),
-                  h('span', { className: 'path', style: { fontWeight: 400, color: 'var(--mv-dim)' } }, scan.dir),
-                  h('button', { type: 'button', className: 'mv-icon-btn', onClick: () => setScan(null), title: t('btn.close') }, '✕'),
-                ),
-                h(
-                  'div',
-                  { className: 'body' },
-                  scan.items.map((item) =>
-                    h(
-                      'button',
-                      {
-                        key: item.url,
-                        type: 'button',
-                        className: 'mv-cta',
-                        style: { textAlign: 'left', display: 'flex', flexDirection: 'column', gap: '2px' },
-                        onClick: () =>
-                          addTileset(item.url, item.name.split(/[\\/]/).filter(Boolean).slice(-2).join('/'), {
-                            kind: 'local',
-                            path: joinLocalPath(scan.dir, item.name),
-                          }),
-                      },
-                      h('span', null, item.name),
-                    ),
-                  ),
-                ),
-              ),
-            )
+          ? h(ScanDialog, {
+              key: 'scan',
+              scan,
+              t,
+              onClose: () => setScan(null),
+              onSelect: (item) =>
+                addTileset(item.url, item.name.split(/[\\/]/).filter(Boolean).slice(-2).join('/'), {
+                  kind: 'local',
+                  path: joinLocalPath(scan.dir, item.name),
+                }),
+            })
           : null,
         health
           ? h(HealthDialog, {

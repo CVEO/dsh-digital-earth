@@ -39,7 +39,7 @@ const EXCEPTIONS = new Map([
   // and the per-command watchdog (the layer-kind and reveal-panel helpers were
   // already extracted to keep most of the growth out). Next extraction target:
   // move the recent-directories menu wiring, then lower this back to 2880.
-  ['src/client/viewer/ViewerSurface.js', 2930],
+  ['src/client/viewer/ViewerSurface.js', 2880],
 ])
 
 async function walk(dir) {
