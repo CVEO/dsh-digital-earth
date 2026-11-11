@@ -19,8 +19,7 @@ roof_task/
 # Development notes, plans, audits and research: local-only, never pushed or published.
 docs/
 
-# Local visual verification captures: never commit.
+# Local visual verification captures and temporary scratch directories: never commit.
 verify/
-
-# Local verification captures
-verify/
+.dsh-out/
+market/

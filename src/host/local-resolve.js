@@ -127,7 +127,11 @@ export async function resolveLocalTileset(rawPath, allowedDirs = null) {
     kind = 'directory'
     base = await realPathOr(resolved)
     assertSearchBase(base, resolved)
-    const searched = await scanTilesets(base, { depth: LOCAL_SEARCH_DEPTH, limit: LOCAL_SEARCH_ITEMS })
+    const searched = await scanTilesets(base, {
+      depth: LOCAL_SEARCH_DEPTH,
+      limit: LOCAL_SEARCH_ITEMS,
+      prioritizeTilesets: true,
+    })
     files = await insideFolder(searched.found, base)
     truncated = searched.truncated
   } else {
@@ -160,7 +164,11 @@ export async function resolveLocalTileset(rawPath, allowedDirs = null) {
     }
     base = await realPathOr(ancestor)
     assertSearchBase(base, resolved)
-    const searched = await scanTilesets(base, { depth: LOCAL_SEARCH_DEPTH, limit: LOCAL_SEARCH_ITEMS })
+    const searched = await scanTilesets(base, {
+      depth: LOCAL_SEARCH_DEPTH,
+      limit: LOCAL_SEARCH_ITEMS,
+      prioritizeTilesets: true,
+    })
     files = await insideFolder(searched.found, base)
     truncated = searched.truncated
   }
@@ -176,6 +184,14 @@ export async function resolveLocalTileset(rawPath, allowedDirs = null) {
       throw localPathError('no_tileset_found', `${summary}${limit}.`, 'pass the exact tileset.json path, or a folder that contains one.')
     }
     if (files.length > 1) throw ambiguousLocalPath(base, files)
+    if (truncated && dirname(files[0]) !== base) {
+      const shown = relative(base, files[0]).split(sep).join('/')
+      throw localPathError(
+        'ambiguous_local_path',
+        `found "${shown}" under "${base}", but the search stopped at ${LOCAL_SEARCH_ITEMS} entries before checking all subfolders.`,
+        'call again with the exact path of the tileset.json you want.',
+      )
+    }
     target = files[0]
   }
   const resolution = {

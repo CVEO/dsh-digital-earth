@@ -163,7 +163,11 @@ export async function scanHandler(req, res, allowedDirs, onOpened) {
       // The remembered list is a convenience, not a precondition.
     }
   }
-  const { found: files } = await scanTilesets(resolvedDir, { depth: MAX_SCAN_DEPTH, limit: MAX_SCAN_ITEMS })
+  const { found: files, truncated } = await scanTilesets(resolvedDir, {
+    depth: MAX_SCAN_DEPTH,
+    limit: MAX_SCAN_ITEMS,
+    prioritizeTilesets: true,
+  })
   const items = files.map((file) => {
     const rel = file
       .slice(resolvedDir.length)
@@ -176,7 +180,7 @@ export async function scanHandler(req, res, allowedDirs, onOpened) {
       url: `${API}/tiles/${TOKEN}/${encodeURIComponent(toB64(resolvedDir))}/${rel}`,
     }
   })
-  sendJson(res, 200, { items })
+  sendJson(res, 200, truncated ? { items, truncated: true, limit: MAX_SCAN_ITEMS } : { items })
 }
 
 async function remoteHandler(req, res) {

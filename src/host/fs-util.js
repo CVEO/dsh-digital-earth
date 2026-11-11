@@ -79,13 +79,20 @@ export async function pruneByMtime(dir, keep, options = {}) {
   }
 }
 
+const TILE_PAYLOAD_RE =
+  /\.(b3dm|i3dm|pnts|cmpt|glb|gltf|spz|ply|splat|ksplat|sog|bin|ktx2|dds|webp|png|jpg|jpeg|tif|tiff|subtree|osgb|s3m|s3mb|dae|obj|mtl|fbx|xml)$/i
+
 /**
  * Bounded breadth-first `tileset.json` scan shared by local path resolution and
  * the panel's folder scan. Entries are read in name order so results are stable.
+ * When `prioritizeTilesets` is enabled, tile/asset payload files are skipped so a
+ * dense dataset folder (hundreds of `.glb`/`.b3dm` files) never exhausts `limit`
+ * before `tileset.json` and sibling dataset folders are inspected.
  */
 export async function scanTilesets(base, options = {}) {
   const depthLimit = Number.isInteger(options.depth) && options.depth >= 0 ? options.depth : 3
   const limit = Number.isInteger(options.limit) && options.limit > 0 ? options.limit : 200
+  const prioritize = options.prioritizeTilesets === true
   const found = []
   let visited = 0
   let truncated = false
@@ -98,8 +105,11 @@ export async function scanTilesets(base, options = {}) {
     } catch {
       continue
     }
-    entries.sort((left, right) => left.name.localeCompare(right.name))
+    const rank = (entry) => (entry.isFile() ? 0 : entry.isDirectory() ? 1 : 2)
+    entries.sort((left, right) => (prioritize ? rank(left) - rank(right) : 0) || left.name.localeCompare(right.name))
     for (const entry of entries) {
+      const isTileset = entry.isFile() && entry.name.toLowerCase() === 'tileset.json'
+      if (prioritize && entry.isFile() && !isTileset && TILE_PAYLOAD_RE.test(entry.name)) continue
       if (visited >= limit) {
         truncated = true
         break
@@ -107,7 +117,7 @@ export async function scanTilesets(base, options = {}) {
       visited += 1
       if (entry.isDirectory()) {
         if (depth < depthLimit) queue.push({ directory: join(directory, entry.name), depth: depth + 1 })
-      } else if (entry.isFile() && entry.name.toLowerCase() === 'tileset.json') {
+      } else if (isTileset) {
         found.push(join(directory, entry.name))
       }
     }
