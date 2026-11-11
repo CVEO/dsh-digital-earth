@@ -188,3 +188,79 @@ export function removeAgentOverlay(state, viewer, kind, index) {
   }
   return false
 }
+
+/** Extract [lon, lat] pairs from a GeoJSON object or coordinate array. */
+function collectOverlayLonLat(node) {
+  const points = []
+  const visit = (value) => {
+    if (Array.isArray(value)) {
+      if (value.length >= 2 && typeof value[0] === 'number' && typeof value[1] === 'number') {
+        if (Number.isFinite(value[0]) && Number.isFinite(value[1])) points.push([value[0], value[1]])
+        return
+      }
+      for (const item of value) visit(item)
+      return
+    }
+    if (value && typeof value === 'object') {
+      if (Array.isArray(value.features)) for (const item of value.features) visit(item)
+      else if (Array.isArray(value.geometries)) for (const item of value.geometries) visit(item)
+      else if (value.geometry) visit(value.geometry)
+      else if (value.coordinates !== undefined) visit(value.coordinates)
+    }
+  }
+  visit(node)
+  return points
+}
+
+/** Fly the camera to a {west, south, east, north} bounding box. */
+export function flyToBbox(viewer, Cesium, bbox) {
+  const camera = viewer?.camera
+  if (!camera || !Cesium || !bbox) return false
+  const { west, south, east, north } = bbox
+  if (![west, south, east, north].every(Number.isFinite)) return false
+  const spanLon = Math.max(0, east - west)
+  const spanLat = Math.max(0, north - south)
+  if ((spanLon > 1e-5 || spanLat > 1e-5) && typeof Cesium.Rectangle?.fromDegrees === 'function') {
+    const padLon = Math.max(spanLon * 0.18, 0.0008)
+    const padLat = Math.max(spanLat * 0.18, 0.0008)
+    camera.flyTo({
+      destination: Cesium.Rectangle.fromDegrees(
+        Math.max(-180, west - padLon),
+        Math.max(-90, south - padLat),
+        Math.min(180, east + padLon),
+        Math.min(90, north + padLat),
+      ),
+      duration: 1.0,
+    })
+    return true
+  }
+  const lon = (west + east) / 2
+  const lat = (south + north) / 2
+  const approxMeters = Math.max(spanLon, spanLat) * 111_000
+  const height = Math.max(800, Math.min(2_500_000, approxMeters > 0 ? approxMeters * 2.4 : 1200))
+  camera.flyTo({
+    destination: Cesium.Cartesian3.fromDegrees(lon, lat, height),
+    duration: 1.0,
+  })
+  return true
+}
+
+/** Fly the camera to one vector overlay row (draw or measure command). */
+export function flyToAgentOverlay(state, viewer, Cesium, kind, index) {
+  if (!state || !viewer || !Cesium) return false
+  const command = kind === 'draw' ? state.drawCommands?.[index] : kind === 'measure' ? state.measureCommands?.[index] : null
+  if (!command) return false
+  const points = kind === 'draw' ? collectOverlayLonLat(command.geojson) : collectOverlayLonLat(command.points)
+  if (points.length === 0) return false
+  let west = Infinity
+  let south = Infinity
+  let east = -Infinity
+  let north = -Infinity
+  for (const [lon, lat] of points) {
+    if (lon < west) west = lon
+    if (lon > east) east = lon
+    if (lat < south) south = lat
+    if (lat > north) north = lat
+  }
+  return flyToBbox(viewer, Cesium, { west, south, east, north })
+}

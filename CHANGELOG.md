@@ -25,7 +25,8 @@
 - **对象框选** — 工具卡选择组新增「对象框选」：在画面上拖一个屏幕框，投影命中已有的 Agent 标注/量测行后列成清单，可批量删除、复制列表或把选中标注合并导出为一个 GeoJSON（量测不导出）；不产生新的空间几何、不新增工具。框选期间相机锁定，右键/Esc 取消；批量删除按行号降序执行，实体计数同步更新。
 - **本地矢量导入（GeoJSON / Shapefile）** — 「地图」Tab 的矢量叠加新增「导入矢量」，也支持把 `.geojson/.json` 或 `.shp`（可同批 `.dbf`）直接拖进画面：浏览器 File API 读取，纯前端校验（GeoJSON/Shapefile 类型、要素 ≤500、坐标 ≤2 万、有限数值）后复用现有 Agent overlay 渲染器叠加显示，与标注共用清除逻辑。Shapefile 解析支持 Point/MultiPoint/PolyLine/Polygon（含 Z/M 变体的 XY），带 DBF 属性；不新增 Host 路由、不引入第三方解析库。聊天附件形式仍留到后续。
 - **文档** — 中英文 README 使用 CRAIG 公开的克莱蒙费朗 3D Tiles 演示，截图说明补充数据来源与数据集中心坐标（约 45.7944°N, 3.1676°E）；从主演示与预设列表中移除等高线；安装示例跟随 1.5.2。
-- **工程** — 构建产物 `client.js` 由 `src/client` 重建；`npm run check` 与 `npm run release:check` 全绿。工具栏外观/设置菜单抽到 `ui/toolbar-menus.js`，`ViewerSurface` 从 2929 行降到 2877 行。图层/工具箱信息架构、对话交互傻瓜化、GeoJSON/Shapefile 附件等较大改动记录到 1.6 backlog，不在本版硬做。
+- **工程** — 构建产物 `client.js` 由 `src/client` 重建；`npm run check` 与 `npm run release:check` 全绿。工具栏外观/设置菜单抽到 `ui/toolbar-menus.js`，本地目录/最近目录与多数据集扫描接线抽到 `ui/workbench-wiring.js` 与 `ui/dialogs.js`（`ScanDialog`），`ViewerSurface` 从 2929 行降到 2824 行。图层/工具箱信息架构、对话交互傻瓜化、GeoJSON/Shapefile 附件等较大改动记录到 `docs/BACKLOG-1.6.md`。
+- **三维与地图页签二次打开本地数据（需求 A + F06/F11/F13）** — 三维 Tab「三维内容层」分组头部新增「＋ 添加」菜单（含「打开本地目录…」「粘贴在线 / 本机地址…」及「最近打开」目录列表），解决加载第一份数据后空状态消失导致无法打开第二份本地数据的问题；单 `tileset.json` 目录直接追加加载并自动定位，多 `tileset.json` 目录弹出 `ScanDialog` 明确提示发现数量供用户选择；地图 Tab 栅格叠加表单新增「选择本地瓦片目录…」，矢量导入支持多 `.geojson/.json` 合并、保留 `feature.id` 及矢量行一键定位；修复 `/scan` 被普通瓦片文件挤占 200 项预算及 `resolveLocalTileset` 将截断扫描误判为唯一候选的问题（F13），修复数据源名称输入框丢值问题（F06），并区分未找到 `tileset.json`、目录未授权、Host 路径不可读等任务语言提示。
 
 ## 1.5.1
 

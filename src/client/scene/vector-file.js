@@ -25,7 +25,7 @@ export async function readVectorFiles(files) {
   const stem = (name) => name.replace(/\.[^.]+$/, '').toLowerCase()
   const companion = (extension) => list.find((file) => stem(file.name) === stem(shp?.name ?? '') && file.name.toLowerCase().endsWith(extension))
   const dbf = companion('.dbf')
-  const geo = list.find((file) => isGeo(file.name))
+  const geos = list.filter((file) => isGeo(file.name))
   if (shp) {
     if (!dbf && list.some((file) => isDbf(file.name))) throw vectorError('SHP 与 DBF 必须同名配对')
     const prj = companion('.prj'), cpg = companion('.cpg')
@@ -40,10 +40,20 @@ export async function readVectorFiles(files) {
     const parsed = parseShapefile(await shp.arrayBuffer(), dbf ? await dbf.arrayBuffer() : null, { encoding, projectionKnown: Boolean(prj) })
     return { parsed, name: shp.name }
   }
-  if (geo) {
-    if (typeof geo.text !== 'function') throw new Error('File.text unavailable')
-    const parsed = normalizeVectorGeoJSON(await geo.text())
-    return { parsed, name: geo.name }
+  if (geos.length === 1) {
+    if (typeof geos[0].text !== 'function') throw new Error('File.text unavailable')
+    const parsed = normalizeVectorGeoJSON(await geos[0].text())
+    return { parsed, name: geos[0].name }
+  }
+  if (geos.length > 1) {
+    const features = []
+    for (const file of geos) {
+      if (typeof file.text !== 'function') throw new Error('File.text unavailable')
+      const parsed = normalizeVectorGeoJSON(await file.text())
+      features.push(...parsed.geojson.features)
+    }
+    const merged = normalizeVectorGeoJSON(JSON.stringify({ type: 'FeatureCollection', features }))
+    return { parsed: merged, name: geos.map((file) => file.name).join(', ') }
   }
   throw vectorError('vector_file_unsupported')
 }

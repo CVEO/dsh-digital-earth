@@ -112,6 +112,9 @@ export function normalizeVectorGeoJSON(text) {
     }
     kept.push({
       type: 'Feature',
+      ...(typeof feature.id === 'string' || (typeof feature.id === 'number' && Number.isFinite(feature.id))
+        ? { id: feature.id }
+        : {}),
       properties: feature.properties !== null && typeof feature.properties === 'object' ? feature.properties : {},
       geometry,
     })

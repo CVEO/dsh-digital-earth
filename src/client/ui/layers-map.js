@@ -33,7 +33,9 @@ export function LayersMap({
   annotations,
   onClearVector,
   onRemoveAgentOverlay,
+  onFlyAgentOverlay,
   onImportVector,
+  onPickLocalTiles,
 }) {
   const [adding, setAdding] = React.useState(false)
   const [draft, setDraft] = React.useState({ type: 'wms', name: '', url: '', layers: '', opacity: 0.7 })
@@ -94,6 +96,32 @@ export function LayersMap({
           ),
           field(t('layers.overlayName'), h('input', { value: draft.name, onChange: (event) => setDraft((current) => ({ ...current, name: event.target.value })) })),
           field(t('layers.overlayUrl'), h('input', { value: draft.url, placeholder: 'https://…', onChange: (event) => setDraft((current) => ({ ...current, url: event.target.value })) })),
+          typeof onPickLocalTiles === 'function'
+            ? h(
+                'button',
+                {
+                  type: 'button',
+                  className: 'mv-cta',
+                  onClick: () => {
+                    void (async () => {
+                      const picked = await onPickLocalTiles()
+                      if (!picked) return
+                      const url = typeof picked === 'string' ? picked : picked.url
+                      const name = typeof picked === 'object' && picked.name ? picked.name : ''
+                      if (!url) return
+                      setDraft((current) => ({
+                        ...current,
+                        type: 'xyz',
+                        url,
+                        name: current.name.trim() !== '' ? current.name : name,
+                      }))
+                      setError('')
+                    })()
+                  },
+                },
+                t('settings.field.localTiles'),
+              )
+            : null,
           draft.type === 'wms'
             ? field(t('layers.overlayLayers'), h('input', { value: draft.layers, placeholder: 'flood:risk', onChange: (event) => setDraft((current) => ({ ...current, layers: event.target.value })) }))
             : null,
@@ -186,6 +214,19 @@ export function LayersMap({
         'div',
         { key: row.id, className: 'mv-layer' },
         h('span', { className: 'name', title: row.detail }, `${row.label} · ${row.detail}`),
+        typeof onFlyAgentOverlay === 'function'
+          ? h(
+              'button',
+              {
+                type: 'button',
+                className: 'mv-icon-btn',
+                title: t('btn.flyTo'),
+                'aria-label': t('btn.flyTo'),
+                onClick: () => onFlyAgentOverlay(row.kind, row.index),
+              },
+              '◎',
+            )
+          : null,
         h(
           'button',
           { type: 'button', className: 'mv-icon-btn', title: t('layers.vectorRemove'), 'aria-label': t('layers.vectorRemove'), onClick: () => onRemoveAgentOverlay(row.kind, row.index) },

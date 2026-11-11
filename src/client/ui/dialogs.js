@@ -53,7 +53,7 @@ const h = React.createElement
         h(
           'div',
           { className: 'grid' },
-          field(t('settings.field.name'), text('name')),
+          field(t('settings.field.name'), text('name', source.name)),
           field(
             t('settings.field.type'),
             h(
@@ -765,4 +765,43 @@ const h = React.createElement
     }
     //#endregion local path authorisation
 
-export { SOURCE_TYPES, SOURCE_TYPE_KEY, emptySource, SourceForm, SourcesDialog, HealthDialog, PathAccessDialog }
+    function ScanDialog({ scan, t, onSelect, onClose }) {
+      if (!scan) return null
+      const items = Array.isArray(scan.items) ? scan.items : []
+      return h(
+        'div',
+        { className: 'mv-modal', onPointerDown: (event) => event.target === event.currentTarget && onClose() },
+        h(
+          'div',
+          { className: 'mv-dialog', role: 'dialog', 'aria-modal': true },
+          h(
+            'header',
+            null,
+            h('b', null, t('layers.title')),
+            h('span', { className: 'path', style: { fontWeight: 400, color: 'var(--mv-dim)' } }, scan.dir),
+            h('button', { type: 'button', className: 'mv-icon-btn', onClick: onClose, title: t('btn.close') }, '✕'),
+          ),
+          h(
+            'div',
+            { className: 'body' },
+            h('p', { className: 'mv-note' }, t('scan.foundCount', { n: items.length })),
+            scan.truncated ? h('p', { className: 'mv-note' }, t('scan.truncatedHint', { limit: scan.limit ?? 200 })) : null,
+            items.map((item) =>
+              h(
+                'button',
+                {
+                  key: item.url,
+                  type: 'button',
+                  className: 'mv-cta',
+                  style: { textAlign: 'left', display: 'flex', flexDirection: 'column', gap: '2px' },
+                  onClick: () => onSelect(item),
+                },
+                h('span', null, item.name),
+              ),
+            ),
+          ),
+        ),
+      )
+    }
+
+export { SOURCE_TYPES, SOURCE_TYPE_KEY, emptySource, SourceForm, SourcesDialog, HealthDialog, PathAccessDialog, ScanDialog }

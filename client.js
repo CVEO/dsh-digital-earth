@@ -409,7 +409,14 @@ var V18_MESSAGES = {
     "panel.description": "在对话旁浏览、量测与分析 3D Tiles / 3DGS 场景。",
     "layers.tab.map": "地图",
     "layers.tab.3d": "三维",
-    "layers.contentEmpty": "尚未加载 3D Tiles / 3DGS；从「数据」菜单加载。",
+    "layers.contentEmpty": "尚未加载 3D Tiles / 3DGS；点上方「＋ 添加」或从「数据」菜单加载。",
+    "layers.add3d": "＋ 添加",
+    "layers.openUrl": "粘贴在线 / 本机地址…",
+    "scan.foundCount": "发现 {n} 个三维数据集，请选择要叠加到场景的数据：",
+    "scan.truncatedHint": "目录文件较多，已达扫描上限（{limit} 项）；若未列出目标数据，请选择更具体的子目录。",
+    "toast.scanForbidden": "目录未授权或会话令牌已过期：请重新选择该目录完成授权。",
+    "toast.scanNotFound": "当前运行机器（Host）无法读取该路径：请确认路径存在，若 Host 运行在远端请填写服务器侧路径或改用在线地址。",
+    "toast.scanInvalidDir": "不支持直接扫描磁盘根目录、UNC 网络共享或单文件，请选择具体的数据子目录。",
     "layers.importVector": "导入矢量（GeoJSON / Shapefile）",
     "layers.imported": "已导入 {name}（{n} 个要素）",
     "layers.importFailed": "导入失败：{message}",
@@ -531,7 +538,14 @@ var V18_MESSAGES = {
     "panel.description": "Browse, measure and analyse 3D Tiles / 3DGS scenes beside the conversation.",
     "layers.tab.map": "Map",
     "layers.tab.3d": "3D",
-    "layers.contentEmpty": "No 3D Tiles / 3DGS loaded; load one from the Data menu.",
+    "layers.contentEmpty": 'No 3D Tiles / 3DGS loaded; click "+ Add" above or use the Data menu.',
+    "layers.add3d": "+ Add",
+    "layers.openUrl": "Paste online / local address…",
+    "scan.foundCount": "Found {n} 3D dataset(s); choose one to add to the scene:",
+    "scan.truncatedHint": "Scan reached the {limit}-entry limit; if your dataset is missing, open a more specific subfolder.",
+    "toast.scanForbidden": "Directory is not authorized or the session token expired: choose the folder again to authorize it.",
+    "toast.scanNotFound": "Path is not readable on the Host machine: check that it exists, or use a Host-accessible path / online URL if DSH runs remotely.",
+    "toast.scanInvalidDir": "Cannot scan a drive root, UNC network share, or plain file; choose a specific dataset subfolder.",
     "layers.importVector": "Import vector (GeoJSON / Shapefile)",
     "layers.imported": "Imported {name} ({n} features)",
     "layers.importFailed": "Import failed: {message}",
@@ -2855,6 +2869,76 @@ function removeAgentOverlay(state, viewer, kind, index) {
   }
   return false;
 }
+function collectOverlayLonLat(node) {
+  const points = [];
+  const visit = (value) => {
+    if (Array.isArray(value)) {
+      if (value.length >= 2 && typeof value[0] === "number" && typeof value[1] === "number") {
+        if (Number.isFinite(value[0]) && Number.isFinite(value[1])) points.push([value[0], value[1]]);
+        return;
+      }
+      for (const item of value) visit(item);
+      return;
+    }
+    if (value && typeof value === "object") {
+      if (Array.isArray(value.features)) for (const item of value.features) visit(item);
+      else if (Array.isArray(value.geometries)) for (const item of value.geometries) visit(item);
+      else if (value.geometry) visit(value.geometry);
+      else if (value.coordinates !== void 0) visit(value.coordinates);
+    }
+  };
+  visit(node);
+  return points;
+}
+function flyToBbox(viewer, Cesium, bbox) {
+  const camera = viewer?.camera;
+  if (!camera || !Cesium || !bbox) return false;
+  const { west, south, east, north } = bbox;
+  if (![west, south, east, north].every(Number.isFinite)) return false;
+  const spanLon = Math.max(0, east - west);
+  const spanLat = Math.max(0, north - south);
+  if ((spanLon > 1e-5 || spanLat > 1e-5) && typeof Cesium.Rectangle?.fromDegrees === "function") {
+    const padLon = Math.max(spanLon * 0.18, 8e-4);
+    const padLat = Math.max(spanLat * 0.18, 8e-4);
+    camera.flyTo({
+      destination: Cesium.Rectangle.fromDegrees(
+        Math.max(-180, west - padLon),
+        Math.max(-90, south - padLat),
+        Math.min(180, east + padLon),
+        Math.min(90, north + padLat)
+      ),
+      duration: 1
+    });
+    return true;
+  }
+  const lon = (west + east) / 2;
+  const lat = (south + north) / 2;
+  const approxMeters = Math.max(spanLon, spanLat) * 111e3;
+  const height = Math.max(800, Math.min(25e5, approxMeters > 0 ? approxMeters * 2.4 : 1200));
+  camera.flyTo({
+    destination: Cesium.Cartesian3.fromDegrees(lon, lat, height),
+    duration: 1
+  });
+  return true;
+}
+function flyToAgentOverlay(state, viewer, Cesium, kind, index) {
+  if (!state || !viewer || !Cesium) return false;
+  const command = kind === "draw" ? state.drawCommands?.[index] : kind === "measure" ? state.measureCommands?.[index] : null;
+  if (!command) return false;
+  const points = kind === "draw" ? collectOverlayLonLat(command.geojson) : collectOverlayLonLat(command.points);
+  if (points.length === 0) return false;
+  let west = Infinity;
+  let south = Infinity;
+  let east = -Infinity;
+  let north = -Infinity;
+  for (const [lon, lat] of points) {
+    if (lon < west) west = lon;
+    if (lon > east) east = lon;
+    if (lat < south) south = lat;
+    if (lat > north) north = lat;
+  }
+  return flyToBbox(viewer, Cesium, { west, south, east, north });
+}
 
 // src/client/api.js
 var metaPromise = null;
@@ -2947,7 +3031,13 @@ var scanLocalDirectory = async (meta, directory) => {
     `${meta.scanUrl}?token=${encodeURIComponent(meta.token)}&dir=${encodeURIComponent(directory)}`,
     { credentials: "same-origin", headers: { "x-dsh-panel": "1" } }
   );
-  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  if (!response.ok) {
+    const detail = (await response.text().catch(() => "")).trim();
+    const error = new Error(detail ? `HTTP ${response.status}: ${detail}` : `HTTP ${response.status}`);
+    error.status = response.status;
+    error.detail = detail;
+    throw error;
+  }
   return response.json().catch(() => ({}));
 };
 var ACCESS_TIMEOUT_MS = 28e3;
@@ -9028,6 +9118,8 @@ var CSS = `
 /* Layer panel v1.6: four groups (L1 terrain / L2 basemap / L3 raster / L4 vector)
    plus the 3D Tiles list. */
 .mv-group{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:13px 4px 5px;margin-top:3px;border-top:.5px solid var(--mv-line)}
+.mv-group-actions{display:inline-flex;align-items:center;gap:4px;flex:none}
+.mv-add3d-menu .mv-cta{text-align:left;width:100%}
 .mv-group:first-child{border-top:0;margin-top:0;padding-top:9px}
 .mv-group-title{min-width:0;font-size:11px;line-height:1.4;font-weight:600;letter-spacing:0;color:var(--mv-dim)}
 .mv-layers .mv-layer{min-height:30px;box-sizing:border-box;padding:5px 8px}
@@ -9411,7 +9503,7 @@ function SourceForm({ kind, source, onPickLocal, onChange, onCancel, t: t2 }) {
     h5(
       "div",
       { className: "grid" },
-      field(t2("settings.field.name"), text("name")),
+      field(t2("settings.field.name"), text("name", source.name)),
       field(
         t2("settings.field.type"),
         h5(
@@ -10036,6 +10128,44 @@ function PathAccessDialog({ request, busy, t: t2, onAllow, onDeny }) {
     )
   );
 }
+function ScanDialog({ scan, t: t2, onSelect, onClose }) {
+  if (!scan) return null;
+  const items = Array.isArray(scan.items) ? scan.items : [];
+  return h5(
+    "div",
+    { className: "mv-modal", onPointerDown: (event) => event.target === event.currentTarget && onClose() },
+    h5(
+      "div",
+      { className: "mv-dialog", role: "dialog", "aria-modal": true },
+      h5(
+        "header",
+        null,
+        h5("b", null, t2("layers.title")),
+        h5("span", { className: "path", style: { fontWeight: 400, color: "var(--mv-dim)" } }, scan.dir),
+        h5("button", { type: "button", className: "mv-icon-btn", onClick: onClose, title: t2("btn.close") }, "✕")
+      ),
+      h5(
+        "div",
+        { className: "body" },
+        h5("p", { className: "mv-note" }, t2("scan.foundCount", { n: items.length })),
+        scan.truncated ? h5("p", { className: "mv-note" }, t2("scan.truncatedHint", { limit: scan.limit ?? 200 })) : null,
+        items.map(
+          (item) => h5(
+            "button",
+            {
+              key: item.url,
+              type: "button",
+              className: "mv-cta",
+              style: { textAlign: "left", display: "flex", flexDirection: "column", gap: "2px" },
+              onClick: () => onSelect(item)
+            },
+            h5("span", null, item.name)
+          )
+        )
+      )
+    )
+  );
+}
 
 // src/client/ui/url-bar.js
 var import_react8 = __toESM(require("react"), 1);
@@ -10496,7 +10626,19 @@ function shaderEntrySummary(t2, entry) {
 function shaderStackLabel(t2, preset) {
   return (Array.isArray(preset) ? preset : [preset]).map((item) => t2(`shader.preset.${item}`)).join(" + ");
 }
-function createWorkbenchWiring({ getForm, getLayers, setShaderForm, shaderCommand, showToast, t: t2, shaderCompare }) {
+function createWorkbenchWiring({
+  getForm,
+  getLayers,
+  setShaderForm,
+  shaderCommand,
+  showToast,
+  t: t2,
+  shaderCompare,
+  openLocal,
+  openRecent,
+  openUrl,
+  pickLocalTiles
+}) {
   const field = (key, value) => setShaderForm((form) => ({ ...form, [key]: value }));
   const formLayer = () => getLayers().find((layer) => layer.id === getForm().layerId) ?? null;
   const target = () => resolveWorkbenchTarget(getLayers(), getForm());
@@ -10538,6 +10680,14 @@ function createWorkbenchWiring({ getForm, getLayers, setShaderForm, shaderComman
     target,
     /** Load an applied shader row into the form (edit-in-place). */
     loadEntry: (entry) => setShaderForm(formFromShaderEntry(entry)),
+    /** Open local 3D directory picker from the 3D layer tab. */
+    openLocal: (...args) => openLocal?.(...args),
+    /** Re-open a recently authorised directory from the 3D layer tab. */
+    openRecent: (...args) => openRecent?.(...args),
+    /** Open the online/local address bar from the 3D layer tab. */
+    openUrl: (...args) => openUrl?.(...args),
+    /** Pick a local XYZ tile pyramid folder from the Map tab. */
+    pickLocalTiles: (...args) => pickLocalTiles?.(...args),
     /** Reset one specific layer's shader (used by the layer-panel row ✕). */
     async resetLayerFor(token) {
       try {
@@ -10620,6 +10770,127 @@ function createWorkbenchWiring({ getForm, getLayers, setShaderForm, shaderComman
 }
 function messageOf(error) {
   return error && typeof error.message === "string" && error.message !== "" ? error.message : String(error);
+}
+function formatScanFailure(t2, error) {
+  const status = error?.status;
+  const raw = `${error?.detail ?? ""} ${messageOf(error)}`;
+  if (status === 403 || /\b403\b|forbidden|access_denied|not been opened/i.test(raw)) {
+    return t2("toast.scanForbidden");
+  }
+  if (status === 404 || /\b404\b|folder not found|ENOENT|does not exist/i.test(raw)) {
+    return t2("toast.scanNotFound");
+  }
+  if (status === 400 || /\b400\b|filesystem root|UNC path|network share|not a folder/i.test(raw)) {
+    return t2("toast.scanInvalidDir");
+  }
+  return t2("toast.scanFailed", { message: messageOf(error) });
+}
+function createLocalDirectoryWiring({
+  metaRef,
+  getWorkspace,
+  scanLocalDirectory: scanLocalDirectory2,
+  addTileset,
+  joinLocalPath,
+  b64url: b64url2,
+  folderName: folderName2,
+  setRecentDirs,
+  setScan,
+  setBusy,
+  setOpenMenu,
+  showToast,
+  t: t2
+}) {
+  const itemLabel = (name) => String(name ?? "").split(/[\\/]/).filter(Boolean).slice(-2).join("/");
+  const handleScannedItems = async (dir, data) => {
+    const items = Array.isArray(data?.items) ? data.items : [];
+    if (items.length === 0) {
+      showToast(t2("toast.scanEmpty"));
+      return;
+    }
+    if (items.length === 1 && (!data?.truncated || String(items[0]?.name ?? "").toLowerCase() === "tileset.json")) {
+      const [item] = items;
+      await addTileset(item.url, itemLabel(item.name), {
+        kind: "local",
+        path: joinLocalPath(dir, item.name)
+      });
+      return;
+    }
+    setScan({ dir, items, truncated: Boolean(data?.truncated), limit: data?.limit });
+  };
+  const refreshRecentDirs = async () => {
+    const url = metaRef.current?.directoriesUrl;
+    if (typeof url !== "string" || url === "") return;
+    try {
+      const response = await fetch(url, { credentials: "same-origin" });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const data = await response.json();
+      const list = Array.isArray(data?.directories) ? data.directories : [];
+      const entries = [];
+      for (const entry of list) {
+        const dir = typeof entry === "string" ? entry : entry?.path;
+        if (typeof dir !== "string" || dir === "") continue;
+        entries.push({ dir, name: typeof entry?.name === "string" && entry.name !== "" ? entry.name : folderName2(dir) });
+        if (entries.length >= 5) break;
+      }
+      setRecentDirs(entries);
+    } catch (error) {
+      setRecentDirs([]);
+      showToast(formatScanFailure(t2, error));
+    }
+  };
+  async function openRecentDirectory(dir) {
+    setOpenMenu(null);
+    setBusy(t2("toast.busyDirectory"));
+    try {
+      const data = await scanLocalDirectory2(metaRef.current, dir);
+      void refreshRecentDirs();
+      await handleScannedItems(dir, data);
+    } catch (error) {
+      showToast(formatScanFailure(t2, error));
+    } finally {
+      setBusy("");
+    }
+  }
+  async function pickLocal() {
+    setOpenMenu(null);
+    const workspace = getWorkspace();
+    if (!workspace) {
+      showToast(t2("toast.dialogUnavailable"));
+      return;
+    }
+    setBusy(t2("toast.busyDirectory"));
+    try {
+      const dir = await workspace.pickDirectory();
+      if (!dir) return;
+      const data = await scanLocalDirectory2(metaRef.current, dir);
+      void refreshRecentDirs();
+      await handleScannedItems(dir, data);
+    } catch (error) {
+      showToast(formatScanFailure(t2, error));
+    } finally {
+      setBusy("");
+    }
+  }
+  async function pickLocalTiles(options = {}) {
+    const workspace = getWorkspace();
+    if (!workspace) {
+      showToast(t2("toast.dialogUnavailable"));
+      return null;
+    }
+    try {
+      const dir = await workspace.pickDirectory();
+      if (!dir) return null;
+      await scanLocalDirectory2(metaRef.current, dir);
+      void refreshRecentDirs();
+      const folder = dir.replace(/\\/g, "/").replace(/\/+$/, "");
+      const url = `${metaRef.current.tilesBase}${encodeURIComponent(b64url2(folder))}/{z}/{x}/{y}.png`;
+      return options?.withMeta ? { url, name: folderName2(folder) } : url;
+    } catch (error) {
+      showToast(formatScanFailure(t2, error));
+      return null;
+    }
+  }
+  return { refreshRecentDirs, openRecentDirectory, pickLocal, pickLocalTiles };
 }
 
 // src/client/ui/layer-row.js
@@ -10724,8 +10995,34 @@ function Layers3D({
   onInspectLayer,
   onRemoveLayer,
   onEditLayerShader,
-  onShowSceneDetails
+  onShowSceneDetails,
+  onOpenLocal,
+  onOpenUrl,
+  recentDirs,
+  onOpenRecent
 }) {
+  const [addOpen, setAddOpen] = import_react15.default.useState(false);
+  const addBtnRef = import_react15.default.useRef(null);
+  const addMenuRef = import_react15.default.useRef(null);
+  import_react15.default.useEffect(() => {
+    if (!addOpen || typeof document === "undefined") return void 0;
+    const onKey = (event) => {
+      if (event.key !== "Escape") return;
+      event.stopPropagation();
+      setAddOpen(false);
+    };
+    const onPointerDown = (event) => {
+      if (addMenuRef.current?.contains?.(event.target) || addBtnRef.current?.contains?.(event.target)) return;
+      setAddOpen(false);
+    };
+    document.addEventListener("keydown", onKey, true);
+    document.addEventListener("pointerdown", onPointerDown, true);
+    return () => {
+      document.removeEventListener("keydown", onKey, true);
+      document.removeEventListener("pointerdown", onPointerDown, true);
+    };
+  }, [addOpen]);
+  const recents = Array.isArray(recentDirs) ? recentDirs : [];
   const radioRow = (key, label, active, onClick) => h13(
     "button",
     { key, type: "button", className: `mv-layer mv-choice${active ? " on" : ""}`, "aria-pressed": active, onClick },
@@ -10755,8 +11052,75 @@ function Layers3D({
       "div",
       { key: "g6", className: "mv-group" },
       h13("div", { className: "mv-group-title" }, `${t2("layers.content")} · ${layers.length}`),
-      layers.length > 0 ? h13("button", { type: "button", className: "mv-cta", onClick: onFrameAll }, t2("layers.frameAll")) : null
+      h13(
+        "div",
+        { className: "mv-group-actions" },
+        layers.length > 0 ? h13("button", { type: "button", className: "mv-cta", onClick: onFrameAll }, t2("layers.frameAll")) : null,
+        h13(
+          "button",
+          {
+            ref: addBtnRef,
+            type: "button",
+            className: `mv-cta${addOpen ? " primary" : ""}`,
+            "aria-expanded": addOpen,
+            "aria-haspopup": "menu",
+            "aria-controls": "mv-add-3d-menu",
+            onClick: () => setAddOpen((value) => !value)
+          },
+          addOpen ? t2("layers.overlayCancel") : t2("layers.add3d")
+        )
+      )
     ),
+    addOpen ? h13(
+      "div",
+      { id: "mv-add-3d-menu", ref: addMenuRef, key: "add-3d-menu", className: "mv-overlay-form mv-add3d-menu", role: "menu" },
+      h13(
+        "button",
+        {
+          key: "add-local",
+          type: "button",
+          role: "menuitem",
+          className: "mv-cta primary",
+          onClick: () => {
+            setAddOpen(false);
+            onOpenLocal?.();
+          }
+        },
+        t2("btn.openLocal")
+      ),
+      h13(
+        "button",
+        {
+          key: "add-url",
+          type: "button",
+          role: "menuitem",
+          className: "mv-cta",
+          onClick: () => {
+            setAddOpen(false);
+            onOpenUrl?.();
+          }
+        },
+        t2("layers.openUrl")
+      ),
+      recents.length > 0 ? h13("span", { key: "recent-label", className: "mv-menu-label" }, t2("menu.recentDirs")) : null,
+      ...recents.map(
+        (entry) => h13(
+          "button",
+          {
+            key: entry.dir,
+            type: "button",
+            role: "menuitem",
+            className: "mv-cta",
+            title: entry.dir,
+            onClick: () => {
+              setAddOpen(false);
+              onOpenRecent?.(entry.dir);
+            }
+          },
+          entry.name
+        )
+      )
+    ) : null,
     layers.length === 0 ? h13("div", { key: "no-3d", className: "mv-none" }, t2("layers.contentEmpty")) : layers.map(
       (layer) => h13(LayerRow, {
         key: layer.id,
@@ -10934,6 +11298,7 @@ function normalizeVectorGeoJSON(text) {
     }
     kept.push({
       type: "Feature",
+      ...typeof feature.id === "string" || typeof feature.id === "number" && Number.isFinite(feature.id) ? { id: feature.id } : {},
       properties: feature.properties !== null && typeof feature.properties === "object" ? feature.properties : {},
       geometry
     });
@@ -11288,7 +11653,7 @@ async function readVectorFiles(files) {
   const stem = (name) => name.replace(/\.[^.]+$/, "").toLowerCase();
   const companion = (extension) => list.find((file) => stem(file.name) === stem(shp?.name ?? "") && file.name.toLowerCase().endsWith(extension));
   const dbf = companion(".dbf");
-  const geo = list.find((file) => isGeo(file.name));
+  const geos = list.filter((file) => isGeo(file.name));
   if (shp) {
     if (!dbf && list.some((file) => isDbf(file.name))) throw vectorError("SHP 与 DBF 必须同名配对");
     const prj = companion(".prj"), cpg = companion(".cpg");
@@ -11307,10 +11672,20 @@ async function readVectorFiles(files) {
     const parsed = parseShapefile(await shp.arrayBuffer(), dbf ? await dbf.arrayBuffer() : null, { encoding, projectionKnown: Boolean(prj) });
     return { parsed, name: shp.name };
   }
-  if (geo) {
-    if (typeof geo.text !== "function") throw new Error("File.text unavailable");
-    const parsed = normalizeVectorGeoJSON(await geo.text());
-    return { parsed, name: geo.name };
+  if (geos.length === 1) {
+    if (typeof geos[0].text !== "function") throw new Error("File.text unavailable");
+    const parsed = normalizeVectorGeoJSON(await geos[0].text());
+    return { parsed, name: geos[0].name };
+  }
+  if (geos.length > 1) {
+    const features = [];
+    for (const file of geos) {
+      if (typeof file.text !== "function") throw new Error("File.text unavailable");
+      const parsed = normalizeVectorGeoJSON(await file.text());
+      features.push(...parsed.geojson.features);
+    }
+    const merged = normalizeVectorGeoJSON(JSON.stringify({ type: "FeatureCollection", features }));
+    return { parsed: merged, name: geos.map((file) => file.name).join(", ") };
   }
   throw vectorError("vector_file_unsupported");
 }
@@ -11338,7 +11713,9 @@ function LayersMap({
   annotations,
   onClearVector,
   onRemoveAgentOverlay,
-  onImportVector
+  onFlyAgentOverlay,
+  onImportVector,
+  onPickLocalTiles
 }) {
   const [adding, setAdding] = import_react16.default.useState(false);
   const [draft, setDraft] = import_react16.default.useState({ type: "wms", name: "", url: "", layers: "", opacity: 0.7 });
@@ -11395,6 +11772,30 @@ function LayersMap({
       ),
       field(t2("layers.overlayName"), h14("input", { value: draft.name, onChange: (event) => setDraft((current) => ({ ...current, name: event.target.value })) })),
       field(t2("layers.overlayUrl"), h14("input", { value: draft.url, placeholder: "https://…", onChange: (event) => setDraft((current) => ({ ...current, url: event.target.value })) })),
+      typeof onPickLocalTiles === "function" ? h14(
+        "button",
+        {
+          type: "button",
+          className: "mv-cta",
+          onClick: () => {
+            void (async () => {
+              const picked = await onPickLocalTiles();
+              if (!picked) return;
+              const url = typeof picked === "string" ? picked : picked.url;
+              const name = typeof picked === "object" && picked.name ? picked.name : "";
+              if (!url) return;
+              setDraft((current) => ({
+                ...current,
+                type: "xyz",
+                url,
+                name: current.name.trim() !== "" ? current.name : name
+              }));
+              setError("");
+            })();
+          }
+        },
+        t2("settings.field.localTiles")
+      ) : null,
       draft.type === "wms" ? field(t2("layers.overlayLayers"), h14("input", { value: draft.layers, placeholder: "flood:risk", onChange: (event) => setDraft((current) => ({ ...current, layers: event.target.value })) })) : null,
       field(
         t2("layers.overlayOpacity"),
@@ -11482,6 +11883,17 @@ function LayersMap({
         "div",
         { key: row.id, className: "mv-layer" },
         h14("span", { className: "name", title: row.detail }, `${row.label} · ${row.detail}`),
+        typeof onFlyAgentOverlay === "function" ? h14(
+          "button",
+          {
+            type: "button",
+            className: "mv-icon-btn",
+            title: t2("btn.flyTo"),
+            "aria-label": t2("btn.flyTo"),
+            onClick: () => onFlyAgentOverlay(row.kind, row.index)
+          },
+          "◎"
+        ) : null,
         h14(
           "button",
           { type: "button", className: "mv-icon-btn", title: t2("layers.vectorRemove"), "aria-label": t2("layers.vectorRemove"), onClick: () => onRemoveAgentOverlay(row.kind, row.index) },
@@ -11521,7 +11933,13 @@ function LayersPanel({
   onClearVector,
   agentOverlays,
   onRemoveAgentOverlay,
+  onFlyAgentOverlay,
   onImportVector,
+  onPickLocalTiles,
+  onOpenLocal,
+  onOpenUrl,
+  recentDirs,
+  onOpenRecent,
   onShowSceneDetails
 }) {
   const [tab, setTab] = import_react17.default.useState("3d");
@@ -11589,7 +12007,11 @@ function LayersPanel({
       onRemoveLayer,
       shaderActive,
       onEditLayerShader,
-      onShowSceneDetails
+      onShowSceneDetails,
+      onOpenLocal,
+      onOpenUrl,
+      recentDirs,
+      onOpenRecent
     }) : h15(LayersMap, {
       t: t2,
       config,
@@ -11604,7 +12026,9 @@ function LayersPanel({
       agentOverlays,
       onClearVector,
       onRemoveAgentOverlay,
-      onImportVector
+      onFlyAgentOverlay,
+      onImportVector,
+      onPickLocalTiles
     })),
     h15(ResizeHandle, {
       axis: "height",
@@ -14134,102 +14558,21 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
       showToast(t2("toast.loadFailed", { message: message(error2) }));
     }
   }
-  const refreshRecentDirs = async () => {
-    const url = metaRef.current?.directoriesUrl;
-    if (typeof url !== "string" || url === "") return;
-    try {
-      const response = await fetch(url, { credentials: "same-origin" });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const data = await response.json();
-      const list = Array.isArray(data?.directories) ? data.directories : [];
-      const entries = [];
-      for (const entry of list) {
-        const dir = typeof entry === "string" ? entry : entry?.path;
-        if (typeof dir !== "string" || dir === "") continue;
-        entries.push({ dir, name: typeof entry?.name === "string" && entry.name !== "" ? entry.name : folderName(dir) });
-        if (entries.length >= 5) break;
-      }
-      setRecentDirs(entries);
-    } catch (error2) {
-      setRecentDirs([]);
-      showToast(t2("toast.scanFailed", { message: message(error2) }));
-    }
-  };
-  async function openRecentDirectory(dir) {
-    setOpenMenu(null);
-    setBusy(t2("toast.busyDirectory"));
-    try {
-      const meta2 = metaRef.current;
-      const response = await fetch(
-        `${meta2.scanUrl}?token=${encodeURIComponent(meta2.token)}&dir=${encodeURIComponent(dir)}`,
-        { credentials: "same-origin", headers: { "x-dsh-panel": "1" } }
-      );
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const data = await response.json();
-      refreshRecentDirs();
-      if (!data.items || data.items.length === 0) {
-        showToast(t2("toast.scanEmpty"));
-        return;
-      }
-      setScan({ dir, items: data.items });
-    } catch (error2) {
-      showToast(t2("toast.scanFailed", { message: message(error2) }));
-    } finally {
-      setBusy("");
-    }
-  }
-  async function pickLocal() {
-    setOpenMenu(null);
-    const workspace = service("uiWorkspace");
-    if (!workspace) {
-      showToast(t2("toast.dialogUnavailable"));
-      return;
-    }
-    setBusy(t2("toast.busyDirectory"));
-    try {
-      const dir = await workspace.pickDirectory();
-      if (!dir) return;
-      const meta2 = metaRef.current;
-      const response = await fetch(
-        `${meta2.scanUrl}?token=${encodeURIComponent(meta2.token)}&dir=${encodeURIComponent(dir)}`,
-        { credentials: "same-origin", headers: { "x-dsh-panel": "1" } }
-      );
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const data = await response.json();
-      refreshRecentDirs();
-      if (!data.items || data.items.length === 0) {
-        showToast(t2("toast.scanEmpty"));
-        return;
-      }
-      setScan({ dir, items: data.items });
-    } catch (error2) {
-      showToast(t2("toast.scanFailed", { message: message(error2) }));
-    } finally {
-      setBusy("");
-    }
-  }
-  async function pickLocalTiles() {
-    const workspace = service("uiWorkspace");
-    if (!workspace) {
-      showToast(t2("toast.dialogUnavailable"));
-      return null;
-    }
-    try {
-      const dir = await workspace.pickDirectory();
-      if (!dir) return null;
-      const meta2 = metaRef.current;
-      const response = await fetch(
-        `${meta2.scanUrl}?token=${encodeURIComponent(meta2.token)}&dir=${encodeURIComponent(dir)}`,
-        { credentials: "same-origin", headers: { "x-dsh-panel": "1" } }
-      );
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const folder = dir.replace(/\\/g, "/").replace(/\/+$/, "");
-      return `${meta2.tilesBase}${encodeURIComponent(b64url(folder))}/{z}/{x}/{y}.png`;
-    } catch (error2) {
-      showToast(t2("toast.scanFailed", { message: message(error2) }));
-      return null;
-    }
-  }
+  const { refreshRecentDirs, openRecentDirectory, pickLocal, pickLocalTiles } = createLocalDirectoryWiring({
+    metaRef,
+    getWorkspace: () => service("uiWorkspace"),
+    scanLocalDirectory,
+    addTileset,
+    joinLocalPath,
+    b64url,
+    folderName,
+    setRecentDirs,
+    setScan,
+    setBusy,
+    setOpenMenu,
+    showToast,
+    t: t2
+  });
   const NETWORK_TIMEOUT_MS = 8e3;
   function withNetworkTimeout(promise, ms = NETWORK_TIMEOUT_MS) {
     return Promise.race([
@@ -14489,6 +14832,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
       runVectorImport(agentOverlayRef.current, viewerRef.current, () => drawAgentOverlay(cesiumRef.current, viewerRef.current, parsed.geojson, "accent", `GeoJSON: ${name}`));
       syncAgentOverlayCount();
       markSceneDirty();
+      if (parsed?.bbox) flyToBbox(viewerRef.current, cesiumRef.current, parsed.bbox);
       showToast([t2("layers.imported", { name, n: parsed.featureCount }), ...(parsed.warnings ?? []).map((key) => t2(key))].join(" · "));
     } catch (error2) {
       showToast(t2("layers.importFailed", { message: vectorErrorText(error2, t2) }));
@@ -15294,7 +15638,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
       try {
         url = await localPathToUrl(value);
       } catch (error2) {
-        showToast(message(error2));
+        showToast(formatScanFailure(t2, error2));
         return;
       }
     } else if (!/^https?:\/\//i.test(value)) {
@@ -15638,8 +15982,8 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     return () => document.removeEventListener("pointerdown", close, true);
   }, [openMenu]);
   import_react31.default.useEffect(() => {
-    if (openMenu === "data") refreshRecentDirs();
-  }, [openMenu, meta?.directoriesUrl]);
+    if (openMenu === "data" || showLayers) refreshRecentDirs();
+  }, [openMenu, showLayers, meta?.directoriesUrl]);
   import_react31.default.useEffect(() => {
     if (phase !== "ready") return void 0;
     const element = globeRef.current;
@@ -15796,7 +16140,14 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     shaderCommand,
     showToast,
     t: t2,
-    shaderCompare: (layer, enabled) => shaderEngine.compare(layer, enabled)
+    shaderCompare: (layer, enabled) => shaderEngine.compare(layer, enabled),
+    openLocal: pickLocal,
+    openRecent: openRecentDirectory,
+    openUrl: () => {
+      setOpenMenu(null);
+      setUrlBar(true);
+    },
+    pickLocalTiles
   });
   return h27(
     "div",
@@ -16044,8 +16395,14 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
         onOverlayVisible: setOverlayVisible,
         onOverlayMove: moveOverlay,
         onImportVector: importVectorData,
+        onPickLocalTiles: () => workbench.pickLocalTiles({ withMeta: true }),
+        onOpenLocal: workbench.openLocal,
+        onOpenUrl: workbench.openUrl,
+        recentDirs,
+        onOpenRecent: workbench.openRecent,
         onClearVector: () => clearAgentOverlays2("all"),
         agentOverlays: buildAgentOverlayList(agentOverlayRef.current),
+        onFlyAgentOverlay: (kind, index) => flyToAgentOverlay(agentOverlayRef.current, viewerRef.current, cesiumRef.current, kind, index),
         onRemoveAgentOverlay: (kind, index) => {
           if (!removeAgentOverlay(agentOverlayRef.current, viewerRef.current, kind, index)) return;
           syncAgentOverlayCount();
@@ -16181,41 +16538,16 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
       )
     ) : null,
     toast ? h27("div", { key: "toast", className: "mv-toast" }, toast) : null,
-    scan ? h27(
-      "div",
-      { key: "scan", className: "mv-modal", onPointerDown: (event) => event.target === event.currentTarget && setScan(null) },
-      h27(
-        "div",
-        { className: "mv-dialog" },
-        h27(
-          "header",
-          null,
-          h27("b", null, t2("layers.title")),
-          h27("span", { className: "path", style: { fontWeight: 400, color: "var(--mv-dim)" } }, scan.dir),
-          h27("button", { type: "button", className: "mv-icon-btn", onClick: () => setScan(null), title: t2("btn.close") }, "✕")
-        ),
-        h27(
-          "div",
-          { className: "body" },
-          scan.items.map(
-            (item) => h27(
-              "button",
-              {
-                key: item.url,
-                type: "button",
-                className: "mv-cta",
-                style: { textAlign: "left", display: "flex", flexDirection: "column", gap: "2px" },
-                onClick: () => addTileset(item.url, item.name.split(/[\\/]/).filter(Boolean).slice(-2).join("/"), {
-                  kind: "local",
-                  path: joinLocalPath(scan.dir, item.name)
-                })
-              },
-              h27("span", null, item.name)
-            )
-          )
-        )
-      )
-    ) : null,
+    scan ? h27(ScanDialog, {
+      key: "scan",
+      scan,
+      t: t2,
+      onClose: () => setScan(null),
+      onSelect: (item) => addTileset(item.url, item.name.split(/[\\/]/).filter(Boolean).slice(-2).join("/"), {
+        kind: "local",
+        path: joinLocalPath(scan.dir, item.name)
+      })
+    }) : null,
     health ? h27(HealthDialog, {
       key: "health",
       state: health,
