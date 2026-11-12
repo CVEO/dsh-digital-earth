@@ -52,7 +52,25 @@ export function createAnnotationActions({ stateRef, viewerRef, getSelection, dra
       return true
     },
     /**
-     * Replace the geometry of the feature called {name, kind}. Vertex drags use
+     * Adopt a whole FeatureCollection in one draw command. F6 scene parsing
+     * goes through here so one parse is one undoable layer entry, not 40 rows.
+     * The features already carry their honest provenance from the parser.
+     */
+    adoptCollection: (collection, caption) => {
+      const features = Array.isArray(collection?.features)
+        ? collection.features.filter((feature) => feature?.type === 'Feature')
+        : []
+      if (features.length === 0) {
+        showToast(t('annotation.editFailed', { reason: 'empty' }))
+        return false
+      }
+      const label = typeof caption === 'string' && caption ? caption.slice(0, 80) : t('tools.parse')
+      draw({ type: 'FeatureCollection', features }, 'violet', label)
+      if (typeof onChanged === 'function') onChanged()
+      showToast(t('parse.adopted', { n: features.length }))
+      return true
+    },
+    /** Replace the geometry of the feature called {name, kind}. Vertex drags use
      * this instead of the selection because every replay replaces the command,
      * and the card closes after a save — the name is the stable handle.
      */

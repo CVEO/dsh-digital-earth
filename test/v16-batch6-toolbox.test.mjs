@@ -18,8 +18,8 @@ const layersMap = await import('../src/client/ui/layers-map.js')
 const { MESSAGES } = await import('../src/client/messages.js')
 const { ANNOTATION_MESSAGES } = await import('../src/client/messages-annotations.js')
 
-test('工具目录：六个入口，顺序稳定、字段齐全、未知 id 不伪造', () => {
-  assert.deepEqual(catalog.TOOL_IDS, ['measure', 'select', 'annotation', 'analysis', 'effects', 'view'])
+test('工具目录：七个入口，顺序稳定、字段齐全、未知 id 不伪造', () => {
+  assert.deepEqual(catalog.TOOL_IDS, ['measure', 'select', 'annotation', 'parse', 'analysis', 'effects', 'view'])
   assert.equal(new Set(catalog.TOOL_IDS).size, catalog.TOOL_IDS.length)
   assert.deepEqual(catalog.TOOL_ENTRIES.map((entry) => entry.id), catalog.TOOL_IDS)
   for (const entry of catalog.TOOL_ENTRIES) {

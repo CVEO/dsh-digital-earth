@@ -2711,6 +2711,7 @@ const h = React.createElement
             onClearMeasure: clearMeasure,
             onStartProfile: () => profileTool.start(),
             onStartAnnotation: annotationTool.start,
+            onAdoptParse: annotations.adoptCollection,
             onClearAnalysis: () => clearAnalysis(),
             onOpenShader: () => setShaderOpen(true),
             getCesium: () => cesiumRef.current,

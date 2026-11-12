@@ -6,8 +6,7 @@
  * one row per tool and the concrete panel opens on top of it (ui/tool-window.js).
  *
  * Only entries whose panel actually exists are listed: a disabled placeholder
- * would look like a feature that shipped broken. Annotations and AI scene parsing
- * join this catalog when their panels land.
+ * would look like a feature that shipped broken.
  *
  * Pure data + pure reducers, so the browser and the tests share one definition.
  */
@@ -16,6 +15,7 @@ export const TOOL_ENTRIES = [
   { id: 'measure', labelKey: 'tools.measure', hintKey: 'tools.measureHint', icon: 'measure' },
   { id: 'select', labelKey: 'tools.select', hintKey: 'tools.selectHint', icon: 'select' },
   { id: 'annotation', labelKey: 'annotation.tool', hintKey: 'annotation.toolHint', icon: 'annotation' },
+  { id: 'parse', labelKey: 'tools.parse', hintKey: 'tools.parseHint', icon: 'parse' },
   { id: 'analysis', labelKey: 'tools.analysis', hintKey: 'tools.analysisHint', icon: 'analysis' },
   { id: 'effects', labelKey: 'tools.effects', hintKey: 'tools.effectsHint', icon: 'effects' },
   { id: 'view', labelKey: 'tools.view', hintKey: 'tools.viewHint', icon: 'view' },

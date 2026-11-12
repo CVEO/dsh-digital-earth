@@ -10,6 +10,7 @@ import React from 'react'
 import { SunTimeline } from './sun-timeline.js'
 import { ToolsBookmarks } from './tools-bookmarks.js'
 import { SelectionTool } from './selection-tool.js'
+import { ParseBody } from './parse-review.js'
 
 const h = React.createElement
 
@@ -142,6 +143,7 @@ export function ToolBody({ entryId, ...rest }) {
   if (entryId === 'measure') return h(MeasureBody, rest)
   if (entryId === 'select') return h(SelectBody, rest)
   if (entryId === 'annotation') return h(AnnotationBody, rest)
+  if (entryId === 'parse') return h(ParseBody, rest)
   if (entryId === 'analysis') return h(AnalysisBody, rest)
   if (entryId === 'effects') return h(EffectsBody, rest)
   if (entryId === 'view') return h(ViewBody, rest)

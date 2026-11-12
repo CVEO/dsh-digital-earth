@@ -8,6 +8,7 @@
 import { VECTOR_MESSAGES } from './messages-vector.js'
 import { VISION_MESSAGES } from './messages-vision.js'
 import { SELECTION_MESSAGES } from './messages-selection.js'
+import { PARSE_MESSAGES } from './messages-parse.js'
 
 export const V18_MESSAGES = {
   zh: {
@@ -162,6 +163,7 @@ export const V18_MESSAGES = {
     'swipe.conflict': '该图层已有剖切分析在裁剪，请先清除剖切分析再开启卷帘对比',
     'toast.snapshotCompacted': '上次场景超出存储上限，已精简保存：省略了 {draw} 个标注、{features} 个要素。重新打开后可重新导入或补画缺失部分。',
     ...SELECTION_MESSAGES.zh,
+    ...PARSE_MESSAGES.zh,
   },
   en: {
     ...VECTOR_MESSAGES.en,
@@ -315,5 +317,6 @@ export const V18_MESSAGES = {
     'swipe.conflict': 'A clip analysis is already clipping this layer; clear it before starting swipe comparison',
     'toast.snapshotCompacted': 'The saved scene was compacted to fit storage: {draw} annotation(s) and {features} feature(s) were omitted. Re-import or redraw them after reopening.',
     ...SELECTION_MESSAGES.en,
+    ...PARSE_MESSAGES.en,
   },
 }

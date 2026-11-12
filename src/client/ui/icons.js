@@ -185,6 +185,11 @@ const h = React.createElement
           h('path', { key: 'frame', d: 'M4 8V4h4M20 8V4h-4M4 16v4h4M20 16v4h-4', ...stroke }),
           h('path', { key: 'lasso', d: 'M8 12a4 4 0 1 0 8 0 4 4 0 1 0-8 0', ...stroke }),
         ]
+      } else if (kind === 'parse') {
+        shapes = [
+          h('path', { key: 'frame', d: 'M4 8V4h5M20 8V4h-5M4 16v4h5M20 16v4h-5', ...stroke }),
+          h('path', { key: 'sparkle', d: 'M12 8.5l1.4 3.1 3.1 1.4-3.1 1.4L12 17.5l-1.4-3.1L7.5 13l3.1-1.4z', fill: 'currentColor', stroke: 'none' }),
+        ]
       } else if (kind === 'analysis') {
         shapes = [
           h('path', { key: 'axes', d: 'M4 20V4M4 20h16', ...stroke }),

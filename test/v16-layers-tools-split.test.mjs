@@ -79,7 +79,7 @@ test('图层卡只做数据：3D=地形+3D Tiles/3DGS，地图=矢量+栅格+底
 test('工具箱只做入口：目录表 + 一行一入口，具体控件在工具窗口里', () => {
   const catalog = toolCatalog()
   assert.match(catalog, /export const TOOL_ENTRIES/)
-  for (const id of ['measure', 'select', 'analysis', 'effects', 'view']) {
+  for (const id of ['measure', 'select', 'annotation', 'parse', 'analysis', 'effects', 'view']) {
     assert.match(catalog, new RegExp(`id: '${id}'`), `工具目录缺少 ${id}`)
   }
   assert.match(catalog, /export function nextOpenTool/)

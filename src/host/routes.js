@@ -14,7 +14,7 @@ import { captureHandler, capturesHandler, reportHandler } from './storage.js'
 import { evidenceExportHandler, vectorExportHandler } from './export.js'
 import { directoriesHandler } from './directories.js'
 import { injectHandler } from './inject.js'
-import { createVisionHandler } from './vision.js'
+import { createVisionBatchHandler, createVisionHandler } from './vision.js'
 import { createSelectionQuestionHandler } from './selection-question.js'
 import { inspectHandler } from './inspect/handler.js'
 import { requestPath, requestQuery, sendJson, sendText, serveFile, subPath } from './http.js'
@@ -65,6 +65,8 @@ function metaHandler(req, res) {
     // "Ask Agent" pushes a bounded scene summary into the live conversation.
     injectUrl: `${INJECT_ROUTE}/${TOKEN}`,
     visionUrl: `${API}/vision/${TOKEN}`,
+    // F6: page-only batch parse of one screenshot into object outlines.
+    visionBatchUrl: `${API}/vision-batch/${TOKEN}`,
     questionUrl: `${API}/selection-question/${TOKEN}`,
     // Scene reports are written by the host under DSH_HOME/exports.
     reportUrl: `${REPORT_ROUTE}/${TOKEN}`,
@@ -354,6 +356,7 @@ export function registerRoutes(ctx, { allowedDirs, bridge, directories, getServi
       register('exact', `${SCENE_ROUTE}/${TOKEN}`, sceneSnapshotHandler),
       register('exact', `${INJECT_ROUTE}/${TOKEN}`, (req, res) => injectHandler(ctx, req, res)),
       register('exact', `${API}/vision/${TOKEN}`, createVisionHandler(ctx, { getService })),
+  register('exact', `${API}/vision-batch/${TOKEN}`, createVisionBatchHandler(ctx, { getService })),
       register('exact', `${API}/selection-question/${TOKEN}`, createSelectionQuestionHandler(ctx, { getService })),
       register('exact', `${REPORT_ROUTE}/${TOKEN}`, reportHandler),
       register('exact', `${EXPORT_ROUTE}/${TOKEN}`, evidenceExportHandler),
