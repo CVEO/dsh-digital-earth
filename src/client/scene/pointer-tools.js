@@ -2,16 +2,19 @@
  * scene/pointer-tools.js — canvas picking and the measure-tool click loop.
  *
  * Extracted from ViewerSurface in v1.6 Phase 2: identify what is under a screen
- * position (3D Tiles feature / tileset / entity / scene), fill the pick card,
- * collect measurement points on click and finish the tool. Refs are injected so
- * the module never re-creates React state; the chip itself stays in the component.
+ * position (3D Tiles feature / tileset / entity / scene), collect measurement
+ * points on click and finish the tool. Refs are injected so the module never
+ * re-creates React state.
+ *
+ * The v1.6 pick card is gone: "pick" now routes to the identify card, which shows
+ * the same attributes plus surface height, coordinates and export actions. The
+ * raw pickResult() stays because the Agent bridge uses it as a data read.
  */
 export function createPointerTools(deps) {
   const cesiumRef = { get current() { return deps.getCesium() } }
   const viewerRef = { get current() { return deps.getViewer() } }
   const toolRef = deps.toolRef
   const measureRef = deps.measureRef
-  const setPickInfo = deps.setPickInfo
   const showToast = deps.showToast
   const pickSurface = deps.pickSurface
   const redrawMeasure = deps.redrawMeasure
@@ -49,41 +52,6 @@ export function createPointerTools(deps) {
         return { picked: true, type: 'scene', properties: [] }
       }
 
-      function pickAt(position) {
-        const result = pickResult(position)
-        if (!result.picked) {
-          setPickInfo({ title: t('toast.pickNone'), rows: [] })
-          return
-        }
-        if (result.type === 'tile-feature') {
-          const rows = result.properties.map((entry) => [entry.name, entry.value])
-          if (rows.length === 0) rows.push([t('pick.noProperties'), t('pick.noPropertiesValue')])
-          setPickInfo({ title: result.layer, rows })
-          return
-        }
-        if (result.type === 'tileset') {
-          setPickInfo({
-            title: t('pick.title'),
-            rows: [
-              [t('pick.type'), t('pick.tiles')],
-              [t('pick.layer'), result.layer],
-            ],
-          })
-          return
-        }
-        if (result.type === 'entity') {
-          setPickInfo({
-            title: t('pick.title'),
-            rows: [
-              [t('pick.type'), t('pick.entity')],
-              [t('pick.name'), result.name],
-            ],
-          })
-          return
-        }
-        setPickInfo({ title: t('pick.title'), rows: [[t('pick.type'), t('pick.scene')]] })
-      }
-
       function onCanvasClick(position) {
         const mode = toolRef.current
         // Vector selections win over the default identify click, otherwise a user
@@ -91,17 +59,14 @@ export function createPointerTools(deps) {
         if ((!mode || mode === 'pick' || mode === 'identify') && deps.onOverlayClick?.(position)) return
         if (mode === null) return
         // v1.7 P0 "指认": the overlay owns the read, this module only routes the
-        // click so the measure loop below is untouched.
-        if (mode === 'identify') {
+        // click so the measure loop below is untouched. "pick" is an alias kept
+        // for host commands and old sessions: it opens the same rich card.
+        if (mode === 'identify' || mode === 'pick') {
           if (typeof deps.onIdentify === 'function') deps.onIdentify(position)
           return
         }
         if (mode === 'profile') {
           if (typeof deps.onProfilePoint === 'function') deps.onProfilePoint(position)
-          return
-        }
-        if (mode === 'pick') {
-          pickAt(position)
           return
         }
         const surface = pickSurface(position)
@@ -127,5 +92,5 @@ export function createPointerTools(deps) {
       }
 
 
-  return { pickResult, pickAt, onCanvasClick, finishMeasure }
+  return { pickResult, onCanvasClick, finishMeasure }
 }

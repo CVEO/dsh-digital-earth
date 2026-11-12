@@ -352,6 +352,12 @@ var SELECTION_MESSAGES = {
     "selection.surfaceUnavailable": "已保留画面选区，可直接提问。部分边界无法可靠定位，暂不提供面积与几何导出；请改用俯视角后重试。",
     "selection.surfaceApproximate": "可见表面近似范围，面积为水平投影估算；不是单栋建筑的真实轮廓。俯视后框选通常更稳定。",
     "selection.floodBounds": "按选区的外接矩形运行淹没分析，不是任意多边形内的精确水量。",
+    "selection.coordinates": "坐标",
+    "selection.copyCoords": "复制经纬度",
+    "selection.copied": "已复制经纬度",
+    "selection.copyFailed": "无法访问剪贴板，请手动选中坐标复制。",
+    "selection.propertiesCount": "属性 {shown}/{total} 项",
+    "selection.propertiesMore": "另有 {n} 项属性，导出证据包可看全部",
     "selection.hint": "选择点、矩形或套索范围；完成后可对该范围提问、执行量测，或导出有效选区。",
     "selection.dragHint": "拖框圈定画面范围，松开后直接提问。坐标来自可见表面采样；精确轮廓请使用已有矢量数据。"
   },
@@ -396,6 +402,12 @@ var SELECTION_MESSAGES = {
     "selection.surfaceUnavailable": "The screen selection is saved for questions. Some boundary points cannot be reliably located, so area and geometry export are unavailable. Try a top-down view.",
     "selection.surfaceApproximate": "Approximate visible-surface region; area estimates its horizontal projection, not an exact building footprint. Selecting from above is usually more stable.",
     "selection.floodBounds": "Runs flood analysis over the selection bounding rectangle, not an exact volume within an arbitrary polygon.",
+    "selection.coordinates": "Coordinates",
+    "selection.copyCoords": "Copy lon/lat",
+    "selection.copied": "Coordinates copied",
+    "selection.copyFailed": "Clipboard unavailable; select the coordinates and copy manually.",
+    "selection.propertiesCount": "Attributes {shown}/{total}",
+    "selection.propertiesMore": "{n} more attributes in the exported evidence pack",
     "selection.hint": "Select a point, rectangle or lasso region; then ask about it, measure it, or export the valid selection.",
     "selection.dragHint": "Drag a screen region and release to ask about it. Coordinates sample visible surfaces; use existing vector data for exact outlines."
   }
@@ -4599,7 +4611,6 @@ function createPointerTools(deps) {
   } };
   const toolRef = deps.toolRef;
   const measureRef = deps.measureRef;
-  const setPickInfo = deps.setPickInfo;
   const showToast = deps.showToast;
   const pickSurface = deps.pickSurface;
   const redrawMeasure = deps.redrawMeasure;
@@ -4635,54 +4646,16 @@ function createPointerTools(deps) {
     }
     return { picked: true, type: "scene", properties: [] };
   }
-  function pickAt(position) {
-    const result = pickResult(position);
-    if (!result.picked) {
-      setPickInfo({ title: t2("toast.pickNone"), rows: [] });
-      return;
-    }
-    if (result.type === "tile-feature") {
-      const rows = result.properties.map((entry) => [entry.name, entry.value]);
-      if (rows.length === 0) rows.push([t2("pick.noProperties"), t2("pick.noPropertiesValue")]);
-      setPickInfo({ title: result.layer, rows });
-      return;
-    }
-    if (result.type === "tileset") {
-      setPickInfo({
-        title: t2("pick.title"),
-        rows: [
-          [t2("pick.type"), t2("pick.tiles")],
-          [t2("pick.layer"), result.layer]
-        ]
-      });
-      return;
-    }
-    if (result.type === "entity") {
-      setPickInfo({
-        title: t2("pick.title"),
-        rows: [
-          [t2("pick.type"), t2("pick.entity")],
-          [t2("pick.name"), result.name]
-        ]
-      });
-      return;
-    }
-    setPickInfo({ title: t2("pick.title"), rows: [[t2("pick.type"), t2("pick.scene")]] });
-  }
   function onCanvasClick(position) {
     const mode = toolRef.current;
     if ((!mode || mode === "pick" || mode === "identify") && deps.onOverlayClick?.(position)) return;
     if (mode === null) return;
-    if (mode === "identify") {
+    if (mode === "identify" || mode === "pick") {
       if (typeof deps.onIdentify === "function") deps.onIdentify(position);
       return;
     }
     if (mode === "profile") {
       if (typeof deps.onProfilePoint === "function") deps.onProfilePoint(position);
-      return;
-    }
-    if (mode === "pick") {
-      pickAt(position);
       return;
     }
     const surface = pickSurface(position);
@@ -4702,7 +4675,7 @@ function createPointerTools(deps) {
       onFinishTool();
     }
   }
-  return { pickResult, pickAt, onCanvasClick, finishMeasure };
+  return { pickResult, onCanvasClick, finishMeasure };
 }
 
 // src/client/scene/profile-tool.js
@@ -5258,9 +5231,23 @@ var SELECTION_RADII_M = [30, 60, 120];
 var SELECTION_DIRECTIONS = 8;
 var SELECTION_MIN_SAMPLES = 4;
 var SELECTION_MAX_PROPERTIES = 24;
+var PROPERTY_PREVIEW_LIMIT = 12;
 var METERS_PER_DEGREE_LAT = 110540;
 var METERS_PER_DEGREE_LON = 111320;
 var IDENTITY_KEYS = ["name", "Name", "NAME", "title", "id", "ID", "identifier"];
+function coordinateText(point, digits = 6) {
+  if (!point || typeof point !== "object") return "";
+  const lon = Number(point.lon);
+  const lat = Number(point.lat);
+  if (!Number.isFinite(lon) || !Number.isFinite(lat)) return "";
+  const fixed = (value) => value.toFixed(digits);
+  return `${fixed(lon)}, ${fixed(lat)}`;
+}
+function shownProperties(properties, limit = PROPERTY_PREVIEW_LIMIT) {
+  const list = Array.isArray(properties) ? properties : [];
+  const shown = list.slice(0, Math.max(0, limit));
+  return { shown, total: list.length, hidden: Math.max(0, list.length - shown.length) };
+}
 function round1(value) {
   if (typeof value !== "number" || !Number.isFinite(value)) return null;
   return Math.round(value * 10) / 10;
@@ -9832,6 +9819,9 @@ var CSS = `
 .mv-select .fact .mv-sel-conf{margin-left:auto;flex:none;font-size:9.5px;line-height:1;padding:2px 5px;border-radius:5px;border:1px solid color-mix(in srgb,currentColor 45%,transparent);background:color-mix(in srgb,currentColor 12%,transparent);white-space:nowrap}
 .mv-select .props{display:flex;flex-direction:column;gap:3px;border-bottom:.5px solid var(--mv-line);padding:6px 0;min-height:0}
 .mv-select .props-title{font-size:10px;letter-spacing:.04em;text-transform:uppercase;color:var(--mv-dim)}
+.mv-select .coords{display:flex;align-items:center;gap:6px;margin:0 0 8px;font-size:11px;color:var(--mv-dim)}
+.mv-select .coords code{flex:1;font-size:11px;font-variant-numeric:tabular-nums;color:var(--mv-text)}
+.mv-select .props-more{margin:4px 0 0;font-size:10px;color:var(--mv-dim)}
 .mv-select .prop{display:flex;align-items:baseline;gap:8px;font-size:11px;min-width:0}
 .mv-select .prop span{flex:none;max-width:42%;color:var(--mv-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mv-select .prop b{flex:1;min-width:0;text-align:right;font-weight:600;font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -14613,7 +14603,22 @@ function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t: t2, s
   };
   const limitations = Array.isArray(card?.limitations) ? card.limitations : [];
   const radii = card?.sampling?.radii_m ?? [30, 60, 120];
-  const properties = Array.isArray(card?.identity?.properties) ? card.identity.properties.slice(0, 8) : [];
+  const propertyInfo = shownProperties(card?.identity?.properties);
+  const properties = propertyInfo.shown;
+  const lonLat = coordinateText(card?.point);
+  const copyCoordinates = () => {
+    if (lonLat === "") return;
+    const done = () => showToast(t2("selection.copied"));
+    try {
+      const clipboard = globalThis.navigator?.clipboard;
+      if (clipboard && typeof clipboard.writeText === "function") {
+        Promise.resolve(clipboard.writeText(lonLat)).then(done, () => showToast(t2("selection.copyFailed")));
+        return;
+      }
+    } catch {
+    }
+    showToast(t2("selection.copyFailed"));
+  };
   const showFootnote = limitations.includes("no_building_identity") || limitations.includes("tile_feature_only");
   return h25(
     import_react28.default.Fragment,
@@ -14659,11 +14664,18 @@ function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t: t2, s
         )
       ),
       h25("h3", null, card.identity?.name ?? t2(TITLE_KEY[card.identity?.kind] ?? TITLE_KEY.tile_feature)),
-      h25(
-        "p",
-        { className: "layer" },
-        `${card.layer?.name ?? t2("selection.unknownLayer")} · ${card.point.lon.toFixed(5)}, ${card.point.lat.toFixed(5)}`
-      ),
+      h25("p", { className: "layer" }, card.layer?.name ?? t2("selection.unknownLayer")),
+      lonLat !== "" ? h25(
+        "div",
+        { className: "coords" },
+        h25("span", { className: "key" }, t2("selection.coordinates")),
+        h25("code", { title: t2("selection.copyCoords") }, lonLat),
+        h25(
+          "button",
+          { type: "button", className: "mv-icon-btn", title: t2("selection.copyCoords"), "aria-label": t2("selection.copyCoords"), onClick: copyCoordinates },
+          "⧉"
+        )
+      ) : null,
       h25(
         "div",
         { className: "facts" },
@@ -14696,7 +14708,11 @@ function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t: t2, s
       properties.length > 0 ? h25(
         "div",
         { className: "props" },
-        h25("span", { className: "props-title" }, t2("selection.properties")),
+        h25(
+          "span",
+          { className: "props-title" },
+          propertyInfo.hidden > 0 ? t2("selection.propertiesCount", { shown: properties.length, total: propertyInfo.total }) : t2("selection.properties")
+        ),
         ...properties.map(
           (property, index) => h25(
             "div",
@@ -14704,7 +14720,8 @@ function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t: t2, s
             h25("span", { title: property.name }, property.name),
             h25("b", { title: property.value }, property.value)
           )
-        )
+        ),
+        propertyInfo.hidden > 0 ? h25("p", { className: "props-more" }, t2("selection.propertiesMore", { n: propertyInfo.hidden })) : null
       ) : null,
       h25(
         "p",
@@ -15521,7 +15538,6 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
   const [fps, setFps] = import_react34.default.useState(null);
   const [fullscreen, setFullscreen] = import_react34.default.useState(false);
   const [stats, setStats] = import_react34.default.useState(null);
-  const [pickInfo, setPickInfo] = import_react34.default.useState(null);
   const [measureInfo, setMeasureInfo] = import_react34.default.useState(null);
   const [vectorSelection, setVectorSelection] = import_react34.default.useState(null);
   const [scan, setScan] = import_react34.default.useState(null);
@@ -15946,7 +15962,6 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     if (next !== "profile") profileToolRef.current?.clear();
     vectorRef.current?.clearSelection();
     if (next !== "identify" || measureRef.current.points.length < (measureRef.current.mode === "area" ? 3 : 2)) clearMeasure();
-    if (next) setPickInfo(null);
     setOpenMenu(null);
   }
   function clearMeasure() {
@@ -16583,7 +16598,6 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     getViewer: () => viewerRef.current,
     toolRef,
     measureRef,
-    setPickInfo,
     showToast,
     pickSurface,
     redrawMeasure,
@@ -16596,7 +16610,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     onOverlayClick: (position) => vectorRef.current?.click(position),
     t: t2
   });
-  const { pickResult, pickAt, onCanvasClick } = pointerTools;
+  const { pickResult, onCanvasClick } = pointerTools;
   const finishMeasure = () => pointerTools.finishMeasure();
   function resetView() {
     const Cesium = cesiumRef.current;
@@ -17115,10 +17129,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
           viewer,
           root: rootRef.current,
           getTool: () => toolRef.current,
-          onSelect: (selection) => {
-            setVectorSelection(selection);
-            if (selection) setPickInfo(null);
-          }
+          onSelect: (selection) => setVectorSelection(selection)
         });
         viewer.scene.globe.baseColor = Cesium.Color.fromCssColorString("#060a12");
         applyQuality(viewer, catalog.config.settings?.quality);
@@ -17521,7 +17532,6 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
                 onClick: () => {
                   setOpenMenu(null);
                   setToolMode(null);
-                  setPickInfo(null);
                   setMeasureInfo(null);
                 }
               },
@@ -17783,29 +17793,6 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
       )
     ) : null,
     h30(VectorCard, { key: "vector-selection", selection: vectorSelection, onClose: () => vectorRef.current?.clearSelection(), t: t2 }),
-    pickInfo && !vectorSelection ? h30(
-      "div",
-      { key: "pick", className: "mv-pick mv-glass" },
-      h30(
-        "header",
-        null,
-        h30("span", null, pickInfo.title),
-        h30(
-          "button",
-          { type: "button", className: "mv-icon-btn", onClick: () => setPickInfo(null), title: t2("btn.close") },
-          "✕"
-        )
-      ),
-      h30(
-        "table",
-        null,
-        h30(
-          "tbody",
-          null,
-          pickInfo.rows.map(([name, value]) => h30("tr", { key: name }, h30("td", null, name), h30("td", null, value)))
-        )
-      )
-    ) : null,
     toast ? h30("div", { key: "toast", className: "mv-toast" }, toast) : null,
     scan ? h30(ScanDialog, {
       key: "scan",

@@ -27,11 +27,37 @@ export const SELECTION_DIRECTIONS = 8
 export const SELECTION_MIN_SAMPLES = 4
 /** Feature properties kept on the card/export: bounded so a wide table cannot bloat it. */
 export const SELECTION_MAX_PROPERTIES = 24
+/** Attributes shown inline before the card says "N more"; the rest stay in the export. */
+export const PROPERTY_PREVIEW_LIMIT = 12
 
 const METERS_PER_DEGREE_LAT = 110540
 const METERS_PER_DEGREE_LON = 111320
 /** Property names that plausibly identify a feature in a batch table. */
 const IDENTITY_KEYS = ['name', 'Name', 'NAME', 'title', 'id', 'ID', 'identifier']
+
+/**
+ * Copyable lon/lat text, six decimals (~0.1 m) so a GIS user can paste it as-is.
+ * Returns '' instead of 'NaN' when the card has no usable point.
+ */
+export function coordinateText(point, digits = 6) {
+  if (!point || typeof point !== 'object') return ''
+  const lon = Number(point.lon)
+  const lat = Number(point.lat)
+  if (!Number.isFinite(lon) || !Number.isFinite(lat)) return ''
+  const fixed = (value) => value.toFixed(digits)
+  return `${fixed(lon)}, ${fixed(lat)}`
+}
+
+/**
+ * Split a batch-table property list into the preview rows and the hidden count.
+ * The card shows attributes first (that is what "what is this object" means);
+ * heights come from measurements, not from metadata.
+ */
+export function shownProperties(properties, limit = PROPERTY_PREVIEW_LIMIT) {
+  const list = Array.isArray(properties) ? properties : []
+  const shown = list.slice(0, Math.max(0, limit))
+  return { shown, total: list.length, hidden: Math.max(0, list.length - shown.length) }
+}
 
 /** Round to one decimal; non-finite input stays null (never a fake zero). */
 export function round1(value) {

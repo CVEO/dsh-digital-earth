@@ -30,6 +30,7 @@ test('指认：最后一次请求获胜，加载中取消及卸载使迟到结�
     .replace("import React from 'react'", 'const React = globalThis.__earthAuditReact')
     .replace("import { VisionSelect } from './vision-select.js'", 'const VisionSelect = () => null')
     .replace("'../scene/selection-tools.js'", JSON.stringify(new URL('../src/client/scene/selection-tools.js', import.meta.url).href))
+    .replace("'../scene/selection.js'", JSON.stringify(new URL('../src/client/scene/selection.js', import.meta.url).href))
   const { SelectionOverlay } = await import('data:text/javascript;base64,' + Buffer.from(source).toString('base64'))
   delete globalThis.__earthAuditReact
   const oldDocument = globalThis.document

@@ -13,6 +13,7 @@
 import React from 'react'
 import { VisionSelect } from './vision-select.js'
 import { getSelectionTool } from '../scene/selection-tools.js'
+import { coordinateText, shownProperties } from '../scene/selection.js'
 
 const h = React.createElement
 
@@ -256,9 +257,27 @@ export function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t
   }
   const limitations = Array.isArray(card?.limitations) ? card.limitations : []
   const radii = card?.sampling?.radii_m ?? [30, 60, 120]
-  // Batch-table attributes are the real answer to "what is this object"; show a
-  // bounded list (8) so a wide table cannot turn the card into a spreadsheet.
-  const properties = Array.isArray(card?.identity?.properties) ? card.identity.properties.slice(0, 8) : []
+  // Batch-table attributes are the real answer to "what is this object"; the
+  // preview stays bounded and the hidden count points at the full evidence pack.
+  const propertyInfo = shownProperties(card?.identity?.properties)
+  const properties = propertyInfo.shown
+  const lonLat = coordinateText(card?.point)
+  // Clipboard may be unavailable (insecure context, denied permission): copying is
+  // a convenience, so a failure is a toast, never an error dialog.
+  const copyCoordinates = () => {
+    if (lonLat === '') return
+    const done = () => showToast(t('selection.copied'))
+    try {
+      const clipboard = globalThis.navigator?.clipboard
+      if (clipboard && typeof clipboard.writeText === 'function') {
+        Promise.resolve(clipboard.writeText(lonLat)).then(done, () => showToast(t('selection.copyFailed')))
+        return
+      }
+    } catch {
+      /* fall through to the toast below */
+    }
+    showToast(t('selection.copyFailed'))
+  }
   // The card stays quiet: only the one caveat a user must not miss stays visible,
   // and it is a single small line. The full unknowns/limitations still travel in
   // the exported evidence JSON.
@@ -306,11 +325,20 @@ export function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t
             ),
           ),
           h('h3', null, card.identity?.name ?? t(TITLE_KEY[card.identity?.kind] ?? TITLE_KEY.tile_feature)),
-          h(
-            'p',
-            { className: 'layer' },
-            `${card.layer?.name ?? t('selection.unknownLayer')} · ${card.point.lon.toFixed(5)}, ${card.point.lat.toFixed(5)}`,
-          ),
+          h('p', { className: 'layer' }, card.layer?.name ?? t('selection.unknownLayer')),
+          lonLat !== ''
+            ? h(
+                'div',
+                { className: 'coords' },
+                h('span', { className: 'key' }, t('selection.coordinates')),
+                h('code', { title: t('selection.copyCoords') }, lonLat),
+                h(
+                  'button',
+                  { type: 'button', className: 'mv-icon-btn', title: t('selection.copyCoords'), 'aria-label': t('selection.copyCoords'), onClick: copyCoordinates },
+                  '⧉',
+                ),
+              )
+            : null,
           h(
             'div',
             { className: 'facts' },
@@ -352,7 +380,13 @@ export function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t
             ? h(
                 'div',
                 { className: 'props' },
-                h('span', { className: 'props-title' }, t('selection.properties')),
+                h(
+                  'span',
+                  { className: 'props-title' },
+                  propertyInfo.hidden > 0
+                    ? t('selection.propertiesCount', { shown: properties.length, total: propertyInfo.total })
+                    : t('selection.properties'),
+                ),
                 ...properties.map((property, index) =>
                   h(
                     'div',
@@ -361,6 +395,9 @@ export function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t
                     h('b', { title: property.value }, property.value),
                   ),
                 ),
+                propertyInfo.hidden > 0
+                  ? h('p', { className: 'props-more' }, t('selection.propertiesMore', { n: propertyInfo.hidden }))
+                  : null,
               )
             : null,
           h(

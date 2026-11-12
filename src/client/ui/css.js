@@ -444,6 +444,9 @@ import { SELECTION_QUESTION_CSS } from './selection-question-css.js'
 .mv-select .fact .mv-sel-conf{margin-left:auto;flex:none;font-size:9.5px;line-height:1;padding:2px 5px;border-radius:5px;border:1px solid color-mix(in srgb,currentColor 45%,transparent);background:color-mix(in srgb,currentColor 12%,transparent);white-space:nowrap}
 .mv-select .props{display:flex;flex-direction:column;gap:3px;border-bottom:.5px solid var(--mv-line);padding:6px 0;min-height:0}
 .mv-select .props-title{font-size:10px;letter-spacing:.04em;text-transform:uppercase;color:var(--mv-dim)}
+.mv-select .coords{display:flex;align-items:center;gap:6px;margin:0 0 8px;font-size:11px;color:var(--mv-dim)}
+.mv-select .coords code{flex:1;font-size:11px;font-variant-numeric:tabular-nums;color:var(--mv-text)}
+.mv-select .props-more{margin:4px 0 0;font-size:10px;color:var(--mv-dim)}
 .mv-select .prop{display:flex;align-items:baseline;gap:8px;font-size:11px;min-width:0}
 .mv-select .prop span{flex:none;max-width:42%;color:var(--mv-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mv-select .prop b{flex:1;min-width:0;text-align:right;font-weight:600;font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}

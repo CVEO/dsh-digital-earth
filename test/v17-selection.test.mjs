@@ -243,7 +243,7 @@ test('postEvidence：POST 到 meta.exportUrl，body 为 evidence + card + PNG', 
 
 test('接线：指认模式走既有 canvas 点击循环，卡片不进入任何工具契约', () => {
   const client = clientSource()
-  assert.match(client, /if \(mode === 'identify'\)/)
+  assert.match(client, /if \(mode === 'identify' \|\| mode === 'pick'\)/)
   assert.match(client, /onIdentify: \(position\) => selectionApiRef\.current\?\.\(position\)/)
   assert.match(client, /className: 'mv-sel-anchor'/)
   // The title must follow the hit level: a whole-tile pick is not a "feature".

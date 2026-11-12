@@ -3,8 +3,11 @@
  *
  * Extracted from ViewerSurface. These tests drive the module with a fake Cesium
  * namespace: feature property extraction (capped at 40), tileset/entity/scene
- * identification, the pick card contents, and the click loop for distance/area/
- * height measurements.
+ * identification, and the click loop for distance/area/height measurements.
+ *
+ * F4: the old pick card is gone — "pick" now routes to the identify card (same
+ * attributes plus height, coordinates and export). pickResult() stays because the
+ * Agent bridge uses it as a raw data read.
  */
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
@@ -38,8 +41,8 @@ class Entity {
 
 const Cesium = { Cesium3DTileFeature: Feature, Cesium3DTileset: Tileset, Entity, defined: (value) => value !== undefined && value !== null }
 
-function makeTools({ pick, tool = null, points = [] } = {}) {
-  const state = { pickInfo: null, tool: tool, points, toasts: [], redrawn: [], finished: 0 }
+function makeTools({ pick, tool = null, points = [], surface = { lon: 1, lat: 2, height: 3 }, overlayHit = false } = {}) {
+  const state = { tool, points, toasts: [], redrawn: [], finished: 0, identified: [], overlayClicks: 0 }
   const measureRef = { current: { points } }
   const viewer = { scene: { pick: () => pick } }
   const tools = createPointerTools({
@@ -47,14 +50,16 @@ function makeTools({ pick, tool = null, points = [] } = {}) {
     getViewer: () => viewer,
     toolRef: { get current() { return state.tool }, set current(value) { state.tool = value } },
     measureRef,
-    setPickInfo: (value) => {
-      state.pickInfo = value
-    },
     showToast: (text) => state.toasts.push(text),
-    pickSurface: () => ({ lon: 1, lat: 2, height: 3 }),
+    pickSurface: () => surface,
     redrawMeasure: (mode) => state.redrawn.push(mode),
     onFinishTool: () => {
       state.finished += 1
+    },
+    onIdentify: (position) => state.identified.push(position),
+    onOverlayClick: () => {
+      state.overlayClicks += 1
+      return overlayHit
     },
     formatValue: (value) => String(value),
     layerLabel: (tileset) => (tileset === 'tiles' || tileset instanceof Tileset ? 'Tiles' : 'other'),
@@ -63,13 +68,12 @@ function makeTools({ pick, tool = null, points = [] } = {}) {
   return { tools, state }
 }
 
-test('pickResult：无引擎/未命中返回 picked:false；要素属性最多 40 条', () => {
-  const none = createPointerTools({
+function bareTools(overrides = {}) {
+  return createPointerTools({
     getCesium: () => null,
     getViewer: () => null,
     toolRef: { current: null },
     measureRef: { current: { points: [] } },
-    setPickInfo: () => {},
     showToast: () => {},
     pickSurface: () => null,
     redrawMeasure: () => {},
@@ -77,8 +81,12 @@ test('pickResult：无引擎/未命中返回 picked:false；要素属性最多 4
     formatValue: String,
     layerLabel: () => 'x',
     t: (key) => key,
+    ...overrides,
   })
-  assert.deepEqual(none.pickResult({ x: 1, y: 1 }), { picked: false, type: 'none', properties: [] })
+}
+
+test('pickResult：无引擎/未命中返回 picked:false；要素属性最多 40 条', () => {
+  assert.deepEqual(bareTools().pickResult({ x: 1, y: 1 }), { picked: false, type: 'none', properties: [] })
 
   const { tools } = makeTools()
   assert.deepEqual(tools.pickResult({ x: 1, y: 1 }), { picked: false, type: 'none', properties: [] })
@@ -103,28 +111,28 @@ test('pickResult：tileset / entity / scene 三种回退', () => {
   assert.deepEqual(scene.pickResult({}), { picked: true, type: 'scene', properties: [] })
 })
 
-test('pickAt：要素无属性时给 noProperties 行；tileset/entity/scene 卡片正确', () => {
-  const { tools, state } = makeTools({ pick: new Feature({}, 'tiles') })
-  tools.pickAt({})
-  assert.equal(state.pickInfo.title, 'Tiles')
-  assert.deepEqual(state.pickInfo.rows, [['pick.noProperties', 'pick.noPropertiesValue']])
+test('pick 与 identify 都打开指认卡：pick 只是旧会话/命令的别名', () => {
+  const pick = makeTools({ tool: 'pick' })
+  pick.tools.onCanvasClick({ x: 1, y: 2 })
+  assert.deepEqual(pick.state.identified, [{ x: 1, y: 2 }])
+  assert.equal(pick.state.points.length, 0, 'pick 不再进入量测累点分支')
 
-  const { tools: tilesetTools, state: tilesetState } = makeTools({ pick: new Tileset() })
-  tilesetTools.pickAt({})
-  assert.equal(tilesetState.pickInfo.title, 'pick.title')
-  assert.deepEqual(tilesetState.pickInfo.rows, [['pick.type', 'pick.tiles'], ['pick.layer', 'Tiles']])
+  const identify = makeTools({ tool: 'identify' })
+  identify.tools.onCanvasClick({ x: 3, y: 4 })
+  assert.deepEqual(identify.state.identified, [{ x: 3, y: 4 }])
 
-  const { tools: entityTools, state: entityState } = makeTools({ pick: { id: new Entity({ name: 'Marker', id: 'm1' }) } })
-  entityTools.pickAt({})
-  assert.deepEqual(entityState.pickInfo.rows, [['pick.type', 'pick.entity'], ['pick.name', 'Marker']])
+  // A vector annotation under the cursor wins over identify: otherwise an
+  // annotation could never be selected again after identify became default.
+  const overlay = makeTools({ tool: 'pick', overlayHit: true })
+  overlay.tools.onCanvasClick({})
+  assert.equal(overlay.state.overlayClicks, 1)
+  assert.equal(overlay.state.identified.length, 0)
 
-  const { tools: sceneTools, state: sceneState } = makeTools({ pick: null })
-  sceneTools.pickAt({})
-  assert.equal(sceneState.pickInfo.title, 'toast.pickNone')
-  assert.deepEqual(sceneState.pickInfo.rows, [])
+  // makeTools does not expose pickAt any more: the card is owned by the overlay.
+  assert.equal(typeof pick.tools.pickAt, 'undefined')
 })
 
-test('onCanvasClick：测距/测面累加点并重绘；测高最多保留两点；无地表时提示', () => {
+test('onCanvasClick：测距/测面累加测点并重绘；测高最多保留两点；无地表时提示', () => {
   const distance = makeTools({ tool: 'distance' })
   distance.tools.onCanvasClick({})
   assert.equal(distance.state.points.length, 1)
@@ -136,29 +144,14 @@ test('onCanvasClick：测距/测面累加点并重绘；测高最多保留两点
   assert.equal(height.state.points.length, 2, '测高只保留最后两个点')
   assert.deepEqual(height.state.points[1], { lon: 1, lat: 2, height: 3 })
 
-  // 无工具时点击不做任何事。
   const idle = makeTools({ tool: null })
   idle.tools.onCanvasClick({})
   assert.equal(idle.state.points.length, 0)
 
-  // 没有地表交点时提示而不加点。
-  const noSurface = createPointerTools({
-    getCesium: () => Cesium,
-    getViewer: () => ({ scene: { pick: () => null } }),
-    toolRef: { current: 'distance' },
-    measureRef: { current: { points: [] } },
-    setPickInfo: () => {},
-    showToast: () => {},
-    pickSurface: () => null,
-    redrawMeasure: () => {},
-    onFinishTool: () => {},
-    formatValue: String,
-    layerLabel: () => 'x',
-    t: (key) => key,
-  })
-  const state = { points: [], toasts: [] }
-  noSurface.onCanvasClick({})
-  assert.equal(state.points.length, 0)
+  const noSurface = makeTools({ tool: 'distance', surface: null })
+  noSurface.tools.onCanvasClick({})
+  assert.equal(noSurface.state.points.length, 0)
+  assert.deepEqual(noSurface.state.toasts, ['toast.noSurface'])
 })
 
 test('finishMeasure：距离/面积/测高都能一键结束，测高不再卡在结束态', () => {

@@ -126,7 +126,6 @@ const h = React.createElement
       // True while the panel root is the document's fullscreen element.
       const [fullscreen, setFullscreen] = React.useState(false)
       const [stats, setStats] = React.useState(null)
-      const [pickInfo, setPickInfo] = React.useState(null)
       const [measureInfo, setMeasureInfo] = React.useState(null)
       const [vectorSelection, setVectorSelection] = React.useState(null)
       const [scan, setScan] = React.useState(null)
@@ -681,7 +680,6 @@ const h = React.createElement
         if (next !== 'profile') profileToolRef.current?.clear()
         vectorRef.current?.clearSelection()
         if (next !== 'identify' || measureRef.current.points.length < (measureRef.current.mode === 'area' ? 3 : 2)) clearMeasure()
-        if (next) setPickInfo(null)
         setOpenMenu(null)
       }
 
@@ -1402,7 +1400,6 @@ const h = React.createElement
         getViewer: () => viewerRef.current,
         toolRef,
         measureRef,
-        setPickInfo,
         showToast,
         pickSurface,
         redrawMeasure,
@@ -1415,7 +1412,7 @@ const h = React.createElement
         onOverlayClick: (position) => vectorRef.current?.click(position),
         t,
       })
-      const { pickResult, pickAt, onCanvasClick } = pointerTools
+      const { pickResult, onCanvasClick } = pointerTools
       const finishMeasure = () => pointerTools.finishMeasure()
 
       function resetView() {
@@ -2028,7 +2025,7 @@ const h = React.createElement
             })
             viewerRef.current = viewer
             vectorRef.current = createVectorInteraction({ Cesium, viewer, root: rootRef.current, getTool: () => toolRef.current,
-              onSelect: (selection) => { setVectorSelection(selection); if (selection) setPickInfo(null) } })
+              onSelect: (selection) => setVectorSelection(selection) })
             viewer.scene.globe.baseColor = Cesium.Color.fromCssColorString('#060a12')
             // Apply the persisted render tier before the first frame: resolution
             // scale and terrain LOD are the two biggest per-frame costs.
@@ -2520,7 +2517,6 @@ const h = React.createElement
                     onClick: () => {
                       setOpenMenu(null)
                       setToolMode(null)
-                      setPickInfo(null)
                       setMeasureInfo(null)
                     },
                   },
@@ -2786,31 +2782,6 @@ const h = React.createElement
             )
           : null,
         h(VectorCard, { key: 'vector-selection', selection: vectorSelection, onClose: () => vectorRef.current?.clearSelection(), t }),
-        pickInfo && !vectorSelection
-          ? h(
-              'div',
-              { key: 'pick', className: 'mv-pick mv-glass' },
-              h(
-                'header',
-                null,
-                h('span', null, pickInfo.title),
-                h(
-                  'button',
-                  { type: 'button', className: 'mv-icon-btn', onClick: () => setPickInfo(null), title: t('btn.close') },
-                  '✕',
-                ),
-              ),
-              h(
-                'table',
-                null,
-                h(
-                  'tbody',
-                  null,
-                  pickInfo.rows.map(([name, value]) => h('tr', { key: name }, h('td', null, name), h('td', null, value))),
-                ),
-              ),
-            )
-          : null,
         toast ? h('div', { key: 'toast', className: 'mv-toast' }, toast) : null,
         scan
           ? h(ScanDialog, {
