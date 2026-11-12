@@ -8,6 +8,7 @@
  */
 import { downloadText } from '../ui/cards.js'
 import { annotationFeatureText, deleteAnnotationFeature, updateAnnotationFeature } from './annotation-edit.js'
+import { annotationFeaturesOfCommands, annotationKindOf, nextAnnotationName, normalizeAnnotation } from './annotation-model.js'
 
 export function createAnnotationActions({ stateRef, viewerRef, getSelection, draw, showToast, t, onChanged }) {
   const selectionOf = () => (typeof getSelection === 'function' ? getSelection() : null)
@@ -36,6 +37,20 @@ export function createAnnotationActions({ stateRef, viewerRef, getSelection, dra
   )
 
   return {
+    /** Draw one new hand-drawn feature, auto-named so it is never anonymous. */
+    add: (feature) => {
+      const state = stateRef.current
+      const name = nextAnnotationName(annotationFeaturesOfCommands(state.drawCommands), annotationKindOf(feature), t)
+      const normalized = normalizeAnnotation({ ...feature, properties: { ...feature.properties, name } })
+      if (!normalized.ok) {
+        showToast(t('annotation.editFailed', { reason: normalized.error }))
+        return false
+      }
+      draw({ type: 'FeatureCollection', features: [normalized.feature] }, 'accent', name)
+      if (typeof onChanged === 'function') onChanged()
+      showToast(t('annotation.added', { name }))
+      return true
+    },
     update: (patch) => run(
       (state, viewer, selection, replayCommand) => updateAnnotationFeature(state, viewer, selection, patch, replayCommand),
       'annotation.saved',

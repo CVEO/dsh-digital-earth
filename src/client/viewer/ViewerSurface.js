@@ -62,7 +62,9 @@ import { MenuItem } from '../ui/menu-item.js'
 import { hasVectorFile, isVectorDrag, readVectorFiles } from '../scene/vector-file.js'
 import { vectorErrorText } from '../scene/vector-errors.js'
 import { runVectorImport } from '../scene/vector-import-transaction.js'
+import { addAgentGroundLabel, agentLabelText, agentOverlayColor, agentSurfaceHeight } from '../scene/overlay-helpers.js'
 import { createAnnotationActions } from '../scene/annotation-actions.js'
+import { createAnnotationTool } from '../scene/annotation-tool.js'
 const h = React.createElement
 
     /**
@@ -835,39 +837,24 @@ const h = React.createElement
         },
       })
 
-      const AGENT_OVERLAY_COLORS = VECTOR_COLORS
+      // F2b: click-to-draw point / line / area annotation; naming and persistence
+      // stay in the annotation actions above.
+      const annotationTool = createAnnotationTool({
+        getCesium: () => cesiumRef.current,
+        getViewer: () => viewerRef.current,
+        pickSurface,
+        setTool: setToolMode,
+        showToast,
+        t,
+        onFinish: annotations.add,
+      })
 
-      const agentOverlayColor = (Cesium, style) => {
-        const css = AGENT_OVERLAY_COLORS[style] ?? AGENT_OVERLAY_COLORS.accent
-        try {
-          return Cesium.Color.fromCssColorString(css)
-        } catch {
-          return Cesium.Color.DODGERBLUE
-        }
-      }
+      // Switching to another tool drops the unfinished annotation draft.
+      React.useEffect(() => {
+        if (tool !== 'annotate') annotationTool.abort()
+      }, [tool])
 
-      /** Surface height at a lon/lat when terrain is loaded, otherwise 0. */
-      const agentSurfaceHeight = (Cesium, viewer, lon, lat) => {
-        try {
-          const height = viewer.scene.globe.getHeight(Cesium.Cartographic.fromDegrees(lon, lat))
-          if (Number.isFinite(height)) return height
-        } catch {
-          // No terrain provider: the ellipsoid surface is height 0.
-        }
-        return 0
-      }
-
-      const agentLabelText = (text, value) =>
-        typeof text === 'string' && text !== '' ? text : typeof value === 'string' ? value : ''
-
-      /** Add a result label anchored on a ground point. */
-      const addAgentGroundLabel = (Cesium, add, lon, lat, text) =>
-        add({
-          position: Cesium.Cartesian3.fromDegrees(lon, lat),
-          label: vectorLabel(Cesium, text, {
-            heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
-          }),
-        })
+      // Overlay colours, ground labels and surface heights live in scene/overlay-helpers.js.
 
       /**
        * Draw a host-validated GeoJSON FeatureCollection. Every annotation is
@@ -2709,6 +2696,7 @@ const h = React.createElement
             onStartTool: (mode) => setToolMode(mode),
             onClearMeasure: clearMeasure,
             onStartProfile: () => profileTool.start(),
+            onStartAnnotation: annotationTool.start,
             onClearAnalysis: () => clearAnalysis(),
             onOpenShader: () => setShaderOpen(true),
             getCesium: () => cesiumRef.current,

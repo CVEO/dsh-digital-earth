@@ -69,6 +69,9 @@ export function createPointerTools(deps) {
           if (typeof deps.onProfilePoint === 'function') deps.onProfilePoint(position)
           return
         }
+        // Every other tool (annotations today) owns its own handler; only the
+        // three measure modes may append a measurement point here.
+        if (mode !== 'distance' && mode !== 'area' && mode !== 'height') return
         const surface = pickSurface(position)
         if (!surface) {
           showToast(t('toast.noSurface'))

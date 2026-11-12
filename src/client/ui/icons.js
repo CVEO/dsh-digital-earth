@@ -190,6 +190,11 @@ const h = React.createElement
           h('path', { key: 'axes', d: 'M4 20V4M4 20h16', ...stroke }),
           h('path', { key: 'curve', d: 'M7 16l4-5 3 3 5-7', ...stroke }),
         ]
+      } else if (kind === 'annotation') {
+        shapes = [
+          h('path', { key: 'pin', d: 'M12 21s6-6.1 6-11a6 6 0 1 0-12 0c0 4.9 6 11 6 11z', ...stroke }),
+          h('circle', { key: 'dot', cx: 12, cy: 10, r: 2.2, ...stroke }),
+        ]
       } else if (kind === 'effects') {
         shapes = [
           h('path', { key: 'sliders', d: 'M3 7h6.5M13.5 7H21M3 17h4M11 17h10', ...stroke }),

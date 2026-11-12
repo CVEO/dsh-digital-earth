@@ -113,10 +113,35 @@ export function ViewBody({ t, getCurrentView, onFlyView, onStartTour }) {
   return h(ToolsBookmarks, { t, getCurrentView, onFlyView, onStartTour })
 }
 
+export function AnnotationBody({ t, onStartAnnotation }) {
+  return h(
+    React.Fragment,
+    null,
+    h(
+      'div',
+      { className: 'mv-tool-grid' },
+      ...['point', 'line', 'area'].map((kind) =>
+        h(
+          'button',
+          {
+            key: kind,
+            type: 'button',
+            className: 'mv-cta',
+            onClick: () => (typeof onStartAnnotation === 'function' ? onStartAnnotation(kind) : null),
+          },
+          t(`annotation.draw${kind[0].toUpperCase()}${kind.slice(1)}`),
+        ),
+      ),
+    ),
+    h('p', { className: 'mv-none' }, t('annotation.drawHint')),
+  )
+}
+
 /** Route one open window id to its body; unknown ids render nothing. */
 export function ToolBody({ entryId, ...rest }) {
   if (entryId === 'measure') return h(MeasureBody, rest)
   if (entryId === 'select') return h(SelectBody, rest)
+  if (entryId === 'annotation') return h(AnnotationBody, rest)
   if (entryId === 'analysis') return h(AnalysisBody, rest)
   if (entryId === 'effects') return h(EffectsBody, rest)
   if (entryId === 'view') return h(ViewBody, rest)

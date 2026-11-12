@@ -16,17 +16,19 @@ const catalog = await import('../src/client/ui/tool-catalog.js')
 const prefs = await import('../src/client/ui/panel-prefs.js')
 const layersMap = await import('../src/client/ui/layers-map.js')
 const { MESSAGES } = await import('../src/client/messages.js')
+const { ANNOTATION_MESSAGES } = await import('../src/client/messages-annotations.js')
 
-test('工具目录：五个入口，顺序稳定、字段齐全、未知 id 不伪造', () => {
-  assert.deepEqual(catalog.TOOL_IDS, ['measure', 'select', 'analysis', 'effects', 'view'])
+test('工具目录：六个入口，顺序稳定、字段齐全、未知 id 不伪造', () => {
+  assert.deepEqual(catalog.TOOL_IDS, ['measure', 'select', 'annotation', 'analysis', 'effects', 'view'])
   assert.equal(new Set(catalog.TOOL_IDS).size, catalog.TOOL_IDS.length)
   assert.deepEqual(catalog.TOOL_ENTRIES.map((entry) => entry.id), catalog.TOOL_IDS)
   for (const entry of catalog.TOOL_ENTRIES) {
     assert.equal(typeof entry.labelKey, 'string')
     assert.equal(typeof entry.hintKey, 'string')
     assert.equal(typeof entry.icon, 'string')
-    assert.ok(entry.labelKey.startsWith('tools.'))
-    assert.ok(entry.hintKey.startsWith('tools.'))
+    // The annotation entry borrows the annotation.* copy it shares with its body.
+    assert.ok(/^(tools|annotation)\./.test(entry.labelKey))
+    assert.ok(/^(tools|annotation)\./.test(entry.hintKey))
   }
   assert.equal(catalog.toolEntry('measure'), catalog.TOOL_ENTRIES[0])
   assert.equal(catalog.toolEntry('nope'), null)
@@ -109,4 +111,9 @@ test('i18n：新文案中英齐全，L2 矢量 / L4 底图标签已换位', () =
   assert.match(MESSAGES.en['layers.imagery'], /L4/)
   assert.match(MESSAGES.zh['layers.vector'], /L2/)
   assert.match(MESSAGES.en['layers.vector'], /L2/)
+  // The annotation entry reads annotation.* copy: it must reach the merged catalog.
+  for (const locale of ['zh', 'en']) {
+    assert.equal(MESSAGES[locale]['annotation.tool'], ANNOTATION_MESSAGES[locale]['annotation.tool'])
+    assert.equal(MESSAGES[locale]['annotation.toolHint'], ANNOTATION_MESSAGES[locale]['annotation.toolHint'])
+  }
 })

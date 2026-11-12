@@ -741,7 +741,22 @@ var ANNOTATION_MESSAGES = {
     "annotation.kind.point": "点",
     "annotation.kind.line": "线",
     "annotation.kind.area": "面",
-    "annotation.kind.note": "注记"
+    "annotation.kind.note": "注记",
+    "annotation.drawPoint": "画点",
+    "annotation.drawLine": "画线",
+    "annotation.drawArea": "画面",
+    "annotation.drawHint": "选一个形状后在场景里点击；双击或回车结束，Esc 取消。画完点选要素即可改名。",
+    "annotation.pointStart": "点击场景放置一个点",
+    "annotation.lineStart": "依次点击画线，双击或回车结束",
+    "annotation.areaStart": "依次点击画面，双击或回车闭合",
+    "annotation.pointHint": "已放置 1 个点",
+    "annotation.lineHint": "已选 {n} 个点，双击或回车结束",
+    "annotation.areaHint": "已选 {n} 个角点，双击或回车闭合",
+    "annotation.needLine": "线至少需要 2 个点",
+    "annotation.needArea": "面至少需要 3 个角点",
+    "annotation.added": "已添加「{name}」，点击可改名或加备注",
+    "annotation.tool": "标注",
+    "annotation.toolHint": "在场景里画点、线、面，或点选已有标注改名、添加备注、导出 GeoJSON"
   },
   en: {
     "annotation.name": "Name",
@@ -759,7 +774,22 @@ var ANNOTATION_MESSAGES = {
     "annotation.kind.point": "Point",
     "annotation.kind.line": "Line",
     "annotation.kind.area": "Area",
-    "annotation.kind.note": "Note"
+    "annotation.kind.note": "Note",
+    "annotation.drawPoint": "Point",
+    "annotation.drawLine": "Line",
+    "annotation.drawArea": "Area",
+    "annotation.drawHint": "Pick a shape, then click on the scene; double-click or Enter finishes, Esc cancels. Click a feature to rename it.",
+    "annotation.pointStart": "Click the scene to place a point",
+    "annotation.lineStart": "Click to add vertices; double-click or Enter finishes",
+    "annotation.areaStart": "Click to add corners; double-click or Enter closes the area",
+    "annotation.pointHint": "1 point placed",
+    "annotation.lineHint": "{n} points so far; double-click or Enter finishes",
+    "annotation.areaHint": "{n} corners so far; double-click or Enter closes",
+    "annotation.needLine": "A line needs at least 2 points",
+    "annotation.needArea": "An area needs at least 3 corners",
+    "annotation.added": 'Added "{name}" — click it to rename or add a note',
+    "annotation.tool": "Annotations",
+    "annotation.toolHint": "Draw points, lines and areas, or pick an existing annotation to rename, note and export it"
   }
 };
 
@@ -1740,6 +1770,11 @@ function ToolEntryIcon({ kind, size = 16 }) {
     shapes = [
       h("path", { key: "axes", d: "M4 20V4M4 20h16", ...stroke }),
       h("path", { key: "curve", d: "M7 16l4-5 3 3 5-7", ...stroke })
+    ];
+  } else if (kind === "annotation") {
+    shapes = [
+      h("path", { key: "pin", d: "M12 21s6-6.1 6-11a6 6 0 1 0-12 0c0 4.9 6 11 6 11z", ...stroke }),
+      h("circle", { key: "dot", cx: 12, cy: 10, r: 2.2, ...stroke })
     ];
   } else if (kind === "effects") {
     shapes = [
@@ -4700,6 +4735,7 @@ function createPointerTools(deps) {
       if (typeof deps.onProfilePoint === "function") deps.onProfilePoint(position);
       return;
     }
+    if (mode !== "distance" && mode !== "area" && mode !== "height") return;
     const surface = pickSurface(position);
     if (!surface) {
       showToast(t2("toast.noSurface"));
@@ -12692,6 +12728,7 @@ var import_react24 = __toESM(require("react"), 1);
 var TOOL_ENTRIES = [
   { id: "measure", labelKey: "tools.measure", hintKey: "tools.measureHint", icon: "measure" },
   { id: "select", labelKey: "tools.select", hintKey: "tools.selectHint", icon: "select" },
+  { id: "annotation", labelKey: "annotation.tool", hintKey: "annotation.toolHint", icon: "annotation" },
   { id: "analysis", labelKey: "tools.analysis", hintKey: "tools.analysisHint", icon: "analysis" },
   { id: "effects", labelKey: "tools.effects", hintKey: "tools.effectsHint", icon: "effects" },
   { id: "view", labelKey: "tools.view", hintKey: "tools.viewHint", icon: "view" }
@@ -13670,9 +13707,33 @@ function EffectsBody({ t: t2, shaderActive, onOpenShader }) {
 function ViewBody({ t: t2, getCurrentView, onFlyView, onStartTour }) {
   return h20(ToolsBookmarks, { t: t2, getCurrentView, onFlyView, onStartTour });
 }
+function AnnotationBody({ t: t2, onStartAnnotation }) {
+  return h20(
+    import_react22.default.Fragment,
+    null,
+    h20(
+      "div",
+      { className: "mv-tool-grid" },
+      ...["point", "line", "area"].map(
+        (kind) => h20(
+          "button",
+          {
+            key: kind,
+            type: "button",
+            className: "mv-cta",
+            onClick: () => typeof onStartAnnotation === "function" ? onStartAnnotation(kind) : null
+          },
+          t2(`annotation.draw${kind[0].toUpperCase()}${kind.slice(1)}`)
+        )
+      )
+    ),
+    h20("p", { className: "mv-none" }, t2("annotation.drawHint"))
+  );
+}
 function ToolBody({ entryId, ...rest }) {
   if (entryId === "measure") return h20(MeasureBody, rest);
   if (entryId === "select") return h20(SelectBody, rest);
+  if (entryId === "annotation") return h20(AnnotationBody, rest);
   if (entryId === "analysis") return h20(AnalysisBody, rest);
   if (entryId === "effects") return h20(EffectsBody, rest);
   if (entryId === "view") return h20(ViewBody, rest);
@@ -13729,6 +13790,7 @@ function ToolsPanel({
   onStartTool,
   onClearMeasure,
   onStartProfile,
+  onStartAnnotation,
   onClearAnalysis,
   onOpenShader,
   getCesium,
@@ -13777,6 +13839,7 @@ function ToolsPanel({
     onStartTool,
     onClearMeasure,
     onStartProfile,
+    onStartAnnotation,
     onClearAnalysis,
     onOpenShader,
     getCesium,
@@ -15604,13 +15667,59 @@ function runVectorImport(state, viewer, draw) {
   }
 }
 
+// src/client/scene/overlay-helpers.js
+function agentOverlayColor(Cesium, style) {
+  const css = VECTOR_COLORS[style] ?? VECTOR_COLORS.accent;
+  try {
+    return Cesium.Color.fromCssColorString(css);
+  } catch {
+    return Cesium.Color.DODGERBLUE;
+  }
+}
+function agentSurfaceHeight(Cesium, viewer, lon, lat) {
+  try {
+    const height = viewer.scene.globe.getHeight(Cesium.Cartographic.fromDegrees(lon, lat));
+    if (Number.isFinite(height)) return height;
+  } catch {
+  }
+  return 0;
+}
+function agentLabelText(text, value) {
+  return typeof text === "string" && text !== "" ? text : typeof value === "string" ? value : "";
+}
+function addAgentGroundLabel(Cesium, add, lon, lat, text) {
+  return add({
+    position: Cesium.Cartesian3.fromDegrees(lon, lat),
+    label: vectorLabel(Cesium, text, {
+      heightReference: Cesium.HeightReference.CLAMP_TO_GROUND
+    })
+  });
+}
+
 // src/client/scene/annotation-model.js
 var ANNOTATION_MAX_NAME = 80;
 var ANNOTATION_MAX_NOTE = 280;
 var ANNOTATION_KINDS = ["point", "line", "area", "note"];
+var DEFAULT_KIND_BY_GEOMETRY = {
+  Point: "point",
+  MultiPoint: "point",
+  LineString: "line",
+  MultiLineString: "line",
+  Polygon: "area",
+  MultiPolygon: "area"
+};
 function annotationText(value, limit) {
   if (typeof value !== "string") return "";
   return value.replace(/\s+/g, " ").trim().slice(0, limit);
+}
+function annotationKindOf(feature) {
+  const explicit = feature?.properties?.kind;
+  if (typeof explicit === "string" && ANNOTATION_KINDS.includes(explicit)) return explicit;
+  const type = feature?.geometry?.type;
+  return DEFAULT_KIND_BY_GEOMETRY[type] ?? "note";
+}
+function annotationName(feature) {
+  return annotationText(feature?.properties?.name, ANNOTATION_MAX_NAME);
 }
 function withAnnotationProperties(feature, patch = {}) {
   if (feature === null || typeof feature !== "object" || feature.type !== "Feature") {
@@ -15632,6 +15741,41 @@ function withAnnotationProperties(feature, patch = {}) {
     next.properties.kind = patch.kind;
   }
   return { ok: true, feature: next };
+}
+function normalizeAnnotation(feature, { source = "manual" } = {}) {
+  if (feature === null || typeof feature !== "object" || feature.type !== "Feature") {
+    return { ok: false, error: "invalid_feature" };
+  }
+  const kind = annotationKindOf(feature);
+  const properties = {
+    ...feature.properties && typeof feature.properties === "object" ? feature.properties : {},
+    kind
+  };
+  const name = annotationText(properties.name, ANNOTATION_MAX_NAME);
+  if (name === "") delete properties.name;
+  else properties.name = name;
+  const note = annotationText(properties.note, ANNOTATION_MAX_NOTE);
+  if (note === "") delete properties.note;
+  else properties.note = note;
+  if (typeof properties.source !== "string" || properties.source === "") properties.source = source;
+  return { ok: true, feature: { type: "Feature", ...feature.id !== void 0 ? { id: feature.id } : {}, properties, geometry: feature.geometry } };
+}
+function annotationFeaturesOfCommands(commands) {
+  const features = [];
+  for (const command of Array.isArray(commands) ? commands : []) {
+    const list = Array.isArray(command?.geojson?.features) ? command.geojson.features : [];
+    for (const feature of list) if (feature?.type === "Feature") features.push(feature);
+  }
+  return features;
+}
+function nextAnnotationName(features, kind, t2) {
+  const prefix = typeof t2 === "function" ? t2(`annotations.kind.${kind}`) : kind;
+  let index = 1;
+  const taken = new Set(
+    (Array.isArray(features) ? features : []).map((feature) => annotationName(feature)).filter((value) => value !== "")
+  );
+  while (taken.has(`${prefix} ${index}`)) index += 1;
+  return `${prefix} ${index}`;
 }
 
 // src/client/scene/annotation-edit.js
@@ -15720,6 +15864,20 @@ function createAnnotationActions({ stateRef, viewerRef, getSelection, draw, show
     messageKey
   );
   return {
+    /** Draw one new hand-drawn feature, auto-named so it is never anonymous. */
+    add: (feature) => {
+      const state = stateRef.current;
+      const name = nextAnnotationName(annotationFeaturesOfCommands(state.drawCommands), annotationKindOf(feature), t2);
+      const normalized = normalizeAnnotation({ ...feature, properties: { ...feature.properties, name } });
+      if (!normalized.ok) {
+        showToast(t2("annotation.editFailed", { reason: normalized.error }));
+        return false;
+      }
+      draw({ type: "FeatureCollection", features: [normalized.feature] }, "accent", name);
+      if (typeof onChanged === "function") onChanged();
+      showToast(t2("annotation.added", { name }));
+      return true;
+    },
     update: (patch) => run(
       (state, viewer, selection, replayCommand) => updateAnnotationFeature(state, viewer, selection, patch, replayCommand),
       "annotation.saved"
@@ -15737,6 +15895,223 @@ function createAnnotationActions({ stateRef, viewerRef, getSelection, draw, show
       return true;
     }
   };
+}
+
+// src/client/scene/annotation-tool.js
+var DRAFT_COLOR2 = "#f472b6";
+var DRAFT_WIDTH2 = 2.5;
+var MARKER_PIXELS = 7;
+var sessions3 = /* @__PURE__ */ new WeakMap();
+function createAnnotationTool({ getCesium, getViewer, pickSurface, setTool, showToast, t: t2, onFinish }) {
+  const sessionFor = () => {
+    const viewer = getViewer?.();
+    if (!viewer) return null;
+    let state = sessions3.get(viewer);
+    if (!state) {
+      state = { kind: null, points: [], entities: [], handler: null, cursor: null, keydown: null };
+      sessions3.set(viewer, state);
+    }
+    return state;
+  };
+  const removeEntities = (state) => {
+    const viewer = getViewer?.();
+    if (viewer) {
+      for (const entity of state.entities) {
+        try {
+          viewer.entities.remove(entity);
+        } catch {
+        }
+      }
+    }
+    state.entities = [];
+  };
+  const addEntity = (state, options) => {
+    const viewer = getViewer?.();
+    if (!viewer) return null;
+    try {
+      const entity = viewer.entities.add(options);
+      state.entities.push(entity);
+      return entity;
+    } catch {
+      return null;
+    }
+  };
+  const draftColor = (Cesium) => Cesium.Color?.fromCssColorString?.(DRAFT_COLOR2) ?? Cesium.Color.WHITE;
+  const destroyHandler = (state) => {
+    if (state.handler) {
+      try {
+        state.handler.destroy();
+      } catch {
+      }
+      state.handler = null;
+    }
+    if (state.keydown && typeof globalThis.removeEventListener === "function") {
+      globalThis.removeEventListener("keydown", state.keydown);
+      state.keydown = null;
+    }
+  };
+  const positionsOf = (state, Cesium) => {
+    const read = () => {
+      const list = state.points.map((point) => Cesium.Cartesian3.fromDegrees(point.lon, point.lat));
+      if (state.cursor) list.push(state.cursor);
+      return list;
+    };
+    return typeof Cesium.CallbackProperty === "function" ? new Cesium.CallbackProperty(read, false) : read();
+  };
+  const drawDraft = (state, Cesium) => {
+    if (state.points.length === 0) return;
+    const color = draftColor(Cesium);
+    for (const [index, point] of state.points.entries()) {
+      addEntity(state, {
+        id: `annotation-draft-${index}-${Date.now()}`,
+        position: Cesium.Cartesian3.fromDegrees(point.lon, point.lat),
+        point: {
+          pixelSize: MARKER_PIXELS,
+          color,
+          outlineColor: Cesium.Color.WHITE,
+          outlineWidth: 2,
+          disableDepthTestDistance: Number.POSITIVE_INFINITY
+        }
+      });
+    }
+    if (state.points.length >= 2) {
+      addEntity(state, {
+        id: `annotation-draft-line-${Date.now()}`,
+        polyline: {
+          positions: positionsOf(state, Cesium),
+          width: DRAFT_WIDTH2,
+          material: color,
+          arcType: Cesium.ArcType?.GEODESIC,
+          depthFailMaterial: typeof color.withAlpha === "function" ? color.withAlpha(0.35) : void 0
+        }
+      });
+    }
+    if (state.kind === "area" && state.points.length >= 3 && typeof Cesium.PolygonHierarchy === "function") {
+      addEntity(state, {
+        id: `annotation-draft-fill-${Date.now()}`,
+        polygon: {
+          hierarchy: new Cesium.CallbackProperty(() => {
+            const ring = state.points.map((point) => Cesium.Cartesian3.fromDegrees(point.lon, point.lat));
+            if (state.cursor) ring.push(state.cursor);
+            return new Cesium.PolygonHierarchy(ring);
+          }, false),
+          material: typeof color.withAlpha === "function" ? color.withAlpha(0.22) : color
+        }
+      });
+    }
+    try {
+      getViewer?.().scene.requestRender?.();
+    } catch {
+    }
+  };
+  const syncDraft = (state) => {
+    removeEntities(state);
+    const Cesium = getCesium?.();
+    if (Cesium) drawDraft(state, Cesium);
+  };
+  const clear = () => {
+    const state = sessionFor();
+    if (!state) return;
+    destroyHandler(state);
+    removeEntities(state);
+    state.kind = null;
+    state.points = [];
+    state.cursor = null;
+  };
+  const finish = (reason = "click") => {
+    const Cesium = getCesium?.();
+    const state = sessionFor();
+    if (!Cesium || !state || !state.kind) return;
+    const points = reason === "double" && state.points.length > 1 ? state.points.slice(0, -1) : state.points.slice();
+    const kind = state.kind;
+    const minimum = kind === "area" ? 3 : 2;
+    if (kind !== "point" && points.length < minimum) {
+      showToast(t2(kind === "area" ? "annotation.needArea" : "annotation.needLine"));
+      return;
+    }
+    const coordinates = points.map((point) => [point.lon, point.lat]);
+    if (kind === "area") coordinates.push([points[0].lon, points[0].lat]);
+    const geometry = kind === "point" ? { type: "Point", coordinates: coordinates[0] } : kind === "area" ? { type: "Polygon", coordinates: [coordinates] } : { type: "LineString", coordinates };
+    clear();
+    setTool(null);
+    if (typeof onFinish === "function") {
+      onFinish({ type: "Feature", properties: { kind, source: "manual" }, geometry });
+    }
+  };
+  function installHandler(state) {
+    const Cesium = getCesium?.();
+    const viewer = getViewer?.();
+    const canvas = viewer?.scene?.canvas;
+    const EventHandler = Cesium?.ScreenSpaceEventHandler;
+    if (!EventHandler || !canvas) return;
+    const events = Cesium.ScreenSpaceEventType;
+    destroyHandler(state);
+    const handler = new EventHandler(canvas);
+    handler.setInputAction((event) => {
+      const surface = pickSurface?.(event?.position);
+      if (!surface) {
+        showToast(t2("toast.noSurface"));
+        return;
+      }
+      const current = sessionFor();
+      if (!current || !current.kind) return;
+      let carto = null;
+      try {
+        carto = Cesium.Cartographic.fromCartesian(surface);
+      } catch {
+        carto = null;
+      }
+      if (!carto) return;
+      current.points.push({
+        lon: Cesium.Math.toDegrees(carto.longitude),
+        lat: Cesium.Math.toDegrees(carto.latitude)
+      });
+      current.cursor = surface;
+      if (current.kind === "point") {
+        finish("click");
+        return;
+      }
+      syncDraft(current);
+      showToast(t2(`annotation.${current.kind}Hint`, { n: current.points.length }));
+    }, events.LEFT_CLICK);
+    handler.setInputAction((event) => {
+      const current = sessionFor();
+      if (!current || !current.kind) return;
+      const surface = pickSurface?.(event?.endPosition ?? event?.position);
+      current.cursor = surface ?? current.cursor;
+      try {
+        viewer.scene.requestRender?.();
+      } catch {
+      }
+    }, events.MOUSE_MOVE);
+    handler.setInputAction(() => finish("double"), events.LEFT_DOUBLE_CLICK);
+    handler.setInputAction(() => cancel(), events.RIGHT_CLICK);
+    state.handler = handler;
+    state.keydown = (event) => {
+      if (event?.key === "Escape") cancel();
+      if (event?.key === "Enter") finish("enter");
+    };
+    if (typeof globalThis.addEventListener === "function") globalThis.addEventListener("keydown", state.keydown);
+  }
+  function start(kind = "point") {
+    clear();
+    setTool("annotate");
+    const state = sessionFor();
+    if (!state) return;
+    state.kind = kind;
+    showToast(t2(`annotation.${kind}Start`));
+    installHandler(state);
+  }
+  function abort() {
+    clear();
+  }
+  function cancel() {
+    const state = sessionFor();
+    const wasActive = Boolean(state?.kind);
+    clear();
+    if (wasActive) setTool(null);
+  }
+  return { start, cancel, abort, clear, dispose: clear };
 }
 
 // src/client/viewer/ViewerSurface.js
@@ -16345,30 +16720,18 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
       saveSceneSnapshot(true);
     }
   });
-  const AGENT_OVERLAY_COLORS = VECTOR_COLORS;
-  const agentOverlayColor = (Cesium, style) => {
-    const css = AGENT_OVERLAY_COLORS[style] ?? AGENT_OVERLAY_COLORS.accent;
-    try {
-      return Cesium.Color.fromCssColorString(css);
-    } catch {
-      return Cesium.Color.DODGERBLUE;
-    }
-  };
-  const agentSurfaceHeight = (Cesium, viewer, lon, lat) => {
-    try {
-      const height = viewer.scene.globe.getHeight(Cesium.Cartographic.fromDegrees(lon, lat));
-      if (Number.isFinite(height)) return height;
-    } catch {
-    }
-    return 0;
-  };
-  const agentLabelText = (text, value) => typeof text === "string" && text !== "" ? text : typeof value === "string" ? value : "";
-  const addAgentGroundLabel = (Cesium, add, lon, lat, text) => add({
-    position: Cesium.Cartesian3.fromDegrees(lon, lat),
-    label: vectorLabel(Cesium, text, {
-      heightReference: Cesium.HeightReference.CLAMP_TO_GROUND
-    })
+  const annotationTool = createAnnotationTool({
+    getCesium: () => cesiumRef.current,
+    getViewer: () => viewerRef.current,
+    pickSurface,
+    setTool: setToolMode,
+    showToast,
+    t: t2,
+    onFinish: annotations.add
   });
+  import_react34.default.useEffect(() => {
+    if (tool !== "annotate") annotationTool.abort();
+  }, [tool]);
   function drawAgentOverlay(Cesium, viewer, geojson, style, caption) {
     const state = agentOverlayRef.current;
     const firstEntity = state.draw.length;
@@ -17965,6 +18328,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
         onStartTool: (mode) => setToolMode(mode),
         onClearMeasure: clearMeasure,
         onStartProfile: () => profileTool.start(),
+        onStartAnnotation: annotationTool.start,
         onClearAnalysis: () => clearAnalysis(),
         onOpenShader: () => setShaderOpen(true),
         getCesium: () => cesiumRef.current,
