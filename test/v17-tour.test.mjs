@@ -169,8 +169,9 @@ test('接线：工具卡有播放按钮 + 说明输入，面板根渲染故事�
   assert.match(panel, /t\('tour\.start'\)/)
   assert.match(panel, /className: 'mv-caption'/)
   assert.match(panel, /updateBookmarkCaption/)
-  const tools = readRepoFile('src/client/ui/tools-panel.js')
-  assert.match(tools, /t\('tools\.view'\)/)
+  const tools = readRepoFile('src/client/ui/tool-catalog.js')
+  assert.match(tools, /'tools\.view'/)
+  assert.match(readRepoFile('src/client/ui/tool-windows.js'), /ToolsBookmarks/)
 
   const bar = readRepoFile('src/client/ui/tour-bar.js')
   assert.match(bar, /document\.addEventListener\('pointerdown', onPointerDown, true\)/)

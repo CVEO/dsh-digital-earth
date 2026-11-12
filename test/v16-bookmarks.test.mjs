@@ -116,8 +116,9 @@ test('接线：工具卡有收藏区，ViewerSurface 传入当前视角与飞行
   assert.match(panel, /saveBookmarks\(result\.list\)/)
   assert.match(panel, /removeBookmark\(bookmarks, id\)/)
   assert.match(panel, /t\('bookmarks\.save'\)/)
-  const tools = readRepoFile('src/client/ui/tools-panel.js')
-  assert.match(tools, /t\('tools\.view'\)/)
+  const tools = readRepoFile('src/client/ui/tool-catalog.js')
+  assert.match(tools, /'tools\.view'/)
+  assert.match(readRepoFile('src/client/ui/tool-windows.js'), /ToolsBookmarks/)
 
   const client = clientSource()
   assert.match(client, /getCurrentView: \(\) => currentSceneSnapshot\(\)\?\.view \?\? null/)

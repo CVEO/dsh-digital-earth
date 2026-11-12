@@ -1,25 +1,24 @@
 /**
- * ui/tools-panel.js — the "工具" card: everything that ACTS on the data.
+ * ui/tools-panel.js — the toolbox: an INDEX of tool entry points.
  *
- * Meeting 132–140: analysis, measure, sun and view bookmarks must not sit next to
- * the layer list. This card is the tools home; the layer card only manages data.
- * It is presentational: every action is a callback owned by ViewerSurface.
+ * Meeting 2026-11-12: the old card rendered every control of every tool inline, so
+ * the entry points were buried in a long scroll. It now lists one row per tool;
+ * clicking a row opens that tool's panel above the index (ui/tool-window.js) and
+ * the actual controls live in ui/tool-windows.js. Data layers stay in the layer
+ * card, so this file never renders a layer list.
+ *
+ * Presentational apart from "which window is open / minimized", which is pure UI
+ * state and stays here instead of leaking into ViewerSurface.
  */
 import React from 'react'
 
-import { SunTimeline } from './sun-timeline.js'
-import { ToolsBookmarks } from './tools-bookmarks.js'
-import { SelectionTool } from './selection-tool.js'
 import { ResizeHandle, usePanelResize } from './resizable.js'
+import { TOOL_ENTRIES, nextOpenTool, toolEntry } from './tool-catalog.js'
+import { ToolEntryIcon } from './icons.js'
+import { ToolBody } from './tool-windows.js'
+import { ToolWindow } from './tool-window.js'
 
 const h = React.createElement
-
-const MEASURE_TOOLS = [
-  ['distance', 'tool.distance'],
-  ['area', 'tool.area'],
-  ['height', 'tool.height'],
-  ['pick', 'tool.pick'],
-]
 
 export function ToolsPanel({
   t,
@@ -43,140 +42,106 @@ export function ToolsPanel({
   getTerrainActive,
   getOverlayRows,
   onRemoveOverlayRows,
-  onAskAgent,
   onAskSelection,
   onVisionSelect,
   onActivateSelection,
 }) {
   const resize = usePanelResize({ storageKey: 'tools', initialHeight: null, minHeight: 160, maxHeight: 700 })
-  const group = (key, title, children) =>
-    h('section', { key, className: 'mv-tool-group' }, h('h3', { className: 'mv-group-title' }, title), h('div', { className: 'mv-tool-group-body' }, children))
+  const [openTool, setOpenTool] = React.useState(null)
+  const [minimized, setMinimized] = React.useState(false)
+  const entry = toolEntry(openTool)
+
+  const openToolById = (id) => {
+    const next = nextOpenTool(openTool, id)
+    setOpenTool(next)
+    if (next !== null) setMinimized(false)
+  }
+
+  // A tool window opens with a hint of what it is for, and the row that owns it
+  // reads as active so the two surfaces never disagree.
+  const row = (item) =>
+    h(
+      'button',
+      {
+        key: item.id,
+        type: 'button',
+        className: `mv-tool-entry${openTool === item.id ? ' on' : ''}`,
+        'aria-pressed': openTool === item.id,
+        title: t(item.hintKey),
+        onClick: () => openToolById(item.id),
+      },
+      h('span', { className: 'mv-tool-entry-icon' }, h(ToolEntryIcon, { kind: item.icon })),
+      h('span', { className: 'mv-tool-entry-name' }, t(item.labelKey)),
+      h('span', { className: 'mv-tool-entry-more', 'aria-hidden': true }, '›'),
+    )
+
+  const bodyProps = {
+    t,
+    tool,
+    analysis,
+    shaderActive,
+    onStartTool,
+    onClearMeasure,
+    onStartProfile,
+    onClearAnalysis,
+    onOpenShader,
+    getCesium,
+    getViewer,
+    getLayers,
+    getCurrentView,
+    onFlyView,
+    onStartTour,
+    showToast,
+    runAnalysis,
+    getTerrainActive,
+    getOverlayRows,
+    onRemoveOverlayRows,
+    onAskSelection,
+    onVisionSelect,
+    onActivateSelection,
+  }
 
   return h(
-    'div',
-    { className: 'mv-tools mv-glass', ref: resize.ref, style: resize.style },
-    h(
-      'header',
-      null,
-      h('span', null, t('tools.title')),
-      h(
-        'div',
-        { className: 'mv-head-actions' },
-        h('button', { type: 'button', className: 'mv-icon-btn', title: t('tools.collapse'), 'aria-label': t('tools.collapse'), onClick: onCollapse }, '✕'),
-      ),
-    ),
+    React.Fragment,
+    null,
+    entry
+      ? h(
+          ToolWindow,
+          {
+            t,
+            entry,
+            minimized,
+            onToggleMinimize: () => setMinimized((value) => !value),
+            onClose: () => {
+              setOpenTool(null)
+              setMinimized(false)
+            },
+          },
+          h(ToolBody, { entryId: entry.id, ...bodyProps }),
+        )
+      : null,
     h(
       'div',
-      { className: 'mv-tool-list' },
-      group(
-        'measure',
-        t('tools.measure'),
+      { className: 'mv-tools mv-glass', ref: resize.ref, style: resize.style },
+      h(
+        'header',
+        null,
+        h('span', null, t('tools.title')),
         h(
-          React.Fragment,
-          null,
-          h(
-            'div',
-            { className: 'mv-tool-grid' },
-            ...MEASURE_TOOLS.map(([mode, labelKey]) =>
-              h(
-                'button',
-                {
-                  key: mode,
-                  type: 'button',
-                  className: `mv-cta${tool === mode ? ' primary' : ''}`,
-                  'aria-pressed': tool === mode,
-                  onClick: () => onStartTool(tool === mode ? null : mode),
-                },
-                t(labelKey),
-              ),
-            ),
-          ),
-          h('button', { type: 'button', className: 'mv-cta', onClick: onClearMeasure }, t('tool.clear')),
-          h('p', { className: 'mv-none' }, t('tools.measureHint')),
+          'div',
+          { className: 'mv-head-actions' },
+          h('button', { type: 'button', className: 'mv-icon-btn', title: t('tools.collapse'), 'aria-label': t('tools.collapse'), onClick: onCollapse }, '✕'),
         ),
       ),
-      // Canvas selection is a tool, not a layer: box-select ground regions and
-      // turn them into area/perimeter/GeoJSON without typing coordinates.
-      group(
-        'select',
-        t('tools.select'),
-        h(
-          React.Fragment,
-          null,
-          h(SelectionTool, { t, getCesium, getViewer, showToast, runAnalysis, getTerrainActive, getOverlayRows, onRemoveOverlayRows, onActivateSelection, onAskSelection }),
-          typeof onVisionSelect === 'function' ? h('button', { type: 'button', className: 'mv-cta', title: t('vision.actionHint'), onClick: onVisionSelect }, t('vision.title')) : null,
-          // AI 圈选 entry: Ask Agent injects a fresh screenshot + scene summary; the
-          // Agent can then read_image and draw with earth_draw. No new tool.
-          typeof onAskAgent === 'function'
-            ? h(
-                'button',
-                { type: 'button', className: 'mv-cta', title: t('tools.askAgentLookHint'), onClick: onAskAgent },
-                t('tools.askAgentLook'),
-              )
-            : null,
-        ),
-      ),
-      group(
-        'analysis',
-        t('tools.analysis'),
-        h(
-          React.Fragment,
-          null,
-          h('button', { type: 'button', className: 'mv-cta', onClick: onStartProfile }, t('profile.draw')),
-          analysis
-            ? h(
-                'div',
-                { className: 'mv-layer' },
-                h(
-                  'span',
-                  { className: 'name' },
-                  `${
-                    typeof analysis.operation === 'string' && analysis.operation !== ''
-                      ? t(`analysis.title.${analysis.operation}`)
-                      : t('layers.analysis')
-                  }${typeof analysis.layerName === 'string' && analysis.layerName !== '' ? ` · ${analysis.layerName}` : ''}`,
-                ),
-                h('button', { type: 'button', className: 'mv-icon-btn', title: t('layers.analysisClear'), 'aria-label': t('layers.analysisClear'), onClick: onClearAnalysis }, '✕'),
-              )
-            : null,
-          h('p', { className: 'mv-none' }, t('tools.analysisHint')),
-        ),
-      ),
-      group(
-        'sun',
-        t('tools.sun'),
-        h(SunTimeline, {
-          t,
-          getCesium,
-          getViewer,
-          getLayers,
-          onBeforeEnable: onClearAnalysis,
-          active: true,
-        }),
-      ),
-      group(
-        'effects',
-        t('tools.effects'),
-        h(
-          React.Fragment,
-          null,
-          h('button', { type: 'button', className: 'mv-cta', onClick: onOpenShader }, t('btn.shaderShow')),
-          h(
-            'p',
-            { className: 'mv-none' },
-            shaderActive.length > 0 ? t('tools.effectsActive', { n: shaderActive.length }) : t('tools.effectsEmpty'),
-          ),
-        ),
-      ),
-      group('view', t('tools.view'), h(ToolsBookmarks, { t, getCurrentView, onFlyView, onStartTour })),
+      h('div', { className: 'mv-tool-index', role: 'group', 'aria-label': t('tools.index') }, ...TOOL_ENTRIES.map(row)),
+      h(ResizeHandle, {
+        axis: 'height',
+        edge: 'bottom',
+        label: t('resize.height'),
+        value: resize.size.height,
+        onPointerDown: resize.beginHeight,
+        onKeyDown: resize.keyHeight,
+      }),
     ),
-    h(ResizeHandle, {
-      axis: 'height',
-      edge: 'bottom',
-      label: t('resize.height'),
-      value: resize.size.height,
-      onPointerDown: resize.beginHeight,
-      onKeyDown: resize.keyHeight,
-    }),
   )
 }

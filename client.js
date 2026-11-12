@@ -47,7 +47,7 @@ __export(index_exports, {
 module.exports = __toCommonJS(index_exports);
 
 // src/client/plugin.js
-var import_react35 = __toESM(require("react"), 1);
+var import_react37 = __toESM(require("react"), 1);
 
 // src/client/messages-v17.js
 var V17_MESSAGES = {
@@ -438,6 +438,16 @@ var V18_MESSAGES = {
     "tools.select": "选择",
     "tools.askAgentLook": "当前视图发送至 AI",
     "tools.askAgentLookHint": "将当前视图截图与场景摘要注入当前对话，随后请在对话中提出具体问题；不会自动执行，也不会凭空生成地理坐标。",
+    "tools.index": "工具入口",
+    "tools.selectHint": "框选/套索/点选地面区域，可量面积、导出 GeoJSON 或交给 AI；把画面发给 AI 请用顶部「问 Agent」按钮。",
+    "tools.effectsHint": "按图层应用高度配色、等高线、扫描、水面等预设特效。",
+    "tools.viewHint": "回到保存的视角，或播放导览故事。",
+    "tools.windowMinimize": "最小化为标题栏",
+    "tools.windowExpand": "展开工具面板",
+    "tools.windowClose": "关闭工具面板",
+    "layers.imageryNone": "无底图",
+    "layers.imageryFold": "收起底图列表",
+    "layers.imageryUnfold": "展开底图列表",
     "resize.width": "拖动调整工作台宽度",
     "resize.height": "拖动调整工作台高度",
     "resize.size": "拖动调整工作台大小",
@@ -581,6 +591,16 @@ var V18_MESSAGES = {
     "tools.select": "Select",
     "tools.askAgentLook": "Send current view to AI",
     "tools.askAgentLookHint": "Inject the current-view screenshot and scene summary into this conversation, then ask a specific question; nothing runs automatically and no geographic coordinates are invented.",
+    "tools.index": "Tool entry points",
+    "tools.selectHint": "Box/lasso/point select a ground area, then measure it, export GeoJSON or hand it to the AI; to send the view itself, use the Ask Agent button in the top bar.",
+    "tools.effectsHint": "Apply height colouring, contours, scan, water and other presets per layer.",
+    "tools.viewHint": "Return to a saved view or play the tour story.",
+    "tools.windowMinimize": "Minimize to title bar",
+    "tools.windowExpand": "Expand tool panel",
+    "tools.windowClose": "Close tool panel",
+    "layers.imageryNone": "No basemap",
+    "layers.imageryFold": "Collapse basemap list",
+    "layers.imageryUnfold": "Expand basemap list",
     "resize.width": "Drag to resize the workbench width",
     "resize.height": "Drag to resize the workbench height",
     "resize.size": "Drag to resize the workbench",
@@ -765,9 +785,9 @@ var MESSAGES = {
     "layers.title": "图层",
     "layers.collapse": "收起图层卡",
     "layers.terrain": "地形（L1）",
-    "layers.imagery": "影像底图（L2）",
+    "layers.imagery": "影像底图（L4）",
     "layers.raster": "栅格叠加（L3）",
-    "layers.vector": "矢量叠加（L4）",
+    "layers.vector": "矢量叠加（L2）",
     "layers.content": "三维内容层",
     "layers.addOverlay": "＋ 添加叠加层",
     "layers.overlayAdd": "添加",
@@ -1190,9 +1210,9 @@ var MESSAGES = {
     "layers.title": "Layers",
     "layers.collapse": "Collapse layer card",
     "layers.terrain": "Terrain (L1)",
-    "layers.imagery": "Imagery basemap (L2)",
+    "layers.imagery": "Imagery basemap (L4)",
     "layers.raster": "Raster overlays (L3)",
-    "layers.vector": "Vector overlays (L4)",
+    "layers.vector": "Vector overlays (L2)",
     "layers.content": "3D Tiles layers",
     "layers.addOverlay": "+ Add overlay",
     "layers.overlayAdd": "Add",
@@ -1649,6 +1669,39 @@ function AskAgentIcon({ size = 16 }) {
     h("path", { d: "M8.5 9.5h7M8.5 12.5h4.5", ...stroke })
   );
 }
+function ToolEntryIcon({ kind, size = 16 }) {
+  const stroke = { stroke: "currentColor", strokeWidth: 1.7, strokeLinecap: "round", strokeLinejoin: "round", fill: "none" };
+  let shapes;
+  if (kind === "measure") {
+    shapes = [
+      h("path", { key: "ruler", d: "M3.5 14.5 14.5 3.5l6 6-11 11z", ...stroke }),
+      h("path", { key: "ticks", d: "M7.5 10.5l1.8 1.8M10.5 7.5l1.8 1.8M13.5 4.5l1.8 1.8", ...stroke })
+    ];
+  } else if (kind === "select") {
+    shapes = [
+      h("path", { key: "frame", d: "M4 8V4h4M20 8V4h-4M4 16v4h4M20 16v4h-4", ...stroke }),
+      h("path", { key: "lasso", d: "M8 12a4 4 0 1 0 8 0 4 4 0 1 0-8 0", ...stroke })
+    ];
+  } else if (kind === "analysis") {
+    shapes = [
+      h("path", { key: "axes", d: "M4 20V4M4 20h16", ...stroke }),
+      h("path", { key: "curve", d: "M7 16l4-5 3 3 5-7", ...stroke })
+    ];
+  } else if (kind === "effects") {
+    shapes = [
+      h("path", { key: "sliders", d: "M3 7h6.5M13.5 7H21M3 17h4M11 17h10", ...stroke }),
+      h("circle", { key: "k1", cx: 11.5, cy: 7, r: 2.4, ...stroke }),
+      h("circle", { key: "k2", cx: 8.5, cy: 17, r: 2.4, ...stroke })
+    ];
+  } else {
+    shapes = [
+      h("path", { key: "globe", d: "M12 3.5a8.5 8.5 0 1 0 0 17 8.5 8.5 0 0 0 0-17z", ...stroke }),
+      h("path", { key: "meridian", d: "M12 3.5c2.6 2.4 4 5.2 4 8.5s-1.4 6.1-4 8.5c-2.6-2.4-4-5.2-4-8.5s1.4-6.1 4-8.5z", ...stroke }),
+      h("path", { key: "equator", d: "M3.8 12h16.4", ...stroke })
+    ];
+  }
+  return h("svg", { viewBox: "0 0 24 24", width: size, height: size, "aria-hidden": true, style: { display: "block" } }, shapes);
+}
 var EyeIcon = ({ size = 15, off = false }) => h(
   "svg",
   { viewBox: "0 0 24 24", width: size, height: size, "aria-hidden": true, style: { display: "block" } },
@@ -1664,10 +1717,10 @@ var EyeIcon = ({ size = 15, off = false }) => h(
 );
 
 // src/client/ui/layout.js
-var import_react33 = __toESM(require("react"), 1);
+var import_react35 = __toESM(require("react"), 1);
 
 // src/client/viewer/ViewerSurface.js
-var import_react32 = __toESM(require("react"), 1);
+var import_react34 = __toESM(require("react"), 1);
 
 // src/client/analysis/height-service.js
 var CACHE_DEGREES = 1e-7;
@@ -9532,8 +9585,8 @@ var CSS = `
 .mv-icon-btn{appearance:none;border:0;background:transparent;color:var(--mv-dim);width:26px;height:26px;border-radius:7px;cursor:pointer;font:inherit;font-size:14px;line-height:1;display:inline-flex;align-items:center;justify-content:center;flex:none}
 .mv-layer{gap:3px;padding:5px 7px}
 .mv-layer .mv-icon-btn{font-size:15px}
-/* Layer panel v1.6: four groups (L1 terrain / L2 basemap / L3 raster / L4 vector)
-   plus the 3D Tiles list. */
+/* Layer panel v1.6: four groups (L1 terrain / L2 vector / L3 raster / L4 imagery)
+   plus the 3D Tiles list. The imagery group folds because one source is normally in use. */
 .mv-group{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:13px 4px 5px;margin-top:3px;border-top:.5px solid var(--mv-line)}
 .mv-group-actions{display:inline-flex;align-items:center;gap:4px;flex:none}
 .mv-add3d-menu .mv-cta{text-align:left;width:100%}
@@ -9547,6 +9600,14 @@ var CSS = `
 .mv-choice.on .name{font-weight:600}
 .mv-choice:focus-visible,.mv-layers .mv-cta:focus-visible,.mv-layers .mv-icon-btn:focus-visible{outline:2px solid var(--mv-accent);outline-offset:1px}
 .mv-group .mv-cta{flex:none;font-size:11px;padding:5px 8px}
+/* Foldable group header (the imagery basemap list is long and rarely changed). */
+.mv-group-toggle{appearance:none;width:100%;display:flex;align-items:center;gap:8px;background:transparent;border:0;padding:0;margin:0;font:inherit;color:inherit;cursor:pointer;text-align:left}
+.mv-group-toggle .mv-group-title{flex:none}
+.mv-group-current{min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right;font-size:11px;color:var(--mv-dim);opacity:.85}
+.mv-group-chevron{flex:none;color:var(--mv-dim);font-size:13px;line-height:1;transform:rotate(90deg);transition:transform 160ms cubic-bezier(0.16,1,0.3,1)}
+.mv-group-chevron.open{transform:rotate(-90deg)}
+.mv-group-toggle:hover .mv-group-title,.mv-group-toggle:hover .mv-group-current{color:var(--mv-text)}
+.mv-group-toggle:focus-visible{outline:2px solid var(--mv-accent);outline-offset:2px;border-radius:6px}
 .mv-opacity{width:64px;flex:none;accent-color:var(--mv-accent)}
 .mv-overlay-row{gap:2px}
 .mv-none{padding:6px 8px 8px;font-size:11px;line-height:1.5;color:var(--mv-dim)}
@@ -9815,6 +9876,27 @@ var CSS = `
 .mv-selection-modes .mv-cta{width:100%;padding:6px 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .mv-tools .mv-group-actions{display:flex;gap:6px}
 .mv-tools .mv-sun{margin:0}
+/* Toolbox v1.6: the card is an index of entry points; a tool opens as its own card. */
+.mv-tool-index{display:flex;flex-direction:column;gap:2px;padding:6px 8px 8px;overflow:auto;min-height:0;scrollbar-width:thin}
+.mv-tool-entry{appearance:none;display:flex;align-items:center;gap:9px;width:100%;border:.5px solid transparent;border-radius:9px;background:transparent;color:var(--mv-text);font:inherit;font-size:12px;padding:7px 8px;cursor:pointer;text-align:left}
+.mv-tool-entry:hover{background:color-mix(in srgb,var(--mv-lift) 82%,transparent)}
+.mv-tool-entry.on{background:color-mix(in srgb,var(--mv-accent) 12%,transparent);border-color:color-mix(in srgb,var(--mv-accent) 26%,transparent)}
+.mv-tool-entry:focus-visible{outline:2px solid var(--mv-accent);outline-offset:1px}
+.mv-tool-entry-icon{display:inline-flex;color:var(--mv-dim);flex:none}
+.mv-tool-entry.on .mv-tool-entry-icon{color:var(--mv-accent)}
+.mv-tool-entry-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mv-tool-entry-more{flex:none;color:var(--mv-dim);opacity:.7}
+.mv-toolwin{width:100%;flex:0 1 auto;min-height:0;display:flex;flex-direction:column;border-radius:13px;overflow:hidden}
+.mv-toolwin>header{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 12px;border-bottom:.5px solid var(--mv-line);flex-shrink:0;font-size:12px;font-weight:600;color:var(--mv-text)}
+.mv-toolwin.minimized>header{border-bottom:0}
+.mv-toolwin-title{display:inline-flex;align-items:center;gap:7px;min-width:0}
+.mv-toolwin-title>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mv-toolwin-body{display:flex;flex-direction:column;gap:6px;padding:8px 12px 10px;overflow:auto;min-height:0;overscroll-behavior:contain;scrollbar-width:thin}
+.mv-toolwin-body>.mv-tool-grid{margin:0}
+.mv-toolwin-body .mv-cta{border:.5px solid var(--mv-line);border-radius:8px;font-size:11px;line-height:1.4}
+.mv-toolwin-body .mv-cta[aria-pressed="true"]{border-color:var(--mv-accent);background:color-mix(in srgb,var(--mv-accent) 13%,var(--mv-glass))}
+.mv-toolwin-body .mv-group-title{margin-top:4px}
+.mv-root.mv-docked .mv-toolwin{max-height:none}
 .mv-bookmark-name{appearance:none;background:transparent;border:0;color:inherit;font:inherit;text-align:left;cursor:pointer;padding:4px 0}
 .mv-root :is(button,input,select,textarea):focus-visible{outline:2px solid var(--mv-accent);outline-offset:2px}
 .mv-data-panel{display:flex;flex-direction:column;min-height:0;overflow:auto;overscroll-behavior:contain}
@@ -10929,7 +11011,7 @@ function ToolbarMenus({ t: t2, themeMode, resolvedDark, openMenu, setOpenMenu, s
 }
 
 // src/client/ui/right-stack.js
-var import_react23 = __toESM(require("react"), 1);
+var import_react25 = __toESM(require("react"), 1);
 
 // src/client/ui/layers-panel.js
 var import_react17 = __toESM(require("react"), 1);
@@ -12147,9 +12229,35 @@ function isVectorDrag(dataTransfer) {
   return Array.from(dataTransfer?.types ?? []).includes("Files") || hasVectorFile(dataTransfer?.files);
 }
 
+// src/client/ui/panel-prefs.js
+var STORAGE_PREFIX = "mv.pref.";
+function readPanelFlag(key, fallback = false) {
+  try {
+    const raw = globalThis.localStorage?.getItem(STORAGE_PREFIX + key);
+    if (raw === "1") return true;
+    if (raw === "0") return false;
+    return fallback;
+  } catch {
+    return fallback;
+  }
+}
+function writePanelFlag(key, value) {
+  try {
+    globalThis.localStorage?.setItem(STORAGE_PREFIX + key, value ? "1" : "0");
+  } catch {
+  }
+}
+var IMAGERY_OPEN_KEY = "layers.imagery.open";
+
 // src/client/ui/layers-map.js
 var h14 = import_react16.default.createElement;
 var OVERLAY_TYPES2 = ["wms", "xyz", "arcgis"];
+function imagerySummary(t2, config, settings) {
+  const sources = Array.isArray(config?.imagery) ? config.imagery : [];
+  if (settings?.imagery == null) return t2("layers.imageryNone");
+  const active = sources.find((source) => source.id === settings.imagery);
+  return active?.name ?? String(settings.imagery);
+}
 function LayersMap({
   t: t2,
   config,
@@ -12174,6 +12282,7 @@ function LayersMap({
   const [draft, setDraft] = import_react16.default.useState({ type: "wms", name: "", url: "", layers: "", opacity: 0.7 });
   const [error, setError] = import_react16.default.useState("");
   const [vectorError2, setVectorError] = import_react16.default.useState("");
+  const [imageryOpen, setImageryOpen] = import_react16.default.useState(() => readPanelFlag(IMAGERY_OPEN_KEY, false));
   const fileRef = import_react16.default.useRef(null);
   const overlays = Array.isArray(config?.rasterOverlays) ? config.rasterOverlays : [];
   const drawn = annotations?.drawn_features ?? 0;
@@ -12185,6 +12294,13 @@ function LayersMap({
     h14("span", { className: "name" }, label),
     h14("span", { className: "tick", "aria-hidden": true }, active ? "✓" : "")
   );
+  const toggleImagery = () => {
+    setImageryOpen((value) => {
+      const next = !value;
+      writePanelFlag(IMAGERY_OPEN_KEY, next);
+      return next;
+    });
+  };
   const submitDraft = () => {
     const next = normalizeOverlayDraft(draft);
     if (next === null) {
@@ -12199,11 +12315,65 @@ function LayersMap({
   return h14(
     "div",
     { key: "list-map", className: "mv-layer-list" },
-    // ---- L2 imagery basemap ---------------------------------------------------
-    h14("div", { key: "g2", className: "mv-group" }, h14("div", { className: "mv-group-title" }, t2("layers.imagery"))),
-    radioRow("i-off", t2("menu.none"), settings?.imagery == null, () => onSelectImagery(null)),
-    ...(config?.imagery ?? []).map(
-      (source) => radioRow(`i-${source.id}`, source.name, settings?.imagery === source.id, () => onSelectImagery(source.id))
+    // ---- L2 vector overlays (2D data, not a 3D layer) --------------------------
+    h14(
+      "div",
+      { key: "g2", className: "mv-group" },
+      h14("div", { className: "mv-group-title" }, t2("layers.vector")),
+      h14("button", { type: "button", className: "mv-cta", onClick: () => fileRef.current?.click() }, t2("layers.importVector"))
+    ),
+    h14("input", {
+      key: "import-vector-input",
+      ref: fileRef,
+      type: "file",
+      multiple: true,
+      accept: ".geojson,.json,.shp,.dbf,.prj,.cpg,application/geo+json,application/json",
+      hidden: true,
+      onChange: (event) => {
+        const files = Array.from(event.target.files ?? []);
+        event.target.value = "";
+        if (files.length === 0) return;
+        void (async () => {
+          try {
+            const { parsed, name } = await readVectorFiles(files);
+            setVectorError("");
+            onImportVector?.(parsed, name);
+          } catch (failure) {
+            const reason = failure?.message === "vector_file_unsupported" ? t2("layers.importNeedFile") : vectorErrorText(failure, t2);
+            setVectorError(t2("layers.importFailed", { message: reason }));
+          }
+        })();
+      }
+    }),
+    vectorError2 !== "" ? h14("p", { key: "vector-error", className: "mv-note" }, vectorError2) : null,
+    h14(
+      "div",
+      { key: "vector-row", className: "mv-layer" },
+      h14("span", { className: "name" }, `${t2("layers.vectorDrawn")} ${drawn} · ${t2("layers.vectorMeasured")} ${measured}`),
+      h14("button", { type: "button", className: "mv-icon-btn", title: t2("tool.clear"), "aria-label": t2("tool.clear"), onClick: onClearVector }, "✕")
+    ),
+    ...(Array.isArray(agentOverlays) ? agentOverlays : []).map(
+      (row) => h14(
+        "div",
+        { key: row.id, className: "mv-layer" },
+        h14("span", { className: "name", title: row.detail }, `${row.label} · ${row.detail}`),
+        typeof onFlyAgentOverlay === "function" ? h14(
+          "button",
+          {
+            type: "button",
+            className: "mv-icon-btn",
+            title: t2("btn.flyTo"),
+            "aria-label": t2("btn.flyTo"),
+            onClick: () => onFlyAgentOverlay(row.kind, row.index)
+          },
+          "◎"
+        ) : null,
+        h14(
+          "button",
+          { type: "button", className: "mv-icon-btn", title: t2("layers.vectorRemove"), "aria-label": t2("layers.vectorRemove"), onClick: () => onRemoveAgentOverlay(row.kind, row.index) },
+          "✕"
+        )
+      )
     ),
     // ---- L3 raster overlays ---------------------------------------------------
     h14(
@@ -12307,66 +12477,26 @@ function LayersMap({
         h14("button", { type: "button", className: "mv-icon-btn", title: t2("layers.overlayRemove"), "aria-label": t2("layers.overlayRemove"), onClick: () => onOverlayRemove(overlay.id) }, "✕")
       )
     ),
-    // ---- L4 vector overlays (2D data, not a 3D layer) --------------------------
+    // ---- L4 imagery basemap (folded: one source is normally in use) ------------
     h14(
       "div",
       { key: "g4", className: "mv-group" },
-      h14("div", { className: "mv-group-title" }, t2("layers.vector")),
-      h14("button", { type: "button", className: "mv-cta", onClick: () => fileRef.current?.click() }, t2("layers.importVector"))
-    ),
-    h14("input", {
-      key: "import-vector-input",
-      ref: fileRef,
-      type: "file",
-      multiple: true,
-      accept: ".geojson,.json,.shp,.dbf,.prj,.cpg,application/geo+json,application/json",
-      hidden: true,
-      onChange: (event) => {
-        const files = Array.from(event.target.files ?? []);
-        event.target.value = "";
-        if (files.length === 0) return;
-        void (async () => {
-          try {
-            const { parsed, name } = await readVectorFiles(files);
-            setVectorError("");
-            onImportVector?.(parsed, name);
-          } catch (failure) {
-            const reason = failure?.message === "vector_file_unsupported" ? t2("layers.importNeedFile") : vectorErrorText(failure, t2);
-            setVectorError(t2("layers.importFailed", { message: reason }));
-          }
-        })();
-      }
-    }),
-    vectorError2 !== "" ? h14("p", { key: "vector-error", className: "mv-note" }, vectorError2) : null,
-    h14(
-      "div",
-      { key: "vector-row", className: "mv-layer" },
-      h14("span", { className: "name" }, `${t2("layers.vectorDrawn")} ${drawn} · ${t2("layers.vectorMeasured")} ${measured}`),
-      h14("button", { type: "button", className: "mv-icon-btn", title: t2("tool.clear"), "aria-label": t2("tool.clear"), onClick: onClearVector }, "✕")
-    ),
-    ...(Array.isArray(agentOverlays) ? agentOverlays : []).map(
-      (row) => h14(
-        "div",
-        { key: row.id, className: "mv-layer" },
-        h14("span", { className: "name", title: row.detail }, `${row.label} · ${row.detail}`),
-        typeof onFlyAgentOverlay === "function" ? h14(
-          "button",
-          {
-            type: "button",
-            className: "mv-icon-btn",
-            title: t2("btn.flyTo"),
-            "aria-label": t2("btn.flyTo"),
-            onClick: () => onFlyAgentOverlay(row.kind, row.index)
-          },
-          "◎"
-        ) : null,
-        h14(
-          "button",
-          { type: "button", className: "mv-icon-btn", title: t2("layers.vectorRemove"), "aria-label": t2("layers.vectorRemove"), onClick: () => onRemoveAgentOverlay(row.kind, row.index) },
-          "✕"
-        )
+      h14(
+        "button",
+        {
+          type: "button",
+          className: "mv-group-toggle",
+          "aria-expanded": imageryOpen,
+          title: imageryOpen ? t2("layers.imageryFold") : t2("layers.imageryUnfold"),
+          onClick: toggleImagery
+        },
+        h14("span", { className: "mv-group-title" }, t2("layers.imagery")),
+        h14("span", { className: "mv-group-current" }, imagerySummary(t2, config, settings)),
+        h14("span", { className: `mv-group-chevron${imageryOpen ? " open" : ""}`, "aria-hidden": true }, "›")
       )
-    )
+    ),
+    imageryOpen ? radioRow("i-off", t2("menu.none"), settings?.imagery == null, () => onSelectImagery(null)) : null,
+    imageryOpen ? (config?.imagery ?? []).map((source) => radioRow(`i-${source.id}`, source.name, settings?.imagery === source.id, () => onSelectImagery(source.id))) : null
   );
 }
 
@@ -12515,6 +12645,26 @@ function LayersPanel({
 }
 
 // src/client/ui/tools-panel.js
+var import_react24 = __toESM(require("react"), 1);
+
+// src/client/ui/tool-catalog.js
+var TOOL_ENTRIES = [
+  { id: "measure", labelKey: "tools.measure", hintKey: "tools.measureHint", icon: "measure" },
+  { id: "select", labelKey: "tools.select", hintKey: "tools.selectHint", icon: "select" },
+  { id: "analysis", labelKey: "tools.analysis", hintKey: "tools.analysisHint", icon: "analysis" },
+  { id: "effects", labelKey: "tools.effects", hintKey: "tools.effectsHint", icon: "effects" },
+  { id: "view", labelKey: "tools.view", hintKey: "tools.viewHint", icon: "view" }
+];
+var TOOL_IDS = TOOL_ENTRIES.map((entry) => entry.id);
+function toolEntry(id) {
+  return TOOL_ENTRIES.find((entry) => entry.id === id) ?? null;
+}
+function nextOpenTool(current, clicked) {
+  if (!toolEntry(clicked)) return current;
+  return current === clicked ? null : clicked;
+}
+
+// src/client/ui/tool-windows.js
 var import_react22 = __toESM(require("react"), 1);
 
 // src/client/ui/sun-timeline.js
@@ -13393,14 +13543,142 @@ function SelectionTool({ t: t2, getCesium, getViewer, showToast, runAnalysis, ge
   );
 }
 
-// src/client/ui/tools-panel.js
+// src/client/ui/tool-windows.js
 var h20 = import_react22.default.createElement;
 var MEASURE_TOOLS = [
   ["distance", "tool.distance"],
   ["area", "tool.area"],
-  ["height", "tool.height"],
-  ["pick", "tool.pick"]
+  ["height", "tool.height"]
 ];
+function MeasureBody({ t: t2, tool, onStartTool, onClearMeasure }) {
+  return h20(
+    import_react22.default.Fragment,
+    null,
+    h20(
+      "div",
+      { className: "mv-tool-grid" },
+      ...MEASURE_TOOLS.map(
+        ([mode, labelKey]) => h20(
+          "button",
+          {
+            key: mode,
+            type: "button",
+            className: `mv-cta${tool === mode ? " primary" : ""}`,
+            "aria-pressed": tool === mode,
+            onClick: () => onStartTool(tool === mode ? null : mode)
+          },
+          t2(labelKey)
+        )
+      )
+    ),
+    h20("button", { type: "button", className: "mv-cta", onClick: onClearMeasure }, t2("tool.clear")),
+    h20("p", { className: "mv-none" }, t2("tools.measureHint"))
+  );
+}
+function SelectBody({
+  t: t2,
+  getCesium,
+  getViewer,
+  showToast,
+  runAnalysis,
+  getTerrainActive,
+  getOverlayRows,
+  onRemoveOverlayRows,
+  onActivateSelection,
+  onAskSelection,
+  onVisionSelect
+}) {
+  return h20(
+    import_react22.default.Fragment,
+    null,
+    h20(SelectionTool, { t: t2, getCesium, getViewer, showToast, runAnalysis, getTerrainActive, getOverlayRows, onRemoveOverlayRows, onActivateSelection, onAskSelection }),
+    typeof onVisionSelect === "function" ? h20("button", { type: "button", className: "mv-cta", title: t2("vision.actionHint"), onClick: onVisionSelect }, t2("vision.title")) : null,
+    // Ask Agent lives in the top toolbar only: one entry point for "hand the view
+    // to the conversation", instead of a second one hiding inside the toolbox.
+    h20("p", { className: "mv-none" }, t2("tools.selectHint"))
+  );
+}
+function AnalysisBody({ t: t2, analysis, onStartProfile, onClearAnalysis, getCesium, getViewer, getLayers }) {
+  return h20(
+    import_react22.default.Fragment,
+    null,
+    h20("button", { type: "button", className: "mv-cta", onClick: onStartProfile }, t2("profile.draw")),
+    analysis ? h20(
+      "div",
+      { className: "mv-layer" },
+      h20(
+        "span",
+        { className: "name" },
+        `${typeof analysis.operation === "string" && analysis.operation !== "" ? t2(`analysis.title.${analysis.operation}`) : t2("layers.analysis")}${typeof analysis.layerName === "string" && analysis.layerName !== "" ? ` · ${analysis.layerName}` : ""}`
+      ),
+      h20("button", { type: "button", className: "mv-icon-btn", title: t2("layers.analysisClear"), "aria-label": t2("layers.analysisClear"), onClick: onClearAnalysis }, "✕")
+    ) : null,
+    h20("p", { className: "mv-none" }, t2("tools.analysisHint")),
+    h20("div", { className: "mv-group-title" }, t2("tools.sun")),
+    h20(SunTimeline, { t: t2, getCesium, getViewer, getLayers, onBeforeEnable: onClearAnalysis, active: true })
+  );
+}
+function EffectsBody({ t: t2, shaderActive, onOpenShader }) {
+  return h20(
+    import_react22.default.Fragment,
+    null,
+    h20("button", { type: "button", className: "mv-cta", onClick: onOpenShader }, t2("btn.shaderShow")),
+    h20("p", { className: "mv-none" }, shaderActive.length > 0 ? t2("tools.effectsActive", { n: shaderActive.length }) : t2("tools.effectsEmpty"))
+  );
+}
+function ViewBody({ t: t2, getCurrentView, onFlyView, onStartTour }) {
+  return h20(ToolsBookmarks, { t: t2, getCurrentView, onFlyView, onStartTour });
+}
+function ToolBody({ entryId, ...rest }) {
+  if (entryId === "measure") return h20(MeasureBody, rest);
+  if (entryId === "select") return h20(SelectBody, rest);
+  if (entryId === "analysis") return h20(AnalysisBody, rest);
+  if (entryId === "effects") return h20(EffectsBody, rest);
+  if (entryId === "view") return h20(ViewBody, rest);
+  return null;
+}
+
+// src/client/ui/tool-window.js
+var import_react23 = __toESM(require("react"), 1);
+var h21 = import_react23.default.createElement;
+function ToolWindow({ t: t2, entry, minimized = false, onToggleMinimize, onClose, children }) {
+  const resize = usePanelResize({ storageKey: "tool-window", initialHeight: 260, minHeight: 150, maxHeight: 560 });
+  if (!entry) return null;
+  const label = t2(entry.labelKey);
+  const toggleLabel = minimized ? t2("tools.windowExpand") : t2("tools.windowMinimize");
+  return h21(
+    "section",
+    {
+      className: `mv-toolwin mv-glass${minimized ? " minimized" : ""}`,
+      ref: resize.ref,
+      style: minimized ? void 0 : resize.style,
+      "aria-label": label
+    },
+    h21(
+      "header",
+      null,
+      h21("span", { className: "mv-toolwin-title" }, h21(ToolEntryIcon, { kind: entry.icon }), h21("span", null, label)),
+      h21(
+        "div",
+        { className: "mv-head-actions" },
+        h21("button", { type: "button", className: "mv-icon-btn", title: toggleLabel, "aria-label": toggleLabel, "aria-expanded": !minimized, onClick: onToggleMinimize }, minimized ? "▸" : "▾"),
+        h21("button", { type: "button", className: "mv-icon-btn", title: t2("tools.windowClose"), "aria-label": t2("tools.windowClose"), onClick: onClose }, "✕")
+      )
+    ),
+    minimized ? null : h21("div", { className: "mv-toolwin-body" }, children),
+    minimized ? null : h21(ResizeHandle, {
+      axis: "height",
+      edge: "bottom",
+      label: t2("resize.height"),
+      value: resize.size.height,
+      onPointerDown: resize.beginHeight,
+      onKeyDown: resize.keyHeight
+    })
+  );
+}
+
+// src/client/ui/tools-panel.js
+var h22 = import_react24.default.createElement;
 function ToolsPanel({
   t: t2,
   tool,
@@ -13423,143 +13701,110 @@ function ToolsPanel({
   getTerrainActive,
   getOverlayRows,
   onRemoveOverlayRows,
-  onAskAgent,
   onAskSelection,
   onVisionSelect,
   onActivateSelection
 }) {
   const resize = usePanelResize({ storageKey: "tools", initialHeight: null, minHeight: 160, maxHeight: 700 });
-  const group = (key, title, children) => h20("section", { key, className: "mv-tool-group" }, h20("h3", { className: "mv-group-title" }, title), h20("div", { className: "mv-tool-group-body" }, children));
-  return h20(
-    "div",
-    { className: "mv-tools mv-glass", ref: resize.ref, style: resize.style },
-    h20(
-      "header",
-      null,
-      h20("span", null, t2("tools.title")),
-      h20(
-        "div",
-        { className: "mv-head-actions" },
-        h20("button", { type: "button", className: "mv-icon-btn", title: t2("tools.collapse"), "aria-label": t2("tools.collapse"), onClick: onCollapse }, "✕")
-      )
-    ),
-    h20(
+  const [openTool, setOpenTool] = import_react24.default.useState(null);
+  const [minimized, setMinimized] = import_react24.default.useState(false);
+  const entry = toolEntry(openTool);
+  const openToolById = (id) => {
+    const next = nextOpenTool(openTool, id);
+    setOpenTool(next);
+    if (next !== null) setMinimized(false);
+  };
+  const row = (item) => h22(
+    "button",
+    {
+      key: item.id,
+      type: "button",
+      className: `mv-tool-entry${openTool === item.id ? " on" : ""}`,
+      "aria-pressed": openTool === item.id,
+      title: t2(item.hintKey),
+      onClick: () => openToolById(item.id)
+    },
+    h22("span", { className: "mv-tool-entry-icon" }, h22(ToolEntryIcon, { kind: item.icon })),
+    h22("span", { className: "mv-tool-entry-name" }, t2(item.labelKey)),
+    h22("span", { className: "mv-tool-entry-more", "aria-hidden": true }, "›")
+  );
+  const bodyProps = {
+    t: t2,
+    tool,
+    analysis,
+    shaderActive,
+    onStartTool,
+    onClearMeasure,
+    onStartProfile,
+    onClearAnalysis,
+    onOpenShader,
+    getCesium,
+    getViewer,
+    getLayers,
+    getCurrentView,
+    onFlyView,
+    onStartTour,
+    showToast,
+    runAnalysis,
+    getTerrainActive,
+    getOverlayRows,
+    onRemoveOverlayRows,
+    onAskSelection,
+    onVisionSelect,
+    onActivateSelection
+  };
+  return h22(
+    import_react24.default.Fragment,
+    null,
+    entry ? h22(
+      ToolWindow,
+      {
+        t: t2,
+        entry,
+        minimized,
+        onToggleMinimize: () => setMinimized((value) => !value),
+        onClose: () => {
+          setOpenTool(null);
+          setMinimized(false);
+        }
+      },
+      h22(ToolBody, { entryId: entry.id, ...bodyProps })
+    ) : null,
+    h22(
       "div",
-      { className: "mv-tool-list" },
-      group(
-        "measure",
-        t2("tools.measure"),
-        h20(
-          import_react22.default.Fragment,
-          null,
-          h20(
-            "div",
-            { className: "mv-tool-grid" },
-            ...MEASURE_TOOLS.map(
-              ([mode, labelKey]) => h20(
-                "button",
-                {
-                  key: mode,
-                  type: "button",
-                  className: `mv-cta${tool === mode ? " primary" : ""}`,
-                  "aria-pressed": tool === mode,
-                  onClick: () => onStartTool(tool === mode ? null : mode)
-                },
-                t2(labelKey)
-              )
-            )
-          ),
-          h20("button", { type: "button", className: "mv-cta", onClick: onClearMeasure }, t2("tool.clear")),
-          h20("p", { className: "mv-none" }, t2("tools.measureHint"))
+      { className: "mv-tools mv-glass", ref: resize.ref, style: resize.style },
+      h22(
+        "header",
+        null,
+        h22("span", null, t2("tools.title")),
+        h22(
+          "div",
+          { className: "mv-head-actions" },
+          h22("button", { type: "button", className: "mv-icon-btn", title: t2("tools.collapse"), "aria-label": t2("tools.collapse"), onClick: onCollapse }, "✕")
         )
       ),
-      // Canvas selection is a tool, not a layer: box-select ground regions and
-      // turn them into area/perimeter/GeoJSON without typing coordinates.
-      group(
-        "select",
-        t2("tools.select"),
-        h20(
-          import_react22.default.Fragment,
-          null,
-          h20(SelectionTool, { t: t2, getCesium, getViewer, showToast, runAnalysis, getTerrainActive, getOverlayRows, onRemoveOverlayRows, onActivateSelection, onAskSelection }),
-          typeof onVisionSelect === "function" ? h20("button", { type: "button", className: "mv-cta", title: t2("vision.actionHint"), onClick: onVisionSelect }, t2("vision.title")) : null,
-          // AI 圈选 entry: Ask Agent injects a fresh screenshot + scene summary; the
-          // Agent can then read_image and draw with earth_draw. No new tool.
-          typeof onAskAgent === "function" ? h20(
-            "button",
-            { type: "button", className: "mv-cta", title: t2("tools.askAgentLookHint"), onClick: onAskAgent },
-            t2("tools.askAgentLook")
-          ) : null
-        )
-      ),
-      group(
-        "analysis",
-        t2("tools.analysis"),
-        h20(
-          import_react22.default.Fragment,
-          null,
-          h20("button", { type: "button", className: "mv-cta", onClick: onStartProfile }, t2("profile.draw")),
-          analysis ? h20(
-            "div",
-            { className: "mv-layer" },
-            h20(
-              "span",
-              { className: "name" },
-              `${typeof analysis.operation === "string" && analysis.operation !== "" ? t2(`analysis.title.${analysis.operation}`) : t2("layers.analysis")}${typeof analysis.layerName === "string" && analysis.layerName !== "" ? ` · ${analysis.layerName}` : ""}`
-            ),
-            h20("button", { type: "button", className: "mv-icon-btn", title: t2("layers.analysisClear"), "aria-label": t2("layers.analysisClear"), onClick: onClearAnalysis }, "✕")
-          ) : null,
-          h20("p", { className: "mv-none" }, t2("tools.analysisHint"))
-        )
-      ),
-      group(
-        "sun",
-        t2("tools.sun"),
-        h20(SunTimeline, {
-          t: t2,
-          getCesium,
-          getViewer,
-          getLayers,
-          onBeforeEnable: onClearAnalysis,
-          active: true
-        })
-      ),
-      group(
-        "effects",
-        t2("tools.effects"),
-        h20(
-          import_react22.default.Fragment,
-          null,
-          h20("button", { type: "button", className: "mv-cta", onClick: onOpenShader }, t2("btn.shaderShow")),
-          h20(
-            "p",
-            { className: "mv-none" },
-            shaderActive.length > 0 ? t2("tools.effectsActive", { n: shaderActive.length }) : t2("tools.effectsEmpty")
-          )
-        )
-      ),
-      group("view", t2("tools.view"), h20(ToolsBookmarks, { t: t2, getCurrentView, onFlyView, onStartTour }))
-    ),
-    h20(ResizeHandle, {
-      axis: "height",
-      edge: "bottom",
-      label: t2("resize.height"),
-      value: resize.size.height,
-      onPointerDown: resize.beginHeight,
-      onKeyDown: resize.keyHeight
-    })
+      h22("div", { className: "mv-tool-index", role: "group", "aria-label": t2("tools.index") }, ...TOOL_ENTRIES.map(row)),
+      h22(ResizeHandle, {
+        axis: "height",
+        edge: "bottom",
+        label: t2("resize.height"),
+        value: resize.size.height,
+        onPointerDown: resize.beginHeight,
+        onKeyDown: resize.keyHeight
+      })
+    )
   );
 }
 
 // src/client/ui/right-stack.js
-var h21 = import_react23.default.createElement;
+var h23 = import_react25.default.createElement;
 function RightStack({ t: t2, analysis, onCloseAnalysis, layersPanel, showLayers, toolsPanel, showTools }) {
   const resize = usePanelResize({ storageKey: "right-stack", initialWidth: 300, minWidth: 240, maxWidth: 720 });
   if (!analysis && !showLayers && !showTools) return null;
-  return h21(
+  return h23(
     "div",
     { className: "mv-right", ref: resize.ref, style: resize.style },
-    h21(ResizeHandle, {
+    h23(ResizeHandle, {
       axis: "width",
       edge: "left",
       label: t2("resize.width"),
@@ -13567,14 +13812,14 @@ function RightStack({ t: t2, analysis, onCloseAnalysis, layersPanel, showLayers,
       onPointerDown: resize.beginWidth,
       onKeyDown: resize.keyWidth
     }),
-    analysis ? h21(AnalysisCard, { key: "analysis", state: analysis, t: t2, onClose: onCloseAnalysis }) : null,
-    showLayers ? h21(LayersPanel, { key: "layers", t: t2, ...layersPanel }) : null,
-    showTools ? h21(ToolsPanel, { key: "tools", t: t2, ...toolsPanel }) : null
+    analysis ? h23(AnalysisCard, { key: "analysis", state: analysis, t: t2, onClose: onCloseAnalysis }) : null,
+    showLayers ? h23(LayersPanel, { key: "layers", t: t2, ...layersPanel }) : null,
+    showTools ? h23(ToolsPanel, { key: "tools", t: t2, ...toolsPanel }) : null
   );
 }
 
 // src/client/ui/loading-globe.js
-var import_react24 = __toESM(require("react"), 1);
+var import_react26 = __toESM(require("react"), 1);
 
 // src/client/ui/earth-mask.js
 var EARTH_MASK = "data:image/png;base64,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";
@@ -13628,8 +13873,8 @@ function renderGlobePixels(projection, texture, elapsed = 0) {
 
 // src/client/ui/loading-globe.js
 function LoadingGlobe() {
-  const canvasRef = import_react24.default.useRef(null);
-  import_react24.default.useEffect(() => {
+  const canvasRef = import_react26.default.useRef(null);
+  import_react26.default.useEffect(() => {
     const canvas = canvasRef.current;
     const context = canvas?.getContext("2d");
     if (!context) return;
@@ -13680,18 +13925,18 @@ function LoadingGlobe() {
       document.removeEventListener("visibilitychange", resume);
     };
   }, []);
-  return import_react24.default.createElement(
+  return import_react26.default.createElement(
     "div",
     { className: "mv-spinner", "aria-hidden": true },
-    import_react24.default.createElement("canvas", { ref: canvasRef, className: "mv-loading-globe" })
+    import_react26.default.createElement("canvas", { ref: canvasRef, className: "mv-loading-globe" })
   );
 }
 
 // src/client/ui/selection-overlay.js
-var import_react26 = __toESM(require("react"), 1);
+var import_react28 = __toESM(require("react"), 1);
 
 // src/client/ui/vision-select.js
-var import_react25 = __toESM(require("react"), 1);
+var import_react27 = __toESM(require("react"), 1);
 
 // src/client/scene/vision-geometry.js
 var visionError = (code) => Object.assign(new Error(code), { code });
@@ -14032,20 +14277,20 @@ async function visionRequest(url, { frame, signal, fetchImpl = fetch } = {}) {
 }
 
 // src/client/ui/vision-select.js
-var h22 = import_react25.default.createElement;
+var h24 = import_react27.default.createElement;
 function VisionSelect({ controller, anchor, t: t2, onClose, onCommit, onManual }) {
-  const [state, setState] = import_react25.default.useState({ phase: "loading", frame: null, result: null, error: "" });
-  const [attempt, setAttempt] = import_react25.default.useState(0);
-  const frameRef = import_react25.default.useRef(null);
-  const dialogRef = import_react25.default.useRef(null);
-  import_react25.default.useEffect(() => {
+  const [state, setState] = import_react27.default.useState({ phase: "loading", frame: null, result: null, error: "" });
+  const [attempt, setAttempt] = import_react27.default.useState(0);
+  const frameRef = import_react27.default.useRef(null);
+  const dialogRef = import_react27.default.useRef(null);
+  import_react27.default.useEffect(() => {
     const previous = document.activeElement;
     dialogRef.current?.focus();
     return () => {
       if (previous?.isConnected) previous.focus?.();
     };
   }, []);
-  import_react25.default.useEffect(() => {
+  import_react27.default.useEffect(() => {
     const abort = new AbortController();
     let frame, interval, current = true, timedOut = false, stale = false;
     const timer = setTimeout(() => {
@@ -14121,49 +14366,49 @@ function VisionSelect({ controller, anchor, t: t2, onClose, onCommit, onManual }
   };
   const errorKey = `vision.error.${state.error}`;
   const errorText = state.error && (t2(errorKey) === errorKey ? t2("vision.error.model_failed") : t2(errorKey));
-  return h22(
+  return h24(
     "div",
     { className: "mv-vision-screen", onKeyDown },
-    h22(
+    h24(
       "section",
       { className: "mv-vision", role: "dialog", "aria-modal": true, "aria-label": t2("vision.title"), tabIndex: -1, ref: dialogRef },
-      h22("header", null, h22("h3", null, t2("vision.title")), h22("button", { type: "button", className: "mv-icon-btn", "aria-label": t2("btn.close"), onClick: onClose }, "✕")),
-      h22("p", { className: "mv-vision-note" }, t2("vision.notice")),
-      state.frame ? h22(
+      h24("header", null, h24("h3", null, t2("vision.title")), h24("button", { type: "button", className: "mv-icon-btn", "aria-label": t2("btn.close"), onClick: onClose }, "✕")),
+      h24("p", { className: "mv-vision-note" }, t2("vision.notice")),
+      state.frame ? h24(
         "div",
         { className: "mv-vision-image", style: { aspectRatio: `${state.frame.width}/${state.frame.height}` } },
-        h22("img", { src: state.frame.dataUrl, alt: t2("vision.imageAlt"), draggable: false }),
-        h22(
+        h24("img", { src: state.frame.dataUrl, alt: t2("vision.imageAlt"), draggable: false }),
+        h24(
           "svg",
           { viewBox: "0 0 1000 1000", preserveAspectRatio: "none", "aria-hidden": true },
-          state.result ? h22("polygon", { points: state.result.polygon.map(([lon, lat]) => `${lon * 1e3},${lat * 1e3}`).join(" "), vectorEffect: "non-scaling-stroke" }) : null,
-          h22("circle", { cx: state.frame.point[0] * 1e3, cy: state.frame.point[1] * 1e3, r: 6, vectorEffect: "non-scaling-stroke" })
+          state.result ? h24("polygon", { points: state.result.polygon.map(([lon, lat]) => `${lon * 1e3},${lat * 1e3}`).join(" "), vectorEffect: "non-scaling-stroke" }) : null,
+          h24("circle", { cx: state.frame.point[0] * 1e3, cy: state.frame.point[1] * 1e3, r: 6, vectorEffect: "non-scaling-stroke" })
         )
       ) : null,
-      h22(
+      h24(
         "p",
         { role: state.error ? "alert" : "status", "aria-live": "polite", className: state.error ? "mv-vision-error" : "mv-vision-status" },
         errorText || t2(state.phase === "loading" ? "vision.loading" : state.result?.shape === "box" ? "vision.boxReady" : "vision.ready")
       ),
-      state.result?.model ? h22("p", { className: "mv-vision-note" }, t2("vision.model", { model: state.result.model })) : null,
-      h22(
+      state.result?.model ? h24("p", { className: "mv-vision-note" }, t2("vision.model", { model: state.result.model })) : null,
+      h24(
         "div",
         { className: "mv-vision-actions" },
-        state.phase === "preview" ? h22("button", { type: "button", className: "mv-cta primary", disabled: Boolean(state.error), onClick: accept }, t2("vision.accept")) : null,
-        state.phase !== "loading" ? h22("button", { type: "button", className: "mv-cta", onClick: () => setAttempt((value) => value + 1) }, t2("vision.retry")) : null,
-        h22("button", { type: "button", className: "mv-cta", onClick: () => {
+        state.phase === "preview" ? h24("button", { type: "button", className: "mv-cta primary", disabled: Boolean(state.error), onClick: accept }, t2("vision.accept")) : null,
+        state.phase !== "loading" ? h24("button", { type: "button", className: "mv-cta", onClick: () => setAttempt((value) => value + 1) }, t2("vision.retry")) : null,
+        h24("button", { type: "button", className: "mv-cta", onClick: () => {
           frameRef.current?.release();
           onClose();
           onManual();
         } }, t2("vision.manual")),
-        h22("button", { type: "button", className: "mv-cta", onClick: onClose }, t2("vision.cancel"))
+        h24("button", { type: "button", className: "mv-cta", onClick: onClose }, t2("vision.cancel"))
       )
     )
   );
 }
 
 // src/client/ui/selection-overlay.js
-var h23 = import_react26.default.createElement;
+var h25 = import_react28.default.createElement;
 var CONFIDENCE_TIER = {
   measured: { key: "selection.confidence.high", tone: "high" },
   estimated: { key: "selection.confidence.medium", tone: "medium" },
@@ -14186,18 +14431,18 @@ function numberText(value, suffix = " m", digits = 0) {
   return `${rounded}${suffix}`;
 }
 function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t: t2, showToast, onMeasure, onSelectArea, onVisionCommit, onVisionManual }) {
-  const [card, setCard] = import_react26.default.useState(null);
-  const [busy, setBusy] = import_react26.default.useState(false);
-  const [errorLine, setErrorLine] = import_react26.default.useState("");
-  const [exporting, setExporting] = import_react26.default.useState(false);
-  const [visionOpen, setVisionOpen] = import_react26.default.useState(false);
-  const visionPendingRef = import_react26.default.useRef(false);
-  const anchorRef = import_react26.default.useRef(null);
-  const bracketRef = import_react26.default.useRef(null);
-  const chipRef = import_react26.default.useRef(null);
-  const requestRef = import_react26.default.useRef(null);
-  const validityRef = import_react26.default.useRef(null);
-  const dismiss = import_react26.default.useCallback(() => {
+  const [card, setCard] = import_react28.default.useState(null);
+  const [busy, setBusy] = import_react28.default.useState(false);
+  const [errorLine, setErrorLine] = import_react28.default.useState("");
+  const [exporting, setExporting] = import_react28.default.useState(false);
+  const [visionOpen, setVisionOpen] = import_react28.default.useState(false);
+  const visionPendingRef = import_react28.default.useRef(false);
+  const anchorRef = import_react28.default.useRef(null);
+  const bracketRef = import_react28.default.useRef(null);
+  const chipRef = import_react28.default.useRef(null);
+  const requestRef = import_react28.default.useRef(null);
+  const validityRef = import_react28.default.useRef(null);
+  const dismiss = import_react28.default.useCallback(() => {
     requestRef.current?.abort();
     requestRef.current = null;
     validityRef.current = null;
@@ -14209,11 +14454,11 @@ function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t: t2, s
     setErrorLine("");
     setVisionOpen(false);
   }, []);
-  const requestVision = import_react26.default.useCallback(() => {
+  const requestVision = import_react28.default.useCallback(() => {
     visionPendingRef.current = true;
     setVisionOpen(false);
   }, []);
-  const identify = import_react26.default.useCallback(
+  const identify = import_react28.default.useCallback(
     async (position) => {
       if (!controller) return;
       requestRef.current?.abort();
@@ -14254,7 +14499,7 @@ function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t: t2, s
     },
     [controller, t2, dismiss]
   );
-  import_react26.default.useEffect(() => {
+  import_react28.default.useEffect(() => {
     if (!apiRef) return void 0;
     identify.cancel = dismiss;
     identify.requestVision = requestVision;
@@ -14263,15 +14508,15 @@ function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t: t2, s
       if (apiRef) apiRef.current = null;
     };
   }, [apiRef, active, identify, dismiss, requestVision]);
-  import_react26.default.useEffect(() => {
+  import_react28.default.useEffect(() => {
     if (active) return;
     dismiss();
   }, [active, dismiss]);
-  import_react26.default.useEffect(() => () => {
+  import_react28.default.useEffect(() => () => {
     requestRef.current?.abort();
     if (bracketRef.current) bracketRef.current.style.display = "none";
   }, []);
-  import_react26.default.useEffect(() => {
+  import_react28.default.useEffect(() => {
     if (!active || !card) return void 0;
     const viewer = controller?.getViewer?.();
     const Cesium = controller?.getCesium?.();
@@ -14308,7 +14553,7 @@ function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t: t2, s
       }
     };
   }, [active, card, controller, dismiss]);
-  import_react26.default.useEffect(() => {
+  import_react28.default.useEffect(() => {
     if (!active) return void 0;
     const onKey = (event) => {
       if (event.key === "Escape") {
@@ -14364,32 +14609,32 @@ function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t: t2, s
   const above = factOf(card, "above_median");
   const confidenceChip = (basis) => {
     const tier = CONFIDENCE_TIER[basis] ?? CONFIDENCE_TIER.inferred;
-    return h23("span", { className: `mv-sel-conf ${tier.tone}`, title: t2(tier.key) }, t2(tier.key));
+    return h25("span", { className: `mv-sel-conf ${tier.tone}`, title: t2(tier.key) }, t2(tier.key));
   };
   const limitations = Array.isArray(card?.limitations) ? card.limitations : [];
   const radii = card?.sampling?.radii_m ?? [30, 60, 120];
   const properties = Array.isArray(card?.identity?.properties) ? card.identity.properties.slice(0, 8) : [];
   const showFootnote = limitations.includes("no_building_identity") || limitations.includes("tile_feature_only");
-  return h23(
-    import_react26.default.Fragment,
+  return h25(
+    import_react28.default.Fragment,
     null,
-    h23(
+    h25(
       "div",
       { ref: bracketRef, className: "mv-sel-anchor", style: { display: "none" }, "aria-hidden": true },
-      h23("i", { className: "c tl" }),
-      h23("i", { className: "c tr" }),
-      h23("i", { className: "c bl" }),
-      h23("i", { className: "c br" }),
-      h23("span", { className: "leader" }),
-      h23("b", { ref: chipRef, className: "chip" }, object && object.value !== null ? `≈ ${numberText(object.value, " m")}` : t2("selection.noHeight"))
+      h25("i", { className: "c tl" }),
+      h25("i", { className: "c tr" }),
+      h25("i", { className: "c bl" }),
+      h25("i", { className: "c br" }),
+      h25("span", { className: "leader" }),
+      h25("b", { ref: chipRef, className: "chip" }, object && object.value !== null ? `≈ ${numberText(object.value, " m")}` : t2("selection.noHeight"))
     ),
-    busy ? h23("div", { className: "mv-select mv-select-loading mv-glass", role: "status" }, h23("div", { className: "mv-spinner" }), h23("span", null, t2("selection.reading"))) : null,
-    errorLine !== "" ? h23(
+    busy ? h25("div", { className: "mv-select mv-select-loading mv-glass", role: "status" }, h25("div", { className: "mv-spinner" }), h25("span", null, t2("selection.reading"))) : null,
+    errorLine !== "" ? h25(
       "div",
       { className: "mv-select mv-glass" },
-      h23("div", { className: "mv-select-error" }, h23("span", null, errorLine))
+      h25("div", { className: "mv-select-error" }, h25("span", null, errorLine))
     ) : null,
-    card && visionOpen ? h23(VisionSelect, {
+    card && visionOpen ? h25(VisionSelect, {
       controller,
       anchor: anchorRef.current,
       t: t2,
@@ -14400,47 +14645,47 @@ function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t: t2, s
         getSelectionTool(controller.getViewer(), { getCesium: controller.getCesium, t: t2, showToast })?.start("lasso");
       }
     }) : null,
-    card && !visionOpen ? h23(
+    card && !visionOpen ? h25(
       "div",
       { className: "mv-select mv-glass" },
-      h23(
+      h25(
         "header",
         null,
-        h23("span", { className: "kind" }, t2("selection.resultLabel")),
-        h23(
+        h25("span", { className: "kind" }, t2("selection.resultLabel")),
+        h25(
           "button",
           { type: "button", className: "mv-icon-btn", title: t2("btn.close"), "aria-label": t2("btn.close"), onClick: dismiss },
           "✕"
         )
       ),
-      h23("h3", null, card.identity?.name ?? t2(TITLE_KEY[card.identity?.kind] ?? TITLE_KEY.tile_feature)),
-      h23(
+      h25("h3", null, card.identity?.name ?? t2(TITLE_KEY[card.identity?.kind] ?? TITLE_KEY.tile_feature)),
+      h25(
         "p",
         { className: "layer" },
         `${card.layer?.name ?? t2("selection.unknownLayer")} · ${card.point.lon.toFixed(5)}, ${card.point.lat.toFixed(5)}`
       ),
-      h23(
+      h25(
         "div",
         { className: "facts" },
-        surface ? h23(
+        surface ? h25(
           "div",
           { className: "fact" },
-          h23("span", { className: "key" }, t2("selection.surfaceHeight")),
-          h23("b", null, numberText(surface.value)),
+          h25("span", { className: "key" }, t2("selection.surfaceHeight")),
+          h25("b", null, numberText(surface.value)),
           confidenceChip("measured")
         ) : null,
-        object ? h23(
+        object ? h25(
           "div",
           { className: "fact" },
-          h23("span", { className: "key" }, t2("selection.objectHeight")),
-          h23("b", null, numberText(object.value)),
+          h25("span", { className: "key" }, t2("selection.objectHeight")),
+          h25("b", null, numberText(object.value)),
           confidenceChip(object.basis)
         ) : null,
-        above ? h23(
+        above ? h25(
           "div",
           { className: "fact" },
-          h23("span", { className: "key", title: t2("selection.aboveMedianHint") }, t2("selection.aboveMedian")),
-          h23(
+          h25("span", { className: "key", title: t2("selection.aboveMedianHint") }, t2("selection.aboveMedian")),
+          h25(
             "b",
             null,
             typeof above.value === "number" ? `${Math.round(above.value) > 0 ? "+" : ""}${Math.round(above.value)} m` : "—"
@@ -14448,41 +14693,41 @@ function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t: t2, s
           confidenceChip(above.basis)
         ) : null
       ),
-      properties.length > 0 ? h23(
+      properties.length > 0 ? h25(
         "div",
         { className: "props" },
-        h23("span", { className: "props-title" }, t2("selection.properties")),
+        h25("span", { className: "props-title" }, t2("selection.properties")),
         ...properties.map(
-          (property, index) => h23(
+          (property, index) => h25(
             "div",
             { key: `${property.name}-${index}`, className: "prop" },
-            h23("span", { title: property.name }, property.name),
-            h23("b", { title: property.value }, property.value)
+            h25("span", { title: property.name }, property.name),
+            h25("b", { title: property.value }, property.value)
           )
         )
       ) : null,
-      h23(
+      h25(
         "p",
         { className: "sampling", title: t2("selection.samplingHint") },
         t2("selection.sampling", { count: card.sampling?.count ?? 0, radii: radii.join("/") })
       ),
-      showFootnote ? h23("p", { className: "footnote" }, t2("selection.footnote")) : null,
-      h23(
+      showFootnote ? h25("p", { className: "footnote" }, t2("selection.footnote")) : null,
+      h25(
         "div",
         { className: "actions" },
-        typeof onVisionCommit === "function" ? h23("button", { type: "button", className: "mv-cta", title: t2("vision.actionHint"), onClick: () => setVisionOpen(true) }, t2("vision.action")) : null,
-        h23("button", { type: "button", className: "mv-cta", title: t2("selection.flyHint"), onClick: flyNear }, t2("selection.fly")),
-        h23("button", { type: "button", className: "mv-cta", title: t2("selection.measureHint"), onClick: measure }, t2("selection.measure")),
-        h23(
+        typeof onVisionCommit === "function" ? h25("button", { type: "button", className: "mv-cta", title: t2("vision.actionHint"), onClick: () => setVisionOpen(true) }, t2("vision.action")) : null,
+        h25("button", { type: "button", className: "mv-cta", title: t2("selection.flyHint"), onClick: flyNear }, t2("selection.fly")),
+        h25("button", { type: "button", className: "mv-cta", title: t2("selection.measureHint"), onClick: measure }, t2("selection.measure")),
+        h25(
           "button",
           { type: "button", className: "mv-cta primary", title: t2("selection.exportHint"), disabled: exporting, onClick: takeAway },
           exporting ? t2("selection.exporting") : t2("selection.takeAway")
         )
       ),
-      typeof onSelectArea === "function" ? h23(
+      typeof onSelectArea === "function" ? h25(
         "div",
         { className: "actions secondary" },
-        h23(
+        h25(
           "button",
           { type: "button", className: "mv-cta", title: t2("selection.approximate"), onClick: selectAround },
           t2("selection.areaAction")
@@ -14493,27 +14738,27 @@ function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t: t2, s
 }
 
 // src/client/ui/vector-card.js
-var import_react27 = __toESM(require("react"), 1);
-var h24 = import_react27.default.createElement;
+var import_react29 = __toESM(require("react"), 1);
+var h26 = import_react29.default.createElement;
 function VectorCard({ selection, onClose, t: t2 }) {
   if (!selection) return null;
-  return h24(
+  return h26(
     "section",
     { className: "mv-vector-card", "aria-label": t2("vector.selection") },
-    h24(
+    h26(
       "header",
       null,
-      h24("div", null, h24("span", { className: "eyebrow" }, selection.kind), h24("h3", null, selection.title)),
-      h24("button", { type: "button", className: "mv-icon-btn", title: t2("btn.close"), "aria-label": t2("btn.close"), onClick: onClose }, "✕")
+      h26("div", null, h26("span", { className: "eyebrow" }, selection.kind), h26("h3", null, selection.title)),
+      h26("button", { type: "button", className: "mv-icon-btn", title: t2("btn.close"), "aria-label": t2("btn.close"), onClick: onClose }, "✕")
     ),
-    selection.summary ? h24("p", { className: "summary" }, selection.summary) : null,
-    selection.rows?.length ? h24("dl", null, selection.rows.map(([name, value], index) => h24("div", { key: index }, h24("dt", null, name), h24("dd", null, value)))) : null,
-    h24("footer", null, t2("vector.selectedHint"))
+    selection.summary ? h26("p", { className: "summary" }, selection.summary) : null,
+    selection.rows?.length ? h26("dl", null, selection.rows.map(([name, value], index) => h26("div", { key: index }, h26("dt", null, name), h26("dd", null, value)))) : null,
+    h26("footer", null, t2("vector.selectedHint"))
   );
 }
 
 // src/client/ui/tour-bar.js
-var import_react28 = __toESM(require("react"), 1);
+var import_react30 = __toESM(require("react"), 1);
 
 // src/client/scene/tour.js
 var TOUR_MIN_DURATION = 1.6;
@@ -14558,16 +14803,16 @@ function tourDuration(fromView, toView) {
 }
 
 // src/client/ui/tour-bar.js
-var h25 = import_react28.default.createElement;
+var h27 = import_react30.default.createElement;
 function useTour({ t: t2, showToast, getCurrentView, onFlyView, onFinish }) {
-  const [state, setState] = import_react28.default.useState(null);
-  const barRef = import_react28.default.useRef(null);
-  const apiRef = import_react28.default.useRef({});
+  const [state, setState] = import_react30.default.useState(null);
+  const barRef = import_react30.default.useRef(null);
+  const apiRef = import_react30.default.useRef({});
   apiRef.current = { t: t2, showToast, getCurrentView, onFlyView, onFinish };
-  const stop = import_react28.default.useCallback(() => {
+  const stop = import_react30.default.useCallback(() => {
     setState(null);
   }, []);
-  const start = import_react28.default.useCallback(
+  const start = import_react30.default.useCallback(
     (bookmarks) => {
       const stops = buildTour(bookmarks);
       if (stops.length < TOUR_MIN_STOPS) {
@@ -14579,7 +14824,7 @@ function useTour({ t: t2, showToast, getCurrentView, onFlyView, onFinish }) {
     },
     [showToast, t2]
   );
-  import_react28.default.useEffect(() => {
+  import_react30.default.useEffect(() => {
     if (!state || !state.playing) return void 0;
     const api = apiRef.current;
     const current2 = state.stops[state.index];
@@ -14599,7 +14844,7 @@ function useTour({ t: t2, showToast, getCurrentView, onFlyView, onFinish }) {
     }, Math.round(duration * 1e3) + TOUR_DWELL_MS);
     return () => clearTimeout(timer);
   }, [state]);
-  import_react28.default.useEffect(() => {
+  import_react30.default.useEffect(() => {
     if (!state || !state.playing) return void 0;
     const onPointerDown = (event) => {
       const bar = barRef.current;
@@ -14609,7 +14854,7 @@ function useTour({ t: t2, showToast, getCurrentView, onFlyView, onFinish }) {
     document.addEventListener("pointerdown", onPointerDown, true);
     return () => document.removeEventListener("pointerdown", onPointerDown, true);
   }, [state]);
-  import_react28.default.useEffect(() => {
+  import_react30.default.useEffect(() => {
     if (!state) return void 0;
     const onKey = (event) => {
       if (event.key === "Escape") setState(null);
@@ -14618,22 +14863,22 @@ function useTour({ t: t2, showToast, getCurrentView, onFlyView, onFinish }) {
     return () => document.removeEventListener("keydown", onKey);
   }, [state]);
   const current = state ? state.stops[state.index] : null;
-  const element = state ? h25(
+  const element = state ? h27(
     "div",
     { ref: barRef, className: "mv-tour mv-glass", role: "region", "aria-label": t2("tour.title") },
-    h25(
+    h27(
       "div",
       { className: "mv-tour-head" },
-      h25("b", null, t2("tour.title")),
-      h25("span", { className: "mv-tour-progress" }, t2("tour.progress", { index: state.index + 1, total: state.stops.length })),
-      h25("button", { type: "button", className: "mv-icon-btn", title: t2("tour.exit"), "aria-label": t2("tour.exit"), onClick: stop }, "✕")
+      h27("b", null, t2("tour.title")),
+      h27("span", { className: "mv-tour-progress" }, t2("tour.progress", { index: state.index + 1, total: state.stops.length })),
+      h27("button", { type: "button", className: "mv-icon-btn", title: t2("tour.exit"), "aria-label": t2("tour.exit"), onClick: stop }, "✕")
     ),
-    h25("p", { className: "mv-tour-caption" }, stopCaption(current, state.index, t2)),
-    h25(
+    h27("p", { className: "mv-tour-caption" }, stopCaption(current, state.index, t2)),
+    h27(
       "div",
       { className: "mv-tour-actions" },
-      h25("button", { type: "button", className: "mv-icon-btn", title: t2("tour.prev"), "aria-label": t2("tour.prev"), onClick: () => setState((previous) => previous ? { ...previous, index: stepIndex(previous.index, -1, previous.stops.length), playing: true } : null) }, "⏮"),
-      h25(
+      h27("button", { type: "button", className: "mv-icon-btn", title: t2("tour.prev"), "aria-label": t2("tour.prev"), onClick: () => setState((previous) => previous ? { ...previous, index: stepIndex(previous.index, -1, previous.stops.length), playing: true } : null) }, "⏮"),
+      h27(
         "button",
         {
           type: "button",
@@ -14642,15 +14887,15 @@ function useTour({ t: t2, showToast, getCurrentView, onFlyView, onFinish }) {
         },
         state.playing ? t2("tour.pause") : t2("tour.play")
       ),
-      h25("button", { type: "button", className: "mv-icon-btn", title: t2("tour.next"), "aria-label": t2("tour.next"), onClick: () => setState((previous) => previous ? { ...previous, index: stepIndex(previous.index, 1, previous.stops.length), playing: true } : null) }, "⏭")
+      h27("button", { type: "button", className: "mv-icon-btn", title: t2("tour.next"), "aria-label": t2("tour.next"), onClick: () => setState((previous) => previous ? { ...previous, index: stepIndex(previous.index, 1, previous.stops.length), playing: true } : null) }, "⏭")
     ),
-    h25("p", { className: "mv-tour-hint" }, t2("tour.hint"))
+    h27("p", { className: "mv-tour-hint" }, t2("tour.hint"))
   ) : null;
   return { start, stop, element };
 }
 
 // src/client/ui/swipe-bar.js
-var import_react29 = __toESM(require("react"), 1);
+var import_react31 = __toESM(require("react"), 1);
 
 // src/client/scene/swipe.js
 var clampSwipeRatio = (value) => {
@@ -14938,19 +15183,19 @@ function createSwipeSession({ getCesium, getViewer, getLayers, getOverlayLayers 
 }
 
 // src/client/ui/swipe-bar.js
-var h26 = import_react29.default.createElement;
+var h28 = import_react31.default.createElement;
 function engineLayersOf(deps) {
   const full = deps?.getLayers?.();
   if (Array.isArray(full)) return full;
   return Array.isArray(deps?.layers) ? deps.layers : [];
 }
 function useSwipe({ t: t2, showToast, layers, overlays, getCesium, getViewer, getOverlayLayers, getLayers }) {
-  const [state, setState] = import_react29.default.useState(null);
-  const containerRef = import_react29.default.useRef(null);
-  const draggingRef = import_react29.default.useRef(false);
-  const depsRef = import_react29.default.useRef({});
+  const [state, setState] = import_react31.default.useState(null);
+  const containerRef = import_react31.default.useRef(null);
+  const draggingRef = import_react31.default.useRef(false);
+  const depsRef = import_react31.default.useRef({});
   depsRef.current = { t: t2, showToast, layers, overlays, getCesium, getViewer, getOverlayLayers, getLayers };
-  const sessionRef = import_react29.default.useRef(null);
+  const sessionRef = import_react31.default.useRef(null);
   if (!sessionRef.current) {
     sessionRef.current = createSwipeSession({
       getCesium: () => depsRef.current.getCesium?.(),
@@ -14959,11 +15204,11 @@ function useSwipe({ t: t2, showToast, layers, overlays, getCesium, getViewer, ge
       getOverlayLayers: () => depsRef.current.getOverlayLayers?.()
     });
   }
-  const stop = import_react29.default.useCallback(() => {
+  const stop = import_react31.default.useCallback(() => {
     sessionRef.current?.stop();
     setState(null);
   }, []);
-  const toggle3d = import_react29.default.useCallback((layerId) => {
+  const toggle3d = import_react31.default.useCallback((layerId) => {
     const current = sessionRef.current?.getState();
     if (current && current.kind === "3d" && current.id === layerId) {
       stop();
@@ -14985,7 +15230,7 @@ function useSwipe({ t: t2, showToast, layers, overlays, getCesium, getViewer, ge
     setState(res.state);
     return true;
   }, [stop]);
-  const toggleRaster = import_react29.default.useCallback((overlayId) => {
+  const toggleRaster = import_react31.default.useCallback((overlayId) => {
     const current = sessionRef.current?.getState();
     if (current && current.kind === "raster" && current.id === overlayId) {
       stop();
@@ -15006,13 +15251,13 @@ function useSwipe({ t: t2, showToast, layers, overlays, getCesium, getViewer, ge
     setState(res.state);
     return true;
   }, [stop]);
-  import_react29.default.useEffect(() => {
+  import_react31.default.useEffect(() => {
     if (!state) return;
     if (sessionRef.current?.reconcile({ layers: engineLayersOf(depsRef.current), overlays: overlays ?? [] })) {
       setState(null);
     }
   }, [state, layers, overlays]);
-  import_react29.default.useEffect(() => {
+  import_react31.default.useEffect(() => {
     if (!state || typeof document === "undefined") return void 0;
     const onKeyDown = (event) => {
       if (event.key !== "Escape") return;
@@ -15022,7 +15267,7 @@ function useSwipe({ t: t2, showToast, layers, overlays, getCesium, getViewer, ge
     document.addEventListener("keydown", onKeyDown, true);
     return () => document.removeEventListener("keydown", onKeyDown, true);
   }, [state, stop]);
-  import_react29.default.useEffect(() => () => sessionRef.current?.stop(), []);
+  import_react31.default.useEffect(() => () => sessionRef.current?.stop(), []);
   const updateRatioFromClient = (clientX, clientY) => {
     const current = sessionRef.current?.getState();
     if (!current) return;
@@ -15066,7 +15311,7 @@ function useSwipe({ t: t2, showToast, layers, overlays, getCesium, getViewer, ge
   };
   const horiz = state?.orientation === "horizontal";
   const pct = state ? `${(state.ratio * 100).toFixed(1)}%` : "50%";
-  const element = state ? h26(
+  const element = state ? h28(
     "div",
     {
       key: "swipe",
@@ -15074,14 +15319,14 @@ function useSwipe({ t: t2, showToast, layers, overlays, getCesium, getViewer, ge
       className: `mv-swipe ${horiz ? "horiz" : "vert"}`,
       "data-capture-hide": "1"
     },
-    h26(
+    h28(
       "div",
       {
         className: "mv-swipe-line",
         style: horiz ? { top: pct } : { left: pct }
       },
-      h26("span", { className: "mv-swipe-badge with" }, t2("swipe.withLayer", { name: state.name })),
-      h26(
+      h28("span", { className: "mv-swipe-badge with" }, t2("swipe.withLayer", { name: state.name })),
+      h28(
         "div",
         {
           className: "mv-swipe-handle",
@@ -15100,13 +15345,13 @@ function useSwipe({ t: t2, showToast, layers, overlays, getCesium, getViewer, ge
         },
         horiz ? "═" : "║"
       ),
-      h26("span", { className: "mv-swipe-badge without" }, t2("swipe.withoutLayer", { name: state.name }))
+      h28("span", { className: "mv-swipe-badge without" }, t2("swipe.withoutLayer", { name: state.name }))
     ),
-    h26(
+    h28(
       "div",
       { className: "mv-swipe-bar mv-glass" },
-      h26("span", { className: "mv-swipe-title" }, `${t2("swipe.title")} · ${state.name}`),
-      h26(
+      h28("span", { className: "mv-swipe-title" }, `${t2("swipe.title")} · ${state.name}`),
+      h28(
         "button",
         {
           type: "button",
@@ -15117,7 +15362,7 @@ function useSwipe({ t: t2, showToast, layers, overlays, getCesium, getViewer, ge
         },
         horiz ? t2("swipe.vertical") : t2("swipe.horizontal")
       ),
-      h26(
+      h28(
         "button",
         {
           type: "button",
@@ -15132,13 +15377,13 @@ function useSwipe({ t: t2, showToast, layers, overlays, getCesium, getViewer, ge
 }
 
 // src/client/ui/scene-details.js
-var import_react30 = __toESM(require("react"), 1);
-var h27 = import_react30.default.createElement;
+var import_react32 = __toESM(require("react"), 1);
+var h29 = import_react32.default.createElement;
 function useSceneDetails({ t: t2, stats, config, layers, analysis, shaderActive }) {
-  const [focus, setFocus] = import_react30.default.useState(null);
-  const open = import_react30.default.useCallback((layerId) => setFocus({ layerId: typeof layerId === "string" ? layerId : null }), []);
-  const close = import_react30.default.useCallback(() => setFocus(null), []);
-  import_react30.default.useEffect(() => {
+  const [focus, setFocus] = import_react32.default.useState(null);
+  const open = import_react32.default.useCallback((layerId) => setFocus({ layerId: typeof layerId === "string" ? layerId : null }), []);
+  const close = import_react32.default.useCallback(() => setFocus(null), []);
+  import_react32.default.useEffect(() => {
     if (!focus) return void 0;
     const onKey = (event) => {
       if (event.key === "Escape") setFocus(null);
@@ -15148,23 +15393,23 @@ function useSceneDetails({ t: t2, stats, config, layers, analysis, shaderActive 
   }, [focus]);
   const focusedLayer = focus?.layerId ? (layers ?? []).find((layer) => layer.id === focus.layerId) ?? null : null;
   const sourceName = (list, id) => (Array.isArray(list) ? list.find((source) => source.id === id)?.name : null) ?? t2("sceneDetails.none");
-  const row = (label, value) => h27("div", { className: "mv-sd-row" }, h27("span", null, label), h27("b", null, value));
+  const row = (label, value) => h29("div", { className: "mv-sd-row" }, h29("span", null, label), h29("b", null, value));
   const layerRows = (stats?.layers ?? (layers ?? []).map((layer) => ({ id: layer.id, name: layer.name }))).filter(
     (layer) => focusedLayer === null || layer.id === focusedLayer.id
   );
-  const element = focus ? h27(
+  const element = focus ? h29(
     "div",
     { className: "mv-scene-details mv-glass", role: "dialog", "aria-label": focusedLayer ? t2("sceneDetails.layerTitle") : t2("sceneDetails.title") },
-    h27(
+    h29(
       "header",
       null,
-      h27("b", null, focusedLayer ? t2("sceneDetails.layerTitle") : t2("sceneDetails.title")),
-      h27("button", { type: "button", className: "mv-icon-btn", title: t2("btn.close"), "aria-label": t2("btn.close"), onClick: close }, "✕")
+      h29("b", null, focusedLayer ? t2("sceneDetails.layerTitle") : t2("sceneDetails.title")),
+      h29("button", { type: "button", className: "mv-icon-btn", title: t2("btn.close"), "aria-label": t2("btn.close"), onClick: close }, "✕")
     ),
-    h27(
+    h29(
       "div",
       { className: "mv-sd-section" },
-      h27("div", { className: "mv-sd-title" }, t2("sceneDetails.scene")),
+      h29("div", { className: "mv-sd-title" }, t2("sceneDetails.scene")),
       row(t2("hud.camera"), stats?.height ?? "—"),
       row(t2("hud.heading"), `${stats?.heading ?? "—"} / ${stats?.pitch ?? "—"}`),
       row(t2("layers.imagery"), sourceName(config?.imagery, config?.settings?.imagery)),
@@ -15175,17 +15420,17 @@ function useSceneDetails({ t: t2, stats, config, layers, analysis, shaderActive 
       ),
       row(t2("sceneDetails.shader"), shaderActive?.length ? String(shaderActive.length) : t2("sceneDetails.none"))
     ),
-    focusedLayer?.georefIssue ? h27("p", { className: "mv-sd-warn" }, `⚠ ${t2("layers.georefWarning")}`) : null,
-    h27(
+    focusedLayer?.georefIssue ? h29("p", { className: "mv-sd-warn" }, `⚠ ${t2("layers.georefWarning")}`) : null,
+    h29(
       "div",
       { className: "mv-sd-section" },
-      h27("div", { className: "mv-sd-title" }, focusedLayer ? t2("sceneDetails.layer") : t2("sceneDetails.layers")),
-      layerRows.length === 0 ? h27("div", { className: "mv-sd-empty" }, t2("sceneDetails.none")) : layerRows.map(
-        (layer) => h27(
+      h29("div", { className: "mv-sd-title" }, focusedLayer ? t2("sceneDetails.layer") : t2("sceneDetails.layers")),
+      layerRows.length === 0 ? h29("div", { className: "mv-sd-empty" }, t2("sceneDetails.none")) : layerRows.map(
+        (layer) => h29(
           "div",
           { key: layer.id, className: "mv-sd-layer" },
-          h27("b", null, layer.name ?? "—"),
-          h27(
+          h29("b", null, layer.name ?? "—"),
+          h29(
             "span",
             null,
             `${t2("hud.tiles")} ${formatCount(layer.tiles)} · ${t2("hud.pending")} ${formatCount(layer.pending)} · ${t2("hud.triangles")} ${formatCount(layer.triangles)} · ${t2("hud.cache")} ${formatBytes(layer.memory)}`
@@ -15198,13 +15443,13 @@ function useSceneDetails({ t: t2, stats, config, layers, analysis, shaderActive 
 }
 
 // src/client/ui/use-workbench.js
-var import_react31 = __toESM(require("react"), 1);
+var import_react33 = __toESM(require("react"), 1);
 function useWorkbenchWiring(deps) {
-  const latest = import_react31.default.useRef(deps);
+  const latest = import_react33.default.useRef(deps);
   latest.current = deps;
-  const service2 = import_react31.default.useRef(null);
+  const service2 = import_react33.default.useRef(null);
   if (!service2.current) service2.current = createWorkbenchWiring(Object.fromEntries(Object.keys(deps).map((key) => [key, (...args) => latest.current[key]?.(...args)])));
-  import_react31.default.useEffect(() => {
+  import_react33.default.useEffect(() => {
     service2.current.activate();
     return () => service2.current.dispose();
   }, []);
@@ -15232,69 +15477,69 @@ function runVectorImport(state, viewer, draw) {
 }
 
 // src/client/viewer/ViewerSurface.js
-var h28 = import_react32.default.createElement;
+var h30 = import_react34.default.createElement;
 function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
   const fallbackT = useTranslation();
   const t2 = typeof injectedT === "function" ? injectedT : fallbackT;
   const environmentDark = useEnvironmentDark();
-  const rootRef = import_react32.default.useRef(null);
-  const globeRef = import_react32.default.useRef(null);
-  const creditRef = import_react32.default.useRef(null);
-  const menuRef = import_react32.default.useRef(null);
-  const viewerRef = import_react32.default.useRef(null);
-  const cesiumRef = import_react32.default.useRef(null);
-  const metaRef = import_react32.default.useRef(null);
-  const layersRef = import_react32.default.useRef([]);
-  const toolRef = import_react32.default.useRef("identify");
-  const profileToolRef = import_react32.default.useRef(null);
-  const measureRef = import_react32.default.useRef({ points: [], entities: [] });
-  const vectorRef = import_react32.default.useRef(null);
-  const handlerRef = import_react32.default.useRef(null);
-  const imageryRef = import_react32.default.useRef(null);
-  const overlayLayersRef = import_react32.default.useRef(null);
-  const sourcesRef = import_react32.default.useRef(null);
-  const toastTimer = import_react32.default.useRef(0);
-  const captureReadoutRef = import_react32.default.useRef(null);
-  const commandChainRef = import_react32.default.useRef(Promise.resolve());
-  const commandRef = import_react32.default.useRef(null);
-  const selectionApiRef = import_react32.default.useRef(null);
-  const accessRef = import_react32.default.useRef(null);
-  const analysisRef = import_react32.default.useRef({ operation: null, layerId: null, layerName: null, entities: [], restore: null });
-  const analysisCommandRef = import_react32.default.useRef(null);
-  const shaderEntriesRef = import_react32.default.useRef(/* @__PURE__ */ new Map());
-  const shaderTickRef = import_react32.default.useRef(null);
-  const readyGateRef = import_react32.default.useRef({ ready: false, error: null, waiters: [] });
-  const healthSeqRef = import_react32.default.useRef(0);
-  const sessionRef = import_react32.default.useRef(sessionId);
+  const rootRef = import_react34.default.useRef(null);
+  const globeRef = import_react34.default.useRef(null);
+  const creditRef = import_react34.default.useRef(null);
+  const menuRef = import_react34.default.useRef(null);
+  const viewerRef = import_react34.default.useRef(null);
+  const cesiumRef = import_react34.default.useRef(null);
+  const metaRef = import_react34.default.useRef(null);
+  const layersRef = import_react34.default.useRef([]);
+  const toolRef = import_react34.default.useRef("identify");
+  const profileToolRef = import_react34.default.useRef(null);
+  const measureRef = import_react34.default.useRef({ points: [], entities: [] });
+  const vectorRef = import_react34.default.useRef(null);
+  const handlerRef = import_react34.default.useRef(null);
+  const imageryRef = import_react34.default.useRef(null);
+  const overlayLayersRef = import_react34.default.useRef(null);
+  const sourcesRef = import_react34.default.useRef(null);
+  const toastTimer = import_react34.default.useRef(0);
+  const captureReadoutRef = import_react34.default.useRef(null);
+  const commandChainRef = import_react34.default.useRef(Promise.resolve());
+  const commandRef = import_react34.default.useRef(null);
+  const selectionApiRef = import_react34.default.useRef(null);
+  const accessRef = import_react34.default.useRef(null);
+  const analysisRef = import_react34.default.useRef({ operation: null, layerId: null, layerName: null, entities: [], restore: null });
+  const analysisCommandRef = import_react34.default.useRef(null);
+  const shaderEntriesRef = import_react34.default.useRef(/* @__PURE__ */ new Map());
+  const shaderTickRef = import_react34.default.useRef(null);
+  const readyGateRef = import_react34.default.useRef({ ready: false, error: null, waiters: [] });
+  const healthSeqRef = import_react34.default.useRef(0);
+  const sessionRef = import_react34.default.useRef(sessionId);
   sessionRef.current = sessionId;
-  const [phase, setPhase] = import_react32.default.useState("loading");
-  const [error, setError] = import_react32.default.useState("");
-  const [layers, setLayers] = import_react32.default.useState([]);
-  const [sources, setSources] = import_react32.default.useState(null);
-  const [defaults, setDefaults] = import_react32.default.useState(null);
-  const [tool, setTool] = import_react32.default.useState("identify");
-  const [fps, setFps] = import_react32.default.useState(null);
-  const [fullscreen, setFullscreen] = import_react32.default.useState(false);
-  const [stats, setStats] = import_react32.default.useState(null);
-  const [pickInfo, setPickInfo] = import_react32.default.useState(null);
-  const [measureInfo, setMeasureInfo] = import_react32.default.useState(null);
-  const [vectorSelection, setVectorSelection] = import_react32.default.useState(null);
-  const [scan, setScan] = import_react32.default.useState(null);
-  const [emptyDismissed, setEmptyDismissed] = import_react32.default.useState(false);
-  const [restoringScene, setRestoringScene] = import_react32.default.useState(false);
-  const [urlBar, setUrlBar] = import_react32.default.useState(false);
-  const [urlInput, setUrlInput] = import_react32.default.useState("");
-  const [busy, setBusy] = import_react32.default.useState("");
-  const [toast, setToast] = import_react32.default.useState("");
-  const [openMenu, setOpenMenu] = import_react32.default.useState(null);
-  const [recentDirs, setRecentDirs] = import_react32.default.useState([]);
-  const [accessRequest, setAccessRequest] = import_react32.default.useState(null);
-  const [accessBusy, setAccessBusy] = import_react32.default.useState(false);
-  const [analysis, setAnalysis] = import_react32.default.useState(null);
-  const [shaderOpen, setShaderOpen] = import_react32.default.useState(false);
-  const [showTools, setShowTools] = import_react32.default.useState(true);
-  const [shaderActive, setShaderActive] = import_react32.default.useState([]);
-  const [shaderForm, setShaderForm] = import_react32.default.useState({
+  const [phase, setPhase] = import_react34.default.useState("loading");
+  const [error, setError] = import_react34.default.useState("");
+  const [layers, setLayers] = import_react34.default.useState([]);
+  const [sources, setSources] = import_react34.default.useState(null);
+  const [defaults, setDefaults] = import_react34.default.useState(null);
+  const [tool, setTool] = import_react34.default.useState("identify");
+  const [fps, setFps] = import_react34.default.useState(null);
+  const [fullscreen, setFullscreen] = import_react34.default.useState(false);
+  const [stats, setStats] = import_react34.default.useState(null);
+  const [pickInfo, setPickInfo] = import_react34.default.useState(null);
+  const [measureInfo, setMeasureInfo] = import_react34.default.useState(null);
+  const [vectorSelection, setVectorSelection] = import_react34.default.useState(null);
+  const [scan, setScan] = import_react34.default.useState(null);
+  const [emptyDismissed, setEmptyDismissed] = import_react34.default.useState(false);
+  const [restoringScene, setRestoringScene] = import_react34.default.useState(false);
+  const [urlBar, setUrlBar] = import_react34.default.useState(false);
+  const [urlInput, setUrlInput] = import_react34.default.useState("");
+  const [busy, setBusy] = import_react34.default.useState("");
+  const [toast, setToast] = import_react34.default.useState("");
+  const [openMenu, setOpenMenu] = import_react34.default.useState(null);
+  const [recentDirs, setRecentDirs] = import_react34.default.useState([]);
+  const [accessRequest, setAccessRequest] = import_react34.default.useState(null);
+  const [accessBusy, setAccessBusy] = import_react34.default.useState(false);
+  const [analysis, setAnalysis] = import_react34.default.useState(null);
+  const [shaderOpen, setShaderOpen] = import_react34.default.useState(false);
+  const [showTools, setShowTools] = import_react34.default.useState(true);
+  const [shaderActive, setShaderActive] = import_react34.default.useState([]);
+  const [shaderForm, setShaderForm] = import_react34.default.useState({
     layerId: "",
     preset: "height-false-color",
     minHeight: "",
@@ -15306,15 +15551,15 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     waterHeight: "",
     depthMax: ""
   });
-  const [settingsOpen, setSettingsOpen] = import_react32.default.useState(false);
-  const [health, setHealth] = import_react32.default.useState(null);
-  const [terrainBusy, setTerrainBusy] = import_react32.default.useState(false);
-  const [terrainError, setTerrainError] = import_react32.default.useState("");
-  const [imageryBusy, setImageryBusy] = import_react32.default.useState(false);
-  const [meta, setMeta] = import_react32.default.useState(null);
-  const [bridgeOn, setBridgeOn] = import_react32.default.useState(false);
-  const [bridgeReload, setBridgeReload] = import_react32.default.useState(false);
-  const [bridgeEpoch, setBridgeEpoch] = import_react32.default.useState(0);
+  const [settingsOpen, setSettingsOpen] = import_react34.default.useState(false);
+  const [health, setHealth] = import_react34.default.useState(null);
+  const [terrainBusy, setTerrainBusy] = import_react34.default.useState(false);
+  const [terrainError, setTerrainError] = import_react34.default.useState("");
+  const [imageryBusy, setImageryBusy] = import_react34.default.useState(false);
+  const [meta, setMeta] = import_react34.default.useState(null);
+  const [bridgeOn, setBridgeOn] = import_react34.default.useState(false);
+  const [bridgeReload, setBridgeReload] = import_react34.default.useState(false);
+  const [bridgeEpoch, setBridgeEpoch] = import_react34.default.useState(0);
   const themeMode = sources?.settings?.theme ?? "auto";
   const resolvedDark = themeMode === "auto" ? environmentDark : themeMode === "dark";
   const showLayers = sources?.settings?.showLayers !== false;
@@ -15371,8 +15616,8 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     setLayers(layersRef.current.map((layer) => ({ id: layer.id, name: layer.name, visible: layer.visible, kind: layer.kind, georefIssue: layer.georefIssue })));
     markSceneDirty();
   };
-  const saveChainRef = import_react32.default.useRef(Promise.resolve());
-  const saveSeqRef = import_react32.default.useRef(0);
+  const saveChainRef = import_react34.default.useRef(Promise.resolve());
+  const saveSeqRef = import_react34.default.useRef(0);
   const commitSources = (next, notify) => {
     const previous = sourcesRef.current;
     sourcesRef.current = next;
@@ -15545,8 +15790,8 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
       )
     ]);
   }
-  const imagerySeqRef = import_react32.default.useRef(0);
-  const terrainSeqRef = import_react32.default.useRef(0);
+  const imagerySeqRef = import_react34.default.useRef(0);
+  const terrainSeqRef = import_react34.default.useRef(0);
   async function applyImagery(id, notify) {
     const Cesium = cesiumRef.current;
     const viewer = viewerRef.current;
@@ -15791,7 +16036,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     descriptor.summary = state.entities.map((entity) => entity.label?.text?.getValue?.()).filter(Boolean).join(" · ");
     vectorRef.current.refresh(descriptor);
   }
-  const agentOverlayRef = import_react32.default.useRef({
+  const agentOverlayRef = import_react34.default.useRef({
     draw: [],
     measure: [],
     drawnFeatures: 0,
@@ -15802,7 +16047,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     // Entities per command (WeakMap keeps snapshots JSON-clean).
     entityGroups: /* @__PURE__ */ new WeakMap()
   });
-  const [agentOverlayCount, setAgentOverlayCount] = import_react32.default.useState(0);
+  const [agentOverlayCount, setAgentOverlayCount] = import_react34.default.useState(0);
   const syncAgentOverlayCount = () => {
     const state = agentOverlayRef.current;
     setAgentOverlayCount(state.draw.length + state.measure.length);
@@ -16190,9 +16435,9 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
   const shaderActiveList = () => shaderEngine.activeList();
   const detachShaderForLayer = (id, restore) => shaderEngine.detachForLayer(id, restore);
   const releaseShaderTick = () => shaderEngine.releaseTick();
-  const sceneDirtyRef = import_react32.default.useRef(false);
-  const restoringRef = import_react32.default.useRef(false);
-  const sceneRestoredRef = import_react32.default.useRef(false);
+  const sceneDirtyRef = import_react34.default.useRef(false);
+  const restoringRef = import_react34.default.useRef(false);
+  const sceneRestoredRef = import_react34.default.useRef(false);
   const hostSceneStore = createHostSceneStore({
     getMeta: () => metaRef.current,
     loadMeta,
@@ -16403,7 +16648,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     drawVectorLabels: (context, width, height) => vectorRef.current?.drawLabels(context, width, height)
   });
   const { renderSnapshot, screenshot, captureScene } = capture;
-  const selectionController = import_react32.default.useMemo(() => createSelectionController({
+  const selectionController = import_react34.default.useMemo(() => createSelectionController({
     getViewer: () => viewerRef.current,
     getCesium: () => cesiumRef.current,
     getLayers: () => layersRef.current,
@@ -16703,7 +16948,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
   });
   const runCommand = (action, args = {}, session = null) => commandBridge.runCommand(action, args, session);
   commandRef.current = runCommand;
-  import_react32.default.useEffect(() => {
+  import_react34.default.useEffect(() => {
     if (!sessionId || !meta?.bridgeUrl) return void 0;
     const bridgeSession = sessionId;
     const endpoint = `${meta.bridgeUrl}?token=${encodeURIComponent(meta.token)}&session=${encodeURIComponent(bridgeSession)}`;
@@ -16812,7 +17057,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
       }
     };
   }, [sessionId, meta, bridgeEpoch]);
-  import_react32.default.useEffect(
+  import_react34.default.useEffect(
     () => () => {
       const current = accessRef.current;
       if (!current) return;
@@ -16822,7 +17067,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     },
     []
   );
-  import_react32.default.useEffect(() => {
+  import_react34.default.useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
@@ -16950,7 +17195,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
       layersRef.current = [];
     };
   }, []);
-  import_react32.default.useEffect(() => {
+  import_react34.default.useEffect(() => {
     if (phase !== "ready" || sceneRestoredRef.current) return void 0;
     if (typeof sessionId !== "string" || sessionId === "") return void 0;
     sceneRestoredRef.current = true;
@@ -16964,7 +17209,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
       cancelled = true;
     };
   }, [phase, sessionId]);
-  import_react32.default.useEffect(() => {
+  import_react34.default.useEffect(() => {
     const timer = setInterval(() => {
       if (sceneDirtyRef.current) saveSceneSnapshot();
     }, 3e3);
@@ -16982,7 +17227,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
       document.removeEventListener("visibilitychange", onVisibility);
     };
   }, []);
-  import_react32.default.useEffect(() => {
+  import_react34.default.useEffect(() => {
     if (!openMenu) return void 0;
     const close = (event) => {
       if (!menuRef.current?.contains(event.target)) setOpenMenu(null);
@@ -16990,10 +17235,10 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     document.addEventListener("pointerdown", close, true);
     return () => document.removeEventListener("pointerdown", close, true);
   }, [openMenu]);
-  import_react32.default.useEffect(() => {
+  import_react34.default.useEffect(() => {
     if (openMenu === "data" || showLayers) refreshRecentDirs();
   }, [openMenu, showLayers, meta?.directoriesUrl]);
-  import_react32.default.useEffect(() => {
+  import_react34.default.useEffect(() => {
     if (phase !== "ready") return void 0;
     const element = globeRef.current;
     if (!element || typeof ResizeObserver === "undefined") return void 0;
@@ -17006,7 +17251,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     observer.observe(element);
     return () => observer.disconnect();
   }, [phase]);
-  import_react32.default.useEffect(() => {
+  import_react34.default.useEffect(() => {
     const onChange = () => {
       setFullscreen(document.fullscreenElement === rootRef.current);
       try {
@@ -17017,7 +17262,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     document.addEventListener("fullscreenchange", onChange);
     return () => document.removeEventListener("fullscreenchange", onChange);
   }, []);
-  import_react32.default.useEffect(() => {
+  import_react34.default.useEffect(() => {
     if (phase !== "ready") return void 0;
     const viewer = viewerRef.current;
     if (!viewer) return void 0;
@@ -17070,7 +17315,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
       canvas.removeEventListener("webglcontextrestored", onRestored);
     };
   }, [phase]);
-  import_react32.default.useEffect(() => {
+  import_react34.default.useEffect(() => {
     if (!scan) return void 0;
     const onKey = (event) => {
       if (event.key === "Escape") setScan(null);
@@ -17079,7 +17324,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     return () => document.removeEventListener("keydown", onKey);
   }, [scan]);
   const measureMode = tool === "distance" || tool === "area" || tool === "height" || tool === "profile";
-  import_react32.default.useEffect(() => {
+  import_react34.default.useEffect(() => {
     if (!measureMode) return void 0;
     const onKey = (event) => {
       if (event.key === "Escape") finishMeasure();
@@ -17087,7 +17332,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [measureMode]);
-  import_react32.default.useEffect(() => {
+  import_react34.default.useEffect(() => {
     if (phase !== "ready") return void 0;
     let lastKey = "";
     const timer = setInterval(() => {
@@ -17099,7 +17344,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     }, 1e3);
     return () => clearInterval(timer);
   }, [phase]);
-  import_react32.default.useEffect(() => {
+  import_react34.default.useEffect(() => {
     const viewer = viewerRef.current;
     const Cesium = cesiumRef.current;
     if (phase !== "ready" || !viewer || !Cesium) return;
@@ -17108,12 +17353,12 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     if (viewer.scene.skyAtmosphere) viewer.scene.skyAtmosphere.show = resolvedDark;
     viewer.scene.requestRender?.();
   }, [phase, resolvedDark]);
-  const button = (label, onClick, active, extra, title) => h28(
+  const button = (label, onClick, active, extra, title) => h30(
     "button",
     { type: "button", className: `mv-btn${active ? " on" : ""}${extra ? ` ${extra}` : ""}`, onClick, title },
     label
   );
-  const iconButton = (icon, title, onClick, active) => h28(
+  const iconButton = (icon, title, onClick, active) => h30(
     "button",
     {
       type: "button",
@@ -17125,11 +17370,11 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     },
     icon
   );
-  const menu = (id, label, items, active) => h28(
+  const menu = (id, label, items, active) => h30(
     "div",
     { key: id, className: "mv-menu" },
     button(`${label} ▾`, () => setOpenMenu(openMenu === id ? null : id), active),
-    openMenu === id ? h28("div", { className: "mv-menu-panel mv-glass" }, items) : null
+    openMenu === id ? h30("div", { className: "mv-menu-panel mv-glass" }, items) : null
   );
   const status = busy || (phase === "loading" ? t2("panel.status.loading") : t2("panel.status.ready"));
   const hudLabels = {
@@ -17168,7 +17413,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     getViewer: () => viewerRef.current,
     getOverlayLayers: () => overlayLayersRef.current
   });
-  return h28(
+  return h30(
     "div",
     {
       ref: rootRef,
@@ -17194,42 +17439,42 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
         );
       }
     },
-    h28("style", { key: "css" }, CSS),
-    h28("div", { key: "globe", ref: globeRef, className: "mv-globe" }),
-    activeImagery?.credit ? h28("div", { key: "attr", className: "mv-attr" }, `${t2("credit.imagery")} © ${activeImagery.credit}`) : null,
-    h28("div", { key: "credits", ref: creditRef, className: "mv-credits" }),
-    h28(Compass, { key: "compass", getViewer: () => viewerRef.current, t: t2 }),
-    h28(
+    h30("style", { key: "css" }, CSS),
+    h30("div", { key: "globe", ref: globeRef, className: "mv-globe" }),
+    activeImagery?.credit ? h30("div", { key: "attr", className: "mv-attr" }, `${t2("credit.imagery")} © ${activeImagery.credit}`) : null,
+    h30("div", { key: "credits", ref: creditRef, className: "mv-credits" }),
+    h30(Compass, { key: "compass", getViewer: () => viewerRef.current, t: t2 }),
+    h30(
       "div",
       { key: "top", className: "mv-top" },
-      h28(
+      h30(
         "div",
         { className: "mv-brand mv-glass" },
-        h28(ViewerIcon, { size: 18 }),
-        h28("b", null, t2("panel.title")),
-        h28("span", null, status)
+        h30(ViewerIcon, { size: 18 }),
+        h30("b", null, t2("panel.title")),
+        h30("span", null, status)
       ),
-      h28(
+      h30(
         "div",
         { ref: menuRef, className: "mv-actions mv-glass" },
         menu(
           "data",
           t2("btn.data"),
           [
-            h28(MenuItem, { key: "local", onClick: pickLocal }, t2("btn.openLocal")),
-            recentDirs.length ? h28(
-              import_react32.default.Fragment,
+            h30(MenuItem, { key: "local", onClick: pickLocal }, t2("btn.openLocal")),
+            recentDirs.length ? h30(
+              import_react34.default.Fragment,
               { key: "recent" },
-              h28("span", { className: "mv-menu-label" }, t2("menu.recentDirs")),
+              h30("span", { className: "mv-menu-label" }, t2("menu.recentDirs")),
               ...recentDirs.map(
-                (entry) => h28(
+                (entry) => h30(
                   MenuItem,
                   { key: entry.dir, title: entry.dir, onClick: () => openRecentDirectory(entry.dir) },
-                  h28("span", { className: "ellipsis" }, entry.name)
+                  h30("span", { className: "ellipsis" }, entry.name)
                 )
               )
             ) : null,
-            agentOverlayCount > 0 ? h28(
+            agentOverlayCount > 0 ? h30(
               MenuItem,
               {
                 key: "clearAgent",
@@ -17241,7 +17486,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
               },
               t2("menu.clearAgent")
             ) : null,
-            h28(
+            h30(
               MenuItem,
               {
                 key: "url",
@@ -17252,7 +17497,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
               },
               t2("btn.openUrl")
             ),
-            h28(
+            h30(
               MenuItem,
               {
                 key: "report",
@@ -17268,8 +17513,8 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
               },
               t2("menu.report")
             ),
-            h28("i", { key: "sep", className: "mv-sep", style: { width: "auto", height: ".5px", margin: "4px 8px" } }),
-            h28(
+            h30("i", { key: "sep", className: "mv-sep", style: { width: "auto", height: ".5px", margin: "4px 8px" } }),
+            h30(
               MenuItem,
               {
                 key: "clear",
@@ -17284,8 +17529,8 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
             )
           ]
         ),
-        h28("i", { key: "s1", className: "mv-sep" }),
-        h28(ToolbarQuick, {
+        h30("i", { key: "s1", className: "mv-sep" }),
+        h30(ToolbarQuick, {
           t: t2,
           showLayers,
           showTools,
@@ -17294,13 +17539,13 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
           button
         }),
         iconButton(
-          h28(HudIcon),
+          h30(HudIcon),
           showHud ? t2("btn.hudHide") : t2("btn.hudShow"),
           () => updateSettings({ showHud: !showHud }),
           showHud
         ),
         iconButton(
-          h28(ShaderIcon),
+          h30(ShaderIcon),
           shaderOpen ? t2("btn.shaderHide") : t2("btn.shaderShow"),
           () => setShaderOpen((value) => !value),
           shaderOpen
@@ -17312,21 +17557,21 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
         // narrow panel the text labels were what wrapped the toolbar onto a
         // second row. The four dropdown menus keep their text labels because a
         // bare icon does not tell the user what the menu contains.
-        iconButton(h28(ScreenshotIcon), t2("btn.screenshot"), screenshot),
-        sessionId ? iconButton(h28(AskAgentIcon), t2("btn.askAgent"), askAgent) : null,
-        iconButton(h28(ResetIcon), t2("btn.reset"), resetView),
+        iconButton(h30(ScreenshotIcon), t2("btn.screenshot"), screenshot),
+        sessionId ? iconButton(h30(AskAgentIcon), t2("btn.askAgent"), askAgent) : null,
+        iconButton(h30(ResetIcon), t2("btn.reset"), resetView),
         // Only the main panel offers "open beside chat"; the docked tab is
         // already beside the conversation.
         docked ? null : button(t2("btn.beside"), openBeside),
         // Single fullscreen entry point for both mounts (DOM Fullscreen API).
         // Expanding the sidebar is DSH's own feature, so the duplicate
         // "maximize sidebar" action is gone.
-        iconButton(h28(FullscreenIcon), fullscreen ? t2("btn.fullscreenExit") : t2("btn.fullscreenTitle"), toggleDomFullscreen, fullscreen),
-        h28("i", { key: "s3", className: "mv-sep" }),
-        h28(ToolbarMenus, { t: t2, themeMode, resolvedDark, openMenu, setOpenMenu, setTheme, setSettingsOpen })
+        iconButton(h30(FullscreenIcon), fullscreen ? t2("btn.fullscreenExit") : t2("btn.fullscreenTitle"), toggleDomFullscreen, fullscreen),
+        h30("i", { key: "s3", className: "mv-sep" }),
+        h30(ToolbarMenus, { t: t2, themeMode, resolvedDark, openMenu, setOpenMenu, setTheme, setSettingsOpen })
       )
     ),
-    urlBar ? h28(UrlBar, {
+    urlBar ? h30(UrlBar, {
       key: "urlbar",
       value: urlInput,
       placeholder: t2("urlbar.placeholder"),
@@ -17335,7 +17580,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
       onSubmit: submitUrl,
       onClose: () => setUrlBar(false)
     }) : null,
-    shaderOpen ? h28(ShaderWorkbench, {
+    shaderOpen ? h30(ShaderWorkbench, {
       key: "shader",
       t: t2,
       layers,
@@ -17358,7 +17603,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
       onResetAll: workbench.resetAll
     }) : null,
     // v1.7 P0: 指认 card + corner brackets (panel-only) and the tour bar.
-    h28(SelectionOverlay, {
+    h30(SelectionOverlay, {
       key: "selection",
       active: tool === "identify",
       apiRef: selectionApiRef,
@@ -17383,7 +17628,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     tour.element,
     swipe.element,
     sceneDetails.element,
-    h28(RightStack, {
+    h30(RightStack, {
       t: t2,
       analysis,
       onCloseAnalysis: () => clearAnalysis(),
@@ -17472,7 +17717,6 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
           saveSceneSnapshot(true);
           return removed + (manual ? 1 : 0);
         },
-        onAskAgent: askAgent,
         onAskSelection: (options) => askAgentService.askSelection(options),
         onVisionSelect: () => {
           selectionApiRef.current?.requestVision?.();
@@ -17481,13 +17725,13 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
         }
       }
     }),
-    phase === "ready" && layers.length === 0 && !emptyDismissed && !restoringScene ? h28(
+    phase === "ready" && layers.length === 0 && !emptyDismissed && !restoringScene ? h30(
       "div",
       { key: "empty", className: "mv-overlay" },
-      h28(
+      h30(
         "div",
         { className: "mv-empty" },
-        h28(
+        h30(
           "button",
           {
             type: "button",
@@ -17498,35 +17742,35 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
           },
           "✕"
         ),
-        h28(ViewerIcon, { size: 30 }),
-        h28("h2", null, t2("panel.empty.title")),
-        h28("p", null, t2("panel.empty.body")),
-        h28(
+        h30(ViewerIcon, { size: 30 }),
+        h30("h2", null, t2("panel.empty.title")),
+        h30("p", null, t2("panel.empty.body")),
+        h30(
           "div",
           { className: "buttons" },
-          h28("button", { type: "button", className: "mv-cta primary", onClick: pickLocal }, t2("panel.empty.local")),
-          h28("button", { type: "button", className: "mv-cta", onClick: () => setUrlBar(true) }, t2("panel.empty.url"))
+          h30("button", { type: "button", className: "mv-cta primary", onClick: pickLocal }, t2("panel.empty.local")),
+          h30("button", { type: "button", className: "mv-cta", onClick: () => setUrlBar(true) }, t2("panel.empty.url"))
         )
       )
     ) : null,
-    phase === "loading" ? h28("div", { key: "loading", className: "mv-overlay dim", role: "status" }, h28("div", { className: "mv-empty" }, h28(LoadingGlobe), h28("p", null, t2("panel.status.loading")))) : null,
-    phase === "error" ? h28(
+    phase === "loading" ? h30("div", { key: "loading", className: "mv-overlay dim", role: "status" }, h30("div", { className: "mv-empty" }, h30(LoadingGlobe), h30("p", null, t2("panel.status.loading")))) : null,
+    phase === "error" ? h30(
       "div",
       { key: "error", className: "mv-overlay dim" },
-      h28(
+      h30(
         "div",
         { className: "mv-empty" },
-        h28("h2", null, "⚠"),
-        h28("p", null, error),
-        h28("div", { className: "buttons" }, h28("button", { type: "button", className: "mv-cta", onClick: () => location.reload() }, t2("btn.retry")))
+        h30("h2", null, "⚠"),
+        h30("p", null, error),
+        h30("div", { className: "buttons" }, h30("button", { type: "button", className: "mv-cta", onClick: () => location.reload() }, t2("btn.retry")))
       )
     ) : null,
-    stats && showHud ? h28(StatusHud, { key: "hud", fps, stats, viewerRef, cesiumRef, labels: hudLabels, readoutRef: captureReadoutRef, detailed: hudDetailed }) : null,
-    measureInfo ? h28(
+    stats && showHud ? h30(StatusHud, { key: "hud", fps, stats, viewerRef, cesiumRef, labels: hudLabels, readoutRef: captureReadoutRef, detailed: hudDetailed }) : null,
+    measureInfo ? h30(
       "div",
       { key: "measure", className: "mv-measure mv-glass" },
-      h28("span", { className: "text" }, measureInfo.text),
-      h28(
+      h30("span", { className: "text" }, measureInfo.text),
+      h30(
         "button",
         {
           type: "button",
@@ -17538,32 +17782,32 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
         measureMode ? t2("measure.end") : t2("tool.clear")
       )
     ) : null,
-    h28(VectorCard, { key: "vector-selection", selection: vectorSelection, onClose: () => vectorRef.current?.clearSelection(), t: t2 }),
-    pickInfo && !vectorSelection ? h28(
+    h30(VectorCard, { key: "vector-selection", selection: vectorSelection, onClose: () => vectorRef.current?.clearSelection(), t: t2 }),
+    pickInfo && !vectorSelection ? h30(
       "div",
       { key: "pick", className: "mv-pick mv-glass" },
-      h28(
+      h30(
         "header",
         null,
-        h28("span", null, pickInfo.title),
-        h28(
+        h30("span", null, pickInfo.title),
+        h30(
           "button",
           { type: "button", className: "mv-icon-btn", onClick: () => setPickInfo(null), title: t2("btn.close") },
           "✕"
         )
       ),
-      h28(
+      h30(
         "table",
         null,
-        h28(
+        h30(
           "tbody",
           null,
-          pickInfo.rows.map(([name, value]) => h28("tr", { key: name }, h28("td", null, name), h28("td", null, value)))
+          pickInfo.rows.map(([name, value]) => h30("tr", { key: name }, h30("td", null, name), h30("td", null, value)))
         )
       )
     ) : null,
-    toast ? h28("div", { key: "toast", className: "mv-toast" }, toast) : null,
-    scan ? h28(ScanDialog, {
+    toast ? h30("div", { key: "toast", className: "mv-toast" }, toast) : null,
+    scan ? h30(ScanDialog, {
       key: "scan",
       scan,
       t: t2,
@@ -17573,7 +17817,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
         path: joinLocalPath(scan.dir, item.name)
       })
     }) : null,
-    health ? h28(HealthDialog, {
+    health ? h30(HealthDialog, {
       key: "health",
       state: health,
       messages: t2,
@@ -17589,7 +17833,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
         }
       }
     }) : null,
-    settingsOpen && sources && defaults ? h28(SourcesDialog, {
+    settingsOpen && sources && defaults ? h30(SourcesDialog, {
       key: "settings",
       config: sources,
       defaults,
@@ -17603,7 +17847,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
       onSave: saveSources,
       onClose: () => setSettingsOpen(false)
     }) : null,
-    accessRequest ? h28(PathAccessDialog, {
+    accessRequest ? h30(PathAccessDialog, {
       key: "access",
       request: accessRequest,
       busy: accessBusy,
@@ -17611,29 +17855,29 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
       onAllow: allowPathAccess,
       onDeny: () => settleAccess({ allowed: false, message: t2("access.denied") })
     }) : null,
-    imageryBusy || terrainBusy ? h28("div", { key: "busy", className: "mv-measure mv-glass", style: { bottom: "44px" } }, t2("toast.loadingData")) : null
+    imageryBusy || terrainBusy ? h30("div", { key: "busy", className: "mv-measure mv-glass", style: { bottom: "44px" } }, t2("toast.loadingData")) : null
   );
 }
 
 // src/client/ui/layout.js
-var h29 = import_react33.default.createElement;
+var h31 = import_react35.default.createElement;
 function ViewerPanel(props) {
-  return h29(ViewerSurface, { t: props.t, sessionId: null, docked: false });
+  return h31(ViewerSurface, { t: props.t, sessionId: null, docked: false });
 }
 function EarthTabBody(props) {
   const info = typeof props.useTabInfo === "function" ? props.useTabInfo() : null;
   const sessionId = props.sessionId ?? info?.tab?.sessionId ?? info?.sessionId ?? null;
-  return h29(ViewerSurface, { t: props.t, sessionId, docked: true });
+  return h31(ViewerSurface, { t: props.t, sessionId, docked: true });
 }
 
 // src/client/ui/tool-row.js
-var import_react34 = __toESM(require("react"), 1);
-var h30 = import_react34.default.createElement;
+var import_react36 = __toESM(require("react"), 1);
+var h32 = import_react36.default.createElement;
 function HeaderButton(props) {
   const fallbackT = useTranslation();
   const t2 = typeof props.t === "function" ? props.t : fallbackT;
-  const [hover, setHover] = import_react34.default.useState(false);
-  return h30(
+  const [hover, setHover] = import_react36.default.useState(false);
+  return h32(
     "button",
     {
       type: "button",
@@ -17660,7 +17904,7 @@ function HeaderButton(props) {
       onMouseEnter: () => setHover(true),
       onMouseLeave: () => setHover(false)
     },
-    h30(ViewerIcon, { size: 16 })
+    h32(ViewerIcon, { size: 16 })
   );
 }
 var ensureToolCss = () => {
@@ -17717,8 +17961,8 @@ var TOOL_SUMMARY_KEYS = {
 var AUTO_OPENED_CALLS = /* @__PURE__ */ new Set();
 function EarthToolRow({ toolName, phase, block, callId }) {
   const t2 = useTranslation();
-  const openedRef = import_react34.default.useRef(false);
-  import_react34.default.useEffect(() => {
+  const openedRef = import_react36.default.useRef(false);
+  import_react36.default.useEffect(() => {
     if (phase === "result" || openedRef.current) return;
     if (typeof callId === "string" && AUTO_OPENED_CALLS.has(callId)) return;
     if (!readAutoOpen()) return;
@@ -17732,8 +17976,8 @@ function EarthToolRow({ toolName, phase, block, callId }) {
     } catch {
     }
   }, [phase, callId]);
-  const [thumbUrl, setThumbUrl] = import_react34.default.useState("");
-  import_react34.default.useEffect(() => {
+  const [thumbUrl, setThumbUrl] = import_react36.default.useState("");
+  import_react36.default.useEffect(() => {
     if (toolName !== "earth_capture" || phase !== "result" || block?.isError === true) return void 0;
     const content = Array.isArray(block?.content) ? block.content : [];
     const text = content.filter((part) => part?.type === "text" && typeof part.text === "string").map((part) => part.text).join("\n");
@@ -17756,14 +18000,14 @@ function EarthToolRow({ toolName, phase, block, callId }) {
   const failure = state === "error" ? resultFirstLine(block) : "";
   const summaryKey = toolName === "earth_scene" ? SCENE_ACTION_KEYS[action] ?? "tool.action.generic" : TOOL_SUMMARY_KEYS[toolName] ?? "tool.action.generic";
   const summary = failure !== "" ? failure : t2(summaryKey);
-  return h30(
+  return h32(
     "div",
     { className: "mv-toolrow", "data-state": state, "data-tool": toolName },
-    h30("span", { className: "glyph", "aria-hidden": true }, h30(ViewerIcon, { size: 14 })),
-    h30("span", { className: "title" }, t2("panel.title")),
-    h30("span", { className: "sep", "aria-hidden": true }),
-    h30("span", { className: "summary", title: failure !== "" ? failure : void 0 }, summary),
-    thumbUrl === "" ? null : h30(
+    h32("span", { className: "glyph", "aria-hidden": true }, h32(ViewerIcon, { size: 14 })),
+    h32("span", { className: "title" }, t2("panel.title")),
+    h32("span", { className: "sep", "aria-hidden": true }),
+    h32("span", { className: "summary", title: failure !== "" ? failure : void 0 }, summary),
+    thumbUrl === "" ? null : h32(
       "a",
       {
         className: "thumb",
@@ -17772,9 +18016,9 @@ function EarthToolRow({ toolName, phase, block, callId }) {
         rel: "noopener noreferrer",
         title: t2("tool.thumbOpen")
       },
-      h30("img", { src: thumbUrl, alt: "", loading: "lazy" })
+      h32("img", { src: thumbUrl, alt: "", loading: "lazy" })
     ),
-    h30(
+    h32(
       "button",
       { type: "button", className: "open", title: t2("tool.openTip"), onClick: openEarthPanel },
       t2("tool.open")
@@ -17783,7 +18027,7 @@ function EarthToolRow({ toolName, phase, block, callId }) {
 }
 
 // src/client/plugin.js
-var h31 = import_react35.default.createElement;
+var h33 = import_react37.default.createElement;
 var plugin = {
   inject: ["slots", "uiWorkspace", "locale", "theme"],
   apply(ctx) {
@@ -17834,7 +18078,7 @@ var plugin = {
       "conversation.session.header.utilities",
       () => ctx.slots.register(
         { name: "conversation.session.header.utilities", id: "digital-earth-open", order: -1, locale: NS },
-        (props) => h31(HeaderButton, { ...props, onOpen: openEarthPanel })
+        (props) => h33(HeaderButton, { ...props, onOpen: openEarthPanel })
       )
     );
     ctx.inject(["betterSidebar"], (betterScope) => {
@@ -17845,12 +18089,12 @@ var plugin = {
           id: "dsh-digital-earth",
           title: () => translate2("panel.title"),
           description: () => translate2("panel.description"),
-          icon: (size) => h31(ViewerIcon, { size }),
+          icon: (size) => h33(ViewerIcon, { size }),
           order: 15,
           // One Digital Earth pane per session: clicking the start-page card
           // again should focus the existing tab, never stack duplicates.
           single: true,
-          component: ({ scope: tabScope }) => h31(EarthTabBody, { t: translate2, sessionId: tabScope?.sessionId ?? null })
+          component: ({ scope: tabScope }) => h33(EarthTabBody, { t: translate2, sessionId: tabScope?.sessionId ?? null })
         }),
         "dsh-digital-earth: better-sidebar tab"
       );

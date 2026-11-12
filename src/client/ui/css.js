@@ -197,8 +197,8 @@ import { SELECTION_QUESTION_CSS } from './selection-question-css.js'
 .mv-icon-btn{appearance:none;border:0;background:transparent;color:var(--mv-dim);width:26px;height:26px;border-radius:7px;cursor:pointer;font:inherit;font-size:14px;line-height:1;display:inline-flex;align-items:center;justify-content:center;flex:none}
 .mv-layer{gap:3px;padding:5px 7px}
 .mv-layer .mv-icon-btn{font-size:15px}
-/* Layer panel v1.6: four groups (L1 terrain / L2 basemap / L3 raster / L4 vector)
-   plus the 3D Tiles list. */
+/* Layer panel v1.6: four groups (L1 terrain / L2 vector / L3 raster / L4 imagery)
+   plus the 3D Tiles list. The imagery group folds because one source is normally in use. */
 .mv-group{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:13px 4px 5px;margin-top:3px;border-top:.5px solid var(--mv-line)}
 .mv-group-actions{display:inline-flex;align-items:center;gap:4px;flex:none}
 .mv-add3d-menu .mv-cta{text-align:left;width:100%}
@@ -212,6 +212,14 @@ import { SELECTION_QUESTION_CSS } from './selection-question-css.js'
 .mv-choice.on .name{font-weight:600}
 .mv-choice:focus-visible,.mv-layers .mv-cta:focus-visible,.mv-layers .mv-icon-btn:focus-visible{outline:2px solid var(--mv-accent);outline-offset:1px}
 .mv-group .mv-cta{flex:none;font-size:11px;padding:5px 8px}
+/* Foldable group header (the imagery basemap list is long and rarely changed). */
+.mv-group-toggle{appearance:none;width:100%;display:flex;align-items:center;gap:8px;background:transparent;border:0;padding:0;margin:0;font:inherit;color:inherit;cursor:pointer;text-align:left}
+.mv-group-toggle .mv-group-title{flex:none}
+.mv-group-current{min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right;font-size:11px;color:var(--mv-dim);opacity:.85}
+.mv-group-chevron{flex:none;color:var(--mv-dim);font-size:13px;line-height:1;transform:rotate(90deg);transition:transform 160ms cubic-bezier(0.16,1,0.3,1)}
+.mv-group-chevron.open{transform:rotate(-90deg)}
+.mv-group-toggle:hover .mv-group-title,.mv-group-toggle:hover .mv-group-current{color:var(--mv-text)}
+.mv-group-toggle:focus-visible{outline:2px solid var(--mv-accent);outline-offset:2px;border-radius:6px}
 .mv-opacity{width:64px;flex:none;accent-color:var(--mv-accent)}
 .mv-overlay-row{gap:2px}
 .mv-none{padding:6px 8px 8px;font-size:11px;line-height:1.5;color:var(--mv-dim)}
@@ -480,6 +488,27 @@ import { SELECTION_QUESTION_CSS } from './selection-question-css.js'
 .mv-selection-modes .mv-cta{width:100%;padding:6px 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .mv-tools .mv-group-actions{display:flex;gap:6px}
 .mv-tools .mv-sun{margin:0}
+/* Toolbox v1.6: the card is an index of entry points; a tool opens as its own card. */
+.mv-tool-index{display:flex;flex-direction:column;gap:2px;padding:6px 8px 8px;overflow:auto;min-height:0;scrollbar-width:thin}
+.mv-tool-entry{appearance:none;display:flex;align-items:center;gap:9px;width:100%;border:.5px solid transparent;border-radius:9px;background:transparent;color:var(--mv-text);font:inherit;font-size:12px;padding:7px 8px;cursor:pointer;text-align:left}
+.mv-tool-entry:hover{background:color-mix(in srgb,var(--mv-lift) 82%,transparent)}
+.mv-tool-entry.on{background:color-mix(in srgb,var(--mv-accent) 12%,transparent);border-color:color-mix(in srgb,var(--mv-accent) 26%,transparent)}
+.mv-tool-entry:focus-visible{outline:2px solid var(--mv-accent);outline-offset:1px}
+.mv-tool-entry-icon{display:inline-flex;color:var(--mv-dim);flex:none}
+.mv-tool-entry.on .mv-tool-entry-icon{color:var(--mv-accent)}
+.mv-tool-entry-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mv-tool-entry-more{flex:none;color:var(--mv-dim);opacity:.7}
+.mv-toolwin{width:100%;flex:0 1 auto;min-height:0;display:flex;flex-direction:column;border-radius:13px;overflow:hidden}
+.mv-toolwin>header{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 12px;border-bottom:.5px solid var(--mv-line);flex-shrink:0;font-size:12px;font-weight:600;color:var(--mv-text)}
+.mv-toolwin.minimized>header{border-bottom:0}
+.mv-toolwin-title{display:inline-flex;align-items:center;gap:7px;min-width:0}
+.mv-toolwin-title>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mv-toolwin-body{display:flex;flex-direction:column;gap:6px;padding:8px 12px 10px;overflow:auto;min-height:0;overscroll-behavior:contain;scrollbar-width:thin}
+.mv-toolwin-body>.mv-tool-grid{margin:0}
+.mv-toolwin-body .mv-cta{border:.5px solid var(--mv-line);border-radius:8px;font-size:11px;line-height:1.4}
+.mv-toolwin-body .mv-cta[aria-pressed="true"]{border-color:var(--mv-accent);background:color-mix(in srgb,var(--mv-accent) 13%,var(--mv-glass))}
+.mv-toolwin-body .mv-group-title{margin-top:4px}
+.mv-root.mv-docked .mv-toolwin{max-height:none}
 .mv-bookmark-name{appearance:none;background:transparent;border:0;color:inherit;font:inherit;text-align:left;cursor:pointer;padding:4px 0}
 .mv-root :is(button,input,select,textarea):focus-visible{outline:2px solid var(--mv-accent);outline-offset:2px}
 .mv-data-panel{display:flex;flex-direction:column;min-height:0;overflow:auto;overscroll-behavior:contain}

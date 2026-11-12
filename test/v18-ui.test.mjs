@@ -171,7 +171,7 @@ test('两个 Tab + 指南针 + 日照/剖面接线都在源码里', () => {
   // Data tabs are separate modules; tools (profile/sun) live in the tools card.
   assert.match(readRepoFile('src/client/ui/layers-map.js'), /key: 'list-map'/)
   assert.match(readRepoFile('src/client/ui/layers-3d.js'), /key: 'list-3d'/)
-  const tools = readRepoFile('src/client/ui/tools-panel.js')
+  const tools = readRepoFile('src/client/ui/tool-windows.js')
   assert.match(tools, /t\('profile\.draw'\)/)
   assert.match(tools, /h\(SunTimeline,/)
   // IA guard: the layer card never grows tools back, the tools card never grows

@@ -2714,7 +2714,6 @@ const h = React.createElement
               saveSceneSnapshot(true)
               return removed + (manual ? 1 : 0)
             },
-            onAskAgent: askAgent,
             onAskSelection: (options) => askAgentService.askSelection(options),
             onVisionSelect: () => { selectionApiRef.current?.requestVision?.(); setToolMode(null); setShowTools(false) },
           },

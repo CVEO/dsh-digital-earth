@@ -1,10 +1,11 @@
 /**
  * ui/layers-map.js — the "地图" tab of the layer card: pure 2D data.
  *
- * Content: imagery basemap, raster overlays (WMS/XYZ/ArcGIS) and vector overlays
- * (Agent annotations + measurements). Terrain and 3D Tiles live in the 3D tab;
- * analysis/measure/sun/bookmarks live in the tools card, so this file never mixes
- * data layers with tools.
+ * Order follows what a map is built from: vector overlays (L2, the data users
+ * bring) → raster overlays (L3) → imagery basemap (L4, usually one pre-selected
+ * source, so the full list stays folded until asked for). Terrain and 3D Tiles live
+ * in the 3D tab; analysis/measure/sun/bookmarks live in the tool windows, so this
+ * file never mixes data layers with tools.
  */
 import React from 'react'
 
@@ -12,12 +13,21 @@ import { normalizeOverlayDraft } from '../scene/overlay-layers.js'
 import { readVectorFiles } from '../scene/vector-file.js'
 import { vectorErrorText } from '../scene/vector-errors.js'
 import { EyeIcon } from './icons.js'
+import { IMAGERY_OPEN_KEY, readPanelFlag, writePanelFlag } from './panel-prefs.js'
 
 const h = React.createElement
 
 const OVERLAY_TYPES = ['wms', 'xyz', 'arcgis']
 
 export { normalizeOverlayDraft }
+
+/** Name of the active basemap, shown on the folded group header. */
+export function imagerySummary(t, config, settings) {
+  const sources = Array.isArray(config?.imagery) ? config.imagery : []
+  if (settings?.imagery == null) return t('layers.imageryNone')
+  const active = sources.find((source) => source.id === settings.imagery)
+  return active?.name ?? String(settings.imagery)
+}
 
 export function LayersMap({
   t,
@@ -43,6 +53,7 @@ export function LayersMap({
   const [draft, setDraft] = React.useState({ type: 'wms', name: '', url: '', layers: '', opacity: 0.7 })
   const [error, setError] = React.useState('')
   const [vectorError, setVectorError] = React.useState('')
+  const [imageryOpen, setImageryOpen] = React.useState(() => readPanelFlag(IMAGERY_OPEN_KEY, false))
   const fileRef = React.useRef(null)
   const overlays = Array.isArray(config?.rasterOverlays) ? config.rasterOverlays : []
   const drawn = annotations?.drawn_features ?? 0
@@ -55,6 +66,14 @@ export function LayersMap({
       h('span', { className: 'name' }, label),
       h('span', { className: 'tick', 'aria-hidden': true }, active ? '✓' : ''),
     )
+
+  const toggleImagery = () => {
+    setImageryOpen((value) => {
+      const next = !value
+      writePanelFlag(IMAGERY_OPEN_KEY, next)
+      return next
+    })
+  }
 
   const submitDraft = () => {
     const next = normalizeOverlayDraft(draft)
@@ -71,11 +90,67 @@ export function LayersMap({
   return h(
     'div',
     { key: 'list-map', className: 'mv-layer-list' },
-    // ---- L2 imagery basemap ---------------------------------------------------
-    h('div', { key: 'g2', className: 'mv-group' }, h('div', { className: 'mv-group-title' }, t('layers.imagery'))),
-    radioRow('i-off', t('menu.none'), settings?.imagery == null, () => onSelectImagery(null)),
-    ...(config?.imagery ?? []).map((source) =>
-      radioRow(`i-${source.id}`, source.name, settings?.imagery === source.id, () => onSelectImagery(source.id)),
+    // ---- L2 vector overlays (2D data, not a 3D layer) --------------------------
+    h(
+      'div',
+      { key: 'g2', className: 'mv-group' },
+      h('div', { className: 'mv-group-title' }, t('layers.vector')),
+      h('button', { type: 'button', className: 'mv-cta', onClick: () => fileRef.current?.click() }, t('layers.importVector')),
+    ),
+    h('input', {
+      key: 'import-vector-input',
+      ref: fileRef,
+      type: 'file',
+      multiple: true,
+      accept: '.geojson,.json,.shp,.dbf,.prj,.cpg,application/geo+json,application/json',
+      hidden: true,
+      onChange: (event) => {
+        const files = Array.from(event.target.files ?? [])
+        event.target.value = ''
+        if (files.length === 0) return
+        void (async () => {
+          try {
+            const { parsed, name } = await readVectorFiles(files)
+            setVectorError('')
+            onImportVector?.(parsed, name)
+          } catch (failure) {
+            const reason = failure?.message === 'vector_file_unsupported' ? t('layers.importNeedFile') : vectorErrorText(failure, t)
+            setVectorError(t('layers.importFailed', { message: reason }))
+          }
+        })()
+      },
+    }),
+    vectorError !== '' ? h('p', { key: 'vector-error', className: 'mv-note' }, vectorError) : null,
+    h(
+      'div',
+      { key: 'vector-row', className: 'mv-layer' },
+      h('span', { className: 'name' }, `${t('layers.vectorDrawn')} ${drawn} · ${t('layers.vectorMeasured')} ${measured}`),
+      h('button', { type: 'button', className: 'mv-icon-btn', title: t('tool.clear'), 'aria-label': t('tool.clear'), onClick: onClearVector }, '✕'),
+    ),
+    ...(Array.isArray(agentOverlays) ? agentOverlays : []).map((row) =>
+      h(
+        'div',
+        { key: row.id, className: 'mv-layer' },
+        h('span', { className: 'name', title: row.detail }, `${row.label} · ${row.detail}`),
+        typeof onFlyAgentOverlay === 'function'
+          ? h(
+              'button',
+              {
+                type: 'button',
+                className: 'mv-icon-btn',
+                title: t('btn.flyTo'),
+                'aria-label': t('btn.flyTo'),
+                onClick: () => onFlyAgentOverlay(row.kind, row.index),
+              },
+              '◎',
+            )
+          : null,
+        h(
+          'button',
+          { type: 'button', className: 'mv-icon-btn', title: t('layers.vectorRemove'), 'aria-label': t('layers.vectorRemove'), onClick: () => onRemoveAgentOverlay(row.kind, row.index) },
+          '✕',
+        ),
+      ),
     ),
     // ---- L3 raster overlays ---------------------------------------------------
     h(
@@ -189,67 +264,25 @@ export function LayersMap({
             h('button', { type: 'button', className: 'mv-icon-btn', title: t('layers.overlayRemove'), 'aria-label': t('layers.overlayRemove'), onClick: () => onOverlayRemove(overlay.id) }, '✕'),
           ),
         ),
-    // ---- L4 vector overlays (2D data, not a 3D layer) --------------------------
+    // ---- L4 imagery basemap (folded: one source is normally in use) ------------
     h(
       'div',
       { key: 'g4', className: 'mv-group' },
-      h('div', { className: 'mv-group-title' }, t('layers.vector')),
-      h('button', { type: 'button', className: 'mv-cta', onClick: () => fileRef.current?.click() }, t('layers.importVector')),
-    ),
-    h('input', {
-      key: 'import-vector-input',
-      ref: fileRef,
-      type: 'file',
-      multiple: true,
-      accept: '.geojson,.json,.shp,.dbf,.prj,.cpg,application/geo+json,application/json',
-      hidden: true,
-      onChange: (event) => {
-        const files = Array.from(event.target.files ?? [])
-        event.target.value = ''
-        if (files.length === 0) return
-        void (async () => {
-          try {
-            const { parsed, name } = await readVectorFiles(files)
-            setVectorError('')
-            onImportVector?.(parsed, name)
-          } catch (failure) {
-            const reason = failure?.message === 'vector_file_unsupported' ? t('layers.importNeedFile') : vectorErrorText(failure, t)
-            setVectorError(t('layers.importFailed', { message: reason }))
-          }
-        })()
-      },
-    }),
-    vectorError !== '' ? h('p', { key: 'vector-error', className: 'mv-note' }, vectorError) : null,
-    h(
-      'div',
-      { key: 'vector-row', className: 'mv-layer' },
-      h('span', { className: 'name' }, `${t('layers.vectorDrawn')} ${drawn} · ${t('layers.vectorMeasured')} ${measured}`),
-      h('button', { type: 'button', className: 'mv-icon-btn', title: t('tool.clear'), 'aria-label': t('tool.clear'), onClick: onClearVector }, '✕'),
-    ),
-    ...(Array.isArray(agentOverlays) ? agentOverlays : []).map((row) =>
       h(
-        'div',
-        { key: row.id, className: 'mv-layer' },
-        h('span', { className: 'name', title: row.detail }, `${row.label} · ${row.detail}`),
-        typeof onFlyAgentOverlay === 'function'
-          ? h(
-              'button',
-              {
-                type: 'button',
-                className: 'mv-icon-btn',
-                title: t('btn.flyTo'),
-                'aria-label': t('btn.flyTo'),
-                onClick: () => onFlyAgentOverlay(row.kind, row.index),
-              },
-              '◎',
-            )
-          : null,
-        h(
-          'button',
-          { type: 'button', className: 'mv-icon-btn', title: t('layers.vectorRemove'), 'aria-label': t('layers.vectorRemove'), onClick: () => onRemoveAgentOverlay(row.kind, row.index) },
-          '✕',
-        ),
+        'button',
+        {
+          type: 'button',
+          className: 'mv-group-toggle',
+          'aria-expanded': imageryOpen,
+          title: imageryOpen ? t('layers.imageryFold') : t('layers.imageryUnfold'),
+          onClick: toggleImagery,
+        },
+        h('span', { className: 'mv-group-title' }, t('layers.imagery')),
+        h('span', { className: 'mv-group-current' }, imagerySummary(t, config, settings)),
+        h('span', { className: `mv-group-chevron${imageryOpen ? ' open' : ''}`, 'aria-hidden': true }, '›'),
       ),
     ),
+    imageryOpen ? radioRow('i-off', t('menu.none'), settings?.imagery == null, () => onSelectImagery(null)) : null,
+    imageryOpen ? (config?.imagery ?? []).map((source) => radioRow(`i-${source.id}`, source.name, settings?.imagery === source.id, () => onSelectImagery(source.id))) : null,
   )
 }

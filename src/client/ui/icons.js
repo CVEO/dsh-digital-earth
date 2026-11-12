@@ -168,6 +168,44 @@ const h = React.createElement
       )
     }
 
+    /**
+     * Toolbox entry glyphs. One family of 16px stroke icons so the index reads as
+     * a list of doors rather than a wall of text buttons.
+     */
+    function ToolEntryIcon({ kind, size = 16 }) {
+      const stroke = { stroke: 'currentColor', strokeWidth: 1.7, strokeLinecap: 'round', strokeLinejoin: 'round', fill: 'none' }
+      let shapes
+      if (kind === 'measure') {
+        shapes = [
+          h('path', { key: 'ruler', d: 'M3.5 14.5 14.5 3.5l6 6-11 11z', ...stroke }),
+          h('path', { key: 'ticks', d: 'M7.5 10.5l1.8 1.8M10.5 7.5l1.8 1.8M13.5 4.5l1.8 1.8', ...stroke }),
+        ]
+      } else if (kind === 'select') {
+        shapes = [
+          h('path', { key: 'frame', d: 'M4 8V4h4M20 8V4h-4M4 16v4h4M20 16v4h-4', ...stroke }),
+          h('path', { key: 'lasso', d: 'M8 12a4 4 0 1 0 8 0 4 4 0 1 0-8 0', ...stroke }),
+        ]
+      } else if (kind === 'analysis') {
+        shapes = [
+          h('path', { key: 'axes', d: 'M4 20V4M4 20h16', ...stroke }),
+          h('path', { key: 'curve', d: 'M7 16l4-5 3 3 5-7', ...stroke }),
+        ]
+      } else if (kind === 'effects') {
+        shapes = [
+          h('path', { key: 'sliders', d: 'M3 7h6.5M13.5 7H21M3 17h4M11 17h10', ...stroke }),
+          h('circle', { key: 'k1', cx: 11.5, cy: 7, r: 2.4, ...stroke }),
+          h('circle', { key: 'k2', cx: 8.5, cy: 17, r: 2.4, ...stroke }),
+        ]
+      } else {
+        shapes = [
+          h('path', { key: 'globe', d: 'M12 3.5a8.5 8.5 0 1 0 0 17 8.5 8.5 0 0 0 0-17z', ...stroke }),
+          h('path', { key: 'meridian', d: 'M12 3.5c2.6 2.4 4 5.2 4 8.5s-1.4 6.1-4 8.5c-2.6-2.4-4-5.2-4-8.5s1.4-6.1 4-8.5z', ...stroke }),
+          h('path', { key: 'equator', d: 'M3.8 12h16.4', ...stroke }),
+        ]
+      }
+      return h('svg', { viewBox: '0 0 24 24', width: size, height: size, 'aria-hidden': true, style: { display: 'block' } }, shapes)
+    }
+
     /** Layer visibility: an eye reads as "show/hide" at a glance (crossed = hidden). */
     const EyeIcon = ({ size = 15, off = false }) =>
       h(
@@ -184,4 +222,4 @@ const h = React.createElement
         off ? h('path', { d: 'M4 20 20 4', stroke: 'currentColor', strokeWidth: 1.7, strokeLinecap: 'round' }) : null,
       )
 
-export { ViewerIcon, ThemeIcon, FullscreenIcon, HudIcon, CollapseIcon, LayerActionIcon, ShaderIcon, ScreenshotIcon, IdentifyIcon, ResetIcon, AskAgentIcon, EyeIcon }
+export { ViewerIcon, ThemeIcon, FullscreenIcon, HudIcon, CollapseIcon, LayerActionIcon, ShaderIcon, ScreenshotIcon, IdentifyIcon, ResetIcon, AskAgentIcon, EyeIcon, ToolEntryIcon }

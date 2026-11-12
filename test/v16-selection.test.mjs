@@ -382,7 +382,7 @@ test('点选接线：工具卡点选/天际线入口，工具栏「工具」直�
   const quick = readRepoFile('src/client/ui/toolbar-quick.js')
   assert.match(quick, /t\('btn\.tools'\)/)
   assert.doesNotMatch(quick, /MenuItem|menu\(/)
-  const tools = readRepoFile('src/client/ui/tools-panel.js')
+  const tools = readRepoFile('src/client/ui/tool-windows.js')
   assert.match(tools, /tool\.distance/)
   assert.match(tools, /t\('profile\.draw'\)/)
   const client = clientSource()
@@ -567,9 +567,9 @@ test('对象行：带实体列表与批量删除（按 kind 降序避免索引�
 })
 
 test('接线：工具卡包含选择工具，ViewerSurface 在选择时让出画布点击', () => {
-  const tools = readRepoFile('src/client/ui/tools-panel.js')
+  const tools = readRepoFile('src/client/ui/tool-windows.js')
   assert.match(tools, /import \{ SelectionTool \}/)
-  assert.match(tools, /t\('tools\.select'\)/)
+  assert.match(readRepoFile('src/client/ui/tool-catalog.js'), /'tools\.select'/)
   assert.match(tools, /h\(SelectionTool, /)
   const viewer = readRepoFile('src/client/viewer/ViewerSurface.js')
   assert.match(viewer, /isSelectionActive\(viewerRef\.current\)/)
