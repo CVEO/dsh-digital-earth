@@ -7,6 +7,7 @@
 
 import { V17_MESSAGES } from './messages-v17.js'
 import { V18_MESSAGES } from './messages-v18.js'
+import { ANNOTATION_MESSAGES } from './messages-annotations.js'
 
     const MESSAGES = {
       zh: {
@@ -440,6 +441,7 @@ import { V18_MESSAGES } from './messages-v18.js'
         // v1.7 P0 vocabulary (identify card / evidence export / tour bar).
         ...V17_MESSAGES.zh,
         ...V18_MESSAGES.zh,
+    ...ANNOTATION_MESSAGES.zh,
       },
       en: {
         'panel.title': 'Digital Earth',
@@ -876,6 +878,7 @@ import { V18_MESSAGES } from './messages-v18.js'
         // v1.7 P0 vocabulary (identify card / evidence export / tour bar).
         ...V17_MESSAGES.en,
         ...V18_MESSAGES.en,
+    ...ANNOTATION_MESSAGES.en,
       },
     }
 

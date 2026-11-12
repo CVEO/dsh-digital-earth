@@ -723,6 +723,46 @@ var V18_MESSAGES = {
   }
 };
 
+// src/client/messages-annotations.js
+var ANNOTATION_MESSAGES = {
+  zh: {
+    "annotation.name": "名称",
+    "annotation.namePlaceholder": "例如：研究区、采样点、临时便道",
+    "annotation.note": "备注",
+    "annotation.notePlaceholder": "写一句说明，会随 GeoJSON 一起保存",
+    "annotation.save": "保存",
+    "annotation.delete": "删除",
+    "annotation.export": "导出 GeoJSON",
+    "annotation.editHint": "名称与备注只保存在这份标注里；删除只作用于当前要素。",
+    "annotation.saved": "已更新标注",
+    "annotation.deleted": "已删除标注",
+    "annotation.exported": "已导出 {name}",
+    "annotation.editFailed": "标注没有更新（{reason}）。可以重试，或关闭卡片后重新点选。",
+    "annotation.kind.point": "点",
+    "annotation.kind.line": "线",
+    "annotation.kind.area": "面",
+    "annotation.kind.note": "注记"
+  },
+  en: {
+    "annotation.name": "Name",
+    "annotation.namePlaceholder": "e.g. study area, sample point, temporary road",
+    "annotation.note": "Note",
+    "annotation.notePlaceholder": "One line of context, saved with the GeoJSON",
+    "annotation.save": "Save",
+    "annotation.delete": "Delete",
+    "annotation.export": "Export GeoJSON",
+    "annotation.editHint": "Name and note belong to this annotation; delete removes only the current feature.",
+    "annotation.saved": "Annotation updated",
+    "annotation.deleted": "Annotation deleted",
+    "annotation.exported": "Exported {name}",
+    "annotation.editFailed": "The annotation was not updated ({reason}). Retry, or close the card and pick again.",
+    "annotation.kind.point": "Point",
+    "annotation.kind.line": "Line",
+    "annotation.kind.area": "Area",
+    "annotation.kind.note": "Note"
+  }
+};
+
 // src/client/messages.js
 var MESSAGES = {
   zh: {
@@ -1148,7 +1188,8 @@ var MESSAGES = {
     "unit.hectare": "公顷",
     // v1.7 P0 vocabulary (identify card / evidence export / tour bar).
     ...V17_MESSAGES.zh,
-    ...V18_MESSAGES.zh
+    ...V18_MESSAGES.zh,
+    ...ANNOTATION_MESSAGES.zh
   },
   en: {
     "panel.title": "Digital Earth",
@@ -1573,7 +1614,8 @@ var MESSAGES = {
     "unit.hectare": "ha",
     // v1.7 P0 vocabulary (identify card / evidence export / tour bar).
     ...V17_MESSAGES.en,
-    ...V18_MESSAGES.en
+    ...V18_MESSAGES.en,
+    ...ANNOTATION_MESSAGES.en
   }
 };
 var FALLBACK_ABOUT = {
@@ -9328,6 +9370,15 @@ var VECTOR_CSS = `
 .mv-vector-card dt{color:var(--mv-dim);overflow-wrap:anywhere}
 .mv-vector-card dd{margin:0;overflow-wrap:anywhere}
 .mv-vector-card footer{margin-top:12px;padding-top:10px;border-top:1px solid var(--mv-line);font-size:11px;color:var(--mv-dim)}
+.mv-vector-card .mv-vector-edit{display:grid;gap:10px;margin:12px 0}
+.mv-vector-card .mv-vector-edit label{display:grid;gap:4px}
+.mv-vector-card .mv-vector-edit label>span{font-size:11px;color:var(--mv-dim)}
+.mv-vector-card .mv-vector-edit input,.mv-vector-card .mv-vector-edit textarea{width:100%;box-sizing:border-box;border:1px solid var(--mv-line);border-radius:7px;background:var(--mv-lift);color:var(--mv-text);font:inherit;font-size:12px;padding:6px 8px;resize:vertical}
+.mv-vector-card .mv-vector-edit input:focus-visible,.mv-vector-card .mv-vector-edit textarea:focus-visible{outline:2px solid var(--mv-accent);outline-offset:1px}
+.mv-vector-card .mv-vector-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.mv-vector-card .mv-btn.mv-danger{color:#fca5a5}
+.mv-vector-card .mv-btn.mv-danger:hover{background:color-mix(in srgb,#f87171 22%,transparent)}
+.mv-vector-card .mv-btn:disabled{opacity:.45;cursor:default}
 .mv-capturing .mv-vector-card{visibility:hidden}
 .mv-pick{font-size:13px;line-height:1.6}
 .mv-pick td{padding:5px 8px;font-size:12px}
@@ -14757,8 +14808,29 @@ function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t: t2, s
 // src/client/ui/vector-card.js
 var import_react29 = __toESM(require("react"), 1);
 var h26 = import_react29.default.createElement;
-function VectorCard({ selection, onClose, t: t2 }) {
+function VectorCard({ selection, onClose, onChange, onDelete, onExport, t: t2 }) {
   if (!selection) return null;
+  const feature = selection.feature ?? null;
+  const editable = Boolean(feature && selection.command);
+  const [name, setName] = import_react29.default.useState("");
+  const [note, setNote] = import_react29.default.useState("");
+  const [busy, setBusy] = import_react29.default.useState(false);
+  import_react29.default.useEffect(() => {
+    setName(feature?.properties?.name ?? "");
+    setNote(feature?.properties?.note ?? "");
+  }, [feature]);
+  const savedName = feature?.properties?.name ?? "";
+  const savedNote = feature?.properties?.note ?? "";
+  const dirty = editable && (name.trim() !== savedName || note.trim() !== savedNote);
+  const submit = (fn) => {
+    if (!fn || busy) return;
+    setBusy(true);
+    try {
+      fn();
+    } finally {
+      setBusy(false);
+    }
+  };
   return h26(
     "section",
     { className: "mv-vector-card", "aria-label": t2("vector.selection") },
@@ -14769,8 +14841,47 @@ function VectorCard({ selection, onClose, t: t2 }) {
       h26("button", { type: "button", className: "mv-icon-btn", title: t2("btn.close"), "aria-label": t2("btn.close"), onClick: onClose }, "✕")
     ),
     selection.summary ? h26("p", { className: "summary" }, selection.summary) : null,
-    selection.rows?.length ? h26("dl", null, selection.rows.map(([name, value], index) => h26("div", { key: index }, h26("dt", null, name), h26("dd", null, value)))) : null,
-    h26("footer", null, t2("vector.selectedHint"))
+    editable ? h26(
+      "div",
+      { className: "mv-vector-edit" },
+      h26(
+        "label",
+        null,
+        h26("span", null, t2("annotation.name")),
+        h26("input", {
+          value: name,
+          maxLength: 80,
+          placeholder: t2("annotation.namePlaceholder"),
+          onChange: (event) => setName(event.target.value)
+        })
+      ),
+      h26(
+        "label",
+        null,
+        h26("span", null, t2("annotation.note")),
+        h26("textarea", {
+          value: note,
+          maxLength: 280,
+          rows: 2,
+          placeholder: t2("annotation.notePlaceholder"),
+          onChange: (event) => setNote(event.target.value)
+        })
+      )
+    ) : null,
+    selection.rows?.length ? h26("dl", null, selection.rows.map(([itemName, value], index) => h26("div", { key: index }, h26("dt", null, itemName), h26("dd", null, value)))) : null,
+    editable ? h26(
+      "footer",
+      { className: "mv-vector-actions" },
+      h26("button", {
+        type: "button",
+        className: "mv-btn",
+        disabled: !dirty || busy,
+        onClick: () => submit(() => onChange?.({ name: name.trim(), note: note.trim() }))
+      }, t2("annotation.save")),
+      h26("button", { type: "button", className: "mv-btn", disabled: busy, onClick: () => submit(() => onExport?.()) }, t2("annotation.export")),
+      h26("button", { type: "button", className: "mv-btn mv-danger", disabled: busy, onClick: () => submit(() => onDelete?.()) }, t2("annotation.delete"))
+    ) : null,
+    h26("footer", null, editable ? t2("annotation.editHint") : t2("vector.selectedHint"))
   );
 }
 
@@ -15493,6 +15604,141 @@ function runVectorImport(state, viewer, draw) {
   }
 }
 
+// src/client/scene/annotation-model.js
+var ANNOTATION_MAX_NAME = 80;
+var ANNOTATION_MAX_NOTE = 280;
+var ANNOTATION_KINDS = ["point", "line", "area", "note"];
+function annotationText(value, limit) {
+  if (typeof value !== "string") return "";
+  return value.replace(/\s+/g, " ").trim().slice(0, limit);
+}
+function withAnnotationProperties(feature, patch = {}) {
+  if (feature === null || typeof feature !== "object" || feature.type !== "Feature") {
+    return { ok: false, error: "invalid_feature" };
+  }
+  const next = { ...feature, properties: { ...feature.properties ?? {} } };
+  if (patch.name !== void 0) {
+    const name = annotationText(patch.name, ANNOTATION_MAX_NAME);
+    if (name === "") delete next.properties.name;
+    else next.properties.name = name;
+  }
+  if (patch.note !== void 0) {
+    const note = annotationText(patch.note, ANNOTATION_MAX_NOTE);
+    if (note === "") delete next.properties.note;
+    else next.properties.note = note;
+  }
+  if (patch.kind !== void 0) {
+    if (!ANNOTATION_KINDS.includes(patch.kind)) return { ok: false, error: "invalid_kind" };
+    next.properties.kind = patch.kind;
+  }
+  return { ok: true, feature: next };
+}
+
+// src/client/scene/annotation-edit.js
+function locateFeature(command, feature) {
+  const list = command?.geojson?.features;
+  if (!Array.isArray(list) || feature === null || typeof feature !== "object") return -1;
+  const identity = list.indexOf(feature);
+  if (identity >= 0) return identity;
+  const name = feature.properties?.name ?? null;
+  const kind = feature.properties?.kind ?? null;
+  const geometry = JSON.stringify(feature.geometry ?? null);
+  return list.findIndex((item) => {
+    if (item === null || typeof item !== "object") return false;
+    if ((item.properties?.name ?? null) !== name) return false;
+    if ((item.properties?.kind ?? null) !== kind) return false;
+    return JSON.stringify(item.geometry ?? null) === geometry;
+  });
+}
+function rebuildDrawCommand(state, viewer, command, features, replay) {
+  if (!state || !Array.isArray(state.drawCommands)) return { ok: false, error: "invalid_state" };
+  const index = state.drawCommands.indexOf(command);
+  if (index < 0) return { ok: false, error: "command_not_found" };
+  const list = Array.isArray(features) ? features : [];
+  if (list.length === 0) {
+    removeAgentOverlay(state, viewer, "draw", index);
+    return { ok: true, command: null };
+  }
+  const nextGeojson = { ...command.geojson, features: list };
+  removeAgentOverlay(state, viewer, "draw", index);
+  const next = typeof replay === "function" ? replay(nextGeojson, command.style, command.caption) : null;
+  if (!next) return { ok: false, error: "replay_failed" };
+  return { ok: true, command: next };
+}
+function updateAnnotationFeature(state, viewer, selection, patch, replay) {
+  const command = selection?.command;
+  const feature = selection?.feature;
+  if (!command || !feature) return { ok: false, error: "no_annotation" };
+  const index = locateFeature(command, feature);
+  if (index < 0) return { ok: false, error: "feature_not_found" };
+  const patched = withAnnotationProperties(feature, patch);
+  if (!patched.ok) return patched;
+  const features = command.geojson.features.slice();
+  features[index] = patched.feature;
+  return rebuildDrawCommand(state, viewer, command, features, replay);
+}
+function deleteAnnotationFeature(state, viewer, selection, replay) {
+  const command = selection?.command;
+  const feature = selection?.feature;
+  if (!command || !feature) return { ok: false, error: "no_annotation" };
+  const index = locateFeature(command, feature);
+  if (index < 0) return { ok: false, error: "feature_not_found" };
+  const features = command.geojson.features.slice(0, index).concat(command.geojson.features.slice(index + 1));
+  return rebuildDrawCommand(state, viewer, command, features, replay);
+}
+function annotationFeatureText(feature, name = "annotation") {
+  return JSON.stringify(
+    {
+      type: "FeatureCollection",
+      name,
+      features: [feature]
+    },
+    null,
+    2
+  );
+}
+
+// src/client/scene/annotation-actions.js
+function createAnnotationActions({ stateRef, viewerRef, getSelection, draw, showToast, t: t2, onChanged }) {
+  const selectionOf = () => typeof getSelection === "function" ? getSelection() : null;
+  const replay = (geojson, style, caption) => {
+    draw(geojson, style, caption);
+    const commands = stateRef.current.drawCommands;
+    return commands[commands.length - 1] ?? null;
+  };
+  const finish = (result, messageKey) => {
+    if (!result?.ok) {
+      showToast(t2("annotation.editFailed", { reason: result?.error ?? "unknown" }));
+      return false;
+    }
+    if (typeof onChanged === "function") onChanged();
+    showToast(t2(messageKey));
+    return true;
+  };
+  const run = (mutate, messageKey) => finish(
+    mutate(stateRef.current, viewerRef.current, selectionOf(), replay),
+    messageKey
+  );
+  return {
+    update: (patch) => run(
+      (state, viewer, selection, replayCommand) => updateAnnotationFeature(state, viewer, selection, patch, replayCommand),
+      "annotation.saved"
+    ),
+    remove: () => run(
+      (state, viewer, selection, replayCommand) => deleteAnnotationFeature(state, viewer, selection, replayCommand),
+      "annotation.deleted"
+    ),
+    export: () => {
+      const feature = selectionOf()?.feature;
+      if (!feature) return false;
+      const name = String(feature.properties?.name ?? "annotation").replace(/[\\/:*?"<>|]+/g, "-").slice(0, 60) || "annotation";
+      downloadText(`${name}.geojson`, annotationFeatureText(feature, name), "application/geo+json");
+      showToast(t2("annotation.exported", { name: `${name}.geojson` }));
+      return true;
+    }
+  };
+}
+
 // src/client/viewer/ViewerSurface.js
 var h30 = import_react34.default.createElement;
 function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
@@ -16085,6 +16331,20 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     markSceneDirty();
     saveSceneSnapshot(true);
   };
+  const annotations = createAnnotationActions({
+    stateRef: agentOverlayRef,
+    viewerRef,
+    getSelection: () => vectorSelection,
+    draw: (geojson, style, caption) => drawAgentOverlay(cesiumRef.current, viewerRef.current, geojson, style, caption),
+    showToast,
+    t: t2,
+    onChanged: () => {
+      syncAgentOverlayCount();
+      vectorRef.current?.clearSelection();
+      markSceneDirty();
+      saveSceneSnapshot(true);
+    }
+  });
   const AGENT_OVERLAY_COLORS = VECTOR_COLORS;
   const agentOverlayColor = (Cesium, style) => {
     const css = AGENT_OVERLAY_COLORS[style] ?? AGENT_OVERLAY_COLORS.accent;
@@ -16117,6 +16377,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     const bbox = { west: Infinity, south: Infinity, east: -Infinity, north: -Infinity };
     let drawn = 0;
     let descriptor = null;
+    const descriptors = [];
     const add = (options) => {
       const entity = vectorRef.current.add(options, descriptor);
       state.draw.push(entity);
@@ -16221,7 +16482,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
       track(coordinates);
       if (name !== "") addAgentGroundLabel(Cesium, add, coordinates[0], coordinates[1], name);
     };
-    const drawGeometry = (geometry, properties) => {
+    const drawGeometry = (geometry, properties, feature) => {
       if (geometry === null || typeof geometry !== "object") return;
       const label = agentLabelText(nameOf(properties), caption);
       descriptor = {
@@ -16229,8 +16490,11 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
         kind: t2("layers.vectorDrawn"),
         title: label || t2("layers.vectorDrawn"),
         summary: t2(`vector.geometry.${geometry.type.replace("Multi", "")}`),
+        feature: feature ?? null,
+        command: null,
         rows: Object.entries(properties ?? {}).filter(([key]) => key !== "name").slice(0, 12).map(([key, value]) => [key, formatValue(value)])
       };
+      descriptors.push(descriptor);
       switch (geometry.type) {
         case "GeometryCollection":
           for (const child of geometry.geometries ?? []) drawGeometry(child, properties);
@@ -16261,10 +16525,10 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     for (const feature of features) {
       if (feature?.geometry?.type === "GeometryCollection") {
         for (const child of feature.geometry.geometries ?? []) {
-          drawGeometry(child, feature.properties);
+          drawGeometry(child, feature.properties, feature);
         }
       } else {
-        drawGeometry(feature?.geometry, feature?.properties);
+        drawGeometry(feature?.geometry, feature?.properties, feature);
       }
     }
     state.drawnFeatures += drawn;
@@ -16277,6 +16541,10 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
       };
       state.entityGroups.set(command, state.draw.slice(firstEntity));
       state.drawCommands.push(command);
+      for (const item of descriptors) {
+        item.command = command;
+        vectorRef.current?.refresh(item);
+      }
       markSceneDirty();
     }
     syncAgentOverlayCount();
@@ -17792,7 +18060,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
         measureMode ? t2("measure.end") : t2("tool.clear")
       )
     ) : null,
-    h30(VectorCard, { key: "vector-selection", selection: vectorSelection, onClose: () => vectorRef.current?.clearSelection(), t: t2 }),
+    h30(VectorCard, { key: "vector-selection", selection: vectorSelection, onClose: () => vectorRef.current?.clearSelection(), onChange: annotations.update, onDelete: annotations.remove, onExport: annotations.export, t: t2 }),
     toast ? h30("div", { key: "toast", className: "mv-toast" }, toast) : null,
     scan ? h30(ScanDialog, {
       key: "scan",

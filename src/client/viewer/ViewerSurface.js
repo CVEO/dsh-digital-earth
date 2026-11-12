@@ -62,6 +62,7 @@ import { MenuItem } from '../ui/menu-item.js'
 import { hasVectorFile, isVectorDrag, readVectorFiles } from '../scene/vector-file.js'
 import { vectorErrorText } from '../scene/vector-errors.js'
 import { runVectorImport } from '../scene/vector-import-transaction.js'
+import { createAnnotationActions } from '../scene/annotation-actions.js'
 const h = React.createElement
 
     /**
@@ -818,6 +819,22 @@ const h = React.createElement
         saveSceneSnapshot(true)
       }
 
+      // F2: rename / note / delete / export one drawn feature.
+      const annotations = createAnnotationActions({
+        stateRef: agentOverlayRef,
+        viewerRef,
+        getSelection: () => vectorSelection,
+        draw: (geojson, style, caption) => drawAgentOverlay(cesiumRef.current, viewerRef.current, geojson, style, caption),
+        showToast,
+        t,
+        onChanged: () => {
+          syncAgentOverlayCount()
+          vectorRef.current?.clearSelection()
+          markSceneDirty()
+          saveSceneSnapshot(true)
+        },
+      })
+
       const AGENT_OVERLAY_COLORS = VECTOR_COLORS
 
       const agentOverlayColor = (Cesium, style) => {
@@ -865,6 +882,8 @@ const h = React.createElement
         const bbox = { west: Infinity, south: Infinity, east: -Infinity, north: -Infinity }
         let drawn = 0
         let descriptor = null
+        // F2: descriptors of this command, so a feature can be edited in place.
+        const descriptors = []
         const add = (options) => {
           const entity = vectorRef.current.add(options, descriptor)
           state.draw.push(entity)
@@ -972,11 +991,13 @@ const h = React.createElement
           track(coordinates)
           if (name !== '') addAgentGroundLabel(Cesium, add, coordinates[0], coordinates[1], name)
         }
-        const drawGeometry = (geometry, properties) => {
+        const drawGeometry = (geometry, properties, feature) => {
           if (geometry === null || typeof geometry !== 'object') return
           const label = agentLabelText(nameOf(properties), caption)
           descriptor = { group: {}, kind: t('layers.vectorDrawn'), title: label || t('layers.vectorDrawn'), summary: t(`vector.geometry.${geometry.type.replace('Multi', '')}`),
+            feature: feature ?? null, command: null,
             rows: Object.entries(properties ?? {}).filter(([key]) => key !== 'name').slice(0, 12).map(([key, value]) => [key, formatValue(value)]) }
+          descriptors.push(descriptor)
           switch (geometry.type) {
             case 'GeometryCollection':
               for (const child of geometry.geometries ?? []) drawGeometry(child, properties)
@@ -1007,10 +1028,10 @@ const h = React.createElement
         for (const feature of features) {
           if (feature?.geometry?.type === 'GeometryCollection') {
             for (const child of feature.geometry.geometries ?? []) {
-              drawGeometry(child, feature.properties)
+              drawGeometry(child, feature.properties, feature)
             }
           } else {
-            drawGeometry(feature?.geometry, feature?.properties)
+            drawGeometry(feature?.geometry, feature?.properties, feature)
           }
         }
         state.drawnFeatures += drawn
@@ -1023,6 +1044,11 @@ const h = React.createElement
           }
           state.entityGroups.set(command, state.draw.slice(firstEntity))
           state.drawCommands.push(command)
+          // F2: the card can now address the exact command + feature behind an entity.
+          for (const item of descriptors) {
+            item.command = command
+            vectorRef.current?.refresh(item)
+          }
           markSceneDirty()
         }
         syncAgentOverlayCount()
@@ -2781,7 +2807,7 @@ const h = React.createElement
               ),
             )
           : null,
-        h(VectorCard, { key: 'vector-selection', selection: vectorSelection, onClose: () => vectorRef.current?.clearSelection(), t }),
+        h(VectorCard, { key: 'vector-selection', selection: vectorSelection, onClose: () => vectorRef.current?.clearSelection(), onChange: annotations.update, onDelete: annotations.remove, onExport: annotations.export, t }),
         toast ? h('div', { key: 'toast', className: 'mv-toast' }, toast) : null,
         scan
           ? h(ScanDialog, {

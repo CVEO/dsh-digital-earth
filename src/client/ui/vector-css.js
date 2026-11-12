@@ -24,6 +24,15 @@ export const VECTOR_CSS = `
 .mv-vector-card dt{color:var(--mv-dim);overflow-wrap:anywhere}
 .mv-vector-card dd{margin:0;overflow-wrap:anywhere}
 .mv-vector-card footer{margin-top:12px;padding-top:10px;border-top:1px solid var(--mv-line);font-size:11px;color:var(--mv-dim)}
+.mv-vector-card .mv-vector-edit{display:grid;gap:10px;margin:12px 0}
+.mv-vector-card .mv-vector-edit label{display:grid;gap:4px}
+.mv-vector-card .mv-vector-edit label>span{font-size:11px;color:var(--mv-dim)}
+.mv-vector-card .mv-vector-edit input,.mv-vector-card .mv-vector-edit textarea{width:100%;box-sizing:border-box;border:1px solid var(--mv-line);border-radius:7px;background:var(--mv-lift);color:var(--mv-text);font:inherit;font-size:12px;padding:6px 8px;resize:vertical}
+.mv-vector-card .mv-vector-edit input:focus-visible,.mv-vector-card .mv-vector-edit textarea:focus-visible{outline:2px solid var(--mv-accent);outline-offset:1px}
+.mv-vector-card .mv-vector-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.mv-vector-card .mv-btn.mv-danger{color:#fca5a5}
+.mv-vector-card .mv-btn.mv-danger:hover{background:color-mix(in srgb,#f87171 22%,transparent)}
+.mv-vector-card .mv-btn:disabled{opacity:.45;cursor:default}
 .mv-capturing .mv-vector-card{visibility:hidden}
 .mv-pick{font-size:13px;line-height:1.6}
 .mv-pick td{padding:5px 8px;font-size:12px}

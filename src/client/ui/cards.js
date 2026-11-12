@@ -872,4 +872,4 @@ const h = React.createElement
     }
     //#endregion shader workbench
 
-export { analysisMetric, AnalysisProfileChart, AnalysisCard, ShaderWorkbench }
+export { analysisMetric, AnalysisProfileChart, AnalysisCard, ShaderWorkbench, downloadText }
