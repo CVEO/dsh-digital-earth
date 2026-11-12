@@ -33,7 +33,15 @@ export const VECTOR_CSS = `
 .mv-vector-card .mv-btn.mv-danger{color:#fca5a5}
 .mv-vector-card .mv-btn.mv-danger:hover{background:color-mix(in srgb,#f87171 22%,transparent)}
 .mv-vector-card .mv-btn:disabled{opacity:.45;cursor:default}
-.mv-capturing .mv-vector-card{visibility:hidden}
+.mv-vertex-layer{position:absolute;inset:0;z-index:12;pointer-events:none;overflow:hidden}
+.mv-vertex{position:absolute;left:0;top:0;box-sizing:border-box;width:13px;height:13px;margin:-7px 0 0 -7px;border:2px solid #f8fafc;border-radius:50%;background:#f59e0b;box-shadow:0 1px 4px #07152966;pointer-events:auto;cursor:grab;touch-action:none}
+.mv-vertex:hover,.mv-vertex:active{background:#fbbf24}
+.mv-vertex:active{cursor:grabbing}
+.mv-vertex.center{width:0;height:0;margin:0;border:0;background:none;box-shadow:none;cursor:move}
+.mv-vertex.center::before{content:'';position:absolute;left:-8px;top:-8px;width:16px;height:16px;box-sizing:border-box;border:2px solid #0f172a;border-radius:3px;background:#7dd3fc;transform:rotate(45deg);box-shadow:0 1px 4px #07152966}
+.mv-vertex.center:hover::before{background:#bae6fd}
+.mv-root[data-mv-scheme="dark"] .mv-vertex{border-color:#0f172a}
+.mv-capturing .mv-vertex-layer,.mv-capturing .mv-vector-card{visibility:hidden}
 .mv-pick{font-size:13px;line-height:1.6}
 .mv-pick td{padding:5px 8px;font-size:12px}
 .mv-analysis .stat{font-size:12.5px;line-height:1.65}

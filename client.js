@@ -755,6 +755,15 @@ var ANNOTATION_MESSAGES = {
     "annotation.needLine": "线至少需要 2 个点",
     "annotation.needArea": "面至少需要 3 个角点",
     "annotation.added": "已添加「{name}」，点击可改名或加备注",
+    "annotation.vertexHint": "拖动顶点改形状；双击删点，Alt+点击在线段上插点",
+    "annotation.centerHint": "拖动整体移动形状",
+    "annotation.shapeSaved": "已更新形状",
+    "annotation.vertexInserted": "已插入顶点",
+    "annotation.vertexDeleted": "已删除顶点",
+    "annotation.vertexFailed": "这次形状修改没有生效，请重试",
+    "annotation.tooFewVertices": "顶点太少，不能再删",
+    "annotation.undone": "已撤销上一次修改",
+    "annotation.nothingToUndo": "没有可撤销的修改",
     "annotation.tool": "标注",
     "annotation.toolHint": "在场景里画点、线、面，或点选已有标注改名、添加备注、导出 GeoJSON"
   },
@@ -788,6 +797,15 @@ var ANNOTATION_MESSAGES = {
     "annotation.needLine": "A line needs at least 2 points",
     "annotation.needArea": "An area needs at least 3 corners",
     "annotation.added": 'Added "{name}" — click it to rename or add a note',
+    "annotation.vertexHint": "Drag a vertex to reshape; double-click deletes, Alt+click inserts",
+    "annotation.centerHint": "Drag to move the whole shape",
+    "annotation.shapeSaved": "Shape updated",
+    "annotation.vertexInserted": "Vertex inserted",
+    "annotation.vertexDeleted": "Vertex deleted",
+    "annotation.vertexFailed": "That shape change did not apply; try again",
+    "annotation.tooFewVertices": "Too few vertices to delete another",
+    "annotation.undone": "Undid the last shape change",
+    "annotation.nothingToUndo": "No shape change to undo",
     "annotation.tool": "Annotations",
     "annotation.toolHint": "Draw points, lines and areas, or pick an existing annotation to rename, note and export it"
   }
@@ -9415,7 +9433,15 @@ var VECTOR_CSS = `
 .mv-vector-card .mv-btn.mv-danger{color:#fca5a5}
 .mv-vector-card .mv-btn.mv-danger:hover{background:color-mix(in srgb,#f87171 22%,transparent)}
 .mv-vector-card .mv-btn:disabled{opacity:.45;cursor:default}
-.mv-capturing .mv-vector-card{visibility:hidden}
+.mv-vertex-layer{position:absolute;inset:0;z-index:12;pointer-events:none;overflow:hidden}
+.mv-vertex{position:absolute;left:0;top:0;box-sizing:border-box;width:13px;height:13px;margin:-7px 0 0 -7px;border:2px solid #f8fafc;border-radius:50%;background:#f59e0b;box-shadow:0 1px 4px #07152966;pointer-events:auto;cursor:grab;touch-action:none}
+.mv-vertex:hover,.mv-vertex:active{background:#fbbf24}
+.mv-vertex:active{cursor:grabbing}
+.mv-vertex.center{width:0;height:0;margin:0;border:0;background:none;box-shadow:none;cursor:move}
+.mv-vertex.center::before{content:'';position:absolute;left:-8px;top:-8px;width:16px;height:16px;box-sizing:border-box;border:2px solid #0f172a;border-radius:3px;background:#7dd3fc;transform:rotate(45deg);box-shadow:0 1px 4px #07152966}
+.mv-vertex.center:hover::before{background:#bae6fd}
+.mv-root[data-mv-scheme="dark"] .mv-vertex{border-color:#0f172a}
+.mv-capturing .mv-vertex-layer,.mv-capturing .mv-vector-card{visibility:hidden}
 .mv-pick{font-size:13px;line-height:1.6}
 .mv-pick td{padding:5px 8px;font-size:12px}
 .mv-analysis .stat{font-size:12.5px;line-height:1.65}
@@ -15742,6 +15768,17 @@ function withAnnotationProperties(feature, patch = {}) {
   }
   return { ok: true, feature: next };
 }
+function withAnnotationGeometry(feature, geometry) {
+  if (feature === null || typeof feature !== "object" || feature.type !== "Feature") {
+    return { ok: false, error: "invalid_feature" };
+  }
+  if (geometry === null || typeof geometry !== "object" || typeof geometry.type !== "string") {
+    return { ok: false, error: "invalid_geometry" };
+  }
+  const next = { ...feature, geometry };
+  if (!annotationBoundsOk(next)) return { ok: false, error: "out_of_bounds" };
+  return { ok: true, feature: next };
+}
 function normalizeAnnotation(feature, { source = "manual" } = {}) {
   if (feature === null || typeof feature !== "object" || feature.type !== "Feature") {
     return { ok: false, error: "invalid_feature" };
@@ -15760,6 +15797,20 @@ function normalizeAnnotation(feature, { source = "manual" } = {}) {
   if (typeof properties.source !== "string" || properties.source === "") properties.source = source;
   return { ok: true, feature: { type: "Feature", ...feature.id !== void 0 ? { id: feature.id } : {}, properties, geometry: feature.geometry } };
 }
+function annotationBoundsOk(feature) {
+  let valid = true;
+  const walk = (value) => {
+    if (!valid || !Array.isArray(value)) return;
+    if (typeof value[0] === "number" && typeof value[1] === "number") {
+      const [lon, lat] = value;
+      if (!Number.isFinite(lon) || !Number.isFinite(lat) || Math.abs(lon) > 180 || Math.abs(lat) > 90) valid = false;
+      return;
+    }
+    for (const item of value) walk(item);
+  };
+  walk(feature?.geometry?.coordinates);
+  return valid;
+}
 function annotationFeaturesOfCommands(commands) {
   const features = [];
   for (const command of Array.isArray(commands) ? commands : []) {
@@ -15776,6 +15827,87 @@ function nextAnnotationName(features, kind, t2) {
   );
   while (taken.has(`${prefix} ${index}`)) index += 1;
   return `${prefix} ${index}`;
+}
+function editableRings(feature) {
+  const geometry = feature?.geometry;
+  if (geometry?.type === "Point") return { kind: "point", rings: [geometry.coordinates] };
+  if (geometry?.type === "LineString") return { kind: "line", rings: [geometry.coordinates] };
+  if (geometry?.type === "Polygon") return { kind: "area", rings: geometry.coordinates };
+  return null;
+}
+function withRings(feature, rings, kind) {
+  const geometry = kind === "point" ? { type: "Point", coordinates: rings[0] } : kind === "line" ? { type: "LineString", coordinates: rings[0] } : { type: "Polygon", coordinates: rings };
+  return { ...feature, geometry };
+}
+function moveAnnotationVertex(feature, ringIndex, vertexIndex, lon, lat) {
+  const editable = editableRings(feature);
+  if (!editable) return { ok: false, error: "unsupported_geometry" };
+  const ring = editable.rings[ringIndex];
+  if (!Array.isArray(ring) || vertexIndex < 0 || vertexIndex >= ring.length) return { ok: false, error: "vertex_out_of_range" };
+  if (!Number.isFinite(lon) || !Number.isFinite(lat) || Math.abs(lon) > 180 || Math.abs(lat) > 90) {
+    return { ok: false, error: "vertex_out_of_range" };
+  }
+  const rings = editable.rings.map((item) => item.slice());
+  const closed = editable.kind === "area" && rings[ringIndex].length > 1;
+  const wrapped = closed && vertexIndex === 0 ? rings[ringIndex].length - 1 : -1;
+  rings[ringIndex][vertexIndex] = [lon, lat];
+  if (wrapped >= 0) rings[ringIndex][wrapped] = [lon, lat];
+  if (closed && vertexIndex === rings[ringIndex].length - 1) rings[ringIndex][0] = [lon, lat];
+  return { ok: true, feature: withRings(feature, rings, editable.kind) };
+}
+function ringCorners(ring, closed) {
+  if (!Array.isArray(ring) || ring.length === 0) return 0;
+  if (!closed || ring.length < 2) return ring.length;
+  const first = ring[0];
+  const last = ring[ring.length - 1];
+  return first?.[0] === last?.[0] && first?.[1] === last?.[1] ? ring.length - 1 : ring.length;
+}
+function insertAnnotationVertex(feature, ringIndex, vertexIndex, lon, lat) {
+  const editable = editableRings(feature);
+  if (!editable || editable.kind === "point") return { ok: false, error: "unsupported_geometry" };
+  const ring = editable.rings[ringIndex];
+  const corners = ringCorners(ring, editable.kind === "area");
+  if (!Array.isArray(ring) || vertexIndex < 0 || vertexIndex >= corners) return { ok: false, error: "vertex_out_of_range" };
+  if (!Number.isFinite(lon) || !Number.isFinite(lat) || Math.abs(lon) > 180 || Math.abs(lat) > 90) {
+    return { ok: false, error: "vertex_out_of_range" };
+  }
+  const rings = editable.rings.map((item) => item.slice());
+  const at = vertexIndex + 1;
+  rings[ringIndex].splice(at, 0, [lon, lat]);
+  if (editable.kind === "area") {
+    const next = rings[ringIndex];
+    next[next.length - 1] = [next[0][0], next[0][1]];
+  }
+  return { ok: true, feature: withRings(feature, rings, editable.kind) };
+}
+function deleteAnnotationVertex(feature, ringIndex, vertexIndex) {
+  const editable = editableRings(feature);
+  if (!editable || editable.kind === "point") return { ok: false, error: "unsupported_geometry" };
+  const ring = editable.rings[ringIndex];
+  const closed = editable.kind === "area";
+  const corners = ringCorners(ring, closed);
+  if (!Array.isArray(ring) || vertexIndex < 0 || vertexIndex >= corners) return { ok: false, error: "vertex_out_of_range" };
+  if (editable.kind === "line" && corners <= 2 || closed && corners <= 3) {
+    return { ok: false, error: "too_few_vertices" };
+  }
+  const rings = editable.rings.map((item) => item.slice());
+  if (closed && vertexIndex === 0) {
+    rings[ringIndex].splice(0, 1);
+    rings[ringIndex][rings[ringIndex].length - 1] = [rings[ringIndex][0][0], rings[ringIndex][0][1]];
+  } else {
+    rings[ringIndex].splice(vertexIndex, 1);
+  }
+  return { ok: true, feature: withRings(feature, rings, editable.kind) };
+}
+function translateAnnotation(feature, dLon, dLat) {
+  const editable = editableRings(feature);
+  if (!editable) return { ok: false, error: "unsupported_geometry" };
+  if (!Number.isFinite(dLon) || !Number.isFinite(dLat)) return { ok: false, error: "vertex_out_of_range" };
+  const rings = editable.rings.map((ring) => ring.map((vertex) => {
+    if (!Array.isArray(vertex) || vertex.length < 2) return vertex;
+    return [Math.max(-180, Math.min(180, vertex[0] + dLon)), Math.max(-90, Math.min(90, vertex[1] + dLat))];
+  }));
+  return { ok: true, feature: withRings(feature, rings, editable.kind) };
 }
 
 // src/client/scene/annotation-edit.js
@@ -15817,9 +15949,31 @@ function updateAnnotationFeature(state, viewer, selection, patch, replay) {
   if (index < 0) return { ok: false, error: "feature_not_found" };
   const patched = withAnnotationProperties(feature, patch);
   if (!patched.ok) return patched;
+  let next = patched.feature;
+  if (patch?.geometry !== void 0) {
+    const geometry = withAnnotationGeometry(next, patch.geometry);
+    if (!geometry.ok) return geometry;
+    next = geometry.feature;
+  }
   const features = command.geojson.features.slice();
-  features[index] = patched.feature;
+  features[index] = next;
   return rebuildDrawCommand(state, viewer, command, features, replay);
+}
+function findFeatureInState(state, name, kind) {
+  if (typeof name !== "string" || name === "") return null;
+  const commands = Array.isArray(state?.drawCommands) ? state.drawCommands : [];
+  for (let commandIndex = commands.length - 1; commandIndex >= 0; commandIndex -= 1) {
+    const features = commands[commandIndex]?.geojson?.features;
+    if (!Array.isArray(features)) continue;
+    for (let index = features.length - 1; index >= 0; index -= 1) {
+      const feature = features[index];
+      if (feature?.type !== "Feature") continue;
+      if ((feature.properties?.name ?? null) !== name) continue;
+      if ((feature.properties?.kind ?? null) !== kind) continue;
+      return { command: commands[commandIndex], feature, index };
+    }
+  }
+  return null;
 }
 function deleteAnnotationFeature(state, viewer, selection, replay) {
   const command = selection?.command;
@@ -15877,6 +16031,29 @@ function createAnnotationActions({ stateRef, viewerRef, getSelection, draw, show
       if (typeof onChanged === "function") onChanged();
       showToast(t2("annotation.added", { name }));
       return true;
+    },
+    /**
+     * Replace the geometry of the feature called {name, kind}. Vertex drags use
+     * this instead of the selection because every replay replaces the command,
+     * and the card closes after a save — the name is the stable handle.
+     */
+    geometry: (target, messageKey = "annotation.shapeSaved") => {
+      const found = findFeatureInState(stateRef.current, target?.name, target?.kind);
+      if (!found) {
+        showToast(t2("annotation.editFailed", { reason: "feature_not_found" }));
+        return false;
+      }
+      const patched = withAnnotationGeometry(found.feature, target?.geometry);
+      if (!patched.ok) {
+        showToast(t2("annotation.editFailed", { reason: patched.error }));
+        return false;
+      }
+      const features = found.command.geojson.features.slice();
+      features[found.index] = patched.feature;
+      return finish(
+        rebuildDrawCommand(stateRef.current, viewerRef.current, found.command, features, replay),
+        messageKey
+      );
     },
     update: (patch) => run(
       (state, viewer, selection, replayCommand) => updateAnnotationFeature(state, viewer, selection, patch, replayCommand),
@@ -16112,6 +16289,449 @@ function createAnnotationTool({ getCesium, getViewer, pickSurface, setTool, show
     if (wasActive) setTool(null);
   }
   return { start, cancel, abort, clear, dispose: clear };
+}
+
+// src/client/scene/annotation-vertices.js
+function editableRing(feature) {
+  const geometry = feature?.geometry;
+  if (geometry?.type === "LineString" && Array.isArray(geometry.coordinates)) {
+    return { kind: "line", ring: geometry.coordinates, closed: false };
+  }
+  if (geometry?.type === "Polygon" && Array.isArray(geometry.coordinates?.[0])) {
+    return { kind: "area", ring: geometry.coordinates[0], closed: true };
+  }
+  return null;
+}
+function vertexCornerCount(ring, closed) {
+  if (!Array.isArray(ring) || ring.length === 0) return 0;
+  if (!closed || ring.length < 2) return ring.length;
+  const first = ring[0];
+  const last = ring[ring.length - 1];
+  const duplicated = first?.[0] === last?.[0] && first?.[1] === last?.[1];
+  return duplicated ? ring.length - 1 : ring.length;
+}
+function annotationHandlePoints(feature) {
+  const editable = editableRing(feature);
+  if (!editable) return [];
+  const corners = vertexCornerCount(editable.ring, editable.closed);
+  const handles = [];
+  for (let index = 0; index < corners; index += 1) {
+    const vertex = editable.ring[index];
+    if (!Array.isArray(vertex) || vertex.length < 2) continue;
+    if (!Number.isFinite(vertex[0]) || !Number.isFinite(vertex[1])) continue;
+    handles.push({ ringIndex: 0, vertexIndex: index, lon: vertex[0], lat: vertex[1] });
+  }
+  return handles;
+}
+function annotationCenterPoint(handles) {
+  if (!Array.isArray(handles) || handles.length === 0) return null;
+  let lon = 0;
+  let lat = 0;
+  for (const handle of handles) {
+    lon += handle.lon;
+    lat += handle.lat;
+  }
+  return { lon: lon / handles.length, lat: lat / handles.length };
+}
+function annotationInsertPoint(feature, vertexIndex) {
+  const editable = editableRing(feature);
+  if (!editable) return { ok: false, error: "unsupported_geometry" };
+  const corners = vertexCornerCount(editable.ring, editable.closed);
+  if (!Number.isInteger(vertexIndex) || vertexIndex < 0 || vertexIndex >= corners) {
+    return { ok: false, error: "vertex_out_of_range" };
+  }
+  let after = vertexIndex;
+  let next = vertexIndex + 1;
+  if (next >= corners) {
+    if (!editable.closed) {
+      if (corners < 2) return { ok: false, error: "too_few_vertices" };
+      after = vertexIndex - 1;
+      next = vertexIndex;
+    } else {
+      next = 0;
+    }
+  }
+  const a = editable.ring[after];
+  const b = editable.ring[next];
+  if (!Array.isArray(a) || !Array.isArray(b)) return { ok: false, error: "vertex_out_of_range" };
+  return { ok: true, after, lon: (a[0] + b[0]) / 2, lat: (a[1] + b[1]) / 2 };
+}
+function isShapeEditable(feature) {
+  return editableRing(feature) !== null;
+}
+
+// src/client/scene/annotation-editor.js
+var HANDLE_LIMIT = 64;
+var DRAG_THRESHOLD = 3;
+var DRAG_HISTORY_LIMIT = 20;
+var sessions4 = /* @__PURE__ */ new WeakMap();
+function createAnnotationEditor({ getCesium, getViewer, getRoot, pickSurface, updateGeometry, showToast, t: t2 }) {
+  const sessionFor = () => {
+    const viewer = getViewer?.();
+    if (!viewer) return null;
+    let state = sessions4.get(viewer);
+    if (!state) {
+      state = {
+        feature: null,
+        target: null,
+        entries: [],
+        layer: null,
+        centerPoint: null,
+        dragging: null,
+        history: [],
+        keydown: null,
+        frame: null,
+        listeners: null
+      };
+      sessions4.set(viewer, state);
+    }
+    return state;
+  };
+  const lonLatAt = (event) => {
+    const Cesium = getCesium?.();
+    const viewer = getViewer?.();
+    const canvas = viewer?.scene?.canvas;
+    if (!Cesium || !canvas || typeof pickSurface !== "function") return null;
+    const rect = canvas.getBoundingClientRect();
+    const position = new Cesium.Cartesian2(event.clientX - rect.left, event.clientY - rect.top);
+    const surface = pickSurface(position);
+    if (!surface) return null;
+    try {
+      const carto = Cesium.Cartographic.fromCartesian(surface);
+      return { lon: Cesium.Math.toDegrees(carto.longitude), lat: Cesium.Math.toDegrees(carto.latitude) };
+    } catch {
+      return null;
+    }
+  };
+  const setCameraInputs = (enabled) => {
+    const viewer = getViewer?.();
+    const controller = viewer?.scene?.screenSpaceCameraController;
+    if (controller) controller.enableInputs = enabled;
+  };
+  const ensureLayer = (state) => {
+    const document2 = globalThis.document;
+    const root = getRoot?.();
+    if (!document2 || !root) return null;
+    if (state.layer && state.layer.isConnected) return state.layer;
+    const layer = document2.createElement("div");
+    layer.className = "mv-vertex-layer";
+    layer.setAttribute("data-annotation-editor", "1");
+    root.appendChild(layer);
+    state.layer = layer;
+    return layer;
+  };
+  const removeLayer = (state) => {
+    if (state.layer && typeof state.layer.remove === "function") state.layer.remove();
+    state.layer = null;
+    state.entries = [];
+    state.centerPoint = null;
+  };
+  const positionHandles = (state) => {
+    if (!state.layer || state.entries.length === 0) return;
+    const Cesium = getCesium?.();
+    const viewer = getViewer?.();
+    const root = getRoot?.();
+    if (!Cesium || !viewer || !root) return;
+    const scene = viewer.scene;
+    const canvas = scene?.canvas;
+    if (!canvas || typeof scene.cartesianToCanvasCoordinates !== "function") return;
+    const canvasRect = canvas.getBoundingClientRect();
+    const rootRect = root.getBoundingClientRect();
+    const offsetX = canvasRect.left - rootRect.left;
+    const offsetY = canvasRect.top - rootRect.top;
+    for (const entry of state.entries) {
+      const point = entry.kind === "center" ? state.centerPoint : { lon: entry.lon, lat: entry.lat };
+      if (!point) {
+        entry.el.style.display = "none";
+        continue;
+      }
+      let windowPoint = null;
+      try {
+        const carto = Cesium.Cartographic.fromDegrees(point.lon, point.lat);
+        const ground = scene.globe?.getHeight?.(carto);
+        const height = Number.isFinite(ground) ? ground + 2 : 0;
+        windowPoint = scene.cartesianToCanvasCoordinates(
+          Cesium.Cartesian3.fromRadians(carto.longitude, carto.latitude, height)
+        );
+      } catch {
+        windowPoint = null;
+      }
+      if (!windowPoint || !Number.isFinite(windowPoint.x) || !Number.isFinite(windowPoint.y)) {
+        entry.el.style.display = "none";
+        continue;
+      }
+      entry.el.style.display = "";
+      entry.el.style.transform = `translate(${offsetX + windowPoint.x}px, ${offsetY + windowPoint.y}px)`;
+    }
+  };
+  const refreshFeature = (state) => {
+    const handles = annotationHandlePoints(state.feature);
+    state.centerPoint = annotationCenterPoint(handles);
+    return handles;
+  };
+  const addHistory = (state, entry) => {
+    state.history.push(entry);
+    while (state.history.length > DRAG_HISTORY_LIMIT) state.history.shift();
+  };
+  const commit = (state, nextFeature, beforeFeature, messageKey) => {
+    const target = state.target;
+    if (!target || !beforeFeature) return false;
+    const ok = updateGeometry(
+      {
+        name: target.name,
+        kind: target.kind,
+        geometry: nextFeature.geometry,
+        previous: beforeFeature.geometry
+      },
+      messageKey
+    );
+    if (!ok) {
+      state.feature = beforeFeature;
+      refreshFeature(state);
+      return false;
+    }
+    addHistory(state, {
+      name: target.name,
+      kind: target.kind,
+      previous: beforeFeature.geometry,
+      current: nextFeature.geometry
+    });
+    state.feature = nextFeature;
+    state.target = { name: target.name, kind: target.kind, geometry: nextFeature.geometry };
+    refreshFeature(state);
+    return true;
+  };
+  const undo = (state) => {
+    const entry = state.history.pop();
+    if (!entry) {
+      showToast(t2("annotation.nothingToUndo"));
+      return false;
+    }
+    const ok = updateGeometry(
+      { name: entry.name, kind: entry.kind, geometry: entry.previous, previous: entry.current },
+      "annotation.undone"
+    );
+    if (!ok) {
+      state.history.push(entry);
+      return false;
+    }
+    state.feature = { ...state.feature, geometry: entry.previous };
+    state.target = { name: entry.name, kind: entry.kind, geometry: entry.previous };
+    refreshFeature(state);
+    return true;
+  };
+  const removeDragListeners = (state) => {
+    const document2 = globalThis.document;
+    if (!document2 || !state.listeners) return;
+    document2.removeEventListener("pointermove", state.listeners.move);
+    document2.removeEventListener("pointerup", state.listeners.up);
+    document2.removeEventListener("pointercancel", state.listeners.up);
+    state.listeners = null;
+  };
+  const finishDrag = (state) => {
+    const drag = state.dragging;
+    state.dragging = null;
+    removeDragListeners(state);
+    setCameraInputs(true);
+    if (!drag) return;
+    if (!drag.moved) {
+      state.feature = drag.snapshot;
+      refreshFeature(state);
+      return;
+    }
+    commit(state, state.feature, drag.snapshot, "annotation.shapeSaved");
+  };
+  const onDragMove = (state, event) => {
+    const drag = state.dragging;
+    if (!drag) return;
+    const dx = event.clientX - drag.startX;
+    const dy = event.clientY - drag.startY;
+    if (!drag.moved && Math.hypot(dx, dy) < DRAG_THRESHOLD) return;
+    const point = lonLatAt(event);
+    if (!point) return;
+    drag.moved = true;
+    const next = drag.entry.kind === "center" ? translateAnnotation(drag.snapshot, point.lon - drag.origin.lon, point.lat - drag.origin.lat) : moveAnnotationVertex(drag.snapshot, 0, drag.entry.vertexIndex, point.lon, point.lat);
+    if (!next.ok) return;
+    state.feature = next.feature;
+    refreshFeature(state);
+    try {
+      getViewer?.().scene.requestRender?.();
+    } catch {
+    }
+  };
+  const startDrag = (state, event, entry) => {
+    const origin = lonLatAt(event);
+    if (!origin) return;
+    state.dragging = {
+      entry,
+      startX: event.clientX,
+      startY: event.clientY,
+      origin,
+      snapshot: state.feature,
+      moved: false
+    };
+    setCameraInputs(false);
+    const document2 = globalThis.document;
+    const move = (moveEvent) => onDragMove(state, moveEvent);
+    const up = () => finishDrag(state);
+    state.listeners = { move, up };
+    document2.addEventListener("pointermove", move);
+    document2.addEventListener("pointerup", up);
+    document2.addEventListener("pointercancel", up);
+  };
+  const insertVertex = (state, entry) => {
+    const point = annotationInsertPoint(state.feature, entry.vertexIndex);
+    if (!point.ok) {
+      showToast(t2("annotation.vertexFailed"));
+      return false;
+    }
+    const next = insertAnnotationVertex(state.feature, 0, point.after, point.lon, point.lat);
+    if (!next.ok) {
+      showToast(t2("annotation.vertexFailed"));
+      return false;
+    }
+    const before = state.feature;
+    if (commit(state, next.feature, before, "annotation.vertexInserted")) {
+      rebuildHandles(state);
+      return true;
+    }
+    return false;
+  };
+  const deleteVertex = (state, entry) => {
+    const next = deleteAnnotationVertex(state.feature, 0, entry.vertexIndex);
+    if (!next.ok) {
+      showToast(t2(next.error === "too_few_vertices" ? "annotation.tooFewVertices" : "annotation.vertexFailed"));
+      return false;
+    }
+    const before = state.feature;
+    if (commit(state, next.feature, before, "annotation.vertexDeleted")) {
+      rebuildHandles(state);
+      return true;
+    }
+    return false;
+  };
+  const onHandlePointerDown = (state, event, entry) => {
+    if (event.button !== void 0 && event.button !== 0) return;
+    event.preventDefault();
+    event.stopPropagation();
+    if (entry.kind === "vertex" && event.altKey) {
+      insertVertex(state, entry);
+      return;
+    }
+    startDrag(state, event, entry);
+  };
+  const rebuildHandles = (state) => {
+    removeLayer(state);
+    if (!state.feature) return;
+    const layer = ensureLayer(state);
+    const document2 = globalThis.document;
+    if (!layer || !document2) return;
+    const handles = refreshFeature(state);
+    if (handles.length === 0 || handles.length > HANDLE_LIMIT) return;
+    for (const handle of handles) {
+      const entry = { kind: "vertex", ringIndex: handle.ringIndex, vertexIndex: handle.vertexIndex, lon: handle.lon, lat: handle.lat };
+      const el = document2.createElement("div");
+      el.className = "mv-vertex";
+      el.setAttribute("role", "button");
+      el.setAttribute("tabindex", "-1");
+      el.title = t2("annotation.vertexHint");
+      el.addEventListener("pointerdown", (event) => onHandlePointerDown(state, event, entry));
+      el.addEventListener("dblclick", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        deleteVertex(state, entry);
+      });
+      layer.appendChild(el);
+      entry.el = el;
+      state.entries.push(entry);
+    }
+    if (state.centerPoint) {
+      const entry = { kind: "center" };
+      const el = document2.createElement("div");
+      el.className = "mv-vertex center";
+      el.setAttribute("role", "button");
+      el.setAttribute("tabindex", "-1");
+      el.title = t2("annotation.centerHint");
+      el.addEventListener("pointerdown", (event) => onHandlePointerDown(state, event, entry));
+      layer.appendChild(el);
+      entry.el = el;
+      state.entries.push(entry);
+    }
+    positionHandles(state);
+  };
+  const detachFrame = (state) => {
+    const viewer = getViewer?.();
+    if (state.frame && viewer?.scene?.postRender) {
+      viewer.scene.postRender.removeEventListener(state.frame);
+    }
+    state.frame = null;
+  };
+  const attachFrame = (state) => {
+    const viewer = getViewer?.();
+    if (state.frame || !viewer?.scene?.postRender) return;
+    state.frame = () => positionHandles(state);
+    viewer.scene.postRender.addEventListener(state.frame);
+  };
+  const detachKeys = (state) => {
+    const document2 = globalThis.document;
+    if (state.keydown && document2) document2.removeEventListener("keydown", state.keydown);
+    state.keydown = null;
+  };
+  const attachKeys = (state) => {
+    const document2 = globalThis.document;
+    if (state.keydown || !document2) return;
+    state.keydown = (event) => {
+      const active = document2.activeElement;
+      if (active && active !== document2.body && !event.target?.closest?.(".mv-root")) return;
+      if (event.key === "Escape") {
+        event.preventDefault();
+        state.feature = null;
+        state.target = null;
+        removeLayer(state);
+        detachKeys(state);
+        return;
+      }
+      if ((event.ctrlKey || event.metaKey) && String(event.key).toLowerCase() === "z") {
+        event.preventDefault();
+        undo(state);
+      }
+    };
+    document2.addEventListener("keydown", state.keydown);
+  };
+  const clear = () => {
+    const state = sessionFor();
+    if (!state) return;
+    finishDrag(state);
+    removeDragListeners(state);
+    detachFrame(state);
+    detachKeys(state);
+    removeLayer(state);
+    state.feature = null;
+    state.target = null;
+  };
+  const focus = (selection) => {
+    clear();
+    const feature = selection?.feature;
+    const name = typeof feature?.properties?.name === "string" ? feature.properties.name : "";
+    const kind = feature?.properties?.kind ?? null;
+    if (!feature || !kind || name === "" || !isShapeEditable(feature)) return false;
+    const state = sessionFor();
+    if (!state) return false;
+    state.feature = feature;
+    state.target = { name, kind, geometry: feature.geometry };
+    state.history = [];
+    rebuildHandles(state);
+    attachFrame(state);
+    attachKeys(state);
+    return true;
+  };
+  function dispose() {
+    const state = sessionFor();
+    if (!state) return;
+    clear();
+    state.history = [];
+  }
+  return { focus, clear, dispose };
 }
 
 // src/client/viewer/ViewerSurface.js
@@ -16732,6 +17352,19 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
   import_react34.default.useEffect(() => {
     if (tool !== "annotate") annotationTool.abort();
   }, [tool]);
+  const annotationEditor = createAnnotationEditor({
+    getCesium: () => cesiumRef.current,
+    getViewer: () => viewerRef.current,
+    getRoot: () => rootRef.current,
+    pickSurface,
+    updateGeometry: annotations.geometry,
+    showToast,
+    t: t2
+  });
+  import_react34.default.useEffect(() => {
+    annotationEditor.focus(vectorSelection);
+  }, [vectorSelection]);
+  import_react34.default.useEffect(() => () => annotationEditor.dispose(), []);
   function drawAgentOverlay(Cesium, viewer, geojson, style, caption) {
     const state = agentOverlayRef.current;
     const firstEntity = state.draw.length;

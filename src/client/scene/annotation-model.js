@@ -83,6 +83,22 @@ export function withAnnotationProperties(feature, patch = {}) {
   return { ok: true, feature: next }
 }
 
+/**
+ * Replace the geometry after a vertex edit; properties stay and the result must
+ * remain writable WGS84. Returns {ok:true, feature} or {ok:false, error}.
+ */
+export function withAnnotationGeometry(feature, geometry) {
+  if (feature === null || typeof feature !== 'object' || feature.type !== 'Feature') {
+    return { ok: false, error: 'invalid_feature' }
+  }
+  if (geometry === null || typeof geometry !== 'object' || typeof geometry.type !== 'string') {
+    return { ok: false, error: 'invalid_geometry' }
+  }
+  const next = { ...feature, geometry }
+  if (!annotationBoundsOk(next)) return { ok: false, error: 'out_of_bounds' }
+  return { ok: true, feature: next }
+}
+
 /** Fill the fields a hand-drawn or imported feature may miss, without inventing names. */
 export function normalizeAnnotation(feature, { source = 'manual' } = {}) {
   if (feature === null || typeof feature !== 'object' || feature.type !== 'Feature') {

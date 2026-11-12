@@ -11,7 +11,7 @@
  * the safety rules, not the Cesium details.
  */
 import { removeAgentOverlay } from './agent-overlays.js'
-import { withAnnotationProperties } from './annotation-model.js'
+import { withAnnotationGeometry, withAnnotationProperties } from './annotation-model.js'
 
 /** Find a feature inside a command, by identity first and by content after a rebuild. */
 export function locateFeature(command, feature) {
@@ -51,7 +51,10 @@ export function rebuildDrawCommand(state, viewer, command, features, replay) {
   return { ok: true, command: next }
 }
 
-/** Rename / annotate / reclassify one feature; geometry is untouched. */
+/**
+ * Rename / annotate / reclassify one feature. Geometry is only replaced when
+ * patch.geometry is given (F2b2 vertex edits reuse the same replay path).
+ */
 export function updateAnnotationFeature(state, viewer, selection, patch, replay) {
   const command = selection?.command
   const feature = selection?.feature
@@ -60,9 +63,37 @@ export function updateAnnotationFeature(state, viewer, selection, patch, replay)
   if (index < 0) return { ok: false, error: 'feature_not_found' }
   const patched = withAnnotationProperties(feature, patch)
   if (!patched.ok) return patched
+  let next = patched.feature
+  if (patch?.geometry !== undefined) {
+    const geometry = withAnnotationGeometry(next, patch.geometry)
+    if (!geometry.ok) return geometry
+    next = geometry.feature
+  }
   const features = command.geojson.features.slice()
-  features[index] = patched.feature
+  features[index] = next
   return rebuildDrawCommand(state, viewer, command, features, replay)
+}
+
+/**
+ * Find the newest feature with this name and kind inside the drawn commands.
+ * Annotation names are unique per kind (auto-naming), so this is the stable
+ * handle a vertex edit can use after its command was replayed and replaced.
+ */
+export function findFeatureInState(state, name, kind) {
+  if (typeof name !== 'string' || name === '') return null
+  const commands = Array.isArray(state?.drawCommands) ? state.drawCommands : []
+  for (let commandIndex = commands.length - 1; commandIndex >= 0; commandIndex -= 1) {
+    const features = commands[commandIndex]?.geojson?.features
+    if (!Array.isArray(features)) continue
+    for (let index = features.length - 1; index >= 0; index -= 1) {
+      const feature = features[index]
+      if (feature?.type !== 'Feature') continue
+      if ((feature.properties?.name ?? null) !== name) continue
+      if ((feature.properties?.kind ?? null) !== kind) continue
+      return { command: commands[commandIndex], feature, index }
+    }
+  }
+  return null
 }
 
 /** Delete one feature; deleting the last feature deletes the whole command. */

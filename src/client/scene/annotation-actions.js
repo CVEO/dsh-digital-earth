@@ -7,8 +7,8 @@
  * stays under its size budget.
  */
 import { downloadText } from '../ui/cards.js'
-import { annotationFeatureText, deleteAnnotationFeature, updateAnnotationFeature } from './annotation-edit.js'
-import { annotationFeaturesOfCommands, annotationKindOf, nextAnnotationName, normalizeAnnotation } from './annotation-model.js'
+import { annotationFeatureText, deleteAnnotationFeature, findFeatureInState, rebuildDrawCommand, updateAnnotationFeature } from './annotation-edit.js'
+import { annotationFeaturesOfCommands, annotationKindOf, nextAnnotationName, normalizeAnnotation, withAnnotationGeometry } from './annotation-model.js'
 
 export function createAnnotationActions({ stateRef, viewerRef, getSelection, draw, showToast, t, onChanged }) {
   const selectionOf = () => (typeof getSelection === 'function' ? getSelection() : null)
@@ -50,6 +50,29 @@ export function createAnnotationActions({ stateRef, viewerRef, getSelection, dra
       if (typeof onChanged === 'function') onChanged()
       showToast(t('annotation.added', { name }))
       return true
+    },
+    /**
+     * Replace the geometry of the feature called {name, kind}. Vertex drags use
+     * this instead of the selection because every replay replaces the command,
+     * and the card closes after a save — the name is the stable handle.
+     */
+    geometry: (target, messageKey = 'annotation.shapeSaved') => {
+      const found = findFeatureInState(stateRef.current, target?.name, target?.kind)
+      if (!found) {
+        showToast(t('annotation.editFailed', { reason: 'feature_not_found' }))
+        return false
+      }
+      const patched = withAnnotationGeometry(found.feature, target?.geometry)
+      if (!patched.ok) {
+        showToast(t('annotation.editFailed', { reason: patched.error }))
+        return false
+      }
+      const features = found.command.geojson.features.slice()
+      features[found.index] = patched.feature
+      return finish(
+        rebuildDrawCommand(stateRef.current, viewerRef.current, found.command, features, replay),
+        messageKey,
+      )
     },
     update: (patch) => run(
       (state, viewer, selection, replayCommand) => updateAnnotationFeature(state, viewer, selection, patch, replayCommand),

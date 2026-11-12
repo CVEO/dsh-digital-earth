@@ -65,6 +65,7 @@ import { runVectorImport } from '../scene/vector-import-transaction.js'
 import { addAgentGroundLabel, agentLabelText, agentOverlayColor, agentSurfaceHeight } from '../scene/overlay-helpers.js'
 import { createAnnotationActions } from '../scene/annotation-actions.js'
 import { createAnnotationTool } from '../scene/annotation-tool.js'
+import { createAnnotationEditor } from '../scene/annotation-editor.js'
 const h = React.createElement
 
     /**
@@ -853,6 +854,19 @@ const h = React.createElement
       React.useEffect(() => {
         if (tool !== 'annotate') annotationTool.abort()
       }, [tool])
+
+      // F2b2: vertex handles for the selected shape; each edit replays one command.
+      const annotationEditor = createAnnotationEditor({
+        getCesium: () => cesiumRef.current,
+        getViewer: () => viewerRef.current,
+        getRoot: () => rootRef.current,
+        pickSurface,
+        updateGeometry: annotations.geometry,
+        showToast,
+        t,
+      })
+      React.useEffect(() => { annotationEditor.focus(vectorSelection) }, [vectorSelection])
+      React.useEffect(() => () => annotationEditor.dispose(), [])
 
       // Overlay colours, ground labels and surface heights live in scene/overlay-helpers.js.
 
