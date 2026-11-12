@@ -301,3 +301,27 @@ export function profileSvg(metrics, labels = {}) {
     '</svg>',
   ].join('')
 }
+
+/**
+ * Chart hover → sample index: the sample closest to `ratio` of the max distance.
+ * Returns -1 when the series has no usable distance (never a guessed 0).
+ */
+export function nearestProfileIndex(points, ratio) {
+  if (!Array.isArray(points) || points.length === 0) return -1
+  const maximum = points.reduce((best, point) => Math.max(best, asNumber(point?.distance_m) ?? 0), 0)
+  if (!(maximum > 0)) return -1
+  const clamped = Math.min(1, Math.max(0, asNumber(ratio) ?? 0))
+  const target = clamped * maximum
+  let index = -1
+  let bestDistance = Number.POSITIVE_INFINITY
+  for (let position = 0; position < points.length; position += 1) {
+    const distance = asNumber(points[position]?.distance_m)
+    if (distance === null) continue
+    const delta = Math.abs(distance - target)
+    if (delta < bestDistance) {
+      index = position
+      bestDistance = delta
+    }
+  }
+  return index
+}

@@ -686,12 +686,17 @@ test('client toolview：六个地球工具行（含 earth_analyze/earth_shader�
 test('client 分析卡与布局：右上方浮动卡、SVG 剖面、折叠/关闭、≤300px、窄屏与截图隐藏', () => {
   // analysisMetric 定义在 card region 内、图表函数之前，单独断言。
   assert.match(client, /const analysisMetric = \(value, digits = 1\) =>/)
-  const card = block(client, 'function AnalysisProfileChart', '//#endregion analysis card')
-  assert.match(card, /function AnalysisProfileChart\(\{ points, t \}\)/)
-  assert.match(card, /viewBox: `0 0 \$\{width\} \$\{height\}`/)
-  assert.match(card, /h\('polyline'/)
+  const card = block(client, 'function AnalysisCard', '//#endregion analysis card')
+  // F5: the chart moved to ui/profile-chart.js to keep cards.js inside budget.
+  const chart = readRepoFile('src/client/ui/profile-chart.js')
+  assert.match(chart, /function AnalysisProfileChart\(\{ points, t, hoverIndex = null, onHover \}\)/)
+  assert.match(chart, /viewBox: `0 0 \$\{width\} \$\{height\}`/)
+  assert.match(chart, /h\('polyline'/)
   // 数据缺口分段绘制，不把缺口连成直线。
-  assert.match(card, /segments\.push\(current\.join\(' '\)\)/)
+  assert.match(chart, /segments\.push\(current\.join\(' '\)\)/)
+  // F5：图表悬停换算成样本序号，地面读数由同一个序号驱动。
+  assert.match(chart, /nearestProfileIndex\(points,/)
+  assert.match(chart, /onPointerMove,/)
   assert.match(card, /className: 'mv-card mv-analysis'/)
   assert.match(card, /role: 'region'/)
   assert.match(card, /analysis\.title\.\$\{operation\}/)
@@ -699,7 +704,7 @@ test('client 分析卡与布局：右上方浮动卡、SVG 剖面、折叠/关�
   assert.match(card, /'aria-expanded': open/)
   assert.match(card, /t\('analysis\.collapse'\)/)
   assert.match(card, /t\('analysis\.expand'\)/)
-  assert.match(card, /function AnalysisCard\(\{ state, t, onClose \}\)/)
+  assert.match(card, /function AnalysisCard\(\{ state, t, onClose, hoverIndex = null, onHover \}\)/)
 
   // 右栈与 300px 宽度上限（右栈样式块跨过图层卡样式，到分析卡提示行为止）。
   const layout = block(client, '.mv-right{', '.mv-analysis .hint{')
@@ -722,7 +727,7 @@ test('client 分析卡与布局：右上方浮动卡、SVG 剖面、折叠/关�
   // 面板把分析卡挂在右栈，关闭按钮走 clearAnalysis；右栈已抽成 ui/right-stack.js。
   const stack = readRepoFile('src/client/ui/right-stack.js')
   assert.match(stack, /className: 'mv-right'/)
-  assert.match(stack, /h\(AnalysisCard, \{ key: 'analysis', state: analysis, t, onClose: onCloseAnalysis \}\)/)
+  assert.match(stack, /h\(AnalysisCard, \{ key: 'analysis', state: analysis, t, onClose: onCloseAnalysis, hoverIndex: analysisHover, onHover: onAnalysisHover \}\)/)
 })
 
 test('client i18n：analysis.* 49 个键中英对齐，关键文案都在', () => {

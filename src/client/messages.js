@@ -9,6 +9,7 @@ import { V17_MESSAGES } from './messages-v17.js'
 import { V18_MESSAGES } from './messages-v18.js'
 import { ANNOTATION_MESSAGES } from './messages-annotations.js'
 import { EXPORT_MESSAGES } from './messages-export.js'
+import { PROFILE_MESSAGES } from './messages-profile.js'
 
     const MESSAGES = {
       zh: {
@@ -444,6 +445,7 @@ import { EXPORT_MESSAGES } from './messages-export.js'
         ...V18_MESSAGES.zh,
     ...ANNOTATION_MESSAGES.zh,
     ...EXPORT_MESSAGES.zh,
+    ...PROFILE_MESSAGES.zh,
       },
       en: {
         'panel.title': 'Digital Earth',
@@ -882,6 +884,7 @@ import { EXPORT_MESSAGES } from './messages-export.js'
         ...V18_MESSAGES.en,
     ...ANNOTATION_MESSAGES.en,
     ...EXPORT_MESSAGES.en,
+    ...PROFILE_MESSAGES.en,
       },
     }
 

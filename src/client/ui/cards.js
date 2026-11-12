@@ -9,6 +9,7 @@ import { formatDistance, formatHeight } from '../format.js'
 import { profileCsv, profileMetrics, profileSvg } from '../analysis/profile-metrics.js'
 import { SHADER_PRIMARY_PRESETS } from '../shader/presets.js'
 import { ElevationLegend, elevationSliderBounds, useShaderElevation } from './shader-elevation.js'
+import { AnalysisProfileChart } from './profile-chart.js'
 import { ResizeHandle, usePanelResize } from './resizable.js'
 
 const h = React.createElement
@@ -52,68 +53,6 @@ const h = React.createElement
       anchor.remove()
       setTimeout(() => URL.revokeObjectURL(url), 1000)
       return true
-    }
-
-    /** SVG distance–elevation chart; gaps in the sampled data stay visible. */
-    function AnalysisProfileChart({ points, t }) {
-      if (!Array.isArray(points) || points.length < 2) return null
-      const width = 260
-      const height = 92
-      const padX = 10
-      const padY = 12
-      const valid = points.filter(
-        (point) => point && typeof point.height_m === 'number' && Number.isFinite(point.height_m),
-      )
-      if (valid.length < 2) return null
-      const maxDistance = Math.max(...points.map((point) => Number(point.distance_m) || 0), 1)
-      const minimum = Math.min(...valid.map((point) => point.height_m))
-      const maximum = Math.max(...valid.map((point) => point.height_m))
-      const range = maximum - minimum || 1
-      const x = (distance) => padX + (width - padX * 2) * Math.min(1, Math.max(0, distance / maxDistance))
-      const y = (value) => height - padY - (height - padY * 2) * ((value - minimum) / range)
-      const segments = []
-      let current = []
-      for (const point of points) {
-        const heightValue = point ? point.height_m : null
-        if (typeof heightValue === 'number' && Number.isFinite(heightValue)) {
-          const distance = Number(point.distance_m) || 0
-          current.push(`${x(distance).toFixed(1)},${y(heightValue).toFixed(1)}`)
-        } else if (current.length > 0) {
-          segments.push(current.join(' '))
-          current = []
-        }
-      }
-      if (current.length > 0) segments.push(current.join(' '))
-      return h(
-        'svg',
-        {
-          className: 'chart',
-          viewBox: `0 0 ${width} ${height}`,
-          role: 'img',
-          'aria-label': t('analysis.chart'),
-        },
-        h('line', {
-          x1: padX,
-          y1: height - padY,
-          x2: width - padX,
-          y2: height - padY,
-          stroke: 'var(--mv-line)',
-        }),
-        ...segments.map((pointsText, index) =>
-          h('polyline', {
-            key: `segment-${index}`,
-            points: pointsText,
-            fill: 'none',
-            stroke: 'var(--mv-profile-line)',
-            strokeWidth: 3,
-            strokeLinejoin: 'round',
-            strokeLinecap: 'round',
-          }),
-        ),
-        h('text', { x: padX, y: padY - 3 }, formatHeight(maximum)),
-        h('text', { x: padX, y: height - 2 }, formatHeight(minimum)),
-        h('text', { x: width - padX, y: height - 2, textAnchor: 'end' }, formatDistance(maxDistance)),
-      )
     }
 
     /** Full-size profile preview; the card keeps a thumbnail that opens this. */
@@ -182,7 +121,7 @@ const h = React.createElement
     }
 
     /** Floating result card for the single active analysis. */
-    function AnalysisCard({ state, t, onClose }) {
+    function AnalysisCard({ state, t, onClose, hoverIndex = null, onHover }) {
       const [open, setOpen] = React.useState(true)
       // A2 profile extras are display-side only: the Agent contract stays the same.
       const [profileMode, setProfileMode] = React.useState('grade')
@@ -214,10 +153,10 @@ const h = React.createElement
                   'aria-label': t('profile.expandChart'),
                   onClick: () => setChartOpen(true),
                 },
-                h(AnalysisProfileChart, { points: result.points, t }),
+                h(AnalysisProfileChart, { points: result.points, t, hoverIndex, onHover }),
                 h('span', { className: 'profile-chart-hint' }, t('profile.expandChart')),
               )
-            : h(AnalysisProfileChart, { points: result.points, t })
+            : h(AnalysisProfileChart, { points: result.points, t, hoverIndex, onHover })
           : null
       const rows = []
       const row = (key, label, value) =>

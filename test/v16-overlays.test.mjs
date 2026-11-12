@@ -223,7 +223,7 @@ test('接线：底图固定加在第 0 层，叠加层在上；挂载与保存�
   assert.match(client, /addImageryProvider\(provider, 0\)/)
   assert.match(client, /overlayLayersRef\.current = createOverlayLayers\(\{/)
   // v1.6 起挂载时的同步有 10s 网络超时护栏，避免卡住的叠加层阻塞面板就绪。
-  assert.match(client, /await withNetworkTimeout\(overlayLayersRef\.current\.sync\(catalog\.config\.rasterOverlays \?\? \[\]\), 10000\)/)
+  assert.match(client, /net\.withNetworkTimeout\(overlayLayersRef\.current\.sync\(catalog\.config\.rasterOverlays \?\? \[\]\), 10000\)/)
   assert.match(client, /overlayLayersRef\.current\?\.sync\(next\.rasterOverlays \?\? \[\]\)/)
   assert.match(client, /overlayLayersRef\.current\?\.dispose\(\)/)
 })

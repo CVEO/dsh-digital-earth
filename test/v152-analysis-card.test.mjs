@@ -36,7 +36,7 @@ test('分析卡：剖面图是 body 第一个子节点，在图层行与指标�
   // chartBlock 自身：有缩略图按钮路径，也有无指标时的普通图表路径。
   const chartBlock = cards.slice(cards.indexOf('const chartBlock ='), cards.indexOf('const rows = []'))
   assert.match(chartBlock, /className: 'profile-chart-thumb'/)
-  assert.match(chartBlock, /h\(AnalysisProfileChart, \{ points: result\.points, t \}\)/)
+  assert.match(chartBlock, /h\(AnalysisProfileChart, \{ points: result\.points, t, hoverIndex, onHover \}\)/)
   assert.match(chartBlock, /onClick: \(\) => setChartOpen\(true\)/)
 })
 

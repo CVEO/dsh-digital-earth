@@ -15,7 +15,7 @@ import { ResizeHandle, usePanelResize } from './resizable.js'
 
 const h = React.createElement
 
-export function RightStack({ t, analysis, onCloseAnalysis, layersPanel, showLayers, toolsPanel, showTools }) {
+export function RightStack({ t, analysis, onCloseAnalysis, analysisHover, onAnalysisHover, layersPanel, showLayers, toolsPanel, showTools }) {
   const resize = usePanelResize({ storageKey: 'right-stack', initialWidth: 300, minWidth: 240, maxWidth: 720 })
   if (!analysis && !showLayers && !showTools) return null
   return h(
@@ -29,7 +29,9 @@ export function RightStack({ t, analysis, onCloseAnalysis, layersPanel, showLaye
       onPointerDown: resize.beginWidth,
       onKeyDown: resize.keyWidth,
     }),
-    analysis ? h(AnalysisCard, { key: 'analysis', state: analysis, t, onClose: onCloseAnalysis }) : null,
+    analysis
+      ? h(AnalysisCard, { key: 'analysis', state: analysis, t, onClose: onCloseAnalysis, hoverIndex: analysisHover, onHover: onAnalysisHover })
+      : null,
     showLayers ? h(LayersPanel, { key: 'layers', t, ...layersPanel }) : null,
     showTools ? h(ToolsPanel, { key: 'tools', t, ...toolsPanel }) : null,
   )

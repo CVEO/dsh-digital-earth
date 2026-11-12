@@ -68,13 +68,16 @@ test('恢复：超时只 toast 一次且带中英文案', () => {
 })
 
 test('网络超时：底图/地形/瓦片/叠加层请求都不会无限等待', () => {
-  assert.match(viewer, /const NETWORK_TIMEOUT_MS = 8000/)
-  assert.match(viewer, /function withNetworkTimeout\(promise, ms = NETWORK_TIMEOUT_MS\)/)
-  assert.match(viewer, /await withNetworkTimeout\(imageryProvider\(Cesium, source\)\)/)
-  assert.match(viewer, /await withNetworkTimeout\(terrainProvider\(Cesium, source\)\)/)
-  assert.match(viewer, /await withNetworkTimeout\(Cesium\.Cesium3DTileset\.fromUrl\(url, tilesetOptions\), 15000\)/)
-  assert.match(viewer, /await withNetworkTimeout\(Cesium\.Cesium3DTileset\.fromUrl\(proxyUrlFor\(url\), tilesetOptions\), 15000\)/)
-  assert.match(viewer, /withNetworkTimeout\(overlayLayersRef\.current\.sync\(/)
+  // F5 moved the guard into scene/network.js; the panel keeps one shared instance.
+  const network = readRepoFile('src/client/scene/network.js')
+  assert.match(network, /export const NETWORK_TIMEOUT_MS = 8000/)
+  assert.match(network, /function withNetworkTimeout\(promise, ms = NETWORK_TIMEOUT_MS\)/)
+  assert.match(viewer, /const net = createNetwork\(\{ t \}\)/)
+  assert.match(viewer, /await net\.withNetworkTimeout\(imageryProvider\(Cesium, source\)\)/)
+  assert.match(viewer, /await net\.withNetworkTimeout\(terrainProvider\(Cesium, source\)\)/)
+  assert.match(viewer, /await net\.withNetworkTimeout\(Cesium\.Cesium3DTileset\.fromUrl\(url, tilesetOptions\), 15000\)/)
+  assert.match(viewer, /await net\.withNetworkTimeout\(Cesium\.Cesium3DTileset\.fromUrl\(proxyUrlFor\(url\), tilesetOptions\), 15000\)/)
+  assert.match(viewer, /net\.withNetworkTimeout\(overlayLayersRef\.current\.sync\(/)
 
   // 地形在初始化时后台加载：地形服务失败/卡住不能遮住面板就绪。
   assert.match(viewer, /void applyTerrain\(catalog\.config\.settings\.terrain, false\)\.catch\(\(\) => \{\}\)/)

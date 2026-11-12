@@ -67,6 +67,8 @@ import { createAnnotationActions } from '../scene/annotation-actions.js'
 import { createAnnotationTool } from '../scene/annotation-tool.js'
 import { createAnnotationEditor } from '../scene/annotation-editor.js'
 import { createVectorExport } from '../scene/vector-export-service.js'
+import { createNetwork } from '../scene/network.js'
+import { createProfileEdit } from '../scene/profile-edit.js'
 const h = React.createElement
 
     /**
@@ -77,6 +79,7 @@ const h = React.createElement
     function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
       const fallbackT = useTranslation()
       const t = typeof injectedT === 'function' ? injectedT : fallbackT
+      const net = createNetwork({ t })
       const environmentDark = useEnvironmentDark()
       const rootRef = React.useRef(null)
       const globeRef = React.useRef(null)
@@ -147,6 +150,7 @@ const h = React.createElement
       const [accessRequest, setAccessRequest] = React.useState(null)
       const [accessBusy, setAccessBusy] = React.useState(false)
       const [analysis, setAnalysis] = React.useState(null)
+      const [profileHover, setProfileHover] = React.useState(null)
       const [shaderOpen, setShaderOpen] = React.useState(false)
       const [showTools, setShowTools] = React.useState(true)
       const [shaderActive, setShaderActive] = React.useState([])
@@ -407,10 +411,10 @@ const h = React.createElement
         try {
           let tileset
           try {
-            tileset = await withNetworkTimeout(Cesium.Cesium3DTileset.fromUrl(url, tilesetOptions), 15000)
+            tileset = await net.withNetworkTimeout(Cesium.Cesium3DTileset.fromUrl(url, tilesetOptions), 15000)
           } catch (directError) {
             if (!/^https?:/i.test(url)) throw directError
-            tileset = await withNetworkTimeout(Cesium.Cesium3DTileset.fromUrl(proxyUrlFor(url), tilesetOptions), 15000)
+            tileset = await net.withNetworkTimeout(Cesium.Cesium3DTileset.fromUrl(proxyUrlFor(url), tilesetOptions), 15000)
             showToast(t('toast.proxyFallback'))
           }
           viewer.scene.primitives.add(tileset)
@@ -451,11 +455,6 @@ const h = React.createElement
         }
       }
 
-      /** Join a folder and a relative tileset path for the Host allowlist check. */
-      function joinLocalPath(dir, rel) {
-        return `${String(dir).replace(/[\\/]+$/, '')}/${String(rel).replace(/\\/g, '/')}`
-      }
-
       async function addTileset(url, name, source = null) {
         try {
           await loadTileset(url, name, source)
@@ -469,7 +468,7 @@ const h = React.createElement
         getWorkspace: () => service('uiWorkspace'),
         scanLocalDirectory,
         addTileset,
-        joinLocalPath,
+        joinLocalPath: net.joinLocalPath,
         b64url,
         folderName,
         setRecentDirs,
@@ -479,22 +478,6 @@ const h = React.createElement
         showToast,
         t,
       })
-
-      /**
-       * Provider/service requests (terrain metadata, imagery capabilities, tileset
-       * JSON) can hang on a bad network or a stale host route. Every network step
-       * that gates the UI is raced against this timeout so the panel can fall back
-       * instead of leaving the loading overlay up forever.
-       */
-      const NETWORK_TIMEOUT_MS = 8000
-      function withNetworkTimeout(promise, ms = NETWORK_TIMEOUT_MS) {
-        return Promise.race([
-          promise,
-          new Promise((_, reject) =>
-            setTimeout(() => reject(new Error(t('toast.requestTimeout', { seconds: Math.round(ms / 1000) }))), ms),
-          ),
-        ])
-      }
 
       const imagerySeqRef = React.useRef(0)
       const terrainSeqRef = React.useRef(0)
@@ -508,7 +491,7 @@ const h = React.createElement
         const seq = (imagerySeqRef.current += 1)
         setImageryBusy(true)
         try {
-          const provider = source ? await withNetworkTimeout(imageryProvider(Cesium, source)) : null
+          const provider = source ? await net.withNetworkTimeout(imageryProvider(Cesium, source)) : null
           if (seq !== imagerySeqRef.current) return { ok: false, stale: true }
           if (imageryRef.current) {
             viewer.scene.imageryLayers.remove(imageryRef.current, true)
@@ -543,7 +526,7 @@ const h = React.createElement
         if (notify) setBusy(t('toast.terrainLoading'))
         try {
           if (source) {
-            const nextProvider = await withNetworkTimeout(terrainProvider(Cesium, source))
+            const nextProvider = await net.withNetworkTimeout(terrainProvider(Cesium, source))
             if (seq !== terrainSeqRef.current) return { ok: false, stale: true }
             viewer.terrainProvider = nextProvider
             setTerrainError('')
@@ -1213,6 +1196,16 @@ const h = React.createElement
         getCesium: () => cesiumRef.current, getViewer: () => viewerRef.current, pickSurface, setTool: setToolMode, runAnalysis: analyzeCommand, showToast, t,
       })
       profileToolRef.current = profileTool
+
+      // F5: profile v2 — drag either endpoint to re-run with the same height source,
+      // and mirror chart hovers as one readout point on the globe.
+      const profileEdit = createProfileEdit({
+        getCesium: () => cesiumRef.current, getViewer: () => viewerRef.current, getRoot: () => rootRef.current, pickSurface, showToast, t,
+        onHover: (index) => setProfileHover(index),
+        onRecompute: ({ from, to, source }) => analyzeCommand({ action: 'profile', from, to, samples: 32, ...(source === 'terrain' ? { source: 'terrain' } : {}) })
+          .catch((error) => showToast(t('profile.recomputeFailed', { message: error?.message ?? String(error) }))),
+      })
+      React.useEffect(() => { profileEdit.sync(analysis); return () => profileEdit.clear() }, [analysis])
       //#endregion analysis engine
 
       //#region shader engine ----------------------------------------------------
@@ -2077,7 +2070,7 @@ const h = React.createElement
                 showToast(t('toast.overlayFailed', { name: source?.name ?? '', message: message(error) })),
             })
             try {
-              await withNetworkTimeout(overlayLayersRef.current.sync(catalog.config.rasterOverlays ?? []), 10000)
+              await net.withNetworkTimeout(overlayLayersRef.current.sync(catalog.config.rasterOverlays ?? []), 10000)
             } catch {
               // A hung overlay provider keeps syncing in the background; the panel
               // becomes ready and the failed overlay reports itself through onError.
@@ -2654,6 +2647,11 @@ const h = React.createElement
         h(RightStack, {
           t,
           analysis,
+          analysisHover: profileHover,
+          onAnalysisHover: (index) => {
+            setProfileHover(index)
+            profileEdit.setHover(index)
+          },
           onCloseAnalysis: () => clearAnalysis(),
           showLayers,
           showTools,
@@ -2822,7 +2820,7 @@ const h = React.createElement
               onSelect: (item) =>
                 addTileset(item.url, item.name.split(/[\\/]/).filter(Boolean).slice(-2).join('/'), {
                   kind: 'local',
-                  path: joinLocalPath(scan.dir, item.name),
+                  path: net.joinLocalPath(scan.dir, item.name),
                 }),
             })
           : null,

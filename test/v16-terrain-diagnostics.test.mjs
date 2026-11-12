@@ -37,7 +37,9 @@ test('地形失败：面板 L1 下方显示原因 + 重试按钮', () => {
 })
 
 test('地形请求仍有 8s 超时护栏，中英文案齐全', () => {
-  assert.match(viewer, /await withNetworkTimeout\(terrainProvider\(Cesium, source\)\)/)
+  assert.match(viewer, /await net\.withNetworkTimeout\(terrainProvider\(Cesium, source\)\)/)
+  // F5 把超时护栏抽到 scene/network.js，默认仍是 8s。
+  assert.match(readRepoFile('src/client/scene/network.js'), /NETWORK_TIMEOUT_MS = 8000/)
   for (const key of ["'terrain.networkHint'", "'terrain.failedHint'", "'terrain.retry'", "'toast.terrainNetwork'"]) {
     const hits = messages.match(new RegExp(key.replaceAll('.', '\\.'), 'g')) ?? []
     assert.ok(hits.length >= 2, `缺少中英文案：${key}`)
