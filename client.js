@@ -543,6 +543,7 @@ var V18_MESSAGES = {
     "swipe.unsupported3dgs": "3DGS 图层不支持裁剪卷帘对比（仅支持网格 3D Tiles 与 2D 栅格图层）",
     "swipe.unavailable": "请先显示该图层后再开启卷帘对比",
     "swipe.conflict": "该图层已有剖切分析在裁剪，请先清除剖切分析再开启卷帘对比",
+    "toast.snapshotCompacted": "上次场景超出存储上限，已精简保存：省略了 {draw} 个标注、{features} 个要素。重新打开后可重新导入或补画缺失部分。",
     ...SELECTION_MESSAGES.zh
   },
   en: {
@@ -685,6 +686,7 @@ var V18_MESSAGES = {
     "swipe.unsupported3dgs": "3DGS layers do not support clipping swipe comparison (mesh 3D Tiles and 2D raster only)",
     "swipe.unavailable": "Make sure the layer is visible before starting swipe comparison",
     "swipe.conflict": "A clip analysis is already clipping this layer; clear it before starting swipe comparison",
+    "toast.snapshotCompacted": "The saved scene was compacted to fit storage: {draw} annotation(s) and {features} feature(s) were omitted. Re-import or redraw them after reopening.",
     ...SELECTION_MESSAGES.en
   }
 };
@@ -2184,6 +2186,117 @@ function segmentDistance(point, start, end) {
   return Math.hypot(point.x - start.x - fraction * deltaX, point.y - start.y - fraction * deltaY);
 }
 
+// src/client/scene/clip-collections.js
+var CLIP_OWNER_SWIPE = "swipe";
+var CLIP_OWNER_ANALYSIS = "analysis";
+var registry = /* @__PURE__ */ new WeakMap();
+function liveEntry(tileset) {
+  if (!tileset || typeof tileset !== "object") return null;
+  const entry = registry.get(tileset);
+  if (!entry) return null;
+  const destroyed = typeof entry.collection?.isDestroyed === "function" ? entry.collection.isDestroyed() : false;
+  if (destroyed) {
+    registry.delete(tileset);
+    return null;
+  }
+  return entry;
+}
+function setClipPlane(collection, plane) {
+  if (!collection || !plane || !plane.normal || !Number.isFinite(plane.distance)) return false;
+  const target = typeof collection.get === "function" ? collection.get(0) : null;
+  if (!target) return false;
+  try {
+    if (target.normal && typeof target.normal === "object") {
+      target.normal.x = plane.normal.x;
+      target.normal.y = plane.normal.y;
+      target.normal.z = plane.normal.z;
+    } else {
+      target.normal = plane.normal;
+    }
+    target.distance = plane.distance;
+    return true;
+  } catch {
+    return false;
+  }
+}
+function acquireClipCollection(Cesium, tileset, options = {}) {
+  const { owner, planes, edgeWidth = 1.5, edgeColor } = options;
+  if (!Cesium || !tileset || !owner) return { ok: false, reason: "unavailable" };
+  if (typeof Cesium.ClippingPlaneCollection !== "function" || typeof Cesium.ClippingPlane !== "function") {
+    return { ok: false, reason: "unavailable" };
+  }
+  const plane = Array.isArray(planes) ? planes[0] : null;
+  if (!plane || !plane.normal || !Number.isFinite(plane.distance)) {
+    return { ok: false, reason: "unavailable" };
+  }
+  const entry = liveEntry(tileset);
+  const cached = entry?.collection ?? null;
+  let existing = null;
+  try {
+    existing = tileset.clippingPlanes ?? null;
+  } catch {
+    return { ok: false, reason: "unavailable" };
+  }
+  if (existing !== null && typeof existing.isDestroyed === "function" && existing.isDestroyed()) {
+    existing = null;
+  }
+  if (existing !== null && existing !== cached) {
+    return { ok: false, reason: "conflict", owner: entry?.owner ?? null };
+  }
+  if (entry && entry.owner !== null && entry.owner !== owner) {
+    return { ok: false, reason: "conflict", owner: entry.owner };
+  }
+  let collection = cached;
+  if (collection === null) {
+    try {
+      collection = new Cesium.ClippingPlaneCollection({
+        planes: [new Cesium.ClippingPlane(plane.normal, plane.distance)],
+        enabled: true,
+        edgeWidth,
+        edgeColor: edgeColor ?? void 0
+      });
+    } catch {
+      return { ok: false, reason: "unavailable" };
+    }
+    registry.set(tileset, { collection, owner });
+  } else {
+    setClipPlane(collection, plane);
+    try {
+      collection.enabled = true;
+      if (typeof edgeWidth === "number") collection.edgeWidth = edgeWidth;
+      if (edgeColor && typeof collection.edgeColor?.clone === "function") {
+        collection.edgeColor = edgeColor;
+      }
+    } catch {
+      return { ok: false, reason: "unavailable" };
+    }
+    entry.owner = owner;
+  }
+  if (tileset.clippingPlanes !== collection) {
+    try {
+      tileset.clippingPlanes = collection;
+    } catch {
+      return { ok: false, reason: "unavailable" };
+    }
+    if (tileset.clippingPlanes !== collection) {
+      return { ok: false, reason: "unavailable" };
+    }
+  }
+  return { ok: true, collection, reused: cached !== null };
+}
+function releaseClipCollection(tileset, owner) {
+  const entry = liveEntry(tileset);
+  if (!entry) return false;
+  if (owner !== void 0 && entry.owner !== owner) return false;
+  try {
+    entry.collection.enabled = false;
+  } catch {
+    return false;
+  }
+  entry.owner = null;
+  return true;
+}
+
 // src/client/analysis/engine.js
 function createAnalysisEngine(deps) {
   const analysisRef = deps.state;
@@ -2225,7 +2338,7 @@ function createAnalysisEngine(deps) {
       }
       if (restore.clipping) {
         const target = restore.clipping.layer;
-        if (target && target.tileset) target.tileset.clippingPlanes = restore.clipping.previous ?? void 0;
+        if (target && target.tileset) releaseClipCollection(target.tileset, CLIP_OWNER_ANALYSIS);
       }
     } catch {
     }
@@ -2711,25 +2824,22 @@ function createAnalysisEngine(deps) {
     if (typeof Cesium.ClippingPlaneCollection !== "function" || typeof Cesium.ClippingPlane !== "function") {
       throw new Error("analysis: 当前 Cesium 不支持剖切（ClippingPlane）。next: 升级 Cesium 后重试。");
     }
-    const previous = tileset.clippingPlanes ?? null;
-    const collection = new Cesium.ClippingPlaneCollection({
-      planes: [new Cesium.ClippingPlane(plane.normal, plane.distance)],
-      enabled: true,
+    const acquired = acquireClipCollection(Cesium, tileset, {
+      owner: CLIP_OWNER_ANALYSIS,
+      planes: [{ normal: plane.normal, distance: plane.distance }],
       edgeWidth: 1,
-      edgeColor: Cesium.Color.fromCssColorString("#7fd4ff")
+      edgeColor: Cesium.Color?.fromCssColorString?.("#7fd4ff") ?? void 0
     });
-    try {
-      tileset.clippingPlanes = collection;
-      if (tileset.clippingPlanes !== collection) throw new Error("图层拒绝了 clippingPlanes 赋值");
-    } catch {
-      try {
-        tileset.clippingPlanes = previous ?? void 0;
-      } catch {
+    if (!acquired.ok) {
+      if (acquired.reason === "conflict") {
+        throw new Error(
+          "analysis: [clip_conflict] 该图层正在被卷帘对比裁剪，两次裁剪无法叠加。next: 先退出卷帘对比，再执行剖切。"
+        );
       }
       throw new Error("analysis: 该图层不支持剖切（clippingPlanes 赋值失败）。next: 换 3D Tiles 图层或重新加载后重试。");
     }
     beginAnalysis("clip", layer);
-    analysisRef.current.restore = { clipping: { layer, previous } };
+    analysisRef.current.restore = { clipping: { layer } };
     const result = {
       operation: "clip",
       layer: layer.name,
@@ -3245,6 +3355,19 @@ var SNAPSHOT_EXTRA_ANALYSIS_ACTIONS = ["clip", "skyline"];
 var isSnapshotAnalysis = (analysis) => analysis !== null && typeof analysis === "object" && typeof analysis.action === "string" && (SNAPSHOT_ANALYSIS_ACTIONS.includes(analysis.action) || SNAPSHOT_EXTRA_ANALYSIS_ACTIONS.includes(analysis.action));
 var isSnapshotPresetStack = (preset) => Array.isArray(preset) && preset.length >= 1 && preset.length <= 3 && preset.every((entry) => typeof entry === "string" && entry.trim() !== "");
 var isSnapshotShader = (item) => item !== null && typeof item === "object" && (typeof item.layer === "string" && typeof item.preset === "string" || typeof item.layer === "string" && isSnapshotPresetStack(item.preset));
+var normalizeSnapshotCompaction = (value) => {
+  if (value === null || typeof value !== "object") return null;
+  if (typeof value.level !== "string" || value.level === "") return null;
+  const count = (key) => typeof value[key] === "number" && Number.isFinite(value[key]) && value[key] > 0 ? Math.round(value[key]) : 0;
+  const compacted = {
+    level: value.level,
+    dropped_draw: count("dropped_draw"),
+    dropped_features: count("dropped_features"),
+    dropped_measure: count("dropped_measure")
+  };
+  const total = compacted.dropped_draw + compacted.dropped_features + compacted.dropped_measure;
+  return total > 0 ? compacted : null;
+};
 function normalizeSceneSnapshot(snapshot) {
   if (snapshot === null || typeof snapshot !== "object" || snapshot.v !== SCENE_STORE_VERSION) return null;
   const layers = (Array.isArray(snapshot.layers) ? snapshot.layers : []).filter(isSnapshotLayer).map((layer) => ({ name: layer.name, source: layer.source, visible: layer.visible !== false }));
@@ -3257,8 +3380,10 @@ function normalizeSceneSnapshot(snapshot) {
     preset: Array.isArray(item.preset) ? item.preset.slice() : item.preset,
     params: item.params !== null && typeof item.params === "object" ? item.params : {}
   })) : [];
+  const compaction = normalizeSnapshotCompaction(snapshot.compacted);
   return {
     ...typeof snapshot.savedAt === "string" && snapshot.savedAt !== "" ? { savedAt: snapshot.savedAt } : {},
+    ...compaction !== null ? { compacted: compaction } : {},
     view: isSnapshotView(snapshot.view) ? snapshot.view : null,
     layers,
     annotations: { draw, measure },
@@ -3345,12 +3470,18 @@ function fitSnapshotBodyToBudget(body, maxBytes = SCENE_STORE_MAX_BYTES) {
   const budget = Math.max(1024, maxBytes - 1024);
   const drawList = Array.isArray(body.annotations?.draw) ? body.annotations.draw.map(compactDrawCommand) : [];
   const measureList = Array.isArray(body.annotations?.measure) ? body.annotations.measure : [];
+  const totalFeatures = drawList.reduce(
+    (sum, command) => sum + (Array.isArray(command?.geojson?.features) ? command.geojson.features.length : 0),
+    0
+  );
   body.annotations = { draw: drawList, measure: measureList };
   let text = JSON.stringify(body);
-  if (text.length <= budget) return text;
+  if (text.length <= budget) return { text, compacted: null };
   const keptDraw = [];
   body.annotations = { draw: keptDraw, measure: measureList };
   text = JSON.stringify(body);
+  let stopIndex = -1;
+  let partialKept = 0;
   for (let index = drawList.length - 1; index >= 0; index -= 1) {
     const cmd = drawList[index];
     keptDraw.unshift(cmd);
@@ -3360,6 +3491,7 @@ function fitSnapshotBodyToBudget(body, maxBytes = SCENE_STORE_MAX_BYTES) {
       continue;
     }
     keptDraw.shift();
+    stopIndex = index;
     const features = Array.isArray(cmd?.geojson?.features) ? cmd.geojson.features : [];
     if (features.length > 1) {
       let low = 1;
@@ -3381,19 +3513,43 @@ function fitSnapshotBodyToBudget(body, maxBytes = SCENE_STORE_MAX_BYTES) {
       if (best) {
         keptDraw.unshift(best.partial);
         text = best.attempt;
+        partialKept = best.partial.drawn;
       }
     }
     break;
   }
-  if (text.length <= maxBytes) return text;
+  let droppedDraw = 0;
+  let droppedFeatures = 0;
+  if (stopIndex >= 0) {
+    droppedDraw = stopIndex + 1;
+    for (let index = 0; index < stopIndex; index += 1) {
+      const features = drawList[index]?.geojson?.features;
+      droppedFeatures += Array.isArray(features) ? features.length : 0;
+    }
+    const failed = drawList[stopIndex]?.geojson?.features;
+    droppedFeatures += (Array.isArray(failed) ? failed.length : 0) - partialKept;
+  }
+  if (text.length <= maxBytes) {
+    const compacted = droppedDraw + droppedFeatures > 0 ? { level: "features", dropped_draw: droppedDraw, dropped_features: droppedFeatures, dropped_measure: 0 } : null;
+    return { text, compacted };
+  }
   body.annotations = { draw: [], measure: [] };
   body.analysis = null;
-  return JSON.stringify(body);
+  return {
+    text: JSON.stringify(body),
+    compacted: {
+      level: "annotations",
+      dropped_draw: drawList.length,
+      dropped_features: totalFeatures,
+      dropped_measure: measureList.length
+    }
+  };
 }
 function writeSceneSnapshot(sessionId, snapshot) {
   if (typeof sessionId !== "string" || sessionId === "") return null;
   const savedAt = typeof snapshot?.savedAt === "string" && snapshot.savedAt !== "" ? snapshot.savedAt : (/* @__PURE__ */ new Date()).toISOString();
   const body = { v: SCENE_STORE_VERSION, ...snapshot, savedAt };
+  delete body.compacted;
   let text = "";
   try {
     text = JSON.stringify(body);
@@ -3401,12 +3557,19 @@ function writeSceneSnapshot(sessionId, snapshot) {
     return null;
   }
   if (text.length > SCENE_STORE_MAX_BYTES - 1024) {
+    let fitted = null;
     try {
-      text = fitSnapshotBodyToBudget(body, SCENE_STORE_MAX_BYTES);
+      fitted = fitSnapshotBodyToBudget(body, SCENE_STORE_MAX_BYTES - 512);
     } catch {
       return null;
     }
-    if (text.length > SCENE_STORE_MAX_BYTES) return null;
+    if (fitted.compacted !== null) body.compacted = fitted.compacted;
+    try {
+      text = JSON.stringify(body);
+    } catch {
+      return null;
+    }
+    if (typeof text !== "string" || text.length > SCENE_STORE_MAX_BYTES) return null;
   }
   const store = sceneStorage();
   if (store) {
@@ -14495,20 +14658,19 @@ var clampSwipeRatio = (value) => {
   if (!Number.isFinite(num)) return 0.5;
   return Math.min(0.95, Math.max(0.05, num));
 };
-var swipeCollections = /* @__PURE__ */ new WeakMap();
-function applyPlane(collection, localized) {
-  const plane = typeof collection.get === "function" ? collection.get(0) : null;
-  if (!plane) return false;
-  if (plane.normal && typeof plane.normal === "object") {
-    plane.normal.x = localized.normal.x;
-    plane.normal.y = localized.normal.y;
-    plane.normal.z = localized.normal.z;
-  } else {
-    plane.normal = localized.normal;
-  }
-  plane.distance = localized.distance;
-  return true;
-}
+var positive = (value) => {
+  const num = Number(value);
+  return Number.isFinite(num) && num > 0 ? num : 0;
+};
+var orthoFrustumWidth = (frustum, aspect) => {
+  const width = positive(frustum.width);
+  if (width > 0) return width;
+  const left = Number(frustum.left);
+  const right = Number(frustum.right);
+  if (Number.isFinite(left) && Number.isFinite(right) && right > left) return right - left;
+  const height = positive(frustum.height);
+  return height > 0 ? height * aspect : 0;
+};
 function computeSwipeClipPlane(Cesium, camera, tileset, { ratio = 0.5, orientation = "vertical", canvas = null } = {}) {
   if (!Cesium || !camera || !tileset) return null;
   const eye = camera.positionWC ?? camera.position;
@@ -14517,26 +14679,55 @@ function computeSwipeClipPlane(Cesium, camera, tileset, { ratio = 0.5, orientati
   const up = camera.upWC ?? camera.up;
   if (!eye || !dir || !right || !up) return null;
   const r = clampSwipeRatio(ratio);
-  const aspect = Number(camera.frustum?.aspectRatio) || (canvas?.clientWidth > 0 && canvas?.clientHeight > 0 ? canvas.clientWidth / canvas.clientHeight : 1);
-  const fov = Number(camera.frustum?.fov) || Math.PI / 3;
-  const fovy = Number(camera.frustum?.fovy) || (aspect > 1 ? 2 * Math.atan(Math.tan(fov / 2) / aspect) : fov);
-  const tanHalfY = Math.tan(fovy / 2);
-  const tanHalfX = tanHalfY * aspect;
+  const frustum = camera.frustum ?? {};
+  const canvasAspect = canvas?.clientWidth > 0 && canvas?.clientHeight > 0 ? canvas.clientWidth / canvas.clientHeight : 1;
+  const aspect = positive(frustum.aspectRatio) || canvasAspect || 1;
+  const orthoWidth = orthoFrustumWidth(frustum, aspect);
+  const orthoHeight = orthoWidth > 0 ? positive(frustum.height) || orthoWidth / aspect : 0;
+  const perspective = orthoWidth <= 0;
+  const fov = positive(frustum.fov) || Math.PI / 3;
+  const fovy = perspective ? positive(frustum.fovy) || (aspect > 1 ? 2 * Math.atan(Math.tan(fov / 2) / aspect) : fov) : 0;
+  const tanHalfY = perspective ? Math.tan(fovy / 2) : 0;
+  const tanHalfX = perspective ? tanHalfY * aspect : 0;
+  if (!Number.isFinite(tanHalfY) || !Number.isFinite(tanHalfX)) return null;
   let nx = 0;
   let ny = 0;
   let nz = 0;
+  let px = eye.x;
+  let py = eye.y;
+  let pz = eye.z;
   if (orientation === "horizontal") {
     const v = 1 - 2 * r;
-    const k = v * tanHalfY;
-    nx = up.x - k * dir.x;
-    ny = up.y - k * dir.y;
-    nz = up.z - k * dir.z;
+    if (perspective) {
+      const k = v * tanHalfY;
+      nx = up.x - k * dir.x;
+      ny = up.y - k * dir.y;
+      nz = up.z - k * dir.z;
+    } else {
+      const offset = v * (orthoHeight / 2);
+      nx = up.x;
+      ny = up.y;
+      nz = up.z;
+      px = eye.x + up.x * offset;
+      py = eye.y + up.y * offset;
+      pz = eye.z + up.z * offset;
+    }
   } else {
     const u = 2 * r - 1;
-    const k = u * tanHalfX;
-    nx = -right.x + k * dir.x;
-    ny = -right.y + k * dir.y;
-    nz = -right.z + k * dir.z;
+    if (perspective) {
+      const k = u * tanHalfX;
+      nx = -right.x + k * dir.x;
+      ny = -right.y + k * dir.y;
+      nz = -right.z + k * dir.z;
+    } else {
+      const offset = u * (orthoWidth / 2);
+      nx = -right.x;
+      ny = -right.y;
+      nz = -right.z;
+      px = eye.x + right.x * offset;
+      py = eye.y + right.y * offset;
+      pz = eye.z + right.z * offset;
+    }
   }
   const len = Math.hypot(nx, ny, nz);
   if (!(len > 0)) return null;
@@ -14544,8 +14735,9 @@ function computeSwipeClipPlane(Cesium, camera, tileset, { ratio = 0.5, orientati
   ny /= len;
   nz /= len;
   const normal = new Cesium.Cartesian3(nx, ny, nz);
-  const distance = -(nx * eye.x + ny * eye.y + nz * eye.z);
-  const plane = { normal, distance, pointOnPlane: eye, keep: orientation === "horizontal" ? "top" : "left" };
+  const pointOnPlane = new Cesium.Cartesian3(px, py, pz);
+  const distance = -(nx * px + ny * py + nz * pz);
+  const plane = { normal, distance, pointOnPlane, keep: orientation === "horizontal" ? "top" : "left" };
   const center = tileset.boundingSphere?.center ?? null;
   return analysisLocalizeClipPlane(Cesium, plane, tileset, center);
 }
@@ -14568,7 +14760,7 @@ function createSwipeSession({ getCesium, getViewer, getLayers, getOverlayLayers 
       canvas: viewer.canvas ?? viewer.scene?.canvas ?? null
     });
     if (!localized) return;
-    applyPlane(active.collection, localized);
+    setClipPlane(active.collection, localized);
   }
   function stop() {
     if (!active) return false;
@@ -14584,7 +14776,7 @@ function createSwipeSession({ getCesium, getViewer, getLayers, getOverlayLayers 
         }
       }
       try {
-        if (current.collection) current.collection.enabled = false;
+        releaseClipCollection(current.tileset, CLIP_OWNER_SWIPE);
       } catch {
       }
     } else if (current.kind === "raster") {
@@ -14632,31 +14824,14 @@ function createSwipeSession({ getCesium, getViewer, getLayers, getOverlayLayers 
       return { ok: false, reason: "unavailable" };
     }
     if (!initial) return { ok: false, reason: "unavailable" };
-    const cached = swipeCollections.get(layer.tileset) ?? null;
-    const existing = layer.tileset.clippingPlanes ?? null;
-    if (existing !== null && existing !== cached) {
-      return { ok: false, reason: "conflict" };
-    }
-    let collection = cached;
-    if (collection === null || collection.isDestroyed?.()) {
-      collection = new Cesium.ClippingPlaneCollection({
-        planes: [new Cesium.ClippingPlane(initial.normal, initial.distance)],
-        enabled: true,
-        edgeWidth: 1.5,
-        edgeColor: Cesium.Color?.fromCssColorString?.("#38bdf8") ?? void 0
-      });
-      swipeCollections.set(layer.tileset, collection);
-    } else {
-      applyPlane(collection, initial);
-      collection.enabled = true;
-    }
-    if (layer.tileset.clippingPlanes !== collection) {
-      try {
-        layer.tileset.clippingPlanes = collection;
-      } catch {
-        return { ok: false, reason: "unavailable" };
-      }
-    }
+    const acquired = acquireClipCollection(Cesium, layer.tileset, {
+      owner: CLIP_OWNER_SWIPE,
+      planes: [{ normal: initial.normal, distance: initial.distance }],
+      edgeWidth: 1.5,
+      edgeColor: Cesium.Color?.fromCssColorString?.("#38bdf8") ?? void 0
+    });
+    if (!acquired.ok) return { ok: false, reason: acquired.reason === "conflict" ? "conflict" : "unavailable" };
+    const collection = acquired.collection;
     const onPreRender = () => update3dPlane();
     let removePreRender = null;
     if (typeof viewer.scene?.preRender?.addEventListener === "function") {
@@ -16147,6 +16322,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
         } catch {
         }
       }
+      if (snapshot.compacted) showToast(t2("toast.snapshotCompacted", { draw: snapshot.compacted.dropped_draw ?? 0, features: snapshot.compacted.dropped_features ?? 0 }));
     } finally {
       restoringRef.current = false;
       setRestoringScene(false);

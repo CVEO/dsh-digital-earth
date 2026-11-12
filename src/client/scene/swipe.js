@@ -12,6 +12,12 @@
  * and are explicitly rejected so the UI never pretends swipe works on splats.
  */
 import { analysisLocalizeClipPlane } from '../analysis/math.js'
+import {
+  acquireClipCollection,
+  CLIP_OWNER_SWIPE,
+  releaseClipCollection,
+  setClipPlane,
+} from './clip-collections.js'
 
 export const clampSwipeRatio = (value) => {
   const num = Number(value)
@@ -19,41 +25,42 @@ export const clampSwipeRatio = (value) => {
   return Math.min(0.95, Math.max(0.05, num))
 }
 
-/**
- * One reusable clipping collection per tileset.
- *
- * Cesium's `tileset.clippingPlanes` setter destroys the previous collection
- * (`ClippingPlaneCollection.setOwner` -> `destroy()`), including its clipping
- * texture. Removing the collection while tile draw commands still reference that
- * texture crashes the renderer ("Cannot read properties of undefined (_target)").
- * So a swipe session never removes it: it disables the collection instead, which
- * makes Cesium rebuild the shaders without clipping while keeping the GL objects
- * alive. The map also avoids create/destroy churn across repeated swipes.
- */
-const swipeCollections = new WeakMap()
+// Clipping collection lifetime lives in `clip-collections.js`: one collection per
+// tileset shared with `earth_analyze action=clip`, disabled (never unassigned or
+// destroyed) when a session ends. Assigning a new collection or `undefined`
+// destroys the clipping texture a tile draw command may still reference, which
+// crashes the renderer with "Cannot read properties of undefined (_target)".
 
-/** Write the computed plane into the collection's single plane. */
-function applyPlane(collection, localized) {
-  const plane = typeof collection.get === 'function' ? collection.get(0) : null
-  if (!plane) return false
-  if (plane.normal && typeof plane.normal === 'object') {
-    plane.normal.x = localized.normal.x
-    plane.normal.y = localized.normal.y
-    plane.normal.z = localized.normal.z
-  } else {
-    plane.normal = localized.normal
-  }
-  plane.distance = localized.distance
-  return true
+const positive = (value) => {
+  const num = Number(value)
+  return Number.isFinite(num) && num > 0 ? num : 0
 }
 
 /**
+ * Orthographic frustums have no FOV, so screen fractions map to world distances:
+ * prefer the frustum width, fall back to an off-center left/right span, then to a
+ * height-derived width. Returns 0 for perspective frustums.
+ */
+const orthoFrustumWidth = (frustum, aspect) => {
+  const width = positive(frustum.width)
+  if (width > 0) return width
+  const left = Number(frustum.left)
+  const right = Number(frustum.right)
+  if (Number.isFinite(left) && Number.isFinite(right) && right > left) return right - left
+  const height = positive(frustum.height)
+  return height > 0 ? height * aspect : 0
+}
+/**
  * Compute the screen-aligned clipping plane for a 3D Tileset at normalized
- * split ratio `r ∈ [0, 1]` and localize it into the tileset's local frame.
+ * split ratio r in [0, 1] and localize it into the tileset local frame.
  *
  * Kept side (> 0):
- *   - `orientation === 'vertical'`   → left of the split line (`x_ndc < 2r - 1`)
- *   - `orientation === 'horizontal'` → above the split line (`y_ndc > 1 - 2r`)
+ *   - orientation === 'vertical'   -> left of the split line (x_ndc < 2r - 1)
+ *   - orientation === 'horizontal' -> above the split line (y_ndc > 1 - 2r)
+ *
+ * Perspective and orthographic cameras are both handled: a perspective plane tilts
+ * along the view direction by tan(fov/2), while an orthographic plane stays parallel
+ * to the view direction and is offset by a world distance instead.
  */
 export function computeSwipeClipPlane(Cesium, camera, tileset, { ratio = 0.5, orientation = 'vertical', canvas = null } = {}) {
   if (!Cesium || !camera || !tileset) return null
@@ -64,31 +71,61 @@ export function computeSwipeClipPlane(Cesium, camera, tileset, { ratio = 0.5, or
   if (!eye || !dir || !right || !up) return null
 
   const r = clampSwipeRatio(ratio)
-  const aspect =
-    Number(camera.frustum?.aspectRatio) ||
-    (canvas?.clientWidth > 0 && canvas?.clientHeight > 0 ? canvas.clientWidth / canvas.clientHeight : 1)
-  const fov = Number(camera.frustum?.fov) || Math.PI / 3
-  const fovy =
-    Number(camera.frustum?.fovy) ||
-    (aspect > 1 ? 2 * Math.atan(Math.tan(fov / 2) / aspect) : fov)
-  const tanHalfY = Math.tan(fovy / 2)
-  const tanHalfX = tanHalfY * aspect
+  const frustum = camera.frustum ?? {}
+  const canvasAspect =
+    canvas?.clientWidth > 0 && canvas?.clientHeight > 0 ? canvas.clientWidth / canvas.clientHeight : 1
+  const aspect = positive(frustum.aspectRatio) || canvasAspect || 1
+  const orthoWidth = orthoFrustumWidth(frustum, aspect)
+  const orthoHeight = orthoWidth > 0 ? positive(frustum.height) || orthoWidth / aspect : 0
+  const perspective = orthoWidth <= 0
+  const fov = positive(frustum.fov) || Math.PI / 3
+  // Cesium's perspective fov is horizontal in a wide viewport and vertical in a tall
+  // one, so fovy may only be derived by dividing when the aspect ratio is above one.
+  const fovy = perspective
+    ? positive(frustum.fovy) || (aspect > 1 ? 2 * Math.atan(Math.tan(fov / 2) / aspect) : fov)
+    : 0
+  const tanHalfY = perspective ? Math.tan(fovy / 2) : 0
+  const tanHalfX = perspective ? tanHalfY * aspect : 0
+  if (!Number.isFinite(tanHalfY) || !Number.isFinite(tanHalfX)) return null
 
   let nx = 0
   let ny = 0
   let nz = 0
+  let px = eye.x
+  let py = eye.y
+  let pz = eye.z
   if (orientation === 'horizontal') {
     const v = 1 - 2 * r
-    const k = v * tanHalfY
-    nx = up.x - k * dir.x
-    ny = up.y - k * dir.y
-    nz = up.z - k * dir.z
+    if (perspective) {
+      const k = v * tanHalfY
+      nx = up.x - k * dir.x
+      ny = up.y - k * dir.y
+      nz = up.z - k * dir.z
+    } else {
+      const offset = v * (orthoHeight / 2)
+      nx = up.x
+      ny = up.y
+      nz = up.z
+      px = eye.x + up.x * offset
+      py = eye.y + up.y * offset
+      pz = eye.z + up.z * offset
+    }
   } else {
     const u = 2 * r - 1
-    const k = u * tanHalfX
-    nx = -right.x + k * dir.x
-    ny = -right.y + k * dir.y
-    nz = -right.z + k * dir.z
+    if (perspective) {
+      const k = u * tanHalfX
+      nx = -right.x + k * dir.x
+      ny = -right.y + k * dir.y
+      nz = -right.z + k * dir.z
+    } else {
+      const offset = u * (orthoWidth / 2)
+      nx = -right.x
+      ny = -right.y
+      nz = -right.z
+      px = eye.x + right.x * offset
+      py = eye.y + right.y * offset
+      pz = eye.z + right.z * offset
+    }
   }
   const len = Math.hypot(nx, ny, nz)
   if (!(len > 0)) return null
@@ -97,12 +134,12 @@ export function computeSwipeClipPlane(Cesium, camera, tileset, { ratio = 0.5, or
   nz /= len
 
   const normal = new Cesium.Cartesian3(nx, ny, nz)
-  const distance = -(nx * eye.x + ny * eye.y + nz * eye.z)
-  const plane = { normal, distance, pointOnPlane: eye, keep: orientation === 'horizontal' ? 'top' : 'left' }
+  const pointOnPlane = new Cesium.Cartesian3(px, py, pz)
+  const distance = -(nx * px + ny * py + nz * pz)
+  const plane = { normal, distance, pointOnPlane, keep: orientation === 'horizontal' ? 'top' : 'left' }
   const center = tileset.boundingSphere?.center ?? null
   return analysisLocalizeClipPlane(Cesium, plane, tileset, center)
 }
-
 export function createSwipeSession({ getCesium, getViewer, getLayers, getOverlayLayers } = {}) {
   let active = null
 
@@ -125,7 +162,7 @@ export function createSwipeSession({ getCesium, getViewer, getLayers, getOverlay
       canvas: viewer.canvas ?? viewer.scene?.canvas ?? null,
     })
     if (!localized) return
-    applyPlane(active.collection, localized)
+    setClipPlane(active.collection, localized)
   }
 
   function stop() {
@@ -147,9 +184,9 @@ export function createSwipeSession({ getCesium, getViewer, getLayers, getOverlay
       // rendering with "Cannot read properties of undefined (_target)".
       // Disabling makes the tileset rebuild its shaders without clipping.
       try {
-        if (current.collection) current.collection.enabled = false
+        releaseClipCollection(current.tileset, CLIP_OWNER_SWIPE)
       } catch {
-        /* collection may already be destroyed with its tileset */
+        /* tileset may already be destroyed */
       }
     } else if (current.kind === 'raster') {
       if (current.imageryLayer) {
@@ -201,33 +238,17 @@ export function createSwipeSession({ getCesium, getViewer, getLayers, getOverlay
     }
     if (!initial) return { ok: false, reason: 'unavailable' }
 
-    const cached = swipeCollections.get(layer.tileset) ?? null
-    const existing = layer.tileset.clippingPlanes ?? null
-    // Another owner (the clip analysis) already clips this tileset; two
-    // collections cannot be composed, so refuse instead of fighting it.
-    if (existing !== null && existing !== cached) {
-      return { ok: false, reason: 'conflict' }
-    }
-    let collection = cached
-    if (collection === null || collection.isDestroyed?.()) {
-      collection = new Cesium.ClippingPlaneCollection({
-        planes: [new Cesium.ClippingPlane(initial.normal, initial.distance)],
-        enabled: true,
-        edgeWidth: 1.5,
-        edgeColor: Cesium.Color?.fromCssColorString?.('#38bdf8') ?? undefined,
-      })
-      swipeCollections.set(layer.tileset, collection)
-    } else {
-      applyPlane(collection, initial)
-      collection.enabled = true
-    }
-    if (layer.tileset.clippingPlanes !== collection) {
-      try {
-        layer.tileset.clippingPlanes = collection
-      } catch {
-        return { ok: false, reason: 'unavailable' }
-      }
-    }
+    // One shared collection per tileset, owned by whoever clips it right now.
+    // A conflict means the clip analysis (or another plugin) is already
+    // clipping: refuse instead of stealing or destroying its collection.
+    const acquired = acquireClipCollection(Cesium, layer.tileset, {
+      owner: CLIP_OWNER_SWIPE,
+      planes: [{ normal: initial.normal, distance: initial.distance }],
+      edgeWidth: 1.5,
+      edgeColor: Cesium.Color?.fromCssColorString?.('#38bdf8') ?? undefined,
+    })
+    if (!acquired.ok) return { ok: false, reason: acquired.reason === 'conflict' ? 'conflict' : 'unavailable' }
+    const collection = acquired.collection
     const onPreRender = () => update3dPlane()
     let removePreRender = null
     if (typeof viewer.scene?.preRender?.addEventListener === 'function') {

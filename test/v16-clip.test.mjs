@@ -131,14 +131,15 @@ test('clip 平面：默认 keep=below；无包围球/非法中心返回 null', (
 // Client engine wiring
 // ---------------------------------------------------------------------------
 
-test('engine：clip 使用纯平面helper、写入 clippingPlanes、clear 恢复原状态', () => {
+test('engine：clip 走纯平面 helper 与共享裁剪登记表，结果字段齐全', () => {
   const engine = readRepoFile('src/client/analysis/engine.js')
   assert.match(engine, /const analyzeClip = async \(Cesium, viewer, layer, args\) => \{/)
   assert.match(engine, /const plane = analysisClipPlane\(Cesium, center, height, args\.keep\)/)
-  assert.match(engine, /new Cesium\.ClippingPlaneCollection\(\{/)
-  assert.match(engine, /new Cesium\.ClippingPlane\(plane\.normal, plane\.distance\)/)
-  assert.match(engine, /tileset\.clippingPlanes = collection/)
-  assert.match(engine, /restore\.clipping\.previous/)
+  assert.match(engine, /analysisLocalizeClipPlane\(Cesium, plane, tileset, center\)/)
+  // 集合创建/挂载只发生在 scene/clip-collections.js，engine 只申请与释放，
+  // 这样清除剖切时不会把 clippingPlanes 赋 undefined 而销毁渲染纹理。
+  assert.match(engine, /acquireClipCollection\(Cesium, tileset, \{/)
+  assert.doesNotMatch(engine, /clippingPlanes\s*=/)
   assert.match(engine, /if \(operation === 'sunlight'\) result = analyzeSunlight\(Cesium, viewer, layer, args\)\n\s+else result = await analyzeClip/)
   // 结果字段与清空语义。
   for (const field of ['operation: ', 'height: ', 'keep: ', 'planes: ', 'layer_center_height: ']) {

@@ -150,6 +150,7 @@ export const V18_MESSAGES = {
     'swipe.unsupported3dgs': '3DGS 图层不支持裁剪卷帘对比（仅支持网格 3D Tiles 与 2D 栅格图层）',
     'swipe.unavailable': '请先显示该图层后再开启卷帘对比',
     'swipe.conflict': '该图层已有剖切分析在裁剪，请先清除剖切分析再开启卷帘对比',
+    'toast.snapshotCompacted': '上次场景超出存储上限，已精简保存：省略了 {draw} 个标注、{features} 个要素。重新打开后可重新导入或补画缺失部分。',
     ...SELECTION_MESSAGES.zh,
   },
   en: {
@@ -292,6 +293,7 @@ export const V18_MESSAGES = {
     'swipe.unsupported3dgs': '3DGS layers do not support clipping swipe comparison (mesh 3D Tiles and 2D raster only)',
     'swipe.unavailable': 'Make sure the layer is visible before starting swipe comparison',
     'swipe.conflict': 'A clip analysis is already clipping this layer; clear it before starting swipe comparison',
+    'toast.snapshotCompacted': 'The saved scene was compacted to fit storage: {draw} annotation(s) and {features} feature(s) were omitted. Re-import or redraw them after reopening.',
     ...SELECTION_MESSAGES.en,
   },
 }

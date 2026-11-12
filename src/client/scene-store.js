@@ -64,6 +64,25 @@
       ((typeof item.layer === 'string' && typeof item.preset === 'string') ||
         (typeof item.layer === 'string' && isSnapshotPresetStack(item.preset)))
 
+    /**
+     * F02: a save that had to omit annotations records what it dropped, so the
+     * restore can tell the user instead of the scene silently losing data.
+     */
+    const normalizeSnapshotCompaction = (value) => {
+      if (value === null || typeof value !== 'object') return null
+      if (typeof value.level !== 'string' || value.level === '') return null
+      const count = (key) =>
+        typeof value[key] === 'number' && Number.isFinite(value[key]) && value[key] > 0 ? Math.round(value[key]) : 0
+      const compacted = {
+        level: value.level,
+        dropped_draw: count('dropped_draw'),
+        dropped_features: count('dropped_features'),
+        dropped_measure: count('dropped_measure'),
+      }
+      const total = compacted.dropped_draw + compacted.dropped_features + compacted.dropped_measure
+      return total > 0 ? compacted : null
+    }
+
     /** Normalize one stored snapshot body (localStorage or the host route). */
     function normalizeSceneSnapshot(snapshot) {
       if (snapshot === null || typeof snapshot !== 'object' || snapshot.v !== SCENE_STORE_VERSION) return null
@@ -85,8 +104,10 @@
             params: item.params !== null && typeof item.params === 'object' ? item.params : {},
           }))
         : []
+      const compaction = normalizeSnapshotCompaction(snapshot.compacted)
       return {
         ...(typeof snapshot.savedAt === 'string' && snapshot.savedAt !== '' ? { savedAt: snapshot.savedAt } : {}),
+        ...(compaction !== null ? { compacted: compaction } : {}),
         view: isSnapshotView(snapshot.view) ? snapshot.view : null,
         layers,
         annotations: { draw, measure },
@@ -183,18 +204,28 @@
      * Compact oversized GeoJSON overlays (6-decimal coords + 12 UI properties) and,
      * if still over budget, retain the newest draw commands/features that fit before
      * falling back to dropping annotations. Leaves room for the host `{session,snapshot}` envelope.
+     *
+     * Returns `{ text, compacted }`. `compacted` is `null` when the whole scene fits;
+     * otherwise it describes what was dropped so the panel can tell the user instead
+     * of silently shrinking the saved scene (F02).
      */
     function fitSnapshotBodyToBudget(body, maxBytes = SCENE_STORE_MAX_BYTES) {
       const budget = Math.max(1024, maxBytes - 1024)
       const drawList = Array.isArray(body.annotations?.draw) ? body.annotations.draw.map(compactDrawCommand) : []
       const measureList = Array.isArray(body.annotations?.measure) ? body.annotations.measure : []
+      const totalFeatures = drawList.reduce(
+        (sum, command) => sum + (Array.isArray(command?.geojson?.features) ? command.geojson.features.length : 0),
+        0,
+      )
       body.annotations = { draw: drawList, measure: measureList }
       let text = JSON.stringify(body)
-      if (text.length <= budget) return text
+      if (text.length <= budget) return { text, compacted: null }
 
       const keptDraw = []
       body.annotations = { draw: keptDraw, measure: measureList }
       text = JSON.stringify(body)
+      let stopIndex = -1
+      let partialKept = 0
       for (let index = drawList.length - 1; index >= 0; index -= 1) {
         const cmd = drawList[index]
         keptDraw.unshift(cmd)
@@ -204,6 +235,7 @@
           continue
         }
         keptDraw.shift()
+        stopIndex = index
         const features = Array.isArray(cmd?.geojson?.features) ? cmd.geojson.features : []
         if (features.length > 1) {
           let low = 1
@@ -225,15 +257,43 @@
           if (best) {
             keptDraw.unshift(best.partial)
             text = best.attempt
+            partialKept = best.partial.drawn
           }
         }
         break
       }
-      if (text.length <= maxBytes) return text
+      // Older commands never get a turn once one stops fitting, so count every omitted
+      // feature (not just the first failure) or the marker under-reports the loss.
+      let droppedDraw = 0
+      let droppedFeatures = 0
+      if (stopIndex >= 0) {
+        droppedDraw = stopIndex + 1
+        for (let index = 0; index < stopIndex; index += 1) {
+          const features = drawList[index]?.geojson?.features
+          droppedFeatures += Array.isArray(features) ? features.length : 0
+        }
+        const failed = drawList[stopIndex]?.geojson?.features
+        droppedFeatures += (Array.isArray(failed) ? failed.length : 0) - partialKept
+      }
+      if (text.length <= maxBytes) {
+        const compacted =
+          droppedDraw + droppedFeatures > 0
+            ? { level: 'features', dropped_draw: droppedDraw, dropped_features: droppedFeatures, dropped_measure: 0 }
+            : null
+        return { text, compacted }
+      }
 
       body.annotations = { draw: [], measure: [] }
       body.analysis = null
-      return JSON.stringify(body)
+      return {
+        text: JSON.stringify(body),
+        compacted: {
+          level: 'annotations',
+          dropped_draw: drawList.length,
+          dropped_features: totalFeatures,
+          dropped_measure: measureList.length,
+        },
+      }
     }
 
     /**
@@ -246,6 +306,8 @@
       const savedAt =
         typeof snapshot?.savedAt === 'string' && snapshot.savedAt !== '' ? snapshot.savedAt : new Date().toISOString()
       const body = { v: SCENE_STORE_VERSION, ...snapshot, savedAt }
+      // Never carry a stale marker from a previous save into this one.
+      delete body.compacted
       let text = ''
       try {
         text = JSON.stringify(body)
@@ -255,12 +317,20 @@
       // Compact GeoJSON coordinates/properties first so large vector imports and
       // Agent annotations survive refresh; only drop overlays if the base scene itself exceeds quota.
       if (text.length > SCENE_STORE_MAX_BYTES - 1024) {
+        let fitted = null
         try {
-          text = fitSnapshotBodyToBudget(body, SCENE_STORE_MAX_BYTES)
+          // Leave headroom so the `compacted` marker itself still fits.
+          fitted = fitSnapshotBodyToBudget(body, SCENE_STORE_MAX_BYTES - 512)
         } catch {
           return null
         }
-        if (text.length > SCENE_STORE_MAX_BYTES) return null
+        if (fitted.compacted !== null) body.compacted = fitted.compacted
+        try {
+          text = JSON.stringify(body)
+        } catch {
+          return null
+        }
+        if (typeof text !== 'string' || text.length > SCENE_STORE_MAX_BYTES) return null
       }
       const store = sceneStorage()
       if (store) {

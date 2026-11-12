@@ -260,6 +260,72 @@ test('F02: 超 512 KB 的高精度多属性 GeoJSON 自动压缩坐标与属性�
   })
 })
 
+test('F02: 压缩仍装不下时必须记录 compacted 标记，恢复时报告省略数量，小快照不得残留旧标记', async () => {
+  const blob = 'p'.repeat(400)
+  const heavyProperties = {}
+  for (let index = 0; index < 20; index += 1) heavyProperties[`field_${index}`] = `${blob}${index}`
+  // 40 个 draw 指令 × 10 个重属性要素，远超 512 KB；坐标与属性压缩后仍装不下，只能丢掉最旧的指令。
+  const makeFeatures = (commandIndex) =>
+    Array.from({ length: 10 }, (_, featureIndex) => ({
+      type: 'Feature',
+      id: `cmd${commandIndex}-f${featureIndex}`,
+      properties: { name: `区块${commandIndex}-${featureIndex}`, ...heavyProperties },
+      geometry: {
+        type: 'Polygon',
+        coordinates: [
+          [
+            [114.3 + commandIndex * 0.001, 30.5, 0],
+            [114.3005 + commandIndex * 0.001, 30.5, 0],
+            [114.3005 + commandIndex * 0.001, 30.5005, 0],
+            [114.3 + commandIndex * 0.001, 30.5005, 0],
+            [114.3 + commandIndex * 0.001, 30.5, 0],
+          ],
+        ],
+      },
+    }))
+  const draw = Array.from({ length: 40 }, (_, commandIndex) => ({
+    geojson: { type: 'FeatureCollection', features: makeFeatures(commandIndex) },
+    style: 'accent',
+    drawn: 10,
+    caption: `chunk-${commandIndex}.geojson`,
+  }))
+
+  await withMemoryLocalStorage(() => {
+    const body = writeSceneSnapshot('sess-f02-marker', {
+      view: { lon: 114.3, lat: 30.5, height: 1200, heading: 0, pitch: -50 },
+      layers: [],
+      annotations: { draw, measure: [] },
+      analysis: null,
+      shaders: [],
+    })
+    assert.ok(body, '超出配额时仍必须写入精简后的快照')
+    assert.equal(body.compacted?.level, 'features', '必须标记精简级别')
+    assert.ok(body.compacted.dropped_draw > 0, '必须报告省略的标注指令数量')
+    assert.ok(JSON.stringify({ session: 'sess-f02-marker', snapshot: body }).length <= SCENE_STORE_MAX_BYTES)
+
+    const restored = readSceneSnapshot('sess-f02-marker')
+    assert.ok(restored.compacted, '恢复时必须带上精简标记，供面板提示用户')
+    assert.equal(restored.compacted.dropped_draw, body.compacted.dropped_draw)
+    assert.ok(restored.annotations.draw.length < draw.length)
+    // The oldest surviving command may keep only part of its features, hence +1.
+    assert.equal(restored.annotations.draw.length, draw.length - body.compacted.dropped_draw + 1)
+    const keptFeatures = restored.annotations.draw.reduce((sum, cmd) => sum + cmd.geojson.features.length, 0)
+    assert.equal(keptFeatures, 400 - body.compacted.dropped_features, '省略要素数必须与恢复后的实际要素数互补')
+
+    // 之后的小快照必须清掉上一次的标记，否则界面会误报省略。
+    const small = writeSceneSnapshot('sess-f02-marker', {
+      view: { lon: 114.3, lat: 30.5, height: 500, heading: 0, pitch: -45 },
+      layers: [],
+      annotations: { draw: [], measure: [] },
+      analysis: null,
+      shaders: [],
+    })
+    assert.ok(small)
+    assert.equal(small.compacted, undefined, '小快照不得携带上一次的 compacted')
+    assert.equal(readSceneSnapshot('sess-f02-marker').compacted, undefined)
+  })
+})
+
 // ---------------------------------------------------------------------------
 // Section 5.2: Water close-up ripple octave & shader engine u_time preservation
 // ---------------------------------------------------------------------------

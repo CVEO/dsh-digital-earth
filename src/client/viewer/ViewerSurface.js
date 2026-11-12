@@ -1381,6 +1381,8 @@ const h = React.createElement
               // The saved analysis may no longer have usable height data.
             }
           }
+          // F02: a compacted save tells the user what was omitted instead of silently losing data.
+          if (snapshot.compacted) showToast(t('toast.snapshotCompacted', { draw: snapshot.compacted.dropped_draw ?? 0, features: snapshot.compacted.dropped_features ?? 0 }))
         } finally {
           restoringRef.current = false
           setRestoringScene(false)

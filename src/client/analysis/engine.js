@@ -16,6 +16,11 @@ import { resolveAnalysisTarget } from './source-policy.js'
 import { ANALYSIS_ENTITY_PREFIX, ANALYSIS_MIN_SAMPLES, analysisClipPlane, analysisColorAt, analysisInteger, analysisLocalizeClipPlane, analysisLonLat, analysisObserver, analysisRegion, analysisRound, analysisSunAngles } from './math.js'
 import { formatHeight } from '../format.js'
 import { vectorLabel } from '../scene/vector-style.js'
+import {
+  acquireClipCollection,
+  CLIP_OWNER_ANALYSIS,
+  releaseClipCollection,
+} from '../scene/clip-collections.js'
 
 /**
  * @param {object} deps
@@ -30,8 +35,7 @@ import { vectorLabel } from '../scene/vector-style.js'
  * @param {Function} deps.t          translate function
  */
 export function createAnalysisEngine(deps) {
-  // Local shims with the same names the extracted code used, so the block below is
-  // byte-for-byte the old implementation (only the surrounding closure changed).
+  // Local shims keep the extracted block byte-for-byte the old implementation.
   const analysisRef = deps.state
   const analysisCommandRef = deps.commandRef
   const viewerRef = { get current() { return deps.getViewer() } }
@@ -72,10 +76,11 @@ export function createAnalysisEngine(deps) {
             const layer = layersRef.current.find((item) => item.id === saved.id)
             if (layer && layer.tileset) layer.tileset.shadows = saved.shadows
           }
-          // clip: put the tileset's previous clipping planes back (usually none).
+          // clip: disable the shared collection instead of unassigning it — the Cesium
+          // setter destroys the clipping texture a tile draw command may still use.
           if (restore.clipping) {
             const target = restore.clipping.layer
-            if (target && target.tileset) target.tileset.clippingPlanes = restore.clipping.previous ?? undefined
+            if (target && target.tileset) releaseClipCollection(target.tileset, CLIP_OWNER_ANALYSIS)
           }
         } catch {
           /* the viewer may be mid-teardown; state restoration is best-effort */
@@ -609,26 +614,23 @@ export function createAnalysisEngine(deps) {
         if (typeof Cesium.ClippingPlaneCollection !== 'function' || typeof Cesium.ClippingPlane !== 'function') {
           throw new Error('analysis: 当前 Cesium 不支持剖切（ClippingPlane）。next: 升级 Cesium 后重试。')
         }
-        const previous = tileset.clippingPlanes ?? null
-        const collection = new Cesium.ClippingPlaneCollection({
-          planes: [new Cesium.ClippingPlane(plane.normal, plane.distance)],
-          enabled: true,
+        // Shared registry: one collection per tileset, never replaced while another owner holds it.
+        const acquired = acquireClipCollection(Cesium, tileset, {
+          owner: CLIP_OWNER_ANALYSIS,
+          planes: [{ normal: plane.normal, distance: plane.distance }],
           edgeWidth: 1.0,
-          edgeColor: Cesium.Color.fromCssColorString('#7fd4ff'),
+          edgeColor: Cesium.Color?.fromCssColorString?.('#7fd4ff') ?? undefined,
         })
-        try {
-          tileset.clippingPlanes = collection
-          if (tileset.clippingPlanes !== collection) throw new Error('图层拒绝了 clippingPlanes 赋值')
-        } catch {
-          try {
-            tileset.clippingPlanes = previous ?? undefined
-          } catch {
-            /* detach is best-effort */
+        if (!acquired.ok) {
+          if (acquired.reason === 'conflict') {
+            throw new Error(
+              'analysis: [clip_conflict] 该图层正在被卷帘对比裁剪，两次裁剪无法叠加。next: 先退出卷帘对比，再执行剖切。',
+            )
           }
           throw new Error('analysis: 该图层不支持剖切（clippingPlanes 赋值失败）。next: 换 3D Tiles 图层或重新加载后重试。')
         }
         beginAnalysis('clip', layer)
-        analysisRef.current.restore = { clipping: { layer, previous } }
+        analysisRef.current.restore = { clipping: { layer } }
         const result = {
           operation: 'clip',
           layer: layer.name,
@@ -658,8 +660,7 @@ export function createAnalysisEngine(deps) {
             `analysis: 不支持的分析类型 "${String(args.action)}"。next: 使用 profile / flood / skyline / sunlight / clip / clear。`,
           )
         }
-        // Source/layer resolution lives in source-policy.js: exactly one height
-        // source per run, and a 3DGS layer is never silently sampled.
+        // source-policy.js: one height source per run; a 3DGS layer is never sampled.
         const target = resolveAnalysisTarget({ operation, args, layers: layersRef.current, findLayer })
         args = target.args
         let layer = target.layer
