@@ -11,19 +11,30 @@ import { clampSwipeRatio, createSwipeSession } from '../scene/swipe.js'
 
 const h = React.createElement
 
-export function useSwipe({ t, showToast, layers, overlays, getCesium, getViewer, getOverlayLayers }) {
+/**
+ * Layers the swipe session must see: the engine needs the full runtime objects
+ * (`tileset`, `kind`), while the React state passed to the panel is a lightweight
+ * projection without them. Prefer the full source when the caller provides one.
+ */
+export function engineLayersOf(deps) {
+  const full = deps?.getLayers?.()
+  if (Array.isArray(full)) return full
+  return Array.isArray(deps?.layers) ? deps.layers : []
+}
+
+export function useSwipe({ t, showToast, layers, overlays, getCesium, getViewer, getOverlayLayers, getLayers }) {
   const [state, setState] = React.useState(null)
   const containerRef = React.useRef(null)
   const draggingRef = React.useRef(false)
   const depsRef = React.useRef({})
-  depsRef.current = { t, showToast, layers, overlays, getCesium, getViewer, getOverlayLayers }
+  depsRef.current = { t, showToast, layers, overlays, getCesium, getViewer, getOverlayLayers, getLayers }
 
   const sessionRef = React.useRef(null)
   if (!sessionRef.current) {
     sessionRef.current = createSwipeSession({
       getCesium: () => depsRef.current.getCesium?.(),
       getViewer: () => depsRef.current.getViewer?.(),
-      getLayers: () => depsRef.current.layers ?? [],
+      getLayers: () => engineLayersOf(depsRef.current),
       getOverlayLayers: () => depsRef.current.getOverlayLayers?.(),
     })
   }
@@ -39,10 +50,22 @@ export function useSwipe({ t, showToast, layers, overlays, getCesium, getViewer,
       stop()
       return false
     }
-    const res = sessionRef.current.start3d(layerId)
+    const res = (() => {
+      try {
+        return sessionRef.current.start3d(layerId)
+      } catch {
+        // Never let an engine exception look like "the button does nothing".
+        return { ok: false, reason: 'unavailable' }
+      }
+    })()
     if (!res.ok) {
       const api = depsRef.current
-      const msgKey = res.reason === 'unsupported_3dgs' ? 'swipe.unsupported3dgs' : 'swipe.unavailable'
+      const msgKey =
+        res.reason === 'unsupported_3dgs'
+          ? 'swipe.unsupported3dgs'
+          : res.reason === 'conflict'
+            ? 'swipe.conflict'
+            : 'swipe.unavailable'
       api.showToast?.(api.t?.(msgKey) ?? msgKey)
       return false
     }
@@ -56,7 +79,13 @@ export function useSwipe({ t, showToast, layers, overlays, getCesium, getViewer,
       stop()
       return false
     }
-    const res = sessionRef.current.startRaster(overlayId)
+    const res = (() => {
+      try {
+        return sessionRef.current.startRaster(overlayId)
+      } catch {
+        return { ok: false, reason: 'unavailable' }
+      }
+    })()
     if (!res.ok) {
       const api = depsRef.current
       api.showToast?.(api.t?.('swipe.unavailable') ?? 'swipe.unavailable')
@@ -68,7 +97,9 @@ export function useSwipe({ t, showToast, layers, overlays, getCesium, getViewer,
 
   React.useEffect(() => {
     if (!state) return
-    if (sessionRef.current?.reconcile({ layers: layers ?? [], overlays: overlays ?? [] })) {
+    // Reconcile with the runtime layers when the caller exposes them; the UI
+    // projection is enough for the fallback path either way.
+    if (sessionRef.current?.reconcile({ layers: engineLayersOf(depsRef.current), overlays: overlays ?? [] })) {
       setState(null)
     }
   }, [state, layers, overlays])

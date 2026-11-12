@@ -239,7 +239,8 @@ const h = React.createElement
         })
 
       const syncLayers = () => {
-        setLayers(layersRef.current.map((layer) => ({ id: layer.id, name: layer.name, visible: layer.visible, georefIssue: layer.georefIssue })))
+        // `kind` lets the row disable swipe for 3DGS; the tileset stays in layersRef.
+        setLayers(layersRef.current.map((layer) => ({ id: layer.id, name: layer.name, visible: layer.visible, kind: layer.kind, georefIssue: layer.georefIssue })))
         markSceneDirty()
       }
 
@@ -427,8 +428,9 @@ const h = React.createElement
           setScan(null)
           // Classify the content in the background (shader rejection, layer badge,
           // analysis errors). The load already succeeded: a failed inspection must
-          // never fail or delay the load itself.
-          void hydrateLayerKind(layer)
+          // never fail or delay the load itself. The classification lands after the
+          // row is rendered, so refresh the projection once it is known.
+          void hydrateLayerKind(layer).then(() => syncLayers())
           if (georefIssue !== null) {
             if (options.fly !== false) showToast(t('toast.notGeoreferenced'))
           } else if (options.fly !== false) {
@@ -2393,6 +2395,7 @@ const h = React.createElement
         t,
         showToast,
         layers,
+        getLayers: () => layersRef.current,
         overlays: sources?.rasterOverlays ?? [],
         getCesium: () => cesiumRef.current,
         getViewer: () => viewerRef.current,

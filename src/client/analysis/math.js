@@ -227,17 +227,20 @@
           ? Cesium.Transforms.eastNorthUpToFixedFrame(center)
           : null)
       if (!matrix) return plane
+      // Cesium's Matrix4 exposes numeric indices but is NOT an Array: it has no
+      // slice(). Normalize every accepted form into a real 16-element array
+      // before validating or indexing it.
       const m = Array.isArray(matrix)
         ? matrix
         : typeof matrix[0] === 'number'
-          ? matrix
+          ? Array.from({ length: 16 }, (_, index) => matrix[index])
           : [
               matrix[0], matrix[1], matrix[2], matrix[3],
               matrix[4], matrix[5], matrix[6], matrix[7],
               matrix[8], matrix[9], matrix[10], matrix[11],
               matrix[12], matrix[13], matrix[14], matrix[15],
             ]
-      if (!m.slice(0, 15).every((v) => typeof v === 'number' && Number.isFinite(v))) return plane
+      if (m.length < 16 || !m.slice(0, 15).every((v) => typeof v === 'number' && Number.isFinite(v))) return plane
       const nw = plane.normal
       const p = plane.pointOnPlane
       const nx = nw.x * m[0] + nw.y * m[1] + nw.z * m[2]

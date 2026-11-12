@@ -20,7 +20,9 @@ import * as RealCesium from '../vendor/cesium/index.js'
 const { analyzeTileset } = await import('../src/host/inspect/analyze.js')
 const { computeSwipeClipPlane, createSwipeSession } = await import('../src/client/scene/swipe.js')
 const { LayerRow } = await import('../src/client/ui/layer-row.js')
+const { engineLayersOf } = await import('../src/client/ui/swipe-bar.js')
 const { MESSAGES } = await import('../src/client/messages.js')
+const { clientSource } = await import('./helpers/source.mjs')
 
 const workspaces = []
 after(async () => {
@@ -242,11 +244,13 @@ test('需求 B: createSwipeSession 支持 3D Tiles 与 2D 栅格卷帘、相机�
   const updatedPlane = meshLayer.tileset.clippingPlanes.get(0)
   assert.ok(Math.abs(updatedPlane.normal.x - -1) < 0.5, '相机旋转后水平分割面法向应跟随新的相机 Up 方向 (-X)')
 
-  // 目标图层隐藏时自动退出并恢复原始 clippingPlanes
+  // 目标图层隐藏时自动退出：集合保留但禁用（Cesium 的 setter 赋 undefined 会
+  // destroy() 集合与裁剪纹理，而 tile 绘制命令仍引用它 → 渲染崩溃 "(_target)"）
   meshLayer.visible = false
   assert.equal(session.reconcile({ layers, overlays }), true)
   assert.equal(session.getState(), null)
-  assert.equal(meshLayer.tileset.clippingPlanes, undefined, '退出后必须恢复原始 clippingPlanes 无残留')
+  assert.ok(meshLayer.tileset.clippingPlanes, '退出后集合必须保留在 tileset 上')
+  assert.equal(meshLayer.tileset.clippingPlanes.enabled, false, '退出后必须用 enabled=false 关闭裁剪而非移除')
   assert.equal(preRenderListeners.size, 0, '退出后必须移除 preRender 监听')
 
   // 3) 2D 栅格叠加图层开启卷帘、拖动更新 splitPosition、退出完全恢复
@@ -280,4 +284,102 @@ test('需求 B: createSwipeSession 支持 3D Tiles 与 2D 栅格卷帘、相机�
   assert.equal(swipeBtn.props.disabled, true, '3DGS 图层的卷帘按钮必须置灰禁用')
   assert.match(swipeBtn.props.title, /3DGS 图层不支持裁剪卷帘对比/)
   assert.equal(typeof MESSAGES.en['swipe.unsupported3dgs'], 'string')
+})
+
+// ---------------------------------------------------------------------------
+// Regression (1.5.2 local build): the React state passed to the panel is a
+// projection without the runtime `tileset`, and `useSwipe` used to hand that
+// projection to the engine. Every 3D swipe therefore failed with "unavailable"
+// even though the layer row showed the eye open. The engine must read the full
+// layer source, and the projection must still expose `kind` for the 3DGS guard.
+// ---------------------------------------------------------------------------
+test('需求 B 回归：卷帘引擎读取完整图层（含 tileset），不读 UI 投影', () => {
+  const tileset = { name: 'tileset' }
+  const full = [{ id: 'a', name: 'a', visible: true, kind: 'mesh', tileset }]
+  const projection = [{ id: 'a', name: 'a', visible: true, kind: 'mesh' }]
+  assert.equal(engineLayersOf({ getLayers: () => full, layers: projection }), full, '有完整来源时必须用完整图层')
+  assert.equal(engineLayersOf({ layers: projection }), projection, '没有完整来源时退回投影，不得抛错')
+  assert.deepEqual(engineLayersOf({}), [], '缺失来源时返回空数组而不是 undefined')
+
+  const client = clientSource()
+  assert.match(client, /getLayers: \(\) => layersRef\.current/, 'useSwipe 必须收到完整图层来源')
+  assert.match(client, /kind: layer\.kind/, 'UI 投影必须携带 kind，否则 3DGS 按钮无法置灰')
+})
+
+// ---------------------------------------------------------------------------
+// Regression (1.5.2 local build): `useSwipe` reconciles the session with the
+// lightweight UI projection, which has no `tileset`. The engine used to treat
+// that as "layer disappeared" and stopped the session on the first effect, so
+// the split line never appeared and nothing visibly happened after the click.
+// ---------------------------------------------------------------------------
+test('需求 B 回归：用 UI 投影 reconcile 不得误停 3D 卷帘会话', () => {
+  const Cesium = RealCesium
+  const eye = new Cesium.Cartesian3(0, 0, 1000)
+  const camera = {
+    positionWC: eye,
+    directionWC: new Cesium.Cartesian3(0, 0, -1),
+    upWC: new Cesium.Cartesian3(0, 1, 0),
+    rightWC: new Cesium.Cartesian3(1, 0, 0),
+    frustum: { aspectRatio: 800 / 600, fovy: Math.PI / 3 },
+  }
+  const center = new Cesium.Cartesian3(0, 0, 6378137)
+  const tileset = {
+    boundingSphere: { center },
+    clippingPlanesOriginMatrix: Cesium.Transforms.eastNorthUpToFixedFrame(center),
+    clippingPlanes: null,
+  }
+  const full = [{ id: 'layer-1', name: 'layer', visible: true, kind: 'mesh', tileset }]
+  const projection = [{ id: 'layer-1', name: 'layer', visible: true, kind: 'mesh' }]
+  const preRender = { listeners: [], addEventListener(fn) { this.listeners.push(fn); return () => {} }, removeEventListener() {} }
+  const viewer = { camera, scene: { preRender, requestRender() {} }, canvas: { clientWidth: 800, clientHeight: 600 } }
+
+  const session = createSwipeSession({
+    getCesium: () => Cesium,
+    getViewer: () => viewer,
+    getLayers: () => full,
+  })
+  const res = session.start3d('layer-1')
+  assert.equal(res.ok, true, '完整图层应能启动 3D 卷帘')
+  assert.equal(session.reconcile({ layers: projection }), false, 'UI 投影不含 tileset 时不得停掉会话')
+  assert.equal(session.getState()?.id, 'layer-1')
+  assert.equal(session.reconcile({ layers: [{ id: 'layer-1', visible: false }] }), true, '图层隐藏时必须退出')
+  assert.equal(session.getState(), null)
+  assert.ok(tileset.clippingPlanes, '退出后集合保留')
+  assert.equal(tileset.clippingPlanes.enabled, false, '退出后仅禁用裁剪')
+})
+
+// ---------------------------------------------------------------------------
+// Regression: assigning `undefined` to `tileset.clippingPlanes` destroys the
+// collection and its clipping texture while tile draw commands still reference
+// it, so Cesium stops rendering with "Cannot read properties of undefined
+// (_target)". A layer already clipped by the clip analysis is a conflict.
+// ---------------------------------------------------------------------------
+test('需求 B 回归：已有剖切分析的图层拒绝卷帘，不抢占 clippingPlanes', () => {
+  const Cesium = RealCesium
+  const center = new Cesium.Cartesian3(0, 0, 6378137)
+  const foreign = new Cesium.ClippingPlaneCollection({
+    planes: [new Cesium.ClippingPlane(new Cesium.Cartesian3(0, 0, -1), 0)],
+  })
+  const tileset = {
+    boundingSphere: { center },
+    clippingPlanesOriginMatrix: Cesium.Transforms.eastNorthUpToFixedFrame(center),
+    clippingPlanes: foreign,
+  }
+  const camera = {
+    positionWC: new Cesium.Cartesian3(0, 0, 1000),
+    directionWC: new Cesium.Cartesian3(0, 0, -1),
+    upWC: new Cesium.Cartesian3(0, 1, 0),
+    rightWC: new Cesium.Cartesian3(1, 0, 0),
+    frustum: { aspectRatio: 4 / 3, fovy: Math.PI / 3 },
+  }
+  const viewer = { camera, scene: { preRender: { addEventListener: () => () => {} }, requestRender() {} }, canvas: { clientWidth: 800, clientHeight: 600 } }
+  const session = createSwipeSession({
+    getCesium: () => Cesium,
+    getViewer: () => viewer,
+    getLayers: () => [{ id: 'layer-1', name: 'layer', visible: true, kind: 'mesh', tileset }],
+  })
+  const res = session.start3d('layer-1')
+  assert.equal(res.ok, false)
+  assert.equal(res.reason, 'conflict')
+  assert.equal(tileset.clippingPlanes, foreign, '外部剖切集合不得被替换')
 })

@@ -542,6 +542,7 @@ var V18_MESSAGES = {
     "swipe.exit": "退出对比",
     "swipe.unsupported3dgs": "3DGS 图层不支持裁剪卷帘对比（仅支持网格 3D Tiles 与 2D 栅格图层）",
     "swipe.unavailable": "请先显示该图层后再开启卷帘对比",
+    "swipe.conflict": "该图层已有剖切分析在裁剪，请先清除剖切分析再开启卷帘对比",
     ...SELECTION_MESSAGES.zh
   },
   en: {
@@ -683,6 +684,7 @@ var V18_MESSAGES = {
     "swipe.exit": "Exit swipe",
     "swipe.unsupported3dgs": "3DGS layers do not support clipping swipe comparison (mesh 3D Tiles and 2D raster only)",
     "swipe.unavailable": "Make sure the layer is visible before starting swipe comparison",
+    "swipe.conflict": "A clip analysis is already clipping this layer; clear it before starting swipe comparison",
     ...SELECTION_MESSAGES.en
   }
 };
@@ -1967,7 +1969,7 @@ var analysisLocalizeClipPlane = (Cesium, plane, tileset, center) => {
   if (!plane || !plane.normal || !plane.pointOnPlane) return plane;
   const matrix = tileset?.clippingPlanesOriginMatrix ?? tileset?.root?.transform ?? tileset?.modelMatrix ?? (typeof Cesium?.Transforms?.eastNorthUpToFixedFrame === "function" && center ? Cesium.Transforms.eastNorthUpToFixedFrame(center) : null);
   if (!matrix) return plane;
-  const m = Array.isArray(matrix) ? matrix : typeof matrix[0] === "number" ? matrix : [
+  const m = Array.isArray(matrix) ? matrix : typeof matrix[0] === "number" ? Array.from({ length: 16 }, (_, index) => matrix[index]) : [
     matrix[0],
     matrix[1],
     matrix[2],
@@ -1985,7 +1987,7 @@ var analysisLocalizeClipPlane = (Cesium, plane, tileset, center) => {
     matrix[14],
     matrix[15]
   ];
-  if (!m.slice(0, 15).every((v) => typeof v === "number" && Number.isFinite(v))) return plane;
+  if (m.length < 16 || !m.slice(0, 15).every((v) => typeof v === "number" && Number.isFinite(v))) return plane;
   const nw = plane.normal;
   const p = plane.pointOnPlane;
   const nx = nw.x * m[0] + nw.y * m[1] + nw.z * m[2];
@@ -14493,6 +14495,20 @@ var clampSwipeRatio = (value) => {
   if (!Number.isFinite(num)) return 0.5;
   return Math.min(0.95, Math.max(0.05, num));
 };
+var swipeCollections = /* @__PURE__ */ new WeakMap();
+function applyPlane(collection, localized) {
+  const plane = typeof collection.get === "function" ? collection.get(0) : null;
+  if (!plane) return false;
+  if (plane.normal && typeof plane.normal === "object") {
+    plane.normal.x = localized.normal.x;
+    plane.normal.y = localized.normal.y;
+    plane.normal.z = localized.normal.z;
+  } else {
+    plane.normal = localized.normal;
+  }
+  plane.distance = localized.distance;
+  return true;
+}
 function computeSwipeClipPlane(Cesium, camera, tileset, { ratio = 0.5, orientation = "vertical", canvas = null } = {}) {
   if (!Cesium || !camera || !tileset) return null;
   const eye = camera.positionWC ?? camera.position;
@@ -14552,17 +14568,7 @@ function createSwipeSession({ getCesium, getViewer, getLayers, getOverlayLayers 
       canvas: viewer.canvas ?? viewer.scene?.canvas ?? null
     });
     if (!localized) return;
-    const targetPlane = typeof active.collection.get === "function" ? active.collection.get(0) : active.plane;
-    if (targetPlane) {
-      if (targetPlane.normal && typeof targetPlane.normal === "object") {
-        targetPlane.normal.x = localized.normal.x;
-        targetPlane.normal.y = localized.normal.y;
-        targetPlane.normal.z = localized.normal.z;
-      } else {
-        targetPlane.normal = localized.normal;
-      }
-      targetPlane.distance = localized.distance;
-    }
+    applyPlane(active.collection, localized);
   }
   function stop() {
     if (!active) return false;
@@ -14577,11 +14583,9 @@ function createSwipeSession({ getCesium, getViewer, getLayers, getOverlayLayers 
         } catch {
         }
       }
-      if (current.tileset) {
-        try {
-          current.tileset.clippingPlanes = current.previousClipping ?? void 0;
-        } catch {
-        }
+      try {
+        if (current.collection) current.collection.enabled = false;
+      } catch {
       }
     } else if (current.kind === "raster") {
       if (current.imageryLayer) {
@@ -14617,24 +14621,41 @@ function createSwipeSession({ getCesium, getViewer, getLayers, getOverlayLayers 
     stop();
     const r = clampSwipeRatio(ratio);
     const orient = orientation === "horizontal" ? "horizontal" : "vertical";
-    const initial = computeSwipeClipPlane(Cesium, viewer.camera, layer.tileset, {
-      ratio: r,
-      orientation: orient,
-      canvas: viewer.canvas ?? viewer.scene?.canvas ?? null
-    });
-    if (!initial) return { ok: false, reason: "unavailable" };
-    const previousClipping = layer.tileset.clippingPlanes ?? null;
-    const clipPlane = new Cesium.ClippingPlane(initial.normal, initial.distance);
-    const collection = new Cesium.ClippingPlaneCollection({
-      planes: [clipPlane],
-      enabled: true,
-      edgeWidth: 1.5,
-      edgeColor: Cesium.Color?.fromCssColorString?.("#38bdf8") ?? void 0
-    });
+    let initial;
     try {
-      layer.tileset.clippingPlanes = collection;
+      initial = computeSwipeClipPlane(Cesium, viewer.camera, layer.tileset, {
+        ratio: r,
+        orientation: orient,
+        canvas: viewer.canvas ?? viewer.scene?.canvas ?? null
+      });
     } catch {
       return { ok: false, reason: "unavailable" };
+    }
+    if (!initial) return { ok: false, reason: "unavailable" };
+    const cached = swipeCollections.get(layer.tileset) ?? null;
+    const existing = layer.tileset.clippingPlanes ?? null;
+    if (existing !== null && existing !== cached) {
+      return { ok: false, reason: "conflict" };
+    }
+    let collection = cached;
+    if (collection === null || collection.isDestroyed?.()) {
+      collection = new Cesium.ClippingPlaneCollection({
+        planes: [new Cesium.ClippingPlane(initial.normal, initial.distance)],
+        enabled: true,
+        edgeWidth: 1.5,
+        edgeColor: Cesium.Color?.fromCssColorString?.("#38bdf8") ?? void 0
+      });
+      swipeCollections.set(layer.tileset, collection);
+    } else {
+      applyPlane(collection, initial);
+      collection.enabled = true;
+    }
+    if (layer.tileset.clippingPlanes !== collection) {
+      try {
+        layer.tileset.clippingPlanes = collection;
+      } catch {
+        return { ok: false, reason: "unavailable" };
+      }
     }
     const onPreRender = () => update3dPlane();
     let removePreRender = null;
@@ -14649,8 +14670,6 @@ function createSwipeSession({ getCesium, getViewer, getLayers, getOverlayLayers 
       orientation: orient,
       tileset: layer.tileset,
       collection,
-      plane: clipPlane,
-      previousClipping,
       removePreRender: typeof removePreRender === "function" ? removePreRender : () => viewer.scene?.preRender?.removeEventListener?.(onPreRender)
     };
     requestRender();
@@ -14709,7 +14728,7 @@ function createSwipeSession({ getCesium, getViewer, getLayers, getOverlayLayers 
     if (!active) return false;
     if (active.kind === "3d") {
       const found = layers.find((item) => item.id === active.id);
-      if (!found || found.visible === false || !found.tileset) {
+      if (!found || found.visible === false) {
         stop();
         return true;
       }
@@ -14745,18 +14764,23 @@ function createSwipeSession({ getCesium, getViewer, getLayers, getOverlayLayers 
 
 // src/client/ui/swipe-bar.js
 var h26 = import_react29.default.createElement;
-function useSwipe({ t: t2, showToast, layers, overlays, getCesium, getViewer, getOverlayLayers }) {
+function engineLayersOf(deps) {
+  const full = deps?.getLayers?.();
+  if (Array.isArray(full)) return full;
+  return Array.isArray(deps?.layers) ? deps.layers : [];
+}
+function useSwipe({ t: t2, showToast, layers, overlays, getCesium, getViewer, getOverlayLayers, getLayers }) {
   const [state, setState] = import_react29.default.useState(null);
   const containerRef = import_react29.default.useRef(null);
   const draggingRef = import_react29.default.useRef(false);
   const depsRef = import_react29.default.useRef({});
-  depsRef.current = { t: t2, showToast, layers, overlays, getCesium, getViewer, getOverlayLayers };
+  depsRef.current = { t: t2, showToast, layers, overlays, getCesium, getViewer, getOverlayLayers, getLayers };
   const sessionRef = import_react29.default.useRef(null);
   if (!sessionRef.current) {
     sessionRef.current = createSwipeSession({
       getCesium: () => depsRef.current.getCesium?.(),
       getViewer: () => depsRef.current.getViewer?.(),
-      getLayers: () => depsRef.current.layers ?? [],
+      getLayers: () => engineLayersOf(depsRef.current),
       getOverlayLayers: () => depsRef.current.getOverlayLayers?.()
     });
   }
@@ -14770,10 +14794,16 @@ function useSwipe({ t: t2, showToast, layers, overlays, getCesium, getViewer, ge
       stop();
       return false;
     }
-    const res = sessionRef.current.start3d(layerId);
+    const res = (() => {
+      try {
+        return sessionRef.current.start3d(layerId);
+      } catch {
+        return { ok: false, reason: "unavailable" };
+      }
+    })();
     if (!res.ok) {
       const api = depsRef.current;
-      const msgKey = res.reason === "unsupported_3dgs" ? "swipe.unsupported3dgs" : "swipe.unavailable";
+      const msgKey = res.reason === "unsupported_3dgs" ? "swipe.unsupported3dgs" : res.reason === "conflict" ? "swipe.conflict" : "swipe.unavailable";
       api.showToast?.(api.t?.(msgKey) ?? msgKey);
       return false;
     }
@@ -14786,7 +14816,13 @@ function useSwipe({ t: t2, showToast, layers, overlays, getCesium, getViewer, ge
       stop();
       return false;
     }
-    const res = sessionRef.current.startRaster(overlayId);
+    const res = (() => {
+      try {
+        return sessionRef.current.startRaster(overlayId);
+      } catch {
+        return { ok: false, reason: "unavailable" };
+      }
+    })();
     if (!res.ok) {
       const api = depsRef.current;
       api.showToast?.(api.t?.("swipe.unavailable") ?? "swipe.unavailable");
@@ -14797,7 +14833,7 @@ function useSwipe({ t: t2, showToast, layers, overlays, getCesium, getViewer, ge
   }, [stop]);
   import_react29.default.useEffect(() => {
     if (!state) return;
-    if (sessionRef.current?.reconcile({ layers: layers ?? [], overlays: overlays ?? [] })) {
+    if (sessionRef.current?.reconcile({ layers: engineLayersOf(depsRef.current), overlays: overlays ?? [] })) {
       setState(null);
     }
   }, [state, layers, overlays]);
@@ -15157,7 +15193,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     gate.waiters.push(waiter);
   });
   const syncLayers = () => {
-    setLayers(layersRef.current.map((layer) => ({ id: layer.id, name: layer.name, visible: layer.visible, georefIssue: layer.georefIssue })));
+    setLayers(layersRef.current.map((layer) => ({ id: layer.id, name: layer.name, visible: layer.visible, kind: layer.kind, georefIssue: layer.georefIssue })));
     markSceneDirty();
   };
   const saveChainRef = import_react32.default.useRef(Promise.resolve());
@@ -15288,7 +15324,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
       layersRef.current.push(layer);
       syncLayers();
       setScan(null);
-      void hydrateLayerKind(layer);
+      void hydrateLayerKind(layer).then(() => syncLayers());
       if (georefIssue !== null) {
         if (options.fly !== false) showToast(t2("toast.notGeoreferenced"));
       } else if (options.fly !== false) {
@@ -16950,6 +16986,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     t: t2,
     showToast,
     layers,
+    getLayers: () => layersRef.current,
     overlays: sources?.rasterOverlays ?? [],
     getCesium: () => cesiumRef.current,
     getViewer: () => viewerRef.current,

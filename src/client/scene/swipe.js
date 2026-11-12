@@ -20,6 +20,34 @@ export const clampSwipeRatio = (value) => {
 }
 
 /**
+ * One reusable clipping collection per tileset.
+ *
+ * Cesium's `tileset.clippingPlanes` setter destroys the previous collection
+ * (`ClippingPlaneCollection.setOwner` -> `destroy()`), including its clipping
+ * texture. Removing the collection while tile draw commands still reference that
+ * texture crashes the renderer ("Cannot read properties of undefined (_target)").
+ * So a swipe session never removes it: it disables the collection instead, which
+ * makes Cesium rebuild the shaders without clipping while keeping the GL objects
+ * alive. The map also avoids create/destroy churn across repeated swipes.
+ */
+const swipeCollections = new WeakMap()
+
+/** Write the computed plane into the collection's single plane. */
+function applyPlane(collection, localized) {
+  const plane = typeof collection.get === 'function' ? collection.get(0) : null
+  if (!plane) return false
+  if (plane.normal && typeof plane.normal === 'object') {
+    plane.normal.x = localized.normal.x
+    plane.normal.y = localized.normal.y
+    plane.normal.z = localized.normal.z
+  } else {
+    plane.normal = localized.normal
+  }
+  plane.distance = localized.distance
+  return true
+}
+
+/**
  * Compute the screen-aligned clipping plane for a 3D Tileset at normalized
  * split ratio `r ∈ [0, 1]` and localize it into the tileset's local frame.
  *
@@ -97,17 +125,7 @@ export function createSwipeSession({ getCesium, getViewer, getLayers, getOverlay
       canvas: viewer.canvas ?? viewer.scene?.canvas ?? null,
     })
     if (!localized) return
-    const targetPlane = typeof active.collection.get === 'function' ? active.collection.get(0) : active.plane
-    if (targetPlane) {
-      if (targetPlane.normal && typeof targetPlane.normal === 'object') {
-        targetPlane.normal.x = localized.normal.x
-        targetPlane.normal.y = localized.normal.y
-        targetPlane.normal.z = localized.normal.z
-      } else {
-        targetPlane.normal = localized.normal
-      }
-      targetPlane.distance = localized.distance
-    }
+    applyPlane(active.collection, localized)
   }
 
   function stop() {
@@ -124,12 +142,14 @@ export function createSwipeSession({ getCesium, getViewer, getLayers, getOverlay
           /* ignore */
         }
       }
-      if (current.tileset) {
-        try {
-          current.tileset.clippingPlanes = current.previousClipping ?? undefined
-        } catch {
-          /* tileset may already be destroyed */
-        }
+      // Never unassign the collection: Cesium's setter destroys it and its
+      // texture while tile draw commands may still reference them, which stops
+      // rendering with "Cannot read properties of undefined (_target)".
+      // Disabling makes the tileset rebuild its shaders without clipping.
+      try {
+        if (current.collection) current.collection.enabled = false
+      } catch {
+        /* collection may already be destroyed with its tileset */
       }
     } else if (current.kind === 'raster') {
       if (current.imageryLayer) {
@@ -168,25 +188,45 @@ export function createSwipeSession({ getCesium, getViewer, getLayers, getOverlay
     stop()
     const r = clampSwipeRatio(ratio)
     const orient = orientation === 'horizontal' ? 'horizontal' : 'vertical'
-    const initial = computeSwipeClipPlane(Cesium, viewer.camera, layer.tileset, {
-      ratio: r,
-      orientation: orient,
-      canvas: viewer.canvas ?? viewer.scene?.canvas ?? null,
-    })
+    let initial
+    try {
+      initial = computeSwipeClipPlane(Cesium, viewer.camera, layer.tileset, {
+        ratio: r,
+        orientation: orient,
+        canvas: viewer.canvas ?? viewer.scene?.canvas ?? null,
+      })
+    } catch {
+      // An unexpected camera/tileset shape must not crash the click handler.
+      return { ok: false, reason: 'unavailable' }
+    }
     if (!initial) return { ok: false, reason: 'unavailable' }
 
-    const previousClipping = layer.tileset.clippingPlanes ?? null
-    const clipPlane = new Cesium.ClippingPlane(initial.normal, initial.distance)
-    const collection = new Cesium.ClippingPlaneCollection({
-      planes: [clipPlane],
-      enabled: true,
-      edgeWidth: 1.5,
-      edgeColor: Cesium.Color?.fromCssColorString?.('#38bdf8') ?? undefined,
-    })
-    try {
-      layer.tileset.clippingPlanes = collection
-    } catch {
-      return { ok: false, reason: 'unavailable' }
+    const cached = swipeCollections.get(layer.tileset) ?? null
+    const existing = layer.tileset.clippingPlanes ?? null
+    // Another owner (the clip analysis) already clips this tileset; two
+    // collections cannot be composed, so refuse instead of fighting it.
+    if (existing !== null && existing !== cached) {
+      return { ok: false, reason: 'conflict' }
+    }
+    let collection = cached
+    if (collection === null || collection.isDestroyed?.()) {
+      collection = new Cesium.ClippingPlaneCollection({
+        planes: [new Cesium.ClippingPlane(initial.normal, initial.distance)],
+        enabled: true,
+        edgeWidth: 1.5,
+        edgeColor: Cesium.Color?.fromCssColorString?.('#38bdf8') ?? undefined,
+      })
+      swipeCollections.set(layer.tileset, collection)
+    } else {
+      applyPlane(collection, initial)
+      collection.enabled = true
+    }
+    if (layer.tileset.clippingPlanes !== collection) {
+      try {
+        layer.tileset.clippingPlanes = collection
+      } catch {
+        return { ok: false, reason: 'unavailable' }
+      }
     }
     const onPreRender = () => update3dPlane()
     let removePreRender = null
@@ -201,8 +241,6 @@ export function createSwipeSession({ getCesium, getViewer, getLayers, getOverlay
       orientation: orient,
       tileset: layer.tileset,
       collection,
-      plane: clipPlane,
-      previousClipping,
       removePreRender:
         typeof removePreRender === 'function'
           ? removePreRender
@@ -268,7 +306,11 @@ export function createSwipeSession({ getCesium, getViewer, getLayers, getOverlay
     if (!active) return false
     if (active.kind === '3d') {
       const found = layers.find((item) => item.id === active.id)
-      if (!found || found.visible === false || !found.tileset) {
+      // Only existence/visibility matter here: callers may reconcile with the
+      // lightweight UI projection, which has no `tileset`. Requiring it would
+      // stop the session on the first reconciliation and the overlay would
+      // never appear. The session already holds the runtime tileset reference.
+      if (!found || found.visible === false) {
         stop()
         return true
       }
