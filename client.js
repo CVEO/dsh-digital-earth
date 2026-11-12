@@ -811,6 +811,42 @@ var ANNOTATION_MESSAGES = {
   }
 };
 
+// src/client/messages-export.js
+var EXPORT_MESSAGES = {
+  zh: {
+    "layers.exportVector": "导出",
+    "layers.vectorToChat": "发送到对话",
+    "layers.vectorExportHint": "导出整层矢量叠加（标注 + 量测）为 GeoJSON；发送到对话会把文件路径交给 Agent。",
+    "vectorExport.empty": "矢量叠加层还没有内容：先导入数据或画一个标注。",
+    "vectorExport.too_many_features": "一次最多导出 500 个要素，先删减或分批导出。",
+    "vectorExport.too_many_coordinates": "坐标点超过 20000，先精简再导出。",
+    "vectorExport.downloaded": "已下载 {count} 个要素的 GeoJSON。",
+    "vectorExport.saved": "已写入 {count} 个要素：{path}",
+    "vectorExport.sent": "已把 {count} 个要素的文件路径发送到对话。",
+    "vectorExport.noSession": "当前没有打开的对话会话，无法发送；可以先下载或保存到导出目录。",
+    "vectorExport.hostUnavailable": "宿主未提供导出目录接口，请改用下载。",
+    "vectorExport.failed": "导出没有完成（{reason}），可以重试或改用下载。",
+    "vectorExport.chatNotice": "用户从三维地球面板导出了一份矢量叠加数据，请以文件为准，不要另行推断内容。\n文件：{path}\n要素数：{count}\n范围（WGS84 经纬度）：{bbox}\n可用 earth_draw 读取该 GeoJSON 复用几何；若只需要说明，请按文件内容回答。",
+    "vectorExport.name": "矢量叠加"
+  },
+  en: {
+    "layers.exportVector": "Export",
+    "layers.vectorToChat": "Send to chat",
+    "layers.vectorExportHint": "Export the whole vector overlay (annotations + measurements) as GeoJSON; Send to chat hands the file path to the agent.",
+    "vectorExport.empty": "The vector overlay is empty: import data or draw an annotation first.",
+    "vectorExport.too_many_features": "At most 500 features can be exported at once; remove some or export in batches.",
+    "vectorExport.too_many_coordinates": "More than 20000 coordinates; simplify before exporting.",
+    "vectorExport.downloaded": "Downloaded a GeoJSON with {count} features.",
+    "vectorExport.saved": "Wrote {count} features to {path}",
+    "vectorExport.sent": "Sent the path of {count} features to the conversation.",
+    "vectorExport.noSession": "No conversation is open, so the file cannot be sent; download it or save it to the exports folder instead.",
+    "vectorExport.hostUnavailable": "The host exposes no export folder; use Download instead.",
+    "vectorExport.failed": "The export did not finish ({reason}). Retry, or use Download.",
+    "vectorExport.chatNotice": "The user exported vector overlay data from the digital earth panel. Treat the file as the source of truth and do not infer extra content.\nFile: {path}\nFeatures: {count}\nBounds (WGS84 lon/lat): {bbox}\nYou may read the GeoJSON with earth_draw to reuse the geometry; if only explanation is needed, answer from the file.",
+    "vectorExport.name": "vector-overlay"
+  }
+};
+
 // src/client/messages.js
 var MESSAGES = {
   zh: {
@@ -1237,7 +1273,8 @@ var MESSAGES = {
     // v1.7 P0 vocabulary (identify card / evidence export / tour bar).
     ...V17_MESSAGES.zh,
     ...V18_MESSAGES.zh,
-    ...ANNOTATION_MESSAGES.zh
+    ...ANNOTATION_MESSAGES.zh,
+    ...EXPORT_MESSAGES.zh
   },
   en: {
     "panel.title": "Digital Earth",
@@ -1663,7 +1700,8 @@ var MESSAGES = {
     // v1.7 P0 vocabulary (identify card / evidence export / tour bar).
     ...V17_MESSAGES.en,
     ...V18_MESSAGES.en,
-    ...ANNOTATION_MESSAGES.en
+    ...ANNOTATION_MESSAGES.en,
+    ...EXPORT_MESSAGES.en
   }
 };
 var FALLBACK_ABOUT = {
@@ -12379,7 +12417,8 @@ function LayersMap({
   onImportVector,
   onPickLocalTiles,
   swipeState,
-  onOverlaySwipe
+  onOverlaySwipe,
+  vectorExport
 }) {
   const [adding, setAdding] = import_react16.default.useState(false);
   const [draft, setDraft] = import_react16.default.useState({ type: "wms", name: "", url: "", layers: "", opacity: 0.7 });
@@ -12423,6 +12462,14 @@ function LayersMap({
       "div",
       { key: "g2", className: "mv-group" },
       h14("div", { className: "mv-group-title" }, t2("layers.vector")),
+      h14(
+        "div",
+        { className: "mv-group-actions" },
+        h14("button", { type: "button", className: "mv-icon-btn", title: t2("layers.vectorExportHint"), "aria-label": t2("layers.exportVector"), disabled: !vectorExport, onClick: () => vectorExport?.download() }, "⤓"),
+        h14("button", { type: "button", className: "mv-icon-btn", title: t2("layers.vectorExportHint"), "aria-label": t2("layers.vectorToChat"), disabled: !vectorExport?.canSend?.(), onClick: () => {
+          void vectorExport?.send();
+        } }, "➤")
+      ),
       h14("button", { type: "button", className: "mv-cta", onClick: () => fileRef.current?.click() }, t2("layers.importVector"))
     ),
     h14("input", {
@@ -12642,7 +12689,8 @@ function LayersPanel({
   onShowSceneDetails,
   swipeState,
   onSwipeLayer,
-  onOverlaySwipe
+  onOverlaySwipe,
+  vectorExport
 }) {
   const [tab, setTab] = import_react17.default.useState("3d");
   const resize = usePanelResize({ storageKey: "layers", initialHeight: null, minHeight: 120, maxHeight: 620 });
@@ -12734,7 +12782,8 @@ function LayersPanel({
       onImportVector,
       onPickLocalTiles,
       swipeState,
-      onOverlaySwipe
+      onOverlaySwipe,
+      vectorExport
     })),
     h15(ResizeHandle, {
       axis: "height",
@@ -15726,6 +15775,7 @@ function addAgentGroundLabel(Cesium, add, lon, lat, text) {
 var ANNOTATION_MAX_NAME = 80;
 var ANNOTATION_MAX_NOTE = 280;
 var ANNOTATION_KINDS = ["point", "line", "area", "note"];
+var ANNOTATION_COORDINATE_DECIMALS = 6;
 var DEFAULT_KIND_BY_GEOMETRY = {
   Point: "point",
   MultiPoint: "point",
@@ -15810,6 +15860,22 @@ function annotationBoundsOk(feature) {
   };
   walk(feature?.geometry?.coordinates);
   return valid;
+}
+function roundAnnotationGeometry(geometry, digits = ANNOTATION_COORDINATE_DECIMALS) {
+  if (geometry === null || typeof geometry !== "object") return geometry;
+  const factor = 10 ** digits;
+  const round2 = (value) => Math.round(value * factor) / factor;
+  const walk = (value) => {
+    if (!Array.isArray(value)) return value;
+    if (typeof value[0] === "number") {
+      return value.map((part, index) => index < 2 ? round2(part) : part);
+    }
+    return value.map(walk);
+  };
+  const next = { ...geometry };
+  if (next.coordinates !== void 0) next.coordinates = walk(next.coordinates);
+  if (Array.isArray(next.geometries)) next.geometries = next.geometries.map((child) => roundAnnotationGeometry(child, digits));
+  return next;
 }
 function annotationFeaturesOfCommands(commands) {
   const features = [];
@@ -16734,6 +16800,248 @@ function createAnnotationEditor({ getCesium, getViewer, getRoot, pickSurface, up
   return { focus, clear, dispose };
 }
 
+// src/client/scene/vector-export.js
+var VECTOR_EXPORT_MAX_FEATURES = 500;
+var VECTOR_EXPORT_MAX_COORDINATES = 2e4;
+var VECTOR_EXPORT_DECIMALS = 6;
+function cloneFeature(feature) {
+  if (feature === null || typeof feature !== "object" || feature.type !== "Feature") return null;
+  if (feature.geometry === null || typeof feature.geometry !== "object") return null;
+  return {
+    type: "Feature",
+    ...feature.id === void 0 ? {} : { id: feature.id },
+    properties: feature.properties === void 0 ? {} : JSON.parse(JSON.stringify(feature.properties)),
+    geometry: roundAnnotationGeometry(feature.geometry, VECTOR_EXPORT_DECIMALS)
+  };
+}
+function withProvenance(properties, provenance) {
+  const next = { ...properties };
+  if (next.provenance === void 0) next.provenance = provenance;
+  return next;
+}
+function measureCoordinates(points) {
+  const list = [];
+  for (const point of Array.isArray(points) ? points : []) {
+    if (!Array.isArray(point) && (typeof point?.lon !== "number" || typeof point?.lat !== "number")) continue;
+    const lon = Array.isArray(point) ? point[0] : point.lon;
+    const lat = Array.isArray(point) ? point[1] : point.lat;
+    if (!Number.isFinite(lon) || !Number.isFinite(lat)) continue;
+    list.push([lon, lat]);
+  }
+  return list;
+}
+function measureFeature(command, index) {
+  const points = measureCoordinates(command?.points);
+  if (points.length < 2) return null;
+  const mode = command?.mode === "area" ? "area" : command?.mode === "height" ? "height" : "distance";
+  const geometry = mode === "area" ? { type: "Polygon", coordinates: [[...points, points[0]]] } : { type: "LineString", coordinates: points };
+  const result = command?.result ?? {};
+  const properties = withProvenance(
+    {
+      name: `measure-${index + 1}`,
+      kind: mode === "area" ? "area" : "line",
+      source: "measure",
+      mode,
+      ...Number.isFinite(result.total_m) ? { distance_m: result.total_m } : {},
+      ...Number.isFinite(result.area_m2) ? { area_m2: result.area_m2 } : {},
+      ...Number.isFinite(result.height_m) ? { height_m: result.height_m } : {}
+    },
+    { source: "measure", tool: "measure", basis: "measured" }
+  );
+  return { type: "Feature", properties, geometry };
+}
+function collectVectorFeatures({ drawCommands = [], measureCommands = [] } = {}) {
+  const features = [];
+  const commands = Array.isArray(drawCommands) ? drawCommands : [];
+  for (const command of commands) {
+    const list = Array.isArray(command?.geojson?.features) ? command.geojson.features : [];
+    for (const feature of list) {
+      const cloned = cloneFeature(feature);
+      if (!cloned) continue;
+      cloned.properties = withProvenance(cloned.properties, {
+        source: cloned.properties.source ?? "manual",
+        tool: "annotation",
+        basis: "measured"
+      });
+      if (typeof cloned.properties.name !== "string" || cloned.properties.name === "") {
+        cloned.properties.name = `annotation-${features.length + 1}`;
+      }
+      if (cloned.properties.kind === void 0) cloned.properties.kind = annotationKindOf(cloned);
+      features.push(cloned);
+    }
+  }
+  const measures = Array.isArray(measureCommands) ? measureCommands : [];
+  measures.forEach((command, index) => {
+    const feature = measureFeature(command, index);
+    if (feature) features.push(feature);
+  });
+  if (features.length === 0) return { ok: false, error: "empty" };
+  if (features.length > VECTOR_EXPORT_MAX_FEATURES) return { ok: false, error: "too_many_features" };
+  const coordinates = vectorCoordinateCount(features);
+  if (coordinates > VECTOR_EXPORT_MAX_COORDINATES) return { ok: false, error: "too_many_coordinates" };
+  return { ok: true, features, coordinates };
+}
+function vectorCoordinateCount(features) {
+  let total = 0;
+  const visit = (node) => {
+    if (!Array.isArray(node)) return;
+    if (node.length >= 2 && typeof node[0] === "number" && typeof node[1] === "number") {
+      total += 1;
+      return;
+    }
+    for (const item of node) visit(item);
+  };
+  for (const feature of Array.isArray(features) ? features : []) visit(feature?.geometry?.coordinates);
+  return total;
+}
+function vectorBbox(features) {
+  let west = Infinity;
+  let south = Infinity;
+  let east = -Infinity;
+  let north = -Infinity;
+  const visit = (node) => {
+    if (!Array.isArray(node)) return;
+    if (node.length >= 2 && typeof node[0] === "number" && typeof node[1] === "number") {
+      if (!Number.isFinite(node[0]) || !Number.isFinite(node[1])) return;
+      west = Math.min(west, node[0]);
+      east = Math.max(east, node[0]);
+      south = Math.min(south, node[1]);
+      north = Math.max(north, node[1]);
+      return;
+    }
+    for (const item of node) visit(item);
+  };
+  for (const feature of Array.isArray(features) ? features : []) visit(feature?.geometry?.coordinates);
+  return Number.isFinite(west) ? { west, south, east, north } : null;
+}
+function vectorExportCollection(features, { name = "" } = {}) {
+  const list = Array.isArray(features) ? features : [];
+  const trimmed = typeof name === "string" ? name.trim().slice(0, 120) : "";
+  return {
+    type: "FeatureCollection",
+    ...trimmed === "" ? {} : { name: trimmed },
+    features: list
+  };
+}
+function vectorExportText(collection) {
+  return JSON.stringify(collection, null, 2);
+}
+function vectorExportFileName(stamp = (/* @__PURE__ */ new Date()).toISOString().slice(0, 19)) {
+  const safe = String(stamp).replace(/[^0-9A-Za-z]+/g, "-").replace(/^-+|-+$/g, "");
+  return `vector-overlay-${safe === "" ? "export" : safe}.geojson`;
+}
+
+// src/client/scene/vector-export-service.js
+function bboxText(bbox) {
+  if (!bbox) return "—";
+  const fixed = (value) => value.toFixed(5);
+  return `${fixed(bbox.west)}, ${fixed(bbox.south)} → ${fixed(bbox.east)}, ${fixed(bbox.north)}`;
+}
+function createVectorExport({ stateRef, getMeta, getSession, showToast, t: t2, fetchImpl } = {}) {
+  const doFetch = () => typeof fetchImpl === "function" ? fetchImpl : globalThis.fetch;
+  const prepare = () => {
+    const state = stateRef?.current ?? {};
+    const built = collectVectorFeatures({
+      drawCommands: state.drawCommands,
+      measureCommands: state.measureCommands
+    });
+    if (!built.ok) {
+      showToast(t2(`vectorExport.${built.error}`));
+      return null;
+    }
+    return {
+      features: built.features,
+      geojson: vectorExportCollection(built.features, { name: "vector-overlay" }),
+      count: built.features.length,
+      bbox: vectorBbox(built.features)
+    };
+  };
+  const saveToHost = async (prepared) => {
+    const meta = typeof getMeta === "function" ? getMeta() : null;
+    if (!meta?.exportVectorUrl) {
+      showToast(t2("vectorExport.hostUnavailable"));
+      return null;
+    }
+    const response = await doFetch()(meta.exportVectorUrl, {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ kind: "vector", name: prepared.geojson.name, features: prepared.features })
+    });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    return response.json();
+  };
+  return {
+    canSend: () => typeof getSession === "function" && Boolean(getSession()),
+    /** Local download; works with no session and no host route. */
+    download: () => {
+      const prepared = prepare();
+      if (!prepared) return false;
+      const written = downloadText(
+        vectorExportFileName(),
+        vectorExportText(prepared.geojson),
+        "application/geo+json"
+      );
+      if (!written) {
+        showToast(t2("vectorExport.failed", { reason: "download_unavailable" }));
+        return false;
+      }
+      showToast(t2("vectorExport.downloaded", { count: prepared.count }));
+      return true;
+    },
+    /** Write one .geojson under the DSH exports folder and report the path. */
+    save: async () => {
+      const prepared = prepare();
+      if (!prepared) return null;
+      try {
+        const saved = await saveToHost(prepared);
+        if (!saved) return null;
+        showToast(t2("vectorExport.saved", { path: saved.path, count: prepared.count }));
+        return saved;
+      } catch (error) {
+        showToast(t2("vectorExport.failed", { reason: error instanceof Error ? error.message : String(error) }));
+        return null;
+      }
+    },
+    /** Save, then inject the path into the conversation as a digital-earth notice. */
+    send: async () => {
+      const session = typeof getSession === "function" ? getSession() : null;
+      if (!session) {
+        showToast(t2("vectorExport.noSession"));
+        return null;
+      }
+      const prepared = prepare();
+      if (!prepared) return null;
+      try {
+        const saved = await saveToHost(prepared);
+        if (!saved) return null;
+        const meta = typeof getMeta === "function" ? getMeta() : null;
+        if (!meta?.injectUrl) {
+          showToast(t2("vectorExport.hostUnavailable"));
+          return saved;
+        }
+        const text = t2("vectorExport.chatNotice", {
+          path: saved.path,
+          count: prepared.count,
+          bbox: bboxText(prepared.bbox)
+        });
+        const response = await doFetch()(meta.injectUrl, {
+          method: "POST",
+          credentials: "same-origin",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ session, text })
+        });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        showToast(t2("vectorExport.sent", { count: prepared.count }));
+        return saved;
+      } catch (error) {
+        showToast(t2("vectorExport.failed", { reason: error instanceof Error ? error.message : String(error) }));
+        return null;
+      }
+    }
+  };
+}
+
 // src/client/viewer/ViewerSurface.js
 var h30 = import_react34.default.createElement;
 function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
@@ -17363,8 +17671,9 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
   });
   import_react34.default.useEffect(() => {
     annotationEditor.focus(vectorSelection);
+    return () => annotationEditor.dispose();
   }, [vectorSelection]);
-  import_react34.default.useEffect(() => () => annotationEditor.dispose(), []);
+  const vectorExport = createVectorExport({ stateRef: agentOverlayRef, getMeta: () => metaRef.current, getSession: () => sessionId, showToast, t: t2 });
   function drawAgentOverlay(Cesium, viewer, geojson, style, caption) {
     const state = agentOverlayRef.current;
     const firstEntity = state.draw.length;
@@ -18913,6 +19222,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
         settings: sources?.settings ?? {},
         layers,
         annotations: { drawn_features: agentOverlayRef.current.drawnFeatures, measured_points: agentOverlayRef.current.measuredCount },
+        vectorExport,
         onCollapse: () => updateSettings({ showLayers: false }),
         onSelectTerrain: changeTerrain,
         onSelectImagery: changeImagery,

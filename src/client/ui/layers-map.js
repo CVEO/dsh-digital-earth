@@ -48,6 +48,7 @@ export function LayersMap({
   onPickLocalTiles,
   swipeState,
   onOverlaySwipe,
+  vectorExport,
 }) {
   const [adding, setAdding] = React.useState(false)
   const [draft, setDraft] = React.useState({ type: 'wms', name: '', url: '', layers: '', opacity: 0.7 })
@@ -95,6 +96,12 @@ export function LayersMap({
       'div',
       { key: 'g2', className: 'mv-group' },
       h('div', { className: 'mv-group-title' }, t('layers.vector')),
+      h(
+        'div',
+        { className: 'mv-group-actions' },
+        h('button', { type: 'button', className: 'mv-icon-btn', title: t('layers.vectorExportHint'), 'aria-label': t('layers.exportVector'), disabled: !vectorExport, onClick: () => vectorExport?.download() }, '⤓'),
+        h('button', { type: 'button', className: 'mv-icon-btn', title: t('layers.vectorExportHint'), 'aria-label': t('layers.vectorToChat'), disabled: !vectorExport?.canSend?.(), onClick: () => { void vectorExport?.send() } }, '➤'),
+      ),
       h('button', { type: 'button', className: 'mv-cta', onClick: () => fileRef.current?.click() }, t('layers.importVector')),
     ),
     h('input', {

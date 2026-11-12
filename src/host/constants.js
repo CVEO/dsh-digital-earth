@@ -41,6 +41,9 @@ export const MAX_REPORT_BODY = 16 * 1024 * 1024
 // "Take away" evidence pack: the panel posts a card plus an optional screenshot
 // and the user saves the written files. Page-only: no tool ever mentions it.
 export const EXPORT_ROUTE = `${API}/export`
+// Vector layer export: the page posts a FeatureCollection it already validated
+// and the host writes one .geojson under EXPORTS_DIR. Page-only, like evidence.
+export const EXPORT_VECTOR_ROUTE = `${API}/export/vector`
 export const MAX_EXPORT_BODY = 16 * 1024 * 1024
 export const MAX_EVIDENCE_JSON = 256 * 1024
 export const MAX_EXPORT_FILES = 200

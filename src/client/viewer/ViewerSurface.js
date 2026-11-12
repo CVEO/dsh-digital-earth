@@ -66,6 +66,7 @@ import { addAgentGroundLabel, agentLabelText, agentOverlayColor, agentSurfaceHei
 import { createAnnotationActions } from '../scene/annotation-actions.js'
 import { createAnnotationTool } from '../scene/annotation-tool.js'
 import { createAnnotationEditor } from '../scene/annotation-editor.js'
+import { createVectorExport } from '../scene/vector-export-service.js'
 const h = React.createElement
 
     /**
@@ -865,10 +866,10 @@ const h = React.createElement
         showToast,
         t,
       })
-      React.useEffect(() => { annotationEditor.focus(vectorSelection) }, [vectorSelection])
-      React.useEffect(() => () => annotationEditor.dispose(), [])
+      React.useEffect(() => { annotationEditor.focus(vectorSelection); return () => annotationEditor.dispose() }, [vectorSelection])
 
-      // Overlay colours, ground labels and surface heights live in scene/overlay-helpers.js.
+      // F3: one export path for download, host file and chat hand-off.
+      const vectorExport = createVectorExport({ stateRef: agentOverlayRef, getMeta: () => metaRef.current, getSession: () => sessionId, showToast, t })
 
       /**
        * Draw a host-validated GeoJSON FeatureCollection. Every annotation is
@@ -2661,6 +2662,7 @@ const h = React.createElement
             settings: sources?.settings ?? {},
             layers,
             annotations: { drawn_features: agentOverlayRef.current.drawnFeatures, measured_points: agentOverlayRef.current.measuredCount },
+            vectorExport,
             onCollapse: () => updateSettings({ showLayers: false }),
             onSelectTerrain: changeTerrain,
             onSelectImagery: changeImagery,
