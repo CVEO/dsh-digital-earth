@@ -1,27 +1,37 @@
 import React from 'react'
 import {
   ANNOTATION_KINDS,
+  ANNOTATION_MAX_ATTR_KEY,
+  ANNOTATION_MAX_ATTR_VALUE,
   ANNOTATION_MAX_HEIGHT_M,
+  ANNOTATION_RESERVED_KEYS,
+  ANNOTATION_STANDARD_KEYS,
   ANNOTATION_STYLES,
   annotationExtrusionOf,
   annotationKindOf,
   annotationStyleOf,
+  extractCustomAttributes,
 } from '../scene/annotation-model.js'
 import { VECTOR_COLORS } from '../scene/vector-style.js'
 
 const h = React.createElement
-const EDITABLE_HIDDEN_KEYS = new Set(['note', 'kind', 'style', 'extruded', 'extruded_height_m', 'extrudedHeight', 'height_m'])
 
 /**
  * VectorCard — one drawn vector feature. Read-only for agent-drawn previews;
- * editable (name / note / kind / style / 3D extrusion / delete / export) when
- * the descriptor carries the command + feature it came from.
+ * editable (name / note / kind / style / coords / 3D extrusion / custom GeoJSON
+ * attributes / delete / export / send to chat) when the descriptor carries the
+ * command + feature it came from.
  */
-export function VectorCard({ selection, onClose, onChange, onDelete, onExport, t }) {
+export function VectorCard({ selection, onClose, onChange, onDelete, onExport, onSendToChat, t }) {
   const feature = selection?.feature ?? null
   const command = selection?.command ?? null
   const editable = Boolean(selection && feature && command)
   const geomType = feature?.geometry?.type ?? ''
+  const isPoint = geomType === 'Point' && Array.isArray(feature?.geometry?.coordinates)
+  const savedLon = isPoint && Number.isFinite(feature.geometry.coordinates[0]) ? feature.geometry.coordinates[0] : null
+  const savedLat = isPoint && Number.isFinite(feature.geometry.coordinates[1]) ? feature.geometry.coordinates[1] : null
+  const savedLonText = savedLon !== null ? String(Math.round(savedLon * 1e6) / 1e6) : ''
+  const savedLatText = savedLat !== null ? String(Math.round(savedLat * 1e6) / 1e6) : ''
   const isPolygon = geomType === 'Polygon' || geomType === 'MultiPolygon'
   const shapeEditable = Boolean(editable && (geomType === 'LineString' || geomType === 'Polygon'))
 
@@ -30,6 +40,7 @@ export function VectorCard({ selection, onClose, onChange, onDelete, onExport, t
   const savedKind = annotationKindOf(feature)
   const savedStyle = annotationStyleOf(feature, command?.style ?? 'accent')
   const savedExtrusion = annotationExtrusionOf(feature)
+  const savedAttrs = React.useMemo(() => extractCustomAttributes(feature), [feature])
 
   const [name, setName] = React.useState('')
   const [note, setNote] = React.useState('')
@@ -37,6 +48,11 @@ export function VectorCard({ selection, onClose, onChange, onDelete, onExport, t
   const [style, setStyle] = React.useState('accent')
   const [extruded, setExtruded] = React.useState(false)
   const [heightInput, setHeightInput] = React.useState('15')
+  const [lonInput, setLonInput] = React.useState('')
+  const [latInput, setLatInput] = React.useState('')
+  const nextAttrId = React.useRef(1)
+  const [attrs, setAttrs] = React.useState([])
+  const [attrsOpen, setAttrsOpen] = React.useState(false)
   const [busy, setBusy] = React.useState(false)
 
   React.useEffect(() => {
@@ -47,6 +63,18 @@ export function VectorCard({ selection, onClose, onChange, onDelete, onExport, t
     const ext = annotationExtrusionOf(feature)
     setExtruded(ext.enabled)
     setHeightInput(String(ext.height_m))
+    setLonInput(savedLonText)
+    setLatInput(savedLatText)
+    setAttrs(
+      savedAttrs.map((item) => ({
+        id: `attr-${nextAttrId.current++}`,
+        key: item.key,
+        value: item.text,
+        editable: item.editable,
+        preserveObject: !item.editable,
+      })),
+    )
+    setAttrsOpen(savedAttrs.length > 0 && savedAttrs.length <= 6)
   }, [feature, command])
 
   if (!selection) return null
@@ -61,14 +89,58 @@ export function VectorCard({ selection, onClose, onChange, onDelete, onExport, t
     isPolygon &&
     (extruded !== savedExtrusion.enabled ||
       (extruded && heightValid && Math.abs(parsedHeight - savedExtrusion.height_m) > 1e-4))
+
+  const trimmedLon = lonInput.trim()
+  const trimmedLat = latInput.trim()
+  const parsedLon = Number(trimmedLon)
+  const parsedLat = Number(trimmedLat)
+  const coordsValid =
+    !isPoint ||
+    (trimmedLon !== '' &&
+      trimmedLat !== '' &&
+      Number.isFinite(parsedLon) &&
+      Number.isFinite(parsedLat) &&
+      Math.abs(parsedLon) <= 180 &&
+      Math.abs(parsedLat) <= 90)
+  const coordsChanged = isPoint && (trimmedLon !== savedLonText || trimmedLat !== savedLatText)
+
+  const seenAttrKeys = new Set()
+  let attrsInvalid = false
+  for (const item of attrs) {
+    const cleanKey = item.key.replace(/\s+/g, ' ').trim().slice(0, ANNOTATION_MAX_ATTR_KEY)
+    if (
+      cleanKey === '' ||
+      ANNOTATION_RESERVED_KEYS.has(cleanKey) ||
+      ANNOTATION_STANDARD_KEYS.has(cleanKey) ||
+      seenAttrKeys.has(cleanKey)
+    ) {
+      attrsInvalid = true
+      break
+    }
+    seenAttrKeys.add(cleanKey)
+  }
+  const attrsChanged =
+    attrs.length !== savedAttrs.length ||
+    attrs.some((item, index) => {
+      const saved = savedAttrs[index]
+      if (!saved) return true
+      if (item.key.replace(/\s+/g, ' ').trim().slice(0, ANNOTATION_MAX_ATTR_KEY) !== saved.key) return true
+      if (item.preserveObject) return false
+      return item.value.trim().slice(0, ANNOTATION_MAX_ATTR_VALUE) !== saved.text.trim().slice(0, ANNOTATION_MAX_ATTR_VALUE)
+    })
+
   const dirty =
     editable &&
     heightValid &&
+    coordsValid &&
+    !attrsInvalid &&
     (name.trim() !== savedName ||
       note.trim() !== savedNote ||
       kind !== savedKind ||
       style !== savedStyle ||
-      heightChanged)
+      heightChanged ||
+      coordsChanged ||
+      attrsChanged)
 
   const submit = (fn) => {
     if (!fn || busy) return
@@ -95,12 +167,37 @@ export function VectorCard({ selection, onClose, onChange, onDelete, onExport, t
         patch.extruded = false
       }
     }
+    if (isPoint && coordsChanged && coordsValid) {
+      const alt = Array.isArray(feature.geometry.coordinates) && Number.isFinite(feature.geometry.coordinates[2])
+        ? [feature.geometry.coordinates[2]]
+        : []
+      patch.geometry = { type: 'Point', coordinates: [parsedLon, parsedLat, ...alt] }
+    }
+    if (attrsChanged) {
+      patch.attributes = attrs.map((item) =>
+        item.preserveObject
+          ? { key: item.key, preserveObject: true }
+          : { key: item.key.trim(), value: item.value },
+      )
+    }
     onChange?.(patch)
   }
 
-  const rows = (Array.isArray(selection.rows) ? selection.rows : []).filter(
-    ([rowKey]) => !editable || !EDITABLE_HIDDEN_KEYS.has(rowKey),
-  )
+  const rows = !editable && Array.isArray(selection.rows) ? selection.rows : []
+  const complexAttrCount = attrs.filter((item) => item.preserveObject).length
+  const addAttrRow = () => {
+    setAttrs((prev) => [
+      ...prev,
+      { id: `attr-${nextAttrId.current++}`, key: '', value: '', editable: true, preserveObject: false },
+    ])
+    setAttrsOpen(true)
+  }
+  const updateAttrRow = (id, field, value) => {
+    setAttrs((prev) => prev.map((item) => (item.id === id ? { ...item, [field]: value } : item)))
+  }
+  const removeAttrRow = (id) => {
+    setAttrs((prev) => prev.filter((item) => item.id !== id))
+  }
 
   return h(
     'section',
@@ -214,6 +311,45 @@ export function VectorCard({ selection, onClose, onChange, onDelete, onExport, t
                   : h('span', { className: 'mv-extrude-hint' }, t('annotation.extrudeHint')),
               )
             : null,
+          isPoint
+            ? h(
+                'div',
+                { className: 'mv-vector-field' },
+                h('span', { className: 'mv-vector-field-label' }, t('annotation.pointCoords')),
+                h(
+                  'div',
+                  { className: 'mv-point-coords' },
+                  h(
+                    'label',
+                    null,
+                    h('span', null, t('annotation.lon')),
+                    h('input', {
+                      type: 'number',
+                      step: '0.000001',
+                      min: -180,
+                      max: 180,
+                      value: lonInput,
+                      'aria-label': t('annotation.lon'),
+                      onChange: (event) => setLonInput(event.target.value),
+                    }),
+                  ),
+                  h(
+                    'label',
+                    null,
+                    h('span', null, t('annotation.lat')),
+                    h('input', {
+                      type: 'number',
+                      step: '0.000001',
+                      min: -90,
+                      max: 90,
+                      value: latInput,
+                      'aria-label': t('annotation.lat'),
+                      onChange: (event) => setLatInput(event.target.value),
+                    }),
+                  ),
+                ),
+              )
+            : null,
           h(
             'label',
             null,
@@ -225,6 +361,76 @@ export function VectorCard({ selection, onClose, onChange, onDelete, onExport, t
               placeholder: t('annotation.notePlaceholder'),
               onChange: (event) => setNote(event.target.value),
             }),
+          ),
+          h(
+            'div',
+            { className: 'mv-attr-box' },
+            h(
+              'div',
+              { className: 'mv-attr-head' },
+              h(
+                'button',
+                {
+                  type: 'button',
+                  className: 'mv-attr-toggle',
+                  'aria-expanded': attrsOpen,
+                  'aria-label': t(attrsOpen ? 'annotation.attributesCollapse' : 'annotation.attributesExpand'),
+                  onClick: () => setAttrsOpen((open) => !open),
+                },
+                h('span', { 'aria-hidden': true }, attrsOpen ? '▾' : '▸'),
+                h('span', null, `${t('annotation.attributes')}${attrs.length ? ` (${attrs.length})` : ''}`),
+              ),
+              h(
+                'button',
+                { type: 'button', className: 'mv-attr-add', onClick: addAttrRow },
+                t('annotation.addAttribute'),
+              ),
+            ),
+            attrsOpen && attrs.length > 0
+              ? h(
+                  'div',
+                  { className: 'mv-attr-list' },
+                  ...attrs.map((item) =>
+                    h(
+                      'div',
+                      { key: item.id, className: 'mv-attr-row' },
+                      h('input', {
+                        type: 'text',
+                        maxLength: ANNOTATION_MAX_ATTR_KEY,
+                        value: item.key,
+                        readOnly: item.preserveObject,
+                        placeholder: t('annotation.attrKeyPlaceholder'),
+                        'aria-label': t('annotation.attrKeyPlaceholder'),
+                        onChange: (event) => updateAttrRow(item.id, 'key', event.target.value),
+                      }),
+                      item.preserveObject
+                        ? h('span', { className: 'mv-attr-json', title: item.value }, item.value)
+                        : h('input', {
+                            type: 'text',
+                            maxLength: ANNOTATION_MAX_ATTR_VALUE,
+                            value: item.value,
+                            placeholder: t('annotation.attrValuePlaceholder'),
+                            'aria-label': item.key || t('annotation.attrValuePlaceholder'),
+                            onChange: (event) => updateAttrRow(item.id, 'value', event.target.value),
+                          }),
+                      h(
+                        'button',
+                        {
+                          type: 'button',
+                          className: 'mv-icon-btn',
+                          title: t('annotation.attrDelete'),
+                          'aria-label': t('annotation.attrDelete'),
+                          onClick: () => removeAttrRow(item.id),
+                        },
+                        '✕',
+                      ),
+                    ),
+                  ),
+                )
+              : null,
+            attrsOpen && complexAttrCount > 0
+              ? h('span', { className: 'mv-attr-hint' }, t('annotation.attrsComplexHint', { n: complexAttrCount }))
+              : null,
           ),
         )
       : null,
@@ -262,6 +468,19 @@ export function VectorCard({ selection, onClose, onChange, onDelete, onExport, t
             },
             t('annotation.export'),
           ),
+          typeof onSendToChat === 'function'
+            ? h(
+                'button',
+                {
+                  type: 'button',
+                  className: 'mv-btn',
+                  disabled: busy,
+                  title: t('annotation.sendToChatHint'),
+                  onClick: () => submit(() => onSendToChat(feature, name.trim() || savedName)),
+                },
+                t('annotation.sendToChat'),
+              )
+            : null,
           h(
             'button',
             {

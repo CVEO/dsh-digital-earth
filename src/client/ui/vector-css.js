@@ -48,6 +48,24 @@ export const VECTOR_CSS = `
 .mv-extrude-height{display:grid;grid-template-columns:1fr 96px;align-items:center;gap:8px}
 .mv-extrude-hint{font-size:11px;color:var(--mv-dim);line-height:1.45}
 .mv-vector-shortcuts{margin:8px 0 0;padding:7px 9px;border-radius:8px;background:color-mix(in srgb,var(--mv-accent) 10%,transparent);border:1px solid color-mix(in srgb,var(--mv-accent) 26%,transparent);color:var(--mv-text);font-size:11px;line-height:1.45}
+.mv-point-coords{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.mv-attr-box{display:grid;gap:7px;padding:8px 10px;border:1px solid var(--mv-line);border-radius:8px;background:color-mix(in srgb,var(--mv-lift) 55%,transparent)}
+.mv-attr-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.mv-attr-toggle{display:inline-flex;align-items:center;gap:5px;padding:0;border:0;background:none;color:var(--mv-text);font:inherit;font-size:11.5px;font-weight:500;cursor:pointer}
+.mv-attr-add{padding:2px 7px;border:1px solid var(--mv-line);border-radius:6px;background:var(--mv-lift);color:var(--mv-text);font:inherit;font-size:11px;cursor:pointer}
+.mv-attr-add:hover{border-color:color-mix(in srgb,var(--mv-accent) 40%,var(--mv-line))}
+.mv-attr-list{display:grid;gap:6px}
+.mv-attr-row{display:grid;grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr) auto;gap:6px;align-items:center}
+.mv-attr-json{font-size:11px;color:var(--mv-dim);padding:5px 7px;border:1px solid var(--mv-line);border-radius:7px;background:var(--mv-glass);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mv-attr-hint{font-size:11px;color:var(--mv-dim);line-height:1.4}
+.mv-overlay-toggle{flex:0 0 auto;width:20px;height:20px;font-size:11px}
+.mv-overlay-features{display:grid;gap:2px;margin:2px 0 6px 14px;padding-left:8px;border-left:1px solid var(--mv-line)}
+.mv-overlay-feature{display:flex;align-items:center;gap:4px;min-width:0}
+.mv-overlay-feature-pick{flex:1;min-width:0;display:flex;align-items:center;gap:6px;padding:4px 6px;border:0;border-radius:6px;background:transparent;color:var(--mv-text);font:inherit;font-size:11.5px;text-align:left;cursor:pointer}
+.mv-overlay-feature-pick:hover{background:color-mix(in srgb,var(--mv-lift) 70%,transparent)}
+.mv-overlay-feature-dot{width:7px;height:7px;border-radius:999px;flex:0 0 auto}
+.mv-overlay-feature-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mv-overlay-feature-tag{font-size:10px;color:var(--mv-dim);flex:0 0 auto}
 .mv-vector-card .mv-vector-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
 .mv-vector-card .mv-btn.mv-danger{color:#fca5a5}
 .mv-vector-card .mv-btn.mv-danger:hover{background:color-mix(in srgb,#f87171 22%,transparent)}

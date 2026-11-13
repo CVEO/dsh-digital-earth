@@ -1,3 +1,4 @@
+import { annotationFeatureId } from './annotation-model.js'
 import { createVectorLabels } from './vector-labels.js'
 import { segmentDistance, styleVectorOptions, vectorLineMaterial } from './vector-style.js'
 
@@ -53,8 +54,8 @@ export function createVectorInteraction({ Cesium, viewer, root, getTool, onSelec
     viewer.scene.requestRender()
   }
 
-  function select(group) {
-    if (disposed || group && !enabled()) return false
+  function select(group, force = false) {
+    if (disposed || (group && !force && !enabled())) return false
     const previous = selected
     selected = group
     applyState(previous)
@@ -181,6 +182,30 @@ export function createVectorInteraction({ Cesium, viewer, root, getTool, onSelec
       return select(hit(position))
     },
     clearSelection() { leave(); select(null) },
+    selectByFeature(command, matchFeature) {
+      if (!command || !matchFeature) return false
+      const targetId = annotationFeatureId(matchFeature)
+      const targetName = matchFeature.properties?.name ?? null
+      const targetKind = matchFeature.properties?.kind ?? null
+      const targetGeometry = targetId === '' ? JSON.stringify(matchFeature.geometry ?? null) : null
+      for (const [group, record] of groups) {
+        const desc = record?.descriptor
+        if (!desc || desc.command !== command) continue
+        const candidate = desc.feature
+        if (!candidate) continue
+        if (candidate === matchFeature) return select(group, true)
+        if (targetId !== '' && annotationFeatureId(candidate) === targetId) return select(group, true)
+        if (
+          targetId === '' &&
+          (candidate.properties?.name ?? null) === targetName &&
+          (candidate.properties?.kind ?? null) === targetKind &&
+          JSON.stringify(candidate.geometry ?? null) === targetGeometry
+        ) {
+          return select(group, true)
+        }
+      }
+      return false
+    },
     refresh(descriptor) {
       const record = groups.get(descriptor.group)
       if (!record) return

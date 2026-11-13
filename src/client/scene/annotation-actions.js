@@ -21,19 +21,22 @@ export function createAnnotationActions({ stateRef, viewerRef, getSelection, dra
     return commands[commands.length - 1] ?? null
   }
 
-  const finish = (result, messageKey) => {
+  const finish = (result, messageKey, { action = 'edit', feature = null } = {}) => {
     if (!result?.ok) {
       showToast(t('annotation.editFailed', { reason: result?.error ?? 'unknown' }))
       return false
     }
-    if (typeof onChanged === 'function') onChanged()
+    if (typeof onChanged === 'function') {
+      onChanged({ action, command: result.command ?? null, feature: feature ?? result.feature ?? null })
+    }
     showToast(t(messageKey))
     return true
   }
 
-  const run = (mutate, messageKey) => finish(
+  const run = (mutate, messageKey, action = 'edit') => finish(
     mutate(stateRef.current, viewerRef.current, selectionOf(), replay),
     messageKey,
+    { action },
   )
 
   return {
@@ -49,7 +52,9 @@ export function createAnnotationActions({ stateRef, viewerRef, getSelection, dra
       const identified = ensureAnnotationFeatureId(normalized.feature)
       const featStyle = ANNOTATION_STYLES.includes(identified.properties?.style) ? identified.properties.style : 'accent'
       draw({ type: 'FeatureCollection', features: [identified] }, featStyle, name)
-      if (typeof onChanged === 'function') onChanged()
+      const commands = stateRef.current?.drawCommands
+      const command = Array.isArray(commands) ? commands[commands.length - 1] ?? null : null
+      if (typeof onChanged === 'function') onChanged({ action: 'add', command, feature: identified })
       showToast(t('annotation.added', { name }))
       return true
     },
@@ -68,7 +73,9 @@ export function createAnnotationActions({ stateRef, viewerRef, getSelection, dra
       }
       const label = typeof caption === 'string' && caption ? caption.slice(0, 80) : t('tools.parse')
       draw({ type: 'FeatureCollection', features }, 'violet', label)
-      if (typeof onChanged === 'function') onChanged()
+      const commands = stateRef.current?.drawCommands
+      const command = Array.isArray(commands) ? commands[commands.length - 1] ?? null : null
+      if (typeof onChanged === 'function') onChanged({ action: 'adopt', command, feature: null })
       showToast(t('parse.adopted', { n: features.length }))
       return true
     },
@@ -92,16 +99,30 @@ export function createAnnotationActions({ stateRef, viewerRef, getSelection, dra
       return finish(
         rebuildDrawCommand(stateRef.current, viewerRef.current, found.command, features, replay),
         messageKey,
+        { action: 'geometry', feature: patched.feature },
       )
     },
     update: (patch) => run(
       (state, viewer, selection, replayCommand) => updateAnnotationFeature(state, viewer, selection, patch, replayCommand),
       'annotation.saved',
+      'update',
     ),
     remove: () => run(
       (state, viewer, selection, replayCommand) => deleteAnnotationFeature(state, viewer, selection, replayCommand),
       'annotation.deleted',
+      'remove',
     ),
+    removeFeature: (overlayIndex, featureIndex) => {
+      const state = stateRef.current
+      const command = state?.drawCommands?.[overlayIndex]
+      const feature = command?.geojson?.features?.[featureIndex]
+      if (!command || !feature) {
+        showToast(t('annotation.editFailed', { reason: 'feature_not_found' }))
+        return false
+      }
+      const deleted = deleteAnnotationFeature(state, viewerRef.current, { command, feature }, replay)
+      return finish(deleted, 'annotation.deleted', { action: 'remove', feature })
+    },
     export: () => {
       const feature = selectionOf()?.feature
       if (!feature) return false

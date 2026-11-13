@@ -6,7 +6,7 @@
  */
 import React from 'react'
 import { createAnalysisEngine } from '../analysis/engine.js'
-import { buildAgentOverlayList, clearAgentOverlays as clearAgentOverlaysInState, flyToAgentOverlay, flyToBbox, manualMeasurementRow, overlayRowsWithEntities, removeAgentOverlay, removeAgentOverlayRows } from '../scene/agent-overlays.js'
+import { buildAgentOverlayDetails, buildAgentOverlayList, clearAgentOverlays as clearAgentOverlaysInState, flyToAgentOverlay, flyToBbox, flyToOverlayFeature, manualMeasurementRow, overlayRowsWithEntities, removeAgentOverlay, removeAgentOverlayRows } from '../scene/agent-overlays.js'
 import { ACCESS_TIMEOUT_MS, imageryProvider, loadCesium, loadCesiumStyle, loadMeta, loadSources, persistSources, scanLocalDirectory, terrainProvider } from '../api.js'
 import { sampleCursor } from '../cursor.js'
 import { arrayBufferToBase64, b64url, clone, escapeHtml, formatArea, formatDistance, formatHeight, formatValue, geodesicLength, message, planarArea, redactUrl } from '../format.js'
@@ -156,6 +156,8 @@ const h = React.createElement
       const [profileHover, setProfileHover] = React.useState(null)
       const [shaderOpen, setShaderOpen] = React.useState(false)
       const [showTools, setShowTools] = React.useState(true)
+      const [toolRequest, setToolRequest] = React.useState(null)
+      const [, setOverlayRev] = React.useState(0)
       const [shaderActive, setShaderActive] = React.useState([])
       const [shaderForm, setShaderForm] = React.useState({
         layerId: '',
@@ -810,6 +812,7 @@ const h = React.createElement
       const syncAgentOverlayCount = () => {
         const state = agentOverlayRef.current
         setAgentOverlayCount(state.draw.length + state.measure.length)
+        setOverlayRev((n) => (n + 1) & 0x7fffffff)
       }
 
       // Local vector import (file picker or drop on the globe): draw through the
@@ -843,9 +846,15 @@ const h = React.createElement
         draw: (geojson, style, caption) => drawAgentOverlay(cesiumRef.current, viewerRef.current, geojson, style, caption),
         showToast,
         t,
-        onChanged: () => {
+        onChanged: (event) => {
           syncAgentOverlayCount()
-          vectorRef.current?.clearSelection()
+          let reselected = false
+          if (event?.action === 'geometry' || event?.action === 'update') {
+            reselected = Boolean(event?.command && event?.feature && vectorRef.current?.selectByFeature?.(event.command, event.feature))
+          } else if (event?.action === 'remove' && event?.command && vectorSelection?.feature && vectorSelection.feature !== event.feature) {
+            reselected = Boolean(vectorRef.current?.selectByFeature?.(event.command, vectorSelection.feature))
+          }
+          if (!reselected) vectorRef.current?.clearSelection()
           markSceneDirty()
           saveSceneSnapshot(true)
         },
@@ -878,7 +887,8 @@ const h = React.createElement
         showToast,
         t,
       })
-      React.useEffect(() => { annotationEditor.focus(vectorSelection); return () => annotationEditor.dispose() }, [vectorSelection])
+      React.useEffect(() => { annotationEditor.focus(vectorSelection) }, [vectorSelection])
+      React.useEffect(() => () => annotationEditor.dispose(), [])
 
       // F3: one export path for download, host file and chat hand-off.
       const vectorExport = createVectorExport({ stateRef: agentOverlayRef, getMeta: () => metaRef.current, getSession: () => sessionId, showToast, t })
@@ -2365,6 +2375,21 @@ const h = React.createElement
             onOpenRecent: workbench.openRecent,
             onClearVector: () => clearAgentOverlays('all'),
             agentOverlays: buildAgentOverlayList(agentOverlayRef.current),
+            overlayDetails: buildAgentOverlayDetails(agentOverlayRef.current),
+            onQuickAnnotate: () => {
+              setShowTools(true)
+              setToolRequest((prev) => ({ id: 'annotation', seq: (prev?.seq ?? 0) + 1 }))
+            },
+            onSelectAgentFeature: (overlayIndex, featureIndex) => {
+              const command = agentOverlayRef.current.drawCommands[overlayIndex]
+              const feature = command?.geojson?.features?.[featureIndex]
+              if (command && feature) vectorRef.current?.selectByFeature?.(command, feature)
+            },
+            onFlyAgentFeature: (overlayIndex, featureIndex) => {
+              const feature = agentOverlayRef.current.drawCommands[overlayIndex]?.geojson?.features?.[featureIndex]
+              return flyToOverlayFeature(viewerRef.current, cesiumRef.current, feature)
+            },
+            onRemoveAgentFeature: (overlayIndex, featureIndex) => annotations.removeFeature(overlayIndex, featureIndex),
             onFlyAgentOverlay: (kind, index) =>
               flyToAgentOverlay(agentOverlayRef.current, viewerRef.current, cesiumRef.current, kind, index),
             onRemoveAgentOverlay: (kind, index) => {
@@ -2382,6 +2407,7 @@ const h = React.createElement
             tool,
             analysis,
             shaderActive,
+            openRequest: toolRequest,
             onCollapse: () => setShowTools(false),
             onStartTool: (mode) => setToolMode(mode),
             onClearMeasure: clearMeasure,
@@ -2486,7 +2512,16 @@ const h = React.createElement
               ),
             )
           : null,
-        h(VectorCard, { key: 'vector-selection', selection: vectorSelection, onClose: () => vectorRef.current?.clearSelection(), onChange: annotations.update, onDelete: annotations.remove, onExport: annotations.export, t }),
+        h(VectorCard, {
+          key: 'vector-selection',
+          selection: vectorSelection,
+          onClose: () => vectorRef.current?.clearSelection(),
+          onChange: annotations.update,
+          onDelete: annotations.remove,
+          onExport: annotations.export,
+          onSendToChat: (feature, fallbackName) => vectorExport.sendFeature?.(feature, fallbackName),
+          t,
+        }),
         toast ? h('div', { key: 'toast', className: 'mv-toast' }, toast) : null,
         scan
           ? h(ScanDialog, {

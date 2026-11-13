@@ -910,7 +910,21 @@ var ANNOTATION_MESSAGES = {
     "annotation.undone": "已撤销上一次修改",
     "annotation.nothingToUndo": "没有可撤销的修改",
     "annotation.tool": "标注",
-    "annotation.toolHint": "在场景里画点、线、面，或点选已有标注改名、添加备注、导出 GeoJSON"
+    "annotation.toolHint": "在场景里画点、线、面，或点选已有标注改名、添加备注、导出 GeoJSON",
+    "annotation.pointCoords": "点位坐标 (经度, 纬度)",
+    "annotation.lon": "经度",
+    "annotation.lat": "纬度",
+    "annotation.attributes": "扩展属性 (GeoJSON)",
+    "annotation.attributesExpand": "展开属性",
+    "annotation.attributesCollapse": "收起属性",
+    "annotation.addAttribute": "+ 添加属性",
+    "annotation.attrKeyPlaceholder": "属性名，如 landuse",
+    "annotation.attrValuePlaceholder": "属性值，如 林地",
+    "annotation.attrDelete": "删除该属性",
+    "annotation.attrsComplexHint": "另有 {n} 项结构化属性在 GeoJSON 中原样保留",
+    "annotation.sendToChat": "发到对话",
+    "annotation.sendToChatHint": "将该要素导出为 GeoJSON 附件并发送到当前对话",
+    "annotation.quickDraw": "+ 绘制标注"
   },
   en: {
     "annotation.name": "Name",
@@ -965,7 +979,21 @@ var ANNOTATION_MESSAGES = {
     "annotation.undone": "Undid the last shape change",
     "annotation.nothingToUndo": "No shape change to undo",
     "annotation.tool": "Annotations",
-    "annotation.toolHint": "Draw points, lines and areas, or pick an existing annotation to rename, note and export it"
+    "annotation.toolHint": "Draw points, lines and areas, or pick an existing annotation to rename, note and export it",
+    "annotation.pointCoords": "Coordinates (lon, lat)",
+    "annotation.lon": "Lon",
+    "annotation.lat": "Lat",
+    "annotation.attributes": "Custom attributes (GeoJSON)",
+    "annotation.attributesExpand": "Expand attributes",
+    "annotation.attributesCollapse": "Collapse attributes",
+    "annotation.addAttribute": "+ Add attribute",
+    "annotation.attrKeyPlaceholder": "Key, e.g. landuse",
+    "annotation.attrValuePlaceholder": "Value, e.g. forest",
+    "annotation.attrDelete": "Remove attribute",
+    "annotation.attrsComplexHint": "{n} structured properties preserved verbatim in GeoJSON",
+    "annotation.sendToChat": "Send to chat",
+    "annotation.sendToChatHint": "Export this feature as GeoJSON and send it to chat",
+    "annotation.quickDraw": "+ Draw annotation"
   }
 };
 
@@ -976,6 +1004,13 @@ var EXPORT_MESSAGES = {
     "layers.vectorToChat": "发送到对话（附件）",
     "layers.vectorExportHint": "下载整层矢量叠加（标注 + 量测）为 GeoJSON 文件",
     "layers.vectorChatHint": "导出矢量 GeoJSON 并作为附件发送到当前对话",
+    "layers.overlayExportHint": "下载该矢量图层的 GeoJSON 文件",
+    "layers.overlayChatHint": "将该矢量图层作为 GeoJSON 附件发送到对话",
+    "layers.overlayExpandFeatures": "展开要素列表",
+    "layers.overlayCollapseFeatures": "收起要素列表",
+    "layers.featureUnnamed": "要素 #{n}",
+    "layers.featureSelectHint": "点击选中该要素并编辑属性/顶点",
+    "layers.featureDelete": "删除该要素",
     "vectorExport.empty": "矢量叠加层还没有内容：先导入数据或画一个标注。",
     "vectorExport.too_many_features": "一次最多导出 500 个要素，先删减或分批导出。",
     "vectorExport.too_many_coordinates": "坐标点超过 20000，先精简再导出。",
@@ -995,6 +1030,13 @@ var EXPORT_MESSAGES = {
     "layers.vectorToChat": "Send to chat (attach)",
     "layers.vectorExportHint": "Download the whole vector overlay (annotations + measurements) as GeoJSON",
     "layers.vectorChatHint": "Export vector GeoJSON and attach it to the live conversation",
+    "layers.overlayExportHint": "Download this vector overlay as GeoJSON",
+    "layers.overlayChatHint": "Send this vector overlay to chat as a GeoJSON attachment",
+    "layers.overlayExpandFeatures": "Expand feature list",
+    "layers.overlayCollapseFeatures": "Collapse feature list",
+    "layers.featureUnnamed": "Feature #{n}",
+    "layers.featureSelectHint": "Click to select and edit this feature",
+    "layers.featureDelete": "Delete feature",
     "vectorExport.empty": "The vector overlay is empty: import data or draw an annotation first.",
     "vectorExport.too_many_features": "At most 500 features can be exported at once; remove some or export in batches.",
     "vectorExport.too_many_coordinates": "More than 20000 coordinates; simplify before exporting.",
@@ -3336,6 +3378,35 @@ function measureDetail(command) {
   if (command?.mode === "height" && Number.isFinite(result.height_m)) return `${result.height_m.toFixed(2)} m`;
   return "";
 }
+function overlayFeatureList(command) {
+  const geojson = command?.geojson;
+  if (!geojson || typeof geojson !== "object") return [];
+  const list = geojson.type === "FeatureCollection" && Array.isArray(geojson.features) ? geojson.features : geojson.type === "Feature" ? [geojson] : [];
+  const defaultStyle = typeof command?.style === "string" && command.style !== "" ? command.style : "accent";
+  const items = [];
+  for (let featureIndex = 0; featureIndex < list.length; featureIndex += 1) {
+    const feature = list[featureIndex];
+    if (!feature || typeof feature !== "object") continue;
+    const props = feature.properties ?? {};
+    items.push({
+      featureIndex,
+      featureId: typeof props.feature_id === "string" ? props.feature_id : "",
+      name: typeof props.name === "string" && props.name.trim() !== "" ? props.name.trim() : null,
+      geometryType: typeof feature.geometry?.type === "string" ? feature.geometry.type : "Geometry",
+      kind: typeof props.kind === "string" ? props.kind : null,
+      style: typeof props.style === "string" && props.style !== "" ? props.style : defaultStyle
+    });
+  }
+  return items;
+}
+function buildAgentOverlayDetails(state) {
+  const details = {};
+  const commands = Array.isArray(state?.drawCommands) ? state.drawCommands : [];
+  for (let index = 0; index < commands.length; index += 1) {
+    details[index] = overlayFeatureList(commands[index]);
+  }
+  return details;
+}
 function buildAgentOverlayList(state) {
   const rows = [];
   for (let index = 0; index < state.drawCommands.length; index += 1) {
@@ -3492,12 +3563,9 @@ function flyToBbox(viewer, Cesium, bbox) {
   });
   return true;
 }
-function flyToAgentOverlay(state, viewer, Cesium, kind, index) {
-  if (!state || !viewer || !Cesium) return false;
-  const command = kind === "draw" ? state.drawCommands?.[index] : kind === "measure" ? state.measureCommands?.[index] : null;
-  if (!command) return false;
-  const points = kind === "draw" ? collectOverlayLonLat(command.geojson) : collectOverlayLonLat(command.points);
-  if (points.length === 0) return false;
+function bboxOfNode(node) {
+  const points = collectOverlayLonLat(node);
+  if (points.length === 0) return null;
   let west = Infinity;
   let south = Infinity;
   let east = -Infinity;
@@ -3508,7 +3576,19 @@ function flyToAgentOverlay(state, viewer, Cesium, kind, index) {
     if (lat < south) south = lat;
     if (lat > north) north = lat;
   }
-  return flyToBbox(viewer, Cesium, { west, south, east, north });
+  return { west, south, east, north };
+}
+function flyToAgentOverlay(state, viewer, Cesium, kind, index) {
+  if (!state || !viewer || !Cesium) return false;
+  const command = kind === "draw" ? state.drawCommands?.[index] : kind === "measure" ? state.measureCommands?.[index] : null;
+  if (!command) return false;
+  const bbox = bboxOfNode(kind === "draw" ? command.geojson : command.points);
+  return bbox ? flyToBbox(viewer, Cesium, bbox) : false;
+}
+function flyToOverlayFeature(viewer, Cesium, feature) {
+  if (!viewer || !Cesium || !feature) return false;
+  const bbox = bboxOfNode(feature);
+  return bbox ? flyToBbox(viewer, Cesium, bbox) : false;
 }
 
 // src/client/api.js
@@ -5213,6 +5293,363 @@ function createProfileTool({ getCesium, getViewer, pickSurface, setTool, runAnal
   return { start, onPoint, cancel, clear, dispose: clear };
 }
 
+// src/client/scene/annotation-model.js
+var ANNOTATION_MAX_NAME = 80;
+var ANNOTATION_MAX_NOTE = 280;
+var ANNOTATION_MAX_HEIGHT_M = 5e3;
+var ANNOTATION_KINDS = ["point", "line", "area", "note"];
+var ANNOTATION_STYLES = ["accent", "alert", "success", "warm", "violet"];
+var ANNOTATION_MAX_ATTR_KEY = 64;
+var ANNOTATION_MAX_ATTR_VALUE = 240;
+var ANNOTATION_COORDINATE_DECIMALS = 6;
+var ANNOTATION_RESERVED_KEYS = /* @__PURE__ */ new Set(["feature_id", "provenance", "source", "bbox"]);
+var ANNOTATION_STANDARD_KEYS = /* @__PURE__ */ new Set([
+  "name",
+  "note",
+  "kind",
+  "style",
+  "extruded",
+  "extruded_height_m",
+  "extrudedHeight",
+  "roof_height_m",
+  "height_m",
+  "building_height_m",
+  "height",
+  "base_height_m",
+  "ground_height_m",
+  "baseHeight"
+]);
+var isCustomAttributeKey = (key) => !ANNOTATION_RESERVED_KEYS.has(key) && !ANNOTATION_STANDARD_KEYS.has(key);
+function extractCustomAttributes(feature) {
+  const props = feature?.properties;
+  if (props === null || typeof props !== "object") return [];
+  const out = [];
+  for (const [key, raw] of Object.entries(props)) {
+    if (!isCustomAttributeKey(key)) continue;
+    const isComplex = raw !== null && typeof raw === "object";
+    out.push({
+      key,
+      text: raw === null || raw === void 0 ? "" : isComplex ? JSON.stringify(raw) : String(raw),
+      raw,
+      editable: !isComplex
+    });
+  }
+  return out;
+}
+var DEFAULT_KIND_BY_GEOMETRY = {
+  Point: "point",
+  MultiPoint: "point",
+  LineString: "line",
+  MultiLineString: "line",
+  Polygon: "area",
+  MultiPolygon: "area"
+};
+function annotationText(value, limit) {
+  if (typeof value !== "string") return "";
+  return value.replace(/\s+/g, " ").trim().slice(0, limit);
+}
+function annotationKindOf(feature) {
+  const explicit = feature?.properties?.kind;
+  if (typeof explicit === "string" && ANNOTATION_KINDS.includes(explicit)) return explicit;
+  const type = feature?.geometry?.type;
+  return DEFAULT_KIND_BY_GEOMETRY[type] ?? "note";
+}
+function annotationName(feature) {
+  return annotationText(feature?.properties?.name, ANNOTATION_MAX_NAME);
+}
+var finiteHeight = (value) => typeof value === "number" && Number.isFinite(value) ? value : null;
+function annotationStyleOf(feature, fallback = "accent") {
+  const explicit = feature?.properties?.style;
+  if (typeof explicit === "string" && ANNOTATION_STYLES.includes(explicit)) return explicit;
+  return typeof fallback === "string" && ANNOTATION_STYLES.includes(fallback) ? fallback : "accent";
+}
+function annotationExtrusionOf(feature, defaultHeight = 15) {
+  const props = feature?.properties && typeof feature.properties === "object" ? feature.properties : {};
+  const baseHeight = finiteHeight(props.base_height_m) ?? finiteHeight(props.ground_height_m) ?? finiteHeight(props.baseHeight) ?? 0;
+  const roofExplicit = finiteHeight(props.extruded_height_m) ?? finiteHeight(props.extrudedHeight);
+  const rel = finiteHeight(props.height_m) ?? finiteHeight(props.building_height_m) ?? finiteHeight(props.height);
+  let heightM = rel !== null && rel > 0 ? rel : null;
+  if (heightM === null && roofExplicit !== null && roofExplicit > baseHeight) {
+    heightM = Math.round((roofExplicit - baseHeight) * 100) / 100;
+  }
+  const hasExtrudedTrigger = roofExplicit !== null && roofExplicit > baseHeight || rel !== null && rel > 0 && (finiteHeight(props.base_height_m) !== null || finiteHeight(props.ground_height_m) !== null || finiteHeight(props.baseHeight) !== null || props.height_m != null || props.building_height_m != null || props.mode3d === true || props.extruded === true);
+  const enabled = props.extruded === false ? false : Boolean(hasExtrudedTrigger);
+  return {
+    enabled,
+    height_m: heightM ?? defaultHeight,
+    has_height: heightM !== null,
+    base_height_m: baseHeight
+  };
+}
+var generatedFeatureCounter = 0;
+function annotationFeatureId(feature) {
+  const propId = feature?.properties?.feature_id;
+  if (typeof propId === "string" && propId.trim() !== "") return propId.trim();
+  if (typeof propId === "number" && Number.isFinite(propId)) return String(propId);
+  if (typeof feature?.id === "string" && feature.id.trim() !== "") return feature.id.trim();
+  if (typeof feature?.id === "number" && Number.isFinite(feature.id)) return String(feature.id);
+  return "";
+}
+function ensureAnnotationFeatureId(feature) {
+  if (feature === null || typeof feature !== "object" || feature.type !== "Feature") return feature;
+  const existing = annotationFeatureId(feature);
+  const id = existing !== "" ? existing : `feat-${Date.now().toString(36)}-${generatedFeatureCounter += 1}`;
+  if (feature.properties?.feature_id === id) return feature;
+  return { ...feature, properties: { ...feature.properties ?? {}, feature_id: id } };
+}
+function withAnnotationProperties(feature, patch = {}) {
+  if (feature === null || typeof feature !== "object" || feature.type !== "Feature") {
+    return { ok: false, error: "invalid_feature" };
+  }
+  const next = { ...feature, properties: { ...feature.properties ?? {} } };
+  if (patch.name !== void 0) {
+    const name = annotationText(patch.name, ANNOTATION_MAX_NAME);
+    if (name === "") delete next.properties.name;
+    else next.properties.name = name;
+  }
+  if (patch.note !== void 0) {
+    const note = annotationText(patch.note, ANNOTATION_MAX_NOTE);
+    if (note === "") delete next.properties.note;
+    else next.properties.note = note;
+  }
+  if (patch.kind !== void 0) {
+    if (!ANNOTATION_KINDS.includes(patch.kind)) return { ok: false, error: "invalid_kind" };
+    next.properties.kind = patch.kind;
+  }
+  if (patch.style !== void 0) {
+    if (patch.style === "" || patch.style === null) delete next.properties.style;
+    else if (!ANNOTATION_STYLES.includes(patch.style)) return { ok: false, error: "invalid_style" };
+    else next.properties.style = patch.style;
+  }
+  if (patch.extruded !== void 0) {
+    if (typeof patch.extruded !== "boolean") return { ok: false, error: "invalid_extruded" };
+    next.properties.extruded = patch.extruded;
+  }
+  if (patch.height_m !== void 0) {
+    if (patch.height_m === "" || patch.height_m === null) {
+      delete next.properties.height_m;
+      delete next.properties.extruded_height_m;
+      delete next.properties.extrudedHeight;
+      delete next.properties.building_height_m;
+      delete next.properties.height;
+    } else {
+      const value = Number(patch.height_m);
+      if (!Number.isFinite(value) || value <= 0 || value > ANNOTATION_MAX_HEIGHT_M) {
+        return { ok: false, error: "invalid_height" };
+      }
+      const rounded = Math.round(value * 100) / 100;
+      next.properties.height_m = rounded;
+      const base = finiteHeight(next.properties.base_height_m) ?? finiteHeight(next.properties.ground_height_m) ?? finiteHeight(next.properties.baseHeight) ?? 0;
+      if (next.properties.extruded_height_m != null || next.properties.extrudedHeight != null || next.properties.roof_height_m != null) {
+        const roof = Math.round((base + rounded) * 100) / 100;
+        if (next.properties.extrudedHeight !== void 0 && next.properties.extruded_height_m === void 0) {
+          next.properties.extrudedHeight = roof;
+        } else {
+          next.properties.extruded_height_m = roof;
+        }
+        if (typeof next.properties.roof_height_m === "number") next.properties.roof_height_m = roof;
+      }
+    }
+  }
+  if (patch.attributes !== void 0) {
+    if (!Array.isArray(patch.attributes)) return { ok: false, error: "invalid_attributes" };
+    const previousProps = feature.properties && typeof feature.properties === "object" ? feature.properties : {};
+    const parsed = [];
+    const seen = /* @__PURE__ */ new Set();
+    for (const entry of patch.attributes) {
+      const key = typeof entry?.key === "string" ? entry.key.replace(/\s+/g, " ").trim().slice(0, ANNOTATION_MAX_ATTR_KEY) : "";
+      if (key === "") return { ok: false, error: "invalid_attribute_key" };
+      if (!isCustomAttributeKey(key)) return { ok: false, error: "reserved_attribute_key" };
+      if (seen.has(key)) return { ok: false, error: "duplicate_attribute_key" };
+      seen.add(key);
+      const prevRaw = previousProps[key];
+      if (entry.preserveObject && prevRaw !== null && typeof prevRaw === "object") {
+        parsed.push([key, prevRaw]);
+        continue;
+      }
+      const rawVal = entry?.value;
+      if (typeof rawVal === "number" && Number.isFinite(rawVal)) {
+        parsed.push([key, rawVal]);
+      } else if (typeof rawVal === "boolean") {
+        parsed.push([key, rawVal]);
+      } else {
+        const str = rawVal === null || rawVal === void 0 ? "" : String(rawVal).trim().slice(0, ANNOTATION_MAX_ATTR_VALUE);
+        if (typeof prevRaw === "number" && str !== "" && Number.isFinite(Number(str))) {
+          parsed.push([key, Number(str)]);
+        } else if (typeof prevRaw === "boolean" && (str === "true" || str === "false")) {
+          parsed.push([key, str === "true"]);
+        } else {
+          parsed.push([key, str]);
+        }
+      }
+    }
+    for (const existingKey of Object.keys(next.properties)) {
+      if (isCustomAttributeKey(existingKey)) delete next.properties[existingKey];
+    }
+    for (const [key, val] of parsed) {
+      next.properties[key] = val;
+    }
+  }
+  return { ok: true, feature: next };
+}
+function withAnnotationGeometry(feature, geometry) {
+  if (feature === null || typeof feature !== "object" || feature.type !== "Feature") {
+    return { ok: false, error: "invalid_feature" };
+  }
+  if (geometry === null || typeof geometry !== "object" || typeof geometry.type !== "string") {
+    return { ok: false, error: "invalid_geometry" };
+  }
+  const next = { ...feature, geometry };
+  if (!annotationBoundsOk(next)) return { ok: false, error: "out_of_bounds" };
+  return { ok: true, feature: next };
+}
+function normalizeAnnotation(feature, { source = "manual" } = {}) {
+  if (feature === null || typeof feature !== "object" || feature.type !== "Feature") {
+    return { ok: false, error: "invalid_feature" };
+  }
+  const kind = annotationKindOf(feature);
+  const properties = {
+    ...feature.properties && typeof feature.properties === "object" ? feature.properties : {},
+    kind
+  };
+  const name = annotationText(properties.name, ANNOTATION_MAX_NAME);
+  if (name === "") delete properties.name;
+  else properties.name = name;
+  const note = annotationText(properties.note, ANNOTATION_MAX_NOTE);
+  if (note === "") delete properties.note;
+  else properties.note = note;
+  if (typeof properties.source !== "string" || properties.source === "") properties.source = source;
+  return { ok: true, feature: { type: "Feature", ...feature.id !== void 0 ? { id: feature.id } : {}, properties, geometry: feature.geometry } };
+}
+function annotationBoundsOk(feature) {
+  let valid = true;
+  const walk = (value) => {
+    if (!valid || !Array.isArray(value)) return;
+    if (typeof value[0] === "number" && typeof value[1] === "number") {
+      const [lon, lat] = value;
+      if (!Number.isFinite(lon) || !Number.isFinite(lat) || Math.abs(lon) > 180 || Math.abs(lat) > 90) valid = false;
+      return;
+    }
+    for (const item of value) walk(item);
+  };
+  walk(feature?.geometry?.coordinates);
+  return valid;
+}
+function roundAnnotationGeometry(geometry, digits = ANNOTATION_COORDINATE_DECIMALS) {
+  if (geometry === null || typeof geometry !== "object") return geometry;
+  const factor = 10 ** digits;
+  const round2 = (value) => Math.round(value * factor) / factor;
+  const walk = (value) => {
+    if (!Array.isArray(value)) return value;
+    if (typeof value[0] === "number") {
+      return value.map((part, index) => index < 2 ? round2(part) : part);
+    }
+    return value.map(walk);
+  };
+  const next = { ...geometry };
+  if (next.coordinates !== void 0) next.coordinates = walk(next.coordinates);
+  if (Array.isArray(next.geometries)) next.geometries = next.geometries.map((child) => roundAnnotationGeometry(child, digits));
+  return next;
+}
+function annotationFeaturesOfCommands(commands) {
+  const features = [];
+  for (const command of Array.isArray(commands) ? commands : []) {
+    const list = Array.isArray(command?.geojson?.features) ? command.geojson.features : [];
+    for (const feature of list) if (feature?.type === "Feature") features.push(feature);
+  }
+  return features;
+}
+function nextAnnotationName(features, kind, t2) {
+  const prefix = typeof t2 === "function" ? t2(`annotation.kind.${kind}`) : kind;
+  let index = 1;
+  const taken = new Set(
+    (Array.isArray(features) ? features : []).map((feature) => annotationName(feature)).filter((value) => value !== "")
+  );
+  while (taken.has(`${prefix} ${index}`)) index += 1;
+  return `${prefix} ${index}`;
+}
+function editableRings(feature) {
+  const geometry = feature?.geometry;
+  if (geometry?.type === "Point") return { kind: "point", rings: [geometry.coordinates] };
+  if (geometry?.type === "LineString") return { kind: "line", rings: [geometry.coordinates] };
+  if (geometry?.type === "Polygon") return { kind: "area", rings: geometry.coordinates };
+  return null;
+}
+function withRings(feature, rings, kind) {
+  const geometry = kind === "point" ? { type: "Point", coordinates: rings[0] } : kind === "line" ? { type: "LineString", coordinates: rings[0] } : { type: "Polygon", coordinates: rings };
+  return { ...feature, geometry };
+}
+function moveAnnotationVertex(feature, ringIndex, vertexIndex, lon, lat) {
+  const editable = editableRings(feature);
+  if (!editable) return { ok: false, error: "unsupported_geometry" };
+  const ring = editable.rings[ringIndex];
+  if (!Array.isArray(ring) || vertexIndex < 0 || vertexIndex >= ring.length) return { ok: false, error: "vertex_out_of_range" };
+  if (!Number.isFinite(lon) || !Number.isFinite(lat) || Math.abs(lon) > 180 || Math.abs(lat) > 90) {
+    return { ok: false, error: "vertex_out_of_range" };
+  }
+  const rings = editable.rings.map((item) => item.slice());
+  const closed = editable.kind === "area" && rings[ringIndex].length > 1;
+  const wrapped = closed && vertexIndex === 0 ? rings[ringIndex].length - 1 : -1;
+  rings[ringIndex][vertexIndex] = [lon, lat];
+  if (wrapped >= 0) rings[ringIndex][wrapped] = [lon, lat];
+  if (closed && vertexIndex === rings[ringIndex].length - 1) rings[ringIndex][0] = [lon, lat];
+  return { ok: true, feature: withRings(feature, rings, editable.kind) };
+}
+function ringCorners(ring, closed) {
+  if (!Array.isArray(ring) || ring.length === 0) return 0;
+  if (!closed || ring.length < 2) return ring.length;
+  const first = ring[0];
+  const last = ring[ring.length - 1];
+  return first?.[0] === last?.[0] && first?.[1] === last?.[1] ? ring.length - 1 : ring.length;
+}
+function insertAnnotationVertex(feature, ringIndex, vertexIndex, lon, lat) {
+  const editable = editableRings(feature);
+  if (!editable || editable.kind === "point") return { ok: false, error: "unsupported_geometry" };
+  const ring = editable.rings[ringIndex];
+  const corners = ringCorners(ring, editable.kind === "area");
+  if (!Array.isArray(ring) || vertexIndex < 0 || vertexIndex >= corners) return { ok: false, error: "vertex_out_of_range" };
+  if (!Number.isFinite(lon) || !Number.isFinite(lat) || Math.abs(lon) > 180 || Math.abs(lat) > 90) {
+    return { ok: false, error: "vertex_out_of_range" };
+  }
+  const rings = editable.rings.map((item) => item.slice());
+  const at = vertexIndex + 1;
+  rings[ringIndex].splice(at, 0, [lon, lat]);
+  if (editable.kind === "area") {
+    const next = rings[ringIndex];
+    next[next.length - 1] = [next[0][0], next[0][1]];
+  }
+  return { ok: true, feature: withRings(feature, rings, editable.kind) };
+}
+function deleteAnnotationVertex(feature, ringIndex, vertexIndex) {
+  const editable = editableRings(feature);
+  if (!editable || editable.kind === "point") return { ok: false, error: "unsupported_geometry" };
+  const ring = editable.rings[ringIndex];
+  const closed = editable.kind === "area";
+  const corners = ringCorners(ring, closed);
+  if (!Array.isArray(ring) || vertexIndex < 0 || vertexIndex >= corners) return { ok: false, error: "vertex_out_of_range" };
+  if (editable.kind === "line" && corners <= 2 || closed && corners <= 3) {
+    return { ok: false, error: "too_few_vertices" };
+  }
+  const rings = editable.rings.map((item) => item.slice());
+  if (closed && vertexIndex === 0) {
+    rings[ringIndex].splice(0, 1);
+    rings[ringIndex][rings[ringIndex].length - 1] = [rings[ringIndex][0][0], rings[ringIndex][0][1]];
+  } else {
+    rings[ringIndex].splice(vertexIndex, 1);
+  }
+  return { ok: true, feature: withRings(feature, rings, editable.kind) };
+}
+function translateAnnotation(feature, dLon, dLat) {
+  const editable = editableRings(feature);
+  if (!editable) return { ok: false, error: "unsupported_geometry" };
+  if (!Number.isFinite(dLon) || !Number.isFinite(dLat)) return { ok: false, error: "vertex_out_of_range" };
+  const rings = editable.rings.map((ring) => ring.map((vertex) => {
+    if (!Array.isArray(vertex) || vertex.length < 2) return vertex;
+    return [Math.max(-180, Math.min(180, vertex[0] + dLon)), Math.max(-90, Math.min(90, vertex[1] + dLat))];
+  }));
+  return { ok: true, feature: withRings(feature, rings, editable.kind) };
+}
+
 // src/client/scene/vector-labels.js
 function createVectorLabels({ Cesium, viewer, root, onHover, onSelect, isInteractive }) {
   const document2 = root.ownerDocument;
@@ -5427,8 +5864,8 @@ function createVectorInteraction({ Cesium, viewer, root, getTool, onSelect }) {
     root.classList.toggle("mv-vector-hovering", Boolean(group));
     viewer.scene.requestRender();
   }
-  function select(group) {
-    if (disposed || group && !enabled()) return false;
+  function select(group, force = false) {
+    if (disposed || group && !force && !enabled()) return false;
     const previous = selected;
     selected = group;
     applyState(previous);
@@ -5557,6 +5994,25 @@ function createVectorInteraction({ Cesium, viewer, root, getTool, onSelect }) {
     clearSelection() {
       leave();
       select(null);
+    },
+    selectByFeature(command, matchFeature) {
+      if (!command || !matchFeature) return false;
+      const targetId = annotationFeatureId(matchFeature);
+      const targetName = matchFeature.properties?.name ?? null;
+      const targetKind = matchFeature.properties?.kind ?? null;
+      const targetGeometry = targetId === "" ? JSON.stringify(matchFeature.geometry ?? null) : null;
+      for (const [group, record] of groups) {
+        const desc = record?.descriptor;
+        if (!desc || desc.command !== command) continue;
+        const candidate = desc.feature;
+        if (!candidate) continue;
+        if (candidate === matchFeature) return select(group, true);
+        if (targetId !== "" && annotationFeatureId(candidate) === targetId) return select(group, true);
+        if (targetId === "" && (candidate.properties?.name ?? null) === targetName && (candidate.properties?.kind ?? null) === targetKind && JSON.stringify(candidate.geometry ?? null) === targetGeometry) {
+          return select(group, true);
+        }
+      }
+      return false;
     },
     refresh(descriptor) {
       const record = groups.get(descriptor.group);
@@ -9793,6 +10249,24 @@ var VECTOR_CSS = `
 .mv-extrude-height{display:grid;grid-template-columns:1fr 96px;align-items:center;gap:8px}
 .mv-extrude-hint{font-size:11px;color:var(--mv-dim);line-height:1.45}
 .mv-vector-shortcuts{margin:8px 0 0;padding:7px 9px;border-radius:8px;background:color-mix(in srgb,var(--mv-accent) 10%,transparent);border:1px solid color-mix(in srgb,var(--mv-accent) 26%,transparent);color:var(--mv-text);font-size:11px;line-height:1.45}
+.mv-point-coords{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.mv-attr-box{display:grid;gap:7px;padding:8px 10px;border:1px solid var(--mv-line);border-radius:8px;background:color-mix(in srgb,var(--mv-lift) 55%,transparent)}
+.mv-attr-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.mv-attr-toggle{display:inline-flex;align-items:center;gap:5px;padding:0;border:0;background:none;color:var(--mv-text);font:inherit;font-size:11.5px;font-weight:500;cursor:pointer}
+.mv-attr-add{padding:2px 7px;border:1px solid var(--mv-line);border-radius:6px;background:var(--mv-lift);color:var(--mv-text);font:inherit;font-size:11px;cursor:pointer}
+.mv-attr-add:hover{border-color:color-mix(in srgb,var(--mv-accent) 40%,var(--mv-line))}
+.mv-attr-list{display:grid;gap:6px}
+.mv-attr-row{display:grid;grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr) auto;gap:6px;align-items:center}
+.mv-attr-json{font-size:11px;color:var(--mv-dim);padding:5px 7px;border:1px solid var(--mv-line);border-radius:7px;background:var(--mv-glass);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mv-attr-hint{font-size:11px;color:var(--mv-dim);line-height:1.4}
+.mv-overlay-toggle{flex:0 0 auto;width:20px;height:20px;font-size:11px}
+.mv-overlay-features{display:grid;gap:2px;margin:2px 0 6px 14px;padding-left:8px;border-left:1px solid var(--mv-line)}
+.mv-overlay-feature{display:flex;align-items:center;gap:4px;min-width:0}
+.mv-overlay-feature-pick{flex:1;min-width:0;display:flex;align-items:center;gap:6px;padding:4px 6px;border:0;border-radius:6px;background:transparent;color:var(--mv-text);font:inherit;font-size:11.5px;text-align:left;cursor:pointer}
+.mv-overlay-feature-pick:hover{background:color-mix(in srgb,var(--mv-lift) 70%,transparent)}
+.mv-overlay-feature-dot{width:7px;height:7px;border-radius:999px;flex:0 0 auto}
+.mv-overlay-feature-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mv-overlay-feature-tag{font-size:10px;color:var(--mv-dim);flex:0 0 auto}
 .mv-vector-card .mv-vector-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
 .mv-vector-card .mv-btn.mv-danger{color:#fca5a5}
 .mv-vector-card .mv-btn.mv-danger:hover{background:color-mix(in srgb,#f87171 22%,transparent)}
@@ -10081,7 +10555,7 @@ var CSS = `
 .mv-group{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:13px 4px 5px;margin-top:3px;border-top:.5px solid var(--mv-line)}
 .mv-group-actions{display:inline-flex;align-items:center;gap:4px;flex:none}
 .mv-group-subactions{display:flex;align-items:center;gap:6px;padding:2px 4px 6px}
-.mv-group-subactions .mv-cta{width:100%;justify-content:center;font-size:11px;padding:5px 8px;border:.5px solid var(--mv-line);border-radius:8px;background:color-mix(in srgb,var(--mv-lift) 45%,transparent)}
+.mv-group-subactions .mv-cta{flex:1;min-width:0;justify-content:center;font-size:11px;padding:5px 8px;border:.5px solid var(--mv-line);border-radius:8px;background:color-mix(in srgb,var(--mv-lift) 45%,transparent)}
 .mv-group-subactions .mv-cta:hover{background:color-mix(in srgb,var(--mv-lift) 82%,transparent);border-color:color-mix(in srgb,var(--mv-accent) 28%,var(--mv-line))}
 .mv-add3d-menu .mv-cta{text-align:left;width:100%}
 .mv-group:first-child{border-top:0;margin-top:0;padding-top:9px}
@@ -12787,6 +13261,11 @@ function LayersMap({
   onClearVector,
   onRemoveAgentOverlay,
   onFlyAgentOverlay,
+  overlayDetails,
+  onQuickAnnotate,
+  onSelectAgentFeature,
+  onFlyAgentFeature,
+  onRemoveAgentFeature,
   onImportVector,
   onPickLocalTiles,
   swipeState,
@@ -12798,7 +13277,9 @@ function LayersMap({
   const [error, setError] = import_react17.default.useState("");
   const [vectorError2, setVectorError] = import_react17.default.useState("");
   const [imageryOpen, setImageryOpen] = import_react17.default.useState(() => readPanelFlag(IMAGERY_OPEN_KEY, false));
+  const [expandedOverlays, setExpandedOverlays] = import_react17.default.useState(() => ({}));
   const fileRef = import_react17.default.useRef(null);
+  const toggleOverlay = (id) => setExpandedOverlays((prev) => ({ ...prev, [id]: !prev[id] }));
   const overlays = Array.isArray(config?.rasterOverlays) ? config.rasterOverlays : [];
   const drawn = annotations?.drawn_features ?? 0;
   const measured = annotations?.measured_points ?? 0;
@@ -12847,7 +13328,8 @@ function LayersMap({
     h15(
       "div",
       { key: "g2-actions", className: "mv-group-subactions" },
-      h15("button", { type: "button", className: "mv-cta", onClick: () => fileRef.current?.click() }, t2("layers.importVector"))
+      h15("button", { type: "button", className: "mv-cta", onClick: () => fileRef.current?.click() }, t2("layers.importVector")),
+      typeof onQuickAnnotate === "function" ? h15("button", { type: "button", className: "mv-cta", onClick: onQuickAnnotate }, t2("annotation.quickDraw")) : null
     ),
     h15("input", {
       key: "import-vector-input",
@@ -12879,29 +13361,121 @@ function LayersMap({
       h15("span", { className: "name" }, `${t2("layers.vectorDrawn")} ${drawn} · ${t2("layers.vectorMeasured")} ${measured}`),
       h15("button", { type: "button", className: "mv-icon-btn", title: t2("tool.clear"), "aria-label": t2("tool.clear"), onClick: onClearVector }, "✕")
     ),
-    ...(Array.isArray(agentOverlays) ? agentOverlays : []).map(
-      (row) => h15(
-        "div",
-        { key: row.id, className: "mv-layer" },
-        h15("span", { className: "name", title: row.detail }, `${row.label} · ${row.detail}`),
-        typeof onFlyAgentOverlay === "function" ? h15(
-          "button",
-          {
-            type: "button",
-            className: "mv-icon-btn",
-            title: t2("btn.flyTo"),
-            "aria-label": t2("btn.flyTo"),
-            onClick: () => onFlyAgentOverlay(row.kind, row.index)
-          },
-          "◎"
-        ) : null,
+    ...(Array.isArray(agentOverlays) ? agentOverlays : []).map((row) => {
+      const features = row.kind === "draw" && Array.isArray(overlayDetails?.[row.index]) ? overlayDetails[row.index] : [];
+      const canExpand = row.kind === "draw" && features.length > 0;
+      const expanded = canExpand && Boolean(expandedOverlays[row.id]);
+      return h15(
+        import_react17.default.Fragment,
+        { key: row.id },
         h15(
-          "button",
-          { type: "button", className: "mv-icon-btn", title: t2("layers.vectorRemove"), "aria-label": t2("layers.vectorRemove"), onClick: () => onRemoveAgentOverlay(row.kind, row.index) },
-          "✕"
-        )
-      )
-    ),
+          "div",
+          { className: "mv-layer" },
+          canExpand ? h15(
+            "button",
+            {
+              type: "button",
+              className: "mv-icon-btn mv-overlay-toggle",
+              title: t2(expanded ? "layers.overlayCollapseFeatures" : "layers.overlayExpandFeatures"),
+              "aria-label": t2(expanded ? "layers.overlayCollapseFeatures" : "layers.overlayExpandFeatures"),
+              "aria-expanded": expanded,
+              onClick: () => toggleOverlay(row.id)
+            },
+            expanded ? "▾" : "▸"
+          ) : null,
+          h15("span", { className: "name", title: `${row.label} · ${row.detail}` }, `${row.label} · ${row.detail}`),
+          row.kind === "draw" && typeof vectorExport?.downloadOverlay === "function" ? h15(
+            "button",
+            {
+              type: "button",
+              className: "mv-icon-btn",
+              title: t2("layers.overlayExportHint"),
+              "aria-label": t2("layers.overlayExportHint"),
+              onClick: () => vectorExport.downloadOverlay(row.index)
+            },
+            "⤓"
+          ) : null,
+          row.kind === "draw" && typeof vectorExport?.sendOverlay === "function" ? h15(
+            "button",
+            {
+              type: "button",
+              className: "mv-icon-btn",
+              title: t2("layers.overlayChatHint"),
+              "aria-label": t2("layers.overlayChatHint"),
+              disabled: !vectorExport.canSend?.(),
+              onClick: () => {
+                void vectorExport.sendOverlay(row.index);
+              }
+            },
+            "➤"
+          ) : null,
+          typeof onFlyAgentOverlay === "function" ? h15(
+            "button",
+            {
+              type: "button",
+              className: "mv-icon-btn",
+              title: t2("btn.flyTo"),
+              "aria-label": t2("btn.flyTo"),
+              onClick: () => onFlyAgentOverlay(row.kind, row.index)
+            },
+            "◎"
+          ) : null,
+          h15(
+            "button",
+            { type: "button", className: "mv-icon-btn", title: t2("layers.vectorRemove"), "aria-label": t2("layers.vectorRemove"), onClick: () => onRemoveAgentOverlay(row.kind, row.index) },
+            "✕"
+          )
+        ),
+        expanded ? h15(
+          "div",
+          { className: "mv-overlay-features" },
+          ...features.map(
+            (feat) => h15(
+              "div",
+              { key: feat.featureId || `${row.id}-${feat.featureIndex}`, className: "mv-overlay-feature" },
+              h15(
+                "button",
+                {
+                  type: "button",
+                  className: "mv-overlay-feature-pick",
+                  title: t2("layers.featureSelectHint"),
+                  onClick: () => onSelectAgentFeature?.(row.index, feat.featureIndex)
+                },
+                h15("span", {
+                  className: "mv-overlay-feature-dot",
+                  "aria-hidden": true,
+                  style: { background: VECTOR_COLORS[feat.style] ?? VECTOR_COLORS.accent }
+                }),
+                h15("span", { className: "mv-overlay-feature-name" }, feat.name ?? t2("layers.featureUnnamed", { n: feat.featureIndex + 1 })),
+                h15("span", { className: "mv-overlay-feature-tag" }, feat.geometryType)
+              ),
+              typeof onFlyAgentFeature === "function" ? h15(
+                "button",
+                {
+                  type: "button",
+                  className: "mv-icon-btn",
+                  title: t2("btn.flyTo"),
+                  "aria-label": t2("btn.flyTo"),
+                  onClick: () => onFlyAgentFeature(row.index, feat.featureIndex)
+                },
+                "◎"
+              ) : null,
+              typeof onRemoveAgentFeature === "function" ? h15(
+                "button",
+                {
+                  type: "button",
+                  className: "mv-icon-btn",
+                  title: t2("layers.featureDelete"),
+                  "aria-label": t2("layers.featureDelete"),
+                  onClick: () => onRemoveAgentFeature(row.index, feat.featureIndex)
+                },
+                "✕"
+              ) : null
+            )
+          )
+        ) : null
+      );
+    }),
     // ---- L3 raster overlays ---------------------------------------------------
     h15(
       "div",
@@ -14929,288 +15503,6 @@ function ParseBody({ t: t2, getCesium, getViewer, getLayers, showToast, onAdoptP
   );
 }
 
-// src/client/scene/annotation-model.js
-var ANNOTATION_MAX_NAME = 80;
-var ANNOTATION_MAX_NOTE = 280;
-var ANNOTATION_MAX_HEIGHT_M = 5e3;
-var ANNOTATION_KINDS = ["point", "line", "area", "note"];
-var ANNOTATION_STYLES = ["accent", "alert", "success", "warm", "violet"];
-var ANNOTATION_COORDINATE_DECIMALS = 6;
-var DEFAULT_KIND_BY_GEOMETRY = {
-  Point: "point",
-  MultiPoint: "point",
-  LineString: "line",
-  MultiLineString: "line",
-  Polygon: "area",
-  MultiPolygon: "area"
-};
-function annotationText(value, limit) {
-  if (typeof value !== "string") return "";
-  return value.replace(/\s+/g, " ").trim().slice(0, limit);
-}
-function annotationKindOf(feature) {
-  const explicit = feature?.properties?.kind;
-  if (typeof explicit === "string" && ANNOTATION_KINDS.includes(explicit)) return explicit;
-  const type = feature?.geometry?.type;
-  return DEFAULT_KIND_BY_GEOMETRY[type] ?? "note";
-}
-function annotationName(feature) {
-  return annotationText(feature?.properties?.name, ANNOTATION_MAX_NAME);
-}
-var finiteHeight = (value) => typeof value === "number" && Number.isFinite(value) ? value : null;
-function annotationStyleOf(feature, fallback = "accent") {
-  const explicit = feature?.properties?.style;
-  if (typeof explicit === "string" && ANNOTATION_STYLES.includes(explicit)) return explicit;
-  return typeof fallback === "string" && ANNOTATION_STYLES.includes(fallback) ? fallback : "accent";
-}
-function annotationExtrusionOf(feature, defaultHeight = 15) {
-  const props = feature?.properties && typeof feature.properties === "object" ? feature.properties : {};
-  const baseHeight = finiteHeight(props.base_height_m) ?? finiteHeight(props.ground_height_m) ?? finiteHeight(props.baseHeight) ?? 0;
-  const roofExplicit = finiteHeight(props.extruded_height_m) ?? finiteHeight(props.extrudedHeight);
-  const rel = finiteHeight(props.height_m) ?? finiteHeight(props.building_height_m) ?? finiteHeight(props.height);
-  let heightM = rel !== null && rel > 0 ? rel : null;
-  if (heightM === null && roofExplicit !== null && roofExplicit > baseHeight) {
-    heightM = Math.round((roofExplicit - baseHeight) * 100) / 100;
-  }
-  const hasExtrudedTrigger = roofExplicit !== null && roofExplicit > baseHeight || rel !== null && rel > 0 && (finiteHeight(props.base_height_m) !== null || finiteHeight(props.ground_height_m) !== null || finiteHeight(props.baseHeight) !== null || props.height_m != null || props.building_height_m != null || props.mode3d === true || props.extruded === true);
-  const enabled = props.extruded === false ? false : Boolean(hasExtrudedTrigger);
-  return {
-    enabled,
-    height_m: heightM ?? defaultHeight,
-    has_height: heightM !== null,
-    base_height_m: baseHeight
-  };
-}
-var generatedFeatureCounter = 0;
-function annotationFeatureId(feature) {
-  const propId = feature?.properties?.feature_id;
-  if (typeof propId === "string" && propId.trim() !== "") return propId.trim();
-  if (typeof propId === "number" && Number.isFinite(propId)) return String(propId);
-  if (typeof feature?.id === "string" && feature.id.trim() !== "") return feature.id.trim();
-  if (typeof feature?.id === "number" && Number.isFinite(feature.id)) return String(feature.id);
-  return "";
-}
-function ensureAnnotationFeatureId(feature) {
-  if (feature === null || typeof feature !== "object" || feature.type !== "Feature") return feature;
-  const existing = annotationFeatureId(feature);
-  const id = existing !== "" ? existing : `feat-${Date.now().toString(36)}-${generatedFeatureCounter += 1}`;
-  if (feature.properties?.feature_id === id) return feature;
-  return { ...feature, properties: { ...feature.properties ?? {}, feature_id: id } };
-}
-function withAnnotationProperties(feature, patch = {}) {
-  if (feature === null || typeof feature !== "object" || feature.type !== "Feature") {
-    return { ok: false, error: "invalid_feature" };
-  }
-  const next = { ...feature, properties: { ...feature.properties ?? {} } };
-  if (patch.name !== void 0) {
-    const name = annotationText(patch.name, ANNOTATION_MAX_NAME);
-    if (name === "") delete next.properties.name;
-    else next.properties.name = name;
-  }
-  if (patch.note !== void 0) {
-    const note = annotationText(patch.note, ANNOTATION_MAX_NOTE);
-    if (note === "") delete next.properties.note;
-    else next.properties.note = note;
-  }
-  if (patch.kind !== void 0) {
-    if (!ANNOTATION_KINDS.includes(patch.kind)) return { ok: false, error: "invalid_kind" };
-    next.properties.kind = patch.kind;
-  }
-  if (patch.style !== void 0) {
-    if (patch.style === "" || patch.style === null) delete next.properties.style;
-    else if (!ANNOTATION_STYLES.includes(patch.style)) return { ok: false, error: "invalid_style" };
-    else next.properties.style = patch.style;
-  }
-  if (patch.extruded !== void 0) {
-    if (typeof patch.extruded !== "boolean") return { ok: false, error: "invalid_extruded" };
-    next.properties.extruded = patch.extruded;
-  }
-  if (patch.height_m !== void 0) {
-    if (patch.height_m === "" || patch.height_m === null) {
-      delete next.properties.height_m;
-      delete next.properties.extruded_height_m;
-      delete next.properties.extrudedHeight;
-      delete next.properties.building_height_m;
-      delete next.properties.height;
-    } else {
-      const value = Number(patch.height_m);
-      if (!Number.isFinite(value) || value <= 0 || value > ANNOTATION_MAX_HEIGHT_M) {
-        return { ok: false, error: "invalid_height" };
-      }
-      const rounded = Math.round(value * 100) / 100;
-      next.properties.height_m = rounded;
-      const base = finiteHeight(next.properties.base_height_m) ?? finiteHeight(next.properties.ground_height_m) ?? finiteHeight(next.properties.baseHeight) ?? 0;
-      if (next.properties.extruded_height_m != null || next.properties.extrudedHeight != null || next.properties.roof_height_m != null) {
-        const roof = Math.round((base + rounded) * 100) / 100;
-        if (next.properties.extrudedHeight !== void 0 && next.properties.extruded_height_m === void 0) {
-          next.properties.extrudedHeight = roof;
-        } else {
-          next.properties.extruded_height_m = roof;
-        }
-        if (typeof next.properties.roof_height_m === "number") next.properties.roof_height_m = roof;
-      }
-    }
-  }
-  return { ok: true, feature: next };
-}
-function withAnnotationGeometry(feature, geometry) {
-  if (feature === null || typeof feature !== "object" || feature.type !== "Feature") {
-    return { ok: false, error: "invalid_feature" };
-  }
-  if (geometry === null || typeof geometry !== "object" || typeof geometry.type !== "string") {
-    return { ok: false, error: "invalid_geometry" };
-  }
-  const next = { ...feature, geometry };
-  if (!annotationBoundsOk(next)) return { ok: false, error: "out_of_bounds" };
-  return { ok: true, feature: next };
-}
-function normalizeAnnotation(feature, { source = "manual" } = {}) {
-  if (feature === null || typeof feature !== "object" || feature.type !== "Feature") {
-    return { ok: false, error: "invalid_feature" };
-  }
-  const kind = annotationKindOf(feature);
-  const properties = {
-    ...feature.properties && typeof feature.properties === "object" ? feature.properties : {},
-    kind
-  };
-  const name = annotationText(properties.name, ANNOTATION_MAX_NAME);
-  if (name === "") delete properties.name;
-  else properties.name = name;
-  const note = annotationText(properties.note, ANNOTATION_MAX_NOTE);
-  if (note === "") delete properties.note;
-  else properties.note = note;
-  if (typeof properties.source !== "string" || properties.source === "") properties.source = source;
-  return { ok: true, feature: { type: "Feature", ...feature.id !== void 0 ? { id: feature.id } : {}, properties, geometry: feature.geometry } };
-}
-function annotationBoundsOk(feature) {
-  let valid = true;
-  const walk = (value) => {
-    if (!valid || !Array.isArray(value)) return;
-    if (typeof value[0] === "number" && typeof value[1] === "number") {
-      const [lon, lat] = value;
-      if (!Number.isFinite(lon) || !Number.isFinite(lat) || Math.abs(lon) > 180 || Math.abs(lat) > 90) valid = false;
-      return;
-    }
-    for (const item of value) walk(item);
-  };
-  walk(feature?.geometry?.coordinates);
-  return valid;
-}
-function roundAnnotationGeometry(geometry, digits = ANNOTATION_COORDINATE_DECIMALS) {
-  if (geometry === null || typeof geometry !== "object") return geometry;
-  const factor = 10 ** digits;
-  const round2 = (value) => Math.round(value * factor) / factor;
-  const walk = (value) => {
-    if (!Array.isArray(value)) return value;
-    if (typeof value[0] === "number") {
-      return value.map((part, index) => index < 2 ? round2(part) : part);
-    }
-    return value.map(walk);
-  };
-  const next = { ...geometry };
-  if (next.coordinates !== void 0) next.coordinates = walk(next.coordinates);
-  if (Array.isArray(next.geometries)) next.geometries = next.geometries.map((child) => roundAnnotationGeometry(child, digits));
-  return next;
-}
-function annotationFeaturesOfCommands(commands) {
-  const features = [];
-  for (const command of Array.isArray(commands) ? commands : []) {
-    const list = Array.isArray(command?.geojson?.features) ? command.geojson.features : [];
-    for (const feature of list) if (feature?.type === "Feature") features.push(feature);
-  }
-  return features;
-}
-function nextAnnotationName(features, kind, t2) {
-  const prefix = typeof t2 === "function" ? t2(`annotation.kind.${kind}`) : kind;
-  let index = 1;
-  const taken = new Set(
-    (Array.isArray(features) ? features : []).map((feature) => annotationName(feature)).filter((value) => value !== "")
-  );
-  while (taken.has(`${prefix} ${index}`)) index += 1;
-  return `${prefix} ${index}`;
-}
-function editableRings(feature) {
-  const geometry = feature?.geometry;
-  if (geometry?.type === "Point") return { kind: "point", rings: [geometry.coordinates] };
-  if (geometry?.type === "LineString") return { kind: "line", rings: [geometry.coordinates] };
-  if (geometry?.type === "Polygon") return { kind: "area", rings: geometry.coordinates };
-  return null;
-}
-function withRings(feature, rings, kind) {
-  const geometry = kind === "point" ? { type: "Point", coordinates: rings[0] } : kind === "line" ? { type: "LineString", coordinates: rings[0] } : { type: "Polygon", coordinates: rings };
-  return { ...feature, geometry };
-}
-function moveAnnotationVertex(feature, ringIndex, vertexIndex, lon, lat) {
-  const editable = editableRings(feature);
-  if (!editable) return { ok: false, error: "unsupported_geometry" };
-  const ring = editable.rings[ringIndex];
-  if (!Array.isArray(ring) || vertexIndex < 0 || vertexIndex >= ring.length) return { ok: false, error: "vertex_out_of_range" };
-  if (!Number.isFinite(lon) || !Number.isFinite(lat) || Math.abs(lon) > 180 || Math.abs(lat) > 90) {
-    return { ok: false, error: "vertex_out_of_range" };
-  }
-  const rings = editable.rings.map((item) => item.slice());
-  const closed = editable.kind === "area" && rings[ringIndex].length > 1;
-  const wrapped = closed && vertexIndex === 0 ? rings[ringIndex].length - 1 : -1;
-  rings[ringIndex][vertexIndex] = [lon, lat];
-  if (wrapped >= 0) rings[ringIndex][wrapped] = [lon, lat];
-  if (closed && vertexIndex === rings[ringIndex].length - 1) rings[ringIndex][0] = [lon, lat];
-  return { ok: true, feature: withRings(feature, rings, editable.kind) };
-}
-function ringCorners(ring, closed) {
-  if (!Array.isArray(ring) || ring.length === 0) return 0;
-  if (!closed || ring.length < 2) return ring.length;
-  const first = ring[0];
-  const last = ring[ring.length - 1];
-  return first?.[0] === last?.[0] && first?.[1] === last?.[1] ? ring.length - 1 : ring.length;
-}
-function insertAnnotationVertex(feature, ringIndex, vertexIndex, lon, lat) {
-  const editable = editableRings(feature);
-  if (!editable || editable.kind === "point") return { ok: false, error: "unsupported_geometry" };
-  const ring = editable.rings[ringIndex];
-  const corners = ringCorners(ring, editable.kind === "area");
-  if (!Array.isArray(ring) || vertexIndex < 0 || vertexIndex >= corners) return { ok: false, error: "vertex_out_of_range" };
-  if (!Number.isFinite(lon) || !Number.isFinite(lat) || Math.abs(lon) > 180 || Math.abs(lat) > 90) {
-    return { ok: false, error: "vertex_out_of_range" };
-  }
-  const rings = editable.rings.map((item) => item.slice());
-  const at = vertexIndex + 1;
-  rings[ringIndex].splice(at, 0, [lon, lat]);
-  if (editable.kind === "area") {
-    const next = rings[ringIndex];
-    next[next.length - 1] = [next[0][0], next[0][1]];
-  }
-  return { ok: true, feature: withRings(feature, rings, editable.kind) };
-}
-function deleteAnnotationVertex(feature, ringIndex, vertexIndex) {
-  const editable = editableRings(feature);
-  if (!editable || editable.kind === "point") return { ok: false, error: "unsupported_geometry" };
-  const ring = editable.rings[ringIndex];
-  const closed = editable.kind === "area";
-  const corners = ringCorners(ring, closed);
-  if (!Array.isArray(ring) || vertexIndex < 0 || vertexIndex >= corners) return { ok: false, error: "vertex_out_of_range" };
-  if (editable.kind === "line" && corners <= 2 || closed && corners <= 3) {
-    return { ok: false, error: "too_few_vertices" };
-  }
-  const rings = editable.rings.map((item) => item.slice());
-  if (closed && vertexIndex === 0) {
-    rings[ringIndex].splice(0, 1);
-    rings[ringIndex][rings[ringIndex].length - 1] = [rings[ringIndex][0][0], rings[ringIndex][0][1]];
-  } else {
-    rings[ringIndex].splice(vertexIndex, 1);
-  }
-  return { ok: true, feature: withRings(feature, rings, editable.kind) };
-}
-function translateAnnotation(feature, dLon, dLat) {
-  const editable = editableRings(feature);
-  if (!editable) return { ok: false, error: "unsupported_geometry" };
-  if (!Number.isFinite(dLon) || !Number.isFinite(dLat)) return { ok: false, error: "vertex_out_of_range" };
-  const rings = editable.rings.map((ring) => ring.map((vertex) => {
-    if (!Array.isArray(vertex) || vertex.length < 2) return vertex;
-    return [Math.max(-180, Math.min(180, vertex[0] + dLon)), Math.max(-90, Math.min(90, vertex[1] + dLat))];
-  }));
-  return { ok: true, feature: withRings(feature, rings, editable.kind) };
-}
-
 // src/client/ui/tool-windows.js
 var h22 = import_react24.default.createElement;
 var MEASURE_TOOLS = [
@@ -15462,6 +15754,7 @@ function ToolsPanel({
   tool,
   analysis,
   shaderActive,
+  openRequest,
   onCollapse,
   onStartTool,
   onClearMeasure,
@@ -15491,6 +15784,12 @@ function ToolsPanel({
   const [expanded, setExpanded] = import_react26.default.useState(false);
   const [indexMinimized, setIndexMinimized] = import_react26.default.useState(() => readPanelFlag(TOOLS_MINIMIZED_KEY, false));
   const entry = toolEntry(openTool);
+  import_react26.default.useEffect(() => {
+    if (!openRequest?.id || !toolEntry(openRequest.id)) return;
+    setOpenTool(openRequest.id);
+    setMinimized(false);
+    setExpanded(false);
+  }, [openRequest]);
   const openToolById = (id) => {
     const next = selectToolWindow({ openTool, minimized }, id);
     setOpenTool(next.openTool);
@@ -16306,12 +16605,16 @@ function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t: t2, s
 // src/client/ui/vector-card.js
 var import_react31 = __toESM(require("react"), 1);
 var h28 = import_react31.default.createElement;
-var EDITABLE_HIDDEN_KEYS = /* @__PURE__ */ new Set(["note", "kind", "style", "extruded", "extruded_height_m", "extrudedHeight", "height_m"]);
-function VectorCard({ selection, onClose, onChange, onDelete, onExport, t: t2 }) {
+function VectorCard({ selection, onClose, onChange, onDelete, onExport, onSendToChat, t: t2 }) {
   const feature = selection?.feature ?? null;
   const command = selection?.command ?? null;
   const editable = Boolean(selection && feature && command);
   const geomType = feature?.geometry?.type ?? "";
+  const isPoint = geomType === "Point" && Array.isArray(feature?.geometry?.coordinates);
+  const savedLon = isPoint && Number.isFinite(feature.geometry.coordinates[0]) ? feature.geometry.coordinates[0] : null;
+  const savedLat = isPoint && Number.isFinite(feature.geometry.coordinates[1]) ? feature.geometry.coordinates[1] : null;
+  const savedLonText = savedLon !== null ? String(Math.round(savedLon * 1e6) / 1e6) : "";
+  const savedLatText = savedLat !== null ? String(Math.round(savedLat * 1e6) / 1e6) : "";
   const isPolygon = geomType === "Polygon" || geomType === "MultiPolygon";
   const shapeEditable = Boolean(editable && (geomType === "LineString" || geomType === "Polygon"));
   const savedName = feature?.properties?.name ?? "";
@@ -16319,12 +16622,18 @@ function VectorCard({ selection, onClose, onChange, onDelete, onExport, t: t2 })
   const savedKind = annotationKindOf(feature);
   const savedStyle = annotationStyleOf(feature, command?.style ?? "accent");
   const savedExtrusion = annotationExtrusionOf(feature);
+  const savedAttrs = import_react31.default.useMemo(() => extractCustomAttributes(feature), [feature]);
   const [name, setName] = import_react31.default.useState("");
   const [note, setNote] = import_react31.default.useState("");
   const [kind, setKind] = import_react31.default.useState("point");
   const [style, setStyle] = import_react31.default.useState("accent");
   const [extruded, setExtruded] = import_react31.default.useState(false);
   const [heightInput, setHeightInput] = import_react31.default.useState("15");
+  const [lonInput, setLonInput] = import_react31.default.useState("");
+  const [latInput, setLatInput] = import_react31.default.useState("");
+  const nextAttrId = import_react31.default.useRef(1);
+  const [attrs, setAttrs] = import_react31.default.useState([]);
+  const [attrsOpen, setAttrsOpen] = import_react31.default.useState(false);
   const [busy, setBusy] = import_react31.default.useState(false);
   import_react31.default.useEffect(() => {
     setName(savedName);
@@ -16334,13 +16643,48 @@ function VectorCard({ selection, onClose, onChange, onDelete, onExport, t: t2 })
     const ext = annotationExtrusionOf(feature);
     setExtruded(ext.enabled);
     setHeightInput(String(ext.height_m));
+    setLonInput(savedLonText);
+    setLatInput(savedLatText);
+    setAttrs(
+      savedAttrs.map((item) => ({
+        id: `attr-${nextAttrId.current++}`,
+        key: item.key,
+        value: item.text,
+        editable: item.editable,
+        preserveObject: !item.editable
+      }))
+    );
+    setAttrsOpen(savedAttrs.length > 0 && savedAttrs.length <= 6);
   }, [feature, command]);
   if (!selection) return null;
   const trimmedHeight = heightInput.trim();
   const parsedHeight = Number(trimmedHeight);
   const heightValid = !isPolygon || !extruded || trimmedHeight !== "" && Number.isFinite(parsedHeight) && parsedHeight > 0 && parsedHeight <= ANNOTATION_MAX_HEIGHT_M;
   const heightChanged = isPolygon && (extruded !== savedExtrusion.enabled || extruded && heightValid && Math.abs(parsedHeight - savedExtrusion.height_m) > 1e-4);
-  const dirty = editable && heightValid && (name.trim() !== savedName || note.trim() !== savedNote || kind !== savedKind || style !== savedStyle || heightChanged);
+  const trimmedLon = lonInput.trim();
+  const trimmedLat = latInput.trim();
+  const parsedLon = Number(trimmedLon);
+  const parsedLat = Number(trimmedLat);
+  const coordsValid = !isPoint || trimmedLon !== "" && trimmedLat !== "" && Number.isFinite(parsedLon) && Number.isFinite(parsedLat) && Math.abs(parsedLon) <= 180 && Math.abs(parsedLat) <= 90;
+  const coordsChanged = isPoint && (trimmedLon !== savedLonText || trimmedLat !== savedLatText);
+  const seenAttrKeys = /* @__PURE__ */ new Set();
+  let attrsInvalid = false;
+  for (const item of attrs) {
+    const cleanKey = item.key.replace(/\s+/g, " ").trim().slice(0, ANNOTATION_MAX_ATTR_KEY);
+    if (cleanKey === "" || ANNOTATION_RESERVED_KEYS.has(cleanKey) || ANNOTATION_STANDARD_KEYS.has(cleanKey) || seenAttrKeys.has(cleanKey)) {
+      attrsInvalid = true;
+      break;
+    }
+    seenAttrKeys.add(cleanKey);
+  }
+  const attrsChanged = attrs.length !== savedAttrs.length || attrs.some((item, index) => {
+    const saved = savedAttrs[index];
+    if (!saved) return true;
+    if (item.key.replace(/\s+/g, " ").trim().slice(0, ANNOTATION_MAX_ATTR_KEY) !== saved.key) return true;
+    if (item.preserveObject) return false;
+    return item.value.trim().slice(0, ANNOTATION_MAX_ATTR_VALUE) !== saved.text.trim().slice(0, ANNOTATION_MAX_ATTR_VALUE);
+  });
+  const dirty = editable && heightValid && coordsValid && !attrsInvalid && (name.trim() !== savedName || note.trim() !== savedNote || kind !== savedKind || style !== savedStyle || heightChanged || coordsChanged || attrsChanged);
   const submit = (fn) => {
     if (!fn || busy) return;
     setBusy(true);
@@ -16365,11 +16709,32 @@ function VectorCard({ selection, onClose, onChange, onDelete, onExport, t: t2 })
         patch.extruded = false;
       }
     }
+    if (isPoint && coordsChanged && coordsValid) {
+      const alt = Array.isArray(feature.geometry.coordinates) && Number.isFinite(feature.geometry.coordinates[2]) ? [feature.geometry.coordinates[2]] : [];
+      patch.geometry = { type: "Point", coordinates: [parsedLon, parsedLat, ...alt] };
+    }
+    if (attrsChanged) {
+      patch.attributes = attrs.map(
+        (item) => item.preserveObject ? { key: item.key, preserveObject: true } : { key: item.key.trim(), value: item.value }
+      );
+    }
     onChange?.(patch);
   };
-  const rows = (Array.isArray(selection.rows) ? selection.rows : []).filter(
-    ([rowKey]) => !editable || !EDITABLE_HIDDEN_KEYS.has(rowKey)
-  );
+  const rows = !editable && Array.isArray(selection.rows) ? selection.rows : [];
+  const complexAttrCount = attrs.filter((item) => item.preserveObject).length;
+  const addAttrRow = () => {
+    setAttrs((prev) => [
+      ...prev,
+      { id: `attr-${nextAttrId.current++}`, key: "", value: "", editable: true, preserveObject: false }
+    ]);
+    setAttrsOpen(true);
+  };
+  const updateAttrRow = (id, field, value) => {
+    setAttrs((prev) => prev.map((item) => item.id === id ? { ...item, [field]: value } : item));
+  };
+  const removeAttrRow = (id) => {
+    setAttrs((prev) => prev.filter((item) => item.id !== id));
+  };
   return h28(
     "section",
     { className: "mv-vector-card", "aria-label": t2("vector.selection") },
@@ -16477,6 +16842,43 @@ function VectorCard({ selection, onClose, onChange, onDelete, onExport, t: t2 })
           })
         ) : h28("span", { className: "mv-extrude-hint" }, t2("annotation.extrudeHint"))
       ) : null,
+      isPoint ? h28(
+        "div",
+        { className: "mv-vector-field" },
+        h28("span", { className: "mv-vector-field-label" }, t2("annotation.pointCoords")),
+        h28(
+          "div",
+          { className: "mv-point-coords" },
+          h28(
+            "label",
+            null,
+            h28("span", null, t2("annotation.lon")),
+            h28("input", {
+              type: "number",
+              step: "0.000001",
+              min: -180,
+              max: 180,
+              value: lonInput,
+              "aria-label": t2("annotation.lon"),
+              onChange: (event) => setLonInput(event.target.value)
+            })
+          ),
+          h28(
+            "label",
+            null,
+            h28("span", null, t2("annotation.lat")),
+            h28("input", {
+              type: "number",
+              step: "0.000001",
+              min: -90,
+              max: 90,
+              value: latInput,
+              "aria-label": t2("annotation.lat"),
+              onChange: (event) => setLatInput(event.target.value)
+            })
+          )
+        )
+      ) : null,
       h28(
         "label",
         null,
@@ -16488,6 +16890,70 @@ function VectorCard({ selection, onClose, onChange, onDelete, onExport, t: t2 })
           placeholder: t2("annotation.notePlaceholder"),
           onChange: (event) => setNote(event.target.value)
         })
+      ),
+      h28(
+        "div",
+        { className: "mv-attr-box" },
+        h28(
+          "div",
+          { className: "mv-attr-head" },
+          h28(
+            "button",
+            {
+              type: "button",
+              className: "mv-attr-toggle",
+              "aria-expanded": attrsOpen,
+              "aria-label": t2(attrsOpen ? "annotation.attributesCollapse" : "annotation.attributesExpand"),
+              onClick: () => setAttrsOpen((open) => !open)
+            },
+            h28("span", { "aria-hidden": true }, attrsOpen ? "▾" : "▸"),
+            h28("span", null, `${t2("annotation.attributes")}${attrs.length ? ` (${attrs.length})` : ""}`)
+          ),
+          h28(
+            "button",
+            { type: "button", className: "mv-attr-add", onClick: addAttrRow },
+            t2("annotation.addAttribute")
+          )
+        ),
+        attrsOpen && attrs.length > 0 ? h28(
+          "div",
+          { className: "mv-attr-list" },
+          ...attrs.map(
+            (item) => h28(
+              "div",
+              { key: item.id, className: "mv-attr-row" },
+              h28("input", {
+                type: "text",
+                maxLength: ANNOTATION_MAX_ATTR_KEY,
+                value: item.key,
+                readOnly: item.preserveObject,
+                placeholder: t2("annotation.attrKeyPlaceholder"),
+                "aria-label": t2("annotation.attrKeyPlaceholder"),
+                onChange: (event) => updateAttrRow(item.id, "key", event.target.value)
+              }),
+              item.preserveObject ? h28("span", { className: "mv-attr-json", title: item.value }, item.value) : h28("input", {
+                type: "text",
+                maxLength: ANNOTATION_MAX_ATTR_VALUE,
+                value: item.value,
+                placeholder: t2("annotation.attrValuePlaceholder"),
+                "aria-label": item.key || t2("annotation.attrValuePlaceholder"),
+                onChange: (event) => updateAttrRow(item.id, "value", event.target.value)
+              }),
+              h28(
+                "button",
+                {
+                  type: "button",
+                  className: "mv-icon-btn",
+                  title: t2("annotation.attrDelete"),
+                  "aria-label": t2("annotation.attrDelete"),
+                  onClick: () => removeAttrRow(item.id)
+                },
+                "✕"
+              )
+            )
+          )
+        ) : null,
+        attrsOpen && complexAttrCount > 0 ? h28("span", { className: "mv-attr-hint" }, t2("annotation.attrsComplexHint", { n: complexAttrCount })) : null
       )
     ) : null,
     rows.length ? h28(
@@ -16521,6 +16987,17 @@ function VectorCard({ selection, onClose, onChange, onDelete, onExport, t: t2 })
         },
         t2("annotation.export")
       ),
+      typeof onSendToChat === "function" ? h28(
+        "button",
+        {
+          type: "button",
+          className: "mv-btn",
+          disabled: busy,
+          title: t2("annotation.sendToChatHint"),
+          onClick: () => submit(() => onSendToChat(feature, name.trim() || savedName))
+        },
+        t2("annotation.sendToChat")
+      ) : null,
       h28(
         "button",
         {
@@ -17860,7 +18337,8 @@ function updateAnnotationFeature(state, viewer, selection, patch, replay) {
   }
   const features = command.geojson.features.slice();
   features[index] = next;
-  return rebuildDrawCommand(state, viewer, command, features, replay);
+  const rebuilt = rebuildDrawCommand(state, viewer, command, features, replay);
+  return rebuilt.ok ? { ...rebuilt, feature: next } : rebuilt;
 }
 function findFeatureInState(state, name, kind) {
   if (typeof name !== "string" || name === "") return null;
@@ -17925,18 +18403,21 @@ function createAnnotationActions({ stateRef, viewerRef, getSelection, draw, show
     const commands = stateRef.current.drawCommands;
     return commands[commands.length - 1] ?? null;
   };
-  const finish = (result, messageKey) => {
+  const finish = (result, messageKey, { action = "edit", feature = null } = {}) => {
     if (!result?.ok) {
       showToast(t2("annotation.editFailed", { reason: result?.error ?? "unknown" }));
       return false;
     }
-    if (typeof onChanged === "function") onChanged();
+    if (typeof onChanged === "function") {
+      onChanged({ action, command: result.command ?? null, feature: feature ?? result.feature ?? null });
+    }
     showToast(t2(messageKey));
     return true;
   };
-  const run = (mutate, messageKey) => finish(
+  const run = (mutate, messageKey, action = "edit") => finish(
     mutate(stateRef.current, viewerRef.current, selectionOf(), replay),
-    messageKey
+    messageKey,
+    { action }
   );
   return {
     /** Draw one new hand-drawn feature, auto-named so it is never anonymous. */
@@ -17951,7 +18432,9 @@ function createAnnotationActions({ stateRef, viewerRef, getSelection, draw, show
       const identified = ensureAnnotationFeatureId(normalized.feature);
       const featStyle = ANNOTATION_STYLES.includes(identified.properties?.style) ? identified.properties.style : "accent";
       draw({ type: "FeatureCollection", features: [identified] }, featStyle, name);
-      if (typeof onChanged === "function") onChanged();
+      const commands = stateRef.current?.drawCommands;
+      const command = Array.isArray(commands) ? commands[commands.length - 1] ?? null : null;
+      if (typeof onChanged === "function") onChanged({ action: "add", command, feature: identified });
       showToast(t2("annotation.added", { name }));
       return true;
     },
@@ -17968,7 +18451,9 @@ function createAnnotationActions({ stateRef, viewerRef, getSelection, draw, show
       }
       const label = typeof caption === "string" && caption ? caption.slice(0, 80) : t2("tools.parse");
       draw({ type: "FeatureCollection", features }, "violet", label);
-      if (typeof onChanged === "function") onChanged();
+      const commands = stateRef.current?.drawCommands;
+      const command = Array.isArray(commands) ? commands[commands.length - 1] ?? null : null;
+      if (typeof onChanged === "function") onChanged({ action: "adopt", command, feature: null });
       showToast(t2("parse.adopted", { n: features.length }));
       return true;
     },
@@ -17991,17 +18476,31 @@ function createAnnotationActions({ stateRef, viewerRef, getSelection, draw, show
       features[found.index] = patched.feature;
       return finish(
         rebuildDrawCommand(stateRef.current, viewerRef.current, found.command, features, replay),
-        messageKey
+        messageKey,
+        { action: "geometry", feature: patched.feature }
       );
     },
     update: (patch) => run(
       (state, viewer, selection, replayCommand) => updateAnnotationFeature(state, viewer, selection, patch, replayCommand),
-      "annotation.saved"
+      "annotation.saved",
+      "update"
     ),
     remove: () => run(
       (state, viewer, selection, replayCommand) => deleteAnnotationFeature(state, viewer, selection, replayCommand),
-      "annotation.deleted"
+      "annotation.deleted",
+      "remove"
     ),
+    removeFeature: (overlayIndex, featureIndex) => {
+      const state = stateRef.current;
+      const command = state?.drawCommands?.[overlayIndex];
+      const feature = command?.geojson?.features?.[featureIndex];
+      if (!command || !feature) {
+        showToast(t2("annotation.editFailed", { reason: "feature_not_found" }));
+        return false;
+      }
+      const deleted = deleteAnnotationFeature(state, viewerRef.current, { command, feature }, replay);
+      return finish(deleted, "annotation.deleted", { action: "remove", feature });
+    },
     export: () => {
       const feature = selectionOf()?.feature;
       if (!feature) return false;
@@ -18411,6 +18910,15 @@ function createAnnotationEditor({ getCesium, getViewer, getRoot, pickSurface, up
       entry.el.style.transform = `translate(${offsetX + windowPoint.x}px, ${offsetY + windowPoint.y}px)`;
     }
   };
+  const isSameTarget = (state, id, name, kind, geometryType) => {
+    const target = state?.target;
+    if (!target || !state.feature) return false;
+    if (id && target.id) return target.id === id;
+    if (!id && !target.id) {
+      return target.name === name && target.kind === kind && target.geometry?.type === geometryType;
+    }
+    return false;
+  };
   const refreshFeature = (state) => {
     const handles = annotationHandlePoints(state.feature);
     state.centerPoint = annotationCenterPoint(handles);
@@ -18466,7 +18974,8 @@ function createAnnotationEditor({ getCesium, getViewer, getRoot, pickSurface, up
     }
     state.feature = { ...state.feature, geometry: entry.previous };
     state.target = { id: entry.id, name: entry.name, kind: entry.kind, geometry: entry.previous };
-    refreshFeature(state);
+    if (state.layer) rebuildHandles(state);
+    else refreshFeature(state);
     return true;
   };
   const removeDragListeners = (state) => {
@@ -18659,17 +19168,22 @@ function createAnnotationEditor({ getCesium, getViewer, getRoot, pickSurface, up
     state.target = null;
   };
   const focus = (selection) => {
-    clear();
     const feature = selection?.feature;
     const name = typeof feature?.properties?.name === "string" ? feature.properties.name : "";
     const id = annotationFeatureId(feature);
     const kind = feature?.properties?.kind ?? annotationKindOf(feature);
-    if (!feature || !id && (!feature?.properties?.kind || name === "") || !isShapeEditable(feature)) return false;
+    if (!feature || !id && (!feature?.properties?.kind || name === "") || !isShapeEditable(feature)) {
+      clear();
+      return false;
+    }
     const state = sessionFor();
     if (!state) return false;
+    const keepHistory = isSameTarget(state, id, name, kind, feature.geometry?.type);
+    const history = keepHistory ? state.history.slice() : [];
+    clear();
     state.feature = feature;
     state.target = { id, name, kind, geometry: feature.geometry };
-    state.history = [];
+    state.history = history;
     rebuildHandles(state);
     attachFrame(state);
     attachKeys(state);
@@ -18829,24 +19343,56 @@ function bboxText(bbox) {
   const fixed = (value) => value.toFixed(5);
   return `${fixed(bbox.west)}, ${fixed(bbox.south)} → ${fixed(bbox.east)}, ${fixed(bbox.north)}`;
 }
+function cleanExportBase(raw, fallback = "vector-overlay") {
+  const stripped = String(raw ?? "").replace(/^GeoJSON:\s*/i, "").trim();
+  const safe = stripped.replace(/[\\/:*?"<>|\r\n]+/g, "-").replace(/\s+/g, "-").replace(/-+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60);
+  return safe || fallback;
+}
 function createVectorExport({ stateRef, getMeta, getSession, showToast, t: t2, fetchImpl } = {}) {
   const doFetch = () => typeof fetchImpl === "function" ? fetchImpl : globalThis.fetch;
-  const prepare = () => {
-    const state = stateRef?.current ?? {};
-    const built = collectVectorFeatures({
-      drawCommands: state.drawCommands,
-      measureCommands: state.measureCommands
-    });
+  const buildPrepared = ({ drawCommands, measureCommands }, { name = "vector-overlay", fileName = vectorExportFileName() } = {}) => {
+    const built = collectVectorFeatures({ drawCommands, measureCommands });
     if (!built.ok) {
       showToast(t2(`vectorExport.${built.error}`));
       return null;
     }
     return {
       features: built.features,
-      geojson: vectorExportCollection(built.features, { name: "vector-overlay" }),
+      geojson: vectorExportCollection(built.features, { name }),
       count: built.features.length,
-      bbox: vectorBbox(built.features)
+      bbox: vectorBbox(built.features),
+      fileName
     };
+  };
+  const prepare = () => {
+    const state = stateRef?.current ?? {};
+    return buildPrepared(
+      { drawCommands: state.drawCommands, measureCommands: state.measureCommands },
+      { name: "vector-overlay", fileName: vectorExportFileName() }
+    );
+  };
+  const prepareOverlay = (index) => {
+    const command = stateRef?.current?.drawCommands?.[index];
+    if (!command) {
+      showToast(t2("vectorExport.empty"));
+      return null;
+    }
+    const base = cleanExportBase(command.caption, `vector-overlay-${index + 1}`);
+    return buildPrepared(
+      { drawCommands: [command], measureCommands: [] },
+      { name: base, fileName: `${base}.geojson` }
+    );
+  };
+  const prepareFeature = (feature, fallbackName) => {
+    if (!feature || typeof feature !== "object") {
+      showToast(t2("vectorExport.empty"));
+      return null;
+    }
+    const base = cleanExportBase(feature.properties?.name ?? fallbackName, "annotation");
+    return buildPrepared(
+      { drawCommands: [{ geojson: { type: "FeatureCollection", features: [feature] } }], measureCommands: [] },
+      { name: base, fileName: `${base}.geojson` }
+    );
   };
   const saveToHost = async (prepared) => {
     const meta = typeof getMeta === "function" ? getMeta() : null;
@@ -18872,24 +19418,87 @@ function createVectorExport({ stateRef, getMeta, getSession, showToast, t: t2, f
     flights.set(key, promise);
     return promise;
   };
+  const deliverDownload = (prepared) => {
+    if (!prepared) return false;
+    const written = downloadText(
+      prepared.fileName,
+      vectorExportText(prepared.geojson),
+      "application/geo+json"
+    );
+    if (!written) {
+      showToast(t2("vectorExport.failed", { reason: "download_unavailable" }));
+      return false;
+    }
+    showToast(t2("vectorExport.downloaded", { count: prepared.count }));
+    return true;
+  };
+  const deliverSend = (key, prepareFn) => single(key, async () => {
+    const session = typeof getSession === "function" ? getSession() : null;
+    if (!session) {
+      showToast(t2("vectorExport.noSession"));
+      return null;
+    }
+    const prepared = prepareFn();
+    if (!prepared) return null;
+    const meta = typeof getMeta === "function" ? getMeta() : null;
+    const text = t2("vectorExport.chatAttachNotice", {
+      count: prepared.count,
+      bbox: bboxText(prepared.bbox)
+    });
+    try {
+      if (meta?.exportVectorChatUrl) {
+        const response2 = await doFetch()(meta.exportVectorChatUrl, {
+          method: "POST",
+          credentials: "same-origin",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            kind: "vector",
+            session,
+            name: prepared.geojson.name,
+            features: prepared.features,
+            text
+          })
+        });
+        if (!response2.ok) throw new Error(`HTTP ${response2.status}`);
+        const receipt = await response2.json();
+        if (receipt.injected === true && receipt.attached === true) {
+          showToast(t2("vectorExport.sentAttached", { count: prepared.count }));
+        } else {
+          showToast(t2("vectorExport.saved", { path: receipt.path, count: prepared.count }));
+        }
+        return receipt;
+      }
+      const saved = await saveToHost(prepared);
+      if (!saved) return null;
+      if (!meta?.injectUrl) {
+        showToast(t2("vectorExport.hostUnavailable"));
+        return saved;
+      }
+      const notice = t2("vectorExport.chatNotice", {
+        path: saved.path,
+        count: prepared.count,
+        bbox: bboxText(prepared.bbox)
+      });
+      const response = await doFetch()(meta.injectUrl, {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ session, text: notice })
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      showToast(t2("vectorExport.sent", { count: prepared.count }));
+      return saved;
+    } catch (error) {
+      showToast(t2("vectorExport.failed", { reason: error instanceof Error ? error.message : String(error) }));
+      return null;
+    }
+  });
   return {
     canSend: () => typeof getSession === "function" && Boolean(getSession()),
     /** Local download; works with no session and no host route. */
-    download: () => {
-      const prepared = prepare();
-      if (!prepared) return false;
-      const written = downloadText(
-        vectorExportFileName(),
-        vectorExportText(prepared.geojson),
-        "application/geo+json"
-      );
-      if (!written) {
-        showToast(t2("vectorExport.failed", { reason: "download_unavailable" }));
-        return false;
-      }
-      showToast(t2("vectorExport.downloaded", { count: prepared.count }));
-      return true;
-    },
+    download: () => deliverDownload(prepare()),
+    /** Download one specific draw/GeoJSON overlay as its own .geojson file. */
+    downloadOverlay: (index) => deliverDownload(prepareOverlay(index)),
     /** Write one .geojson under the DSH exports folder and report the path. */
     save: () => single("save", async () => {
       const prepared = prepare();
@@ -18912,67 +19521,11 @@ function createVectorExport({ stateRef, getMeta, getSession, showToast, t: t2, f
      * file card. Older hosts without that route fall back to writing the file and
      * injecting a path-only notice, which the agent can still read.
      */
-    send: () => single("send", async () => {
-      const session = typeof getSession === "function" ? getSession() : null;
-      if (!session) {
-        showToast(t2("vectorExport.noSession"));
-        return null;
-      }
-      const prepared = prepare();
-      if (!prepared) return null;
-      const meta = typeof getMeta === "function" ? getMeta() : null;
-      const text = t2("vectorExport.chatAttachNotice", {
-        count: prepared.count,
-        bbox: bboxText(prepared.bbox)
-      });
-      try {
-        if (meta?.exportVectorChatUrl) {
-          const response2 = await doFetch()(meta.exportVectorChatUrl, {
-            method: "POST",
-            credentials: "same-origin",
-            headers: { "content-type": "application/json" },
-            body: JSON.stringify({
-              kind: "vector",
-              session,
-              name: prepared.geojson.name,
-              features: prepared.features,
-              text
-            })
-          });
-          if (!response2.ok) throw new Error(`HTTP ${response2.status}`);
-          const receipt = await response2.json();
-          if (receipt.injected === true && receipt.attached === true) {
-            showToast(t2("vectorExport.sentAttached", { count: prepared.count }));
-          } else {
-            showToast(t2("vectorExport.saved", { path: receipt.path, count: prepared.count }));
-          }
-          return receipt;
-        }
-        const saved = await saveToHost(prepared);
-        if (!saved) return null;
-        if (!meta?.injectUrl) {
-          showToast(t2("vectorExport.hostUnavailable"));
-          return saved;
-        }
-        const notice = t2("vectorExport.chatNotice", {
-          path: saved.path,
-          count: prepared.count,
-          bbox: bboxText(prepared.bbox)
-        });
-        const response = await doFetch()(meta.injectUrl, {
-          method: "POST",
-          credentials: "same-origin",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ session, text: notice })
-        });
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        showToast(t2("vectorExport.sent", { count: prepared.count }));
-        return saved;
-      } catch (error) {
-        showToast(t2("vectorExport.failed", { reason: error instanceof Error ? error.message : String(error) }));
-        return null;
-      }
-    })
+    send: () => deliverSend("send", prepare),
+    /** Send one specific draw/GeoJSON overlay to chat as a file attachment. */
+    sendOverlay: (index) => deliverSend(`send-overlay-${index}`, () => prepareOverlay(index)),
+    /** Send the currently selected feature to chat as its own GeoJSON attachment. */
+    sendFeature: (feature, fallbackName) => deliverSend("send-feature", () => prepareFeature(feature, fallbackName))
   };
 }
 
@@ -19384,6 +19937,8 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
   const [profileHover, setProfileHover] = import_react36.default.useState(null);
   const [shaderOpen, setShaderOpen] = import_react36.default.useState(false);
   const [showTools, setShowTools] = import_react36.default.useState(true);
+  const [toolRequest, setToolRequest] = import_react36.default.useState(null);
+  const [, setOverlayRev] = import_react36.default.useState(0);
   const [shaderActive, setShaderActive] = import_react36.default.useState([]);
   const [shaderForm, setShaderForm] = import_react36.default.useState({
     layerId: "",
@@ -19904,6 +20459,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
   const syncAgentOverlayCount = () => {
     const state = agentOverlayRef.current;
     setAgentOverlayCount(state.draw.length + state.measure.length);
+    setOverlayRev((n) => n + 1 & 2147483647);
   };
   const importVectorData = (parsed, name) => {
     try {
@@ -19930,9 +20486,15 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     draw: (geojson, style, caption) => drawAgentOverlay(cesiumRef.current, viewerRef.current, geojson, style, caption),
     showToast,
     t: t2,
-    onChanged: () => {
+    onChanged: (event) => {
       syncAgentOverlayCount();
-      vectorRef.current?.clearSelection();
+      let reselected = false;
+      if (event?.action === "geometry" || event?.action === "update") {
+        reselected = Boolean(event?.command && event?.feature && vectorRef.current?.selectByFeature?.(event.command, event.feature));
+      } else if (event?.action === "remove" && event?.command && vectorSelection?.feature && vectorSelection.feature !== event.feature) {
+        reselected = Boolean(vectorRef.current?.selectByFeature?.(event.command, vectorSelection.feature));
+      }
+      if (!reselected) vectorRef.current?.clearSelection();
       markSceneDirty();
       saveSceneSnapshot(true);
     }
@@ -19960,8 +20522,8 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
   });
   import_react36.default.useEffect(() => {
     annotationEditor.focus(vectorSelection);
-    return () => annotationEditor.dispose();
   }, [vectorSelection]);
+  import_react36.default.useEffect(() => () => annotationEditor.dispose(), []);
   const vectorExport = createVectorExport({ stateRef: agentOverlayRef, getMeta: () => metaRef.current, getSession: () => sessionId, showToast, t: t2 });
   const vectorRenderer = createVectorRenderer({
     getState: () => agentOverlayRef.current,
@@ -21215,6 +21777,21 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
         onOpenRecent: workbench.openRecent,
         onClearVector: () => clearAgentOverlays2("all"),
         agentOverlays: buildAgentOverlayList(agentOverlayRef.current),
+        overlayDetails: buildAgentOverlayDetails(agentOverlayRef.current),
+        onQuickAnnotate: () => {
+          setShowTools(true);
+          setToolRequest((prev) => ({ id: "annotation", seq: (prev?.seq ?? 0) + 1 }));
+        },
+        onSelectAgentFeature: (overlayIndex, featureIndex) => {
+          const command = agentOverlayRef.current.drawCommands[overlayIndex];
+          const feature = command?.geojson?.features?.[featureIndex];
+          if (command && feature) vectorRef.current?.selectByFeature?.(command, feature);
+        },
+        onFlyAgentFeature: (overlayIndex, featureIndex) => {
+          const feature = agentOverlayRef.current.drawCommands[overlayIndex]?.geojson?.features?.[featureIndex];
+          return flyToOverlayFeature(viewerRef.current, cesiumRef.current, feature);
+        },
+        onRemoveAgentFeature: (overlayIndex, featureIndex) => annotations.removeFeature(overlayIndex, featureIndex),
         onFlyAgentOverlay: (kind, index) => flyToAgentOverlay(agentOverlayRef.current, viewerRef.current, cesiumRef.current, kind, index),
         onRemoveAgentOverlay: (kind, index) => {
           if (!removeAgentOverlay(agentOverlayRef.current, viewerRef.current, kind, index)) return;
@@ -21231,6 +21808,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
         tool,
         analysis,
         shaderActive,
+        openRequest: toolRequest,
         onCollapse: () => setShowTools(false),
         onStartTool: (mode) => setToolMode(mode),
         onClearMeasure: clearMeasure,
@@ -21332,7 +21910,16 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
         measureMode ? t2("measure.end") : t2("tool.clear")
       )
     ) : null,
-    h32(VectorCard, { key: "vector-selection", selection: vectorSelection, onClose: () => vectorRef.current?.clearSelection(), onChange: annotations.update, onDelete: annotations.remove, onExport: annotations.export, t: t2 }),
+    h32(VectorCard, {
+      key: "vector-selection",
+      selection: vectorSelection,
+      onClose: () => vectorRef.current?.clearSelection(),
+      onChange: annotations.update,
+      onDelete: annotations.remove,
+      onExport: annotations.export,
+      onSendToChat: (feature, fallbackName) => vectorExport.sendFeature?.(feature, fallbackName),
+      t: t2
+    }),
     toast ? h32("div", { key: "toast", className: "mv-toast" }, toast) : null,
     scan ? h32(ScanDialog, {
       key: "scan",

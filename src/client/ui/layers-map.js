@@ -12,6 +12,7 @@ import React from 'react'
 import { normalizeOverlayDraft } from '../scene/overlay-layers.js'
 import { readVectorFiles } from '../scene/vector-file.js'
 import { vectorErrorText } from '../scene/vector-errors.js'
+import { VECTOR_COLORS } from '../scene/vector-style.js'
 import { EyeIcon } from './icons.js'
 import { IMAGERY_OPEN_KEY, readPanelFlag, writePanelFlag } from './panel-prefs.js'
 
@@ -44,6 +45,11 @@ export function LayersMap({
   onClearVector,
   onRemoveAgentOverlay,
   onFlyAgentOverlay,
+  overlayDetails,
+  onQuickAnnotate,
+  onSelectAgentFeature,
+  onFlyAgentFeature,
+  onRemoveAgentFeature,
   onImportVector,
   onPickLocalTiles,
   swipeState,
@@ -55,7 +61,9 @@ export function LayersMap({
   const [error, setError] = React.useState('')
   const [vectorError, setVectorError] = React.useState('')
   const [imageryOpen, setImageryOpen] = React.useState(() => readPanelFlag(IMAGERY_OPEN_KEY, false))
+  const [expandedOverlays, setExpandedOverlays] = React.useState(() => ({}))
   const fileRef = React.useRef(null)
+  const toggleOverlay = (id) => setExpandedOverlays((prev) => ({ ...prev, [id]: !prev[id] }))
   const overlays = Array.isArray(config?.rasterOverlays) ? config.rasterOverlays : []
   const drawn = annotations?.drawn_features ?? 0
   const measured = annotations?.measured_points ?? 0
@@ -107,6 +115,9 @@ export function LayersMap({
       'div',
       { key: 'g2-actions', className: 'mv-group-subactions' },
       h('button', { type: 'button', className: 'mv-cta', onClick: () => fileRef.current?.click() }, t('layers.importVector')),
+      typeof onQuickAnnotate === 'function'
+        ? h('button', { type: 'button', className: 'mv-cta', onClick: onQuickAnnotate }, t('annotation.quickDraw'))
+        : null,
     ),
     h('input', {
       key: 'import-vector-input',
@@ -138,31 +149,133 @@ export function LayersMap({
       h('span', { className: 'name' }, `${t('layers.vectorDrawn')} ${drawn} · ${t('layers.vectorMeasured')} ${measured}`),
       h('button', { type: 'button', className: 'mv-icon-btn', title: t('tool.clear'), 'aria-label': t('tool.clear'), onClick: onClearVector }, '✕'),
     ),
-    ...(Array.isArray(agentOverlays) ? agentOverlays : []).map((row) =>
-      h(
-        'div',
-        { key: row.id, className: 'mv-layer' },
-        h('span', { className: 'name', title: row.detail }, `${row.label} · ${row.detail}`),
-        typeof onFlyAgentOverlay === 'function'
+    ...(Array.isArray(agentOverlays) ? agentOverlays : []).map((row) => {
+      const features = row.kind === 'draw' && Array.isArray(overlayDetails?.[row.index]) ? overlayDetails[row.index] : []
+      const canExpand = row.kind === 'draw' && features.length > 0
+      const expanded = canExpand && Boolean(expandedOverlays[row.id])
+      return h(
+        React.Fragment,
+        { key: row.id },
+        h(
+          'div',
+          { className: 'mv-layer' },
+          canExpand
+            ? h(
+                'button',
+                {
+                  type: 'button',
+                  className: 'mv-icon-btn mv-overlay-toggle',
+                  title: t(expanded ? 'layers.overlayCollapseFeatures' : 'layers.overlayExpandFeatures'),
+                  'aria-label': t(expanded ? 'layers.overlayCollapseFeatures' : 'layers.overlayExpandFeatures'),
+                  'aria-expanded': expanded,
+                  onClick: () => toggleOverlay(row.id),
+                },
+                expanded ? '▾' : '▸',
+              )
+            : null,
+          h('span', { className: 'name', title: `${row.label} · ${row.detail}` }, `${row.label} · ${row.detail}`),
+          row.kind === 'draw' && typeof vectorExport?.downloadOverlay === 'function'
+            ? h(
+                'button',
+                {
+                  type: 'button',
+                  className: 'mv-icon-btn',
+                  title: t('layers.overlayExportHint'),
+                  'aria-label': t('layers.overlayExportHint'),
+                  onClick: () => vectorExport.downloadOverlay(row.index),
+                },
+                '⤓',
+              )
+            : null,
+          row.kind === 'draw' && typeof vectorExport?.sendOverlay === 'function'
+            ? h(
+                'button',
+                {
+                  type: 'button',
+                  className: 'mv-icon-btn',
+                  title: t('layers.overlayChatHint'),
+                  'aria-label': t('layers.overlayChatHint'),
+                  disabled: !vectorExport.canSend?.(),
+                  onClick: () => { void vectorExport.sendOverlay(row.index) },
+                },
+                '➤',
+              )
+            : null,
+          typeof onFlyAgentOverlay === 'function'
+            ? h(
+                'button',
+                {
+                  type: 'button',
+                  className: 'mv-icon-btn',
+                  title: t('btn.flyTo'),
+                  'aria-label': t('btn.flyTo'),
+                  onClick: () => onFlyAgentOverlay(row.kind, row.index),
+                },
+                '◎',
+              )
+            : null,
+          h(
+            'button',
+            { type: 'button', className: 'mv-icon-btn', title: t('layers.vectorRemove'), 'aria-label': t('layers.vectorRemove'), onClick: () => onRemoveAgentOverlay(row.kind, row.index) },
+            '✕',
+          ),
+        ),
+        expanded
           ? h(
-              'button',
-              {
-                type: 'button',
-                className: 'mv-icon-btn',
-                title: t('btn.flyTo'),
-                'aria-label': t('btn.flyTo'),
-                onClick: () => onFlyAgentOverlay(row.kind, row.index),
-              },
-              '◎',
+              'div',
+              { className: 'mv-overlay-features' },
+              ...features.map((feat) =>
+                h(
+                  'div',
+                  { key: feat.featureId || `${row.id}-${feat.featureIndex}`, className: 'mv-overlay-feature' },
+                  h(
+                    'button',
+                    {
+                      type: 'button',
+                      className: 'mv-overlay-feature-pick',
+                      title: t('layers.featureSelectHint'),
+                      onClick: () => onSelectAgentFeature?.(row.index, feat.featureIndex),
+                    },
+                    h('span', {
+                      className: 'mv-overlay-feature-dot',
+                      'aria-hidden': true,
+                      style: { background: VECTOR_COLORS[feat.style] ?? VECTOR_COLORS.accent },
+                    }),
+                    h('span', { className: 'mv-overlay-feature-name' }, feat.name ?? t('layers.featureUnnamed', { n: feat.featureIndex + 1 })),
+                    h('span', { className: 'mv-overlay-feature-tag' }, feat.geometryType),
+                  ),
+                  typeof onFlyAgentFeature === 'function'
+                    ? h(
+                        'button',
+                        {
+                          type: 'button',
+                          className: 'mv-icon-btn',
+                          title: t('btn.flyTo'),
+                          'aria-label': t('btn.flyTo'),
+                          onClick: () => onFlyAgentFeature(row.index, feat.featureIndex),
+                        },
+                        '◎',
+                      )
+                    : null,
+                  typeof onRemoveAgentFeature === 'function'
+                    ? h(
+                        'button',
+                        {
+                          type: 'button',
+                          className: 'mv-icon-btn',
+                          title: t('layers.featureDelete'),
+                          'aria-label': t('layers.featureDelete'),
+                          onClick: () => onRemoveAgentFeature(row.index, feat.featureIndex),
+                        },
+                        '✕',
+                      )
+                    : null,
+                ),
+              ),
             )
           : null,
-        h(
-          'button',
-          { type: 'button', className: 'mv-icon-btn', title: t('layers.vectorRemove'), 'aria-label': t('layers.vectorRemove'), onClick: () => onRemoveAgentOverlay(row.kind, row.index) },
-          '✕',
-        ),
-      ),
-    ),
+      )
+    }),
     // ---- L3 raster overlays ---------------------------------------------------
     h(
       'div',

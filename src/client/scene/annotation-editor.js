@@ -153,6 +153,16 @@ export function createAnnotationEditor({ getCesium, getViewer, getRoot, pickSurf
   // Commit / history
   // ---------------------------------------------------------------------------
 
+  const isSameTarget = (state, id, name, kind, geometryType) => {
+    const target = state?.target
+    if (!target || !state.feature) return false
+    if (id && target.id) return target.id === id
+    if (!id && !target.id) {
+      return target.name === name && target.kind === kind && target.geometry?.type === geometryType
+    }
+    return false
+  }
+
   const refreshFeature = (state) => {
     const handles = annotationHandlePoints(state.feature)
     state.centerPoint = annotationCenterPoint(handles)
@@ -211,7 +221,8 @@ export function createAnnotationEditor({ getCesium, getViewer, getRoot, pickSurf
     }
     state.feature = { ...state.feature, geometry: entry.previous }
     state.target = { id: entry.id, name: entry.name, kind: entry.kind, geometry: entry.previous }
-    refreshFeature(state)
+    if (state.layer) rebuildHandles(state)
+    else refreshFeature(state)
     return true
   }
 
@@ -430,19 +441,24 @@ export function createAnnotationEditor({ getCesium, getViewer, getRoot, pickSurf
   // ---------------------------------------------------------------------------
 
   const focus = (selection) => {
-    clear()
     const feature = selection?.feature
     const name = typeof feature?.properties?.name === 'string' ? feature.properties.name : ''
     const id = annotationFeatureId(feature)
     const kind = feature?.properties?.kind ?? annotationKindOf(feature)
     // Prefer stable feature_id (works for unnamed/duplicate-name imports);
     // legacy features without an id still require explicit name + kind.
-    if (!feature || (!id && (!feature?.properties?.kind || name === '')) || !isShapeEditable(feature)) return false
+    if (!feature || (!id && (!feature?.properties?.kind || name === '')) || !isShapeEditable(feature)) {
+      clear()
+      return false
+    }
     const state = sessionFor()
     if (!state) return false
+    const keepHistory = isSameTarget(state, id, name, kind, feature.geometry?.type)
+    const history = keepHistory ? state.history.slice() : []
+    clear()
     state.feature = feature
     state.target = { id, name, kind, geometry: feature.geometry }
-    state.history = []
+    state.history = history
     rebuildHandles(state)
     attachFrame(state)
     attachKeys(state)

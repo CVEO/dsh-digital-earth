@@ -248,8 +248,9 @@ function createRenderer(renderFn) {
     if (pendingEffects.length) {
       for (const item of pendingEffects) {
         if (typeof item.prevCleanup === 'function') item.prevCleanup()
-        const cleanup = item.effect()
-        effects[item.idx] = { deps: item.deps, cleanup }
+        const slot = { deps: item.deps, cleanup: undefined }
+        effects[item.idx] = slot
+        slot.cleanup = item.effect()
       }
       // Effects may call setState synchronously on mount/prop change — re-read latest tree.
     }
@@ -667,9 +668,14 @@ test('VectorCard：分类/色标/面拉伸控件、快捷键提示按几何显�
     }),
   )
   try {
-    // 1) Editable duplicate keys filtered, non-editable `owner` kept in <dl>
+    // 1) Editable feature hides <dl> and shows custom attribute (`owner`) inside .mv-attr-row
     const dts = findNodes(r.getTree(), (n) => n.type === 'dt').map((n) => textOf(n))
-    assert.deepEqual(dts, ['owner'])
+    assert.deepEqual(dts, [])
+    const attrRows = findNodes(r.getTree(), (n) => String(n.props?.className).includes('mv-attr-row'))
+    assert.equal(attrRows.length, 1)
+    const attrInputs = findNodes(attrRows[0], (n) => n.type === 'input')
+    assert.equal(attrInputs[0].props.value, 'owner')
+    assert.equal(attrInputs[1].props.value, '遥感组')
 
     // 2) Shortcuts banner visible for Polygon
     const shortcuts = findNodes(r.getTree(), (n) => String(n.props?.className).includes('mv-vector-shortcuts'))

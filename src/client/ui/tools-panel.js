@@ -26,6 +26,7 @@ export function ToolsPanel({
   tool,
   analysis,
   shaderActive,
+  openRequest,
   onCollapse,
   onStartTool,
   onClearMeasure,
@@ -55,6 +56,13 @@ export function ToolsPanel({
   const [expanded, setExpanded] = React.useState(false)
   const [indexMinimized, setIndexMinimized] = React.useState(() => readPanelFlag(TOOLS_MINIMIZED_KEY, false))
   const entry = toolEntry(openTool)
+
+  React.useEffect(() => {
+    if (!openRequest?.id || !toolEntry(openRequest.id)) return
+    setOpenTool(openRequest.id)
+    setMinimized(false)
+    setExpanded(false)
+  }, [openRequest])
 
   const openToolById = (id) => {
     const next = selectToolWindow({ openTool, minimized }, id)

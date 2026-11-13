@@ -22,8 +22,48 @@ export const ANNOTATION_KINDS = ['point', 'line', 'area', 'note']
 /** Style presets shared with earth_draw, so annotation layers look consistent. */
 export const ANNOTATION_STYLES = ['accent', 'alert', 'success', 'warm', 'violet']
 export const ANNOTATION_UNDO_LIMIT = 20
+export const ANNOTATION_MAX_ATTR_KEY = 64
+export const ANNOTATION_MAX_ATTR_VALUE = 240
 /** Decimal places used on export: ~0.1 m, enough for a study area, no fake precision. */
 export const ANNOTATION_COORDINATE_DECIMALS = 6
+
+export const ANNOTATION_RESERVED_KEYS = new Set(['feature_id', 'provenance', 'source', 'bbox'])
+export const ANNOTATION_STANDARD_KEYS = new Set([
+  'name',
+  'note',
+  'kind',
+  'style',
+  'extruded',
+  'extruded_height_m',
+  'extrudedHeight',
+  'roof_height_m',
+  'height_m',
+  'building_height_m',
+  'height',
+  'base_height_m',
+  'ground_height_m',
+  'baseHeight',
+])
+
+const isCustomAttributeKey = (key) => !ANNOTATION_RESERVED_KEYS.has(key) && !ANNOTATION_STANDARD_KEYS.has(key)
+
+/** Extract user-editable custom GeoJSON attributes (excluding system/managed keys). */
+export function extractCustomAttributes(feature) {
+  const props = feature?.properties
+  if (props === null || typeof props !== 'object') return []
+  const out = []
+  for (const [key, raw] of Object.entries(props)) {
+    if (!isCustomAttributeKey(key)) continue
+    const isComplex = raw !== null && typeof raw === 'object'
+    out.push({
+      key,
+      text: raw === null || raw === undefined ? '' : isComplex ? JSON.stringify(raw) : String(raw),
+      raw,
+      editable: !isComplex,
+    })
+  }
+  return out
+}
 
 const DEFAULT_KIND_BY_GEOMETRY = {
   Point: 'point',
@@ -183,6 +223,45 @@ export function withAnnotationProperties(feature, patch = {}) {
         }
         if (typeof next.properties.roof_height_m === 'number') next.properties.roof_height_m = roof
       }
+    }
+  }
+  if (patch.attributes !== undefined) {
+    if (!Array.isArray(patch.attributes)) return { ok: false, error: 'invalid_attributes' }
+    const previousProps = feature.properties && typeof feature.properties === 'object' ? feature.properties : {}
+    const parsed = []
+    const seen = new Set()
+    for (const entry of patch.attributes) {
+      const key = typeof entry?.key === 'string' ? entry.key.replace(/\s+/g, ' ').trim().slice(0, ANNOTATION_MAX_ATTR_KEY) : ''
+      if (key === '') return { ok: false, error: 'invalid_attribute_key' }
+      if (!isCustomAttributeKey(key)) return { ok: false, error: 'reserved_attribute_key' }
+      if (seen.has(key)) return { ok: false, error: 'duplicate_attribute_key' }
+      seen.add(key)
+      const prevRaw = previousProps[key]
+      if (entry.preserveObject && prevRaw !== null && typeof prevRaw === 'object') {
+        parsed.push([key, prevRaw])
+        continue
+      }
+      const rawVal = entry?.value
+      if (typeof rawVal === 'number' && Number.isFinite(rawVal)) {
+        parsed.push([key, rawVal])
+      } else if (typeof rawVal === 'boolean') {
+        parsed.push([key, rawVal])
+      } else {
+        const str = rawVal === null || rawVal === undefined ? '' : String(rawVal).trim().slice(0, ANNOTATION_MAX_ATTR_VALUE)
+        if (typeof prevRaw === 'number' && str !== '' && Number.isFinite(Number(str))) {
+          parsed.push([key, Number(str)])
+        } else if (typeof prevRaw === 'boolean' && (str === 'true' || str === 'false')) {
+          parsed.push([key, str === 'true'])
+        } else {
+          parsed.push([key, str])
+        }
+      }
+    }
+    for (const existingKey of Object.keys(next.properties)) {
+      if (isCustomAttributeKey(existingKey)) delete next.properties[existingKey]
+    }
+    for (const [key, val] of parsed) {
+      next.properties[key] = val
     }
   }
   return { ok: true, feature: next }

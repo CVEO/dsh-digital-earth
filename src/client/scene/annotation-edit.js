@@ -76,7 +76,8 @@ export function updateAnnotationFeature(state, viewer, selection, patch, replay)
   }
   const features = command.geojson.features.slice()
   features[index] = next
-  return rebuildDrawCommand(state, viewer, command, features, replay)
+  const rebuilt = rebuildDrawCommand(state, viewer, command, features, replay)
+  return rebuilt.ok ? { ...rebuilt, feature: next } : rebuilt
 }
 
 /**

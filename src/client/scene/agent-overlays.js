@@ -61,6 +61,43 @@ function measureDetail(command) {
   return ''
 }
 
+/** Extract metadata for every feature inside one draw command (for L2 overlay browser). */
+export function overlayFeatureList(command) {
+  const geojson = command?.geojson
+  if (!geojson || typeof geojson !== 'object') return []
+  const list = geojson.type === 'FeatureCollection' && Array.isArray(geojson.features)
+    ? geojson.features
+    : geojson.type === 'Feature'
+      ? [geojson]
+      : []
+  const defaultStyle = typeof command?.style === 'string' && command.style !== '' ? command.style : 'accent'
+  const items = []
+  for (let featureIndex = 0; featureIndex < list.length; featureIndex += 1) {
+    const feature = list[featureIndex]
+    if (!feature || typeof feature !== 'object') continue
+    const props = feature.properties ?? {}
+    items.push({
+      featureIndex,
+      featureId: typeof props.feature_id === 'string' ? props.feature_id : '',
+      name: typeof props.name === 'string' && props.name.trim() !== '' ? props.name.trim() : null,
+      geometryType: typeof feature.geometry?.type === 'string' ? feature.geometry.type : 'Geometry',
+      kind: typeof props.kind === 'string' ? props.kind : null,
+      style: typeof props.style === 'string' && props.style !== '' ? props.style : defaultStyle,
+    })
+  }
+  return items
+}
+
+/** Per-overlay feature details keyed by draw command index. */
+export function buildAgentOverlayDetails(state) {
+  const details = {}
+  const commands = Array.isArray(state?.drawCommands) ? state.drawCommands : []
+  for (let index = 0; index < commands.length; index += 1) {
+    details[index] = overlayFeatureList(commands[index])
+  }
+  return details
+}
+
 /** Model-facing/panel-facing rows for the L4 vector overlay list. */
 export function buildAgentOverlayList(state) {
   const rows = []
@@ -245,13 +282,9 @@ export function flyToBbox(viewer, Cesium, bbox) {
   return true
 }
 
-/** Fly the camera to one vector overlay row (draw or measure command). */
-export function flyToAgentOverlay(state, viewer, Cesium, kind, index) {
-  if (!state || !viewer || !Cesium) return false
-  const command = kind === 'draw' ? state.drawCommands?.[index] : kind === 'measure' ? state.measureCommands?.[index] : null
-  if (!command) return false
-  const points = kind === 'draw' ? collectOverlayLonLat(command.geojson) : collectOverlayLonLat(command.points)
-  if (points.length === 0) return false
+function bboxOfNode(node) {
+  const points = collectOverlayLonLat(node)
+  if (points.length === 0) return null
   let west = Infinity
   let south = Infinity
   let east = -Infinity
@@ -262,5 +295,21 @@ export function flyToAgentOverlay(state, viewer, Cesium, kind, index) {
     if (lat < south) south = lat
     if (lat > north) north = lat
   }
-  return flyToBbox(viewer, Cesium, { west, south, east, north })
+  return { west, south, east, north }
+}
+
+/** Fly the camera to one vector overlay row (draw or measure command). */
+export function flyToAgentOverlay(state, viewer, Cesium, kind, index) {
+  if (!state || !viewer || !Cesium) return false
+  const command = kind === 'draw' ? state.drawCommands?.[index] : kind === 'measure' ? state.measureCommands?.[index] : null
+  if (!command) return false
+  const bbox = bboxOfNode(kind === 'draw' ? command.geojson : command.points)
+  return bbox ? flyToBbox(viewer, Cesium, bbox) : false
+}
+
+/** Fly the camera to one GeoJSON feature inside an overlay. */
+export function flyToOverlayFeature(viewer, Cesium, feature) {
+  if (!viewer || !Cesium || !feature) return false
+  const bbox = bboxOfNode(feature)
+  return bbox ? flyToBbox(viewer, Cesium, bbox) : false
 }

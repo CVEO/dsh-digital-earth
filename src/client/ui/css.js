@@ -207,7 +207,7 @@ import { PARSE_CSS } from './parse-css.js'
 .mv-group{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:13px 4px 5px;margin-top:3px;border-top:.5px solid var(--mv-line)}
 .mv-group-actions{display:inline-flex;align-items:center;gap:4px;flex:none}
 .mv-group-subactions{display:flex;align-items:center;gap:6px;padding:2px 4px 6px}
-.mv-group-subactions .mv-cta{width:100%;justify-content:center;font-size:11px;padding:5px 8px;border:.5px solid var(--mv-line);border-radius:8px;background:color-mix(in srgb,var(--mv-lift) 45%,transparent)}
+.mv-group-subactions .mv-cta{flex:1;min-width:0;justify-content:center;font-size:11px;padding:5px 8px;border:.5px solid var(--mv-line);border-radius:8px;background:color-mix(in srgb,var(--mv-lift) 45%,transparent)}
 .mv-group-subactions .mv-cta:hover{background:color-mix(in srgb,var(--mv-lift) 82%,transparent);border-color:color-mix(in srgb,var(--mv-accent) 28%,var(--mv-line))}
 .mv-add3d-menu .mv-cta{text-align:left;width:100%}
 .mv-group:first-child{border-top:0;margin-top:0;padding-top:9px}
