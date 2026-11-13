@@ -142,11 +142,19 @@ export function createProfileEdit({ getCesium, getViewer, getRoot, pickSurface, 
     })
   }
 
+  function canvasToRootOffset() {
+    const canvasRect = getViewer?.()?.scene?.canvas?.getBoundingClientRect?.()
+    const rootRect = getRoot?.()?.getBoundingClientRect?.()
+    if (!canvasRect || !rootRect) return { x: 0, y: 0 }
+    return { x: canvasRect.left - rootRect.left, y: canvasRect.top - rootRect.top }
+  }
+
   function paint(state) {
     const Cesium = getCesium?.()
     const viewer = getViewer?.()
     const scene = viewer?.scene
     if (!Cesium || !scene || typeof scene.cartesianToCanvasCoordinates !== 'function') return
+    const offset = canvasToRootOffset()
     for (const handle of state.handles) {
       const index = Number(handle.dataset.index)
       if (state.dragging && state.dragging.index === index) continue
@@ -161,7 +169,7 @@ export function createProfileEdit({ getCesium, getViewer, getRoot, pickSurface, 
         continue
       }
       handle.style.display = ''
-      handle.style.transform = `translate(${screen.x - HANDLE_SIZE / 2}px, ${screen.y - HANDLE_SIZE / 2}px)`
+      handle.style.transform = `translate(${offset.x + screen.x - HANDLE_SIZE / 2}px, ${offset.y + screen.y - HANDLE_SIZE / 2}px)`
     }
     if (state.hover !== null) paintReadout(state, state.hover)
   }
@@ -194,8 +202,11 @@ export function createProfileEdit({ getCesium, getViewer, getRoot, pickSurface, 
       if (!current) return
       const handle = state.handles[current.index]
       if (handle) {
+        const rootRect = getRoot?.()?.getBoundingClientRect?.()
+        const x = rootRect ? event.clientX - rootRect.left : event.clientX
+        const y = rootRect ? event.clientY - rootRect.top : event.clientY
         handle.style.display = ''
-        handle.style.transform = `translate(${event.clientX - HANDLE_SIZE / 2}px, ${event.clientY - HANDLE_SIZE / 2}px)`
+        handle.style.transform = `translate(${x - HANDLE_SIZE / 2}px, ${y - HANDLE_SIZE / 2}px)`
       }
       current.position = canvasPoint(event) ?? current.position
     }

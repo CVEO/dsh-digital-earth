@@ -11,14 +11,19 @@
  * the safety rules, not the Cesium details.
  */
 import { removeAgentOverlay } from './agent-overlays.js'
-import { withAnnotationGeometry, withAnnotationProperties } from './annotation-model.js'
+import { annotationFeatureId, withAnnotationGeometry, withAnnotationProperties } from './annotation-model.js'
 
-/** Find a feature inside a command, by identity first and by content after a rebuild. */
+/** Find a feature inside a command, by identity, stable feature_id, then content after a rebuild. */
 export function locateFeature(command, feature) {
   const list = command?.geojson?.features
   if (!Array.isArray(list) || feature === null || typeof feature !== 'object') return -1
   const identity = list.indexOf(feature)
   if (identity >= 0) return identity
+  const featureId = annotationFeatureId(feature)
+  if (featureId !== '') {
+    const byId = list.findIndex((item) => annotationFeatureId(item) === featureId)
+    if (byId >= 0) return byId
+  }
   const name = feature.properties?.name ?? null
   const kind = feature.properties?.kind ?? null
   const geometry = JSON.stringify(feature.geometry ?? null)
@@ -94,6 +99,29 @@ export function findFeatureInState(state, name, kind) {
     }
   }
   return null
+}
+
+/**
+ * Locate the newest feature matching `target.id` (preferred, works for unnamed
+ * and duplicate-name GeoJSON features) or falling back to `{ name, kind }`.
+ */
+export function findFeatureByTarget(state, target) {
+  const id = typeof target?.id === 'string' ? target.id.trim() : typeof target?.id === 'number' && Number.isFinite(target.id) ? String(target.id) : ''
+  if (id !== '') {
+    const commands = Array.isArray(state?.drawCommands) ? state.drawCommands : []
+    for (let commandIndex = commands.length - 1; commandIndex >= 0; commandIndex -= 1) {
+      const features = commands[commandIndex]?.geojson?.features
+      if (!Array.isArray(features)) continue
+      for (let index = features.length - 1; index >= 0; index -= 1) {
+        const feature = features[index]
+        if (feature?.type !== 'Feature') continue
+        if (annotationFeatureId(feature) === id) {
+          return { command: commands[commandIndex], feature, index }
+        }
+      }
+    }
+  }
+  return findFeatureInState(state, target?.name, target?.kind)
 }
 
 /** Delete one feature; deleting the last feature deletes the whole command. */

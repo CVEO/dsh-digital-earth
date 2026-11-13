@@ -10,25 +10,11 @@ import React from 'react'
 import { formatArea, formatDistance, formatHeight } from '../format.js'
 import { mergeDrawGeoJSON, resolveOverlayRows } from '../scene/agent-overlays.js'
 import { destinationPoint } from '../scene/screen-geodesy.js'
+import { downloadText } from '../scene/download.js'
 import { getSelectionTool, selectionRegion, selectionWaterHeight } from '../scene/selection-tools.js'
 import { SelectionQuestion } from './selection-question.js'
 
 const h = React.createElement
-
-function downloadText(filename, text, mime) {
-  if (typeof document === 'undefined' || typeof Blob === 'undefined' || typeof URL === 'undefined') return false
-  const blob = new Blob([text], { type: mime })
-  const url = URL.createObjectURL(blob)
-  const anchor = document.createElement('a')
-  anchor.href = url
-  anchor.download = filename
-  anchor.rel = 'noopener'
-  document.body.appendChild(anchor)
-  anchor.click()
-  anchor.remove()
-  setTimeout(() => URL.revokeObjectURL(url), 1000)
-  return true
-}
 
 function summaryText(t, selection) {
   if (selection.kind === 'screen') return t('selection.surfaceUnavailable')

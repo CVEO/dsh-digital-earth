@@ -6,9 +6,9 @@
  * close the card and tell the user. Kept out of ViewerSurface so the component
  * stays under its size budget.
  */
-import { downloadText } from '../ui/cards.js'
-import { annotationFeatureText, deleteAnnotationFeature, findFeatureInState, rebuildDrawCommand, updateAnnotationFeature } from './annotation-edit.js'
-import { annotationFeaturesOfCommands, annotationKindOf, nextAnnotationName, normalizeAnnotation, withAnnotationGeometry } from './annotation-model.js'
+import { downloadText } from './download.js'
+import { annotationFeatureText, deleteAnnotationFeature, findFeatureByTarget, rebuildDrawCommand, updateAnnotationFeature } from './annotation-edit.js'
+import { annotationFeaturesOfCommands, annotationKindOf, ensureAnnotationFeatureId, nextAnnotationName, normalizeAnnotation, withAnnotationGeometry } from './annotation-model.js'
 
 export function createAnnotationActions({ stateRef, viewerRef, getSelection, draw, showToast, t, onChanged }) {
   const selectionOf = () => (typeof getSelection === 'function' ? getSelection() : null)
@@ -46,7 +46,8 @@ export function createAnnotationActions({ stateRef, viewerRef, getSelection, dra
         showToast(t('annotation.editFailed', { reason: normalized.error }))
         return false
       }
-      draw({ type: 'FeatureCollection', features: [normalized.feature] }, 'accent', name)
+      const identified = ensureAnnotationFeatureId(normalized.feature)
+      draw({ type: 'FeatureCollection', features: [identified] }, 'accent', name)
       if (typeof onChanged === 'function') onChanged()
       showToast(t('annotation.added', { name }))
       return true
@@ -58,7 +59,7 @@ export function createAnnotationActions({ stateRef, viewerRef, getSelection, dra
      */
     adoptCollection: (collection, caption) => {
       const features = Array.isArray(collection?.features)
-        ? collection.features.filter((feature) => feature?.type === 'Feature')
+        ? collection.features.filter((feature) => feature?.type === 'Feature').map(ensureAnnotationFeatureId)
         : []
       if (features.length === 0) {
         showToast(t('annotation.editFailed', { reason: 'empty' }))
@@ -75,7 +76,7 @@ export function createAnnotationActions({ stateRef, viewerRef, getSelection, dra
      * and the card closes after a save — the name is the stable handle.
      */
     geometry: (target, messageKey = 'annotation.shapeSaved') => {
-      const found = findFeatureInState(stateRef.current, target?.name, target?.kind)
+      const found = findFeatureByTarget(stateRef.current, target)
       if (!found) {
         showToast(t('annotation.editFailed', { reason: 'feature_not_found' }))
         return false

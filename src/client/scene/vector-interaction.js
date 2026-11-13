@@ -13,7 +13,7 @@ export function createVectorInteraction({ Cesium, viewer, root, getTool, onSelec
   let disposed = false
   const valueOf = (property) => property?.getValue ? property.getValue(viewer.clock.currentTime) : property
   const groupOf = (picked) => entries.get(picked?.id ?? picked?.primitive?.id)?.group ?? null
-  const enabled = () => !moving && (!getTool() || getTool() === 'pick')
+  const enabled = () => !moving && (!getTool() || getTool() === 'pick' || getTool() === 'identify')
   const labels = createVectorLabels({ Cesium, viewer, root, onHover: setHover, onSelect: select, isInteractive: enabled })
 
   function applyState(group) {

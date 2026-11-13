@@ -60,7 +60,9 @@ function measureFeature(command, index) {
       kind: mode === 'area' ? 'area' : 'line',
       source: 'measure',
       mode,
-      ...(Number.isFinite(result.total_m) ? { distance_m: result.total_m } : {}),
+      ...(Number.isFinite(result.distance_m ?? result.total_m)
+        ? { distance_m: result.distance_m ?? result.total_m }
+        : {}),
       ...(Number.isFinite(result.area_m2) ? { area_m2: result.area_m2 } : {}),
       ...(Number.isFinite(result.height_m) ? { height_m: result.height_m } : {}),
     },

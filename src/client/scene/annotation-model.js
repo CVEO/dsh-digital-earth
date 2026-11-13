@@ -57,6 +57,27 @@ export function annotationNote(feature) {
   return annotationText(feature?.properties?.note, ANNOTATION_MAX_NOTE)
 }
 
+let generatedFeatureCounter = 0
+
+/** Stable feature identifier across replays; checks properties.feature_id then feature.id. */
+export function annotationFeatureId(feature) {
+  const propId = feature?.properties?.feature_id
+  if (typeof propId === 'string' && propId.trim() !== '') return propId.trim()
+  if (typeof propId === 'number' && Number.isFinite(propId)) return String(propId)
+  if (typeof feature?.id === 'string' && feature.id.trim() !== '') return feature.id.trim()
+  if (typeof feature?.id === 'number' && Number.isFinite(feature.id)) return String(feature.id)
+  return ''
+}
+
+/** Return a feature guaranteed to have a non-empty properties.feature_id. */
+export function ensureAnnotationFeatureId(feature) {
+  if (feature === null || typeof feature !== 'object' || feature.type !== 'Feature') return feature
+  const existing = annotationFeatureId(feature)
+  const id = existing !== '' ? existing : `feat-${Date.now().toString(36)}-${(generatedFeatureCounter += 1)}`
+  if (feature.properties?.feature_id === id) return feature
+  return { ...feature, properties: { ...(feature.properties ?? {}), feature_id: id } }
+}
+
 /**
  * Patch name/note/kind of a feature without touching its geometry.
  * Returns {ok:true, feature} (a fresh object) or {ok:false, error}.

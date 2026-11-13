@@ -10,7 +10,7 @@
  *
  * Failures are reported as one toast with a reason; no path is ever silently lost.
  */
-import { downloadText } from '../ui/cards.js'
+import { downloadText } from './download.js'
 import {
   collectVectorFeatures,
   vectorBbox,

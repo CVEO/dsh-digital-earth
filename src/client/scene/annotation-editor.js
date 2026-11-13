@@ -22,6 +22,8 @@ import {
   isShapeEditable,
 } from './annotation-vertices.js'
 import {
+  annotationFeatureId,
+  annotationKindOf,
   deleteAnnotationVertex,
   insertAnnotationVertex,
   moveAnnotationVertex,
@@ -167,6 +169,7 @@ export function createAnnotationEditor({ getCesium, getViewer, getRoot, pickSurf
     if (!target || !beforeFeature) return false
     const ok = updateGeometry(
       {
+        id: target.id,
         name: target.name,
         kind: target.kind,
         geometry: nextFeature.geometry,
@@ -180,13 +183,14 @@ export function createAnnotationEditor({ getCesium, getViewer, getRoot, pickSurf
       return false
     }
     addHistory(state, {
+      id: target.id,
       name: target.name,
       kind: target.kind,
       previous: beforeFeature.geometry,
       current: nextFeature.geometry,
     })
     state.feature = nextFeature
-    state.target = { name: target.name, kind: target.kind, geometry: nextFeature.geometry }
+    state.target = { id: target.id, name: target.name, kind: target.kind, geometry: nextFeature.geometry }
     refreshFeature(state)
     return true
   }
@@ -198,7 +202,7 @@ export function createAnnotationEditor({ getCesium, getViewer, getRoot, pickSurf
       return false
     }
     const ok = updateGeometry(
-      { name: entry.name, kind: entry.kind, geometry: entry.previous, previous: entry.current },
+      { id: entry.id, name: entry.name, kind: entry.kind, geometry: entry.previous, previous: entry.current },
       'annotation.undone',
     )
     if (!ok) {
@@ -206,7 +210,7 @@ export function createAnnotationEditor({ getCesium, getViewer, getRoot, pickSurf
       return false
     }
     state.feature = { ...state.feature, geometry: entry.previous }
-    state.target = { name: entry.name, kind: entry.kind, geometry: entry.previous }
+    state.target = { id: entry.id, name: entry.name, kind: entry.kind, geometry: entry.previous }
     refreshFeature(state)
     return true
   }
@@ -429,15 +433,15 @@ export function createAnnotationEditor({ getCesium, getViewer, getRoot, pickSurf
     clear()
     const feature = selection?.feature
     const name = typeof feature?.properties?.name === 'string' ? feature.properties.name : ''
-    const kind = feature?.properties?.kind ?? null
-    // The commit path addresses a feature by name+kind; asking the user to name
-    // an import first is honest, while editing an unnamed feature would fail
-    // only after the drag.
-    if (!feature || !kind || name === '' || !isShapeEditable(feature)) return false
+    const id = annotationFeatureId(feature)
+    const kind = feature?.properties?.kind ?? annotationKindOf(feature)
+    // Prefer stable feature_id (works for unnamed/duplicate-name imports);
+    // legacy features without an id still require explicit name + kind.
+    if (!feature || (!id && (!feature?.properties?.kind || name === '')) || !isShapeEditable(feature)) return false
     const state = sessionFor()
     if (!state) return false
     state.feature = feature
-    state.target = { name, kind, geometry: feature.geometry }
+    state.target = { id, name, kind, geometry: feature.geometry }
     state.history = []
     rebuildHandles(state)
     attachFrame(state)

@@ -10,6 +10,7 @@ import { profileCsv, profileMetrics, profileSvg } from '../analysis/profile-metr
 import { SHADER_PRIMARY_PRESETS } from '../shader/presets.js'
 import { ElevationLegend, elevationSliderBounds, useShaderElevation } from './shader-elevation.js'
 import { AnalysisProfileChart } from './profile-chart.js'
+import { downloadText } from '../scene/download.js'
 import { ResizeHandle, usePanelResize } from './resizable.js'
 
 const h = React.createElement
@@ -38,22 +39,6 @@ const h = React.createElement
       fill: t('profile.fill'),
       note: t('profile.note'),
     })
-
-    /** Client-side file download for profile CSV/SVG (no Host round-trip). */
-    function downloadText(filename, text, mime) {
-      if (typeof document === 'undefined' || typeof Blob === 'undefined' || typeof URL === 'undefined') return false
-      const blob = new Blob([text], { type: mime })
-      const url = URL.createObjectURL(blob)
-      const anchor = document.createElement('a')
-      anchor.href = url
-      anchor.download = filename
-      anchor.rel = 'noopener'
-      document.body.appendChild(anchor)
-      anchor.click()
-      anchor.remove()
-      setTimeout(() => URL.revokeObjectURL(url), 1000)
-      return true
-    }
 
     /** Full-size profile preview; the card keeps a thumbnail that opens this. */
     function ProfileChartDialog({ metrics, t, onClose }) {
@@ -811,4 +796,4 @@ const h = React.createElement
     }
     //#endregion shader workbench
 
-export { analysisMetric, AnalysisProfileChart, AnalysisCard, ShaderWorkbench, downloadText }
+export { analysisMetric, AnalysisProfileChart, AnalysisCard, ShaderWorkbench }
