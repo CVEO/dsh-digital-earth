@@ -7,11 +7,11 @@ import { resolve, sep } from 'node:path'
 import { promises as fs } from 'node:fs'
 import { Readable, pipeline } from 'node:stream'
 import { ABOUT } from './about.js'
-import { API, BRIDGE_ROUTE, CAPTURE_ROUTE, CESIUM_DIR, CESIUM_ROUTE, DIRECTORIES_ROUTE, EXPORT_ROUTE, EXPORT_VECTOR_ROUTE, FILES_ROUTE, INJECT_ROUTE, INSPECT_ROUTE, MAX_REMOTE_QUERY, PANEL_HEADER, REMOTE_PROXY_MAX_BYTES, REMOTE_PROXY_TIMEOUT_MS, REMOTE_ROUTE, REPORT_ROUTE, SCENE_ROUTE, SOURCES_ROUTE, TILES_ROUTE, TOKEN } from './constants.js'
+import { API, BRIDGE_ROUTE, CAPTURE_ROUTE, CESIUM_DIR, CESIUM_ROUTE, DIRECTORIES_ROUTE, EXPORT_ROUTE, EXPORT_VECTOR_CHAT_ROUTE, EXPORT_VECTOR_ROUTE, FILES_ROUTE, INJECT_ROUTE, INSPECT_ROUTE, MAX_REMOTE_QUERY, PANEL_HEADER, REMOTE_PROXY_MAX_BYTES, REMOTE_PROXY_TIMEOUT_MS, REMOTE_ROUTE, REPORT_ROUTE, SCENE_ROUTE, SOURCES_ROUTE, TILES_ROUTE, TOKEN } from './constants.js'
 import { blockedHost, decodeSegment, fromB64, isFilesystemRoot, isSafeOpenedDirectory, isUncPath, realPathOr, segments, toB64 } from './paths.js'
 import { bridgeHandler } from './bridge.js'
 import { captureHandler, capturesHandler, reportHandler } from './storage.js'
-import { evidenceExportHandler, vectorExportHandler } from './export.js'
+import { evidenceExportHandler, vectorChatHandler, vectorExportHandler } from './export.js'
 import { directoriesHandler } from './directories.js'
 import { injectHandler } from './inject.js'
 import { createVisionBatchHandler, createVisionHandler } from './vision.js'
@@ -74,6 +74,8 @@ function metaHandler(req, res) {
     exportUrl: `${EXPORT_ROUTE}/${TOKEN}`,
     // Page-only vector export: writes one .geojson the user can attach or hand over.
     exportVectorUrl: `${EXPORT_VECTOR_ROUTE}/${TOKEN}`,
+    // Export + attach: the same .geojson is handed to the live conversation.
+    exportVectorChatUrl: `${EXPORT_VECTOR_CHAT_ROUTE}/${TOKEN}`,
     version: ABOUT.version,
     homepage: ABOUT.homepage,
     issues: ABOUT.issues,
@@ -361,6 +363,7 @@ export function registerRoutes(ctx, { allowedDirs, bridge, directories, getServi
       register('exact', `${REPORT_ROUTE}/${TOKEN}`, reportHandler),
       register('exact', `${EXPORT_ROUTE}/${TOKEN}`, evidenceExportHandler),
       register('exact', `${EXPORT_VECTOR_ROUTE}/${TOKEN}`, vectorExportHandler),
+      register('exact', `${EXPORT_VECTOR_CHAT_ROUTE}/${TOKEN}`, (req, res) => vectorChatHandler(ctx, req, res)),
       register('exact', BRIDGE_ROUTE, bridgeHandler(bridge)),
       register('exact', CAPTURE_ROUTE, captureHandler),
       register('exact', INSPECT_ROUTE, (req, res) => inspectHandler(req, res, allowedDirs)),

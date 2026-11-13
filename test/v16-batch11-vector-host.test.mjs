@@ -1,5 +1,7 @@
 /**
- * v1.6 Batch 11 — F3 host half: POST /export/vector writes one .geojson.
+ * v1.6 Batch 11 — F3 host half: POST /export/vector writes one .geojson, and
+ * POST /export/vector/chat also hands the same bytes to the conversation as a
+ * real `{ type: 'file' }` attachment (F3 real-attachment upgrade).
  *
  * Same test seam as the evidence pack (test/v17-export.test.mjs): DSH_HOME is
  * redirected before index.js is imported because EXPORTS_DIR is module-level.
@@ -75,6 +77,34 @@ async function callExport(body, options = {}) {
   await host.vectorExportHandler(req, res)
   return res
 }
+
+/** Minimal stand-in for the DSH services the chat route looks up. */
+function fakeContext({ agent = null, saveFile = null } = {}) {
+  const injected = []
+  const fakeAgent = agent === null ? null : {
+    inject(message) {
+      if (agent === 'throw') throw new Error('agent closed')
+      injected.push(message)
+    },
+  }
+  const services = {
+    agents: { get: (session) => (session === 'session-1' ? fakeAgent : null) },
+    attachments: saveFile === null ? {} : { saveFile },
+  }
+  return {
+    injected,
+    ctx: { get: (name) => services[name] ?? null },
+  }
+}
+
+async function callChat(body, context, options = {}) {
+  const req = fakeRequest({ ...options, chunks: body === undefined ? [] : [JSON.stringify(body)] })
+  const res = fakeResponse()
+  await host.vectorChatHandler(context.ctx, req, res)
+  return res
+}
+
+const chatFeature = () => feature('研究区', [[114.3, 30.5], [114.4, 30.6]])
 
 const feature = (name, coordinates) => ({
   type: 'Feature',
@@ -155,6 +185,101 @@ test('vector export：方法、kind、空数组、非法要素与超限都返回
   assert.equal((await exportNames()).length, before, '被拒绝的请求不应写文件')
 })
 
+test('vector chat：写文件并以真文件附件注入对话，模型侧只拿到句柄文本', async () => {
+  const saved = []
+  const { ctx, injected } = fakeContext({
+    agent: 'ok',
+    saveFile: async (input) => {
+      saved.push(input)
+      return { name: input.name, bytes: input.data.length }
+    },
+  })
+  const res = await callChat(
+    { kind: 'vector', session: 'session-1', name: '研究区', features: [chatFeature()], text: '请以附件为准。' },
+    { ctx, injected },
+  )
+  assert.equal(res.status, 200)
+  const receipt = JSON.parse(res.body)
+  assert.equal(receipt.ok, true)
+  assert.equal(receipt.injected, true)
+  assert.equal(receipt.attached, true)
+  assert.equal(receipt.count, 1)
+  assert.equal(dirname(receipt.path), exportsDir)
+  assert.equal(receipt.attachment.name, basename(receipt.path))
+  assert.equal(injected.length, 1)
+  const message = injected[0]
+  assert.equal(message.role, 'user')
+  assert.equal(message.source.kind, 'digital-earth')
+  assert.equal(typeof message.id, 'string')
+  assert.equal(message.content.length, 2)
+  assert.equal(message.content[0].type, 'text')
+  assert.ok(message.content[0].text.includes('请以附件为准。'))
+  assert.ok(message.content[0].text.includes(basename(receipt.path)))
+  assert.ok(message.content[0].text.includes(receipt.path))
+  assert.deepEqual(message.content[1], { type: 'file', attachment: { name: receipt.attachment.name, bytes: receipt.attachment.bytes } })
+  // saveFile gets the exact bytes that landed on disk.
+  const content = await readFile(receipt.path, 'utf8')
+  assert.equal(saved.length, 1)
+  assert.equal(saved[0].name, basename(receipt.path))
+  assert.equal(Buffer.compare(saved[0].data, Buffer.from(content, 'utf8')), 0)
+})
+
+test('vector chat：附件存储不可用时降级为路径通知，文件仍然落盘', async () => {
+  const { ctx, injected } = fakeContext({
+    agent: 'ok',
+    saveFile: async () => {
+      throw new Error('provider has no verbatim storage')
+    },
+  })
+  const res = await callChat({ kind: 'vector', session: 'session-1', features: [chatFeature()] }, { ctx, injected })
+  assert.equal(res.status, 200)
+  const receipt = JSON.parse(res.body)
+  assert.equal(receipt.injected, true)
+  assert.equal(receipt.attached, false)
+  assert.equal(receipt.reason, 'attachment_unavailable')
+  assert.equal((await stat(receipt.path)).isFile(), true)
+  assert.equal(injected[0].content.length, 1)
+  assert.equal(injected[0].content[0].type, 'text')
+  assert.ok(injected[0].content[0].text.includes('File: '))
+})
+
+test('vector chat：没有 agent 时只报告 agent_not_running，文件仍然可用', async () => {
+  const { ctx, injected } = fakeContext({ agent: null })
+  const res = await callChat({ kind: 'vector', session: 'session-1', features: [chatFeature()] }, { ctx, injected })
+  assert.equal(res.status, 200)
+  const receipt = JSON.parse(res.body)
+  assert.equal(receipt.injected, false)
+  assert.equal(receipt.attached, false)
+  assert.equal(receipt.reason, 'agent_not_running')
+  assert.equal((await stat(receipt.path)).isFile(), true)
+  assert.equal(injected.length, 0)
+
+  // A closed agent is a normal outcome too: the file exists, the notice did not.
+  const throwing = fakeContext({ agent: 'throw', saveFile: async (input) => ({ name: input.name, bytes: input.data.length }) })
+  const failed = await callChat({ kind: 'vector', session: 'session-1', features: [chatFeature()] }, throwing)
+  assert.equal(failed.status, 200)
+  const lost = JSON.parse(failed.body)
+  assert.equal(lost.injected, false)
+  assert.equal(lost.reason, 'inject_failed')
+  assert.equal((await stat(lost.path)).isFile(), true)
+})
+
+test('vector chat：会话缺失/非法与要素非法时拒绝且不写文件', async () => {
+  const before = (await exportNames()).length
+  for (const session of [undefined, '', 'has space', 42]) {
+    const { ctx, injected } = fakeContext({ agent: 'ok' })
+    const res = await callChat({ kind: 'vector', session, features: [chatFeature()] }, { ctx, injected })
+    assert.equal(res.status, 400, String(session))
+    assert.equal(res.body, 'missing or invalid session')
+    assert.equal(injected.length, 0)
+  }
+  const { ctx, injected } = fakeContext({ agent: 'ok' })
+  const bad = await callChat({ kind: 'vector', session: 'session-1', features: [] }, { ctx, injected })
+  assert.equal(bad.status, 400)
+  assert.equal(bad.body, 'empty vector layer')
+  assert.equal((await exportNames()).length, before, '被拒绝的请求不应写文件')
+})
+
 test('vector export：路由/常量/meta/index 接线正确，且工具源码不知道这条路由', () => {
   assert.ok(constantsSource.includes('export const EXPORT_VECTOR_ROUTE = `${API}/export/vector`'))
   assert.ok(routesSource.includes("register('exact', `${EXPORT_VECTOR_ROUTE}/${TOKEN}`, vectorExportHandler)"))
@@ -163,4 +288,11 @@ test('vector export：路由/常量/meta/index 接线正确，且工具源码不
   assert.doesNotMatch(routesSource, /register\('prefix', EXPORT_VECTOR_ROUTE/, '矢量导出不得注册为无 token 前缀路由')
   assert.doesNotMatch(toolSource, /exportVectorUrl|EXPORT_VECTOR_ROUTE|earth-vector/, '工具源码不得引用页面专用导出路由或文件名')
   assert.ok(readSource('src/host/export.js').includes('earth-vector-'))
+  // Chat route: same token discipline, a one-shot export+attach endpoint.
+  assert.ok(constantsSource.includes('export const EXPORT_VECTOR_CHAT_ROUTE = `${API}/export/vector/chat`'))
+  assert.ok(routesSource.includes("register('exact', `${EXPORT_VECTOR_CHAT_ROUTE}/${TOKEN}`"))
+  assert.ok(routesSource.includes('exportVectorChatUrl: `${EXPORT_VECTOR_CHAT_ROUTE}/${TOKEN}`'))
+  assert.ok(indexSource.includes('vectorChatHandler'))
+  assert.doesNotMatch(routesSource, /register\('prefix', EXPORT_VECTOR_CHAT_ROUTE/, '附件导出不得注册为无 token 前缀路由')
+  assert.doesNotMatch(toolSource, /exportVectorChatUrl|EXPORT_VECTOR_CHAT_ROUTE/, '工具源码不得引用页面专用附件路由')
 })

@@ -5,13 +5,14 @@
  * This route has no tool counterpart and is never named in a tool result: the
  * user takes the evidence, while the model never learns its destination.
  */
-import { randomBytes } from 'node:crypto'
+import { randomBytes, randomUUID } from 'node:crypto'
 import { promises as fs } from 'node:fs'
 import { join } from 'node:path'
-import { EXPORTS_DIR, MAX_DRAW_COORDINATES, MAX_DRAW_FEATURES, MAX_EVIDENCE_JSON, MAX_EXPORT_BODY, MAX_EXPORT_FILES } from './constants.js'
+import { EXPORTS_DIR, MAX_DRAW_COORDINATES, MAX_DRAW_FEATURES, MAX_EVIDENCE_JSON, MAX_EXPORT_BODY, MAX_EXPORT_FILES, MAX_INJECT_TEXT } from './constants.js'
 import { sanitizeLabel, timeStamp } from './paths.js'
 import { sendJson, sendText } from './http.js'
 import { pruneByMtime } from './fs-util.js'
+import { validSessionId } from './session.js'
 
 const IMAGE_DATA_URL = /^data:image\/(jpeg|png);base64,([A-Za-z0-9+/=]+)$/
 const VECTOR_GEOMETRY_TYPES = new Set([
@@ -139,35 +140,62 @@ export async function evidenceExportHandler(req, res) {
   })
 }
 
+/** Resolve one optional DSH service without assuming this host version has it. */
+function lookupService(ctx, name) {
+  try {
+    return ctx?.get?.(name) ?? ctx?.[name] ?? null
+  } catch {
+    return null
+  }
+}
+
 /**
- * POST: write one .geojson of the current vector overlay layer.
+ * Validate one vector export envelope; answers 4xx itself and returns null on refusal.
  *
  * The page has already validated the features it drew, so the host re-checks
- * only what keeps the folder safe and bounded: the envelope shape, the same
- * feature/coordinate ceilings as earth_draw, the payload size and the host-owned
- * file name. Nothing here is a tool route, so the model never learns the path.
+ * only what keeps the folder and the conversation safe and bounded: envelope
+ * shape, the earth_draw ceilings, and a finite coordinate count.
  */
-export async function vectorExportHandler(req, res) {
-  const payload = await readJsonBody(req, res)
-  if (payload === undefined) return
-  if (payload?.kind !== 'vector') return sendText(res, 400, 'invalid kind')
+function vectorFeaturesOf(payload, res) {
+  if (payload?.kind !== 'vector') {
+    sendText(res, 400, 'invalid kind')
+    return null
+  }
   const features = Array.isArray(payload.features) ? payload.features : null
-  if (features === null || features.length === 0) return sendText(res, 400, 'empty vector layer')
-  if (features.length > MAX_DRAW_FEATURES) return sendText(res, 413, 'too many features')
+  if (features === null || features.length === 0) {
+    sendText(res, 400, 'empty vector layer')
+    return null
+  }
+  if (features.length > MAX_DRAW_FEATURES) {
+    sendText(res, 413, 'too many features')
+    return null
+  }
   let coordinates = 0
   for (const feature of features) {
     const geometry = feature?.geometry
     if (feature?.type !== 'Feature' || geometry === null || typeof geometry !== 'object' || !VECTOR_GEOMETRY_TYPES.has(geometry.type)) {
-      return sendText(res, 400, 'invalid feature')
+      sendText(res, 400, 'invalid feature')
+      return null
     }
     coordinates += countCoordinates(geometry.coordinates)
-    if (coordinates > MAX_DRAW_COORDINATES) return sendText(res, 413, 'too many coordinates')
+    if (coordinates > MAX_DRAW_COORDINATES) {
+      sendText(res, 413, 'too many coordinates')
+      return null
+    }
   }
-  const name = typeof payload.name === 'string' ? payload.name.trim().slice(0, 120) : ''
+  return features
+}
+
+/** Write one host-named .geojson for validated features; answers 413/500 on refusal. */
+async function writeVectorFile(features, rawName, res) {
+  const name = typeof rawName === 'string' ? rawName.trim().slice(0, 120) : ''
   const geojson = { type: 'FeatureCollection', ...(name === '' ? {} : { name }), features }
   const content = JSON.stringify(geojson, null, 2)
   const contentBytes = Buffer.byteLength(content, 'utf8')
-  if (contentBytes > MAX_EXPORT_BODY - 1024) return sendText(res, 413, 'vector too large')
+  if (contentBytes > MAX_EXPORT_BODY - 1024) {
+    sendText(res, 413, 'vector too large')
+    return null
+  }
   const label = sanitizeLabel(name)
   const base = `earth-vector-${timeStamp()}-${randomBytes(4).toString('hex')}${label === '' ? '' : `-${label}`}`
   const fileName = `${base}.geojson`
@@ -180,13 +208,122 @@ export async function vectorExportHandler(req, res) {
     await fs.rename(tempPath, filePath)
   } catch (error) {
     await fs.rm(tempPath, { force: true }).catch(() => {})
-    return sendText(res, 500, `vector save failed: ${error instanceof Error ? error.message : String(error)}`)
+    sendText(res, 500, `vector save failed: ${error instanceof Error ? error.message : String(error)}`)
+    return null
   }
   void pruneExports(fileName).catch(() => {})
+  return { fileName, filePath, content, contentBytes, bbox: bboxOfFeatures(features) }
+}
+
+/** Bounded, control-character-free notice text; falls back to a host-owned sentence. */
+function noticeText(value, fallback) {
+  const cleaned = String(value ?? '')
+    // Keep the same whitespace controls the inject route keeps (tab, newline).
+    .replace(/[\u0000-\u0008\u000b-\u001f]/g, '')
+    .trim()
+    .slice(0, MAX_INJECT_TEXT - 400)
+  return cleaned === '' ? fallback : cleaned
+}
+
+/**
+ * POST: write one .geojson of the current vector overlay layer.
+ *
+ * Nothing here is a tool route, so the model never learns the path from a tool
+ * result; the user takes the file.
+ */
+export async function vectorExportHandler(req, res) {
+  const payload = await readJsonBody(req, res)
+  if (payload === undefined) return
+  const features = vectorFeaturesOf(payload, res)
+  if (features === null) return
+  const written = await writeVectorFile(features, payload.name, res)
+  if (written === null) return
   sendJson(res, 200, {
-    path: filePath,
-    bytes: contentBytes,
+    path: written.filePath,
+    bytes: written.contentBytes,
     count: features.length,
-    bbox: bboxOfFeatures(features),
+    bbox: written.bbox,
+  })
+}
+
+/**
+ * POST: write one .geojson AND hand the same bytes to the live conversation.
+ *
+ * This is the real-attachment half of F3: the file becomes a durable
+ * `{ type: 'file' }` content block, which the chat client renders as a file
+ * card, and the model receives only the host file handle text. When the
+ * mounted attachment provider cannot store verbatim files, or the agent is not
+ * running, the route still writes the file and reports the path, so the user
+ * never loses the export. The route answers 200 after the file exists; the
+ * receipt says exactly what happened (injected / attached flags).
+ */
+export async function vectorChatHandler(ctx, req, res) {
+  const payload = await readJsonBody(req, res)
+  if (payload === undefined) return
+  const session = typeof payload?.session === 'string' ? payload.session : ''
+  if (!validSessionId(session)) return sendText(res, 400, 'missing or invalid session')
+  const features = vectorFeaturesOf(payload, res)
+  if (features === null) return
+  const written = await writeVectorFile(features, payload.name, res)
+  if (written === null) return
+  const receipt = {
+    ok: true,
+    path: written.filePath,
+    bytes: written.contentBytes,
+    count: features.length,
+    bbox: written.bbox,
+    injected: false,
+    attached: false,
+  }
+  const agents = lookupService(ctx, 'agents')
+  const attachments = lookupService(ctx, 'attachments')
+  let agent = null
+  try {
+    agent = agents && typeof agents.get === 'function' ? agents.get(session) : null
+  } catch {
+    agent = null
+  }
+  if (!agent || typeof agent.inject !== 'function') {
+    sendJson(res, 200, { ...receipt, reason: 'agent_not_running' })
+    return
+  }
+  // The notice names the file and its path; the page never has to echo either.
+  const text = `${noticeText(payload.text, `Digital Earth vector overlay: ${written.fileName}`)}
+\n\nFile: ${written.fileName} (${written.contentBytes} bytes)
+\nPath: ${written.filePath}`
+  let attachment = null
+  if (attachments !== null && typeof attachments.saveFile === 'function') {
+    try {
+      attachment = await attachments.saveFile({
+        data: Buffer.from(written.content, 'utf8'),
+        name: written.fileName,
+      })
+    } catch {
+      // Providers without verbatim file storage reject; the path notice still works.
+      attachment = null
+    }
+  }
+  const content = [{ type: 'text', text }]
+  if (attachment !== null) content.push({ type: 'file', attachment })
+  try {
+    agent.inject({
+      id: randomUUID(),
+      role: 'user',
+      content,
+      source: { kind: 'digital-earth', form: 'notice', summary: 'Digital Earth vector overlay file' },
+    })
+  } catch (error) {
+    sendJson(res, 200, {
+      ...receipt,
+      reason: 'inject_failed',
+      message: error instanceof Error ? error.message : String(error),
+    })
+    return
+  }
+  sendJson(res, 200, {
+    ...receipt,
+    injected: true,
+    attached: attachment !== null,
+    ...(attachment === null ? { reason: 'attachment_unavailable' } : { attachment: { name: attachment.name, bytes: attachment.bytes } }),
   })
 }

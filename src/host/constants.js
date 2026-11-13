@@ -44,6 +44,8 @@ export const EXPORT_ROUTE = `${API}/export`
 // Vector layer export: the page posts a FeatureCollection it already validated
 // and the host writes one .geojson under EXPORTS_DIR. Page-only, like evidence.
 export const EXPORT_VECTOR_ROUTE = `${API}/export/vector`
+/** Export + hand the same bytes to the conversation as a real attachment (F3). */
+export const EXPORT_VECTOR_CHAT_ROUTE = `${API}/export/vector/chat`
 export const MAX_EXPORT_BODY = 16 * 1024 * 1024
 export const MAX_EVIDENCE_JSON = 256 * 1024
 export const MAX_EXPORT_FILES = 200

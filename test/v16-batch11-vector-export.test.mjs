@@ -135,7 +135,53 @@ test('service.send：没有会话时只提示，不发请求', async () => {
   assert.ok(toasts.includes('vectorExport.noSession'))
 })
 
-test('service.send：先写文件再把路径注入对话', async () => {
+test('service.send：新版宿主一次请求写文件并附到对话，不再注入路径', async () => {
+  const calls = []
+  const toasts = []
+  const meta = { exportVectorUrl: '/export/vector/token', injectUrl: '/inject/token', exportVectorChatUrl: '/export/vector/chat/token' }
+  const service = serviceModule.createVectorExport({
+    stateRef: { current: fakeState() },
+    getMeta: () => meta,
+    getSession: () => 'session-1',
+    showToast: (message) => toasts.push(message),
+    t: (key, params) => (params ? `${key} ${JSON.stringify(params)}` : key),
+    fetchImpl: async (url, options) => {
+      calls.push({ url, body: JSON.parse(options.body) })
+      return { ok: true, json: async () => ({ ok: true, injected: true, attached: true, path: 'C:/dsh/exports/earth-vector-2.geojson', count: 3 }) }
+    },
+  })
+  const receipt = await service.send()
+  assert.equal(receipt.attached, true)
+  assert.equal(calls.length, 1, '附件路由只需一次请求')
+  assert.equal(calls[0].url, '/export/vector/chat/token')
+  assert.equal(calls[0].body.kind, 'vector')
+  assert.equal(calls[0].body.session, 'session-1')
+  assert.equal(calls[0].body.features.length, 3)
+  assert.ok(calls[0].body.text.includes('114.3'), '通知里带上真实 bbox')
+  assert.ok(toasts.some((toast) => toast.startsWith('vectorExport.sentAttached')))
+})
+
+test('service.send：宿主没能附上附件时，如实提示文件已保存', async () => {
+  const toasts = []
+  const service = serviceModule.createVectorExport({
+    stateRef: { current: fakeState() },
+    getMeta: () => ({ exportVectorChatUrl: '/export/vector/chat/token', injectUrl: '/inject/token' }),
+    getSession: () => 'session-1',
+    showToast: (message) => toasts.push(message),
+    t: (key, params) => (params ? `${key} ${JSON.stringify(params)}` : key),
+    fetchImpl: async () => ({
+      ok: true,
+      json: async () => ({ ok: true, injected: true, attached: false, reason: 'attachment_unavailable', path: 'C:/dsh/exports/earth-vector-3.geojson', count: 3 }),
+    }),
+  })
+  const receipt = await service.send()
+  assert.equal(receipt.attached, false)
+  assert.equal(toasts.some((toast) => toast.startsWith('vectorExport.sentAttached')), false, '不得谎称附件')
+  assert.ok(toasts.some((toast) => toast.startsWith('vectorExport.saved')))
+  assert.ok(toasts.some((toast) => toast.includes('earth-vector-3.geojson')))
+})
+
+test('service.send：旧宿主没有附件路由时，先写文件再把路径注入对话', async () => {
   const { service, toasts, calls } = makeService()
   assert.equal(service.canSend(), true)
   const saved = await service.send()

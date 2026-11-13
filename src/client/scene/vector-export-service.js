@@ -97,7 +97,14 @@ export function createVectorExport({ stateRef, getMeta, getSession, showToast, t
       }
     },
 
-    /** Save, then inject the path into the conversation as a digital-earth notice. */
+    /**
+     * Write one GeoJSON under the exports folder and hand it to the conversation.
+     *
+     * Preferred path: one host call writes the file, stores it as a durable file
+     * attachment and injects a user message carrying it, so the chat shows a real
+     * file card. Older hosts without that route fall back to writing the file and
+     * injecting a path-only notice, which the agent can still read.
+     */
     send: async () => {
       const session = typeof getSession === 'function' ? getSession() : null
       if (!session) {
@@ -106,15 +113,42 @@ export function createVectorExport({ stateRef, getMeta, getSession, showToast, t
       }
       const prepared = prepare()
       if (!prepared) return null
+      const meta = typeof getMeta === 'function' ? getMeta() : null
+      const text = t('vectorExport.chatAttachNotice', {
+        count: prepared.count,
+        bbox: bboxText(prepared.bbox),
+      })
       try {
+        if (meta?.exportVectorChatUrl) {
+          const response = await doFetch()(meta.exportVectorChatUrl, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({
+              kind: 'vector',
+              session,
+              name: prepared.geojson.name,
+              features: prepared.features,
+              text,
+            }),
+          })
+          if (!response.ok) throw new Error(`HTTP ${response.status}`)
+          const receipt = await response.json()
+          if (receipt.injected === true && receipt.attached === true) {
+            showToast(t('vectorExport.sentAttached', { count: prepared.count }))
+          } else {
+            // The file still exists; report where it went instead of claiming an attachment.
+            showToast(t('vectorExport.saved', { path: receipt.path, count: prepared.count }))
+          }
+          return receipt
+        }
         const saved = await saveToHost(prepared)
         if (!saved) return null
-        const meta = typeof getMeta === 'function' ? getMeta() : null
         if (!meta?.injectUrl) {
           showToast(t('vectorExport.hostUnavailable'))
           return saved
         }
-        const text = t('vectorExport.chatNotice', {
+        const notice = t('vectorExport.chatNotice', {
           path: saved.path,
           count: prepared.count,
           bbox: bboxText(prepared.bbox),
@@ -123,7 +157,7 @@ export function createVectorExport({ stateRef, getMeta, getSession, showToast, t
           method: 'POST',
           credentials: 'same-origin',
           headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ session, text }),
+          body: JSON.stringify({ session, text: notice }),
         })
         if (!response.ok) throw new Error(`HTTP ${response.status}`)
         showToast(t('vectorExport.sent', { count: prepared.count }))
