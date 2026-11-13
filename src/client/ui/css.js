@@ -532,6 +532,10 @@ import { PARSE_CSS } from './parse-css.js'
 .mv-toolwin-body .mv-cta{border:.5px solid var(--mv-line);border-radius:8px;font-size:11px;line-height:1.4}
 .mv-toolwin-body .mv-cta[aria-pressed="true"]{border-color:var(--mv-accent);background:color-mix(in srgb,var(--mv-accent) 13%,var(--mv-glass))}
 .mv-toolwin-body .mv-group-title{margin-top:4px}
+.mv-profile-opts{display:flex;flex-direction:column;gap:4px;padding:6px 8px;border:.5px solid var(--mv-line);border-radius:8px;background:color-mix(in srgb,var(--mv-bg) 35%,transparent)}
+.mv-profile-opt{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:10.5px;color:var(--mv-dim)}
+.mv-profile-opt span{flex:none}
+.mv-profile-opt select{flex:1;min-width:0;max-width:170px;background:var(--mv-input);border:.5px solid var(--mv-line);color:var(--mv-text);border-radius:6px;padding:3px 6px;font:inherit;font-size:10.5px}
 .mv-tool-effects-list{display:flex;flex-direction:column;gap:3px;padding:2px 0}
 .mv-tool-effects-list .mv-layer{min-height:26px;padding:4px 6px;display:flex;align-items:center;justify-content:space-between;gap:6px}
 .mv-root.mv-docked .mv-toolwin{max-height:none}

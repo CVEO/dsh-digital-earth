@@ -565,7 +565,7 @@ var V18_MESSAGES = {
     "tools.effects": "视觉特效",
     "tools.view": "视角",
     "tools.measureHint": "在地球上点击取点，双击结束；结果留在面板里。",
-    "tools.analysisHint": "剖面可手动画线；淹没 / 剖切 / 天际线由对话 Agent 执行，结果显示在分析卡。",
+    "tools.analysisHint": "高程纵断面可手动画线采样表面高程与坡度（非模型剖切）；淹没 / 剖切 / 天际线由对话 Agent 执行，结果显示在分析卡。",
     "tools.effectsActive": "{n} 个图层有活动特效",
     "tools.effectsEmpty": "暂无活动特效；打开工作台应用。",
     "tools.select": "选择",
@@ -646,16 +646,16 @@ var V18_MESSAGES = {
     "profile.exportSvg": "导出 SVG",
     "profile.axisDistance": "距离 (m)",
     "profile.axisElevation": "高程 (m)",
-    "profile.terrain": "地表",
+    "profile.terrain": "采样表面",
     "profile.design": "设计线",
-    "profile.note": "挖填按所选路宽与设计基准估算；实景表面含建筑 / 树木，不作为测绘级土方。",
-    "profile.chartTitle": "三维剖面图",
+    "profile.note": "沿测地线采样三维表面或纯地形高程；可拖动地面起终点手柄重算（实景模型含屋顶/植被）。",
+    "profile.chartTitle": "高程纵断面图",
     "profile.expandChart": "点击查看大图",
-    "profile.draw": "画剖面",
-    "profile.clickStart": "点击剖面起点",
-    "profile.clickEnd": "移动鼠标预览剖面线，再点终点生成三维剖面（右键或 Esc 取消）",
-    "profile.running": "正在生成剖面…",
-    "profile.failed": "三维剖面失败：{message}。请确认已加载 3D Tiles 或地形后重试。",
+    "profile.draw": "绘制高程纵断面",
+    "profile.clickStart": "点击纵断面起点",
+    "profile.clickEnd": "移动鼠标预览线，再点终点生成高程纵断面（右键或 Esc 取消）",
+    "profile.running": "正在采样高程纵断面…",
+    "profile.failed": "高程纵断面失败：{message}。请确认已加载 3D Tiles 或地形后重试。",
     "sun.title": "日照时间轴",
     "sun.enable": "开启",
     "sun.date": "日期",
@@ -724,7 +724,7 @@ var V18_MESSAGES = {
     "tools.effects": "Visual effects",
     "tools.view": "Views",
     "tools.measureHint": "Click points on the globe; double-click to finish. Results stay in the panel.",
-    "tools.analysisHint": "Draw a profile manually; flood / clip / skyline run through the Agent and appear on the analysis card.",
+    "tools.analysisHint": "Draw an elevation profile line manually to sample heights & slopes (distinct from 3D model clipping); flood / clip / skyline run via the Agent and appear on the analysis card.",
     "tools.effectsActive": "{n} layer(s) with an active effect",
     "tools.effectsEmpty": "No active effect; open the workbench to apply one.",
     "tools.select": "Select",
@@ -805,16 +805,16 @@ var V18_MESSAGES = {
     "profile.exportSvg": "Export SVG",
     "profile.axisDistance": "Distance (m)",
     "profile.axisElevation": "Elevation (m)",
-    "profile.terrain": "Terrain",
+    "profile.terrain": "Surface",
     "profile.design": "Design line",
-    "profile.note": "Cut/fill uses the chosen width and design baseline; the reality surface includes roofs and trees, so this is not a survey-grade earthwork quantity.",
-    "profile.chartTitle": "3D profile chart",
+    "profile.note": "Sampled along the geodesic line on 3D surface or terrain; drag ground endpoint handles to recompute (reality mesh includes roofs & foliage).",
+    "profile.chartTitle": "Elevation profile chart",
     "profile.expandChart": "Click to enlarge",
-    "profile.draw": "Draw profile",
-    "profile.clickStart": "Click the profile start point",
-    "profile.clickEnd": "Move the mouse to preview the profile line, then click the end point (right-click or Esc cancels)",
-    "profile.running": "Building the profile…",
-    "profile.failed": "3D profile failed: {message}. Check that 3D Tiles or terrain is loaded, then retry.",
+    "profile.draw": "Draw elevation profile",
+    "profile.clickStart": "Click the elevation profile start point",
+    "profile.clickEnd": "Move the mouse to preview the line, then click the end point (right-click or Esc cancels)",
+    "profile.running": "Sampling elevation profile…",
+    "profile.failed": "Elevation profile failed: {message}. Check that 3D Tiles or terrain is loaded, then retry.",
     "sun.title": "Sun timeline",
     "sun.enable": "Enable",
     "sun.date": "Date",
@@ -1056,22 +1056,50 @@ var EXPORT_MESSAGES = {
 // src/client/messages-profile.js
 var PROFILE_MESSAGES = {
   zh: {
-    "profile.dragStart": "拖动起点，松开后按新端点重算剖面",
-    "profile.dragEnd": "拖动终点，松开后按新端点重算剖面",
-    "profile.recomputing": "正在按新端点重算剖面…",
-    "profile.recomputeFailed": "重算剖面失败：{message}",
+    "profile.dragStart": "拖动起点，松开后按新端点重算纵断面",
+    "profile.dragEnd": "拖动终点，松开后按新端点重算纵断面",
+    "profile.recomputing": "正在按新端点重算纵断面…",
+    "profile.recomputeFailed": "重算纵断面失败：{message}",
     "profile.hoverReadout": "{distance} · {height}",
     "profile.hoverEmpty": "{distance} · 无高程数据",
-    "profile.hoverHint": "悬停图表或地面剖面线可读取该点高程"
+    "profile.hoverHint": "悬停曲线或地面剖面线可读取该点高程",
+    "profile.subtitle": "沿两点连线采样高程起伏与坡度，不同于水平「剖切」裁剪三维模型。",
+    "profile.sourceLabel": "采样目标",
+    "profile.sourceTiles": "三维表面（含建筑/植被）",
+    "profile.sourceTerrain": "纯地形（DEM）",
+    "profile.samplesLabel": "采样点数",
+    "profile.samplesOption": "{n} 点",
+    "profile.surfaceLength": "贴表面长度",
+    "profile.startEndHeight": "起 / 终高程",
+    "profile.netChange": "起终点高差",
+    "profile.endpoints": "起终点坐标",
+    "profile.hoverChartHint": "悬停曲线或地面剖面线读高程；拖动地面起终点手柄可重算",
+    "measure.previewSegment": "+{seg} · 总长 {total}",
+    "measure.previewArea": "预估面积 {area}",
+    "measure.previewHeight": "高差 {height} · 平距 {distance}"
   },
   en: {
     "profile.dragStart": "Drag the start point; release to recompute the profile",
     "profile.dragEnd": "Drag the end point; release to recompute the profile",
-    "profile.recomputing": "Recomputing the profile at the new endpoints…",
-    "profile.recomputeFailed": "Profile recompute failed: {message}",
+    "profile.recomputing": "Recomputing the elevation profile at the new endpoints…",
+    "profile.recomputeFailed": "Elevation profile recompute failed: {message}",
     "profile.hoverReadout": "{distance} · {height}",
     "profile.hoverEmpty": "{distance} · no elevation",
-    "profile.hoverHint": "Hover the chart or the ground profile line to read its elevation"
+    "profile.hoverHint": "Hover the chart or the ground profile line to read its elevation",
+    "profile.subtitle": "Samples elevation & slope along a line between two points (distinct from horizontal 3D clipping).",
+    "profile.sourceLabel": "Elevation target",
+    "profile.sourceTiles": "3D surface (buildings & canopy)",
+    "profile.sourceTerrain": "Bare terrain (DEM)",
+    "profile.samplesLabel": "Samples",
+    "profile.samplesOption": "{n} pts",
+    "profile.surfaceLength": "Surface 3D length",
+    "profile.startEndHeight": "Start / End height",
+    "profile.netChange": "Net elevation change",
+    "profile.endpoints": "Endpoints",
+    "profile.hoverChartHint": "Hover the chart or ground line for height; drag start/end handles to recompute.",
+    "measure.previewSegment": "+{seg} · Total {total}",
+    "measure.previewArea": "Preview area {area}",
+    "measure.previewHeight": "Δh {height} · horiz {distance}"
   }
 };
 
@@ -1171,7 +1199,7 @@ var MESSAGES = {
     "layers.vectorRemove": "移除该叠加",
     "layers.frameAll": "框全所有可见图层",
     "layers.analysis": "空间分析",
-    "layers.analysisHint": "点上方「三维剖面」可在地球上手动画线并直接出结果；下方「日照时间轴」可拖动查看阴影。淹没 / 剖切 / 天际线仍由对话 Agent 执行；结果会显示在分析卡。",
+    "layers.analysisHint": "点上方「绘制高程纵断面」可在地球上采样起伏与坡度（非三维模型剖切）；下方「日照时间轴」可拖动查看阴影。淹没 / 剖切 / 天际线由对话 Agent 执行；结果会显示在分析卡。",
     "layers.georefWarning": "缺少世界定位（根 transform / region）：局部坐标会被当成 ECEF，数据会落在地心附近。请让数据提供方重新导出该 tileset，或按 README 用 scripts/georef-osgb.mjs 一次性修复后重新加载。",
     "layers.analysisClear": "清除分析",
     "layers.shader": "视觉特效",
@@ -1388,7 +1416,7 @@ var MESSAGES = {
     "access.scanFailed": "目录登记失败，本次操作未执行：{message}",
     "access.remote": "仅本地路径需要授权；在线地址无需此步骤。",
     "access.badPath": "授权请求缺少有效的本地路径。",
-    "analysis.title.profile": "三维剖面",
+    "analysis.title.profile": "高程纵断面",
     "analysis.title.flood": "淹没分析",
     "analysis.title.sunlight": "日照分析",
     "analysis.title.clip": "剖切分析",
@@ -1413,8 +1441,8 @@ var MESSAGES = {
     "analysis.collapse": "折叠分析卡",
     "analysis.expand": "展开分析卡",
     "analysis.close": "关闭分析卡",
-    "analysis.chart": "三维剖面图",
-    "analysis.length": "剖面长度",
+    "analysis.chart": "高程纵断面图",
+    "analysis.length": "水平长度",
     "analysis.minHeight": "最低高程",
     "analysis.maxHeight": "最高高程",
     "analysis.relief": "起伏",
@@ -1599,7 +1627,7 @@ var MESSAGES = {
     "layers.vectorRemove": "Remove this overlay",
     "layers.frameAll": "Frame all visible layers",
     "layers.analysis": "Spatial analysis",
-    "layers.analysisHint": 'Use "3D profile" above to draw on the globe and get a result right away; the Sun timeline below scrubs shadows. Flood / clip / skyline still run through the conversation Agent; results appear on the analysis card.',
+    "layers.analysisHint": 'Use "Draw elevation profile" above to sample terrain/surface heights and slopes (unlike horizontal clipping); the Sun timeline below scrubs shadows. Flood / clip / skyline run via the conversation Agent; results appear on the analysis card.',
     "layers.georefWarning": "No world placement (root transform / region): local metres are read as ECEF and render near the Earth centre. Re-export the tileset, or repair existing data once with scripts/georef-osgb.mjs (see README) and reload.",
     "layers.analysisClear": "Clear analysis",
     "layers.shader": "Visual effects",
@@ -1816,7 +1844,7 @@ var MESSAGES = {
     "access.scanFailed": "The folder could not be registered, so the operation did not run: {message}",
     "access.remote": "Only local paths need authorisation; remote URLs do not.",
     "access.badPath": "The authorisation request has no valid local path.",
-    "analysis.title.profile": "3D profile",
+    "analysis.title.profile": "Elevation profile",
     "analysis.title.flood": "Flood analysis",
     "analysis.title.sunlight": "Sunlight analysis",
     "analysis.title.clip": "Clip analysis",
@@ -1841,8 +1869,8 @@ var MESSAGES = {
     "analysis.collapse": "Collapse analysis card",
     "analysis.expand": "Expand analysis card",
     "analysis.close": "Close analysis card",
-    "analysis.chart": "3D profile chart",
-    "analysis.length": "Profile length",
+    "analysis.chart": "Elevation profile chart",
+    "analysis.length": "Horizontal length",
     "analysis.minHeight": "Lowest elevation",
     "analysis.maxHeight": "Highest elevation",
     "analysis.relief": "Relief",
@@ -5106,6 +5134,269 @@ function createPointerTools(deps) {
   return { pickResult, onCanvasClick, finishMeasure };
 }
 
+// src/client/scene/measure-preview.js
+var isMeasureTool = (mode) => mode === "distance" || mode === "area" || mode === "height";
+var isPreviewActive = (mode, points) => {
+  if (!Array.isArray(points) || points.length === 0) return false;
+  if (mode === "height") return points.length === 1;
+  return mode === "distance" || mode === "area";
+};
+function createMeasurePreview({
+  getCesium,
+  getViewer,
+  toolRef,
+  measureRef,
+  pickSurface,
+  geodesicLength: geodesicLength2,
+  planarArea: planarArea2,
+  formatDistance: formatDistance2,
+  formatArea: formatArea2,
+  t: t2
+}) {
+  const state = {
+    entities: [],
+    installedKey: null,
+    cursor: null,
+    lastPos: null
+  };
+  function removeEntities() {
+    const viewer = getViewer?.();
+    if (viewer?.entities) {
+      for (const entity of state.entities) {
+        try {
+          viewer.entities.remove(entity);
+        } catch {
+        }
+      }
+    }
+    state.entities = [];
+    state.installedKey = null;
+  }
+  function requestRender() {
+    try {
+      getViewer?.()?.scene?.requestRender?.();
+    } catch {
+    }
+  }
+  function prop(Cesium, getter, fallback) {
+    return typeof Cesium.CallbackProperty === "function" ? new Cesium.CallbackProperty(getter, false) : fallback;
+  }
+  function dashMaterial(Cesium, color, dashLength = 12) {
+    return typeof Cesium.PolylineDashMaterialProperty === "function" ? new Cesium.PolylineDashMaterialProperty({ color, dashLength }) : color;
+  }
+  function previewLabelOptions(Cesium, readPosition, readText) {
+    const offset = typeof Cesium.Cartesian2 === "function" ? new Cesium.Cartesian2(16, -18) : void 0;
+    const base = typeof Cesium.LabelStyle !== "undefined" && typeof Cesium.Cartesian2 === "function" ? vectorLabel(Cesium, "", { ...offset ? { pixelOffset: offset } : {} }) : { text: "", ...offset ? { pixelOffset: offset } : {} };
+    return {
+      ...base,
+      position: prop(Cesium, readPosition, readPosition()),
+      text: prop(Cesium, readText, readText()),
+      show: prop(Cesium, () => Boolean(state.cursor), false)
+    };
+  }
+  function buildHeightCorners(Cesium, anchor, cursor) {
+    const left = Cesium.Cartographic.fromCartesian(anchor);
+    const right = Cesium.Cartographic.fromCartesian(cursor);
+    if (!left || !right) return null;
+    const horiz = new Cesium.EllipsoidGeodesic(left, right).surfaceDistance;
+    const delta = right.height - left.height;
+    const corner = typeof Cesium.Cartesian3?.fromRadians === "function" ? Cesium.Cartesian3.fromRadians(left.longitude, left.latitude, right.height) : null;
+    return { horiz, delta, corner };
+  }
+  function installEntities(Cesium, viewer, mode, points) {
+    removeEntities();
+    if (!viewer?.entities || !Cesium) return;
+    const key = `${mode}:${points.length}`;
+    state.installedKey = key;
+    const base = typeof Cesium.Color?.fromCssColorString === "function" ? Cesium.Color.fromCssColorString(VECTOR_COLORS.accent) : Cesium.Color?.WHITE;
+    const strokeColor = typeof base?.withAlpha === "function" ? base.withAlpha(0.92) : base;
+    const guideColor = typeof base?.withAlpha === "function" ? base.withAlpha(0.65) : base;
+    const fillColor = typeof base?.withAlpha === "function" ? base.withAlpha(0.16) : base;
+    const depthColor = typeof base?.withAlpha === "function" ? base.withAlpha(0.32) : base;
+    const anchor = points[points.length - 1];
+    const add = (options) => {
+      try {
+        const entity = viewer.entities.add({ id: `measure-preview-${state.entities.length}-${Date.now()}`, ...options });
+        state.entities.push(entity);
+        return entity;
+      } catch {
+        return null;
+      }
+    };
+    const line = (positionsGetter, color, width = 2, dashLength = 12) => add({
+      polyline: {
+        positions: prop(Cesium, positionsGetter, [anchor, anchor]),
+        width,
+        material: dashMaterial(Cesium, color, dashLength),
+        ...depthColor ? { depthFailMaterial: dashMaterial(Cesium, depthColor, dashLength) } : {}
+      },
+      show: prop(Cesium, () => Boolean(state.cursor), false)
+    });
+    if (mode === "distance") {
+      line(() => state.cursor ? [anchor, state.cursor] : [anchor, anchor], strokeColor, 2.2);
+      add(
+        previewLabelOptions(
+          Cesium,
+          () => state.cursor ?? anchor,
+          () => {
+            if (!state.cursor) return "";
+            try {
+              const seg = geodesicLength2(Cesium, [anchor, state.cursor]);
+              if (points.length === 1) return `+${formatDistance2(seg)}`;
+              const total = geodesicLength2(Cesium, [...points, state.cursor]);
+              return t2("measure.previewSegment", { seg: formatDistance2(seg), total: formatDistance2(total) });
+            } catch {
+              return "";
+            }
+          }
+        )
+      );
+      return;
+    }
+    if (mode === "area") {
+      if (points.length === 1) {
+        line(() => state.cursor ? [anchor, state.cursor] : [anchor, anchor], strokeColor, 2.2);
+        add(
+          previewLabelOptions(
+            Cesium,
+            () => state.cursor ?? anchor,
+            () => {
+              if (!state.cursor) return "";
+              try {
+                return formatDistance2(geodesicLength2(Cesium, [anchor, state.cursor]));
+              } catch {
+                return "";
+              }
+            }
+          )
+        );
+        return;
+      }
+      if (typeof Cesium.PolygonHierarchy === "function") {
+        add({
+          polygon: {
+            hierarchy: prop(
+              Cesium,
+              () => new Cesium.PolygonHierarchy(state.cursor ? [...points, state.cursor] : points),
+              new Cesium.PolygonHierarchy(points)
+            ),
+            perPositionHeight: true,
+            material: fillColor,
+            outline: false
+          },
+          show: prop(Cesium, () => Boolean(state.cursor), false)
+        });
+      }
+      line(() => state.cursor ? [anchor, state.cursor, points[0]] : [anchor, points[0]], strokeColor, 2.2);
+      add(
+        previewLabelOptions(
+          Cesium,
+          () => state.cursor ?? anchor,
+          () => {
+            if (!state.cursor) return "";
+            try {
+              const area = planarArea2(Cesium, [...points, state.cursor]);
+              return t2("measure.previewArea", { area: formatArea2(area) });
+            } catch {
+              return "";
+            }
+          }
+        )
+      );
+      return;
+    }
+    if (mode === "height") {
+      line(() => state.cursor ? [anchor, state.cursor] : [anchor, anchor], strokeColor, 2.2);
+      line(
+        () => {
+          if (!state.cursor) return [anchor, anchor];
+          try {
+            const info = buildHeightCorners(Cesium, anchor, state.cursor);
+            return info?.corner ? [anchor, info.corner, state.cursor] : [anchor, state.cursor];
+          } catch {
+            return [anchor, anchor];
+          }
+        },
+        guideColor,
+        1.6,
+        8
+      );
+      add(
+        previewLabelOptions(
+          Cesium,
+          () => state.cursor ?? anchor,
+          () => {
+            if (!state.cursor) return "";
+            try {
+              const info = buildHeightCorners(Cesium, anchor, state.cursor);
+              if (!info || !Number.isFinite(info.delta) || !Number.isFinite(info.horiz)) return "";
+              const signed = `${info.delta >= 0 ? "+" : ""}${info.delta.toFixed(2)} m`;
+              return t2("measure.previewHeight", { height: signed, distance: formatDistance2(info.horiz) });
+            } catch {
+              return "";
+            }
+          }
+        )
+      );
+    }
+  }
+  function clear() {
+    const hadAnything = state.entities.length > 0 || state.cursor !== null;
+    removeEntities();
+    state.cursor = null;
+    state.lastPos = null;
+    if (hadAnything) requestRender();
+  }
+  function sync(overrideMode) {
+    const mode = overrideMode ?? toolRef?.current;
+    const points = measureRef?.current?.points ?? [];
+    if (!isMeasureTool(mode) || !isPreviewActive(mode, points)) {
+      clear();
+      return;
+    }
+    const Cesium = getCesium?.();
+    const viewer = getViewer?.();
+    if (!Cesium || !viewer) return;
+    state.cursor = null;
+    state.lastPos = null;
+    installEntities(Cesium, viewer, mode, points);
+    requestRender();
+  }
+  function onMove(position) {
+    const mode = toolRef?.current;
+    if (!isMeasureTool(mode)) {
+      if (state.entities.length > 0) clear();
+      return;
+    }
+    const points = measureRef?.current?.points ?? [];
+    if (!isPreviewActive(mode, points)) {
+      if (state.entities.length > 0) clear();
+      return;
+    }
+    if (!position || !Number.isFinite(position.x) || !Number.isFinite(position.y)) return;
+    if (state.lastPos && Math.abs(position.x - state.lastPos.x) < 0.5 && Math.abs(position.y - state.lastPos.y) < 0.5) {
+      return;
+    }
+    state.lastPos = { x: position.x, y: position.y };
+    const Cesium = getCesium?.();
+    const viewer = getViewer?.();
+    if (!Cesium || !viewer) return;
+    const key = `${mode}:${points.length}`;
+    if (state.installedKey !== key) installEntities(Cesium, viewer, mode, points);
+    const surface = pickSurface?.(position) ?? null;
+    if (!surface) {
+      if (state.cursor !== null) {
+        state.cursor = null;
+        requestRender();
+      }
+      return;
+    }
+    state.cursor = surface;
+    requestRender();
+  }
+  return { clear, sync, onMove, dispose: clear };
+}
+
 // src/client/scene/profile-tool.js
 var DRAFT_COLOR = "#2563eb";
 var DRAFT_WIDTH = 2.5;
@@ -5117,7 +5408,7 @@ function createProfileTool({ getCesium, getViewer, pickSurface, setTool, runAnal
     if (!viewer) return null;
     let state = sessions.get(viewer);
     if (!state) {
-      state = { points: [], entities: [], handler: null, start: null, cursor: null, locked: false, run: 0 };
+      state = { points: [], entities: [], handler: null, start: null, cursor: null, locked: false, run: 0, source: null, samples: 32 };
       sessions.set(viewer, state);
     }
     return state;
@@ -5217,12 +5508,14 @@ function createProfileTool({ getCesium, getViewer, pickSurface, setTool, runAnal
     state.cursor = null;
     state.locked = false;
   }
-  function start() {
+  function start(options = {}) {
     clear();
     setTool("profile");
     showToast(t2("profile.clickStart"));
     const state = sessionFor();
     if (!state) return;
+    state.source = options?.source === "terrain" ? "terrain" : options?.source === "tiles" ? "tiles" : null;
+    state.samples = Number.isInteger(options?.samples) ? Math.min(64, Math.max(8, options.samples)) : 32;
     state.run += 1;
     installHandler(state);
   }
@@ -5278,7 +5571,14 @@ function createProfileTool({ getCesium, getViewer, pickSurface, setTool, runAnal
     showToast(t2("profile.running"));
     void (async () => {
       try {
-        await runAnalysis({ action: "profile", from: [from.lon, from.lat], to: [to.lon, to.lat], samples: 32 });
+        const samples = state.samples && state.samples !== 32 ? state.samples : 32;
+        await runAnalysis({
+          action: "profile",
+          from: [from.lon, from.lat],
+          to: [to.lon, to.lat],
+          ...samples === 32 ? { samples: 32 } : { samples },
+          ...state.source ? { source: state.source } : {}
+        });
       } catch (error) {
         showToast(t2("profile.failed", { message: error?.message ?? String(error) }));
       } finally {
@@ -7357,6 +7657,7 @@ function installCanvasInput({
   getViewer,
   getTool,
   onCanvasClick,
+  onPointerMove,
   finishMeasure,
   sampleCursor: sampleCursor2,
   flyToCartographic: flyToCartographic2,
@@ -7366,7 +7667,10 @@ function installCanvasInput({
   const handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
   const intent = createPointerIntent(isSelectionActive2);
   handler.setInputAction((event) => intent.down(event.position), Cesium.ScreenSpaceEventType.LEFT_DOWN);
-  handler.setInputAction((event) => intent.move(event.endPosition), Cesium.ScreenSpaceEventType.MOUSE_MOVE);
+  handler.setInputAction((event) => {
+    intent.move(event.endPosition);
+    if (!isSelectionActive2?.()) onPointerMove?.(event.endPosition);
+  }, Cesium.ScreenSpaceEventType.MOUSE_MOVE);
   const unwatch = watchPointerCancellation(viewer.scene.canvas, intent);
   const destroy = handler.destroy.bind(handler);
   handler.destroy = () => {
@@ -7729,7 +8033,7 @@ function createSceneReport(deps) {
       area: "面积",
       height: "高差",
       slope: "坡度",
-      profile: "三维剖面",
+      profile: "高程纵断面",
       relief: "起伏",
       flood: "淹没",
       inundated: "淹没面积",
@@ -7758,7 +8062,7 @@ function createSceneReport(deps) {
       area: "Area",
       height: "Height difference",
       slope: "slope",
-      profile: "3D profile",
+      profile: "Elevation profile",
       relief: "relief",
       flood: "Flood",
       inundated: "inundated",
@@ -8894,10 +9198,21 @@ var MAX_WIDTH_M = 100;
 var EMPTY_METRICS = Object.freeze({
   point_count: 0,
   valid_count: 0,
+  include_design: true,
   distance_m: 0,
   width_m: DEFAULT_WIDTH_M,
   mode: "grade",
   length_3d_m: 0,
+  start_height_m: null,
+  end_height_m: null,
+  net_elevation_m: null,
+  min_height_m: null,
+  max_height_m: null,
+  min_at_m: null,
+  max_at_m: null,
+  relief_m: 0,
+  gain_m: 0,
+  loss_m: 0,
   slope: { mean_abs_pct: null, max_abs_pct: null, max_at_m: null },
   design_grade_pct: null,
   design: { start_m: null, end_m: null, start_height_m: null, end_height_m: null, level_m: null },
@@ -8930,6 +9245,7 @@ function profileMetrics(points, options = {}) {
   const series = normalizePoints(points);
   const pointCount = series.length;
   if (pointCount < 2) return { ...EMPTY_METRICS, point_count: pointCount, series };
+  const includeDesign = options.includeDesign !== false;
   const warnings = [];
   const mode = options.mode === "level" ? "level" : "grade";
   const widthInput = asNumber(options.width_m);
@@ -8937,7 +9253,7 @@ function profileMetrics(points, options = {}) {
   if (widthInput !== null && width !== widthInput) warnings.push("width_clamped");
   const valid = series.filter((point) => point.height_m !== null);
   if (valid.length < 2) {
-    return { ...EMPTY_METRICS, point_count: pointCount, valid_count: valid.length, mode, width_m: width, series };
+    return { ...EMPTY_METRICS, point_count: pointCount, valid_count: valid.length, include_design: includeDesign, mode, width_m: width, series };
   }
   if (valid.length < pointCount) warnings.push("profile_gaps");
   const first = valid[0];
@@ -8945,6 +9261,28 @@ function profileMetrics(points, options = {}) {
   const span = last.distance_m - first.distance_m;
   const startHeight = first.height_m;
   const endHeight = last.height_m;
+  let minHeight = first.height_m;
+  let maxHeight = first.height_m;
+  let minAt = first.distance_m;
+  let maxAt = first.distance_m;
+  let gainM = 0;
+  let lossM = 0;
+  for (let index = 0; index < valid.length; index += 1) {
+    const point = valid[index];
+    if (point.height_m < minHeight) {
+      minHeight = point.height_m;
+      minAt = point.distance_m;
+    }
+    if (point.height_m > maxHeight) {
+      maxHeight = point.height_m;
+      maxAt = point.distance_m;
+    }
+    if (index > 0) {
+      const stepDelta = point.height_m - valid[index - 1].height_m;
+      if (stepDelta > 0) gainM += stepDelta;
+      else lossM -= stepDelta;
+    }
+  }
   let level = null;
   if (mode === "level") {
     const requested = asNumber(options.level_m);
@@ -9022,10 +9360,21 @@ function profileMetrics(points, options = {}) {
   return {
     point_count: pointCount,
     valid_count: valid.length,
+    include_design: includeDesign,
     distance_m: last.distance_m - first.distance_m,
     width_m: width,
     mode,
     length_3d_m: length3d,
+    start_height_m: startHeight,
+    end_height_m: endHeight,
+    net_elevation_m: endHeight - startHeight,
+    min_height_m: minHeight,
+    max_height_m: maxHeight,
+    min_at_m: minAt,
+    max_at_m: maxAt,
+    relief_m: maxHeight - minHeight,
+    gain_m: gainM,
+    loss_m: lossM,
     slope: { mean_abs_pct: meanAbsSlope, max_abs_pct: maxSlope || null, max_at_m: maxSlopeAt },
     design_grade_pct: designGrade,
     design: {
@@ -9047,6 +9396,14 @@ function profileMetrics(points, options = {}) {
 }
 var csvNumber = (value) => finite2(value) ? Number(value).toFixed(2) : "";
 function profileCsv(metrics) {
+  if (metrics?.include_design === false) {
+    const rows2 = ["distance_m,height_m,slope_pct"];
+    for (const row of metrics?.series ?? []) {
+      rows2.push([csvNumber(row.distance_m), csvNumber(row.height_m), csvNumber(row.slope_pct)].join(","));
+    }
+    return `${rows2.join("\r\n")}\r
+`;
+  }
   const rows = ["distance_m,terrain_m,design_m,delta_m,slope_pct"];
   for (const row of metrics?.series ?? []) {
     rows.push([csvNumber(row.distance_m), csvNumber(row.height_m), csvNumber(row.design_m), csvNumber(row.delta_m), csvNumber(row.slope_pct)].join(","));
@@ -9062,7 +9419,8 @@ function profileSvg(metrics, labels = {}) {
   const series = Array.isArray(metrics?.series) ? metrics.series : [];
   const valid = series.filter((row) => finite2(row.height_m));
   if (valid.length < 2) return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 360"></svg>';
-  const designRows = series.filter((row) => finite2(row.height_m) && finite2(row.design_m));
+  const showDesign = metrics?.include_design !== false;
+  const designRows = showDesign ? series.filter((row) => finite2(row.height_m) && finite2(row.design_m)) : [];
   const distances = series.map((row) => row.distance_m);
   const maxDistance = Math.max(...distances, 1);
   const values = [...valid.map((row) => row.height_m), ...designRows.map((row) => row.design_m)];
@@ -9071,29 +9429,50 @@ function profileSvg(metrics, labels = {}) {
   const valueRange = maxValue - minValue || 1;
   minValue -= valueRange * 0.06;
   maxValue += valueRange * 0.06;
+  const floorY = height - pad.bottom;
   const x = (value) => pad.left + (width - pad.left - pad.right) * Math.min(1, Math.max(0, value / maxDistance));
-  const y = (value) => height - pad.bottom - (height - pad.top - pad.bottom) * ((value - minValue) / (maxValue - minValue));
+  const y = (value) => floorY - (height - pad.top - pad.bottom) * ((value - minValue) / (maxValue - minValue));
   const segments = [];
+  const areaPolygons = [];
   let current = [];
+  let currentCoords = [];
+  const flushSegment = () => {
+    if (current.length === 0) return;
+    segments.push(current.join(" "));
+    if (!showDesign && currentCoords.length >= 2) {
+      const firstPx = currentCoords[0].px;
+      const lastPx = currentCoords[currentCoords.length - 1].px;
+      areaPolygons.push(
+        `<polygon points="${firstPx},${floorY.toFixed(1)} ${current.join(" ")} ${lastPx},${floorY.toFixed(1)}" fill="#dbeafe" fill-opacity="0.72"/>`
+      );
+    }
+    current = [];
+    currentCoords = [];
+  };
   for (const row of series) {
-    if (finite2(row.height_m)) current.push(`${x(row.distance_m).toFixed(1)},${y(row.height_m).toFixed(1)}`);
-    else if (current.length > 0) {
-      segments.push(current.join(" "));
-      current = [];
+    if (finite2(row.height_m)) {
+      const px = x(row.distance_m).toFixed(1);
+      const py = y(row.height_m).toFixed(1);
+      current.push(`${px},${py}`);
+      currentCoords.push({ px, py });
+    } else {
+      flushSegment();
     }
   }
-  if (current.length > 0) segments.push(current.join(" "));
+  flushSegment();
   const polygons = [];
-  for (let index = 0; index < series.length - 1; index += 1) {
-    const left = series[index];
-    const right = series[index + 1];
-    if (!finite2(left.height_m) || !finite2(right.height_m) || !finite2(left.design_m) || !finite2(right.design_m)) continue;
-    const above = left.height_m >= left.design_m && right.height_m >= right.design_m;
-    const below = left.height_m <= left.design_m && right.height_m <= right.design_m;
-    const color = above ? "#f6c9c9" : below ? "#cfe8d5" : "#efefdf";
-    polygons.push(
-      `<polygon points="${x(left.distance_m).toFixed(1)},${y(left.height_m).toFixed(1)} ${x(right.distance_m).toFixed(1)},${y(right.height_m).toFixed(1)} ${x(right.distance_m).toFixed(1)},${y(right.design_m).toFixed(1)} ${x(left.distance_m).toFixed(1)},${y(left.design_m).toFixed(1)}" fill="${color}"/>`
-    );
+  if (showDesign) {
+    for (let index = 0; index < series.length - 1; index += 1) {
+      const left = series[index];
+      const right = series[index + 1];
+      if (!finite2(left.height_m) || !finite2(right.height_m) || !finite2(left.design_m) || !finite2(right.design_m)) continue;
+      const above = left.height_m >= left.design_m && right.height_m >= right.design_m;
+      const below = left.height_m <= left.design_m && right.height_m <= right.design_m;
+      const color = above ? "#f6c9c9" : below ? "#cfe8d5" : "#efefdf";
+      polygons.push(
+        `<polygon points="${x(left.distance_m).toFixed(1)},${y(left.height_m).toFixed(1)} ${x(right.distance_m).toFixed(1)},${y(right.height_m).toFixed(1)} ${x(right.distance_m).toFixed(1)},${y(right.design_m).toFixed(1)} ${x(left.distance_m).toFixed(1)},${y(left.design_m).toFixed(1)}" fill="${color}"/>`
+      );
+    }
   }
   const ticks = [];
   for (let index = 0; index <= 4; index += 1) {
@@ -9108,28 +9487,41 @@ function profileSvg(metrics, labels = {}) {
     ticks.push(`<text x="${px.toFixed(1)}" y="${height - 50}" text-anchor="middle" fill="#6b7280" font-size="11">${Math.round(value)}</text>`);
   }
   const design = labels.design ?? "Design";
-  const terrain = labels.terrain ?? "Terrain";
-  const title = labels.title ?? "Profile";
+  const terrain = labels.terrain ?? "Surface";
+  const title = labels.title ?? "Elevation profile";
   const terrainLines = segments.map(
     (pointsText) => `<polyline points="${pointsText}" fill="none" stroke="#1d4ed8" stroke-width="3.2" stroke-linejoin="round" stroke-linecap="round"/>`
   );
+  const extremaMarkers = [];
+  if (!showDesign && finite2(metrics.max_height_m) && finite2(metrics.max_at_m)) {
+    const mx = x(metrics.max_at_m);
+    const my = y(metrics.max_height_m);
+    extremaMarkers.push(`<circle cx="${mx.toFixed(1)}" cy="${my.toFixed(1)}" r="4.5" fill="#1d4ed8" stroke="#ffffff" stroke-width="1.5"/>`);
+    extremaMarkers.push(`<text x="${Math.min(width - pad.right - 36, mx + 8).toFixed(1)}" y="${Math.max(pad.top + 12, my - 8).toFixed(1)}" fill="#1e3a8a" font-size="11" font-weight="600">max ${metrics.max_height_m.toFixed(1)} m</text>`);
+  }
+  if (!showDesign && finite2(metrics.min_height_m) && finite2(metrics.min_at_m)) {
+    const vx = x(metrics.min_at_m);
+    const vy = y(metrics.min_height_m);
+    extremaMarkers.push(`<circle cx="${vx.toFixed(1)}" cy="${vy.toFixed(1)}" r="4.5" fill="#0f766e" stroke="#ffffff" stroke-width="1.5"/>`);
+    extremaMarkers.push(`<text x="${Math.min(width - pad.right - 36, vx + 8).toFixed(1)}" y="${Math.min(floorY - 6, vy + 16).toFixed(1)}" fill="#115e59" font-size="11" font-weight="600">min ${metrics.min_height_m.toFixed(1)} m</text>`);
+  }
+  const summaryRight = showDesign ? `${(metrics.distance_m / 1e3).toFixed(2)} km · ${labels.cut ?? "Cut"} ${Math.round(metrics.cut_volume_m3).toLocaleString()} m³ · ${labels.fill ?? "Fill"} ${Math.round(metrics.fill_volume_m3).toLocaleString()} m³` : `${(metrics.distance_m / 1e3).toFixed(2)} km · ${labels.surfaceLength ?? "3D"} ${(metrics.length_3d_m / 1e3).toFixed(2)} km · ${labels.slopeMean ?? "Slope"} ${finite2(metrics.slope?.mean_abs_pct) ? `${metrics.slope.mean_abs_pct.toFixed(1)}%` : "—"}`;
   return [
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" font-family="system-ui, 'Segoe UI', 'Microsoft YaHei', sans-serif">`,
     '<rect width="100%" height="100%" fill="#ffffff"/>',
     `<text x="${pad.left}" y="26" font-size="17" font-weight="600" fill="#111827">${escapeXml(title)}</text>`,
     `<text x="${pad.left}" y="44" fill="#9ca3af" font-size="10">${escapeXml(labels.note ?? "")}</text>`,
     ...ticks,
+    ...areaPolygons,
     ...polygons,
     ...terrainLines,
+    ...extremaMarkers,
     designRows.length >= 2 ? `<line x1="${x(designRows[0].distance_m).toFixed(1)}" y1="${y(designRows[0].design_m).toFixed(1)}" x2="${x(designRows[designRows.length - 1].distance_m).toFixed(1)}" y2="${y(designRows[designRows.length - 1].design_m).toFixed(1)}" stroke="#c2610a" stroke-width="2.8" stroke-dasharray="8 5"/>` : "",
     `<line x1="${pad.left}" y1="${height - 34}" x2="${pad.left + 20}" y2="${height - 34}" stroke="#1d4ed8" stroke-width="3.2"/>`,
     `<text x="${pad.left + 26}" y="${height - 30}" fill="#6b7280" font-size="11">${escapeXml(terrain)}</text>`,
-    `<line x1="${pad.left + 100}" y1="${height - 34}" x2="${pad.left + 120}" y2="${height - 34}" stroke="#c2610a" stroke-width="2.8" stroke-dasharray="8 5"/>`,
-    `<text x="${pad.left + 126}" y="${height - 30}" fill="#6b7280" font-size="11">${escapeXml(design)}</text>`,
+    showDesign ? `<line x1="${pad.left + 100}" y1="${height - 34}" x2="${pad.left + 120}" y2="${height - 34}" stroke="#c2610a" stroke-width="2.8" stroke-dasharray="8 5"/><text x="${pad.left + 126}" y="${height - 30}" fill="#6b7280" font-size="11">${escapeXml(design)}</text>` : "",
     `<text x="${width - pad.right}" y="${height - 12}" text-anchor="end" fill="#6b7280" font-size="11">${escapeXml(labels.distance ?? "Distance (m)")}</text>`,
-    `<text x="${width - pad.right}" y="40" text-anchor="end" fill="#9ca3af" font-size="11">${escapeXml(
-      `${(metrics.distance_m / 1e3).toFixed(2)} km · ${labels.cut ?? "Cut"} ${Math.round(metrics.cut_volume_m3).toLocaleString()} m³ · ${labels.fill ?? "Fill"} ${Math.round(metrics.fill_volume_m3).toLocaleString()} m³`
-    )}</text>`,
+    `<text x="${width - pad.right}" y="40" text-anchor="end" fill="#9ca3af" font-size="11">${escapeXml(summaryRight)}</text>`,
     "</svg>"
   ].join("");
 }
@@ -9224,9 +9616,10 @@ var h3 = import_react5.default.createElement;
 function AnalysisProfileChart({ points, t: t2, hoverIndex = null, onHover }) {
   if (!Array.isArray(points) || points.length < 2) return null;
   const width = 260;
-  const height = 92;
+  const height = 104;
   const padX = 10;
-  const padY = 12;
+  const padY = 14;
+  const floorY = height - padY;
   const valid = points.filter((point) => point && typeof point.height_m === "number" && Number.isFinite(point.height_m));
   if (valid.length < 2) return null;
   const maxDistance = Math.max(...points.map((point) => Number(point.distance_m) || 0), 1);
@@ -9234,20 +9627,35 @@ function AnalysisProfileChart({ points, t: t2, hoverIndex = null, onHover }) {
   const maximum = Math.max(...valid.map((point) => point.height_m));
   const range = maximum - minimum || 1;
   const x = (distance) => padX + (width - padX * 2) * Math.min(1, Math.max(0, distance / maxDistance));
-  const y = (value) => height - padY - (height - padY * 2) * ((value - minimum) / range);
+  const y = (value) => floorY - (height - padY * 2) * ((value - minimum) / range);
   const segments = [];
+  const areas = [];
   let current = [];
+  let peak = valid[0];
+  for (const point of valid) {
+    if (point.height_m > peak.height_m) peak = point;
+  }
+  const flushRun = () => {
+    if (current.length === 0) return;
+    segments.push(current.join(" "));
+    if (current.length >= 2) {
+      const firstX = current[0].split(",")[0];
+      const lastX = current[current.length - 1].split(",")[0];
+      areas.push(`${firstX},${floorY} ${current.join(" ")} ${lastX},${floorY}`);
+    }
+    current = [];
+  };
   for (const point of points) {
     const heightValue = point ? point.height_m : null;
     if (typeof heightValue === "number" && Number.isFinite(heightValue)) {
       const distance = Number(point.distance_m) || 0;
       current.push(`${x(distance).toFixed(1)},${y(heightValue).toFixed(1)}`);
-    } else if (current.length > 0) {
-      segments.push(current.join(" "));
-      current = [];
+    } else {
+      flushRun();
     }
   }
-  if (current.length > 0) segments.push(current.join(" "));
+  flushRun();
+  const midY = ((padY + floorY) / 2).toFixed(1);
   const hoverPoint = Number.isInteger(hoverIndex) && hoverIndex >= 0 ? points[hoverIndex] : null;
   const hoverValid = Boolean(hoverPoint && typeof hoverPoint.height_m === "number" && Number.isFinite(hoverPoint.height_m));
   const hoverDistance = hoverValid ? Number(hoverPoint.distance_m) || 0 : 0;
@@ -9271,19 +9679,34 @@ function AnalysisProfileChart({ points, t: t2, hoverIndex = null, onHover }) {
       onPointerMove,
       onPointerLeave
     },
-    h3("line", { x1: padX, y1: height - padY, x2: width - padX, y2: height - padY, stroke: "var(--mv-line)" }),
+    h3("line", { x1: padX, y1: midY, x2: width - padX, y2: midY, stroke: "var(--mv-line)", strokeDasharray: "2 3" }),
+    h3("line", { x1: padX, y1: floorY, x2: width - padX, y2: floorY, stroke: "var(--mv-line)" }),
+    ...areas.map(
+      (pointsText, index) => h3("polygon", {
+        key: `area-${index}`,
+        points: pointsText,
+        fill: "var(--mv-profile-line)",
+        fillOpacity: 0.13
+      })
+    ),
     ...segments.map(
       (pointsText, index) => h3("polyline", {
         key: `segment-${index}`,
         points: pointsText,
         fill: "none",
         stroke: "var(--mv-profile-line)",
-        strokeWidth: 3,
+        strokeWidth: 2.6,
         strokeLinejoin: "round",
         strokeLinecap: "round"
       })
     ),
-    h3("text", { x: padX, y: padY - 3 }, formatHeight(maximum)),
+    h3("circle", {
+      cx: x(Number(peak.distance_m) || 0),
+      cy: y(peak.height_m),
+      r: 2.5,
+      fill: "var(--mv-profile-line)"
+    }),
+    h3("text", { x: padX, y: padY - 4 }, formatHeight(maximum)),
     h3("text", { x: padX, y: height - 2 }, formatHeight(minimum)),
     h3("text", { x: width - padX, y: height - 2, textAnchor: "end" }, formatDistance(maxDistance)),
     hoverValid ? h3(
@@ -9293,14 +9716,14 @@ function AnalysisProfileChart({ points, t: t2, hoverIndex = null, onHover }) {
         x1: x(hoverDistance),
         y1: padY,
         x2: x(hoverDistance),
-        y2: height - padY,
+        y2: floorY,
         stroke: "var(--mv-line-strong, rgba(125,211,252,0.75))",
         strokeDasharray: "3 3"
       }),
-      h3("circle", { cx: x(hoverDistance), cy: y(hoverPoint.height_m), r: 3, fill: "var(--mv-profile-line)" }),
+      h3("circle", { cx: x(hoverDistance), cy: y(hoverPoint.height_m), r: 3.2, fill: "var(--mv-profile-line)" }),
       h3(
         "text",
-        { x: width - padX, y: padY - 3, textAnchor: "end" },
+        { x: width - padX, y: padY - 4, textAnchor: "end" },
         `${formatDistance(hoverDistance)} · ${formatHeight(hoverPoint.height_m)}`
       )
     ) : null
@@ -9488,20 +9911,13 @@ function ResizeHandle({ axis = "width", edge = "left", label, value, onPointerDo
 // src/client/ui/cards.js
 var h5 = import_react7.default.createElement;
 var analysisMetric = (value, digits = 1) => typeof value === "number" && Number.isFinite(value) ? value.toFixed(digits) : "—";
-var formatVolume = (value) => typeof value === "number" && Number.isFinite(value) ? `${Math.round(value).toLocaleString()} m³` : "—";
-var clampProfileWidth = (value) => {
-  const number = Number(value);
-  if (!Number.isFinite(number)) return 7;
-  return Math.min(100, Math.max(1, Math.round(number)));
-};
 var profileChartLabels = (t2) => ({
   title: t2("analysis.title.profile"),
   distance: t2("profile.axisDistance"),
   elevation: t2("profile.axisElevation"),
   terrain: t2("profile.terrain"),
-  design: t2("profile.design"),
-  cut: t2("profile.cut"),
-  fill: t2("profile.fill"),
+  surfaceLength: t2("profile.surfaceLength"),
+  slopeMean: t2("profile.slopeMean"),
   note: t2("profile.note")
 });
 function ProfileChartDialog({ metrics, t: t2, onClose }) {
@@ -9563,7 +9979,7 @@ function ProfileChartDialog({ metrics, t: t2, onClose }) {
           {
             type: "button",
             className: "mv-cta",
-            onClick: () => downloadText(`profile-${Date.now()}.csv`, profileCsv(metrics), "text/csv;charset=utf-8")
+            onClick: () => downloadText(`elevation-profile-${Date.now()}.csv`, profileCsv(metrics), "text/csv;charset=utf-8")
           },
           t2("profile.exportCsv")
         ),
@@ -9572,7 +9988,7 @@ function ProfileChartDialog({ metrics, t: t2, onClose }) {
           {
             type: "button",
             className: "mv-cta",
-            onClick: () => downloadText(`profile-${Date.now()}.svg`, svg, "image/svg+xml")
+            onClick: () => downloadText(`elevation-profile-${Date.now()}.svg`, svg, "image/svg+xml")
           },
           t2("profile.exportSvg")
         ),
@@ -9583,14 +9999,12 @@ function ProfileChartDialog({ metrics, t: t2, onClose }) {
 }
 function AnalysisCard({ state, t: t2, onClose, hoverIndex = null, onHover }) {
   const [open, setOpen] = import_react7.default.useState(true);
-  const [profileMode, setProfileMode] = import_react7.default.useState("grade");
-  const [profileWidth, setProfileWidth] = import_react7.default.useState(7);
   const [chartOpen, setChartOpen] = import_react7.default.useState(false);
   const resize = usePanelResize({ storageKey: "analysis", initialHeight: null, minHeight: 180, maxHeight: 680 });
   if (!state || !state.result) return null;
   const result = state.result;
   const operation = state.operation;
-  const profile = operation === "profile" ? profileMetrics(result.points, { mode: profileMode, width_m: profileWidth }) : null;
+  const profile = operation === "profile" ? profileMetrics(result.points, { includeDesign: false }) : null;
   const showProfile = Boolean(profile && profile.valid_count >= 2);
   const heightSource = typeof result.height_source === "string" && result.height_source !== "" ? result.height_source : null;
   const warningCodes = (Array.isArray(result.warnings) ? result.warnings : []).filter((code) => typeof code === "string" && code.trim() !== "").slice(0, 2);
@@ -9611,12 +10025,17 @@ function AnalysisCard({ state, t: t2, onClose, hoverIndex = null, onHover }) {
   if (operation === "profile") {
     const stats = result.stats ?? {};
     row("length", t2("analysis.length"), formatDistance(result.length_m ?? 0));
+    if (showProfile) {
+      row("surfaceLength", t2("profile.surfaceLength"), formatDistance(profile.length_3d_m));
+      row("startEnd", t2("profile.startEndHeight"), `${formatHeight(profile.start_height_m)} → ${formatHeight(profile.end_height_m)}`);
+      const net = profile.net_elevation_m ?? 0;
+      row("netChange", t2("profile.netChange"), `${net >= 0 ? "+" : ""}${formatHeight(net)}`);
+    }
     row("min", t2("analysis.minHeight"), formatHeight(stats.min_height ?? 0));
     row("max", t2("analysis.maxHeight"), formatHeight(stats.max_height ?? 0));
     row("relief", t2("analysis.relief"), formatHeight(stats.relief_m ?? 0));
     row("gain", t2("analysis.gain"), formatHeight(stats.gain_m ?? 0));
     row("loss", t2("analysis.loss"), formatHeight(stats.loss_m ?? 0));
-    row("samples", t2("analysis.samples"), `${result.samples ?? 0}`);
     if (showProfile) {
       row("slopeMean", t2("profile.slopeMean"), `${analysisMetric(profile.slope.mean_abs_pct)}%`);
       row(
@@ -9624,10 +10043,14 @@ function AnalysisCard({ state, t: t2, onClose, hoverIndex = null, onHover }) {
         t2("profile.slopeMax"),
         `${analysisMetric(profile.slope.max_abs_pct)}% · ${formatDistance(profile.slope.max_at_m ?? 0)}`
       );
-      row("designGrade", t2("profile.designGrade"), `${analysisMetric(profile.design_grade_pct)}%`);
-      row("cut", t2("profile.cut"), formatVolume(profile.cut_volume_m3));
-      row("fill", t2("profile.fill"), formatVolume(profile.fill_volume_m3));
-      row("net", t2("profile.net"), formatVolume(profile.net_volume_m3));
+    }
+    row("samples", t2("analysis.samples"), `${result.samples ?? 0}`);
+    if (Array.isArray(result.from) && Array.isArray(result.to) && result.from.length >= 2 && result.to.length >= 2) {
+      row(
+        "endpoints",
+        t2("profile.endpoints"),
+        `${Number(result.from[0]).toFixed(4)}, ${Number(result.from[1]).toFixed(4)} → ${Number(result.to[0]).toFixed(4)}, ${Number(result.to[1]).toFixed(4)}`
+      );
     }
   } else if (operation === "flood") {
     row("water", t2("analysis.waterHeight"), formatHeight(result.water_height ?? 0));
@@ -9731,39 +10154,11 @@ function AnalysisCard({ state, t: t2, onClose, hoverIndex = null, onHover }) {
           "div",
           { className: "profile-row" },
           h5(
-            "select",
-            {
-              value: profileMode,
-              "aria-label": t2("profile.baseline"),
-              onChange: (event) => setProfileMode(event.target.value)
-            },
-            h5("option", { value: "grade" }, t2("profile.mode.grade")),
-            h5("option", { value: "level" }, t2("profile.mode.level"))
-          ),
-          h5(
-            "label",
-            { className: "profile-width" },
-            t2("profile.width"),
-            h5("input", {
-              type: "number",
-              min: 1,
-              max: 100,
-              step: 1,
-              value: profileWidth,
-              "aria-label": t2("profile.width"),
-              onChange: (event) => setProfileWidth(clampProfileWidth(event.target.value))
-            })
-          )
-        ),
-        h5(
-          "div",
-          { className: "profile-row" },
-          h5(
             "button",
             {
               type: "button",
               className: "mv-cta",
-              onClick: () => downloadText(`profile-${Date.now()}.csv`, profileCsv(profile), "text/csv;charset=utf-8")
+              onClick: () => downloadText(`elevation-profile-${Date.now()}.csv`, profileCsv(profile), "text/csv;charset=utf-8")
             },
             t2("profile.exportCsv")
           ),
@@ -9773,7 +10168,7 @@ function AnalysisCard({ state, t: t2, onClose, hoverIndex = null, onHover }) {
               type: "button",
               className: "mv-cta",
               onClick: () => downloadText(
-                `profile-${Date.now()}.svg`,
+                `elevation-profile-${Date.now()}.svg`,
                 profileSvg(profile, profileChartLabels(t2)),
                 "image/svg+xml"
               )
@@ -9781,7 +10176,7 @@ function AnalysisCard({ state, t: t2, onClose, hoverIndex = null, onHover }) {
             t2("profile.exportSvg")
           )
         ),
-        h5("p", { className: "profile-note" }, t2("profile.note"))
+        h5("p", { className: "profile-note" }, t2("profile.hoverChartHint"))
       ) : null,
       h5("p", { className: "hint" }, t2("analysis.hint"))
     ) : null,
@@ -10880,6 +11275,10 @@ var CSS = `
 .mv-toolwin-body .mv-cta{border:.5px solid var(--mv-line);border-radius:8px;font-size:11px;line-height:1.4}
 .mv-toolwin-body .mv-cta[aria-pressed="true"]{border-color:var(--mv-accent);background:color-mix(in srgb,var(--mv-accent) 13%,var(--mv-glass))}
 .mv-toolwin-body .mv-group-title{margin-top:4px}
+.mv-profile-opts{display:flex;flex-direction:column;gap:4px;padding:6px 8px;border:.5px solid var(--mv-line);border-radius:8px;background:color-mix(in srgb,var(--mv-bg) 35%,transparent)}
+.mv-profile-opt{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:10.5px;color:var(--mv-dim)}
+.mv-profile-opt span{flex:none}
+.mv-profile-opt select{flex:1;min-width:0;max-width:170px;background:var(--mv-input);border:.5px solid var(--mv-line);color:var(--mv-text);border-radius:6px;padding:3px 6px;font:inherit;font-size:10.5px}
 .mv-tool-effects-list{display:flex;flex-direction:column;gap:3px;padding:2px 0}
 .mv-tool-effects-list .mv-layer{min-height:26px;padding:4px 6px;display:flex;align-items:center;justify-content:space-between;gap:6px}
 .mv-root.mv-docked .mv-toolwin{max-height:none}
@@ -15559,10 +15958,48 @@ function SelectBody({
   );
 }
 function AnalysisBody({ t: t2, analysis, onStartProfile, onClearAnalysis, getCesium, getViewer, getLayers }) {
+  const [source, setSource] = import_react24.default.useState("tiles");
+  const [samples, setSamples] = import_react24.default.useState(32);
   return h22(
     import_react24.default.Fragment,
     null,
-    h22("button", { type: "button", className: "mv-cta", onClick: onStartProfile }, t2("profile.draw")),
+    h22("button", { type: "button", className: "mv-cta primary", onClick: () => onStartProfile({ source, samples }) }, t2("profile.draw")),
+    h22("p", { className: "mv-none" }, t2("profile.subtitle")),
+    h22(
+      "div",
+      { className: "mv-profile-opts" },
+      h22(
+        "label",
+        { className: "mv-profile-opt" },
+        h22("span", null, t2("profile.sourceLabel")),
+        h22(
+          "select",
+          {
+            value: source,
+            "aria-label": t2("profile.sourceLabel"),
+            onChange: (event) => setSource(event.target.value)
+          },
+          h22("option", { value: "tiles" }, t2("profile.sourceTiles")),
+          h22("option", { value: "terrain" }, t2("profile.sourceTerrain"))
+        )
+      ),
+      h22(
+        "label",
+        { className: "mv-profile-opt" },
+        h22("span", null, t2("profile.samplesLabel")),
+        h22(
+          "select",
+          {
+            value: String(samples),
+            "aria-label": t2("profile.samplesLabel"),
+            onChange: (event) => setSamples(Number(event.target.value) || 32)
+          },
+          h22("option", { value: "16" }, t2("profile.samplesOption", { n: 16 })),
+          h22("option", { value: "32" }, t2("profile.samplesOption", { n: 32 })),
+          h22("option", { value: "64" }, t2("profile.samplesOption", { n: 64 }))
+        )
+      )
+    ),
     analysis ? h22(
       "div",
       { className: "mv-layer" },
@@ -19891,6 +20328,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
   const toolRef = import_react36.default.useRef("identify");
   const profileToolRef = import_react36.default.useRef(null);
   const measureRef = import_react36.default.useRef({ points: [], entities: [] });
+  const measurePreviewRef = import_react36.default.useRef(null);
   const vectorRef = import_react36.default.useRef(null);
   const handlerRef = import_react36.default.useRef(null);
   const imageryRef = import_react36.default.useRef(null);
@@ -20353,11 +20791,13 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     toolRef.current = next;
     setTool(next);
     if (next !== "profile") profileToolRef.current?.clear();
+    if (next !== "distance" && next !== "area" && next !== "height") measurePreviewRef.current?.clear();
     vectorRef.current?.clearSelection();
     if (next !== "identify" || measureRef.current.points.length < (measureRef.current.mode === "area" ? 3 : 2)) clearMeasure();
     setOpenMenu(null);
   }
   function clearMeasure() {
+    measurePreviewRef.current?.clear();
     const viewer = viewerRef.current;
     const state = measureRef.current;
     if (viewer) {
@@ -20443,6 +20883,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     }
     descriptor.summary = state.entities.map((entity) => entity.label?.text?.getValue?.()).filter(Boolean).join(" · ");
     vectorRef.current.refresh(descriptor);
+    if (toolRef.current === mode) measurePreviewRef.current?.sync(mode);
   }
   const agentOverlayRef = import_react36.default.useRef({
     draw: [],
@@ -20566,7 +21007,13 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     showToast,
     t: t2,
     onHover: (index) => setProfileHover(index),
-    onRecompute: ({ from, to, source }) => analyzeCommand({ action: "profile", from, to, samples: 32, ...source === "terrain" ? { source: "terrain" } : {} }).catch((error2) => showToast(t2("profile.recomputeFailed", { message: error2?.message ?? String(error2) })))
+    onRecompute: ({ from, to, source }) => analyzeCommand({
+      action: "profile",
+      from,
+      to,
+      samples: Number.isInteger(analysisRef.current?.result?.samples) ? analysisRef.current.result.samples : 32,
+      ...source === "terrain" ? { source: "terrain" } : {}
+    }).catch((error2) => showToast(t2("profile.recomputeFailed", { message: error2?.message ?? String(error2) })))
   });
   import_react36.default.useEffect(() => {
     profileEdit.sync(analysis);
@@ -20750,6 +21197,19 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
   });
   const { pickResult, onCanvasClick } = pointerTools;
   const finishMeasure = () => pointerTools.finishMeasure();
+  const measurePreview = createMeasurePreview({
+    getCesium: () => cesiumRef.current,
+    getViewer: () => viewerRef.current,
+    toolRef,
+    measureRef,
+    pickSurface,
+    geodesicLength,
+    planarArea,
+    formatDistance,
+    formatArea,
+    t: t2
+  });
+  measurePreviewRef.current = measurePreview;
   function resetView() {
     const Cesium = cesiumRef.current;
     const viewer = viewerRef.current;
@@ -21294,6 +21754,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
           getViewer: () => viewerRef.current,
           getTool: () => toolRef.current,
           onCanvasClick,
+          onPointerMove: (position) => measurePreviewRef.current?.onMove(position),
           finishMeasure,
           sampleCursor,
           flyToCartographic,
@@ -21331,6 +21792,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
       handlerRef.current = null;
       disposeSelection(viewerRef.current);
       profileToolRef.current?.dispose();
+      measurePreviewRef.current?.dispose();
       releaseShaderTick();
       shaderEntriesRef.current.clear();
       void overlayLayersRef.current?.dispose();
@@ -21812,7 +22274,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
         onCollapse: () => setShowTools(false),
         onStartTool: (mode) => setToolMode(mode),
         onClearMeasure: clearMeasure,
-        onStartProfile: () => profileTool.start(),
+        onStartProfile: (options) => profileTool.start(options),
         onStartAnnotation: annotationTool.start,
         onAdoptParse: annotations.adoptCollection,
         onClearAnalysis: () => clearAnalysis(),

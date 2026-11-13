@@ -16,10 +16,21 @@ const MAX_WIDTH_M = 100
 const EMPTY_METRICS = Object.freeze({
   point_count: 0,
   valid_count: 0,
+  include_design: true,
   distance_m: 0,
   width_m: DEFAULT_WIDTH_M,
   mode: 'grade',
   length_3d_m: 0,
+  start_height_m: null,
+  end_height_m: null,
+  net_elevation_m: null,
+  min_height_m: null,
+  max_height_m: null,
+  min_at_m: null,
+  max_at_m: null,
+  relief_m: 0,
+  gain_m: 0,
+  loss_m: 0,
   slope: { mean_abs_pct: null, max_abs_pct: null, max_at_m: null },
   design_grade_pct: null,
   design: { start_m: null, end_m: null, start_height_m: null, end_height_m: null, level_m: null },
@@ -67,6 +78,7 @@ export function profileMetrics(points, options = {}) {
   const pointCount = series.length
   if (pointCount < 2) return { ...EMPTY_METRICS, point_count: pointCount, series }
 
+  const includeDesign = options.includeDesign !== false
   const warnings = []
   const mode = options.mode === 'level' ? 'level' : 'grade'
   const widthInput = asNumber(options.width_m)
@@ -75,7 +87,7 @@ export function profileMetrics(points, options = {}) {
 
   const valid = series.filter((point) => point.height_m !== null)
   if (valid.length < 2) {
-    return { ...EMPTY_METRICS, point_count: pointCount, valid_count: valid.length, mode, width_m: width, series }
+    return { ...EMPTY_METRICS, point_count: pointCount, valid_count: valid.length, include_design: includeDesign, mode, width_m: width, series }
   }
   if (valid.length < pointCount) warnings.push('profile_gaps')
 
@@ -84,6 +96,29 @@ export function profileMetrics(points, options = {}) {
   const span = last.distance_m - first.distance_m
   const startHeight = first.height_m
   const endHeight = last.height_m
+
+  let minHeight = first.height_m
+  let maxHeight = first.height_m
+  let minAt = first.distance_m
+  let maxAt = first.distance_m
+  let gainM = 0
+  let lossM = 0
+  for (let index = 0; index < valid.length; index += 1) {
+    const point = valid[index]
+    if (point.height_m < minHeight) {
+      minHeight = point.height_m
+      minAt = point.distance_m
+    }
+    if (point.height_m > maxHeight) {
+      maxHeight = point.height_m
+      maxAt = point.distance_m
+    }
+    if (index > 0) {
+      const stepDelta = point.height_m - valid[index - 1].height_m
+      if (stepDelta > 0) gainM += stepDelta
+      else lossM -= stepDelta
+    }
+  }
 
   let level = null
   if (mode === 'level') {
@@ -170,10 +205,21 @@ export function profileMetrics(points, options = {}) {
   return {
     point_count: pointCount,
     valid_count: valid.length,
+    include_design: includeDesign,
     distance_m: last.distance_m - first.distance_m,
     width_m: width,
     mode,
     length_3d_m: length3d,
+    start_height_m: startHeight,
+    end_height_m: endHeight,
+    net_elevation_m: endHeight - startHeight,
+    min_height_m: minHeight,
+    max_height_m: maxHeight,
+    min_at_m: minAt,
+    max_at_m: maxAt,
+    relief_m: maxHeight - minHeight,
+    gain_m: gainM,
+    loss_m: lossM,
     slope: { mean_abs_pct: meanAbsSlope, max_abs_pct: maxSlope || null, max_at_m: maxSlopeAt },
     design_grade_pct: designGrade,
     design: {
@@ -196,8 +242,15 @@ export function profileMetrics(points, options = {}) {
 
 const csvNumber = (value) => (finite(value) ? Number(value).toFixed(2) : '')
 
-/** Plain CSV: distance / terrain / design / delta / segment slope. */
+/** Plain CSV: distance / terrain / design / delta / segment slope (or terrain+slope without earthwork). */
 export function profileCsv(metrics) {
+  if (metrics?.include_design === false) {
+    const rows = ['distance_m,height_m,slope_pct']
+    for (const row of metrics?.series ?? []) {
+      rows.push([csvNumber(row.distance_m), csvNumber(row.height_m), csvNumber(row.slope_pct)].join(','))
+    }
+    return `${rows.join('\r\n')}\r\n`
+  }
   const rows = ['distance_m,terrain_m,design_m,delta_m,slope_pct']
   for (const row of metrics?.series ?? []) {
     rows.push([csvNumber(row.distance_m), csvNumber(row.height_m), csvNumber(row.design_m), csvNumber(row.delta_m), csvNumber(row.slope_pct)].join(','))
@@ -223,7 +276,8 @@ export function profileSvg(metrics, labels = {}) {
   const series = Array.isArray(metrics?.series) ? metrics.series : []
   const valid = series.filter((row) => finite(row.height_m))
   if (valid.length < 2) return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 360"></svg>'
-  const designRows = series.filter((row) => finite(row.height_m) && finite(row.design_m))
+  const showDesign = metrics?.include_design !== false
+  const designRows = showDesign ? series.filter((row) => finite(row.height_m) && finite(row.design_m)) : []
   const distances = series.map((row) => row.distance_m)
   const maxDistance = Math.max(...distances, 1)
   const values = [...valid.map((row) => row.height_m), ...designRows.map((row) => row.design_m)]
@@ -232,31 +286,52 @@ export function profileSvg(metrics, labels = {}) {
   const valueRange = maxValue - minValue || 1
   minValue -= valueRange * 0.06
   maxValue += valueRange * 0.06
+  const floorY = height - pad.bottom
   const x = (value) => pad.left + (width - pad.left - pad.right) * Math.min(1, Math.max(0, value / maxDistance))
-  const y = (value) => height - pad.bottom - (height - pad.top - pad.bottom) * ((value - minValue) / (maxValue - minValue))
+  const y = (value) => floorY - (height - pad.top - pad.bottom) * ((value - minValue) / (maxValue - minValue))
 
   const segments = []
+  const areaPolygons = []
   let current = []
+  let currentCoords = []
+  const flushSegment = () => {
+    if (current.length === 0) return
+    segments.push(current.join(' '))
+    if (!showDesign && currentCoords.length >= 2) {
+      const firstPx = currentCoords[0].px
+      const lastPx = currentCoords[currentCoords.length - 1].px
+      areaPolygons.push(
+        `<polygon points="${firstPx},${floorY.toFixed(1)} ${current.join(' ')} ${lastPx},${floorY.toFixed(1)}" fill="#dbeafe" fill-opacity="0.72"/>`,
+      )
+    }
+    current = []
+    currentCoords = []
+  }
   for (const row of series) {
-    if (finite(row.height_m)) current.push(`${x(row.distance_m).toFixed(1)},${y(row.height_m).toFixed(1)}`)
-    else if (current.length > 0) {
-      segments.push(current.join(' '))
-      current = []
+    if (finite(row.height_m)) {
+      const px = x(row.distance_m).toFixed(1)
+      const py = y(row.height_m).toFixed(1)
+      current.push(`${px},${py}`)
+      currentCoords.push({ px, py })
+    } else {
+      flushSegment()
     }
   }
-  if (current.length > 0) segments.push(current.join(' '))
+  flushSegment()
 
   const polygons = []
-  for (let index = 0; index < series.length - 1; index += 1) {
-    const left = series[index]
-    const right = series[index + 1]
-    if (!finite(left.height_m) || !finite(right.height_m) || !finite(left.design_m) || !finite(right.design_m)) continue
-    const above = left.height_m >= left.design_m && right.height_m >= right.design_m
-    const below = left.height_m <= left.design_m && right.height_m <= right.design_m
-    const color = above ? '#f6c9c9' : below ? '#cfe8d5' : '#efefdf'
-    polygons.push(
-      `<polygon points="${x(left.distance_m).toFixed(1)},${y(left.height_m).toFixed(1)} ${x(right.distance_m).toFixed(1)},${y(right.height_m).toFixed(1)} ${x(right.distance_m).toFixed(1)},${y(right.design_m).toFixed(1)} ${x(left.distance_m).toFixed(1)},${y(left.design_m).toFixed(1)}" fill="${color}"/>`,
-    )
+  if (showDesign) {
+    for (let index = 0; index < series.length - 1; index += 1) {
+      const left = series[index]
+      const right = series[index + 1]
+      if (!finite(left.height_m) || !finite(right.height_m) || !finite(left.design_m) || !finite(right.design_m)) continue
+      const above = left.height_m >= left.design_m && right.height_m >= right.design_m
+      const below = left.height_m <= left.design_m && right.height_m <= right.design_m
+      const color = above ? '#f6c9c9' : below ? '#cfe8d5' : '#efefdf'
+      polygons.push(
+        `<polygon points="${x(left.distance_m).toFixed(1)},${y(left.height_m).toFixed(1)} ${x(right.distance_m).toFixed(1)},${y(right.height_m).toFixed(1)} ${x(right.distance_m).toFixed(1)},${y(right.design_m).toFixed(1)} ${x(left.distance_m).toFixed(1)},${y(left.design_m).toFixed(1)}" fill="${color}"/>`,
+      )
+    }
   }
 
   const ticks = []
@@ -273,31 +348,48 @@ export function profileSvg(metrics, labels = {}) {
   }
 
   const design = labels.design ?? 'Design'
-  const terrain = labels.terrain ?? 'Terrain'
-  const title = labels.title ?? 'Profile'
+  const terrain = labels.terrain ?? 'Surface'
+  const title = labels.title ?? 'Elevation profile'
   const terrainLines = segments.map(
     (pointsText) =>
       `<polyline points="${pointsText}" fill="none" stroke="#1d4ed8" stroke-width="3.2" stroke-linejoin="round" stroke-linecap="round"/>`,
   )
+  const extremaMarkers = []
+  if (!showDesign && finite(metrics.max_height_m) && finite(metrics.max_at_m)) {
+    const mx = x(metrics.max_at_m)
+    const my = y(metrics.max_height_m)
+    extremaMarkers.push(`<circle cx="${mx.toFixed(1)}" cy="${my.toFixed(1)}" r="4.5" fill="#1d4ed8" stroke="#ffffff" stroke-width="1.5"/>`)
+    extremaMarkers.push(`<text x="${Math.min(width - pad.right - 36, mx + 8).toFixed(1)}" y="${Math.max(pad.top + 12, my - 8).toFixed(1)}" fill="#1e3a8a" font-size="11" font-weight="600">max ${metrics.max_height_m.toFixed(1)} m</text>`)
+  }
+  if (!showDesign && finite(metrics.min_height_m) && finite(metrics.min_at_m)) {
+    const vx = x(metrics.min_at_m)
+    const vy = y(metrics.min_height_m)
+    extremaMarkers.push(`<circle cx="${vx.toFixed(1)}" cy="${vy.toFixed(1)}" r="4.5" fill="#0f766e" stroke="#ffffff" stroke-width="1.5"/>`)
+    extremaMarkers.push(`<text x="${Math.min(width - pad.right - 36, vx + 8).toFixed(1)}" y="${Math.min(floorY - 6, vy + 16).toFixed(1)}" fill="#115e59" font-size="11" font-weight="600">min ${metrics.min_height_m.toFixed(1)} m</text>`)
+  }
+  const summaryRight = showDesign
+    ? `${(metrics.distance_m / 1000).toFixed(2)} km · ${labels.cut ?? 'Cut'} ${Math.round(metrics.cut_volume_m3).toLocaleString()} m³ · ${labels.fill ?? 'Fill'} ${Math.round(metrics.fill_volume_m3).toLocaleString()} m³`
+    : `${(metrics.distance_m / 1000).toFixed(2)} km · ${labels.surfaceLength ?? '3D'} ${(metrics.length_3d_m / 1000).toFixed(2)} km · ${labels.slopeMean ?? 'Slope'} ${finite(metrics.slope?.mean_abs_pct) ? `${metrics.slope.mean_abs_pct.toFixed(1)}%` : '—'}`
   return [
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" font-family="system-ui, 'Segoe UI', 'Microsoft YaHei', sans-serif">`,
     '<rect width="100%" height="100%" fill="#ffffff"/>',
     `<text x="${pad.left}" y="26" font-size="17" font-weight="600" fill="#111827">${escapeXml(title)}</text>`,
     `<text x="${pad.left}" y="44" fill="#9ca3af" font-size="10">${escapeXml(labels.note ?? '')}</text>`,
     ...ticks,
+    ...areaPolygons,
     ...polygons,
     ...terrainLines,
+    ...extremaMarkers,
     designRows.length >= 2
       ? `<line x1="${x(designRows[0].distance_m).toFixed(1)}" y1="${y(designRows[0].design_m).toFixed(1)}" x2="${x(designRows[designRows.length - 1].distance_m).toFixed(1)}" y2="${y(designRows[designRows.length - 1].design_m).toFixed(1)}" stroke="#c2610a" stroke-width="2.8" stroke-dasharray="8 5"/>`
       : '',
     `<line x1="${pad.left}" y1="${height - 34}" x2="${pad.left + 20}" y2="${height - 34}" stroke="#1d4ed8" stroke-width="3.2"/>`,
     `<text x="${pad.left + 26}" y="${height - 30}" fill="#6b7280" font-size="11">${escapeXml(terrain)}</text>`,
-    `<line x1="${pad.left + 100}" y1="${height - 34}" x2="${pad.left + 120}" y2="${height - 34}" stroke="#c2610a" stroke-width="2.8" stroke-dasharray="8 5"/>`,
-    `<text x="${pad.left + 126}" y="${height - 30}" fill="#6b7280" font-size="11">${escapeXml(design)}</text>`,
+    showDesign
+      ? `<line x1="${pad.left + 100}" y1="${height - 34}" x2="${pad.left + 120}" y2="${height - 34}" stroke="#c2610a" stroke-width="2.8" stroke-dasharray="8 5"/><text x="${pad.left + 126}" y="${height - 30}" fill="#6b7280" font-size="11">${escapeXml(design)}</text>`
+      : '',
     `<text x="${width - pad.right}" y="${height - 12}" text-anchor="end" fill="#6b7280" font-size="11">${escapeXml(labels.distance ?? 'Distance (m)')}</text>`,
-    `<text x="${width - pad.right}" y="40" text-anchor="end" fill="#9ca3af" font-size="11">${escapeXml(
-      `${(metrics.distance_m / 1000).toFixed(2)} km · ${labels.cut ?? 'Cut'} ${Math.round(metrics.cut_volume_m3).toLocaleString()} m³ · ${labels.fill ?? 'Fill'} ${Math.round(metrics.fill_volume_m3).toLocaleString()} m³`,
-    )}</text>`,
+    `<text x="${width - pad.right}" y="40" text-anchor="end" fill="#9ca3af" font-size="11">${escapeXml(summaryRight)}</text>`,
     '</svg>',
   ].join('')
 }

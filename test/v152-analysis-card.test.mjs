@@ -67,7 +67,7 @@ test('分析卡：高程来源与 warnings 渲染，缺失时省略', () => {
       `缺少中英 ${key}`,
     )
   }
-  assert.match(messages, /'analysis\.title\.profile': '三维剖面'/)
+  assert.match(messages, /'analysis\.title\.profile': '高程纵断面'/)
 })
 
 test('分析卡样式：图表不再被底部挤出，窄面板也够高', () => {

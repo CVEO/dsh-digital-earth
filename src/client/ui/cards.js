@@ -20,23 +20,13 @@ const h = React.createElement
     const analysisMetric = (value, digits = 1) =>
       typeof value === 'number' && Number.isFinite(value) ? value.toFixed(digits) : '—'
 
-    const formatVolume = (value) =>
-      typeof value === 'number' && Number.isFinite(value) ? `${Math.round(value).toLocaleString()} m³` : '—'
-
-    const clampProfileWidth = (value) => {
-      const number = Number(value)
-      if (!Number.isFinite(number)) return 7
-      return Math.min(100, Math.max(1, Math.round(number)))
-    }
-
     const profileChartLabels = (t) => ({
       title: t('analysis.title.profile'),
       distance: t('profile.axisDistance'),
       elevation: t('profile.axisElevation'),
       terrain: t('profile.terrain'),
-      design: t('profile.design'),
-      cut: t('profile.cut'),
-      fill: t('profile.fill'),
+      surfaceLength: t('profile.surfaceLength'),
+      slopeMean: t('profile.slopeMean'),
       note: t('profile.note'),
     })
 
@@ -86,7 +76,7 @@ const h = React.createElement
               {
                 type: 'button',
                 className: 'mv-cta',
-                onClick: () => downloadText(`profile-${Date.now()}.csv`, profileCsv(metrics), 'text/csv;charset=utf-8'),
+                onClick: () => downloadText(`elevation-profile-${Date.now()}.csv`, profileCsv(metrics), 'text/csv;charset=utf-8'),
               },
               t('profile.exportCsv'),
             ),
@@ -95,7 +85,7 @@ const h = React.createElement
               {
                 type: 'button',
                 className: 'mv-cta',
-                onClick: () => downloadText(`profile-${Date.now()}.svg`, svg, 'image/svg+xml'),
+                onClick: () => downloadText(`elevation-profile-${Date.now()}.svg`, svg, 'image/svg+xml'),
               },
               t('profile.exportSvg'),
             ),
@@ -108,15 +98,12 @@ const h = React.createElement
     /** Floating result card for the single active analysis. */
     function AnalysisCard({ state, t, onClose, hoverIndex = null, onHover }) {
       const [open, setOpen] = React.useState(true)
-      // A2 profile extras are display-side only: the Agent contract stays the same.
-      const [profileMode, setProfileMode] = React.useState('grade')
-      const [profileWidth, setProfileWidth] = React.useState(7)
       const [chartOpen, setChartOpen] = React.useState(false)
       const resize = usePanelResize({ storageKey: 'analysis', initialHeight: null, minHeight: 180, maxHeight: 680 })
       if (!state || !state.result) return null
       const result = state.result
       const operation = state.operation
-      const profile = operation === 'profile' ? profileMetrics(result.points, { mode: profileMode, width_m: profileWidth }) : null
+      const profile = operation === 'profile' ? profileMetrics(result.points, { includeDesign: false }) : null
       const showProfile = Boolean(profile && profile.valid_count >= 2)
       // v1.5.2: the chart is the first thing in the body (the stats below used to
       // push it out of the card), the source row pins the single height source of
@@ -149,12 +136,17 @@ const h = React.createElement
       if (operation === 'profile') {
         const stats = result.stats ?? {}
         row('length', t('analysis.length'), formatDistance(result.length_m ?? 0))
+        if (showProfile) {
+          row('surfaceLength', t('profile.surfaceLength'), formatDistance(profile.length_3d_m))
+          row('startEnd', t('profile.startEndHeight'), `${formatHeight(profile.start_height_m)} → ${formatHeight(profile.end_height_m)}`)
+          const net = profile.net_elevation_m ?? 0
+          row('netChange', t('profile.netChange'), `${net >= 0 ? '+' : ''}${formatHeight(net)}`)
+        }
         row('min', t('analysis.minHeight'), formatHeight(stats.min_height ?? 0))
         row('max', t('analysis.maxHeight'), formatHeight(stats.max_height ?? 0))
         row('relief', t('analysis.relief'), formatHeight(stats.relief_m ?? 0))
         row('gain', t('analysis.gain'), formatHeight(stats.gain_m ?? 0))
         row('loss', t('analysis.loss'), formatHeight(stats.loss_m ?? 0))
-        row('samples', t('analysis.samples'), `${result.samples ?? 0}`)
         if (showProfile) {
           row('slopeMean', t('profile.slopeMean'), `${analysisMetric(profile.slope.mean_abs_pct)}%`)
           row(
@@ -162,10 +154,14 @@ const h = React.createElement
             t('profile.slopeMax'),
             `${analysisMetric(profile.slope.max_abs_pct)}% · ${formatDistance(profile.slope.max_at_m ?? 0)}`,
           )
-          row('designGrade', t('profile.designGrade'), `${analysisMetric(profile.design_grade_pct)}%`)
-          row('cut', t('profile.cut'), formatVolume(profile.cut_volume_m3))
-          row('fill', t('profile.fill'), formatVolume(profile.fill_volume_m3))
-          row('net', t('profile.net'), formatVolume(profile.net_volume_m3))
+        }
+        row('samples', t('analysis.samples'), `${result.samples ?? 0}`)
+        if (Array.isArray(result.from) && Array.isArray(result.to) && result.from.length >= 2 && result.to.length >= 2) {
+          row(
+            'endpoints',
+            t('profile.endpoints'),
+            `${Number(result.from[0]).toFixed(4)}, ${Number(result.from[1]).toFixed(4)} → ${Number(result.to[0]).toFixed(4)}, ${Number(result.to[1]).toFixed(4)}`,
+          )
         }
       } else if (operation === 'flood') {
         row('water', t('analysis.waterHeight'), formatHeight(result.water_height ?? 0))
@@ -278,40 +274,12 @@ const h = React.createElement
                       'div',
                       { className: 'profile-row' },
                       h(
-                        'select',
-                        {
-                          value: profileMode,
-                          'aria-label': t('profile.baseline'),
-                          onChange: (event) => setProfileMode(event.target.value),
-                        },
-                        h('option', { value: 'grade' }, t('profile.mode.grade')),
-                        h('option', { value: 'level' }, t('profile.mode.level')),
-                      ),
-                      h(
-                        'label',
-                        { className: 'profile-width' },
-                        t('profile.width'),
-                        h('input', {
-                          type: 'number',
-                          min: 1,
-                          max: 100,
-                          step: 1,
-                          value: profileWidth,
-                          'aria-label': t('profile.width'),
-                          onChange: (event) => setProfileWidth(clampProfileWidth(event.target.value)),
-                        }),
-                      ),
-                    ),
-                    h(
-                      'div',
-                      { className: 'profile-row' },
-                      h(
                         'button',
                         {
                           type: 'button',
                           className: 'mv-cta',
                           onClick: () =>
-                            downloadText(`profile-${Date.now()}.csv`, profileCsv(profile), 'text/csv;charset=utf-8'),
+                            downloadText(`elevation-profile-${Date.now()}.csv`, profileCsv(profile), 'text/csv;charset=utf-8'),
                         },
                         t('profile.exportCsv'),
                       ),
@@ -322,7 +290,7 @@ const h = React.createElement
                           className: 'mv-cta',
                           onClick: () =>
                             downloadText(
-                              `profile-${Date.now()}.svg`,
+                              `elevation-profile-${Date.now()}.svg`,
                               profileSvg(profile, profileChartLabels(t)),
                               'image/svg+xml',
                             ),
@@ -330,7 +298,7 @@ const h = React.createElement
                         t('profile.exportSvg'),
                       ),
                     ),
-                    h('p', { className: 'profile-note' }, t('profile.note')),
+                    h('p', { className: 'profile-note' }, t('profile.hoverChartHint')),
                   )
                 : null,
               h('p', { className: 'hint' }, t('analysis.hint')),

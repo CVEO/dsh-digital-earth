@@ -127,5 +127,5 @@ test('接线：编辑器只加手柄/读数，图表与右栈共享同一个 hov
   assert.match(surface, /profileEdit\.sync\(analysis\); return \(\) => profileEdit\.clear\(\)/)
   assert.match(surface, /analysisHover: profileHover,/)
   assert.match(surface, /profileEdit\.setHover\(index\)/)
-  assert.match(surface, /action: 'profile', from, to, samples: 32,/)
+  assert.match(surface, /action: 'profile',\s*from,\s*to,\s*samples:/)
 })

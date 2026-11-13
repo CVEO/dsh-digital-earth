@@ -13,6 +13,7 @@ export function installCanvasInput({
   getViewer,
   getTool,
   onCanvasClick,
+  onPointerMove,
   finishMeasure,
   sampleCursor,
   flyToCartographic,
@@ -22,7 +23,10 @@ export function installCanvasInput({
   const handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas)
   const intent = createPointerIntent(isSelectionActive)
   handler.setInputAction((event) => intent.down(event.position), Cesium.ScreenSpaceEventType.LEFT_DOWN)
-  handler.setInputAction((event) => intent.move(event.endPosition), Cesium.ScreenSpaceEventType.MOUSE_MOVE)
+  handler.setInputAction((event) => {
+    intent.move(event.endPosition)
+    if (!isSelectionActive?.()) onPointerMove?.(event.endPosition)
+  }, Cesium.ScreenSpaceEventType.MOUSE_MOVE)
   const unwatch = watchPointerCancellation(viewer.scene.canvas, intent)
   const destroy = handler.destroy.bind(handler)
   handler.destroy = () => { unwatch(); return destroy() }

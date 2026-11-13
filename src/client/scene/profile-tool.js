@@ -28,7 +28,7 @@ export function createProfileTool({ getCesium, getViewer, pickSurface, setTool, 
     if (!viewer) return null
     let state = sessions.get(viewer)
     if (!state) {
-      state = { points: [], entities: [], handler: null, start: null, cursor: null, locked: false, run: 0 }
+      state = { points: [], entities: [], handler: null, start: null, cursor: null, locked: false, run: 0, source: null, samples: 32 }
       sessions.set(viewer, state)
     }
     return state
@@ -152,12 +152,14 @@ export function createProfileTool({ getCesium, getViewer, pickSurface, setTool, 
     state.locked = false
   }
 
-  function start() {
+  function start(options = {}) {
     clear()
     setTool('profile')
     showToast(t('profile.clickStart'))
     const state = sessionFor()
     if (!state) return
+    state.source = options?.source === 'terrain' ? 'terrain' : options?.source === 'tiles' ? 'tiles' : null
+    state.samples = Number.isInteger(options?.samples) ? Math.min(64, Math.max(8, options.samples)) : 32
     state.run += 1
     installHandler(state)
   }
@@ -219,7 +221,14 @@ export function createProfileTool({ getCesium, getViewer, pickSurface, setTool, 
     showToast(t('profile.running'))
     void (async () => {
       try {
-        await runAnalysis({ action: 'profile', from: [from.lon, from.lat], to: [to.lon, to.lat], samples: 32 })
+        const samples = state.samples && state.samples !== 32 ? state.samples : 32
+        await runAnalysis({
+          action: 'profile',
+          from: [from.lon, from.lat],
+          to: [to.lon, to.lat],
+          ...(samples === 32 ? { samples: 32 } : { samples }),
+          ...(state.source ? { source: state.source } : {}),
+        })
       } catch (error) {
         showToast(t('profile.failed', { message: error?.message ?? String(error) }))
       } finally {

@@ -25,6 +25,7 @@ import { createAskAgent } from '../scene/ask-agent.js'
 import { createCaptureService } from '../scene/capture.js'
 import { createCaptureHud } from '../scene/capture-hud.js'
 import { createPointerTools } from '../scene/pointer-tools.js'
+import { createMeasurePreview } from '../scene/measure-preview.js'
 import { pickSurfaceAt } from '../scene/pick-surface.js'
 import { createProfileTool } from '../scene/profile-tool.js'
 import { createVectorInteraction } from '../scene/vector-interaction.js'
@@ -94,6 +95,7 @@ const h = React.createElement
       const toolRef = React.useRef('identify')
       const profileToolRef = React.useRef(null)
       const measureRef = React.useRef({ points: [], entities: [] })
+      const measurePreviewRef = React.useRef(null)
       const vectorRef = React.useRef(null)
       const handlerRef = React.useRef(null)
       const imageryRef = React.useRef(null)
@@ -697,12 +699,14 @@ const h = React.createElement
         toolRef.current = next
         setTool(next)
         if (next !== 'profile') profileToolRef.current?.clear()
+        if (next !== 'distance' && next !== 'area' && next !== 'height') measurePreviewRef.current?.clear()
         vectorRef.current?.clearSelection()
         if (next !== 'identify' || measureRef.current.points.length < (measureRef.current.mode === 'area' ? 3 : 2)) clearMeasure()
         setOpenMenu(null)
       }
 
       function clearMeasure() {
+        measurePreviewRef.current?.clear()
         const viewer = viewerRef.current
         const state = measureRef.current
         if (viewer) {
@@ -790,6 +794,7 @@ const h = React.createElement
         }
         descriptor.summary = state.entities.map((entity) => entity.label?.text?.getValue?.()).filter(Boolean).join(' · ')
         vectorRef.current.refresh(descriptor)
+        if (toolRef.current === mode) measurePreviewRef.current?.sync(mode)
       }
 
       //#region Agent overlays (annotations + measurements) ---------------------
@@ -933,7 +938,13 @@ const h = React.createElement
       const profileEdit = createProfileEdit({
         getCesium: () => cesiumRef.current, getViewer: () => viewerRef.current, getRoot: () => rootRef.current, pickSurface, showToast, t,
         onHover: (index) => setProfileHover(index),
-        onRecompute: ({ from, to, source }) => analyzeCommand({ action: 'profile', from, to, samples: 32, ...(source === 'terrain' ? { source: 'terrain' } : {}) })
+        onRecompute: ({ from, to, source }) => analyzeCommand({
+          action: 'profile',
+          from,
+          to,
+          samples: Number.isInteger(analysisRef.current?.result?.samples) ? analysisRef.current.result.samples : 32,
+          ...(source === 'terrain' ? { source: 'terrain' } : {}),
+        })
           .catch((error) => showToast(t('profile.recomputeFailed', { message: error?.message ?? String(error) }))),
       })
       React.useEffect(() => { profileEdit.sync(analysis); return () => profileEdit.clear() }, [analysis])
@@ -1166,6 +1177,19 @@ const h = React.createElement
       })
       const { pickResult, onCanvasClick } = pointerTools
       const finishMeasure = () => pointerTools.finishMeasure()
+      const measurePreview = createMeasurePreview({
+        getCesium: () => cesiumRef.current,
+        getViewer: () => viewerRef.current,
+        toolRef,
+        measureRef,
+        pickSurface,
+        geodesicLength,
+        planarArea,
+        formatDistance,
+        formatArea,
+        t,
+      })
+      measurePreviewRef.current = measurePreview
 
       function resetView() {
         const Cesium = cesiumRef.current
@@ -1816,6 +1840,7 @@ const h = React.createElement
               getViewer: () => viewerRef.current,
               getTool: () => toolRef.current,
               onCanvasClick,
+              onPointerMove: (position) => measurePreviewRef.current?.onMove(position),
               finishMeasure,
               sampleCursor,
               flyToCartographic,
@@ -1864,6 +1889,7 @@ const h = React.createElement
           handlerRef.current = null
           disposeSelection(viewerRef.current)
           profileToolRef.current?.dispose()
+          measurePreviewRef.current?.dispose()
           // B3: detach the u_time tick and forget per-layer shader entries before
           // the viewer goes away; the tilesets themselves are destroyed with it.
           releaseShaderTick()
@@ -2411,7 +2437,7 @@ const h = React.createElement
             onCollapse: () => setShowTools(false),
             onStartTool: (mode) => setToolMode(mode),
             onClearMeasure: clearMeasure,
-            onStartProfile: () => profileTool.start(),
+            onStartProfile: (options) => profileTool.start(options),
             onStartAnnotation: annotationTool.start,
             onAdoptParse: annotations.adoptCollection,
             onClearAnalysis: () => clearAnalysis(),

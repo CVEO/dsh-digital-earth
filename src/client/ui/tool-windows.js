@@ -77,10 +77,48 @@ export function SelectBody({
 }
 
 export function AnalysisBody({ t, analysis, onStartProfile, onClearAnalysis, getCesium, getViewer, getLayers }) {
+  const [source, setSource] = React.useState('tiles')
+  const [samples, setSamples] = React.useState(32)
   return h(
     React.Fragment,
     null,
-    h('button', { type: 'button', className: 'mv-cta', onClick: onStartProfile }, t('profile.draw')),
+    h('button', { type: 'button', className: 'mv-cta primary', onClick: () => onStartProfile({ source, samples }) }, t('profile.draw')),
+    h('p', { className: 'mv-none' }, t('profile.subtitle')),
+    h(
+      'div',
+      { className: 'mv-profile-opts' },
+      h(
+        'label',
+        { className: 'mv-profile-opt' },
+        h('span', null, t('profile.sourceLabel')),
+        h(
+          'select',
+          {
+            value: source,
+            'aria-label': t('profile.sourceLabel'),
+            onChange: (event) => setSource(event.target.value),
+          },
+          h('option', { value: 'tiles' }, t('profile.sourceTiles')),
+          h('option', { value: 'terrain' }, t('profile.sourceTerrain')),
+        ),
+      ),
+      h(
+        'label',
+        { className: 'mv-profile-opt' },
+        h('span', null, t('profile.samplesLabel')),
+        h(
+          'select',
+          {
+            value: String(samples),
+            'aria-label': t('profile.samplesLabel'),
+            onChange: (event) => setSamples(Number(event.target.value) || 32),
+          },
+          h('option', { value: '16' }, t('profile.samplesOption', { n: 16 })),
+          h('option', { value: '32' }, t('profile.samplesOption', { n: 32 })),
+          h('option', { value: '64' }, t('profile.samplesOption', { n: 64 })),
+        ),
+      ),
+    ),
     analysis
       ? h(
           'div',
