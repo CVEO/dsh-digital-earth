@@ -218,3 +218,43 @@ test('i18n：导出文案中英齐全并已并入主表', () => {
     assert.equal(MESSAGES.en[key], EXPORT_MESSAGES.en[key], `en table ${key}`)
   }
 })
+
+test('vectorCoordinateCount / vectorBbox：GeometryCollection 递归计数与取界', () => {
+  const collection = {
+    type: 'Feature',
+    properties: {},
+    geometry: {
+      type: 'GeometryCollection',
+      geometries: [
+        { type: 'LineString', coordinates: [[114.3, 30.5], [114.4, 30.6]] },
+        { type: 'Point', coordinates: [114.5, 30.7] },
+      ],
+    },
+  }
+  assert.equal(exporter.vectorCoordinateCount([collection]), 3)
+  assert.deepEqual(exporter.vectorBbox([collection]), { west: 114.3, south: 30.5, east: 114.5, north: 30.7 })
+})
+
+test('service.send：连点两次只写一个文件、只发一次请求', async () => {
+  const meta = { exportVectorUrl: '/export/vector/token', injectUrl: '/inject/token', exportVectorChatUrl: '/export/vector/chat/token' }
+  const calls = []
+  let settle = null
+  const { service } = makeService({
+    meta,
+    fetchImpl: (url) => {
+      calls.push(url)
+      return new Promise((resolve) => {
+        settle = () => resolve({ ok: true, json: async () => ({ injected: true, attached: true, path: 'C:/dsh/exports/earth-vector-1.geojson', count: 2 }) })
+      })
+    },
+  })
+  const first = service.send()
+  const second = service.send()
+  await Promise.resolve()
+  await Promise.resolve()
+  assert.equal(calls.length, 1, 'the in-flight send must be reused')
+  settle()
+  const [a, b] = await Promise.all([first, second])
+  assert.equal(a, b)
+  assert.equal(calls.length, 1)
+})

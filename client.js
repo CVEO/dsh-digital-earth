@@ -14275,6 +14275,54 @@ function classLabel(t2, kind) {
   const label = typeof t2 === "function" ? t2(key) : key;
   return typeof label === "string" && label !== key ? label : kind;
 }
+var ANCHOR_GRID = 9;
+var ANCHOR_ROUNDS = 4;
+function batchPolygonAnchor(polygon) {
+  const fallback = batchPolygonCenter(polygon);
+  if (!Array.isArray(polygon) || polygon.length < 3) return fallback;
+  let west = Infinity;
+  let south = Infinity;
+  let east = -Infinity;
+  let north = -Infinity;
+  for (const vertex of polygon) {
+    const [x, y] = Array.isArray(vertex) ? vertex : [];
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return fallback;
+    west = Math.min(west, x);
+    east = Math.max(east, x);
+    south = Math.min(south, y);
+    north = Math.max(north, y);
+  }
+  if (!(east > west && north > south)) return fallback;
+  let best = null;
+  let bestDistance = -1;
+  let left = west;
+  let right = east;
+  let top = south;
+  let bottom = north;
+  for (let round2 = 0; round2 < ANCHOR_ROUNDS; round2 += 1) {
+    const stepX = (right - left) / (ANCHOR_GRID - 1);
+    const stepY = (bottom - top) / (ANCHOR_GRID - 1);
+    for (let row = 0; row < ANCHOR_GRID; row += 1) {
+      for (let column = 0; column < ANCHOR_GRID; column += 1) {
+        const point = [left + column * stepX, top + row * stepY];
+        if (!containsVisionPoint(polygon, point)) continue;
+        const distance = distanceToPolygon(polygon, point);
+        if (distance > bestDistance) {
+          best = point;
+          bestDistance = distance;
+        }
+      }
+    }
+    if (best !== null) {
+      left = best[0] - stepX;
+      right = best[0] + stepX;
+      top = best[1] - stepY;
+      bottom = best[1] + stepY;
+    }
+  }
+  if (best === null) return fallback;
+  return [Math.min(0.999, Math.max(1e-3, best[0])), Math.min(0.999, Math.max(1e-3, best[1]))];
+}
 function projectBatchObjects(frame, objects, { t: t2 } = {}) {
   const features = [];
   let skipped = 0;
@@ -14283,7 +14331,7 @@ function projectBatchObjects(frame, objects, { t: t2 } = {}) {
       skipped += 1;
       continue;
     }
-    const center = batchPolygonCenter(object.polygon);
+    const center = batchPolygonAnchor(object.polygon);
     if (!center) {
       skipped += 1;
       continue;
@@ -17428,6 +17476,14 @@ function collectVectorFeatures({ drawCommands = [], measureCommands = [] } = {})
   if (coordinates > VECTOR_EXPORT_MAX_COORDINATES) return { ok: false, error: "too_many_coordinates" };
   return { ok: true, features, coordinates };
 }
+function walkGeometry(geometry, visit) {
+  if (geometry === null || typeof geometry !== "object") return;
+  if (geometry.type === "GeometryCollection") {
+    if (Array.isArray(geometry.geometries)) for (const child of geometry.geometries) walkGeometry(child, visit);
+    return;
+  }
+  visit(geometry.coordinates);
+}
 function vectorCoordinateCount(features) {
   let total = 0;
   const visit = (node) => {
@@ -17438,7 +17494,7 @@ function vectorCoordinateCount(features) {
     }
     for (const item of node) visit(item);
   };
-  for (const feature of Array.isArray(features) ? features : []) visit(feature?.geometry?.coordinates);
+  for (const feature of Array.isArray(features) ? features : []) walkGeometry(feature?.geometry, visit);
   return total;
 }
 function vectorBbox(features) {
@@ -17458,7 +17514,7 @@ function vectorBbox(features) {
     }
     for (const item of node) visit(item);
   };
-  for (const feature of Array.isArray(features) ? features : []) visit(feature?.geometry?.coordinates);
+  for (const feature of Array.isArray(features) ? features : []) walkGeometry(feature?.geometry, visit);
   return Number.isFinite(west) ? { west, south, east, north } : null;
 }
 function vectorExportCollection(features, { name = "" } = {}) {
@@ -17518,6 +17574,15 @@ function createVectorExport({ stateRef, getMeta, getSession, showToast, t: t2, f
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     return response.json();
   };
+  const flights = /* @__PURE__ */ new Map();
+  const single = (key, task) => {
+    if (flights.has(key)) return flights.get(key);
+    const promise = Promise.resolve().then(task).finally(() => {
+      flights.delete(key);
+    });
+    flights.set(key, promise);
+    return promise;
+  };
   return {
     canSend: () => typeof getSession === "function" && Boolean(getSession()),
     /** Local download; works with no session and no host route. */
@@ -17537,7 +17602,7 @@ function createVectorExport({ stateRef, getMeta, getSession, showToast, t: t2, f
       return true;
     },
     /** Write one .geojson under the DSH exports folder and report the path. */
-    save: async () => {
+    save: () => single("save", async () => {
       const prepared = prepare();
       if (!prepared) return null;
       try {
@@ -17549,7 +17614,7 @@ function createVectorExport({ stateRef, getMeta, getSession, showToast, t: t2, f
         showToast(t2("vectorExport.failed", { reason: error instanceof Error ? error.message : String(error) }));
         return null;
       }
-    },
+    }),
     /**
      * Write one GeoJSON under the exports folder and hand it to the conversation.
      *
@@ -17558,7 +17623,7 @@ function createVectorExport({ stateRef, getMeta, getSession, showToast, t: t2, f
      * file card. Older hosts without that route fall back to writing the file and
      * injecting a path-only notice, which the agent can still read.
      */
-    send: async () => {
+    send: () => single("send", async () => {
       const session = typeof getSession === "function" ? getSession() : null;
       if (!session) {
         showToast(t2("vectorExport.noSession"));
@@ -17618,7 +17683,7 @@ function createVectorExport({ stateRef, getMeta, getSession, showToast, t: t2, f
         showToast(t2("vectorExport.failed", { reason: error instanceof Error ? error.message : String(error) }));
         return null;
       }
-    }
+    })
   };
 }
 

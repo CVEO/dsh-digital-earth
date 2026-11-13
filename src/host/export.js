@@ -65,6 +65,16 @@ function countCoordinates(node) {
   return total
 }
 
+/** Visit every coordinate tree inside a geometry, including nested GeometryCollections. */
+function walkGeometry(geometry, visit) {
+  if (geometry === null || typeof geometry !== 'object') return
+  if (geometry.type === 'GeometryCollection') {
+    if (Array.isArray(geometry.geometries)) for (const child of geometry.geometries) walkGeometry(child, visit)
+    return
+  }
+  visit(geometry.coordinates)
+}
+
 /** Bounding box of a FeatureCollection, in degrees; null when nothing numeric. */
 function bboxOfFeatures(features) {
   let west = Infinity
@@ -83,7 +93,7 @@ function bboxOfFeatures(features) {
     }
     for (const item of node) visit(item)
   }
-  for (const feature of features) visit(feature?.geometry?.coordinates)
+  for (const feature of features) walkGeometry(feature?.geometry, visit)
   return Number.isFinite(west) ? { west, south, east, north } : null
 }
 
@@ -171,17 +181,45 @@ function vectorFeaturesOf(payload, res) {
     return null
   }
   let coordinates = 0
+  let invalid = false
+  let tooMany = false
+  // A GeometryCollection has no coordinates of its own: recurse so nested trees
+  // cannot smuggling an unbounded number of vertices past the ceiling.
+  const checkGeometry = (geometry, depth) => {
+    if (invalid || tooMany) return
+    if (geometry === null || typeof geometry !== 'object' || !VECTOR_GEOMETRY_TYPES.has(geometry.type)) {
+      invalid = true
+      return
+    }
+    if (geometry.type === 'GeometryCollection') {
+      if (depth >= 4 || !Array.isArray(geometry.geometries)) {
+        invalid = true
+        return
+      }
+      for (const child of geometry.geometries) checkGeometry(child, depth + 1)
+      return
+    }
+    walkGeometry(geometry, (tree) => {
+      if (invalid || tooMany) return
+      coordinates += countCoordinates(tree)
+      if (coordinates > MAX_DRAW_COORDINATES) tooMany = true
+    })
+  }
   for (const feature of features) {
-    const geometry = feature?.geometry
-    if (feature?.type !== 'Feature' || geometry === null || typeof geometry !== 'object' || !VECTOR_GEOMETRY_TYPES.has(geometry.type)) {
-      sendText(res, 400, 'invalid feature')
-      return null
+    if (feature?.type !== 'Feature') {
+      invalid = true
+      break
     }
-    coordinates += countCoordinates(geometry.coordinates)
-    if (coordinates > MAX_DRAW_COORDINATES) {
-      sendText(res, 413, 'too many coordinates')
-      return null
-    }
+    checkGeometry(feature.geometry, 0)
+    if (invalid || tooMany) break
+  }
+  if (invalid) {
+    sendText(res, 400, 'invalid feature')
+    return null
+  }
+  if (tooMany) {
+    sendText(res, 413, 'too many coordinates')
+    return null
   }
   return features
 }

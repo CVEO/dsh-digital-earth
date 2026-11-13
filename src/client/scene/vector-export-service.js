@@ -62,6 +62,16 @@ export function createVectorExport({ stateRef, getMeta, getSession, showToast, t
     return response.json()
   }
 
+  // One export at a time: a double click must not write two files or inject the
+  // same attachment twice. Concurrent callers share the in-flight promise.
+  const flights = new Map()
+  const single = (key, task) => {
+    if (flights.has(key)) return flights.get(key)
+    const promise = Promise.resolve().then(task).finally(() => { flights.delete(key) })
+    flights.set(key, promise)
+    return promise
+  }
+
   return {
     canSend: () => typeof getSession === 'function' && Boolean(getSession()),
 
@@ -83,7 +93,7 @@ export function createVectorExport({ stateRef, getMeta, getSession, showToast, t
     },
 
     /** Write one .geojson under the DSH exports folder and report the path. */
-    save: async () => {
+    save: () => single('save', async () => {
       const prepared = prepare()
       if (!prepared) return null
       try {
@@ -95,7 +105,7 @@ export function createVectorExport({ stateRef, getMeta, getSession, showToast, t
         showToast(t('vectorExport.failed', { reason: error instanceof Error ? error.message : String(error) }))
         return null
       }
-    },
+    }),
 
     /**
      * Write one GeoJSON under the exports folder and hand it to the conversation.
@@ -105,7 +115,7 @@ export function createVectorExport({ stateRef, getMeta, getSession, showToast, t
      * file card. Older hosts without that route fall back to writing the file and
      * injecting a path-only notice, which the agent can still read.
      */
-    send: async () => {
+    send: () => single('send', async () => {
       const session = typeof getSession === 'function' ? getSession() : null
       if (!session) {
         showToast(t('vectorExport.noSession'))
@@ -166,6 +176,6 @@ export function createVectorExport({ stateRef, getMeta, getSession, showToast, t
         showToast(t('vectorExport.failed', { reason: error instanceof Error ? error.message : String(error) }))
         return null
       }
-    },
+    }),
   }
 }

@@ -206,3 +206,14 @@ test('文案：解析面板中英键集合一致，并已并入 MESSAGES', () =>
   assert.equal(typeof MESSAGES.zh['parse.class.building'], 'string')
   assert.equal(typeof MESSAGES.en['parse.class.building'], 'string')
 })
+
+test('batchPolygonAnchor：U 形多边形的锚点落在内部，顶点均值落在凹口外', async () => {
+  const geometry = await import('../src/client/scene/vision-geometry.js')
+  // A U shape: the bbox centre (0.5, 0.5) and the vertex mean (0.5, 0.55) are both
+  // inside the notch, so the old anchor was rejected and the candidate skipped.
+  const u = [[0.1, 0.1], [0.9, 0.1], [0.9, 0.9], [0.7, 0.9], [0.7, 0.3], [0.3, 0.3], [0.3, 0.9], [0.1, 0.9]]
+  assert.equal(geometry.containsVisionPoint(u, batch.batchPolygonCenter(u)), false)
+  const anchor = batch.batchPolygonAnchor(u)
+  assert.equal(geometry.containsVisionPoint(u, anchor), true)
+  assert.ok(geometry.distanceToPolygon(u, anchor) > 0.02, 'anchor should sit inside, not on the boundary')
+})

@@ -105,6 +105,16 @@ export function collectVectorFeatures({ drawCommands = [], measureCommands = [] 
   return { ok: true, features, coordinates }
 }
 
+/** Visit every coordinate tree inside a geometry, including nested GeometryCollections. */
+function walkGeometry(geometry, visit) {
+  if (geometry === null || typeof geometry !== 'object') return
+  if (geometry.type === 'GeometryCollection') {
+    if (Array.isArray(geometry.geometries)) for (const child of geometry.geometries) walkGeometry(child, visit)
+    return
+  }
+  visit(geometry.coordinates)
+}
+
 /** Leaf [lon, lat] pairs in any GeoJSON coordinate tree. */
 export function vectorCoordinateCount(features) {
   let total = 0
@@ -116,7 +126,7 @@ export function vectorCoordinateCount(features) {
     }
     for (const item of node) visit(item)
   }
-  for (const feature of Array.isArray(features) ? features : []) visit(feature?.geometry?.coordinates)
+  for (const feature of Array.isArray(features) ? features : []) walkGeometry(feature?.geometry, visit)
   return total
 }
 
@@ -138,7 +148,7 @@ export function vectorBbox(features) {
     }
     for (const item of node) visit(item)
   }
-  for (const feature of Array.isArray(features) ? features : []) visit(feature?.geometry?.coordinates)
+  for (const feature of Array.isArray(features) ? features : []) walkGeometry(feature?.geometry, visit)
   return Number.isFinite(west) ? { west, south, east, north } : null
 }
 

@@ -296,3 +296,35 @@ test('vector export：路由/常量/meta/index 接线正确，且工具源码不
   assert.doesNotMatch(routesSource, /register\('prefix', EXPORT_VECTOR_CHAT_ROUTE/, '附件导出不得注册为无 token 前缀路由')
   assert.doesNotMatch(toolSource, /exportVectorChatUrl|EXPORT_VECTOR_CHAT_ROUTE/, '工具源码不得引用页面专用附件路由')
 })
+
+test('vector export：GeometryCollection 的嵌套坐标计入上限，合法集合有 bbox', async () => {
+  const nested = (count) => ({
+    type: 'Feature',
+    properties: {},
+    geometry: {
+      type: 'GeometryCollection',
+      geometries: [
+        { type: 'GeometryCollection', geometries: [{ type: 'LineString', coordinates: new Array(count).fill([114.3, 30.5]) }] },
+        { type: 'Point', coordinates: [114.5, 30.7] },
+      ],
+    },
+  })
+  const dense = await callExport({ kind: 'vector', features: [nested(20001)] })
+  assert.equal(dense.status, 413)
+  assert.equal(dense.body, 'too many coordinates')
+
+  const ok = await callExport({ kind: 'vector', name: 'gc', features: [nested(3)] })
+  assert.equal(ok.status, 200)
+  const ack = JSON.parse(ok.body)
+  assert.deepEqual(ack.bbox, { west: 114.3, south: 30.5, east: 114.5, north: 30.7 })
+  const content = JSON.parse(await readFile(ack.path, 'utf8'))
+  assert.equal(content.features[0].geometry.type, 'GeometryCollection')
+})
+
+test('vector export：GeometryCollection 嵌套过深按非法要素拒绝', async () => {
+  let geometry = { type: 'Point', coordinates: [114.3, 30.5] }
+  for (let depth = 0; depth < 5; depth += 1) geometry = { type: 'GeometryCollection', geometries: [geometry] }
+  const res = await callExport({ kind: 'vector', features: [{ type: 'Feature', properties: {}, geometry }] })
+  assert.equal(res.status, 400)
+  assert.equal(res.body, 'invalid feature')
+})

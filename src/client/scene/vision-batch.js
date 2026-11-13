@@ -13,7 +13,7 @@
  * reports how many candidates had to be skipped.
  */
 import { projectVisionPolygon } from './vision-frame.js'
-import { visionError } from './vision-geometry.js'
+import { containsVisionPoint, distanceToPolygon, visionError } from './vision-geometry.js'
 
 export const MAX_PARSE_OBJECTS = 40
 export const PARSE_DEDUPE_IOU = 0.5
@@ -87,6 +87,65 @@ function classLabel(t, kind) {
   return typeof label === 'string' && label !== key ? label : kind
 }
 
+const ANCHOR_GRID = 9
+const ANCHOR_ROUNDS = 4
+
+/**
+ * A point that sits inside the outline whenever one exists.
+ *
+ * The vertex mean is right for convex footprints but falls outside L/U shaped
+ * ones; validateVisionPolygon rejects an anchor further than 0.08 outside, so a
+ * concave building would be skipped without the user ever knowing. Sample a
+ * shrinking grid inside the normalized bbox and keep the point furthest from
+ * the boundary; fall back to the mean for degenerate outlines.
+ */
+export function batchPolygonAnchor(polygon) {
+  const fallback = batchPolygonCenter(polygon)
+  if (!Array.isArray(polygon) || polygon.length < 3) return fallback
+  let west = Infinity
+  let south = Infinity
+  let east = -Infinity
+  let north = -Infinity
+  for (const vertex of polygon) {
+    const [x, y] = Array.isArray(vertex) ? vertex : []
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return fallback
+    west = Math.min(west, x)
+    east = Math.max(east, x)
+    south = Math.min(south, y)
+    north = Math.max(north, y)
+  }
+  if (!(east > west && north > south)) return fallback
+  let best = null
+  let bestDistance = -1
+  let left = west
+  let right = east
+  let top = south
+  let bottom = north
+  for (let round = 0; round < ANCHOR_ROUNDS; round += 1) {
+    const stepX = (right - left) / (ANCHOR_GRID - 1)
+    const stepY = (bottom - top) / (ANCHOR_GRID - 1)
+    for (let row = 0; row < ANCHOR_GRID; row += 1) {
+      for (let column = 0; column < ANCHOR_GRID; column += 1) {
+        const point = [left + column * stepX, top + row * stepY]
+        if (!containsVisionPoint(polygon, point)) continue
+        const distance = distanceToPolygon(polygon, point)
+        if (distance > bestDistance) {
+          best = point
+          bestDistance = distance
+        }
+      }
+    }
+    if (best !== null) {
+      left = best[0] - stepX
+      right = best[0] + stepX
+      top = best[1] - stepY
+      bottom = best[1] + stepY
+    }
+  }
+  if (best === null) return fallback
+  return [Math.min(0.999, Math.max(0.001, best[0])), Math.min(0.999, Math.max(0.001, best[1]))]
+}
+
 /**
  * Project every model outline onto the surface. Reuses the tested single-target
  * projection by giving each candidate its own "point" on the frame; candidates
@@ -97,7 +156,7 @@ export function projectBatchObjects(frame, objects, { t } = {}) {
   let skipped = 0
   for (const object of Array.isArray(objects) ? objects : []) {
     if (!Array.isArray(object.polygon) || object.polygon.length < 3) { skipped += 1; continue }
-    const center = batchPolygonCenter(object.polygon)
+    const center = batchPolygonAnchor(object.polygon)
     if (!center) { skipped += 1; continue }
     const subframe = Object.create(frame)
     subframe.point = center
