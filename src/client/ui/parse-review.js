@@ -11,16 +11,32 @@ import React from 'react'
 
 import { loadMeta } from '../api.js'
 import {
+  applyExtrusionToFeatures,
+  batchClassCounts,
   batchFeatureCollection,
   captureSceneFrame,
   clearBatchPreview,
   dedupeBatchFeatures,
   drawBatchPreview,
+  filterBatchFeatures,
   projectBatchObjects,
   requestSceneParse,
 } from '../scene/vision-batch.js'
 
 const h = React.createElement
+
+function candidateMetricText(properties) {
+  const parts = []
+  const height = properties?.height_m
+  const area = properties?.area_m2
+  if (typeof height === 'number' && Number.isFinite(height) && height >= 0.5) {
+    parts.push(`≈${Math.round(height)}m`)
+  }
+  if (typeof area === 'number' && Number.isFinite(area) && area > 0) {
+    parts.push(area >= 1e4 ? `${(area / 1e4).toFixed(2)}ha` : `${Math.round(area)}m²`)
+  }
+  return parts.join(' · ')
+}
 
 function errorText(t, code) {
   const text = t(`parse.err.${code}`)
@@ -37,6 +53,8 @@ export function ParseBody({ t, getCesium, getViewer, getLayers, showToast, onAdo
   const [stage, setStage] = React.useState(null)
   const [candidates, setCandidates] = React.useState([])
   const [selected, setSelected] = React.useState(() => new Set())
+  const [filter, setFilter] = React.useState('all')
+  const [extrude3d, setExtrude3d] = React.useState(true)
   const [skipped, setSkipped] = React.useState(0)
   const [error, setError] = React.useState(null)
   const previewRef = React.useRef([])
@@ -47,10 +65,21 @@ export function ParseBody({ t, getCesium, getViewer, getLayers, showToast, onAdo
   const bus = typeof stage === 'string'
   const stageText = stage ? t(`parse.stage.${stage}`) : ''
 
+  const redrawPreview = (items, nextExtrude) => {
+    const Cesium = getCesium()
+    const viewer = getViewer()
+    if (!viewer) return
+    clearBatchPreview(viewer, previewRef.current)
+    if (Cesium && items.length > 0) {
+      previewRef.current = drawBatchPreview(Cesium, viewer, items, { extrude: nextExtrude })
+    }
+  }
+
   const resetPreview = () => {
     clearBatchPreview(getViewer(), previewRef.current)
     setCandidates([])
     setSelected(new Set())
+    setFilter('all')
     setSkipped(0)
     setError(null)
   }
@@ -77,8 +106,9 @@ export function ParseBody({ t, getCesium, getViewer, getLayers, showToast, onAdo
       if (deduped.length === 0) { setError('no_target'); return }
       setCandidates(deduped)
       setSelected(new Set(deduped.map((_, index) => index)))
+      setFilter('all')
       setSkipped(projected.skipped)
-      previewRef.current = drawBatchPreview(Cesium, viewer, deduped)
+      previewRef.current = drawBatchPreview(Cesium, viewer, deduped, { extrude: extrude3d })
       showToast(t('parse.candidates', { n: deduped.length }))
     } catch (failure) {
       if (!aliveRef.current) return
@@ -98,17 +128,45 @@ export function ParseBody({ t, getCesium, getViewer, getLayers, showToast, onAdo
     })
   }
 
-  const adopt = (indexes) => {
-    const features = candidates.filter((_, index) => indexes.has(index))
-    if (features.length === 0) { showToast(t('parse.adoptSelected')); return }
+  const counts = batchClassCounts(candidates)
+  const buildingCount = counts.building ?? 0
+  const visibleEntries = candidates
+    .map((feature, index) => ({ feature, index }))
+    .filter(({ feature }) => filter === 'all' || feature?.properties?.class === filter)
+
+  const changeFilter = (nextFilter) => {
+    setFilter(nextFilter)
+    redrawPreview(filterBatchFeatures(candidates, nextFilter), extrude3d)
+  }
+
+  const toggleExtrude = () => {
+    const next = !extrude3d
+    setExtrude3d(next)
+    redrawPreview(filterBatchFeatures(candidates, filter), next)
+  }
+
+  const adoptFeatures = (rawFeatures, label) => {
+    if (rawFeatures.length === 0) { showToast(t('parse.adoptSelected')); return }
+    const features = applyExtrusionToFeatures(rawFeatures, extrude3d)
     const ok = typeof onAdoptParse === 'function'
-      ? onAdoptParse(batchFeatureCollection(features, t('tools.parse')))
+      ? onAdoptParse(batchFeatureCollection(features, label), label)
       : false
     if (ok !== false) {
       clearBatchPreview(getViewer(), previewRef.current)
       setCandidates([])
       setSelected(new Set())
+      setFilter('all')
     }
+  }
+
+  const adopt = (indexes) => {
+    adoptFeatures(candidates.filter((_, index) => indexes.has(index)), t('tools.parse'))
+  }
+
+  const selectedBuildings = candidates.filter((feature, index) => selected.has(index) && feature?.properties?.class === 'building')
+  const adoptBuildings = () => {
+    const list = selectedBuildings.length > 0 ? selectedBuildings : filterBatchFeatures(candidates, 'building')
+    adoptFeatures(list, t('parse.buildingsLayerName'))
   }
 
   return h(
@@ -139,25 +197,50 @@ export function ParseBody({ t, getCesium, getViewer, getLayers, showToast, onAdo
           h('span', { className: 'mv-parse-count' }, t('parse.candidates', { n: candidates.length })),
           h('span', { className: 'mv-parse-selected' }, t('parse.selected', { n: selected.size, total: candidates.length })),
         ),
+        h(
+          'div',
+          { className: 'mv-parse-controls' },
+          h(
+            'div',
+            { className: 'mv-parse-filters' },
+            h('button', { type: 'button', className: `mv-parse-filter${filter === 'all' ? ' on' : ''}`, onClick: () => changeFilter('all') }, t('parse.filterAll', { n: candidates.length })),
+            buildingCount > 0
+              ? h('button', { type: 'button', className: `mv-parse-filter${filter === 'building' ? ' on' : ''}`, onClick: () => changeFilter('building') }, t('parse.filterBuildings', { n: buildingCount }))
+              : null,
+          ),
+          h(
+            'label',
+            { className: 'mv-parse-toggle' },
+            h('input', { type: 'checkbox', checked: extrude3d, onChange: toggleExtrude }),
+            h('span', null, t('parse.extrude3d')),
+          ),
+        ),
         skipped > 0 ? h('p', { className: 'mv-none' }, t('parse.skipped', { n: skipped })) : null,
         h(
           'div',
           { className: 'mv-parse-list' },
-          ...candidates.map((feature, index) => h(
-            'label',
-            { key: `${index}-${feature.properties?.name ?? index}`, className: `mv-parse-row${selected.has(index) ? ' on' : ''}` },
-            h('input', {
-              type: 'checkbox',
-              checked: selected.has(index),
-              onChange: () => toggle(index),
-            }),
-            h('span', { className: 'mv-parse-name' }, feature.properties?.name ?? ''),
-            h('span', { className: 'mv-parse-conf' }, confidenceText(t, feature.properties?.confidence)),
-          )),
+          ...visibleEntries.map(({ feature, index }) => {
+            const metrics = candidateMetricText(feature.properties)
+            return h(
+              'label',
+              { key: `${index}-${feature.properties?.name ?? index}`, className: `mv-parse-row${selected.has(index) ? ' on' : ''}` },
+              h('input', {
+                type: 'checkbox',
+                checked: selected.has(index),
+                onChange: () => toggle(index),
+              }),
+              h('span', { className: 'mv-parse-name' }, feature.properties?.name ?? ''),
+              metrics !== '' ? h('span', { className: 'mv-parse-metrics' }, metrics) : null,
+              h('span', { className: 'mv-parse-conf' }, confidenceText(t, feature.properties?.confidence)),
+            )
+          }),
         ),
         h(
           'div',
           { className: 'mv-actions' },
+          buildingCount > 0
+            ? h('button', { type: 'button', className: 'mv-cta primary', onClick: adoptBuildings }, t('parse.adoptBuildings', { n: selectedBuildings.length > 0 ? selectedBuildings.length : buildingCount }))
+            : null,
           h('button', { type: 'button', className: 'mv-cta', onClick: () => adopt(new Set(candidates.map((_, index) => index))) }, t('parse.adoptAll')),
           h('button', { type: 'button', className: 'mv-btn', onClick: () => adopt(selected) }, t('parse.adoptSelected')),
         ),

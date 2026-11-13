@@ -39,8 +39,28 @@ export function createSelectionController({ getViewer, getCesium, getLayers, get
     return (Array.isArray(list) ? list : []).find((layer) => layer && layer.tileset === tileset) ?? null
   }
 
+  /** Extract PropertyBag attributes from a picked GeoJSON/CZML Entity safely. */
+  function readEntityProperties(entity, currentTime) {
+    const bag = entity?.properties
+    const names = Array.isArray(bag?.propertyNames) ? bag.propertyNames : []
+    const properties = []
+    for (const rawName of names) {
+      if (properties.length >= SELECTION_MAX_PROPERTIES) break
+      try {
+        const prop = bag[rawName]
+        const rawValue = typeof prop?.getValue === 'function' ? prop.getValue(currentTime) : prop
+        const text = formatProperty(rawValue)
+        if (text !== '') properties.push({ name: String(rawName), value: text })
+      } catch {
+        /* ignore dynamic properties that throw without a valid clock time */
+      }
+    }
+    return properties
+  }
+
   /** Classify a pick without assuming any feature metadata exists. */
   function classifyPick(picked, Cesium) {
+    const currentTime = getViewer?.()?.clock?.currentTime
     if (picked === undefined || picked === null) return { kind: 'scene', tileset: null, properties: [] }
     if (typeof Cesium?.Cesium3DTileFeature === 'function' && picked instanceof Cesium.Cesium3DTileFeature) {
       const properties = []
@@ -52,14 +72,19 @@ export function createSelectionController({ getViewer, getCesium, getLayers, get
       } catch {
         /* a feature without a usable batch table still has geometry */
       }
-      return { kind: 'tile_feature', tileset: picked.primitive ?? picked.tileset ?? null, properties }
+      const featureId = typeof picked.featureId === 'number' && Number.isFinite(picked.featureId) ? picked.featureId : null
+      return { kind: 'tile_feature', featureId, tileset: picked.primitive ?? picked.tileset ?? null, properties }
     }
     const primitive = picked?.primitive ?? picked
     if (typeof Cesium?.Cesium3DTileset === 'function' && primitive instanceof Cesium.Cesium3DTileset) {
       return { kind: 'tileset', tileset: primitive, properties: [] }
     }
     if (picked?.id && typeof Cesium?.Entity === 'function' && picked.id instanceof Cesium.Entity) {
-      return { kind: 'entity', name: String(picked.id.name ?? picked.id.id ?? ''), properties: [] }
+      return {
+        kind: 'entity',
+        name: String(picked.id.name ?? picked.id.id ?? ''),
+        properties: readEntityProperties(picked.id, currentTime),
+      }
     }
     return { kind: 'scene', tileset: null, properties: [] }
   }
@@ -87,6 +112,7 @@ export function createSelectionController({ getViewer, getCesium, getLayers, get
     const layer = findLayer(classified.tileset)
     const identity = {
       kind: classified.kind,
+      ...(classified.featureId != null ? { featureId: classified.featureId } : {}),
       name: classified.name ?? null,
       properties: classified.properties ?? [],
     }

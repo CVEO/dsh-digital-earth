@@ -6,8 +6,38 @@
  */
 import { formatArea, formatDistance, formatValue, geodesicLength, planarArea } from '../format.js'
 import { ensureAnnotationFeatureId } from './annotation-model.js'
-import { addAgentGroundLabel, agentLabelText, agentOverlayColor, agentSurfaceHeight } from './overlay-helpers.js'
+import { addAgentElevatedLabel, addAgentGroundLabel, agentLabelText, agentOverlayColor, agentSurfaceHeight } from './overlay-helpers.js'
 import { VECTOR_COLORS, vectorLabel } from './vector-style.js'
+
+const finiteNumber = (value) => (typeof value === 'number' && Number.isFinite(value) ? value : null)
+
+/**
+ * Resolve 3D polygon extrusion or per-vertex Z rendering intent from GeoJSON
+ * properties and coordinates. Returns `null` for plain ground-draped polygons.
+ */
+export function polygonVolume(properties, rings) {
+  const props = properties && typeof properties === 'object' ? properties : {}
+  const baseExplicit = finiteNumber(props.base_height_m) ?? finiteNumber(props.ground_height_m) ?? finiteNumber(props.baseHeight)
+  const roofExplicit = finiteNumber(props.extruded_height_m) ?? finiteNumber(props.extrudedHeight)
+  const relHeight = finiteNumber(props.height_m) ?? finiteNumber(props.building_height_m) ?? finiteNumber(props.height)
+  const baseHeight = baseExplicit ?? 0
+  if (roofExplicit !== null && roofExplicit > baseHeight) {
+    return { mode: 'extruded', baseHeight, extrudedHeight: roofExplicit }
+  }
+  if (relHeight !== null && relHeight > 0 && (roofExplicit === null || props.mode3d === true || props.extruded === true)) {
+    // When extrudedHeight was not explicitly given, relative `height_m` extrudes from base.
+    if (finiteNumber(props.extruded_height_m) === null && finiteNumber(props.extrudedHeight) === null) {
+      if (props.extruded !== false && (baseExplicit !== null || props.height_m != null || props.building_height_m != null || props.mode3d === true)) {
+        return { mode: 'extruded', baseHeight, extrudedHeight: baseHeight + relHeight }
+      }
+    }
+  }
+  if (props.mode3d === true && Array.isArray(rings?.[0]) && rings[0].length >= 3) {
+    const hasZ = rings[0].every((pos) => Array.isArray(pos) && pos.length >= 3 && Number.isFinite(pos[2]))
+    if (hasZ) return { mode: '3d', perPositionHeight: true }
+  }
+  return null
+}
 
 export function createVectorRenderer({ getState, getVector, t, markSceneDirty, syncOverlayCount }) {
   /**
@@ -79,12 +109,38 @@ export function createVectorRenderer({ getState, getVector, t, markSceneDirty, s
         addAgentGroundLabel(Cesium, add, middle[0], middle[1], name)
       }
     }
-    const drawPolygon = (rings, name) => {
+    const flat3d = (positions, fallbackZ = 0) => {
+      const flat = []
+      for (const position of positions) {
+        if (!Array.isArray(position) || position.length < 2) continue
+        const z = typeof position[2] === 'number' && Number.isFinite(position[2]) ? position[2] : fallbackZ
+        flat.push(position[0], position[1], z)
+      }
+      return flat
+    }
+    const drawPolygon = (rings, name, properties) => {
       if (!Array.isArray(rings) || rings.length === 0 || !Array.isArray(rings[0])) return
-      const outer = Cesium.Cartesian3.fromDegreesArray(flat2d(rings[0]))
+      const volume = polygonVolume(properties, rings)
+      const isPerPos3d = volume?.mode === '3d'
+      const isExtruded = volume?.mode === 'extruded'
+      const outer = isPerPos3d
+        ? Cesium.Cartesian3.fromDegreesArrayHeights(flat3d(rings[0]))
+        : Cesium.Cartesian3.fromDegreesArray(flat2d(rings[0]))
       if (outer.length < 3) return
-      const holes = rings.slice(1).map((ring) => new Cesium.PolygonHierarchy(Cesium.Cartesian3.fromDegreesArray(flat2d(ring))))
-      add({ polygon: { hierarchy: new Cesium.PolygonHierarchy(outer, holes), material: color.withAlpha(0.26), outline: false, perPositionHeight: false } })
+      const holes = rings.slice(1).map((ring) =>
+        new Cesium.PolygonHierarchy(
+          isPerPos3d ? Cesium.Cartesian3.fromDegreesArrayHeights(flat3d(ring)) : Cesium.Cartesian3.fromDegreesArray(flat2d(ring)),
+        ),
+      )
+      const polygonSpec = {
+        hierarchy: new Cesium.PolygonHierarchy(outer, holes),
+        material: color.withAlpha(isExtruded || isPerPos3d ? 0.36 : 0.26),
+        outline: isExtruded || isPerPos3d,
+        ...(isExtruded || isPerPos3d ? { outlineColor: color.withAlpha(0.95) } : {}),
+        perPositionHeight: isPerPos3d,
+        ...(isExtruded ? { height: volume.baseHeight, extrudedHeight: volume.extrudedHeight } : {}),
+      }
+      add({ polygon: polygonSpec })
       // Ground polygons do not draw an outline reliably, so trace the rings.
       for (const ring of rings) {
         if (!Array.isArray(ring) || ring.length < 2) continue
@@ -92,13 +148,18 @@ export function createVectorRenderer({ getState, getVector, t, markSceneDirty, s
         const first = closed[0]
         const last = closed[closed.length - 1]
         if (first[0] !== last[0] || first[1] !== last[1]) closed.push(first)
+        const linePositions = isPerPos3d
+          ? Cesium.Cartesian3.fromDegreesArrayHeights(flat3d(closed))
+          : isExtruded
+            ? Cesium.Cartesian3.fromDegreesArrayHeights(flat3d(closed, volume.extrudedHeight))
+            : Cesium.Cartesian3.fromDegreesArray(flat2d(closed))
         add({
           polyline: {
-            positions: Cesium.Cartesian3.fromDegreesArray(flat2d(closed)),
+            positions: linePositions,
             width: 2,
             material: color,
             depthFailMaterial: color.withAlpha(0.55),
-            clampToGround: true,
+            clampToGround: !isPerPos3d && !isExtruded,
           },
         })
       }
@@ -108,11 +169,20 @@ export function createVectorRenderer({ getState, getVector, t, markSceneDirty, s
       if (name !== '') {
         let lon = 0
         let lat = 0
+        let zSum = 0
         for (const position of rings[0]) {
           lon += position[0]
           lat += position[1]
+          if (typeof position[2] === 'number' && Number.isFinite(position[2])) zSum += position[2]
         }
-        addAgentGroundLabel(Cesium, add, lon / rings[0].length, lat / rings[0].length, name)
+        const count = rings[0].length
+        if (isExtruded) {
+          addAgentElevatedLabel(Cesium, add, lon / count, lat / count, volume.extrudedHeight + 1.5, name)
+        } else if (isPerPos3d) {
+          addAgentElevatedLabel(Cesium, add, lon / count, lat / count, zSum / count + 1.5, name)
+        } else {
+          addAgentGroundLabel(Cesium, add, lon / count, lat / count, name)
+        }
       }
     }
     const drawPoint = (coordinates, name) => {
@@ -166,10 +236,10 @@ export function createVectorRenderer({ getState, getVector, t, markSceneDirty, s
           for (const line of geometry.coordinates ?? []) drawLine(line, label)
           break
         case 'Polygon':
-          drawPolygon(geometry.coordinates, label)
+          drawPolygon(geometry.coordinates, label, properties)
           break
         case 'MultiPolygon':
-          for (const polygon of geometry.coordinates ?? []) drawPolygon(polygon, label)
+          for (const polygon of geometry.coordinates ?? []) drawPolygon(polygon, label, properties)
           break
         default:
           break

@@ -43,3 +43,14 @@ export function addAgentGroundLabel(Cesium, add, lon, lat, text) {
     }),
   })
 }
+
+/** Add a result label hovering above an elevated/3D polygon roof. */
+export function addAgentElevatedLabel(Cesium, add, lon, lat, height, text) {
+  const elevation = Number.isFinite(height) ? height : 0
+  return add({
+    position: Cesium.Cartesian3.fromDegrees(lon, lat, elevation),
+    label: vectorLabel(Cesium, text, {
+      heightReference: Cesium.HeightReference.NONE,
+    }),
+  })
+}

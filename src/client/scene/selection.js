@@ -147,6 +147,7 @@ export function summarizeHeights(values) {
  */
 export function normalizeIdentity(raw) {
   const kind = typeof raw?.kind === 'string' ? raw.kind : 'scene'
+  const featureId = typeof raw?.featureId === 'number' && Number.isFinite(raw.featureId) ? raw.featureId : null
   const properties = (Array.isArray(raw?.properties) ? raw.properties : [])
     .filter((entry) => entry && typeof entry.name === 'string')
     .slice(0, SELECTION_MAX_PROPERTIES)
@@ -158,10 +159,19 @@ export function normalizeIdentity(raw) {
   }
   return {
     kind,
+    ...(featureId !== null ? { featureId } : {}),
     name,
     properties,
     basis: name === null ? 'geometry_only' : kind === 'entity' ? 'entity_name' : 'layer_metadata',
   }
+}
+
+/** Map a HeightService ground sample source tag to a stable i18n key. */
+export function groundSourceLabelKey(source) {
+  if (source === 'tileset' || source === '3d_tiles') return 'selection.groundSource.tileset'
+  if (source === 'terrain') return 'selection.groundSource.terrain'
+  if (source === 'ellipsoid') return 'selection.groundSource.ellipsoid'
+  return 'selection.groundSource.none'
 }
 
 /** Limitations describe what the selection cannot claim, with stable codes. */

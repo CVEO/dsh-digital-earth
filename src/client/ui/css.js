@@ -456,11 +456,16 @@ import { PARSE_CSS } from './parse-css.js'
 .mv-select .fact b{font-weight:600;font-variant-numeric:tabular-nums}
 .mv-select .fact em{flex:1;min-width:0;text-align:right;font-style:normal;font-size:10.5px;color:var(--mv-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .mv-select .fact .mv-sel-conf{margin-left:auto;flex:none;font-size:9.5px;line-height:1;padding:2px 5px;border-radius:5px;border:1px solid color-mix(in srgb,currentColor 45%,transparent);background:color-mix(in srgb,currentColor 12%,transparent);white-space:nowrap}
-.mv-select .props{display:flex;flex-direction:column;gap:3px;border-bottom:.5px solid var(--mv-line);padding:6px 0;min-height:0}
+.mv-select .props{display:flex;flex-direction:column;gap:3px;border-bottom:.5px solid var(--mv-line);padding:6px 0;min-height:0;max-height:220px;overflow:auto;scrollbar-width:thin}
 .mv-select .props-title{font-size:10px;letter-spacing:.04em;text-transform:uppercase;color:var(--mv-dim)}
 .mv-select .coords{display:flex;align-items:center;gap:6px;margin:0 0 8px;font-size:11px;color:var(--mv-dim)}
 .mv-select .coords code{flex:1;font-size:11px;font-variant-numeric:tabular-nums;color:var(--mv-text)}
 .mv-select .props-more{margin:4px 0 0;font-size:10px;color:var(--mv-dim)}
+.mv-sel-meta{display:flex;flex-wrap:wrap;gap:4px;margin:0 0 7px}
+.mv-sel-meta-chip{padding:2px 6px;border-radius:6px;font-size:10.5px;line-height:1.3;color:var(--mv-dim);background:color-mix(in srgb,var(--mv-lift) 72%,transparent);border:.5px solid var(--mv-line);white-space:nowrap}
+.mv-sel-props-toggle{appearance:none;margin-top:4px;padding:3px 6px;border-radius:6px;border:.5px solid var(--mv-line);background:color-mix(in srgb,var(--mv-lift) 55%,transparent);color:var(--mv-accent);font:inherit;font-size:10.5px;font-weight:500;cursor:pointer;align-self:flex-start}
+.mv-sel-props-toggle:hover{background:color-mix(in srgb,var(--mv-accent) 12%,transparent)}
+.mv-sel-props-toggle:focus-visible{outline:2px solid var(--mv-accent);outline-offset:1px}
 .mv-select .prop{display:flex;align-items:baseline;gap:8px;font-size:11px;min-width:0}
 .mv-select .prop span{flex:none;max-width:42%;color:var(--mv-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mv-select .prop b{flex:1;min-width:0;text-align:right;font-weight:600;font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}

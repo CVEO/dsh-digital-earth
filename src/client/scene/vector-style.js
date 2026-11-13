@@ -58,11 +58,18 @@ export function styleVectorOptions(Cesium, options) {
     }
   }
   if (options.polygon) {
-    result.polygon = { ...options.polygon, outline: false }
-    if (options.polygon.material instanceof Cesium.Color) {
-      result.polygon.material = options.polygon.material.withAlpha(0.16)
+    const hasElevation =
+      options.polygon.perPositionHeight === true ||
+      options.polygon.extrudedHeight != null ||
+      options.polygon.height != null
+    result.polygon = {
+      ...options.polygon,
+      outline: hasElevation ? (options.polygon.outline ?? true) : false,
     }
-    if (!options.polygon.perPositionHeight) result.polygon.classificationType = Cesium.ClassificationType.BOTH
+    if (options.polygon.material instanceof Cesium.Color) {
+      result.polygon.material = options.polygon.material.withAlpha(hasElevation ? 0.34 : 0.16)
+    }
+    if (!hasElevation) result.polygon.classificationType = Cesium.ClassificationType.BOTH
   }
   if (options.rectangle && options.rectangle.material instanceof Cesium.Color) {
     result.rectangle = { ...options.rectangle, material: options.rectangle.material.withAlpha(0.24), outline: false }

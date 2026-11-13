@@ -158,7 +158,8 @@
       if (typeof coords[0] === 'number') {
         const lon = Math.round(coords[0] * 1e6) / 1e6
         const lat = typeof coords[1] === 'number' ? Math.round(coords[1] * 1e6) / 1e6 : 0
-        return [lon, lat]
+        const z = typeof coords[2] === 'number' && Number.isFinite(coords[2]) ? Math.round(coords[2] * 100) / 100 : null
+        return z === null ? [lon, lat] : [lon, lat, z]
       }
       return coords.map(compactSnapshotCoords)
     }
@@ -178,7 +179,7 @@
       let count = 0
       for (const [key, value] of Object.entries(properties)) {
         if (key === 'name' || value === null || value === undefined) continue
-        if (count >= 12) break
+        if (count >= 16) break
         out[key] = typeof value === 'string' && value.length > 160 ? value.slice(0, 160) : value
         count += 1
       }

@@ -14,6 +14,9 @@
  */
 import { projectVisionPolygon } from './vision-frame.js'
 import { containsVisionPoint, distanceToPolygon, visionError } from './vision-geometry.js'
+import { polygonAreaSquareMeters } from './screen-geodesy.js'
+
+const round1 = (value) => Math.round(value * 10) / 10
 
 export const MAX_PARSE_OBJECTS = 40
 export const PARSE_DEDUPE_IOU = 0.5
@@ -146,6 +149,42 @@ export function batchPolygonAnchor(polygon) {
   return [Math.min(0.999, Math.max(0.001, best[0])), Math.min(0.999, Math.max(0.001, best[1]))]
 }
 
+/** Best-effort interior roof elevation lookup using the viewport's depth buffer. */
+export function sampleAnchorHeight(frame, center) {
+  const { viewer, Cesium } = frame ?? {}
+  if (!viewer?.scene?.pickPositionSupported || typeof viewer.scene?.pickPosition !== 'function' || !Cesium) return null
+  if (!Array.isArray(center) || center.length < 2) return null
+  const crop = frame.crop ?? { left: 0, top: 0, width: frame.cssWidth, height: frame.cssHeight }
+  if (!(crop?.width > 0) || !(crop?.height > 0)) return null
+  try {
+    const position = new Cesium.Cartesian2(crop.left + center[0] * crop.width, crop.top + center[1] * crop.height)
+    const cartesian = viewer.scene.pickPosition(position)
+    const carto = cartesian && Cesium.Cartographic.fromCartesian(cartesian)
+    return carto && Number.isFinite(carto.height) ? carto.height : null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Derive honest horizontal footprint area and elevation breakdown from a
+ * projected candidate polygon plus an optional interior roof pick.
+ */
+export function estimateCandidateMetrics(projected, interiorHeight = null) {
+  const rawArea = polygonAreaSquareMeters(projected?.ring)
+  const area_m2 = Number.isFinite(rawArea) && rawArea > 0 ? round1(rawArea) : null
+  const minEdge = projected?.heightRange?.min
+  const maxEdge = projected?.heightRange?.max
+  const roofRaw = Number.isFinite(interiorHeight)
+    ? Number.isFinite(maxEdge) ? Math.max(maxEdge, interiorHeight) : interiorHeight
+    : Number.isFinite(maxEdge) ? maxEdge : null
+  const ground_height_m = Number.isFinite(minEdge) ? round1(minEdge) : null
+  const roof_height_m = roofRaw !== null ? round1(roofRaw) : null
+  const delta = ground_height_m !== null && roof_height_m !== null ? round1(roof_height_m - ground_height_m) : null
+  const height_m = delta !== null && delta >= 0.5 ? delta : null
+  return { area_m2, ground_height_m, roof_height_m, height_m }
+}
+
 /**
  * Project every model outline onto the surface. Reuses the tested single-target
  * projection by giving each candidate its own "point" on the frame; candidates
@@ -171,6 +210,7 @@ export function projectBatchObjects(frame, objects, { t } = {}) {
     if (!Array.isArray(ring) || ring.length < 4) { skipped += 1; continue }
     const kind = PARSE_CLASSES.includes(object.class) ? object.class : 'other'
     const index = features.length + 1
+    const metrics = estimateCandidateMetrics(projected, sampleAnchorHeight(frame, center))
     features.push({
       type: 'Feature',
       properties: {
@@ -182,6 +222,10 @@ export function projectBatchObjects(frame, objects, { t } = {}) {
         basis: 'inferred',
         approximate: true,
         depth_source: projected.depth_source,
+        ...(metrics.area_m2 !== null ? { area_m2: metrics.area_m2 } : {}),
+        ...(metrics.ground_height_m !== null ? { ground_height_m: metrics.ground_height_m } : {}),
+        ...(metrics.roof_height_m !== null ? { roof_height_m: metrics.roof_height_m } : {}),
+        ...(metrics.height_m !== null ? { height_m: metrics.height_m } : {}),
       },
       geometry: { type: 'Polygon', coordinates: [ring] },
     })
@@ -246,22 +290,70 @@ export function batchClassCounts(features) {
   return counts
 }
 
-/** Preview outlines only; they never enter the scene data or the snapshot. */
-export function drawBatchPreview(Cesium, viewer, features) {
+/** Filter parsed candidates by category ('all' or a specific PARSE_CLASSES entry). */
+export function filterBatchFeatures(features, filter = 'all') {
+  const list = Array.isArray(features) ? features : []
+  if (filter === 'all' || !filter) return list
+  return list.filter((feature) => feature?.properties?.class === filter)
+}
+
+/**
+ * Toggle 3D extrusion metadata on parsed features without dropping height metrics:
+ * when `extrude` is true and height > 0, stamps `extruded: true` + `extruded_height_m`.
+ */
+export function applyExtrusionToFeatures(features, extrude = false) {
+  return (Array.isArray(features) ? features : []).map((feature) => {
+    if (!feature || typeof feature !== 'object') return feature
+    const props = feature.properties && typeof feature.properties === 'object' ? { ...feature.properties } : {}
+    const base = typeof props.ground_height_m === 'number' && Number.isFinite(props.ground_height_m) ? props.ground_height_m : null
+    const roof = typeof props.roof_height_m === 'number' && Number.isFinite(props.roof_height_m) ? props.roof_height_m : null
+    const rel = typeof props.height_m === 'number' && Number.isFinite(props.height_m) ? props.height_m : null
+    if (extrude && ((roof !== null && base !== null && roof > base) || (rel !== null && rel > 0))) {
+      props.extruded = true
+      props.extruded_height_m = roof !== null && base !== null && roof > base ? roof : (base ?? 0) + rel
+    } else {
+      props.extruded = false
+      delete props.extruded_height_m
+    }
+    return { ...feature, properties: props }
+  })
+}
+
+/** Preview outlines (plus optional 3D extruded preview volumes); never enters snapshots. */
+export function drawBatchPreview(Cesium, viewer, features, { extrude = false } = {}) {
   const entities = []
   for (const feature of Array.isArray(features) ? features : []) {
     const ring = feature?.geometry?.coordinates?.[0]
     if (!Array.isArray(ring) || ring.length < 4) continue
-    const positions = ring.map(([lon, lat]) => Cesium.Cartesian3.fromDegrees(lon, lat, 0))
+    const props = feature?.properties ?? {}
+    const base = typeof props.ground_height_m === 'number' && Number.isFinite(props.ground_height_m) ? props.ground_height_m : 0
+    const rel = typeof props.height_m === 'number' && Number.isFinite(props.height_m) ? props.height_m : 0
+    const roof = typeof props.roof_height_m === 'number' && Number.isFinite(props.roof_height_m) ? props.roof_height_m : base + rel
+    const is3d = extrude && roof > base && typeof Cesium?.PolygonHierarchy === 'function'
+    const outlineHeight = is3d ? roof : 0
+    const positions = ring.map(([lon, lat]) => Cesium.Cartesian3.fromDegrees(lon, lat, outlineHeight))
     try {
       entities.push(viewer.entities.add({
         polyline: {
           positions,
           width: 2,
-          clampToGround: true,
+          clampToGround: !is3d,
           material: Cesium.Color.fromCssColorString('#c084fc').withAlpha(0.95),
         },
       }))
+      if (is3d) {
+        const hierarchy = new Cesium.PolygonHierarchy(ring.slice(0, -1).map(([lon, lat]) => Cesium.Cartesian3.fromDegrees(lon, lat)))
+        entities.push(viewer.entities.add({
+          polygon: {
+            hierarchy,
+            height: base,
+            extrudedHeight: roof,
+            material: Cesium.Color.fromCssColorString('#c084fc').withAlpha(0.28),
+            outline: true,
+            outlineColor: Cesium.Color.fromCssColorString('#e9d5ff').withAlpha(0.9),
+          },
+        }))
+      }
     } catch {
       /* one bad ring must not drop the rest of the preview */
     }

@@ -13,7 +13,7 @@
 import React from 'react'
 import { VisionSelect } from './vision-select.js'
 import { getSelectionTool } from '../scene/selection-tools.js'
-import { coordinateText, shownProperties } from '../scene/selection.js'
+import { coordinateText, groundSourceLabelKey, shownProperties } from '../scene/selection.js'
 
 const h = React.createElement
 
@@ -61,6 +61,7 @@ export function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t
   const [errorLine, setErrorLine] = React.useState('')
   const [exporting, setExporting] = React.useState(false)
   const [visionOpen, setVisionOpen] = React.useState(false)
+  const [showAllProps, setShowAllProps] = React.useState(false)
   const visionPendingRef = React.useRef(false)
   const anchorRef = React.useRef(null)
   const bracketRef = React.useRef(null)
@@ -78,6 +79,7 @@ export function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t
     setBusy(false)
     setErrorLine('')
     setVisionOpen(false)
+    setShowAllProps(false)
   }, [])
   // Tools-card "AI 目标圈选" arms this: the next successful identify opens the
   // vision dialog directly instead of showing a blocking toast.
@@ -97,6 +99,7 @@ export function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t
       setErrorLine('')
       setCard(null)
       setVisionOpen(false)
+      setShowAllProps(false)
       try {
         const result = await controller.identifyAt(position, { signal: request.signal })
         if (!current()) return
@@ -251,16 +254,23 @@ export function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t
   const surface = factOf(card, 'surface_height')
   const object = factOf(card, 'object_height')
   const above = factOf(card, 'above_median')
+  const groundSourceFact = factOf(card, 'ground_source')
   const confidenceChip = (basis) => {
     const tier = CONFIDENCE_TIER[basis] ?? CONFIDENCE_TIER.inferred
     return h('span', { className: `mv-sel-conf ${tier.tone}`, title: t(tier.key) }, t(tier.key))
   }
   const limitations = Array.isArray(card?.limitations) ? card.limitations : []
   const radii = card?.sampling?.radii_m ?? [30, 60, 120]
-  // Batch-table attributes are the real answer to "what is this object"; the
-  // preview stays bounded and the hidden count points at the full evidence pack.
+  // Batch-table attributes are the real answer to "what is this object"; start with
+  // a bounded preview and let the user expand all attributes in place.
   const propertyInfo = shownProperties(card?.identity?.properties)
-  const properties = propertyInfo.shown
+  const allProperties = Array.isArray(card?.identity?.properties) ? card.identity.properties : []
+  const properties = showAllProps ? allProperties : propertyInfo.shown
+  const hitKindKey = `selection.hitKind.${card?.identity?.kind ?? 'scene'}`
+  const featureId = card?.identity?.featureId
+  const samplingMin = card?.sampling?.min
+  const samplingMax = card?.sampling?.max
+  const samplingSpread = card?.sampling?.spread
   const lonLat = coordinateText(card?.point)
   // Clipboard may be unavailable (insecure context, denied permission): copying is
   // a convenience, so a failure is a toast, never an error dialog.
@@ -326,6 +336,17 @@ export function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t
           ),
           h('h3', null, card.identity?.name ?? t(TITLE_KEY[card.identity?.kind] ?? TITLE_KEY.tile_feature)),
           h('p', { className: 'layer' }, card.layer?.name ?? t('selection.unknownLayer')),
+          h(
+            'div',
+            { className: 'mv-sel-meta' },
+            h('span', { className: 'mv-sel-meta-chip' }, t(hitKindKey)),
+            groundSourceFact
+              ? h('span', { className: 'mv-sel-meta-chip' }, t(groundSourceLabelKey(groundSourceFact.value)))
+              : null,
+            featureId != null
+              ? h('span', { className: 'mv-sel-meta-chip' }, t('selection.featureId', { id: featureId }))
+              : null,
+          ),
           lonLat !== ''
             ? h(
                 'div',
@@ -396,8 +417,35 @@ export function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t
                   ),
                 ),
                 propertyInfo.hidden > 0
-                  ? h('p', { className: 'props-more' }, t('selection.propertiesMore', { n: propertyInfo.hidden }))
+                  ? h(
+                      React.Fragment,
+                      null,
+                      h(
+                        'button',
+                        {
+                          type: 'button',
+                          className: 'mv-sel-props-toggle',
+                          'aria-expanded': showAllProps,
+                          title: t('selection.propertiesMore', { n: propertyInfo.hidden }),
+                          onClick: () => setShowAllProps((open) => !open),
+                        },
+                        showAllProps
+                          ? t('selection.propertiesCollapse', { shown: propertyInfo.shown.length })
+                          : t('selection.propertiesShowAll', { total: propertyInfo.total }),
+                      ),
+                    )
                   : null,
+              )
+            : null,
+          samplingMin != null && samplingMax != null
+            ? h(
+                'p',
+                { className: 'sampling' },
+                t('selection.neighborBand', {
+                  min: Math.round(samplingMin),
+                  max: Math.round(samplingMax),
+                  spread: Math.round(samplingSpread ?? 0),
+                }),
               )
             : null,
           h(
