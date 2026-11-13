@@ -18,7 +18,7 @@ import { tmpdir } from 'node:os'
 import { basename, dirname, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { clientSource as readClientSource, hostSource } from './helpers/source.mjs'
+import { clientSource as readClientSource, hostSource, readRepoFile } from './helpers/source.mjs'
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)))
 const MAX_REPORT_BODY = 16 * 1024 * 1024
@@ -553,12 +553,18 @@ test('P2 runCommand report 分支 POST meta.reportUrl 并返回 operation:report
 })
 
 test('P2 数据菜单 menu.report 调用 runCommand("report",{format:"html"}) 并提示成功/失败', () => {
-  const menuSource = sourceSlice(clientSource, "key: 'report',", "t('menu.report'),")
-  assert.ok(menuSource.includes("const value = await runCommand('report', { format: 'html' })"))
-  assert.ok(menuSource.includes("showToast(t('toast.reportSaved', { path: value.path }))"))
-  assert.ok(menuSource.includes("showToast(t('toast.reportFailed', { message: message(error) }))"))
-  assert.ok(menuSource.includes('setOpenMenu(null)'))
-  assert.ok(clientSource.includes("t('menu.report'),"))
+  // v1.6：数据菜单抽到 ui/data-menu.js，报告动作留在 ViewerSurface 的 openSceneReport。
+  const menuSource = readRepoFile('src/client/ui/data-menu.js')
+  assert.ok(menuSource.includes("t('menu.report')"))
+  assert.ok(menuSource.includes('onReport'))
+  const reportSource = sourceSlice(
+    readRepoFile('src/client/viewer/ViewerSurface.js'),
+    'async function openSceneReport',
+    'const imagerySeqRef',
+  )
+  assert.ok(reportSource.includes("const value = await runCommand('report', { format: 'html' })"))
+  assert.ok(reportSource.includes("showToast(t('toast.reportSaved', { path: value.path }))"))
+  assert.ok(reportSource.includes("showToast(t('toast.reportFailed', { message: message(error) }))"))
 })
 
 test('P2 measureCommands 记录量测 result，供报告引用', () => {

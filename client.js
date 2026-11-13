@@ -505,6 +505,7 @@ var V18_MESSAGES = {
     ...VECTOR_MESSAGES.zh,
     ...VISION_MESSAGES.zh,
     "panel.description": "在对话旁浏览、量测与分析 3D Tiles / 3DGS 场景。",
+    "menu.recentUrls": "最近地址",
     "layers.tab.map": "地图",
     "layers.tab.3d": "三维",
     "layers.contentEmpty": "尚未加载 3D Tiles / 3DGS；点上方「＋ 添加」或从「数据」菜单加载。",
@@ -659,6 +660,7 @@ var V18_MESSAGES = {
     ...VECTOR_MESSAGES.en,
     ...VISION_MESSAGES.en,
     "panel.description": "Browse, measure and analyse 3D Tiles / 3DGS scenes beside the conversation.",
+    "menu.recentUrls": "Recent addresses",
     "layers.tab.map": "Map",
     "layers.tab.3d": "3D",
     "layers.contentEmpty": 'No 3D Tiles / 3DGS loaded; click "+ Add" above or use the Data menu.',
@@ -16301,6 +16303,138 @@ function useWorkbenchWiring(deps) {
   return service2.current;
 }
 
+// src/client/ui/recent-urls.js
+var RECENT_URLS_KEY = "dsh.digital-earth.recentUrls";
+var RECENT_URLS_LIMIT = 8;
+var RECENT_URL_MAX_LENGTH = 2048;
+var RECENT_URL_LABEL_MAX = 72;
+function storageOf(storage) {
+  if (storage !== void 0) return storage;
+  try {
+    return globalThis.localStorage ?? null;
+  } catch {
+    return null;
+  }
+}
+function sanitizeRecentUrl(value) {
+  if (typeof value !== "string") return null;
+  const url = value.trim();
+  if (!/^https?:\/\/[^\s]+$/i.test(url)) return null;
+  if (url.length > RECENT_URL_MAX_LENGTH) return null;
+  return url;
+}
+function recentUrlLabel(url) {
+  const clean = sanitizeRecentUrl(url);
+  if (clean === null) return "";
+  try {
+    const parsed = new URL(clean);
+    const segments = parsed.pathname.split("/").filter(Boolean);
+    const tail = segments.length > 0 ? segments[segments.length - 1] : "";
+    const folder = tail === "tileset.json" ? segments.length > 1 ? segments[segments.length - 2] : "" : tail;
+    const label = folder !== "" ? `${parsed.hostname}/${folder}` : parsed.hostname;
+    return label.length > RECENT_URL_LABEL_MAX ? `${label.slice(0, RECENT_URL_LABEL_MAX - 1)}…` : label;
+  } catch {
+    return clean.slice(0, RECENT_URL_LABEL_MAX);
+  }
+}
+function sanitizeRecentUrls(list) {
+  const clean = [];
+  const seen = /* @__PURE__ */ new Set();
+  for (const item of Array.isArray(list) ? list : []) {
+    const raw = typeof item === "string" ? item : item?.url;
+    const url = sanitizeRecentUrl(raw);
+    if (url === null || seen.has(url)) continue;
+    seen.add(url);
+    clean.push({ url, at: typeof item?.at === "string" ? item.at : "" });
+    if (clean.length >= RECENT_URLS_LIMIT) break;
+  }
+  return clean;
+}
+function readRecentUrls(storage) {
+  const target = storageOf(storage);
+  if (target === null) return [];
+  try {
+    const text = target.getItem(RECENT_URLS_KEY);
+    if (typeof text !== "string" || text === "") return [];
+    return sanitizeRecentUrls(JSON.parse(text));
+  } catch {
+    return [];
+  }
+}
+function rememberRecentUrl(list, url, at = (/* @__PURE__ */ new Date()).toISOString()) {
+  const clean = sanitizeRecentUrl(url);
+  const previous = sanitizeRecentUrls(list);
+  if (clean === null) return previous;
+  return sanitizeRecentUrls([{ url: clean, at }, ...previous.filter((entry) => entry.url !== clean)]);
+}
+function writeRecentUrls(list, storage) {
+  const target = storageOf(storage);
+  if (target === null) return false;
+  try {
+    target.setItem(RECENT_URLS_KEY, JSON.stringify(sanitizeRecentUrls(list)));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// src/client/ui/data-menu.js
+var MENU_SEP = { width: "auto", height: ".5px", margin: "4px 8px" };
+function dataMenuItems({
+  h: h36,
+  MenuItem: MenuItem2,
+  t: t2,
+  recentDirs,
+  recentUrls,
+  agentOverlayCount,
+  closeMenu,
+  onOpenLocal,
+  onOpenRecentDirectory,
+  onOpenRecentUrl,
+  onClearAgent,
+  onToggleUrlBar,
+  onReport,
+  onClearTools
+}) {
+  const run = (action) => () => {
+    if (typeof closeMenu === "function") closeMenu();
+    action();
+  };
+  const items = [h36(MenuItem2, { key: "local", onClick: run(onOpenLocal) }, t2("btn.openLocal"))];
+  if (Array.isArray(recentDirs) && recentDirs.length > 0) {
+    items.push(h36("span", { key: "recent-dirs-label", className: "mv-menu-label" }, t2("menu.recentDirs")));
+    for (const entry of recentDirs) {
+      items.push(
+        h36(
+          MenuItem2,
+          { key: `dir:${entry.dir}`, title: entry.dir, onClick: run(() => onOpenRecentDirectory(entry.dir)) },
+          h36("span", { className: "ellipsis" }, entry.name)
+        )
+      );
+    }
+  }
+  if (Array.isArray(recentUrls) && recentUrls.length > 0) {
+    items.push(h36("span", { key: "recent-urls-label", className: "mv-menu-label" }, t2("menu.recentUrls")));
+    for (const entry of recentUrls) {
+      items.push(
+        h36(
+          MenuItem2,
+          { key: `url:${entry.url}`, title: entry.url, onClick: run(() => onOpenRecentUrl(entry.url)) },
+          h36("span", { className: "ellipsis" }, recentUrlLabel(entry.url))
+        )
+      );
+    }
+  }
+  if (agentOverlayCount > 0) {
+    items.push(h36(MenuItem2, { key: "clearAgent", onClick: run(onClearAgent) }, t2("menu.clearAgent")));
+  }
+  items.push(h36(MenuItem2, { key: "url", onClick: run(onToggleUrlBar) }, t2("btn.openUrl")));
+  items.push(h36(MenuItem2, { key: "report", onClick: run(onReport) }, t2("menu.report")));
+  items.push(h36("i", { key: "sep", className: "mv-sep", style: MENU_SEP }));
+  items.push(h36(MenuItem2, { key: "clear", onClick: run(onClearTools) }, t2("tool.clear")));
+  return items;
+}
+
 // src/client/scene/vector-import-transaction.js
 function runVectorImport(state, viewer, draw) {
   const firstEntity = state.draw.length;
@@ -18078,6 +18212,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
   const [toast, setToast] = import_react36.default.useState("");
   const [openMenu, setOpenMenu] = import_react36.default.useState(null);
   const [recentDirs, setRecentDirs] = import_react36.default.useState([]);
+  const [recentUrls, setRecentUrls] = import_react36.default.useState(() => readRecentUrls());
   const [accessRequest, setAccessRequest] = import_react36.default.useState(null);
   const [accessBusy, setAccessBusy] = import_react36.default.useState(false);
   const [analysis, setAnalysis] = import_react36.default.useState(null);
@@ -18305,8 +18440,10 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
   async function addTileset(url, name, source = null) {
     try {
       await loadTileset(url, name, source);
+      return true;
     } catch (error2) {
       showToast(t2("toast.loadFailed", { message: message(error2) }));
+      return false;
     }
   }
   const { refreshRecentDirs, openRecentDirectory, pickLocal, pickLocalTiles } = createLocalDirectoryWiring({
@@ -18324,6 +18461,24 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     showToast,
     t: t2
   });
+  function rememberLoadedUrl(value) {
+    setRecentUrls((previous) => {
+      const next = rememberRecentUrl(previous, value);
+      writeRecentUrls(next);
+      return next;
+    });
+  }
+  function openRecentUrl(url) {
+    void addTileset(url, recentUrlLabel(url), { kind: "remote", url });
+  }
+  async function openSceneReport() {
+    try {
+      const value = await runCommand("report", { format: "html" });
+      showToast(t2("toast.reportSaved", { path: value.path }));
+    } catch (error2) {
+      showToast(t2("toast.reportFailed", { message: message(error2) }));
+    }
+  }
   const imagerySeqRef = import_react36.default.useRef(0);
   const terrainSeqRef = import_react36.default.useRef(0);
   async function applyImagery(id, notify) {
@@ -19456,7 +19611,8 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     setUrlInput("");
     const local = /^[a-zA-Z]:[\\/]/.test(value) || value.startsWith("\\\\");
     const source = local ? { kind: "local", path: value } : { kind: "remote", url: value };
-    await addTileset(url, value.split(/[\\/]/).filter(Boolean).slice(-2).join("/"), source);
+    const added = await addTileset(url, value.split(/[\\/]/).filter(Boolean).slice(-2).join("/"), source);
+    if (added && !local) rememberLoadedUrl(value);
   }
   const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
   const clampNumber = (value, fallback, minimum, maximum) => {
@@ -20027,73 +20183,28 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
         menu(
           "data",
           t2("btn.data"),
-          [
-            h32(MenuItem, { key: "local", onClick: pickLocal }, t2("btn.openLocal")),
-            recentDirs.length ? h32(
-              import_react36.default.Fragment,
-              { key: "recent" },
-              h32("span", { className: "mv-menu-label" }, t2("menu.recentDirs")),
-              ...recentDirs.map(
-                (entry) => h32(
-                  MenuItem,
-                  { key: entry.dir, title: entry.dir, onClick: () => openRecentDirectory(entry.dir) },
-                  h32("span", { className: "ellipsis" }, entry.name)
-                )
-              )
-            ) : null,
-            agentOverlayCount > 0 ? h32(
-              MenuItem,
-              {
-                key: "clearAgent",
-                onClick: () => {
-                  setOpenMenu(null);
-                  clearAgentOverlays2("all");
-                  showToast(t2("agent.clearedOverlays"));
-                }
-              },
-              t2("menu.clearAgent")
-            ) : null,
-            h32(
-              MenuItem,
-              {
-                key: "url",
-                onClick: () => {
-                  setOpenMenu(null);
-                  setUrlBar((value) => !value);
-                }
-              },
-              t2("btn.openUrl")
-            ),
-            h32(
-              MenuItem,
-              {
-                key: "report",
-                onClick: async () => {
-                  setOpenMenu(null);
-                  try {
-                    const value = await runCommand("report", { format: "html" });
-                    showToast(t2("toast.reportSaved", { path: value.path }));
-                  } catch (error2) {
-                    showToast(t2("toast.reportFailed", { message: message(error2) }));
-                  }
-                }
-              },
-              t2("menu.report")
-            ),
-            h32("i", { key: "sep", className: "mv-sep", style: { width: "auto", height: ".5px", margin: "4px 8px" } }),
-            h32(
-              MenuItem,
-              {
-                key: "clear",
-                onClick: () => {
-                  setOpenMenu(null);
-                  setToolMode(null);
-                  setMeasureInfo(null);
-                }
-              },
-              t2("tool.clear")
-            )
-          ]
+          dataMenuItems({
+            h: h32,
+            MenuItem,
+            t: t2,
+            recentDirs,
+            recentUrls,
+            agentOverlayCount,
+            closeMenu: () => setOpenMenu(null),
+            onOpenLocal: pickLocal,
+            onOpenRecentDirectory: openRecentDirectory,
+            onOpenRecentUrl: openRecentUrl,
+            onClearAgent: () => {
+              clearAgentOverlays2("all");
+              showToast(t2("agent.clearedOverlays"));
+            },
+            onToggleUrlBar: () => setUrlBar((value) => !value),
+            onReport: openSceneReport,
+            onClearTools: () => {
+              setToolMode(null);
+              setMeasureInfo(null);
+            }
+          })
         ),
         h32("i", { key: "s1", className: "mv-sep" }),
         h32(ToolbarQuick, {

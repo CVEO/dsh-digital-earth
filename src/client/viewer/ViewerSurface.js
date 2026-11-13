@@ -59,6 +59,8 @@ import { useSceneDetails } from '../ui/scene-details.js'
 import { useWorkbenchWiring } from '../ui/use-workbench.js'
 import { createLocalDirectoryWiring, formatScanFailure } from '../ui/workbench-wiring.js'
 import { MenuItem } from '../ui/menu-item.js'
+import { dataMenuItems } from '../ui/data-menu.js'
+import { readRecentUrls, recentUrlLabel, rememberRecentUrl, writeRecentUrls } from '../ui/recent-urls.js'
 import { hasVectorFile, isVectorDrag, readVectorFiles } from '../scene/vector-file.js'
 import { vectorErrorText } from '../scene/vector-errors.js'
 import { runVectorImport } from '../scene/vector-import-transaction.js'
@@ -147,6 +149,7 @@ const h = React.createElement
       const [toast, setToast] = React.useState('')
       const [openMenu, setOpenMenu] = React.useState(null)
       const [recentDirs, setRecentDirs] = React.useState([])
+      const [recentUrls, setRecentUrls] = React.useState(() => readRecentUrls())
       const [accessRequest, setAccessRequest] = React.useState(null)
       const [accessBusy, setAccessBusy] = React.useState(false)
       const [analysis, setAnalysis] = React.useState(null)
@@ -458,8 +461,10 @@ const h = React.createElement
       async function addTileset(url, name, source = null) {
         try {
           await loadTileset(url, name, source)
+          return true
         } catch (error) {
           showToast(t('toast.loadFailed', { message: message(error) }))
+          return false
         }
       }
 
@@ -478,6 +483,30 @@ const h = React.createElement
         showToast,
         t,
       })
+
+      /** Remember a remote tileset address that has just loaded (page-local only). */
+      function rememberLoadedUrl(value) {
+        setRecentUrls((previous) => {
+          const next = rememberRecentUrl(previous, value)
+          writeRecentUrls(next)
+          return next
+        })
+      }
+
+      /** Data-menu entry: reload an address from the recent online-address list. */
+      function openRecentUrl(url) {
+        void addTileset(url, recentUrlLabel(url), { kind: 'remote', url })
+      }
+
+      /** Data-menu entry: the same scene report the toolbar menu used to inline. */
+      async function openSceneReport() {
+        try {
+          const value = await runCommand('report', { format: 'html' })
+          showToast(t('toast.reportSaved', { path: value.path }))
+        } catch (error) {
+          showToast(t('toast.reportFailed', { message: message(error) }))
+        }
+      }
 
       const imagerySeqRef = React.useRef(0)
       const terrainSeqRef = React.useRef(0)
@@ -1790,7 +1819,11 @@ const h = React.createElement
         setUrlInput('')
         const local = /^[a-zA-Z]:[\\/]/.test(value) || value.startsWith('\\\\')
         const source = local ? { kind: 'local', path: value } : { kind: 'remote', url: value }
-        await addTileset(url, value.split(/[\\/]/).filter(Boolean).slice(-2).join('/'), source)
+        const added = await addTileset(url, value.split(/[\\/]/).filter(Boolean).slice(-2).join('/'), source)
+        // Parity with remembered local folders: a remote tileset that actually
+        // loaded is offered again next session. Local paths are already
+        // remembered by the Host `/scan` gesture.
+        if (added && !local) rememberLoadedUrl(value)
       }
 
       const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
@@ -2473,77 +2506,28 @@ const h = React.createElement
             menu(
               'data',
               t('btn.data'),
-              [
-                h(MenuItem, { key: 'local', onClick: pickLocal }, t('btn.openLocal')),
-                recentDirs.length
-                  ? h(
-                      React.Fragment,
-                      { key: 'recent' },
-                      h('span', { className: 'mv-menu-label' }, t('menu.recentDirs')),
-                      ...recentDirs.map((entry) =>
-                        h(
-                          MenuItem,
-                          { key: entry.dir, title: entry.dir, onClick: () => openRecentDirectory(entry.dir) },
-                          h('span', { className: 'ellipsis' }, entry.name),
-                        ),
-                      ),
-                    )
-                  : null,
-                agentOverlayCount > 0
-                  ? h(
-                      MenuItem,
-                      {
-                        key: 'clearAgent',
-                        onClick: () => {
-                          setOpenMenu(null)
-                          clearAgentOverlays('all')
-                          showToast(t('agent.clearedOverlays'))
-                        },
-                      },
-                      t('menu.clearAgent'),
-                    )
-                  : null,
-                h(
-                  MenuItem,
-                  {
-                    key: 'url',
-                    onClick: () => {
-                      setOpenMenu(null)
-                      setUrlBar((value) => !value)
-                    },
-                  },
-                  t('btn.openUrl'),
-                ),
-                h(
-                  MenuItem,
-                  {
-                    key: 'report',
-                    onClick: async () => {
-                      setOpenMenu(null)
-                      try {
-                        const value = await runCommand('report', { format: 'html' })
-                        showToast(t('toast.reportSaved', { path: value.path }))
-                      } catch (error) {
-                        showToast(t('toast.reportFailed', { message: message(error) }))
-                      }
-                    },
-                  },
-                  t('menu.report'),
-                ),
-                h('i', { key: 'sep', className: 'mv-sep', style: { width: 'auto', height: '.5px', margin: '4px 8px' } }),
-                h(
-                  MenuItem,
-                  {
-                    key: 'clear',
-                    onClick: () => {
-                      setOpenMenu(null)
-                      setToolMode(null)
-                      setMeasureInfo(null)
-                    },
-                  },
-                  t('tool.clear'),
-                ),
-              ],
+              dataMenuItems({
+                h,
+                MenuItem,
+                t,
+                recentDirs,
+                recentUrls,
+                agentOverlayCount,
+                closeMenu: () => setOpenMenu(null),
+                onOpenLocal: pickLocal,
+                onOpenRecentDirectory: openRecentDirectory,
+                onOpenRecentUrl: openRecentUrl,
+                onClearAgent: () => {
+                  clearAgentOverlays('all')
+                  showToast(t('agent.clearedOverlays'))
+                },
+                onToggleUrlBar: () => setUrlBar((value) => !value),
+                onReport: openSceneReport,
+                onClearTools: () => {
+                  setToolMode(null)
+                  setMeasureInfo(null)
+                },
+              }),
             ),
             h('i', { key: 's1', className: 'mv-sep' }),
             h(ToolbarQuick, {
