@@ -36,3 +36,18 @@ export function nextOpenTool(current, clicked) {
   if (!toolEntry(clicked)) return current
   return current === clicked ? null : clicked
 }
+
+/**
+ * Window state reducer for clicking a toolbox entry:
+ * - clicking a new entry opens it expanded;
+ * - clicking the active entry while minimized expands it;
+ * - clicking the active expanded entry toggles it closed.
+ */
+export function selectToolWindow(state, clicked) {
+  const current = state?.openTool ?? null
+  const minimized = Boolean(state?.minimized)
+  if (!toolEntry(clicked)) return { openTool: current, minimized }
+  if (current === clicked && minimized) return { openTool: clicked, minimized: false }
+  const next = current === clicked ? null : clicked
+  return { openTool: next, minimized: false }
+}

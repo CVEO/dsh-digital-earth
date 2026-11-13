@@ -544,6 +544,10 @@ var V18_MESSAGES = {
     "tools.windowMinimize": "最小化为标题栏",
     "tools.windowExpand": "展开工具面板",
     "tools.windowClose": "关闭工具面板",
+    "tools.windowZoom": "放大窗口高度",
+    "tools.windowRestore": "还原窗口高度",
+    "tools.indexMinimize": "折叠工具索引",
+    "tools.indexExpand": "展开工具索引",
     "layers.imageryNone": "无底图",
     "layers.imageryFold": "收起底图列表",
     "layers.imageryUnfold": "展开底图列表",
@@ -699,6 +703,10 @@ var V18_MESSAGES = {
     "tools.windowMinimize": "Minimize to title bar",
     "tools.windowExpand": "Expand tool panel",
     "tools.windowClose": "Close tool panel",
+    "tools.windowZoom": "Expand window height",
+    "tools.windowRestore": "Restore window height",
+    "tools.indexMinimize": "Collapse tool index",
+    "tools.indexExpand": "Expand tool index",
     "layers.imageryNone": "No basemap",
     "layers.imageryFold": "Collapse basemap list",
     "layers.imageryUnfold": "Expand basemap list",
@@ -904,9 +912,10 @@ var ANNOTATION_MESSAGES = {
 // src/client/messages-export.js
 var EXPORT_MESSAGES = {
   zh: {
-    "layers.exportVector": "导出",
-    "layers.vectorToChat": "发送到对话",
-    "layers.vectorExportHint": "导出整层矢量叠加（标注 + 量测）为 GeoJSON；发送到对话会把文件作为附件交给 Agent。",
+    "layers.exportVector": "导出 GeoJSON",
+    "layers.vectorToChat": "发送到对话（附件）",
+    "layers.vectorExportHint": "下载整层矢量叠加（标注 + 量测）为 GeoJSON 文件",
+    "layers.vectorChatHint": "导出矢量 GeoJSON 并作为附件发送到当前对话",
     "vectorExport.empty": "矢量叠加层还没有内容：先导入数据或画一个标注。",
     "vectorExport.too_many_features": "一次最多导出 500 个要素，先删减或分批导出。",
     "vectorExport.too_many_coordinates": "坐标点超过 20000，先精简再导出。",
@@ -922,9 +931,10 @@ var EXPORT_MESSAGES = {
     "vectorExport.name": "矢量叠加"
   },
   en: {
-    "layers.exportVector": "Export",
-    "layers.vectorToChat": "Send to chat",
-    "layers.vectorExportHint": "Export the whole vector overlay (annotations + measurements) as GeoJSON; Send to chat attaches the file to the agent.",
+    "layers.exportVector": "Export GeoJSON",
+    "layers.vectorToChat": "Send to chat (attach)",
+    "layers.vectorExportHint": "Download the whole vector overlay (annotations + measurements) as GeoJSON",
+    "layers.vectorChatHint": "Export vector GeoJSON and attach it to the live conversation",
     "vectorExport.empty": "The vector overlay is empty: import data or draw an annotation first.",
     "vectorExport.too_many_features": "At most 500 features can be exported at once; remove some or export in batches.",
     "vectorExport.too_many_coordinates": "More than 20000 coordinates; simplify before exporting.",
@@ -9786,10 +9796,14 @@ var CSS = `
 .mv-resize-handle:focus-visible{box-shadow:inset 0 0 0 1px var(--mv-accent)}
 .mv-tools,.mv-layers,.mv-analysis{position:relative}
 .mv-layers{width:100%;min-height:0;flex:1 1 auto;display:flex;flex-direction:column;border-radius:13px;overflow:hidden}
+.mv-head-actions{display:inline-flex;align-items:center;gap:2px;flex:none}
 /* Tools card: functions (measure / analysis / sun / effects / views) live here,
    never in the layer card. It caps its height so the layer list keeps room. */
-.mv-tools{width:100%;flex:0 1 auto;min-height:0;max-height:min(52%,400px);display:flex;flex-direction:column;border-radius:13px;overflow:hidden}
-.mv-tools>header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;font-size:13px;font-weight:600;color:var(--mv-text);border-bottom:.5px solid var(--mv-line);flex-shrink:0}
+.mv-tools{width:100%;flex:0 1 auto;min-height:0;max-height:min(52%,400px);display:flex;flex-direction:column;border-radius:13px;overflow:hidden;container-type:inline-size}
+.mv-tools>header{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 10px 9px 14px;font-size:13px;font-weight:600;color:var(--mv-text);border-bottom:.5px solid var(--mv-line);flex-shrink:0}
+.mv-tools.minimized>header{border-bottom:0}
+.mv-tools-title{display:inline-flex;align-items:center;gap:7px;min-width:0}
+.mv-tools-active-pill{min-width:0;max-width:128px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:2px 7px;border-radius:999px;font-size:10px;font-weight:500;color:var(--mv-accent);background:color-mix(in srgb,var(--mv-accent) 12%,transparent);border:.5px solid color-mix(in srgb,var(--mv-accent) 26%,transparent)}
 .mv-tools .mv-tool-list{overflow:auto;padding:4px 10px 10px;min-height:0;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-gutter:stable}
 .mv-tool-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin:3px 0 6px}
 .mv-tool-grid .mv-cta{padding:6px 8px;font-size:11px}
@@ -9916,6 +9930,9 @@ var CSS = `
    plus the 3D Tiles list. The imagery group folds because one source is normally in use. */
 .mv-group{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:13px 4px 5px;margin-top:3px;border-top:.5px solid var(--mv-line)}
 .mv-group-actions{display:inline-flex;align-items:center;gap:4px;flex:none}
+.mv-group-subactions{display:flex;align-items:center;gap:6px;padding:2px 4px 6px}
+.mv-group-subactions .mv-cta{width:100%;justify-content:center;font-size:11px;padding:5px 8px;border:.5px solid var(--mv-line);border-radius:8px;background:color-mix(in srgb,var(--mv-lift) 45%,transparent)}
+.mv-group-subactions .mv-cta:hover{background:color-mix(in srgb,var(--mv-lift) 82%,transparent);border-color:color-mix(in srgb,var(--mv-accent) 28%,var(--mv-line))}
 .mv-add3d-menu .mv-cta{text-align:left;width:100%}
 .mv-group:first-child{border-top:0;margin-top:0;padding-top:9px}
 .mv-group-title{min-width:0;font-size:11px;line-height:1.4;font-weight:600;letter-spacing:0;color:var(--mv-dim)}
@@ -9927,6 +9944,12 @@ var CSS = `
 .mv-choice.on .name{font-weight:600}
 .mv-choice:focus-visible,.mv-layers .mv-cta:focus-visible,.mv-layers .mv-icon-btn:focus-visible{outline:2px solid var(--mv-accent);outline-offset:1px}
 .mv-group .mv-cta{flex:none;font-size:11px;padding:5px 8px}
+/* Collapsible card-within-card box for the long imagery basemap selector. */
+.mv-fold-box{margin-top:8px;border:.5px solid var(--mv-line);border-radius:10px;background:color-mix(in srgb,var(--mv-lift) 38%,transparent);overflow:hidden}
+.mv-fold-box.open{background:color-mix(in srgb,var(--mv-lift) 52%,transparent);border-color:color-mix(in srgb,var(--mv-accent) 22%,var(--mv-line))}
+.mv-fold-box>.mv-group{margin-top:0;border-top:0;padding:8px 10px}
+.mv-fold-box.open>.mv-group{border-bottom:.5px solid var(--mv-line)}
+.mv-fold-body{display:flex;flex-direction:column;gap:2px;padding:6px 6px 8px}
 /* Foldable group header (the imagery basemap list is long and rarely changed). */
 .mv-group-toggle{appearance:none;width:100%;display:flex;align-items:center;gap:8px;background:transparent;border:0;padding:0;margin:0;font:inherit;color:inherit;cursor:pointer;text-align:left}
 .mv-group-toggle .mv-group-title{flex:none}
@@ -10206,26 +10229,30 @@ var CSS = `
 .mv-selection-modes .mv-cta{width:100%;padding:6px 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .mv-tools .mv-group-actions{display:flex;gap:6px}
 .mv-tools .mv-sun{margin:0}
-/* Toolbox v1.6: the card is an index of entry points; a tool opens as its own card. */
-.mv-tool-index{display:flex;flex-direction:column;gap:2px;padding:6px 8px 8px;overflow:auto;min-height:0;scrollbar-width:thin}
-.mv-tool-entry{appearance:none;display:flex;align-items:center;gap:9px;width:100%;border:.5px solid transparent;border-radius:9px;background:transparent;color:var(--mv-text);font:inherit;font-size:12px;padding:7px 8px;cursor:pointer;text-align:left}
-.mv-tool-entry:hover{background:color-mix(in srgb,var(--mv-lift) 82%,transparent)}
-.mv-tool-entry.on{background:color-mix(in srgb,var(--mv-accent) 12%,transparent);border-color:color-mix(in srgb,var(--mv-accent) 26%,transparent)}
+/* Toolbox v1.6: 2-column bento tile index; clicking a tile opens a pop-out ToolWindow. */
+.mv-tool-index{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px;padding:8px 10px 10px;overflow:auto;min-height:0;scrollbar-width:thin}
+@container (max-width: 240px){.mv-tool-index{grid-template-columns:minmax(0,1fr)}}
+.mv-tool-entry{position:relative;appearance:none;display:flex;align-items:center;gap:7px;width:100%;min-width:0;border:.5px solid var(--mv-line);border-radius:10px;background:color-mix(in srgb,var(--mv-lift) 46%,transparent);color:var(--mv-text);font:inherit;font-size:11.5px;font-weight:500;padding:7px 8px;cursor:pointer;text-align:left;transition:background-color 140ms ease,border-color 140ms ease}
+.mv-tool-entry:hover{background:color-mix(in srgb,var(--mv-lift) 85%,transparent);border-color:color-mix(in srgb,var(--mv-accent) 28%,var(--mv-line))}
+.mv-tool-entry.on{background:color-mix(in srgb,var(--mv-accent) 13%,transparent);border-color:color-mix(in srgb,var(--mv-accent) 36%,transparent)}
 .mv-tool-entry:focus-visible{outline:2px solid var(--mv-accent);outline-offset:1px}
-.mv-tool-entry-icon{display:inline-flex;color:var(--mv-dim);flex:none}
-.mv-tool-entry.on .mv-tool-entry-icon{color:var(--mv-accent)}
+.mv-tool-entry-icon{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:6px;background:color-mix(in srgb,var(--mv-dim) 12%,transparent);color:var(--mv-dim);flex:none}
+.mv-tool-entry.on .mv-tool-entry-icon{background:color-mix(in srgb,var(--mv-accent) 18%,transparent);color:var(--mv-accent)}
 .mv-tool-entry-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.mv-tool-entry-more{flex:none;color:var(--mv-dim);opacity:.7}
-.mv-toolwin{width:100%;flex:0 1 auto;min-height:0;display:flex;flex-direction:column;border-radius:13px;overflow:hidden}
-.mv-toolwin>header{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 12px;border-bottom:.5px solid var(--mv-line);flex-shrink:0;font-size:12px;font-weight:600;color:var(--mv-text)}
+.mv-tool-entry-dot{width:6px;height:6px;border-radius:999px;background:var(--mv-accent);flex:none;box-shadow:0 0 0 2px color-mix(in srgb,var(--mv-accent) 22%,transparent)}
+.mv-toolwin{width:100%;flex:0 1 auto;min-height:0;display:flex;flex-direction:column;border-radius:13px;overflow:hidden;border-top:2px solid color-mix(in srgb,var(--mv-accent) 55%,transparent)}
+.mv-toolwin>header{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px 8px 12px;border-bottom:.5px solid var(--mv-line);flex-shrink:0;font-size:12px;font-weight:600;color:var(--mv-text)}
 .mv-toolwin.minimized>header{border-bottom:0}
 .mv-toolwin-title{display:inline-flex;align-items:center;gap:7px;min-width:0}
+.mv-toolwin-badge{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:6px;background:color-mix(in srgb,var(--mv-accent) 14%,transparent);color:var(--mv-accent);flex:none}
 .mv-toolwin-title>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mv-toolwin-body{display:flex;flex-direction:column;gap:6px;padding:8px 12px 10px;overflow:auto;min-height:0;overscroll-behavior:contain;scrollbar-width:thin}
 .mv-toolwin-body>.mv-tool-grid{margin:0}
 .mv-toolwin-body .mv-cta{border:.5px solid var(--mv-line);border-radius:8px;font-size:11px;line-height:1.4}
 .mv-toolwin-body .mv-cta[aria-pressed="true"]{border-color:var(--mv-accent);background:color-mix(in srgb,var(--mv-accent) 13%,var(--mv-glass))}
 .mv-toolwin-body .mv-group-title{margin-top:4px}
+.mv-tool-effects-list{display:flex;flex-direction:column;gap:3px;padding:2px 0}
+.mv-tool-effects-list .mv-layer{min-height:26px;padding:4px 6px;display:flex;align-items:center;justify-content:space-between;gap:6px}
 .mv-root.mv-docked .mv-toolwin{max-height:none}
 .mv-bookmark-name{appearance:none;background:transparent;border:0;color:inherit;font:inherit;text-align:left;cursor:pointer;padding:4px 0}
 .mv-root :is(button,input,select,textarea):focus-visible{outline:2px solid var(--mv-accent);outline-offset:2px}
@@ -12579,6 +12606,7 @@ function writePanelFlag(key, value) {
   }
 }
 var IMAGERY_OPEN_KEY = "layers.imagery.open";
+var TOOLS_MINIMIZED_KEY = "tools.index.minimized";
 
 // src/client/ui/layers-map.js
 var h15 = import_react17.default.createElement;
@@ -12651,15 +12679,19 @@ function LayersMap({
     h15(
       "div",
       { key: "g2", className: "mv-group" },
-      h15("div", { className: "mv-group-title" }, t2("layers.vector")),
+      h15("div", { className: "mv-group-title" }, `${t2("layers.vector")}${drawn + measured > 0 ? ` · ${drawn + measured}` : ""}`),
       h15(
         "div",
         { className: "mv-group-actions" },
         h15("button", { type: "button", className: "mv-icon-btn", title: t2("layers.vectorExportHint"), "aria-label": t2("layers.exportVector"), disabled: !vectorExport, onClick: () => vectorExport?.download() }, "⤓"),
-        h15("button", { type: "button", className: "mv-icon-btn", title: t2("layers.vectorExportHint"), "aria-label": t2("layers.vectorToChat"), disabled: !vectorExport?.canSend?.(), onClick: () => {
+        h15("button", { type: "button", className: "mv-icon-btn", title: t2("layers.vectorChatHint"), "aria-label": t2("layers.vectorToChat"), disabled: !vectorExport?.canSend?.(), onClick: () => {
           void vectorExport?.send();
         } }, "➤")
-      ),
+      )
+    ),
+    h15(
+      "div",
+      { key: "g2-actions", className: "mv-group-subactions" },
       h15("button", { type: "button", className: "mv-cta", onClick: () => fileRef.current?.click() }, t2("layers.importVector"))
     ),
     h15("input", {
@@ -12817,26 +12849,36 @@ function LayersMap({
         h15("button", { type: "button", className: "mv-icon-btn", title: t2("layers.overlayRemove"), "aria-label": t2("layers.overlayRemove"), onClick: () => onOverlayRemove(overlay.id) }, "✕")
       )
     ),
-    // ---- L4 imagery basemap (folded: one source is normally in use) ------------
+    // ---- L4 imagery basemap (folded box: one source is normally in use) --------
     h15(
       "div",
-      { key: "g4", className: "mv-group" },
+      { key: "g4-box", className: `mv-fold-box${imageryOpen ? " open" : ""}` },
       h15(
-        "button",
-        {
-          type: "button",
-          className: "mv-group-toggle",
-          "aria-expanded": imageryOpen,
-          title: imageryOpen ? t2("layers.imageryFold") : t2("layers.imageryUnfold"),
-          onClick: toggleImagery
-        },
-        h15("span", { className: "mv-group-title" }, t2("layers.imagery")),
-        h15("span", { className: "mv-group-current" }, imagerySummary(t2, config, settings)),
-        h15("span", { className: `mv-group-chevron${imageryOpen ? " open" : ""}`, "aria-hidden": true }, "›")
-      )
-    ),
-    imageryOpen ? radioRow("i-off", t2("menu.none"), settings?.imagery == null, () => onSelectImagery(null)) : null,
-    imageryOpen ? (config?.imagery ?? []).map((source) => radioRow(`i-${source.id}`, source.name, settings?.imagery === source.id, () => onSelectImagery(source.id))) : null
+        "div",
+        { key: "g4", className: "mv-group" },
+        h15(
+          "button",
+          {
+            type: "button",
+            className: "mv-group-toggle",
+            "aria-expanded": imageryOpen,
+            title: imageryOpen ? t2("layers.imageryFold") : t2("layers.imageryUnfold"),
+            onClick: toggleImagery
+          },
+          h15("span", { className: "mv-group-title" }, t2("layers.imagery")),
+          h15("span", { className: "mv-group-current" }, imagerySummary(t2, config, settings)),
+          h15("span", { className: `mv-group-chevron${imageryOpen ? " open" : ""}`, "aria-hidden": true }, "›")
+        )
+      ),
+      imageryOpen ? h15(
+        "div",
+        { key: "g4-body", className: "mv-fold-body" },
+        radioRow("i-off", t2("menu.none"), settings?.imagery == null, () => onSelectImagery(null)),
+        (config?.imagery ?? []).map(
+          (source) => radioRow(`i-${source.id}`, source.name, settings?.imagery === source.id, () => onSelectImagery(source.id))
+        )
+      ) : null
+    )
   );
 }
 
@@ -13003,9 +13045,13 @@ var TOOL_IDS = TOOL_ENTRIES.map((entry) => entry.id);
 function toolEntry(id) {
   return TOOL_ENTRIES.find((entry) => entry.id === id) ?? null;
 }
-function nextOpenTool(current, clicked) {
-  if (!toolEntry(clicked)) return current;
-  return current === clicked ? null : clicked;
+function selectToolWindow(state, clicked) {
+  const current = state?.openTool ?? null;
+  const minimized = Boolean(state?.minimized);
+  if (!toolEntry(clicked)) return { openTool: current, minimized };
+  if (current === clicked && minimized) return { openTool: clicked, minimized: false };
+  const next = current === clicked ? null : clicked;
+  return { openTool: next, minimized: false };
 }
 
 // src/client/ui/tool-windows.js
@@ -14654,11 +14700,24 @@ function AnalysisBody({ t: t2, analysis, onStartProfile, onClearAnalysis, getCes
   );
 }
 function EffectsBody({ t: t2, shaderActive, onOpenShader }) {
+  const list = Array.isArray(shaderActive) ? shaderActive : [];
   return h22(
     import_react24.default.Fragment,
     null,
-    h22("button", { type: "button", className: "mv-cta", onClick: onOpenShader }, t2("btn.shaderShow")),
-    h22("p", { className: "mv-none" }, shaderActive.length > 0 ? t2("tools.effectsActive", { n: shaderActive.length }) : t2("tools.effectsEmpty"))
+    h22("button", { type: "button", className: "mv-cta primary", onClick: onOpenShader }, t2("btn.shaderShow")),
+    list.length > 0 ? h22(
+      "div",
+      { className: "mv-tool-effects-list" },
+      ...list.slice(0, 6).map(
+        (entry) => h22(
+          "div",
+          { key: entry.layerId ?? entry.layer, className: "mv-layer has-shader" },
+          h22("span", { className: "name", title: entry.layer }, entry.layer),
+          h22("span", { className: "mv-tools-active-pill" }, Array.isArray(entry.presets) ? entry.presets.join(" + ") : entry.preset)
+        )
+      )
+    ) : null,
+    h22("p", { className: "mv-none" }, list.length > 0 ? t2("tools.effectsActive", { n: list.length }) : t2("tools.effectsEmpty"))
   );
 }
 function ViewBody({ t: t2, getCurrentView, onFlyView, onStartTour }) {
@@ -14701,32 +14760,81 @@ function ToolBody({ entryId, ...rest }) {
 // src/client/ui/tool-window.js
 var import_react25 = __toESM(require("react"), 1);
 var h23 = import_react25.default.createElement;
-function ToolWindow({ t: t2, entry, minimized = false, onToggleMinimize, onClose, children }) {
+function ToolWindow({
+  t: t2,
+  entry,
+  minimized = false,
+  expanded = false,
+  onToggleMinimize,
+  onToggleExpand,
+  onClose,
+  children
+}) {
   const resize = usePanelResize({ storageKey: "tool-window", initialHeight: 260, minHeight: 150, maxHeight: 560 });
   if (!entry) return null;
   const label = t2(entry.labelKey);
   const toggleLabel = minimized ? t2("tools.windowExpand") : t2("tools.windowMinimize");
+  const zoomLabel = expanded ? t2("tools.windowRestore") : t2("tools.windowZoom");
+  const bodyStyle = minimized ? void 0 : expanded ? { ...resize.style, height: "min(480px, 60vh)", maxHeight: "none", flex: "0 0 auto" } : resize.style;
   return h23(
     "section",
     {
-      className: `mv-toolwin mv-glass${minimized ? " minimized" : ""}`,
+      className: `mv-toolwin mv-glass${minimized ? " minimized" : ""}${expanded && !minimized ? " expanded" : ""}`,
       ref: resize.ref,
-      style: minimized ? void 0 : resize.style,
+      style: bodyStyle,
       "aria-label": label
     },
     h23(
       "header",
       null,
-      h23("span", { className: "mv-toolwin-title" }, h23(ToolEntryIcon, { kind: entry.icon }), h23("span", null, label)),
+      h23(
+        "span",
+        { className: "mv-toolwin-title" },
+        h23("span", { className: "mv-toolwin-badge" }, h23(ToolEntryIcon, { kind: entry.icon, size: 14 })),
+        h23("span", null, label)
+      ),
       h23(
         "div",
         { className: "mv-head-actions" },
-        h23("button", { type: "button", className: "mv-icon-btn", title: toggleLabel, "aria-label": toggleLabel, "aria-expanded": !minimized, onClick: onToggleMinimize }, minimized ? "▸" : "▾"),
-        h23("button", { type: "button", className: "mv-icon-btn", title: t2("tools.windowClose"), "aria-label": t2("tools.windowClose"), onClick: onClose }, "✕")
+        typeof onToggleExpand === "function" ? h23(
+          "button",
+          {
+            type: "button",
+            className: `mv-icon-btn${expanded && !minimized ? " on" : ""}`,
+            title: zoomLabel,
+            "aria-label": zoomLabel,
+            "aria-pressed": expanded && !minimized,
+            onClick: onToggleExpand
+          },
+          expanded && !minimized ? "⤡" : "⤢"
+        ) : null,
+        h23(
+          "button",
+          {
+            type: "button",
+            className: "mv-icon-btn",
+            title: toggleLabel,
+            "aria-label": toggleLabel,
+            "aria-expanded": !minimized,
+            onClick: onToggleMinimize
+          },
+          minimized ? "▸" : "▾"
+        ),
+        h23(
+          "button",
+          {
+            type: "button",
+            className: "mv-icon-btn",
+            title: t2("tools.windowClose"),
+            "aria-label": t2("tools.windowClose"),
+            onClick: onClose
+          },
+          "✕"
+        )
       )
     ),
     minimized ? null : h23("div", { className: "mv-toolwin-body" }, children),
-    minimized ? null : h23(ResizeHandle, {
+    minimized || expanded ? null : h23(ResizeHandle, {
       axis: "height",
       edge: "bottom",
       label: t2("resize.height"),
@@ -14770,11 +14878,21 @@ function ToolsPanel({
   const resize = usePanelResize({ storageKey: "tools", initialHeight: null, minHeight: 160, maxHeight: 700 });
   const [openTool, setOpenTool] = import_react26.default.useState(null);
   const [minimized, setMinimized] = import_react26.default.useState(false);
+  const [expanded, setExpanded] = import_react26.default.useState(false);
+  const [indexMinimized, setIndexMinimized] = import_react26.default.useState(() => readPanelFlag(TOOLS_MINIMIZED_KEY, false));
   const entry = toolEntry(openTool);
   const openToolById = (id) => {
-    const next = nextOpenTool(openTool, id);
-    setOpenTool(next);
-    if (next !== null) setMinimized(false);
+    const next = selectToolWindow({ openTool, minimized }, id);
+    setOpenTool(next.openTool);
+    setMinimized(next.minimized);
+    if (next.openTool !== openTool) setExpanded(false);
+  };
+  const toggleIndexMinimized = () => {
+    setIndexMinimized((value) => {
+      const next = !value;
+      writePanelFlag(TOOLS_MINIMIZED_KEY, next);
+      return next;
+    });
   };
   const row = (item) => h24(
     "button",
@@ -14788,7 +14906,7 @@ function ToolsPanel({
     },
     h24("span", { className: "mv-tool-entry-icon" }, h24(ToolEntryIcon, { kind: item.icon })),
     h24("span", { className: "mv-tool-entry-name" }, t2(item.labelKey)),
-    h24("span", { className: "mv-tool-entry-more", "aria-hidden": true }, "›")
+    openTool === item.id ? h24("span", { className: "mv-tool-entry-dot", "aria-hidden": true }) : null
   );
   const bodyProps = {
     t: t2,
@@ -14826,29 +14944,52 @@ function ToolsPanel({
         t: t2,
         entry,
         minimized,
+        expanded,
         onToggleMinimize: () => setMinimized((value) => !value),
+        onToggleExpand: () => {
+          setMinimized(false);
+          setExpanded((value) => !value);
+        },
         onClose: () => {
           setOpenTool(null);
           setMinimized(false);
+          setExpanded(false);
         }
       },
       h24(ToolBody, { entryId: entry.id, ...bodyProps })
     ) : null,
     h24(
       "div",
-      { className: "mv-tools mv-glass", ref: resize.ref, style: resize.style },
+      { className: `mv-tools mv-glass${indexMinimized ? " minimized" : ""}`, ref: resize.ref, style: indexMinimized ? void 0 : resize.style },
       h24(
         "header",
         null,
-        h24("span", null, t2("tools.title")),
+        h24(
+          "span",
+          { className: "mv-tools-title" },
+          h24("span", null, t2("tools.title")),
+          entry && indexMinimized ? h24("span", { className: "mv-tools-active-pill" }, t2(entry.labelKey)) : null
+        ),
         h24(
           "div",
           { className: "mv-head-actions" },
+          h24(
+            "button",
+            {
+              type: "button",
+              className: "mv-icon-btn",
+              title: t2(indexMinimized ? "tools.indexExpand" : "tools.indexMinimize"),
+              "aria-label": t2(indexMinimized ? "tools.indexExpand" : "tools.indexMinimize"),
+              "aria-expanded": !indexMinimized,
+              onClick: toggleIndexMinimized
+            },
+            indexMinimized ? "▸" : "▾"
+          ),
           h24("button", { type: "button", className: "mv-icon-btn", title: t2("tools.collapse"), "aria-label": t2("tools.collapse"), onClick: onCollapse }, "✕")
         )
       ),
-      h24("div", { className: "mv-tool-index", role: "group", "aria-label": t2("tools.index") }, ...TOOL_ENTRIES.map(row)),
-      h24(ResizeHandle, {
+      indexMinimized ? null : h24("div", { className: "mv-tool-index", role: "group", "aria-label": t2("tools.index") }, ...TOOL_ENTRIES.map(row)),
+      indexMinimized ? null : h24(ResizeHandle, {
         axis: "height",
         edge: "bottom",
         label: t2("resize.height"),

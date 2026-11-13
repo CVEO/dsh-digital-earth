@@ -28,3 +28,4 @@ export function writePanelFlag(key, value) {
 }
 
 export const IMAGERY_OPEN_KEY = 'layers.imagery.open'
+export const TOOLS_MINIMIZED_KEY = 'tools.index.minimized'

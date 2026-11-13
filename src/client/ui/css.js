@@ -72,10 +72,14 @@ import { PARSE_CSS } from './parse-css.js'
 .mv-resize-handle:focus-visible{box-shadow:inset 0 0 0 1px var(--mv-accent)}
 .mv-tools,.mv-layers,.mv-analysis{position:relative}
 .mv-layers{width:100%;min-height:0;flex:1 1 auto;display:flex;flex-direction:column;border-radius:13px;overflow:hidden}
+.mv-head-actions{display:inline-flex;align-items:center;gap:2px;flex:none}
 /* Tools card: functions (measure / analysis / sun / effects / views) live here,
    never in the layer card. It caps its height so the layer list keeps room. */
-.mv-tools{width:100%;flex:0 1 auto;min-height:0;max-height:min(52%,400px);display:flex;flex-direction:column;border-radius:13px;overflow:hidden}
-.mv-tools>header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;font-size:13px;font-weight:600;color:var(--mv-text);border-bottom:.5px solid var(--mv-line);flex-shrink:0}
+.mv-tools{width:100%;flex:0 1 auto;min-height:0;max-height:min(52%,400px);display:flex;flex-direction:column;border-radius:13px;overflow:hidden;container-type:inline-size}
+.mv-tools>header{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 10px 9px 14px;font-size:13px;font-weight:600;color:var(--mv-text);border-bottom:.5px solid var(--mv-line);flex-shrink:0}
+.mv-tools.minimized>header{border-bottom:0}
+.mv-tools-title{display:inline-flex;align-items:center;gap:7px;min-width:0}
+.mv-tools-active-pill{min-width:0;max-width:128px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:2px 7px;border-radius:999px;font-size:10px;font-weight:500;color:var(--mv-accent);background:color-mix(in srgb,var(--mv-accent) 12%,transparent);border:.5px solid color-mix(in srgb,var(--mv-accent) 26%,transparent)}
 .mv-tools .mv-tool-list{overflow:auto;padding:4px 10px 10px;min-height:0;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-gutter:stable}
 .mv-tool-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin:3px 0 6px}
 .mv-tool-grid .mv-cta{padding:6px 8px;font-size:11px}
@@ -202,6 +206,9 @@ import { PARSE_CSS } from './parse-css.js'
    plus the 3D Tiles list. The imagery group folds because one source is normally in use. */
 .mv-group{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:13px 4px 5px;margin-top:3px;border-top:.5px solid var(--mv-line)}
 .mv-group-actions{display:inline-flex;align-items:center;gap:4px;flex:none}
+.mv-group-subactions{display:flex;align-items:center;gap:6px;padding:2px 4px 6px}
+.mv-group-subactions .mv-cta{width:100%;justify-content:center;font-size:11px;padding:5px 8px;border:.5px solid var(--mv-line);border-radius:8px;background:color-mix(in srgb,var(--mv-lift) 45%,transparent)}
+.mv-group-subactions .mv-cta:hover{background:color-mix(in srgb,var(--mv-lift) 82%,transparent);border-color:color-mix(in srgb,var(--mv-accent) 28%,var(--mv-line))}
 .mv-add3d-menu .mv-cta{text-align:left;width:100%}
 .mv-group:first-child{border-top:0;margin-top:0;padding-top:9px}
 .mv-group-title{min-width:0;font-size:11px;line-height:1.4;font-weight:600;letter-spacing:0;color:var(--mv-dim)}
@@ -213,6 +220,12 @@ import { PARSE_CSS } from './parse-css.js'
 .mv-choice.on .name{font-weight:600}
 .mv-choice:focus-visible,.mv-layers .mv-cta:focus-visible,.mv-layers .mv-icon-btn:focus-visible{outline:2px solid var(--mv-accent);outline-offset:1px}
 .mv-group .mv-cta{flex:none;font-size:11px;padding:5px 8px}
+/* Collapsible card-within-card box for the long imagery basemap selector. */
+.mv-fold-box{margin-top:8px;border:.5px solid var(--mv-line);border-radius:10px;background:color-mix(in srgb,var(--mv-lift) 38%,transparent);overflow:hidden}
+.mv-fold-box.open{background:color-mix(in srgb,var(--mv-lift) 52%,transparent);border-color:color-mix(in srgb,var(--mv-accent) 22%,var(--mv-line))}
+.mv-fold-box>.mv-group{margin-top:0;border-top:0;padding:8px 10px}
+.mv-fold-box.open>.mv-group{border-bottom:.5px solid var(--mv-line)}
+.mv-fold-body{display:flex;flex-direction:column;gap:2px;padding:6px 6px 8px}
 /* Foldable group header (the imagery basemap list is long and rarely changed). */
 .mv-group-toggle{appearance:none;width:100%;display:flex;align-items:center;gap:8px;background:transparent;border:0;padding:0;margin:0;font:inherit;color:inherit;cursor:pointer;text-align:left}
 .mv-group-toggle .mv-group-title{flex:none}
@@ -492,26 +505,30 @@ import { PARSE_CSS } from './parse-css.js'
 .mv-selection-modes .mv-cta{width:100%;padding:6px 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .mv-tools .mv-group-actions{display:flex;gap:6px}
 .mv-tools .mv-sun{margin:0}
-/* Toolbox v1.6: the card is an index of entry points; a tool opens as its own card. */
-.mv-tool-index{display:flex;flex-direction:column;gap:2px;padding:6px 8px 8px;overflow:auto;min-height:0;scrollbar-width:thin}
-.mv-tool-entry{appearance:none;display:flex;align-items:center;gap:9px;width:100%;border:.5px solid transparent;border-radius:9px;background:transparent;color:var(--mv-text);font:inherit;font-size:12px;padding:7px 8px;cursor:pointer;text-align:left}
-.mv-tool-entry:hover{background:color-mix(in srgb,var(--mv-lift) 82%,transparent)}
-.mv-tool-entry.on{background:color-mix(in srgb,var(--mv-accent) 12%,transparent);border-color:color-mix(in srgb,var(--mv-accent) 26%,transparent)}
+/* Toolbox v1.6: 2-column bento tile index; clicking a tile opens a pop-out ToolWindow. */
+.mv-tool-index{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px;padding:8px 10px 10px;overflow:auto;min-height:0;scrollbar-width:thin}
+@container (max-width: 240px){.mv-tool-index{grid-template-columns:minmax(0,1fr)}}
+.mv-tool-entry{position:relative;appearance:none;display:flex;align-items:center;gap:7px;width:100%;min-width:0;border:.5px solid var(--mv-line);border-radius:10px;background:color-mix(in srgb,var(--mv-lift) 46%,transparent);color:var(--mv-text);font:inherit;font-size:11.5px;font-weight:500;padding:7px 8px;cursor:pointer;text-align:left;transition:background-color 140ms ease,border-color 140ms ease}
+.mv-tool-entry:hover{background:color-mix(in srgb,var(--mv-lift) 85%,transparent);border-color:color-mix(in srgb,var(--mv-accent) 28%,var(--mv-line))}
+.mv-tool-entry.on{background:color-mix(in srgb,var(--mv-accent) 13%,transparent);border-color:color-mix(in srgb,var(--mv-accent) 36%,transparent)}
 .mv-tool-entry:focus-visible{outline:2px solid var(--mv-accent);outline-offset:1px}
-.mv-tool-entry-icon{display:inline-flex;color:var(--mv-dim);flex:none}
-.mv-tool-entry.on .mv-tool-entry-icon{color:var(--mv-accent)}
+.mv-tool-entry-icon{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:6px;background:color-mix(in srgb,var(--mv-dim) 12%,transparent);color:var(--mv-dim);flex:none}
+.mv-tool-entry.on .mv-tool-entry-icon{background:color-mix(in srgb,var(--mv-accent) 18%,transparent);color:var(--mv-accent)}
 .mv-tool-entry-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.mv-tool-entry-more{flex:none;color:var(--mv-dim);opacity:.7}
-.mv-toolwin{width:100%;flex:0 1 auto;min-height:0;display:flex;flex-direction:column;border-radius:13px;overflow:hidden}
-.mv-toolwin>header{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 12px;border-bottom:.5px solid var(--mv-line);flex-shrink:0;font-size:12px;font-weight:600;color:var(--mv-text)}
+.mv-tool-entry-dot{width:6px;height:6px;border-radius:999px;background:var(--mv-accent);flex:none;box-shadow:0 0 0 2px color-mix(in srgb,var(--mv-accent) 22%,transparent)}
+.mv-toolwin{width:100%;flex:0 1 auto;min-height:0;display:flex;flex-direction:column;border-radius:13px;overflow:hidden;border-top:2px solid color-mix(in srgb,var(--mv-accent) 55%,transparent)}
+.mv-toolwin>header{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px 8px 12px;border-bottom:.5px solid var(--mv-line);flex-shrink:0;font-size:12px;font-weight:600;color:var(--mv-text)}
 .mv-toolwin.minimized>header{border-bottom:0}
 .mv-toolwin-title{display:inline-flex;align-items:center;gap:7px;min-width:0}
+.mv-toolwin-badge{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:6px;background:color-mix(in srgb,var(--mv-accent) 14%,transparent);color:var(--mv-accent);flex:none}
 .mv-toolwin-title>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mv-toolwin-body{display:flex;flex-direction:column;gap:6px;padding:8px 12px 10px;overflow:auto;min-height:0;overscroll-behavior:contain;scrollbar-width:thin}
 .mv-toolwin-body>.mv-tool-grid{margin:0}
 .mv-toolwin-body .mv-cta{border:.5px solid var(--mv-line);border-radius:8px;font-size:11px;line-height:1.4}
 .mv-toolwin-body .mv-cta[aria-pressed="true"]{border-color:var(--mv-accent);background:color-mix(in srgb,var(--mv-accent) 13%,var(--mv-glass))}
 .mv-toolwin-body .mv-group-title{margin-top:4px}
+.mv-tool-effects-list{display:flex;flex-direction:column;gap:3px;padding:2px 0}
+.mv-tool-effects-list .mv-layer{min-height:26px;padding:4px 6px;display:flex;align-items:center;justify-content:space-between;gap:6px}
 .mv-root.mv-docked .mv-toolwin{max-height:none}
 .mv-bookmark-name{appearance:none;background:transparent;border:0;color:inherit;font:inherit;text-align:left;cursor:pointer;padding:4px 0}
 .mv-root :is(button,input,select,textarea):focus-visible{outline:2px solid var(--mv-accent);outline-offset:2px}

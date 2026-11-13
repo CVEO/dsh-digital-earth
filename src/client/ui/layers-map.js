@@ -95,13 +95,17 @@ export function LayersMap({
     h(
       'div',
       { key: 'g2', className: 'mv-group' },
-      h('div', { className: 'mv-group-title' }, t('layers.vector')),
+      h('div', { className: 'mv-group-title' }, `${t('layers.vector')}${drawn + measured > 0 ? ` · ${drawn + measured}` : ''}`),
       h(
         'div',
         { className: 'mv-group-actions' },
         h('button', { type: 'button', className: 'mv-icon-btn', title: t('layers.vectorExportHint'), 'aria-label': t('layers.exportVector'), disabled: !vectorExport, onClick: () => vectorExport?.download() }, '⤓'),
-        h('button', { type: 'button', className: 'mv-icon-btn', title: t('layers.vectorExportHint'), 'aria-label': t('layers.vectorToChat'), disabled: !vectorExport?.canSend?.(), onClick: () => { void vectorExport?.send() } }, '➤'),
+        h('button', { type: 'button', className: 'mv-icon-btn', title: t('layers.vectorChatHint'), 'aria-label': t('layers.vectorToChat'), disabled: !vectorExport?.canSend?.(), onClick: () => { void vectorExport?.send() } }, '➤'),
       ),
+    ),
+    h(
+      'div',
+      { key: 'g2-actions', className: 'mv-group-subactions' },
       h('button', { type: 'button', className: 'mv-cta', onClick: () => fileRef.current?.click() }, t('layers.importVector')),
     ),
     h('input', {
@@ -271,25 +275,37 @@ export function LayersMap({
             h('button', { type: 'button', className: 'mv-icon-btn', title: t('layers.overlayRemove'), 'aria-label': t('layers.overlayRemove'), onClick: () => onOverlayRemove(overlay.id) }, '✕'),
           ),
         ),
-    // ---- L4 imagery basemap (folded: one source is normally in use) ------------
+    // ---- L4 imagery basemap (folded box: one source is normally in use) --------
     h(
       'div',
-      { key: 'g4', className: 'mv-group' },
+      { key: 'g4-box', className: `mv-fold-box${imageryOpen ? ' open' : ''}` },
       h(
-        'button',
-        {
-          type: 'button',
-          className: 'mv-group-toggle',
-          'aria-expanded': imageryOpen,
-          title: imageryOpen ? t('layers.imageryFold') : t('layers.imageryUnfold'),
-          onClick: toggleImagery,
-        },
-        h('span', { className: 'mv-group-title' }, t('layers.imagery')),
-        h('span', { className: 'mv-group-current' }, imagerySummary(t, config, settings)),
-        h('span', { className: `mv-group-chevron${imageryOpen ? ' open' : ''}`, 'aria-hidden': true }, '›'),
+        'div',
+        { key: 'g4', className: 'mv-group' },
+        h(
+          'button',
+          {
+            type: 'button',
+            className: 'mv-group-toggle',
+            'aria-expanded': imageryOpen,
+            title: imageryOpen ? t('layers.imageryFold') : t('layers.imageryUnfold'),
+            onClick: toggleImagery,
+          },
+          h('span', { className: 'mv-group-title' }, t('layers.imagery')),
+          h('span', { className: 'mv-group-current' }, imagerySummary(t, config, settings)),
+          h('span', { className: `mv-group-chevron${imageryOpen ? ' open' : ''}`, 'aria-hidden': true }, '›'),
+        ),
       ),
+      imageryOpen
+        ? h(
+            'div',
+            { key: 'g4-body', className: 'mv-fold-body' },
+            radioRow('i-off', t('menu.none'), settings?.imagery == null, () => onSelectImagery(null)),
+            (config?.imagery ?? []).map((source) =>
+              radioRow(`i-${source.id}`, source.name, settings?.imagery === source.id, () => onSelectImagery(source.id)),
+            ),
+          )
+        : null,
     ),
-    imageryOpen ? radioRow('i-off', t('menu.none'), settings?.imagery == null, () => onSelectImagery(null)) : null,
-    imageryOpen ? (config?.imagery ?? []).map((source) => radioRow(`i-${source.id}`, source.name, settings?.imagery === source.id, () => onSelectImagery(source.id))) : null,
   )
 }

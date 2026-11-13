@@ -8,9 +8,10 @@
 
 export const EXPORT_MESSAGES = {
   zh: {
-    'layers.exportVector': '导出',
-    'layers.vectorToChat': '发送到对话',
-    'layers.vectorExportHint': '导出整层矢量叠加（标注 + 量测）为 GeoJSON；发送到对话会把文件作为附件交给 Agent。',
+    'layers.exportVector': '导出 GeoJSON',
+    'layers.vectorToChat': '发送到对话（附件）',
+    'layers.vectorExportHint': '下载整层矢量叠加（标注 + 量测）为 GeoJSON 文件',
+    'layers.vectorChatHint': '导出矢量 GeoJSON 并作为附件发送到当前对话',
     'vectorExport.empty': '矢量叠加层还没有内容：先导入数据或画一个标注。',
     'vectorExport.too_many_features': '一次最多导出 500 个要素，先删减或分批导出。',
     'vectorExport.too_many_coordinates': '坐标点超过 20000，先精简再导出。',
@@ -26,9 +27,10 @@ export const EXPORT_MESSAGES = {
     'vectorExport.name': '矢量叠加',
   },
   en: {
-    'layers.exportVector': 'Export',
-    'layers.vectorToChat': 'Send to chat',
-    'layers.vectorExportHint': 'Export the whole vector overlay (annotations + measurements) as GeoJSON; Send to chat attaches the file to the agent.',
+    'layers.exportVector': 'Export GeoJSON',
+    'layers.vectorToChat': 'Send to chat (attach)',
+    'layers.vectorExportHint': 'Download the whole vector overlay (annotations + measurements) as GeoJSON',
+    'layers.vectorChatHint': 'Export vector GeoJSON and attach it to the live conversation',
     'vectorExport.empty': 'The vector overlay is empty: import data or draw an annotation first.',
     'vectorExport.too_many_features': 'At most 500 features can be exported at once; remove some or export in batches.',
     'vectorExport.too_many_coordinates': 'More than 20000 coordinates; simplify before exporting.',

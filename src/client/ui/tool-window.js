@@ -1,11 +1,10 @@
 /**
  * ui/tool-window.js — the concrete panel a toolbox entry opens.
  *
- * One window at a time, opened above the index it belongs to. It can be minimized
- * to its title bar (the canvas keeps the tool state) and closed, and it remembers
- * its height in the same panel-size slot family as the other cards. It never
- * floats over the canvas: the right column is the only owner of layout, so narrow
- * docked layouts cannot end up with a window half off-screen.
+ * One window at a time, opened above the index it belongs to. Supports three
+ * clear window controls matching desktop expectations: zoom/expand height,
+ * minimize to its title bar (preserving active canvas tool state), and close,
+ * plus drag-resizable height persisted via localStorage.
  */
 import React from 'react'
 
@@ -14,32 +13,88 @@ import { ResizeHandle, usePanelResize } from './resizable.js'
 
 const h = React.createElement
 
-export function ToolWindow({ t, entry, minimized = false, onToggleMinimize, onClose, children }) {
+export function ToolWindow({
+  t,
+  entry,
+  minimized = false,
+  expanded = false,
+  onToggleMinimize,
+  onToggleExpand,
+  onClose,
+  children,
+}) {
   const resize = usePanelResize({ storageKey: 'tool-window', initialHeight: 260, minHeight: 150, maxHeight: 560 })
   if (!entry) return null
   const label = t(entry.labelKey)
   const toggleLabel = minimized ? t('tools.windowExpand') : t('tools.windowMinimize')
+  const zoomLabel = expanded ? t('tools.windowRestore') : t('tools.windowZoom')
+  const bodyStyle = minimized
+    ? undefined
+    : expanded
+      ? { ...resize.style, height: 'min(480px, 60vh)', maxHeight: 'none', flex: '0 0 auto' }
+      : resize.style
+
   return h(
     'section',
     {
-      className: `mv-toolwin mv-glass${minimized ? ' minimized' : ''}`,
+      className: `mv-toolwin mv-glass${minimized ? ' minimized' : ''}${expanded && !minimized ? ' expanded' : ''}`,
       ref: resize.ref,
-      style: minimized ? undefined : resize.style,
+      style: bodyStyle,
       'aria-label': label,
     },
     h(
       'header',
       null,
-      h('span', { className: 'mv-toolwin-title' }, h(ToolEntryIcon, { kind: entry.icon }), h('span', null, label)),
+      h(
+        'span',
+        { className: 'mv-toolwin-title' },
+        h('span', { className: 'mv-toolwin-badge' }, h(ToolEntryIcon, { kind: entry.icon, size: 14 })),
+        h('span', null, label),
+      ),
       h(
         'div',
         { className: 'mv-head-actions' },
-        h('button', { type: 'button', className: 'mv-icon-btn', title: toggleLabel, 'aria-label': toggleLabel, 'aria-expanded': !minimized, onClick: onToggleMinimize }, minimized ? '▸' : '▾'),
-        h('button', { type: 'button', className: 'mv-icon-btn', title: t('tools.windowClose'), 'aria-label': t('tools.windowClose'), onClick: onClose }, '✕'),
+        typeof onToggleExpand === 'function'
+          ? h(
+              'button',
+              {
+                type: 'button',
+                className: `mv-icon-btn${expanded && !minimized ? ' on' : ''}`,
+                title: zoomLabel,
+                'aria-label': zoomLabel,
+                'aria-pressed': expanded && !minimized,
+                onClick: onToggleExpand,
+              },
+              expanded && !minimized ? '⤡' : '⤢',
+            )
+          : null,
+        h(
+          'button',
+          {
+            type: 'button',
+            className: 'mv-icon-btn',
+            title: toggleLabel,
+            'aria-label': toggleLabel,
+            'aria-expanded': !minimized,
+            onClick: onToggleMinimize,
+          },
+          minimized ? '▸' : '▾',
+        ),
+        h(
+          'button',
+          {
+            type: 'button',
+            className: 'mv-icon-btn',
+            title: t('tools.windowClose'),
+            'aria-label': t('tools.windowClose'),
+            onClick: onClose,
+          },
+          '✕',
+        ),
       ),
     ),
     minimized ? null : h('div', { className: 'mv-toolwin-body' }, children),
-    minimized
+    minimized || expanded
       ? null
       : h(ResizeHandle, {
           axis: 'height',

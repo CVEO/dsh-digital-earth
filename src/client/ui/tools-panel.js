@@ -13,7 +13,8 @@
 import React from 'react'
 
 import { ResizeHandle, usePanelResize } from './resizable.js'
-import { TOOL_ENTRIES, nextOpenTool, toolEntry } from './tool-catalog.js'
+import { TOOLS_MINIMIZED_KEY, readPanelFlag, writePanelFlag } from './panel-prefs.js'
+import { TOOL_ENTRIES, selectToolWindow, toolEntry } from './tool-catalog.js'
 import { ToolEntryIcon } from './icons.js'
 import { ToolBody } from './tool-windows.js'
 import { ToolWindow } from './tool-window.js'
@@ -51,12 +52,23 @@ export function ToolsPanel({
   const resize = usePanelResize({ storageKey: 'tools', initialHeight: null, minHeight: 160, maxHeight: 700 })
   const [openTool, setOpenTool] = React.useState(null)
   const [minimized, setMinimized] = React.useState(false)
+  const [expanded, setExpanded] = React.useState(false)
+  const [indexMinimized, setIndexMinimized] = React.useState(() => readPanelFlag(TOOLS_MINIMIZED_KEY, false))
   const entry = toolEntry(openTool)
 
   const openToolById = (id) => {
-    const next = nextOpenTool(openTool, id)
-    setOpenTool(next)
-    if (next !== null) setMinimized(false)
+    const next = selectToolWindow({ openTool, minimized }, id)
+    setOpenTool(next.openTool)
+    setMinimized(next.minimized)
+    if (next.openTool !== openTool) setExpanded(false)
+  }
+
+  const toggleIndexMinimized = () => {
+    setIndexMinimized((value) => {
+      const next = !value
+      writePanelFlag(TOOLS_MINIMIZED_KEY, next)
+      return next
+    })
   }
 
   // A tool window opens with a hint of what it is for, and the row that owns it
@@ -74,7 +86,7 @@ export function ToolsPanel({
       },
       h('span', { className: 'mv-tool-entry-icon' }, h(ToolEntryIcon, { kind: item.icon })),
       h('span', { className: 'mv-tool-entry-name' }, t(item.labelKey)),
-      h('span', { className: 'mv-tool-entry-more', 'aria-hidden': true }, '›'),
+      openTool === item.id ? h('span', { className: 'mv-tool-entry-dot', 'aria-hidden': true }) : null,
     )
 
   const bodyProps = {
@@ -115,10 +127,16 @@ export function ToolsPanel({
             t,
             entry,
             minimized,
+            expanded,
             onToggleMinimize: () => setMinimized((value) => !value),
+            onToggleExpand: () => {
+              setMinimized(false)
+              setExpanded((value) => !value)
+            },
             onClose: () => {
               setOpenTool(null)
               setMinimized(false)
+              setExpanded(false)
             },
           },
           h(ToolBody, { entryId: entry.id, ...bodyProps }),
@@ -126,26 +144,45 @@ export function ToolsPanel({
       : null,
     h(
       'div',
-      { className: 'mv-tools mv-glass', ref: resize.ref, style: resize.style },
+      { className: `mv-tools mv-glass${indexMinimized ? ' minimized' : ''}`, ref: resize.ref, style: indexMinimized ? undefined : resize.style },
       h(
         'header',
         null,
-        h('span', null, t('tools.title')),
+        h(
+          'span',
+          { className: 'mv-tools-title' },
+          h('span', null, t('tools.title')),
+          entry && indexMinimized ? h('span', { className: 'mv-tools-active-pill' }, t(entry.labelKey)) : null,
+        ),
         h(
           'div',
           { className: 'mv-head-actions' },
+          h(
+            'button',
+            {
+              type: 'button',
+              className: 'mv-icon-btn',
+              title: t(indexMinimized ? 'tools.indexExpand' : 'tools.indexMinimize'),
+              'aria-label': t(indexMinimized ? 'tools.indexExpand' : 'tools.indexMinimize'),
+              'aria-expanded': !indexMinimized,
+              onClick: toggleIndexMinimized,
+            },
+            indexMinimized ? '▸' : '▾',
+          ),
           h('button', { type: 'button', className: 'mv-icon-btn', title: t('tools.collapse'), 'aria-label': t('tools.collapse'), onClick: onCollapse }, '✕'),
         ),
       ),
-      h('div', { className: 'mv-tool-index', role: 'group', 'aria-label': t('tools.index') }, ...TOOL_ENTRIES.map(row)),
-      h(ResizeHandle, {
-        axis: 'height',
-        edge: 'bottom',
-        label: t('resize.height'),
-        value: resize.size.height,
-        onPointerDown: resize.beginHeight,
-        onKeyDown: resize.keyHeight,
-      }),
+      indexMinimized ? null : h('div', { className: 'mv-tool-index', role: 'group', 'aria-label': t('tools.index') }, ...TOOL_ENTRIES.map(row)),
+      indexMinimized
+        ? null
+        : h(ResizeHandle, {
+            axis: 'height',
+            edge: 'bottom',
+            label: t('resize.height'),
+            value: resize.size.height,
+            onPointerDown: resize.beginHeight,
+            onKeyDown: resize.keyHeight,
+          }),
     ),
   )
 }

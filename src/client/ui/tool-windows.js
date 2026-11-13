@@ -102,11 +102,26 @@ export function AnalysisBody({ t, analysis, onStartProfile, onClearAnalysis, get
 }
 
 export function EffectsBody({ t, shaderActive, onOpenShader }) {
+  const list = Array.isArray(shaderActive) ? shaderActive : []
   return h(
     React.Fragment,
     null,
-    h('button', { type: 'button', className: 'mv-cta', onClick: onOpenShader }, t('btn.shaderShow')),
-    h('p', { className: 'mv-none' }, shaderActive.length > 0 ? t('tools.effectsActive', { n: shaderActive.length }) : t('tools.effectsEmpty')),
+    h('button', { type: 'button', className: 'mv-cta primary', onClick: onOpenShader }, t('btn.shaderShow')),
+    list.length > 0
+      ? h(
+          'div',
+          { className: 'mv-tool-effects-list' },
+          ...list.slice(0, 6).map((entry) =>
+            h(
+              'div',
+              { key: entry.layerId ?? entry.layer, className: 'mv-layer has-shader' },
+              h('span', { className: 'name', title: entry.layer }, entry.layer),
+              h('span', { className: 'mv-tools-active-pill' }, Array.isArray(entry.presets) ? entry.presets.join(' + ') : entry.preset),
+            ),
+          ),
+        )
+      : null,
+    h('p', { className: 'mv-none' }, list.length > 0 ? t('tools.effectsActive', { n: list.length }) : t('tools.effectsEmpty')),
   )
 }
 
