@@ -141,12 +141,31 @@ export function AnalysisBody({ t, analysis, onStartProfile, onClearAnalysis, get
   )
 }
 
-export function EffectsBody({ t, shaderActive, onOpenShader }) {
+export function EffectsBody({ t, shaderActive, onOpenShader, onResetAllShaders }) {
   const list = Array.isArray(shaderActive) ? shaderActive : []
+  const formatEffect = (entry) => {
+    const raw = entry?.preset ?? entry?.presets
+    if (!raw) return ''
+    const items = Array.isArray(raw) ? raw : [raw]
+    return items
+      .map((item) => {
+        const key = `shader.preset.${item}`
+        const translated = t(key)
+        return translated && translated !== key ? translated : String(item)
+      })
+      .join(' + ')
+  }
   return h(
     React.Fragment,
     null,
-    h('button', { type: 'button', className: 'mv-cta primary', onClick: onOpenShader }, t('btn.shaderShow')),
+    list.length > 0 && typeof onResetAllShaders === 'function'
+      ? h(
+          'div',
+          { className: 'mv-tool-grid' },
+          h('button', { type: 'button', className: 'mv-cta primary', onClick: onOpenShader }, t('btn.shaderShow')),
+          h('button', { type: 'button', className: 'mv-cta', onClick: onResetAllShaders }, t('shader.resetAll')),
+        )
+      : h('button', { type: 'button', className: 'mv-cta primary', onClick: onOpenShader }, t('btn.shaderShow')),
     list.length > 0
       ? h(
           'div',
@@ -156,7 +175,7 @@ export function EffectsBody({ t, shaderActive, onOpenShader }) {
               'div',
               { key: entry.layerId ?? entry.layer, className: 'mv-layer has-shader' },
               h('span', { className: 'name', title: entry.layer }, entry.layer),
-              h('span', { className: 'mv-tools-active-pill' }, Array.isArray(entry.presets) ? entry.presets.join(' + ') : entry.preset),
+              h('span', { className: 'mv-tools-active-pill' }, formatEffect(entry)),
             ),
           ),
         )

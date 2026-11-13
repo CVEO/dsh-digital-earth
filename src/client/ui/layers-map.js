@@ -417,6 +417,7 @@ export function LayersMap({
             (config?.imagery ?? []).map((source) =>
               radioRow(`i-${source.id}`, source.name, settings?.imagery === source.id, () => onSelectImagery(source.id)),
             ),
+            h('p', { key: 'imagery-hint', className: 'mv-none mv-imagery-hint' }, t('layers.imageryCoverageHint')),
           )
         : null,
     ),

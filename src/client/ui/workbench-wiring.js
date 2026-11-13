@@ -10,7 +10,7 @@
  *
  * The pure helpers are exported so the mapping is unit-testable without React.
  */
-import { shaderGaussianLayer } from '../shader/presets.js'
+import { shaderGaussianLayer, shaderHeightRange } from '../shader/presets.js'
 
 /**
  * Toggle one preset in the form's stack. `form.preset` is a string for a single
@@ -93,7 +93,61 @@ export function resolveWorkbenchTarget(layers, form) {
     }
     return { layer, auto: true }
   }
-  return { layer: null, auto: true, gaussianOnly }
+  const layer = { layer: null, auto: true, gaussianOnly }
+  return layer
+}
+
+/** Partition layers into shader-eligible visible mesh layers and skipped counts. */
+export function eligibleShaderLayers(layers) {
+  const list = Array.isArray(layers) ? layers : []
+  const eligible = []
+  let skippedHidden = 0
+  let skippedGaussian = 0
+  for (const layer of list) {
+    if (!layer || layer.visible === false) {
+      if (layer) skippedHidden += 1
+      continue
+    }
+    if (shaderGaussianLayer(layer.tileset, layer)) {
+      skippedGaussian += 1
+      continue
+    }
+    eligible.push(layer)
+  }
+  return { eligible, skippedHidden, skippedGaussian }
+}
+
+/**
+ * Derive one shared min/max height range across multiple mesh layers when the
+ * user has not locked explicit bounds, so adjacent blocks keep uniform colors.
+ */
+export function combinedShaderElevationRange(Cesium, layers, form, heightRangeFn = shaderHeightRange) {
+  const selected = Array.isArray(form?.preset) ? form.preset : [form?.preset]
+  if (!selected.includes('height-false-color')) return null
+  if (form?.minHeight !== '' || form?.maxHeight !== '') return null
+  if (!Cesium || !Array.isArray(layers) || layers.length < 2) return null
+  const ranges = []
+  for (const layer of layers) {
+    try {
+      const range = heightRangeFn(Cesium, layer.tileset, null)
+      if (Number.isFinite(range?.minimum) && Number.isFinite(range?.maximum) && range.maximum > range.minimum) {
+        ranges.push(range)
+      }
+    } catch {
+      /* ignore layers without usable bounds */
+    }
+  }
+  if (ranges.length === 0) return null
+  const bounded = ranges.filter((range) => range.bounds === true)
+  const pool = bounded.length > 0 ? bounded : ranges
+  let minimum = Infinity
+  let maximum = -Infinity
+  for (const range of pool) {
+    if (range.minimum < minimum) minimum = range.minimum
+    if (range.maximum > maximum) maximum = range.maximum
+  }
+  if (!Number.isFinite(minimum) || !Number.isFinite(maximum) || !(maximum > minimum)) return null
+  return { min_height: minimum, max_height: maximum }
 }
 
 /** Bridge param names -> workbench form fields. */
@@ -179,6 +233,7 @@ export function createWorkbenchWiring({
   showToast,
   t,
   shaderCompare,
+  getScene,
   openLocal,
   openRecent,
   openUrl,
@@ -209,6 +264,45 @@ export function createWorkbenchWiring({
     }
   }
 
+  async function applyAllInternal(overrideForm = null) {
+    const { eligible, skippedHidden, skippedGaussian } = eligibleShaderLayers(getLayers())
+    if (eligible.length === 0) {
+      showToast(skippedGaussian > 0 && skippedHidden === 0 ? t('shaderSync.gaussianOnly') : t('shader.noLayers'))
+      return { applied: [], skippedHidden, skippedGaussian, failed: [] }
+    }
+    const activeForm = overrideForm ?? getForm()
+    const baseArgs = buildShaderFormArgs(activeForm)
+    delete baseArgs.layer
+    const sharedRange = combinedShaderElevationRange(getScene?.()?.Cesium ?? null, eligible, activeForm)
+    if (sharedRange) Object.assign(baseArgs, sharedRange)
+    const applied = []
+    const failed = []
+    let lastPreset = baseArgs.preset
+    for (const layer of eligible) {
+      try {
+        const result = await shaderCommand({ ...baseArgs, layer: layer.id })
+        applied.push(layer.name)
+        if (result?.preset) lastPreset = result.preset
+      } catch (error) {
+        failed.push({ layer: layer.name, error: messageOf(error) })
+      }
+    }
+    if (applied.length > 0 && failed.length === 0) {
+      const skipped = skippedHidden + skippedGaussian
+      const presetText = shaderStackLabel(t, lastPreset)
+      showToast(
+        skipped > 0
+          ? t('shaderSync.doneSkipped', { preset: presetText, n: applied.length, skipped })
+          : t('shaderSync.done', { preset: presetText, n: applied.length }),
+      )
+    } else if (applied.length > 0) {
+      showToast(t('shaderSync.partial', { ok: applied.length, fail: failed.length }))
+    } else if (failed.length > 0) {
+      showToast(failed[0].error)
+    }
+    return { applied, skippedHidden, skippedGaussian, failed }
+  }
+
   return {
     activate() { disposed = false },
     dispose() { disposed = true; clearTimeout(applyTimer); applyTimer = null; queued = false },
@@ -222,6 +316,26 @@ export function createWorkbenchWiring({
     target,
     /** Load an applied shader row into the form (edit-in-place). */
     loadEntry: (entry) => setShaderForm(formFromShaderEntry(entry)),
+    /** Apply the current workbench stack (or an explicit form) to all visible mesh layers. */
+    async applyAll(overrideForm = null) {
+      if (disposed) return { applied: [], skippedHidden: 0, skippedGaussian: 0, failed: [] }
+      if (applyTimer !== null) {
+        clearTimeout(applyTimer)
+        applyTimer = null
+      }
+      return await applyAllInternal(overrideForm)
+    },
+    /** Load an existing active layer effect into the workbench and sync it to all visible mesh layers. */
+    async syncEntryToAll(entry) {
+      if (!entry || disposed) return null
+      const nextForm = formFromShaderEntry(entry)
+      setShaderForm(nextForm)
+      if (applyTimer !== null) {
+        clearTimeout(applyTimer)
+        applyTimer = null
+      }
+      return await applyAllInternal(nextForm)
+    },
     /** Open local 3D directory picker from the 3D layer tab. */
     openLocal: (...args) => openLocal?.(...args),
     /** Re-open a recently authorised directory from the 3D layer tab. */

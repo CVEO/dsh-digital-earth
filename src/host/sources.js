@@ -47,34 +47,6 @@ const DEFAULT_SOURCES = {
       url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer',
       credit: 'Esri, HERE, Garmin, USGS, NGA, and the GIS User Community',
     },
-    {
-      id: 'esri-light-gray',
-      name: 'Esri Light Gray Canvas',
-      type: 'arcgis',
-      url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer',
-      credit: 'Esri, HERE, Garmin, and the GIS User Community',
-    },
-    {
-      id: 'esri-shaded-relief',
-      name: 'Esri World Shaded Relief',
-      type: 'arcgis',
-      url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Shaded_Relief/MapServer',
-      credit: 'Esri, and the GIS User Community',
-    },
-    {
-      id: 'esri-world-ocean',
-      name: 'Esri World Ocean',
-      type: 'arcgis',
-      url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Base/MapServer',
-      credit: 'Esri, GEBCO, NOAA, and the GIS User Community',
-    },
-    {
-      id: 'esri-world-hillshade',
-      name: 'Esri World Hillshade',
-      type: 'arcgis',
-      url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Elevation/World_Hillshade/MapServer',
-      credit: 'Esri, USGS, and the GIS User Community',
-    },
   ],
   terrain: [
     {
@@ -197,6 +169,25 @@ function withBuiltins(list, builtins, limit) {
   return merged
 }
 
+/** Retired featureless stock Esri canvas/relief/ocean layers pruned during catalog upgrade. */
+const RETIRED_STOCK_IMAGERY = new Map([
+  ['esri-light-gray', 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer'],
+  ['esri-shaded-relief', 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Shaded_Relief/MapServer'],
+  ['esri-world-ocean', 'https://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Base/MapServer'],
+  ['esri-world-hillshade', 'https://server.arcgisonline.com/ArcGIS/rest/services/Elevation/World_Hillshade/MapServer'],
+])
+
+const normalizeImageryUrl = (url) => (typeof url === 'string' ? url.trim().replace(/\/+$/, '').toLowerCase() : '')
+
+function pruneRetiredStockImagery(list, activeId) {
+  return list.filter((source) => {
+    if (source.id === activeId) return true
+    const retiredUrl = RETIRED_STOCK_IMAGERY.get(source.id)
+    if (!retiredUrl) return true
+    return normalizeImageryUrl(source.url) !== normalizeImageryUrl(retiredUrl)
+  })
+}
+
 /** Turn arbitrary request JSON into the catalog persisted on disk. */
 export function normalizeConfig(raw) {
   const input = raw !== null && typeof raw === 'object' ? raw : {}
@@ -214,7 +205,10 @@ export function normalizeConfig(raw) {
   // versions keep the five-number instrument.
   const hudDetailed = input.settings?.hudDetailed === true
   const imagery = withBuiltins(
-    normalizeSourceList('imagery', input.imagery, DEFAULT_SOURCES.imagery),
+    pruneRetiredStockImagery(
+      normalizeSourceList('imagery', input.imagery, DEFAULT_SOURCES.imagery),
+      input.settings?.imagery,
+    ),
     DEFAULT_SOURCES.imagery,
     MAX_IMAGERY_SOURCES,
   )

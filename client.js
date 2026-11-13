@@ -691,6 +691,18 @@ var V18_MESSAGES = {
     "swipe.unavailable": "请先显示该图层后再开启卷帘对比",
     "swipe.conflict": "该图层已有剖切分析在裁剪，请先清除剖切分析再开启卷帘对比",
     "toast.snapshotCompacted": "上次场景超出存储上限，已精简保存：省略了 {draw} 个标注、{features} 个要素。重新打开后可重新导入或补画缺失部分。",
+    "layers.imageryCoverageHint": "说明：Esri Topo / Street 在国内高缩放（约 < 2 km）通常无高分瓦片，会被拉伸为空白底色；三维近景建议用 World Imagery 或自定义 XYZ 底图。",
+    "toast.basemapTilesWarn": "底图「{name}」部分瓦片加载失败或受限流，请检查网络或切换其他底图。",
+    "shaderSync.applyAll": "同步到全部可见层",
+    "shaderSync.applyAllCount": "同步到全部可见层 ({n})",
+    "shaderSync.applyAllHint": "将当前预设与统一高程/水深参数批量应用到所有可见 3D Tiles 网格层",
+    "shaderSync.syncRow": "同步该效果到全部可见层",
+    "shaderSync.loadRow": "点击载入工作台编辑：{name}",
+    "shaderSync.skip3dgsHint": "将自动跳过 {n} 个可见 3DGS 图层（视觉特效仅支持 3D Tiles 网格）。",
+    "shaderSync.gaussianOnly": "当前可见图层均为 3DGS，视觉特效仅支持 3D Tiles 网格图层。",
+    "shaderSync.done": "已将特效「{preset}」同步到 {n} 个可见图层",
+    "shaderSync.doneSkipped": "已将特效「{preset}」同步到 {n} 个可见图层（已跳过 {skipped} 个隐藏或 3DGS 图层）",
+    "shaderSync.partial": "多图层特效同步完成：成功 {ok} 个，失败 {fail} 个",
     ...SELECTION_MESSAGES.zh,
     ...PARSE_MESSAGES.zh
   },
@@ -850,6 +862,18 @@ var V18_MESSAGES = {
     "swipe.unavailable": "Make sure the layer is visible before starting swipe comparison",
     "swipe.conflict": "A clip analysis is already clipping this layer; clear it before starting swipe comparison",
     "toast.snapshotCompacted": "The saved scene was compacted to fit storage: {draw} annotation(s) and {features} feature(s) were omitted. Re-import or redraw them after reopening.",
+    "layers.imageryCoverageHint": "Note: Esri Topo / Street lack high-zoom tiles in some regions (stretched pale blank below ~2 km); use World Imagery or custom XYZ for close-ups.",
+    "toast.basemapTilesWarn": 'Some tile requests failed for basemap "{name}". Check network access or switch basemap.',
+    "shaderSync.applyAll": "Apply to all visible",
+    "shaderSync.applyAllCount": "Apply to all visible ({n})",
+    "shaderSync.applyAllHint": "Apply this effect stack with consistent height/water parameters to every visible 3D Tiles mesh layer",
+    "shaderSync.syncRow": "Sync this effect to all visible layers",
+    "shaderSync.loadRow": "Click to load into workbench: {name}",
+    "shaderSync.skip3dgsHint": "{n} visible 3DGS layer(s) will be skipped automatically (effects require 3D Tiles meshes).",
+    "shaderSync.gaussianOnly": "Only 3DGS layers are visible; visual effects require 3D Tiles mesh layers.",
+    "shaderSync.done": 'Synced "{preset}" across {n} visible layer(s)',
+    "shaderSync.doneSkipped": 'Synced "{preset}" across {n} visible layer(s) ({skipped} hidden/3DGS skipped)',
+    "shaderSync.partial": "Multi-layer sync finished: {ok} applied, {fail} failed",
     ...SELECTION_MESSAGES.en,
     ...PARSE_MESSAGES.en
   }
@@ -9545,6 +9569,492 @@ function nearestProfileIndex(points, ratio) {
   return index;
 }
 
+// src/client/ui/workbench-wiring.js
+function toggleShaderPreset(form, preset) {
+  const current = Array.isArray(form.preset) ? form.preset : [form.preset];
+  const next = current.includes(preset) ? current.filter((item) => item !== preset) : current.length >= 3 ? current : [...current, preset];
+  if (next.length === 0) return form;
+  return { ...form, preset: next.length === 1 ? next[0] : next };
+}
+function buildShaderFormArgs(form) {
+  const selected = Array.isArray(form.preset) ? form.preset : [form.preset];
+  const args = { action: "apply", preset: selected.length === 1 ? selected[0] : selected };
+  if (form.layerId) args.layer = form.layerId;
+  const readNumber = (key) => form[key] === "" ? void 0 : Number(form[key]);
+  const has = (preset) => selected.includes(preset);
+  if (has("height-false-color")) {
+    const minimum = readNumber("minHeight");
+    const maximum = readNumber("maxHeight");
+    if (minimum !== void 0) args.min_height = minimum;
+    if (maximum !== void 0) args.max_height = maximum;
+  }
+  if (has("contour")) {
+    const interval = readNumber("interval");
+    if (interval !== void 0) args.interval = interval;
+  }
+  if (has("scan") || has("water")) {
+    const speed = readNumber("speed");
+    if (speed !== void 0) args.speed = speed;
+  }
+  if (has("water")) {
+    const amplitude = readNumber("amplitude");
+    const opacity = readNumber("opacity");
+    if (amplitude !== void 0) args.amplitude = amplitude;
+    if (opacity !== void 0) args.opacity = opacity;
+  }
+  if (has("water-depth")) {
+    const waterHeight = readNumber("waterHeight");
+    const depthMax = readNumber("depthMax");
+    if (waterHeight !== void 0) args.water_height = waterHeight;
+    if (depthMax !== void 0) args.depth_max = depthMax;
+  }
+  return args;
+}
+function moveShaderPreset(form, preset, delta) {
+  const current = Array.isArray(form.preset) ? [...form.preset] : [form.preset];
+  const from = current.indexOf(preset);
+  const to = from + delta;
+  if (from < 0 || to < 0 || to >= current.length) return form;
+  current.splice(from, 1);
+  current.splice(to, 0, preset);
+  return { ...form, preset: current.length === 1 ? current[0] : current };
+}
+function resolveWorkbenchTarget(layers, form) {
+  const list = Array.isArray(layers) ? layers : [];
+  const explicit = form.layerId ? list.find((layer2) => layer2.id === form.layerId) ?? null : null;
+  if (explicit) return { layer: explicit, auto: false };
+  let gaussianOnly = false;
+  for (let index = list.length - 1; index >= 0; index -= 1) {
+    const layer2 = list[index];
+    if (!layer2.visible) continue;
+    if (shaderGaussianLayer(layer2.tileset, layer2)) {
+      gaussianOnly = true;
+      continue;
+    }
+    return { layer: layer2, auto: true };
+  }
+  const layer = { layer: null, auto: true, gaussianOnly };
+  return layer;
+}
+function eligibleShaderLayers(layers) {
+  const list = Array.isArray(layers) ? layers : [];
+  const eligible = [];
+  let skippedHidden = 0;
+  let skippedGaussian = 0;
+  for (const layer of list) {
+    if (!layer || layer.visible === false) {
+      if (layer) skippedHidden += 1;
+      continue;
+    }
+    if (shaderGaussianLayer(layer.tileset, layer)) {
+      skippedGaussian += 1;
+      continue;
+    }
+    eligible.push(layer);
+  }
+  return { eligible, skippedHidden, skippedGaussian };
+}
+function combinedShaderElevationRange(Cesium, layers, form, heightRangeFn = shaderHeightRange) {
+  const selected = Array.isArray(form?.preset) ? form.preset : [form?.preset];
+  if (!selected.includes("height-false-color")) return null;
+  if (form?.minHeight !== "" || form?.maxHeight !== "") return null;
+  if (!Cesium || !Array.isArray(layers) || layers.length < 2) return null;
+  const ranges2 = [];
+  for (const layer of layers) {
+    try {
+      const range = heightRangeFn(Cesium, layer.tileset, null);
+      if (Number.isFinite(range?.minimum) && Number.isFinite(range?.maximum) && range.maximum > range.minimum) {
+        ranges2.push(range);
+      }
+    } catch {
+    }
+  }
+  if (ranges2.length === 0) return null;
+  const bounded = ranges2.filter((range) => range.bounds === true);
+  const pool = bounded.length > 0 ? bounded : ranges2;
+  let minimum = Infinity;
+  let maximum = -Infinity;
+  for (const range of pool) {
+    if (range.minimum < minimum) minimum = range.minimum;
+    if (range.maximum > maximum) maximum = range.maximum;
+  }
+  if (!Number.isFinite(minimum) || !Number.isFinite(maximum) || !(maximum > minimum)) return null;
+  return { min_height: minimum, max_height: maximum };
+}
+var SHADER_PARAM_FORM_KEYS = {
+  min_height: "minHeight",
+  max_height: "maxHeight",
+  interval: "interval",
+  speed: "speed",
+  amplitude: "amplitude",
+  opacity: "opacity",
+  water_height: "waterHeight",
+  depth_max: "depthMax"
+};
+var SHADER_FORM_DEFAULTS = {
+  layerId: "",
+  preset: "height-false-color",
+  minHeight: "",
+  maxHeight: "",
+  interval: "20",
+  speed: "1",
+  amplitude: "1",
+  opacity: "0.75",
+  waterHeight: "",
+  depthMax: ""
+};
+function formFromShaderEntry(entry) {
+  const selected = Array.isArray(entry?.preset) ? [...entry.preset] : entry?.preset ? [entry.preset] : [];
+  const preset = selected.length > 0 ? selected.length === 1 ? selected[0] : selected : SHADER_FORM_DEFAULTS.preset;
+  const form = { ...SHADER_FORM_DEFAULTS, layerId: typeof entry?.layerId === "string" ? entry.layerId : "", preset };
+  for (const [param, key] of Object.entries(SHADER_PARAM_FORM_KEYS)) {
+    const value = entry?.params?.[param];
+    if (typeof value === "number" && Number.isFinite(value)) form[key] = String(value);
+  }
+  return form;
+}
+function shaderEntrySummary(t2, entry) {
+  const presets = Array.isArray(entry?.preset) ? entry.preset : entry?.preset ? [entry.preset] : [];
+  const parts = [];
+  for (const [param, key] of Object.entries(SHADER_PARAM_FORM_KEYS)) {
+    const value = entry?.params?.[param];
+    if (typeof value !== "number" || !Number.isFinite(value)) continue;
+    parts.push(`${t2(`shader.param.${key}`)} ${value}`);
+  }
+  const presetText = presets.map((item) => t2(`shader.preset.${item}`)).join(" + ");
+  return t2("shader.entryTooltip", {
+    layer: entry?.layer ?? "",
+    presets: presetText,
+    params: parts.join(" · ") || t2("shader.entryNoParams")
+  });
+}
+function shaderStackLabel(t2, preset) {
+  return (Array.isArray(preset) ? preset : [preset]).map((item) => t2(`shader.preset.${item}`)).join(" + ");
+}
+function createWorkbenchWiring({
+  getForm,
+  getLayers,
+  setShaderForm,
+  shaderCommand,
+  showToast,
+  t: t2,
+  shaderCompare,
+  getScene,
+  openLocal,
+  openRecent,
+  openUrl,
+  pickLocalTiles
+}) {
+  const field = (key, value) => setShaderForm((form) => ({ ...form, [key]: value }));
+  const formLayer = () => getLayers().find((layer) => layer.id === getForm().layerId) ?? null;
+  const target = () => resolveWorkbenchTarget(getLayers(), getForm());
+  let applyTimer = null;
+  let applying = false;
+  let queued = false;
+  let lastSilentError = "";
+  let disposed = false;
+  const runApply = async (silent) => {
+    try {
+      const result = await shaderCommand(buildShaderFormArgs(getForm()));
+      if (!silent) showToast(t2("toast.shaderApplied", { preset: shaderStackLabel(t2, result.preset), layer: result.layer }));
+      lastSilentError = "";
+      return result;
+    } catch (error) {
+      const text = messageOf(error);
+      if (!silent || text !== lastSilentError) showToast(text);
+      lastSilentError = silent ? text : "";
+      return null;
+    }
+  };
+  async function applyAllInternal(overrideForm = null) {
+    const { eligible, skippedHidden, skippedGaussian } = eligibleShaderLayers(getLayers());
+    if (eligible.length === 0) {
+      showToast(skippedGaussian > 0 && skippedHidden === 0 ? t2("shaderSync.gaussianOnly") : t2("shader.noLayers"));
+      return { applied: [], skippedHidden, skippedGaussian, failed: [] };
+    }
+    const activeForm = overrideForm ?? getForm();
+    const baseArgs = buildShaderFormArgs(activeForm);
+    delete baseArgs.layer;
+    const sharedRange = combinedShaderElevationRange(getScene?.()?.Cesium ?? null, eligible, activeForm);
+    if (sharedRange) Object.assign(baseArgs, sharedRange);
+    const applied = [];
+    const failed = [];
+    let lastPreset = baseArgs.preset;
+    for (const layer of eligible) {
+      try {
+        const result = await shaderCommand({ ...baseArgs, layer: layer.id });
+        applied.push(layer.name);
+        if (result?.preset) lastPreset = result.preset;
+      } catch (error) {
+        failed.push({ layer: layer.name, error: messageOf(error) });
+      }
+    }
+    if (applied.length > 0 && failed.length === 0) {
+      const skipped = skippedHidden + skippedGaussian;
+      const presetText = shaderStackLabel(t2, lastPreset);
+      showToast(
+        skipped > 0 ? t2("shaderSync.doneSkipped", { preset: presetText, n: applied.length, skipped }) : t2("shaderSync.done", { preset: presetText, n: applied.length })
+      );
+    } else if (applied.length > 0) {
+      showToast(t2("shaderSync.partial", { ok: applied.length, fail: failed.length }));
+    } else if (failed.length > 0) {
+      showToast(failed[0].error);
+    }
+    return { applied, skippedHidden, skippedGaussian, failed };
+  }
+  return {
+    activate() {
+      disposed = false;
+    },
+    dispose() {
+      disposed = true;
+      clearTimeout(applyTimer);
+      applyTimer = null;
+      queued = false;
+    },
+    /** Set one form field (layerId / numeric inputs). */
+    field,
+    /** Toggle a preset chip in the stack. */
+    toggle: (preset) => setShaderForm((form) => toggleShaderPreset(form, preset)),
+    /** Reorder one preset inside the stack (the array order is the compose order). */
+    move: (preset, delta) => setShaderForm((form) => moveShaderPreset(form, preset, delta)),
+    /** The layer the card should show under "automatic selection". */
+    target,
+    /** Load an applied shader row into the form (edit-in-place). */
+    loadEntry: (entry) => setShaderForm(formFromShaderEntry(entry)),
+    /** Apply the current workbench stack (or an explicit form) to all visible mesh layers. */
+    async applyAll(overrideForm = null) {
+      if (disposed) return { applied: [], skippedHidden: 0, skippedGaussian: 0, failed: [] };
+      if (applyTimer !== null) {
+        clearTimeout(applyTimer);
+        applyTimer = null;
+      }
+      return await applyAllInternal(overrideForm);
+    },
+    /** Load an existing active layer effect into the workbench and sync it to all visible mesh layers. */
+    async syncEntryToAll(entry) {
+      if (!entry || disposed) return null;
+      const nextForm = formFromShaderEntry(entry);
+      setShaderForm(nextForm);
+      if (applyTimer !== null) {
+        clearTimeout(applyTimer);
+        applyTimer = null;
+      }
+      return await applyAllInternal(nextForm);
+    },
+    /** Open local 3D directory picker from the 3D layer tab. */
+    openLocal: (...args) => openLocal?.(...args),
+    /** Re-open a recently authorised directory from the 3D layer tab. */
+    openRecent: (...args) => openRecent?.(...args),
+    /** Open the online/local address bar from the 3D layer tab. */
+    openUrl: (...args) => openUrl?.(...args),
+    /** Pick a local XYZ tile pyramid folder from the Map tab. */
+    pickLocalTiles: (...args) => pickLocalTiles?.(...args),
+    /** Reset one specific layer's shader (used by the layer-panel row ✕). */
+    async resetLayerFor(token) {
+      try {
+        const result = await shaderCommand({ action: "reset", layer: token });
+        showToast(result.layer ? t2("toast.shaderReset", { layer: result.layer }) : t2("toast.shaderResetAll"));
+      } catch (error) {
+        showToast(messageOf(error));
+      }
+    },
+    /** Debounced silent apply for slider previews; repeated calls merge into one. */
+    preview: () => {
+      if (disposed) return;
+      if (applyTimer !== null) clearTimeout(applyTimer);
+      applyTimer = setTimeout(() => {
+        applyTimer = null;
+        void applyInternal(true);
+      }, 180);
+    },
+    async apply() {
+      if (applyTimer !== null) {
+        clearTimeout(applyTimer);
+        applyTimer = null;
+      }
+      await applyInternal(false);
+    },
+    /** Hold/release the original-look comparison. Closes itself if it cannot run. */
+    async compare(enabled) {
+      try {
+        const resolved = target();
+        if (!resolved.layer) {
+          showToast(t2("shader.noLayers"));
+          return null;
+        }
+        return await shaderCompare(resolved.layer.id, enabled);
+      } catch (error) {
+        showToast(messageOf(error));
+        return null;
+      }
+    },
+    async resetLayer() {
+      try {
+        const visible = getLayers().filter((layer) => layer.visible);
+        const resolved = target().layer ?? formLayer() ?? visible[visible.length - 1] ?? null;
+        if (!resolved) {
+          showToast(t2("shader.noLayers"));
+          return;
+        }
+        const result = await shaderCommand({ action: "reset", layer: resolved.id });
+        showToast(result.layer ? t2("toast.shaderReset", { layer: result.layer }) : t2("toast.shaderResetAll"));
+      } catch (error) {
+        showToast(messageOf(error));
+      }
+    },
+    async resetAll() {
+      try {
+        await shaderCommand({ action: "reset" });
+        showToast(t2("toast.shaderResetAll"));
+      } catch (error) {
+        showToast(messageOf(error));
+      }
+    }
+  };
+  async function applyInternal(silent) {
+    if (disposed) return;
+    if (applying) {
+      queued = true;
+      return;
+    }
+    applying = true;
+    try {
+      await runApply(silent);
+    } finally {
+      applying = false;
+    }
+    if (queued) {
+      queued = false;
+      await applyInternal(silent);
+    }
+  }
+}
+function messageOf(error) {
+  return error && typeof error.message === "string" && error.message !== "" ? error.message : String(error);
+}
+function formatScanFailure(t2, error) {
+  const status = error?.status;
+  const raw = `${error?.detail ?? ""} ${messageOf(error)}`;
+  if (status === 403 || /\b403\b|forbidden|access_denied|not been opened/i.test(raw)) {
+    return t2("toast.scanForbidden");
+  }
+  if (status === 404 || /\b404\b|folder not found|ENOENT|does not exist/i.test(raw)) {
+    return t2("toast.scanNotFound");
+  }
+  if (status === 400 || /\b400\b|filesystem root|UNC path|network share|not a folder/i.test(raw)) {
+    return t2("toast.scanInvalidDir");
+  }
+  return t2("toast.scanFailed", { message: messageOf(error) });
+}
+function createLocalDirectoryWiring({
+  metaRef,
+  getWorkspace,
+  scanLocalDirectory: scanLocalDirectory2,
+  addTileset,
+  joinLocalPath: joinLocalPath2,
+  b64url: b64url2,
+  folderName: folderName2,
+  setRecentDirs,
+  setScan,
+  setBusy,
+  setOpenMenu,
+  showToast,
+  t: t2
+}) {
+  const itemLabel = (name) => String(name ?? "").split(/[\\/]/).filter(Boolean).slice(-2).join("/");
+  const handleScannedItems = async (dir, data) => {
+    const items = Array.isArray(data?.items) ? data.items : [];
+    if (items.length === 0) {
+      showToast(t2("toast.scanEmpty"));
+      return;
+    }
+    if (items.length === 1 && (!data?.truncated || String(items[0]?.name ?? "").toLowerCase() === "tileset.json")) {
+      const [item] = items;
+      await addTileset(item.url, itemLabel(item.name), {
+        kind: "local",
+        path: joinLocalPath2(dir, item.name)
+      });
+      return;
+    }
+    setScan({ dir, items, truncated: Boolean(data?.truncated), limit: data?.limit });
+  };
+  const refreshRecentDirs = async () => {
+    const url = metaRef.current?.directoriesUrl;
+    if (typeof url !== "string" || url === "") return;
+    try {
+      const response = await fetch(url, { credentials: "same-origin" });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const data = await response.json();
+      const list = Array.isArray(data?.directories) ? data.directories : [];
+      const entries = [];
+      for (const entry of list) {
+        const dir = typeof entry === "string" ? entry : entry?.path;
+        if (typeof dir !== "string" || dir === "") continue;
+        entries.push({ dir, name: typeof entry?.name === "string" && entry.name !== "" ? entry.name : folderName2(dir) });
+        if (entries.length >= 5) break;
+      }
+      setRecentDirs(entries);
+    } catch (error) {
+      setRecentDirs([]);
+      showToast(formatScanFailure(t2, error));
+    }
+  };
+  async function openRecentDirectory(dir) {
+    setOpenMenu(null);
+    setBusy(t2("toast.busyDirectory"));
+    try {
+      const data = await scanLocalDirectory2(metaRef.current, dir);
+      void refreshRecentDirs();
+      await handleScannedItems(dir, data);
+    } catch (error) {
+      showToast(formatScanFailure(t2, error));
+    } finally {
+      setBusy("");
+    }
+  }
+  async function pickLocal() {
+    setOpenMenu(null);
+    const workspace = getWorkspace();
+    if (!workspace) {
+      showToast(t2("toast.dialogUnavailable"));
+      return;
+    }
+    setBusy(t2("toast.busyDirectory"));
+    try {
+      const dir = await workspace.pickDirectory();
+      if (!dir) return;
+      const data = await scanLocalDirectory2(metaRef.current, dir);
+      void refreshRecentDirs();
+      await handleScannedItems(dir, data);
+    } catch (error) {
+      showToast(formatScanFailure(t2, error));
+    } finally {
+      setBusy("");
+    }
+  }
+  async function pickLocalTiles(options = {}) {
+    const workspace = getWorkspace();
+    if (!workspace) {
+      showToast(t2("toast.dialogUnavailable"));
+      return null;
+    }
+    try {
+      const dir = await workspace.pickDirectory();
+      if (!dir) return null;
+      await scanLocalDirectory2(metaRef.current, dir);
+      void refreshRecentDirs();
+      const folder = dir.replace(/\\/g, "/").replace(/\/+$/, "");
+      const url = `${metaRef.current.tilesBase}${encodeURIComponent(b64url2(folder))}/{z}/{x}/{y}.png`;
+      return options?.withMeta ? { url, name: folderName2(folder) } : url;
+    } catch (error) {
+      showToast(formatScanFailure(t2, error));
+      return null;
+    }
+  }
+  return { refreshRecentDirs, openRecentDirectory, pickLocal, pickLocalTiles };
+}
+
 // src/client/ui/shader-elevation.js
 var import_react4 = __toESM(require("react"), 1);
 var h2 = import_react4.default.createElement;
@@ -10206,6 +10716,10 @@ function ShaderWorkbench({
   onPreview,
   onCompare,
   onApply,
+  onApplyAll,
+  onLoadEntry,
+  onSyncEntry,
+  onResetEntry,
   onResetLayer,
   onResetAll
 }) {
@@ -10219,6 +10733,8 @@ function ShaderWorkbench({
     maxHeight: 760
   });
   const visibleLayers = layers.filter((layer) => layer.visible);
+  const { eligible: eligibleLayers, skippedGaussian: skippedGaussianCount } = eligibleShaderLayers(layers);
+  const eligibleCount = eligibleLayers.length;
   const selectedPresets = Array.isArray(form.preset) ? form.preset : [form.preset];
   const presetLabel = (value) => (Array.isArray(value) ? value : [value]).map((item) => t2(`shader.preset.${item}`)).join(" + ");
   const [live, setLive] = import_react7.default.useState(false);
@@ -10270,6 +10786,18 @@ function ShaderWorkbench({
   const runApply = () => {
     stopCompare();
     onApply();
+  };
+  const runApplyAll = () => {
+    stopCompare();
+    onApplyAll?.();
+  };
+  const runSyncEntry = (entry) => {
+    stopCompare();
+    onSyncEntry?.(entry);
+  };
+  const runResetEntry = (token) => {
+    stopCompare();
+    onResetEntry?.(token);
   };
   const runResetLayer = () => {
     stopCompare();
@@ -10560,6 +11088,22 @@ function ShaderWorkbench({
           comparing ? t2("shader.compareOn") : t2("shader.compare")
         )
       ),
+      onApplyAll ? h5(
+        "div",
+        { className: "row" },
+        h5(
+          "button",
+          {
+            type: "button",
+            className: "mv-cta",
+            disabled: eligibleCount === 0 || elevation.busy,
+            title: t2("shaderSync.applyAllHint"),
+            onClick: runApplyAll
+          },
+          eligibleCount > 1 ? t2("shaderSync.applyAllCount", { n: eligibleCount }) : t2("shaderSync.applyAll")
+        )
+      ) : null,
+      skippedGaussianCount > 0 ? h5("p", { className: "hint" }, t2("shaderSync.skip3dgsHint", { n: skippedGaussianCount })) : null,
       h5(
         "div",
         { className: "row" },
@@ -10574,9 +11118,40 @@ function ShaderWorkbench({
           (entry) => h5(
             "div",
             { key: entry.layer, className: "item" },
-            h5("span", { title: entry.layer }, entry.layer),
+            onLoadEntry ? h5(
+              "button",
+              {
+                type: "button",
+                className: "mv-shader-load",
+                title: t2("shaderSync.loadRow", { name: entry.layer }),
+                onClick: () => onLoadEntry(entry)
+              },
+              h5("span", null, entry.layer)
+            ) : h5("span", { title: entry.layer }, entry.layer),
             h5("span", { className: "applied-tag" }, t2("shader.appliedTag")),
-            h5("em", null, presetLabel(entry.preset))
+            h5("em", { title: presetLabel(entry.preset) }, presetLabel(entry.preset)),
+            onSyncEntry && eligibleCount > 1 ? h5(
+              "button",
+              {
+                type: "button",
+                className: "mv-icon-btn",
+                title: t2("shaderSync.syncRow"),
+                "aria-label": t2("shaderSync.syncRow"),
+                onClick: () => runSyncEntry(entry)
+              },
+              "⇄"
+            ) : null,
+            onResetEntry ? h5(
+              "button",
+              {
+                type: "button",
+                className: "mv-icon-btn",
+                title: t2("shader.resetLayer"),
+                "aria-label": t2("shader.resetLayer"),
+                onClick: () => runResetEntry(entry.layerId ?? entry.layer)
+              },
+              "✕"
+            ) : null
           )
         )
       ),
@@ -10923,8 +11498,12 @@ var CSS = `
 .mv-shader .row .mv-cta:disabled{opacity:.45;cursor:not-allowed}
 .mv-shader .active{display:flex;flex-direction:column;gap:5px;border-top:.5px solid var(--mv-line);padding-top:9px}
 .mv-shader .active b{font-size:10px;letter-spacing:.06em;color:var(--mv-dim);font-weight:600;text-transform:uppercase}
-.mv-shader .active .item{display:flex;align-items:baseline;gap:6px;font-size:11px;line-height:1.4;min-width:0}
-.mv-shader .active .item span:first-child{min-width:0;max-width:42%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--mv-text)}
+.mv-shader .active .item{display:flex;align-items:center;gap:5px;font-size:11px;line-height:1.4;min-width:0}
+.mv-shader .active .item>span:first-child{min-width:0;max-width:42%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--mv-text)}
+.mv-shader .active .item .mv-shader-load{appearance:none;border:0;background:transparent;padding:0;margin:0;font:inherit;color:var(--mv-text);cursor:pointer;text-align:left;min-width:0;max-width:44%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:none}
+.mv-shader .active .item .mv-shader-load span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mv-shader .active .item .mv-shader-load:hover{color:var(--shader-mint)}
+.mv-shader .active .item .mv-icon-btn{width:20px;height:20px;font-size:11px}
 .mv-shader .applied-tag{flex:none;font-size:9px;letter-spacing:.04em;color:#04241a;background:color-mix(in srgb,var(--shader-mint) 80%,transparent);border-radius:4px;padding:1px 4px}
 .mv-shader .active .item em{flex:1;min-width:0;font-style:normal;color:var(--mv-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right}
 .mv-shader .empty{color:var(--mv-dim);font-size:11px}
@@ -10969,6 +11548,7 @@ var CSS = `
 .mv-fold-box>.mv-group{margin-top:0;border-top:0;padding:8px 10px}
 .mv-fold-box.open>.mv-group{border-bottom:.5px solid var(--mv-line)}
 .mv-fold-body{display:flex;flex-direction:column;gap:2px;padding:6px 6px 8px}
+.mv-imagery-hint{margin:2px 2px 0;padding:4px 6px 2px;font-size:10.5px;line-height:1.45;opacity:.88}
 /* Foldable group header (the imagery basemap list is long and rarely changed). */
 .mv-group-toggle{appearance:none;width:100%;display:flex;align-items:center;gap:8px;background:transparent;border:0;padding:0;margin:0;font:inherit;color:inherit;cursor:pointer;text-align:left}
 .mv-group-toggle .mv-group-title{flex:none}
@@ -12407,391 +12987,6 @@ var import_react16 = __toESM(require("react"), 1);
 
 // src/client/ui/layer-row.js
 var import_react15 = __toESM(require("react"), 1);
-
-// src/client/ui/workbench-wiring.js
-function toggleShaderPreset(form, preset) {
-  const current = Array.isArray(form.preset) ? form.preset : [form.preset];
-  const next = current.includes(preset) ? current.filter((item) => item !== preset) : current.length >= 3 ? current : [...current, preset];
-  if (next.length === 0) return form;
-  return { ...form, preset: next.length === 1 ? next[0] : next };
-}
-function buildShaderFormArgs(form) {
-  const selected = Array.isArray(form.preset) ? form.preset : [form.preset];
-  const args = { action: "apply", preset: selected.length === 1 ? selected[0] : selected };
-  if (form.layerId) args.layer = form.layerId;
-  const readNumber = (key) => form[key] === "" ? void 0 : Number(form[key]);
-  const has = (preset) => selected.includes(preset);
-  if (has("height-false-color")) {
-    const minimum = readNumber("minHeight");
-    const maximum = readNumber("maxHeight");
-    if (minimum !== void 0) args.min_height = minimum;
-    if (maximum !== void 0) args.max_height = maximum;
-  }
-  if (has("contour")) {
-    const interval = readNumber("interval");
-    if (interval !== void 0) args.interval = interval;
-  }
-  if (has("scan") || has("water")) {
-    const speed = readNumber("speed");
-    if (speed !== void 0) args.speed = speed;
-  }
-  if (has("water")) {
-    const amplitude = readNumber("amplitude");
-    const opacity = readNumber("opacity");
-    if (amplitude !== void 0) args.amplitude = amplitude;
-    if (opacity !== void 0) args.opacity = opacity;
-  }
-  if (has("water-depth")) {
-    const waterHeight = readNumber("waterHeight");
-    const depthMax = readNumber("depthMax");
-    if (waterHeight !== void 0) args.water_height = waterHeight;
-    if (depthMax !== void 0) args.depth_max = depthMax;
-  }
-  return args;
-}
-function moveShaderPreset(form, preset, delta) {
-  const current = Array.isArray(form.preset) ? [...form.preset] : [form.preset];
-  const from = current.indexOf(preset);
-  const to = from + delta;
-  if (from < 0 || to < 0 || to >= current.length) return form;
-  current.splice(from, 1);
-  current.splice(to, 0, preset);
-  return { ...form, preset: current.length === 1 ? current[0] : current };
-}
-function resolveWorkbenchTarget(layers, form) {
-  const list = Array.isArray(layers) ? layers : [];
-  const explicit = form.layerId ? list.find((layer) => layer.id === form.layerId) ?? null : null;
-  if (explicit) return { layer: explicit, auto: false };
-  let gaussianOnly = false;
-  for (let index = list.length - 1; index >= 0; index -= 1) {
-    const layer = list[index];
-    if (!layer.visible) continue;
-    if (shaderGaussianLayer(layer.tileset, layer)) {
-      gaussianOnly = true;
-      continue;
-    }
-    return { layer, auto: true };
-  }
-  return { layer: null, auto: true, gaussianOnly };
-}
-var SHADER_PARAM_FORM_KEYS = {
-  min_height: "minHeight",
-  max_height: "maxHeight",
-  interval: "interval",
-  speed: "speed",
-  amplitude: "amplitude",
-  opacity: "opacity",
-  water_height: "waterHeight",
-  depth_max: "depthMax"
-};
-var SHADER_FORM_DEFAULTS = {
-  layerId: "",
-  preset: "height-false-color",
-  minHeight: "",
-  maxHeight: "",
-  interval: "20",
-  speed: "1",
-  amplitude: "1",
-  opacity: "0.75",
-  waterHeight: "",
-  depthMax: ""
-};
-function formFromShaderEntry(entry) {
-  const selected = Array.isArray(entry?.preset) ? [...entry.preset] : entry?.preset ? [entry.preset] : [];
-  const preset = selected.length > 0 ? selected.length === 1 ? selected[0] : selected : SHADER_FORM_DEFAULTS.preset;
-  const form = { ...SHADER_FORM_DEFAULTS, layerId: typeof entry?.layerId === "string" ? entry.layerId : "", preset };
-  for (const [param, key] of Object.entries(SHADER_PARAM_FORM_KEYS)) {
-    const value = entry?.params?.[param];
-    if (typeof value === "number" && Number.isFinite(value)) form[key] = String(value);
-  }
-  return form;
-}
-function shaderEntrySummary(t2, entry) {
-  const presets = Array.isArray(entry?.preset) ? entry.preset : entry?.preset ? [entry.preset] : [];
-  const parts = [];
-  for (const [param, key] of Object.entries(SHADER_PARAM_FORM_KEYS)) {
-    const value = entry?.params?.[param];
-    if (typeof value !== "number" || !Number.isFinite(value)) continue;
-    parts.push(`${t2(`shader.param.${key}`)} ${value}`);
-  }
-  const presetText = presets.map((item) => t2(`shader.preset.${item}`)).join(" + ");
-  return t2("shader.entryTooltip", {
-    layer: entry?.layer ?? "",
-    presets: presetText,
-    params: parts.join(" · ") || t2("shader.entryNoParams")
-  });
-}
-function shaderStackLabel(t2, preset) {
-  return (Array.isArray(preset) ? preset : [preset]).map((item) => t2(`shader.preset.${item}`)).join(" + ");
-}
-function createWorkbenchWiring({
-  getForm,
-  getLayers,
-  setShaderForm,
-  shaderCommand,
-  showToast,
-  t: t2,
-  shaderCompare,
-  openLocal,
-  openRecent,
-  openUrl,
-  pickLocalTiles
-}) {
-  const field = (key, value) => setShaderForm((form) => ({ ...form, [key]: value }));
-  const formLayer = () => getLayers().find((layer) => layer.id === getForm().layerId) ?? null;
-  const target = () => resolveWorkbenchTarget(getLayers(), getForm());
-  let applyTimer = null;
-  let applying = false;
-  let queued = false;
-  let lastSilentError = "";
-  let disposed = false;
-  const runApply = async (silent) => {
-    try {
-      const result = await shaderCommand(buildShaderFormArgs(getForm()));
-      if (!silent) showToast(t2("toast.shaderApplied", { preset: shaderStackLabel(t2, result.preset), layer: result.layer }));
-      lastSilentError = "";
-      return result;
-    } catch (error) {
-      const text = messageOf(error);
-      if (!silent || text !== lastSilentError) showToast(text);
-      lastSilentError = silent ? text : "";
-      return null;
-    }
-  };
-  return {
-    activate() {
-      disposed = false;
-    },
-    dispose() {
-      disposed = true;
-      clearTimeout(applyTimer);
-      applyTimer = null;
-      queued = false;
-    },
-    /** Set one form field (layerId / numeric inputs). */
-    field,
-    /** Toggle a preset chip in the stack. */
-    toggle: (preset) => setShaderForm((form) => toggleShaderPreset(form, preset)),
-    /** Reorder one preset inside the stack (the array order is the compose order). */
-    move: (preset, delta) => setShaderForm((form) => moveShaderPreset(form, preset, delta)),
-    /** The layer the card should show under "automatic selection". */
-    target,
-    /** Load an applied shader row into the form (edit-in-place). */
-    loadEntry: (entry) => setShaderForm(formFromShaderEntry(entry)),
-    /** Open local 3D directory picker from the 3D layer tab. */
-    openLocal: (...args) => openLocal?.(...args),
-    /** Re-open a recently authorised directory from the 3D layer tab. */
-    openRecent: (...args) => openRecent?.(...args),
-    /** Open the online/local address bar from the 3D layer tab. */
-    openUrl: (...args) => openUrl?.(...args),
-    /** Pick a local XYZ tile pyramid folder from the Map tab. */
-    pickLocalTiles: (...args) => pickLocalTiles?.(...args),
-    /** Reset one specific layer's shader (used by the layer-panel row ✕). */
-    async resetLayerFor(token) {
-      try {
-        const result = await shaderCommand({ action: "reset", layer: token });
-        showToast(result.layer ? t2("toast.shaderReset", { layer: result.layer }) : t2("toast.shaderResetAll"));
-      } catch (error) {
-        showToast(messageOf(error));
-      }
-    },
-    /** Debounced silent apply for slider previews; repeated calls merge into one. */
-    preview: () => {
-      if (disposed) return;
-      if (applyTimer !== null) clearTimeout(applyTimer);
-      applyTimer = setTimeout(() => {
-        applyTimer = null;
-        void applyInternal(true);
-      }, 180);
-    },
-    async apply() {
-      if (applyTimer !== null) {
-        clearTimeout(applyTimer);
-        applyTimer = null;
-      }
-      await applyInternal(false);
-    },
-    /** Hold/release the original-look comparison. Closes itself if it cannot run. */
-    async compare(enabled) {
-      try {
-        const resolved = target();
-        if (!resolved.layer) {
-          showToast(t2("shader.noLayers"));
-          return null;
-        }
-        return await shaderCompare(resolved.layer.id, enabled);
-      } catch (error) {
-        showToast(messageOf(error));
-        return null;
-      }
-    },
-    async resetLayer() {
-      try {
-        const visible = getLayers().filter((layer) => layer.visible);
-        const resolved = target().layer ?? formLayer() ?? visible[visible.length - 1] ?? null;
-        if (!resolved) {
-          showToast(t2("shader.noLayers"));
-          return;
-        }
-        const result = await shaderCommand({ action: "reset", layer: resolved.id });
-        showToast(result.layer ? t2("toast.shaderReset", { layer: result.layer }) : t2("toast.shaderResetAll"));
-      } catch (error) {
-        showToast(messageOf(error));
-      }
-    },
-    async resetAll() {
-      try {
-        await shaderCommand({ action: "reset" });
-        showToast(t2("toast.shaderResetAll"));
-      } catch (error) {
-        showToast(messageOf(error));
-      }
-    }
-  };
-  async function applyInternal(silent) {
-    if (disposed) return;
-    if (applying) {
-      queued = true;
-      return;
-    }
-    applying = true;
-    try {
-      await runApply(silent);
-    } finally {
-      applying = false;
-    }
-    if (queued) {
-      queued = false;
-      await applyInternal(silent);
-    }
-  }
-}
-function messageOf(error) {
-  return error && typeof error.message === "string" && error.message !== "" ? error.message : String(error);
-}
-function formatScanFailure(t2, error) {
-  const status = error?.status;
-  const raw = `${error?.detail ?? ""} ${messageOf(error)}`;
-  if (status === 403 || /\b403\b|forbidden|access_denied|not been opened/i.test(raw)) {
-    return t2("toast.scanForbidden");
-  }
-  if (status === 404 || /\b404\b|folder not found|ENOENT|does not exist/i.test(raw)) {
-    return t2("toast.scanNotFound");
-  }
-  if (status === 400 || /\b400\b|filesystem root|UNC path|network share|not a folder/i.test(raw)) {
-    return t2("toast.scanInvalidDir");
-  }
-  return t2("toast.scanFailed", { message: messageOf(error) });
-}
-function createLocalDirectoryWiring({
-  metaRef,
-  getWorkspace,
-  scanLocalDirectory: scanLocalDirectory2,
-  addTileset,
-  joinLocalPath: joinLocalPath2,
-  b64url: b64url2,
-  folderName: folderName2,
-  setRecentDirs,
-  setScan,
-  setBusy,
-  setOpenMenu,
-  showToast,
-  t: t2
-}) {
-  const itemLabel = (name) => String(name ?? "").split(/[\\/]/).filter(Boolean).slice(-2).join("/");
-  const handleScannedItems = async (dir, data) => {
-    const items = Array.isArray(data?.items) ? data.items : [];
-    if (items.length === 0) {
-      showToast(t2("toast.scanEmpty"));
-      return;
-    }
-    if (items.length === 1 && (!data?.truncated || String(items[0]?.name ?? "").toLowerCase() === "tileset.json")) {
-      const [item] = items;
-      await addTileset(item.url, itemLabel(item.name), {
-        kind: "local",
-        path: joinLocalPath2(dir, item.name)
-      });
-      return;
-    }
-    setScan({ dir, items, truncated: Boolean(data?.truncated), limit: data?.limit });
-  };
-  const refreshRecentDirs = async () => {
-    const url = metaRef.current?.directoriesUrl;
-    if (typeof url !== "string" || url === "") return;
-    try {
-      const response = await fetch(url, { credentials: "same-origin" });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const data = await response.json();
-      const list = Array.isArray(data?.directories) ? data.directories : [];
-      const entries = [];
-      for (const entry of list) {
-        const dir = typeof entry === "string" ? entry : entry?.path;
-        if (typeof dir !== "string" || dir === "") continue;
-        entries.push({ dir, name: typeof entry?.name === "string" && entry.name !== "" ? entry.name : folderName2(dir) });
-        if (entries.length >= 5) break;
-      }
-      setRecentDirs(entries);
-    } catch (error) {
-      setRecentDirs([]);
-      showToast(formatScanFailure(t2, error));
-    }
-  };
-  async function openRecentDirectory(dir) {
-    setOpenMenu(null);
-    setBusy(t2("toast.busyDirectory"));
-    try {
-      const data = await scanLocalDirectory2(metaRef.current, dir);
-      void refreshRecentDirs();
-      await handleScannedItems(dir, data);
-    } catch (error) {
-      showToast(formatScanFailure(t2, error));
-    } finally {
-      setBusy("");
-    }
-  }
-  async function pickLocal() {
-    setOpenMenu(null);
-    const workspace = getWorkspace();
-    if (!workspace) {
-      showToast(t2("toast.dialogUnavailable"));
-      return;
-    }
-    setBusy(t2("toast.busyDirectory"));
-    try {
-      const dir = await workspace.pickDirectory();
-      if (!dir) return;
-      const data = await scanLocalDirectory2(metaRef.current, dir);
-      void refreshRecentDirs();
-      await handleScannedItems(dir, data);
-    } catch (error) {
-      showToast(formatScanFailure(t2, error));
-    } finally {
-      setBusy("");
-    }
-  }
-  async function pickLocalTiles(options = {}) {
-    const workspace = getWorkspace();
-    if (!workspace) {
-      showToast(t2("toast.dialogUnavailable"));
-      return null;
-    }
-    try {
-      const dir = await workspace.pickDirectory();
-      if (!dir) return null;
-      await scanLocalDirectory2(metaRef.current, dir);
-      void refreshRecentDirs();
-      const folder = dir.replace(/\\/g, "/").replace(/\/+$/, "");
-      const url = `${metaRef.current.tilesBase}${encodeURIComponent(b64url2(folder))}/{z}/{x}/{y}.png`;
-      return options?.withMeta ? { url, name: folderName2(folder) } : url;
-    } catch (error) {
-      showToast(formatScanFailure(t2, error));
-      return null;
-    }
-  }
-  return { refreshRecentDirs, openRecentDirectory, pickLocal, pickLocalTiles };
-}
-
-// src/client/ui/layer-row.js
 var h13 = import_react15.default.createElement;
 function LayerRow({ t: t2, layer, shader, swipeActive, onFlyLayer, onToggleLayer, onInspectLayer, onRemoveLayer, onEditShader, onShowSceneDetails, onSwipeLayer }) {
   const stop = (event) => event.stopPropagation();
@@ -14004,7 +14199,8 @@ function LayersMap({
         radioRow("i-off", t2("menu.none"), settings?.imagery == null, () => onSelectImagery(null)),
         (config?.imagery ?? []).map(
           (source) => radioRow(`i-${source.id}`, source.name, settings?.imagery === source.id, () => onSelectImagery(source.id))
-        )
+        ),
+        h15("p", { key: "imagery-hint", className: "mv-none mv-imagery-hint" }, t2("layers.imageryCoverageHint"))
       ) : null
     )
   );
@@ -16015,12 +16211,27 @@ function AnalysisBody({ t: t2, analysis, onStartProfile, onClearAnalysis, getCes
     h22(SunTimeline, { t: t2, getCesium, getViewer, getLayers, onBeforeEnable: onClearAnalysis, active: true })
   );
 }
-function EffectsBody({ t: t2, shaderActive, onOpenShader }) {
+function EffectsBody({ t: t2, shaderActive, onOpenShader, onResetAllShaders }) {
   const list = Array.isArray(shaderActive) ? shaderActive : [];
+  const formatEffect = (entry) => {
+    const raw = entry?.preset ?? entry?.presets;
+    if (!raw) return "";
+    const items = Array.isArray(raw) ? raw : [raw];
+    return items.map((item) => {
+      const key = `shader.preset.${item}`;
+      const translated = t2(key);
+      return translated && translated !== key ? translated : String(item);
+    }).join(" + ");
+  };
   return h22(
     import_react24.default.Fragment,
     null,
-    h22("button", { type: "button", className: "mv-cta primary", onClick: onOpenShader }, t2("btn.shaderShow")),
+    list.length > 0 && typeof onResetAllShaders === "function" ? h22(
+      "div",
+      { className: "mv-tool-grid" },
+      h22("button", { type: "button", className: "mv-cta primary", onClick: onOpenShader }, t2("btn.shaderShow")),
+      h22("button", { type: "button", className: "mv-cta", onClick: onResetAllShaders }, t2("shader.resetAll"))
+    ) : h22("button", { type: "button", className: "mv-cta primary", onClick: onOpenShader }, t2("btn.shaderShow")),
     list.length > 0 ? h22(
       "div",
       { className: "mv-tool-effects-list" },
@@ -16029,7 +16240,7 @@ function EffectsBody({ t: t2, shaderActive, onOpenShader }) {
           "div",
           { key: entry.layerId ?? entry.layer, className: "mv-layer has-shader" },
           h22("span", { className: "name", title: entry.layer }, entry.layer),
-          h22("span", { className: "mv-tools-active-pill" }, Array.isArray(entry.presets) ? entry.presets.join(" + ") : entry.preset)
+          h22("span", { className: "mv-tools-active-pill" }, formatEffect(entry))
         )
       )
     ) : null,
@@ -16200,6 +16411,7 @@ function ToolsPanel({
   onAdoptParse,
   onClearAnalysis,
   onOpenShader,
+  onResetAllShaders,
   getCesium,
   getViewer,
   getLayers,
@@ -16266,6 +16478,7 @@ function ToolsPanel({
     onAdoptParse,
     onClearAnalysis,
     onOpenShader,
+    onResetAllShaders,
     getCesium,
     getViewer,
     getLayers,
@@ -20639,6 +20852,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
   }
   const imagerySeqRef = import_react36.default.useRef(0);
   const terrainSeqRef = import_react36.default.useRef(0);
+  const imageryErrorUnsubRef = import_react36.default.useRef(null);
   async function applyImagery(id, notify) {
     const Cesium = cesiumRef.current;
     const viewer = viewerRef.current;
@@ -20650,12 +20864,28 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     try {
       const provider = source ? await net.withNetworkTimeout(imageryProvider(Cesium, source)) : null;
       if (seq !== imagerySeqRef.current) return { ok: false, stale: true };
+      try {
+        imageryErrorUnsubRef.current?.();
+      } catch {
+      }
+      imageryErrorUnsubRef.current = null;
       if (imageryRef.current) {
         viewer.scene.imageryLayers.remove(imageryRef.current, true);
         imageryRef.current = null;
       }
       if (source && provider) {
         imageryRef.current = viewer.scene.imageryLayers.addImageryProvider(provider, 0);
+        let tileFailures = 0;
+        let tileWarned = false;
+        const removeError = typeof provider.errorEvent?.addEventListener === "function" ? provider.errorEvent.addEventListener(() => {
+          if (seq !== imagerySeqRef.current) return;
+          tileFailures += 1;
+          if (tileFailures >= 3 && !tileWarned) {
+            tileWarned = true;
+            showToast(t2("toast.basemapTilesWarn", { name: source.name }));
+          }
+        }) : null;
+        if (typeof removeError === "function") imageryErrorUnsubRef.current = removeError;
         if (notify) showToast(t2("toast.basemap", { name: source.name }));
       } else if (notify) {
         showToast(t2("toast.basemapNone"));
@@ -21795,6 +22025,11 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
       measurePreviewRef.current?.dispose();
       releaseShaderTick();
       shaderEntriesRef.current.clear();
+      try {
+        imageryErrorUnsubRef.current?.();
+      } catch {
+      }
+      imageryErrorUnsubRef.current = null;
       void overlayLayersRef.current?.dispose();
       overlayLayersRef.current = null;
       vectorRef.current?.dispose();
@@ -22007,6 +22242,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     showToast,
     t: t2,
     shaderCompare: (layer, enabled) => shaderEngine.compare(layer, enabled),
+    getScene: () => ({ Cesium: cesiumRef.current, viewer: viewerRef.current }),
     openLocal: pickLocal,
     openRecent: openRecentDirectory,
     openUrl: () => {
@@ -22166,7 +22402,11 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
       onPresetMove: workbench.move,
       onCompare: workbench.compare,
       onResetLayer: workbench.resetLayer,
-      onResetAll: workbench.resetAll
+      onResetAll: workbench.resetAll,
+      onApplyAll: workbench.applyAll,
+      onLoadEntry: workbench.loadEntry,
+      onSyncEntry: workbench.syncEntryToAll,
+      onResetEntry: workbench.resetLayerFor
     }) : null,
     // v1.7 P0: 指认 card + corner brackets (panel-only) and the tour bar.
     h32(SelectionOverlay, {
@@ -22279,6 +22519,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
         onAdoptParse: annotations.adoptCollection,
         onClearAnalysis: () => clearAnalysis(),
         onOpenShader: () => setShaderOpen(true),
+        onResetAllShaders: workbench.resetAll,
         getCesium: () => cesiumRef.current,
         getViewer: () => viewerRef.current,
         getLayers: () => layersRef.current,

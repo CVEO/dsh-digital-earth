@@ -514,6 +514,7 @@ const h = React.createElement
 
       const imagerySeqRef = React.useRef(0)
       const terrainSeqRef = React.useRef(0)
+      const imageryErrorUnsubRef = React.useRef(null)
 
       async function applyImagery(id, notify) {
         const Cesium = cesiumRef.current
@@ -526,6 +527,12 @@ const h = React.createElement
         try {
           const provider = source ? await net.withNetworkTimeout(imageryProvider(Cesium, source)) : null
           if (seq !== imagerySeqRef.current) return { ok: false, stale: true }
+          try {
+            imageryErrorUnsubRef.current?.()
+          } catch {
+            /* previous provider may already be disposed */
+          }
+          imageryErrorUnsubRef.current = null
           if (imageryRef.current) {
             viewer.scene.imageryLayers.remove(imageryRef.current, true)
             imageryRef.current = null
@@ -534,6 +541,19 @@ const h = React.createElement
             // Index 0: the basemap is always the BOTTOM imagery layer, so switching
             // it never covers the L3 raster overlays stacked above it.
             imageryRef.current = viewer.scene.imageryLayers.addImageryProvider(provider, 0)
+            let tileFailures = 0
+            let tileWarned = false
+            const removeError = typeof provider.errorEvent?.addEventListener === 'function'
+              ? provider.errorEvent.addEventListener(() => {
+                  if (seq !== imagerySeqRef.current) return
+                  tileFailures += 1
+                  if (tileFailures >= 3 && !tileWarned) {
+                    tileWarned = true
+                    showToast(t('toast.basemapTilesWarn', { name: source.name }))
+                  }
+                })
+              : null
+            if (typeof removeError === 'function') imageryErrorUnsubRef.current = removeError
             if (notify) showToast(t('toast.basemap', { name: source.name }))
           } else if (notify) {
             showToast(t('toast.basemapNone'))
@@ -1894,6 +1914,12 @@ const h = React.createElement
           // the viewer goes away; the tilesets themselves are destroyed with it.
           releaseShaderTick()
           shaderEntriesRef.current.clear()
+          try {
+            imageryErrorUnsubRef.current?.()
+          } catch {
+            /* ignore */
+          }
+          imageryErrorUnsubRef.current = null
           // Drop the L3 overlay layers with the viewer; the queued removals are
           // no-ops if the scene is already gone.
           void overlayLayersRef.current?.dispose()
@@ -2164,6 +2190,7 @@ const h = React.createElement
         showToast,
         t,
         shaderCompare: (layer, enabled) => shaderEngine.compare(layer, enabled),
+        getScene: () => ({ Cesium: cesiumRef.current, viewer: viewerRef.current }),
         openLocal: pickLocal,
         openRecent: openRecentDirectory,
         openUrl: () => {
@@ -2331,6 +2358,10 @@ const h = React.createElement
               onCompare: workbench.compare,
               onResetLayer: workbench.resetLayer,
               onResetAll: workbench.resetAll,
+              onApplyAll: workbench.applyAll,
+              onLoadEntry: workbench.loadEntry,
+              onSyncEntry: workbench.syncEntryToAll,
+              onResetEntry: workbench.resetLayerFor,
             })
           : null,
         // v1.7 P0: 指认 card + corner brackets (panel-only) and the tour bar.
@@ -2442,6 +2473,7 @@ const h = React.createElement
             onAdoptParse: annotations.adoptCollection,
             onClearAnalysis: () => clearAnalysis(),
             onOpenShader: () => setShaderOpen(true),
+            onResetAllShaders: workbench.resetAll,
             getCesium: () => cesiumRef.current,
             getViewer: () => viewerRef.current,
             getLayers: () => layersRef.current,

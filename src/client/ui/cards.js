@@ -8,6 +8,7 @@ import React from 'react'
 import { formatDistance, formatHeight } from '../format.js'
 import { profileCsv, profileMetrics, profileSvg } from '../analysis/profile-metrics.js'
 import { SHADER_PRIMARY_PRESETS } from '../shader/presets.js'
+import { eligibleShaderLayers } from './workbench-wiring.js'
 import { ElevationLegend, elevationSliderBounds, useShaderElevation } from './shader-elevation.js'
 import { AnalysisProfileChart } from './profile-chart.js'
 import { downloadText } from '../scene/download.js'
@@ -342,6 +343,10 @@ const h = React.createElement
       onPreview,
       onCompare,
       onApply,
+      onApplyAll,
+      onLoadEntry,
+      onSyncEntry,
+      onResetEntry,
       onResetLayer,
       onResetAll,
     }) {
@@ -355,6 +360,8 @@ const h = React.createElement
         maxHeight: 760,
       })
       const visibleLayers = layers.filter((layer) => layer.visible)
+      const { eligible: eligibleLayers, skippedGaussian: skippedGaussianCount } = eligibleShaderLayers(layers)
+      const eligibleCount = eligibleLayers.length
       // form.preset is a string for one preset or an ordered array for a stack;
       // the helper keeps the rest of the card stack-agnostic.
       const selectedPresets = Array.isArray(form.preset) ? form.preset : [form.preset]
@@ -419,6 +426,18 @@ const h = React.createElement
       const runApply = () => {
         stopCompare()
         onApply()
+      }
+      const runApplyAll = () => {
+        stopCompare()
+        onApplyAll?.()
+      }
+      const runSyncEntry = (entry) => {
+        stopCompare()
+        onSyncEntry?.(entry)
+      }
+      const runResetEntry = (token) => {
+        stopCompare()
+        onResetEntry?.(token)
       }
       const runResetLayer = () => {
         stopCompare()
@@ -728,6 +747,24 @@ const h = React.createElement
               comparing ? t('shader.compareOn') : t('shader.compare'),
             ),
           ),
+          onApplyAll
+            ? h(
+                'div',
+                { className: 'row' },
+                h(
+                  'button',
+                  {
+                    type: 'button',
+                    className: 'mv-cta',
+                    disabled: eligibleCount === 0 || elevation.busy,
+                    title: t('shaderSync.applyAllHint'),
+                    onClick: runApplyAll,
+                  },
+                  eligibleCount > 1 ? t('shaderSync.applyAllCount', { n: eligibleCount }) : t('shaderSync.applyAll'),
+                ),
+              )
+            : null,
+          skippedGaussianCount > 0 ? h('p', { className: 'hint' }, t('shaderSync.skip3dgsHint', { n: skippedGaussianCount })) : null,
           h(
             'div',
             { className: 'row' },
@@ -744,9 +781,46 @@ const h = React.createElement
                   h(
                     'div',
                     { key: entry.layer, className: 'item' },
-                    h('span', { title: entry.layer }, entry.layer),
+                    onLoadEntry
+                      ? h(
+                          'button',
+                          {
+                            type: 'button',
+                            className: 'mv-shader-load',
+                            title: t('shaderSync.loadRow', { name: entry.layer }),
+                            onClick: () => onLoadEntry(entry),
+                          },
+                          h('span', null, entry.layer),
+                        )
+                      : h('span', { title: entry.layer }, entry.layer),
                     h('span', { className: 'applied-tag' }, t('shader.appliedTag')),
-                    h('em', null, presetLabel(entry.preset)),
+                    h('em', { title: presetLabel(entry.preset) }, presetLabel(entry.preset)),
+                    onSyncEntry && eligibleCount > 1
+                      ? h(
+                          'button',
+                          {
+                            type: 'button',
+                            className: 'mv-icon-btn',
+                            title: t('shaderSync.syncRow'),
+                            'aria-label': t('shaderSync.syncRow'),
+                            onClick: () => runSyncEntry(entry),
+                          },
+                          '⇄',
+                        )
+                      : null,
+                    onResetEntry
+                      ? h(
+                          'button',
+                          {
+                            type: 'button',
+                            className: 'mv-icon-btn',
+                            title: t('shader.resetLayer'),
+                            'aria-label': t('shader.resetLayer'),
+                            onClick: () => runResetEntry(entry.layerId ?? entry.layer),
+                          },
+                          '✕',
+                        )
+                      : null,
                   ),
                 ),
           ),

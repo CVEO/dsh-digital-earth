@@ -180,8 +180,12 @@ import { PARSE_CSS } from './parse-css.js'
 .mv-shader .row .mv-cta:disabled{opacity:.45;cursor:not-allowed}
 .mv-shader .active{display:flex;flex-direction:column;gap:5px;border-top:.5px solid var(--mv-line);padding-top:9px}
 .mv-shader .active b{font-size:10px;letter-spacing:.06em;color:var(--mv-dim);font-weight:600;text-transform:uppercase}
-.mv-shader .active .item{display:flex;align-items:baseline;gap:6px;font-size:11px;line-height:1.4;min-width:0}
-.mv-shader .active .item span:first-child{min-width:0;max-width:42%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--mv-text)}
+.mv-shader .active .item{display:flex;align-items:center;gap:5px;font-size:11px;line-height:1.4;min-width:0}
+.mv-shader .active .item>span:first-child{min-width:0;max-width:42%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--mv-text)}
+.mv-shader .active .item .mv-shader-load{appearance:none;border:0;background:transparent;padding:0;margin:0;font:inherit;color:var(--mv-text);cursor:pointer;text-align:left;min-width:0;max-width:44%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:none}
+.mv-shader .active .item .mv-shader-load span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mv-shader .active .item .mv-shader-load:hover{color:var(--shader-mint)}
+.mv-shader .active .item .mv-icon-btn{width:20px;height:20px;font-size:11px}
 .mv-shader .applied-tag{flex:none;font-size:9px;letter-spacing:.04em;color:#04241a;background:color-mix(in srgb,var(--shader-mint) 80%,transparent);border-radius:4px;padding:1px 4px}
 .mv-shader .active .item em{flex:1;min-width:0;font-style:normal;color:var(--mv-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right}
 .mv-shader .empty{color:var(--mv-dim);font-size:11px}
@@ -226,6 +230,7 @@ import { PARSE_CSS } from './parse-css.js'
 .mv-fold-box>.mv-group{margin-top:0;border-top:0;padding:8px 10px}
 .mv-fold-box.open>.mv-group{border-bottom:.5px solid var(--mv-line)}
 .mv-fold-body{display:flex;flex-direction:column;gap:2px;padding:6px 6px 8px}
+.mv-imagery-hint{margin:2px 2px 0;padding:4px 6px 2px;font-size:10.5px;line-height:1.45;opacity:.88}
 /* Foldable group header (the imagery basemap list is long and rarely changed). */
 .mv-group-toggle{appearance:none;width:100%;display:flex;align-items:center;gap:8px;background:transparent;border:0;padding:0;margin:0;font:inherit;color:inherit;cursor:pointer;text-align:left}
 .mv-group-toggle .mv-group-title{flex:none}
