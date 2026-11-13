@@ -1,4 +1,4 @@
-import { VECTOR_FONT } from './vector-style.js'
+import { VECTOR_COLORS, VECTOR_FONT } from './vector-style.js'
 
 export function createVectorLabels({ Cesium, viewer, root, onHover, onSelect, isInteractive }) {
   const document = root.ownerDocument
@@ -12,11 +12,19 @@ export function createVectorLabels({ Cesium, viewer, root, onHover, onSelect, is
   const valueOf = (property) => property?.getValue ? property.getValue(viewer.clock.currentTime) : property
   const occluder = new Cesium.EllipsoidalOccluder(viewer.scene.globe.ellipsoid, viewer.camera.positionWC)
 
-  function add(entity, options, group) {
+  function add(entity, options, group, descriptor = null) {
     if (!options.label || !options.position) return
     const button = document.createElement('button')
     button.type = 'button'
     button.className = 'mv-vector-label'
+    const styleKey = typeof descriptor?.style === 'string' && VECTOR_COLORS[descriptor.style] ? descriptor.style : ''
+    const accent = styleKey ? VECTOR_COLORS[styleKey] : ''
+    const featureKind = typeof descriptor?.featureKind === 'string' ? descriptor.featureKind : ''
+    if (styleKey) {
+      button.dataset.style = styleKey
+      button.style?.setProperty?.('--mv-label-accent', accent)
+    }
+    if (featureKind) button.dataset.kind = featureKind
     button.hidden = true
     button.addEventListener('pointerenter', () => onHover(group))
     button.addEventListener('pointerleave', () => onHover(null))
@@ -29,7 +37,7 @@ export function createVectorLabels({ Cesium, viewer, root, onHover, onSelect, is
     })
     layer.append(button)
     entity.label.show = false
-    const label = { entity, group, options, button, text: '', anchor: null, box: null, size: null }
+    const label = { entity, group, options, button, accent, featureKind, text: '', anchor: null, box: null, size: null }
     labels.set(entity, label)
     refreshAnchors([label])
   }
@@ -131,8 +139,12 @@ export function createVectorLabels({ Cesium, viewer, root, onHover, onSelect, is
       context.strokeStyle = dark ? '#3c4d63' : '#cad7e3'
       context.lineWidth = 1
       context.stroke()
+      if (label.accent) {
+        context.fillStyle = label.accent
+        context.fillRect(left + 1, top + 4, 3, Math.max(4, bottom - top - 8))
+      }
       context.fillStyle = dark ? '#edf5ff' : '#20344c'
-      context.fillText(label.text, left + 11, (top + bottom) / 2)
+      context.fillText(label.text, left + (label.accent ? 13 : 11), (top + bottom) / 2)
     }
     context.restore()
   }

@@ -16,6 +16,7 @@
 
 export const ANNOTATION_MAX_NAME = 80
 export const ANNOTATION_MAX_NOTE = 280
+export const ANNOTATION_MAX_HEIGHT_M = 5000
 /** Vertical/styling intent of a feature, independent of its geometry type. */
 export const ANNOTATION_KINDS = ['point', 'line', 'area', 'note']
 /** Style presets shared with earth_draw, so annotation layers look consistent. */
@@ -57,6 +58,46 @@ export function annotationNote(feature) {
   return annotationText(feature?.properties?.note, ANNOTATION_MAX_NOTE)
 }
 
+const finiteHeight = (value) => (typeof value === 'number' && Number.isFinite(value) ? value : null)
+
+/** Effective symbol style of a feature: explicit properties.style wins, else command fallback. */
+export function annotationStyleOf(feature, fallback = 'accent') {
+  const explicit = feature?.properties?.style
+  if (typeof explicit === 'string' && ANNOTATION_STYLES.includes(explicit)) return explicit
+  return typeof fallback === 'string' && ANNOTATION_STYLES.includes(fallback) ? fallback : 'accent'
+}
+
+/** Normalized 3D extrusion state and relative height (m) matching vector-renderer polygonVolume rules. */
+export function annotationExtrusionOf(feature, defaultHeight = 15) {
+  const props = feature?.properties && typeof feature.properties === 'object' ? feature.properties : {}
+  const baseHeight =
+    finiteHeight(props.base_height_m) ?? finiteHeight(props.ground_height_m) ?? finiteHeight(props.baseHeight) ?? 0
+  const roofExplicit = finiteHeight(props.extruded_height_m) ?? finiteHeight(props.extrudedHeight)
+  const rel = finiteHeight(props.height_m) ?? finiteHeight(props.building_height_m) ?? finiteHeight(props.height)
+  let heightM = rel !== null && rel > 0 ? rel : null
+  if (heightM === null && roofExplicit !== null && roofExplicit > baseHeight) {
+    heightM = Math.round((roofExplicit - baseHeight) * 100) / 100
+  }
+  const hasExtrudedTrigger =
+    (roofExplicit !== null && roofExplicit > baseHeight) ||
+    (rel !== null &&
+      rel > 0 &&
+      (finiteHeight(props.base_height_m) !== null ||
+        finiteHeight(props.ground_height_m) !== null ||
+        finiteHeight(props.baseHeight) !== null ||
+        props.height_m != null ||
+        props.building_height_m != null ||
+        props.mode3d === true ||
+        props.extruded === true))
+  const enabled = props.extruded === false ? false : Boolean(hasExtrudedTrigger)
+  return {
+    enabled,
+    height_m: heightM ?? defaultHeight,
+    has_height: heightM !== null,
+    base_height_m: baseHeight,
+  }
+}
+
 let generatedFeatureCounter = 0
 
 /** Stable feature identifier across replays; checks properties.feature_id then feature.id. */
@@ -79,7 +120,7 @@ export function ensureAnnotationFeatureId(feature) {
 }
 
 /**
- * Patch name/note/kind of a feature without touching its geometry.
+ * Patch name/note/kind/style/extrusion of a feature without touching its geometry.
  * Returns {ok:true, feature} (a fresh object) or {ok:false, error}.
  */
 export function withAnnotationProperties(feature, patch = {}) {
@@ -100,6 +141,49 @@ export function withAnnotationProperties(feature, patch = {}) {
   if (patch.kind !== undefined) {
     if (!ANNOTATION_KINDS.includes(patch.kind)) return { ok: false, error: 'invalid_kind' }
     next.properties.kind = patch.kind
+  }
+  if (patch.style !== undefined) {
+    if (patch.style === '' || patch.style === null) delete next.properties.style
+    else if (!ANNOTATION_STYLES.includes(patch.style)) return { ok: false, error: 'invalid_style' }
+    else next.properties.style = patch.style
+  }
+  if (patch.extruded !== undefined) {
+    if (typeof patch.extruded !== 'boolean') return { ok: false, error: 'invalid_extruded' }
+    next.properties.extruded = patch.extruded
+  }
+  if (patch.height_m !== undefined) {
+    if (patch.height_m === '' || patch.height_m === null) {
+      delete next.properties.height_m
+      delete next.properties.extruded_height_m
+      delete next.properties.extrudedHeight
+      delete next.properties.building_height_m
+      delete next.properties.height
+    } else {
+      const value = Number(patch.height_m)
+      if (!Number.isFinite(value) || value <= 0 || value > ANNOTATION_MAX_HEIGHT_M) {
+        return { ok: false, error: 'invalid_height' }
+      }
+      const rounded = Math.round(value * 100) / 100
+      next.properties.height_m = rounded
+      const base =
+        finiteHeight(next.properties.base_height_m) ??
+        finiteHeight(next.properties.ground_height_m) ??
+        finiteHeight(next.properties.baseHeight) ??
+        0
+      if (
+        next.properties.extruded_height_m != null ||
+        next.properties.extrudedHeight != null ||
+        next.properties.roof_height_m != null
+      ) {
+        const roof = Math.round((base + rounded) * 100) / 100
+        if (next.properties.extrudedHeight !== undefined && next.properties.extruded_height_m === undefined) {
+          next.properties.extrudedHeight = roof
+        } else {
+          next.properties.extruded_height_m = roof
+        }
+        if (typeof next.properties.roof_height_m === 'number') next.properties.roof_height_m = roof
+      }
+    }
   }
   return { ok: true, feature: next }
 }
@@ -206,7 +290,7 @@ export function annotationFeaturesOfCommands(commands) {
 
 /** Next free "研究区 1/2/3" style name for a kind, so new features are never anonymous. */
 export function nextAnnotationName(features, kind, t) {
-  const prefix = typeof t === 'function' ? t(`annotations.kind.${kind}`) : kind
+  const prefix = typeof t === 'function' ? t(`annotation.kind.${kind}`) : kind
   let index = 1
   const taken = new Set(
     (Array.isArray(features) ? features : [])

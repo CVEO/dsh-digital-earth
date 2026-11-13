@@ -172,17 +172,34 @@
       return { type: geometry.type, coordinates: compactSnapshotCoords(geometry.coordinates) }
     }
 
+    const SNAPSHOT_PRIORITY_PROPS = [
+      'kind',
+      'style',
+      'note',
+      'feature_id',
+      'source',
+      'extruded',
+      'height_m',
+      'base_height_m',
+      'ground_height_m',
+      'extruded_height_m',
+      'roof_height_m',
+    ]
+
     function compactSnapshotProperties(properties) {
       if (properties === null || typeof properties !== 'object') return undefined
       const out = {}
       if (typeof properties.name === 'string' && properties.name !== '') out.name = properties.name.slice(0, 160)
       let count = 0
-      for (const [key, value] of Object.entries(properties)) {
-        if (key === 'name' || value === null || value === undefined) continue
-        if (count >= 16) break
+      const push = (key, value) => {
+        if (key === 'name' || value === null || value === undefined || key in out || count >= 16) return
         out[key] = typeof value === 'string' && value.length > 160 ? value.slice(0, 160) : value
         count += 1
       }
+      for (const key of SNAPSHOT_PRIORITY_PROPS) {
+        if (Object.hasOwn(properties, key)) push(key, properties[key])
+      }
+      for (const [key, value] of Object.entries(properties)) push(key, value)
       return Object.keys(out).length > 0 ? out : undefined
     }
 

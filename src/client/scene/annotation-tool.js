@@ -23,7 +23,7 @@ export function createAnnotationTool({ getCesium, getViewer, pickSurface, setToo
     if (!viewer) return null
     let state = sessions.get(viewer)
     if (!state) {
-      state = { kind: null, points: [], entities: [], handler: null, cursor: null, keydown: null }
+      state = { kind: null, style: null, points: [], entities: [], handler: null, cursor: null, keydown: null }
       sessions.set(viewer, state)
     }
     return state
@@ -133,6 +133,7 @@ export function createAnnotationTool({ getCesium, getViewer, pickSurface, setToo
     destroyHandler(state)
     removeEntities(state)
     state.kind = null
+    state.style = null
     state.points = []
     state.cursor = null
   }
@@ -145,14 +146,16 @@ export function createAnnotationTool({ getCesium, getViewer, pickSurface, setToo
     // second one landed on the same spot, so drop the duplicate vertex.
     const points = reason === 'double' && state.points.length > 1 ? state.points.slice(0, -1) : state.points.slice()
     const kind = state.kind
+    const style = state.style
+    const singlePoint = kind === 'point' || kind === 'note'
     const minimum = kind === 'area' ? 3 : 2
-    if (kind !== 'point' && points.length < minimum) {
+    if (!singlePoint && points.length < minimum) {
       showToast(t(kind === 'area' ? 'annotation.needArea' : 'annotation.needLine'))
       return
     }
     const coordinates = points.map((point) => [point.lon, point.lat])
     if (kind === 'area') coordinates.push([points[0].lon, points[0].lat])
-    const geometry = kind === 'point'
+    const geometry = singlePoint
       ? { type: 'Point', coordinates: coordinates[0] }
       : kind === 'area'
         ? { type: 'Polygon', coordinates: [coordinates] }
@@ -160,7 +163,11 @@ export function createAnnotationTool({ getCesium, getViewer, pickSurface, setToo
     clear()
     setTool(null)
     if (typeof onFinish === 'function') {
-      onFinish({ type: 'Feature', properties: { kind, source: 'manual' }, geometry })
+      onFinish({
+        type: 'Feature',
+        properties: { kind, source: 'manual', ...(style ? { style } : {}) },
+        geometry,
+      })
     }
   }
 
@@ -189,7 +196,7 @@ export function createAnnotationTool({ getCesium, getViewer, pickSurface, setToo
         lat: Cesium.Math.toDegrees(carto.latitude),
       })
       current.cursor = surface
-      if (current.kind === 'point') {
+      if (current.kind === 'point' || current.kind === 'note') {
         finish('click')
         return
       }
@@ -213,12 +220,13 @@ export function createAnnotationTool({ getCesium, getViewer, pickSurface, setToo
     if (typeof globalThis.addEventListener === 'function') globalThis.addEventListener('keydown', state.keydown)
   }
 
-  function start(kind = 'point') {
+  function start(kind = 'point', style = null) {
     clear()
     setTool('annotate')
     const state = sessionFor()
     if (!state) return
     state.kind = kind
+    state.style = typeof style === 'string' && style !== '' ? style : null
     showToast(t(`annotation.${kind}Start`))
     installHandler(state)
   }

@@ -167,7 +167,7 @@ export function createVectorInteraction({ Cesium, viewer, root, getTool, onSelec
     if (entity.point) originals.push([entity.point, 'pixelSize', entity.point.pixelSize])
     for (const kind of ['polygon', 'rectangle']) if (entity[kind]) originals.push([entity[kind], 'material', entity[kind].material])
     entries.set(entity, { group, options: styled, originals, width: entity.polyline?.width })
-    labels.add(entity, styled, group)
+    labels.add(entity, styled, group, descriptor)
     labels.setState(hovered, selected)
     applyState(group)
     viewer.scene.requestRender()

@@ -17,6 +17,7 @@ const finiteNumber = (value) => (typeof value === 'number' && Number.isFinite(va
  */
 export function polygonVolume(properties, rings) {
   const props = properties && typeof properties === 'object' ? properties : {}
+  if (props.extruded === false) return null
   const baseExplicit = finiteNumber(props.base_height_m) ?? finiteNumber(props.ground_height_m) ?? finiteNumber(props.baseHeight)
   const roofExplicit = finiteNumber(props.extruded_height_m) ?? finiteNumber(props.extrudedHeight)
   const relHeight = finiteNumber(props.height_m) ?? finiteNumber(props.building_height_m) ?? finiteNumber(props.height)
@@ -90,14 +91,14 @@ export function createVectorRenderer({ getState, getVector, t, markSceneDirty, s
       const name = properties?.name
       return typeof name === 'string' && name.trim() !== '' ? name.trim() : ''
     }
-    const drawLine = (coordinates, name) => {
+    const drawLine = (coordinates, name, lineColor = color) => {
       if (!Array.isArray(coordinates) || coordinates.length < 2) return
       add({
         polyline: {
           positions: Cesium.Cartesian3.fromDegreesArray(flat2d(coordinates)),
           width: 3,
-          material: color,
-          depthFailMaterial: color.withAlpha(0.55),
+          material: lineColor,
+          depthFailMaterial: lineColor.withAlpha(0.55),
           clampToGround: true,
         },
       })
@@ -118,7 +119,7 @@ export function createVectorRenderer({ getState, getVector, t, markSceneDirty, s
       }
       return flat
     }
-    const drawPolygon = (rings, name, properties) => {
+    const drawPolygon = (rings, name, properties, polyColor = color) => {
       if (!Array.isArray(rings) || rings.length === 0 || !Array.isArray(rings[0])) return
       const volume = polygonVolume(properties, rings)
       const isPerPos3d = volume?.mode === '3d'
@@ -134,9 +135,9 @@ export function createVectorRenderer({ getState, getVector, t, markSceneDirty, s
       )
       const polygonSpec = {
         hierarchy: new Cesium.PolygonHierarchy(outer, holes),
-        material: color.withAlpha(isExtruded || isPerPos3d ? 0.36 : 0.26),
+        material: polyColor.withAlpha(isExtruded || isPerPos3d ? 0.36 : 0.26),
         outline: isExtruded || isPerPos3d,
-        ...(isExtruded || isPerPos3d ? { outlineColor: color.withAlpha(0.95) } : {}),
+        ...(isExtruded || isPerPos3d ? { outlineColor: polyColor.withAlpha(0.95) } : {}),
         perPositionHeight: isPerPos3d,
         ...(isExtruded ? { height: volume.baseHeight, extrudedHeight: volume.extrudedHeight } : {}),
       }
@@ -157,8 +158,8 @@ export function createVectorRenderer({ getState, getVector, t, markSceneDirty, s
           polyline: {
             positions: linePositions,
             width: 2,
-            material: color,
-            depthFailMaterial: color.withAlpha(0.55),
+            material: polyColor,
+            depthFailMaterial: polyColor.withAlpha(0.55),
             clampToGround: !isPerPos3d && !isExtruded,
           },
         })
@@ -185,13 +186,13 @@ export function createVectorRenderer({ getState, getVector, t, markSceneDirty, s
         }
       }
     }
-    const drawPoint = (coordinates, name) => {
+    const drawPoint = (coordinates, name, pointColor = color) => {
       if (!Array.isArray(coordinates) || coordinates.length < 2) return
       add({
         position: Cesium.Cartesian3.fromDegrees(coordinates[0], coordinates[1]),
         point: {
           pixelSize: 11,
-          color,
+          color: pointColor,
           outlineColor: Cesium.Color.WHITE,
           outlineWidth: 2,
           heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
@@ -206,9 +207,13 @@ export function createVectorRenderer({ getState, getVector, t, markSceneDirty, s
     const drawGeometry = (geometry, properties, feature) => {
       if (geometry === null || typeof geometry !== 'object') return
       const label = agentLabelText(nameOf(properties), caption)
+      const featureStyle = typeof properties?.style === 'string' && VECTOR_COLORS[properties.style] ? properties.style : style
+      const featureColor = featureStyle === style ? color : agentOverlayColor(Cesium, featureStyle)
       descriptor = {
         group: {},
         kind: t('layers.vectorDrawn'),
+        style: featureStyle,
+        featureKind: typeof properties?.kind === 'string' ? properties.kind : undefined,
         title: label || t('layers.vectorDrawn'),
         summary: t(`vector.geometry.${String(geometry.type ?? '').replace('Multi', '')}`),
         feature: feature ?? null,
@@ -224,22 +229,22 @@ export function createVectorRenderer({ getState, getVector, t, markSceneDirty, s
           for (const child of geometry.geometries ?? []) drawGeometry(child, properties, feature)
           break
         case 'Point':
-          drawPoint(geometry.coordinates, label)
+          drawPoint(geometry.coordinates, label, featureColor)
           break
         case 'MultiPoint':
-          for (const position of geometry.coordinates ?? []) drawPoint(position, label)
+          for (const position of geometry.coordinates ?? []) drawPoint(position, label, featureColor)
           break
         case 'LineString':
-          drawLine(geometry.coordinates, label)
+          drawLine(geometry.coordinates, label, featureColor)
           break
         case 'MultiLineString':
-          for (const line of geometry.coordinates ?? []) drawLine(line, label)
+          for (const line of geometry.coordinates ?? []) drawLine(line, label, featureColor)
           break
         case 'Polygon':
-          drawPolygon(geometry.coordinates, label, properties)
+          drawPolygon(geometry.coordinates, label, properties, featureColor)
           break
         case 'MultiPolygon':
-          for (const polygon of geometry.coordinates ?? []) drawPolygon(polygon, label, properties)
+          for (const polygon of geometry.coordinates ?? []) drawPolygon(polygon, label, properties, featureColor)
           break
         default:
           break

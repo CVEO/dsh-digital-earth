@@ -8,7 +8,7 @@
  */
 import { downloadText } from './download.js'
 import { annotationFeatureText, deleteAnnotationFeature, findFeatureByTarget, rebuildDrawCommand, updateAnnotationFeature } from './annotation-edit.js'
-import { annotationFeaturesOfCommands, annotationKindOf, ensureAnnotationFeatureId, nextAnnotationName, normalizeAnnotation, withAnnotationGeometry } from './annotation-model.js'
+import { ANNOTATION_STYLES, annotationFeaturesOfCommands, annotationKindOf, ensureAnnotationFeatureId, nextAnnotationName, normalizeAnnotation, withAnnotationGeometry } from './annotation-model.js'
 
 export function createAnnotationActions({ stateRef, viewerRef, getSelection, draw, showToast, t, onChanged }) {
   const selectionOf = () => (typeof getSelection === 'function' ? getSelection() : null)
@@ -47,7 +47,8 @@ export function createAnnotationActions({ stateRef, viewerRef, getSelection, dra
         return false
       }
       const identified = ensureAnnotationFeatureId(normalized.feature)
-      draw({ type: 'FeatureCollection', features: [identified] }, 'accent', name)
+      const featStyle = ANNOTATION_STYLES.includes(identified.properties?.style) ? identified.properties.style : 'accent'
+      draw({ type: 'FeatureCollection', features: [identified] }, featStyle, name)
       if (typeof onChanged === 'function') onChanged()
       showToast(t('annotation.added', { name }))
       return true

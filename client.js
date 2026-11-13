@@ -874,11 +874,24 @@ var ANNOTATION_MESSAGES = {
     "annotation.kind.line": "线",
     "annotation.kind.area": "面",
     "annotation.kind.note": "注记",
+    "annotation.kindLabel": "类型",
+    "annotation.styleLabel": "符号配色",
+    "annotation.style.accent": "天蓝",
+    "annotation.style.alert": "警示红",
+    "annotation.style.success": "翠绿",
+    "annotation.style.warm": "琥珀黄",
+    "annotation.style.violet": "紫罗兰",
+    "annotation.extrude3d": "3D 立体拉伸",
+    "annotation.extrudeHeight": "拉伸高度 (m)",
+    "annotation.extrudeHint": "开启后将该多边形向上拉伸成三维体块",
+    "annotation.shortcutHint": "形状编辑：拖顶点改形 · 中心菱形整体移动 · 双击删点 · Alt+点线段插点 · Ctrl/Cmd+Z 撤销",
     "annotation.drawPoint": "画点",
     "annotation.drawLine": "画线",
     "annotation.drawArea": "画面",
-    "annotation.drawHint": "选一个形状后在场景里点击；双击或回车结束，Esc 取消。画完点选要素即可改名。",
+    "annotation.drawNote": "注记",
+    "annotation.drawHint": "选一个类型与配色后在场景里点击；双击或回车结束，Esc 取消。点选已有要素可改名、调色或设 3D 拉伸。",
     "annotation.pointStart": "点击场景放置一个点",
+    "annotation.noteStart": "点击场景放置文字注记",
     "annotation.lineStart": "依次点击画线，双击或回车结束",
     "annotation.areaStart": "依次点击画面，双击或回车闭合",
     "annotation.pointHint": "已放置 1 个点",
@@ -916,11 +929,24 @@ var ANNOTATION_MESSAGES = {
     "annotation.kind.line": "Line",
     "annotation.kind.area": "Area",
     "annotation.kind.note": "Note",
+    "annotation.kindLabel": "Type",
+    "annotation.styleLabel": "Symbol colour",
+    "annotation.style.accent": "Sky blue",
+    "annotation.style.alert": "Alert red",
+    "annotation.style.success": "Emerald",
+    "annotation.style.warm": "Amber",
+    "annotation.style.violet": "Violet",
+    "annotation.extrude3d": "3D extrusion",
+    "annotation.extrudeHeight": "Extrusion height (m)",
+    "annotation.extrudeHint": "Extrude this polygon vertically into a 3D volume",
+    "annotation.shortcutHint": "Shape edit: drag vertices · center diamond moves all · double-click deletes · Alt+click inserts · Ctrl/Cmd+Z undoes",
     "annotation.drawPoint": "Point",
     "annotation.drawLine": "Line",
     "annotation.drawArea": "Area",
-    "annotation.drawHint": "Pick a shape, then click on the scene; double-click or Enter finishes, Esc cancels. Click a feature to rename it.",
+    "annotation.drawNote": "Note",
+    "annotation.drawHint": "Pick a type and colour, then click on the scene; double-click or Enter finishes, Esc cancels. Click a feature to rename, restyle or extrude it in 3D.",
     "annotation.pointStart": "Click the scene to place a point",
+    "annotation.noteStart": "Click the scene to place a note",
     "annotation.lineStart": "Click to add vertices; double-click or Enter finishes",
     "annotation.areaStart": "Click to add corners; double-click or Enter closes the area",
     "annotation.pointHint": "1 point placed",
@@ -3809,17 +3835,33 @@ function compactSnapshotGeometry(geometry) {
   }
   return { type: geometry.type, coordinates: compactSnapshotCoords(geometry.coordinates) };
 }
+var SNAPSHOT_PRIORITY_PROPS = [
+  "kind",
+  "style",
+  "note",
+  "feature_id",
+  "source",
+  "extruded",
+  "height_m",
+  "base_height_m",
+  "ground_height_m",
+  "extruded_height_m",
+  "roof_height_m"
+];
 function compactSnapshotProperties(properties) {
   if (properties === null || typeof properties !== "object") return void 0;
   const out = {};
   if (typeof properties.name === "string" && properties.name !== "") out.name = properties.name.slice(0, 160);
   let count = 0;
-  for (const [key, value] of Object.entries(properties)) {
-    if (key === "name" || value === null || value === void 0) continue;
-    if (count >= 16) break;
+  const push = (key, value) => {
+    if (key === "name" || value === null || value === void 0 || key in out || count >= 16) return;
     out[key] = typeof value === "string" && value.length > 160 ? value.slice(0, 160) : value;
     count += 1;
+  };
+  for (const key of SNAPSHOT_PRIORITY_PROPS) {
+    if (Object.hasOwn(properties, key)) push(key, properties[key]);
   }
+  for (const [key, value] of Object.entries(properties)) push(key, value);
   return Object.keys(out).length > 0 ? out : void 0;
 }
 function compactDrawCommand(command) {
@@ -5183,11 +5225,19 @@ function createVectorLabels({ Cesium, viewer, root, onHover, onSelect, isInterac
   let lastFrame = -Infinity;
   const valueOf = (property) => property?.getValue ? property.getValue(viewer.clock.currentTime) : property;
   const occluder = new Cesium.EllipsoidalOccluder(viewer.scene.globe.ellipsoid, viewer.camera.positionWC);
-  function add(entity, options, group) {
+  function add(entity, options, group, descriptor = null) {
     if (!options.label || !options.position) return;
     const button = document2.createElement("button");
     button.type = "button";
     button.className = "mv-vector-label";
+    const styleKey = typeof descriptor?.style === "string" && VECTOR_COLORS[descriptor.style] ? descriptor.style : "";
+    const accent = styleKey ? VECTOR_COLORS[styleKey] : "";
+    const featureKind = typeof descriptor?.featureKind === "string" ? descriptor.featureKind : "";
+    if (styleKey) {
+      button.dataset.style = styleKey;
+      button.style?.setProperty?.("--mv-label-accent", accent);
+    }
+    if (featureKind) button.dataset.kind = featureKind;
     button.hidden = true;
     button.addEventListener("pointerenter", () => onHover(group));
     button.addEventListener("pointerleave", () => onHover(null));
@@ -5200,7 +5250,7 @@ function createVectorLabels({ Cesium, viewer, root, onHover, onSelect, isInterac
     });
     layer.append(button);
     entity.label.show = false;
-    const label = { entity, group, options, button, text: "", anchor: null, box: null, size: null };
+    const label = { entity, group, options, button, accent, featureKind, text: "", anchor: null, box: null, size: null };
     labels.set(entity, label);
     refreshAnchors([label]);
   }
@@ -5304,8 +5354,12 @@ function createVectorLabels({ Cesium, viewer, root, onHover, onSelect, isInterac
       context.strokeStyle = dark ? "#3c4d63" : "#cad7e3";
       context.lineWidth = 1;
       context.stroke();
+      if (label.accent) {
+        context.fillStyle = label.accent;
+        context.fillRect(left + 1, top + 4, 3, Math.max(4, bottom - top - 8));
+      }
       context.fillStyle = dark ? "#edf5ff" : "#20344c";
-      context.fillText(label.text, left + 11, (top + bottom) / 2);
+      context.fillText(label.text, left + (label.accent ? 13 : 11), (top + bottom) / 2);
     }
     context.restore();
   }
@@ -5488,7 +5542,7 @@ function createVectorInteraction({ Cesium, viewer, root, getTool, onSelect }) {
     if (entity.point) originals.push([entity.point, "pixelSize", entity.point.pixelSize]);
     for (const kind of ["polygon", "rectangle"]) if (entity[kind]) originals.push([entity[kind], "material", entity[kind].material]);
     entries.set(entity, { group, options: styled, originals, width: entity.polyline?.width });
-    labels.add(entity, styled, group);
+    labels.add(entity, styled, group, descriptor);
     labels.setState(hovered, selected);
     applyState(group);
     viewer.scene.requestRender();
@@ -9698,6 +9752,8 @@ var VECTOR_CSS = `
 .mv-elevation-legend .mv-cta{width:100%;font-size:12px}
 .mv-vector-labels{position:absolute;inset:0;z-index:7;pointer-events:none;overflow:hidden}
 .mv-vector-label{position:absolute;box-sizing:border-box;appearance:none;pointer-events:auto;max-width:calc(100% - 16px);margin:0;padding:7px 11px;border:1px solid #cad7e3;border-radius:8px;background:#fcfdff;color:#20344c;font:500 13px/19px "Segoe UI","Microsoft YaHei","PingFang SC",sans-serif;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-shadow:0 2px 8px #07152926,0 1px 2px #07152914;cursor:pointer;transition:background .14s ease-out,border-color .14s ease-out,box-shadow .14s ease-out}
+.mv-vector-label[data-style]{border-left:3.5px solid var(--mv-label-accent,#5796cb)}
+.mv-vector-label[data-kind="note"]{font-weight:600;border-left-width:4px}
 .mv-vector-label[hidden]{display:none}
 .mv-vector-label:disabled{pointer-events:none;cursor:default}
 .mv-vector-label[data-state="hover"],.mv-vector-label[data-state="selected"]{border-color:#5796cb;background:#edf6ff;box-shadow:0 0 0 2px #79b6e83d,0 3px 12px #07152933}
@@ -9705,21 +9761,38 @@ var VECTOR_CSS = `
 .mv-root[data-mv-scheme="dark"] .mv-vector-label{background:#17212f;color:#edf5ff;border-color:#3c4d63;box-shadow:0 2px 8px #0006}
 .mv-root[data-mv-scheme="dark"] .mv-vector-label:is([data-state="hover"],[data-state="selected"]){background:#223b53;border-color:#79b6e8}
 .mv-vector-hovering .cesium-widget canvas{cursor:pointer}
-.mv-vector-card{position:absolute;left:12px;bottom:48px;z-index:13;box-sizing:border-box;width:min(320px,calc(100% - 24px));max-height:45%;overflow:auto;padding:16px;border:1px solid var(--mv-line);border-radius:12px;background:var(--mv-glass-strong);box-shadow:var(--mv-shadow);font-size:13px;line-height:1.6;animation:mv-fade .16s ease-out}
+.mv-vector-card{position:absolute;left:12px;bottom:48px;z-index:13;box-sizing:border-box;width:min(344px,calc(100% - 24px));max-height:min(520px,68%);overflow:auto;padding:16px;border:1px solid var(--mv-line);border-radius:12px;background:var(--mv-glass-strong);box-shadow:var(--mv-shadow);font-size:13px;line-height:1.6;animation:mv-fade .16s ease-out}
 .mv-vector-card header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
 .mv-vector-card .eyebrow{display:block;font-size:11px;color:var(--mv-dim);margin-bottom:3px}
 .mv-vector-card h3{margin:0;font-size:15px;font-weight:600;overflow-wrap:anywhere}
-.mv-vector-card .summary{margin:12px 0;color:var(--mv-text);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
-.mv-vector-card dl{margin:12px 0}
+.mv-vector-card .summary{margin:10px 0;color:var(--mv-text);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.mv-vector-card dl{margin:10px 0}
 .mv-vector-card dl>div{display:grid;grid-template-columns:minmax(60px,1fr) minmax(0,2fr);gap:12px;border-top:1px solid var(--mv-line);padding:6px 0}
 .mv-vector-card dt{color:var(--mv-dim);overflow-wrap:anywhere}
 .mv-vector-card dd{margin:0;overflow-wrap:anywhere}
-.mv-vector-card footer{margin-top:12px;padding-top:10px;border-top:1px solid var(--mv-line);font-size:11px;color:var(--mv-dim)}
-.mv-vector-card .mv-vector-edit{display:grid;gap:10px;margin:12px 0}
-.mv-vector-card .mv-vector-edit label{display:grid;gap:4px}
-.mv-vector-card .mv-vector-edit label>span{font-size:11px;color:var(--mv-dim)}
-.mv-vector-card .mv-vector-edit input,.mv-vector-card .mv-vector-edit textarea{width:100%;box-sizing:border-box;border:1px solid var(--mv-line);border-radius:7px;background:var(--mv-lift);color:var(--mv-text);font:inherit;font-size:12px;padding:6px 8px;resize:vertical}
-.mv-vector-card .mv-vector-edit input:focus-visible,.mv-vector-card .mv-vector-edit textarea:focus-visible{outline:2px solid var(--mv-accent);outline-offset:1px}
+.mv-vector-card footer{margin-top:10px;padding-top:10px;border-top:1px solid var(--mv-line);font-size:11px;color:var(--mv-dim)}
+.mv-vector-card .mv-vector-edit{display:grid;gap:10px;margin:10px 0}
+.mv-vector-card .mv-vector-edit label,.mv-vector-field{display:grid;gap:4px}
+.mv-vector-card .mv-vector-edit label>span,.mv-vector-field-label{font-size:11px;color:var(--mv-dim)}
+.mv-vector-card .mv-vector-edit input:not([type="checkbox"]),.mv-vector-card .mv-vector-edit textarea,.mv-vector-card .mv-vector-edit select{width:100%;box-sizing:border-box;border:1px solid var(--mv-line);border-radius:7px;background:var(--mv-lift);color:var(--mv-text);font:inherit;font-size:12px;padding:6px 8px;resize:vertical}
+.mv-vector-card .mv-vector-edit select{cursor:pointer}
+.mv-vector-card .mv-vector-edit input:focus-visible,.mv-vector-card .mv-vector-edit textarea:focus-visible,.mv-vector-card .mv-vector-edit select:focus-visible{outline:2px solid var(--mv-accent);outline-offset:1px}
+.mv-vector-row-2{display:grid;grid-template-columns:minmax(0,.95fr) minmax(0,1.25fr);gap:10px;align-items:end}
+.mv-swatch-row{display:flex;align-items:center;gap:7px;min-height:30px}
+.mv-swatch{appearance:none;position:relative;width:20px;height:20px;padding:0;border-radius:999px;border:2px solid transparent;background:var(--mv-swatch,#38c9ff);cursor:pointer;transition:transform .12s ease,box-shadow .12s ease,border-color .12s ease}
+.mv-swatch:hover{transform:scale(1.1)}
+.mv-swatch.on{border-color:#fff;box-shadow:0 0 0 2px var(--mv-swatch,#38c9ff)}
+.mv-root[data-mv-scheme="dark"] .mv-swatch.on{border-color:#0f172a}
+.mv-swatch:focus-visible{outline:2px solid var(--mv-accent);outline-offset:2px}
+.mv-anno-palette{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 8px;margin-top:4px;border:1px solid var(--mv-line);border-radius:8px;background:color-mix(in srgb,var(--mv-lift) 65%,transparent)}
+.mv-anno-palette-label{font-size:11px;color:var(--mv-dim);white-space:nowrap}
+.mv-extrude-box{display:grid;gap:7px;padding:8px 10px;border:1px solid var(--mv-line);border-radius:8px;background:color-mix(in srgb,var(--mv-lift) 60%,transparent)}
+.mv-extrude-toggle{display:flex!important;align-items:center;gap:8px;cursor:pointer;font-size:12px;color:var(--mv-text)!important}
+.mv-extrude-toggle input{appearance:auto;width:14px;height:14px;margin:0;cursor:pointer}
+.mv-extrude-toggle span{font-size:12px!important;color:var(--mv-text)!important;font-weight:500}
+.mv-extrude-height{display:grid;grid-template-columns:1fr 96px;align-items:center;gap:8px}
+.mv-extrude-hint{font-size:11px;color:var(--mv-dim);line-height:1.45}
+.mv-vector-shortcuts{margin:8px 0 0;padding:7px 9px;border-radius:8px;background:color-mix(in srgb,var(--mv-accent) 10%,transparent);border:1px solid color-mix(in srgb,var(--mv-accent) 26%,transparent);color:var(--mv-text);font-size:11px;line-height:1.45}
 .mv-vector-card .mv-vector-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
 .mv-vector-card .mv-btn.mv-danger{color:#fca5a5}
 .mv-vector-card .mv-btn.mv-danger:hover{background:color-mix(in srgb,#f87171 22%,transparent)}
@@ -14856,6 +14929,288 @@ function ParseBody({ t: t2, getCesium, getViewer, getLayers, showToast, onAdoptP
   );
 }
 
+// src/client/scene/annotation-model.js
+var ANNOTATION_MAX_NAME = 80;
+var ANNOTATION_MAX_NOTE = 280;
+var ANNOTATION_MAX_HEIGHT_M = 5e3;
+var ANNOTATION_KINDS = ["point", "line", "area", "note"];
+var ANNOTATION_STYLES = ["accent", "alert", "success", "warm", "violet"];
+var ANNOTATION_COORDINATE_DECIMALS = 6;
+var DEFAULT_KIND_BY_GEOMETRY = {
+  Point: "point",
+  MultiPoint: "point",
+  LineString: "line",
+  MultiLineString: "line",
+  Polygon: "area",
+  MultiPolygon: "area"
+};
+function annotationText(value, limit) {
+  if (typeof value !== "string") return "";
+  return value.replace(/\s+/g, " ").trim().slice(0, limit);
+}
+function annotationKindOf(feature) {
+  const explicit = feature?.properties?.kind;
+  if (typeof explicit === "string" && ANNOTATION_KINDS.includes(explicit)) return explicit;
+  const type = feature?.geometry?.type;
+  return DEFAULT_KIND_BY_GEOMETRY[type] ?? "note";
+}
+function annotationName(feature) {
+  return annotationText(feature?.properties?.name, ANNOTATION_MAX_NAME);
+}
+var finiteHeight = (value) => typeof value === "number" && Number.isFinite(value) ? value : null;
+function annotationStyleOf(feature, fallback = "accent") {
+  const explicit = feature?.properties?.style;
+  if (typeof explicit === "string" && ANNOTATION_STYLES.includes(explicit)) return explicit;
+  return typeof fallback === "string" && ANNOTATION_STYLES.includes(fallback) ? fallback : "accent";
+}
+function annotationExtrusionOf(feature, defaultHeight = 15) {
+  const props = feature?.properties && typeof feature.properties === "object" ? feature.properties : {};
+  const baseHeight = finiteHeight(props.base_height_m) ?? finiteHeight(props.ground_height_m) ?? finiteHeight(props.baseHeight) ?? 0;
+  const roofExplicit = finiteHeight(props.extruded_height_m) ?? finiteHeight(props.extrudedHeight);
+  const rel = finiteHeight(props.height_m) ?? finiteHeight(props.building_height_m) ?? finiteHeight(props.height);
+  let heightM = rel !== null && rel > 0 ? rel : null;
+  if (heightM === null && roofExplicit !== null && roofExplicit > baseHeight) {
+    heightM = Math.round((roofExplicit - baseHeight) * 100) / 100;
+  }
+  const hasExtrudedTrigger = roofExplicit !== null && roofExplicit > baseHeight || rel !== null && rel > 0 && (finiteHeight(props.base_height_m) !== null || finiteHeight(props.ground_height_m) !== null || finiteHeight(props.baseHeight) !== null || props.height_m != null || props.building_height_m != null || props.mode3d === true || props.extruded === true);
+  const enabled = props.extruded === false ? false : Boolean(hasExtrudedTrigger);
+  return {
+    enabled,
+    height_m: heightM ?? defaultHeight,
+    has_height: heightM !== null,
+    base_height_m: baseHeight
+  };
+}
+var generatedFeatureCounter = 0;
+function annotationFeatureId(feature) {
+  const propId = feature?.properties?.feature_id;
+  if (typeof propId === "string" && propId.trim() !== "") return propId.trim();
+  if (typeof propId === "number" && Number.isFinite(propId)) return String(propId);
+  if (typeof feature?.id === "string" && feature.id.trim() !== "") return feature.id.trim();
+  if (typeof feature?.id === "number" && Number.isFinite(feature.id)) return String(feature.id);
+  return "";
+}
+function ensureAnnotationFeatureId(feature) {
+  if (feature === null || typeof feature !== "object" || feature.type !== "Feature") return feature;
+  const existing = annotationFeatureId(feature);
+  const id = existing !== "" ? existing : `feat-${Date.now().toString(36)}-${generatedFeatureCounter += 1}`;
+  if (feature.properties?.feature_id === id) return feature;
+  return { ...feature, properties: { ...feature.properties ?? {}, feature_id: id } };
+}
+function withAnnotationProperties(feature, patch = {}) {
+  if (feature === null || typeof feature !== "object" || feature.type !== "Feature") {
+    return { ok: false, error: "invalid_feature" };
+  }
+  const next = { ...feature, properties: { ...feature.properties ?? {} } };
+  if (patch.name !== void 0) {
+    const name = annotationText(patch.name, ANNOTATION_MAX_NAME);
+    if (name === "") delete next.properties.name;
+    else next.properties.name = name;
+  }
+  if (patch.note !== void 0) {
+    const note = annotationText(patch.note, ANNOTATION_MAX_NOTE);
+    if (note === "") delete next.properties.note;
+    else next.properties.note = note;
+  }
+  if (patch.kind !== void 0) {
+    if (!ANNOTATION_KINDS.includes(patch.kind)) return { ok: false, error: "invalid_kind" };
+    next.properties.kind = patch.kind;
+  }
+  if (patch.style !== void 0) {
+    if (patch.style === "" || patch.style === null) delete next.properties.style;
+    else if (!ANNOTATION_STYLES.includes(patch.style)) return { ok: false, error: "invalid_style" };
+    else next.properties.style = patch.style;
+  }
+  if (patch.extruded !== void 0) {
+    if (typeof patch.extruded !== "boolean") return { ok: false, error: "invalid_extruded" };
+    next.properties.extruded = patch.extruded;
+  }
+  if (patch.height_m !== void 0) {
+    if (patch.height_m === "" || patch.height_m === null) {
+      delete next.properties.height_m;
+      delete next.properties.extruded_height_m;
+      delete next.properties.extrudedHeight;
+      delete next.properties.building_height_m;
+      delete next.properties.height;
+    } else {
+      const value = Number(patch.height_m);
+      if (!Number.isFinite(value) || value <= 0 || value > ANNOTATION_MAX_HEIGHT_M) {
+        return { ok: false, error: "invalid_height" };
+      }
+      const rounded = Math.round(value * 100) / 100;
+      next.properties.height_m = rounded;
+      const base = finiteHeight(next.properties.base_height_m) ?? finiteHeight(next.properties.ground_height_m) ?? finiteHeight(next.properties.baseHeight) ?? 0;
+      if (next.properties.extruded_height_m != null || next.properties.extrudedHeight != null || next.properties.roof_height_m != null) {
+        const roof = Math.round((base + rounded) * 100) / 100;
+        if (next.properties.extrudedHeight !== void 0 && next.properties.extruded_height_m === void 0) {
+          next.properties.extrudedHeight = roof;
+        } else {
+          next.properties.extruded_height_m = roof;
+        }
+        if (typeof next.properties.roof_height_m === "number") next.properties.roof_height_m = roof;
+      }
+    }
+  }
+  return { ok: true, feature: next };
+}
+function withAnnotationGeometry(feature, geometry) {
+  if (feature === null || typeof feature !== "object" || feature.type !== "Feature") {
+    return { ok: false, error: "invalid_feature" };
+  }
+  if (geometry === null || typeof geometry !== "object" || typeof geometry.type !== "string") {
+    return { ok: false, error: "invalid_geometry" };
+  }
+  const next = { ...feature, geometry };
+  if (!annotationBoundsOk(next)) return { ok: false, error: "out_of_bounds" };
+  return { ok: true, feature: next };
+}
+function normalizeAnnotation(feature, { source = "manual" } = {}) {
+  if (feature === null || typeof feature !== "object" || feature.type !== "Feature") {
+    return { ok: false, error: "invalid_feature" };
+  }
+  const kind = annotationKindOf(feature);
+  const properties = {
+    ...feature.properties && typeof feature.properties === "object" ? feature.properties : {},
+    kind
+  };
+  const name = annotationText(properties.name, ANNOTATION_MAX_NAME);
+  if (name === "") delete properties.name;
+  else properties.name = name;
+  const note = annotationText(properties.note, ANNOTATION_MAX_NOTE);
+  if (note === "") delete properties.note;
+  else properties.note = note;
+  if (typeof properties.source !== "string" || properties.source === "") properties.source = source;
+  return { ok: true, feature: { type: "Feature", ...feature.id !== void 0 ? { id: feature.id } : {}, properties, geometry: feature.geometry } };
+}
+function annotationBoundsOk(feature) {
+  let valid = true;
+  const walk = (value) => {
+    if (!valid || !Array.isArray(value)) return;
+    if (typeof value[0] === "number" && typeof value[1] === "number") {
+      const [lon, lat] = value;
+      if (!Number.isFinite(lon) || !Number.isFinite(lat) || Math.abs(lon) > 180 || Math.abs(lat) > 90) valid = false;
+      return;
+    }
+    for (const item of value) walk(item);
+  };
+  walk(feature?.geometry?.coordinates);
+  return valid;
+}
+function roundAnnotationGeometry(geometry, digits = ANNOTATION_COORDINATE_DECIMALS) {
+  if (geometry === null || typeof geometry !== "object") return geometry;
+  const factor = 10 ** digits;
+  const round2 = (value) => Math.round(value * factor) / factor;
+  const walk = (value) => {
+    if (!Array.isArray(value)) return value;
+    if (typeof value[0] === "number") {
+      return value.map((part, index) => index < 2 ? round2(part) : part);
+    }
+    return value.map(walk);
+  };
+  const next = { ...geometry };
+  if (next.coordinates !== void 0) next.coordinates = walk(next.coordinates);
+  if (Array.isArray(next.geometries)) next.geometries = next.geometries.map((child) => roundAnnotationGeometry(child, digits));
+  return next;
+}
+function annotationFeaturesOfCommands(commands) {
+  const features = [];
+  for (const command of Array.isArray(commands) ? commands : []) {
+    const list = Array.isArray(command?.geojson?.features) ? command.geojson.features : [];
+    for (const feature of list) if (feature?.type === "Feature") features.push(feature);
+  }
+  return features;
+}
+function nextAnnotationName(features, kind, t2) {
+  const prefix = typeof t2 === "function" ? t2(`annotation.kind.${kind}`) : kind;
+  let index = 1;
+  const taken = new Set(
+    (Array.isArray(features) ? features : []).map((feature) => annotationName(feature)).filter((value) => value !== "")
+  );
+  while (taken.has(`${prefix} ${index}`)) index += 1;
+  return `${prefix} ${index}`;
+}
+function editableRings(feature) {
+  const geometry = feature?.geometry;
+  if (geometry?.type === "Point") return { kind: "point", rings: [geometry.coordinates] };
+  if (geometry?.type === "LineString") return { kind: "line", rings: [geometry.coordinates] };
+  if (geometry?.type === "Polygon") return { kind: "area", rings: geometry.coordinates };
+  return null;
+}
+function withRings(feature, rings, kind) {
+  const geometry = kind === "point" ? { type: "Point", coordinates: rings[0] } : kind === "line" ? { type: "LineString", coordinates: rings[0] } : { type: "Polygon", coordinates: rings };
+  return { ...feature, geometry };
+}
+function moveAnnotationVertex(feature, ringIndex, vertexIndex, lon, lat) {
+  const editable = editableRings(feature);
+  if (!editable) return { ok: false, error: "unsupported_geometry" };
+  const ring = editable.rings[ringIndex];
+  if (!Array.isArray(ring) || vertexIndex < 0 || vertexIndex >= ring.length) return { ok: false, error: "vertex_out_of_range" };
+  if (!Number.isFinite(lon) || !Number.isFinite(lat) || Math.abs(lon) > 180 || Math.abs(lat) > 90) {
+    return { ok: false, error: "vertex_out_of_range" };
+  }
+  const rings = editable.rings.map((item) => item.slice());
+  const closed = editable.kind === "area" && rings[ringIndex].length > 1;
+  const wrapped = closed && vertexIndex === 0 ? rings[ringIndex].length - 1 : -1;
+  rings[ringIndex][vertexIndex] = [lon, lat];
+  if (wrapped >= 0) rings[ringIndex][wrapped] = [lon, lat];
+  if (closed && vertexIndex === rings[ringIndex].length - 1) rings[ringIndex][0] = [lon, lat];
+  return { ok: true, feature: withRings(feature, rings, editable.kind) };
+}
+function ringCorners(ring, closed) {
+  if (!Array.isArray(ring) || ring.length === 0) return 0;
+  if (!closed || ring.length < 2) return ring.length;
+  const first = ring[0];
+  const last = ring[ring.length - 1];
+  return first?.[0] === last?.[0] && first?.[1] === last?.[1] ? ring.length - 1 : ring.length;
+}
+function insertAnnotationVertex(feature, ringIndex, vertexIndex, lon, lat) {
+  const editable = editableRings(feature);
+  if (!editable || editable.kind === "point") return { ok: false, error: "unsupported_geometry" };
+  const ring = editable.rings[ringIndex];
+  const corners = ringCorners(ring, editable.kind === "area");
+  if (!Array.isArray(ring) || vertexIndex < 0 || vertexIndex >= corners) return { ok: false, error: "vertex_out_of_range" };
+  if (!Number.isFinite(lon) || !Number.isFinite(lat) || Math.abs(lon) > 180 || Math.abs(lat) > 90) {
+    return { ok: false, error: "vertex_out_of_range" };
+  }
+  const rings = editable.rings.map((item) => item.slice());
+  const at = vertexIndex + 1;
+  rings[ringIndex].splice(at, 0, [lon, lat]);
+  if (editable.kind === "area") {
+    const next = rings[ringIndex];
+    next[next.length - 1] = [next[0][0], next[0][1]];
+  }
+  return { ok: true, feature: withRings(feature, rings, editable.kind) };
+}
+function deleteAnnotationVertex(feature, ringIndex, vertexIndex) {
+  const editable = editableRings(feature);
+  if (!editable || editable.kind === "point") return { ok: false, error: "unsupported_geometry" };
+  const ring = editable.rings[ringIndex];
+  const closed = editable.kind === "area";
+  const corners = ringCorners(ring, closed);
+  if (!Array.isArray(ring) || vertexIndex < 0 || vertexIndex >= corners) return { ok: false, error: "vertex_out_of_range" };
+  if (editable.kind === "line" && corners <= 2 || closed && corners <= 3) {
+    return { ok: false, error: "too_few_vertices" };
+  }
+  const rings = editable.rings.map((item) => item.slice());
+  if (closed && vertexIndex === 0) {
+    rings[ringIndex].splice(0, 1);
+    rings[ringIndex][rings[ringIndex].length - 1] = [rings[ringIndex][0][0], rings[ringIndex][0][1]];
+  } else {
+    rings[ringIndex].splice(vertexIndex, 1);
+  }
+  return { ok: true, feature: withRings(feature, rings, editable.kind) };
+}
+function translateAnnotation(feature, dLon, dLat) {
+  const editable = editableRings(feature);
+  if (!editable) return { ok: false, error: "unsupported_geometry" };
+  if (!Number.isFinite(dLon) || !Number.isFinite(dLat)) return { ok: false, error: "vertex_out_of_range" };
+  const rings = editable.rings.map((ring) => ring.map((vertex) => {
+    if (!Array.isArray(vertex) || vertex.length < 2) return vertex;
+    return [Math.max(-180, Math.min(180, vertex[0] + dLon)), Math.max(-90, Math.min(90, vertex[1] + dLat))];
+  }));
+  return { ok: true, feature: withRings(feature, rings, editable.kind) };
+}
+
 // src/client/ui/tool-windows.js
 var h22 = import_react24.default.createElement;
 var MEASURE_TOOLS = [
@@ -14956,22 +15311,45 @@ function ViewBody({ t: t2, getCurrentView, onFlyView, onStartTour }) {
   return h22(ToolsBookmarks, { t: t2, getCurrentView, onFlyView, onStartTour });
 }
 function AnnotationBody({ t: t2, onStartAnnotation }) {
+  const [style, setStyle] = import_react24.default.useState("accent");
   return h22(
     import_react24.default.Fragment,
     null,
     h22(
       "div",
       { className: "mv-tool-grid" },
-      ...["point", "line", "area"].map(
+      ...["point", "line", "area", "note"].map(
         (kind) => h22(
           "button",
           {
             key: kind,
             type: "button",
             className: "mv-cta",
-            onClick: () => typeof onStartAnnotation === "function" ? onStartAnnotation(kind) : null
+            onClick: () => typeof onStartAnnotation === "function" ? onStartAnnotation(kind, style) : null
           },
           t2(`annotation.draw${kind[0].toUpperCase()}${kind.slice(1)}`)
+        )
+      )
+    ),
+    h22(
+      "div",
+      { className: "mv-anno-palette", role: "radiogroup", "aria-label": t2("annotation.styleLabel") },
+      h22("span", { className: "mv-anno-palette-label" }, t2("annotation.styleLabel")),
+      h22(
+        "div",
+        { className: "mv-swatch-row" },
+        ...ANNOTATION_STYLES.map(
+          (preset) => h22("button", {
+            key: preset,
+            type: "button",
+            className: `mv-swatch${style === preset ? " on" : ""}`,
+            style: { "--mv-swatch": VECTOR_COLORS[preset] },
+            title: t2(`annotation.style.${preset}`),
+            "aria-label": t2(`annotation.style.${preset}`),
+            "aria-checked": style === preset,
+            role: "radio",
+            onClick: () => setStyle(preset)
+          })
         )
       )
     ),
@@ -15928,20 +16306,41 @@ function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t: t2, s
 // src/client/ui/vector-card.js
 var import_react31 = __toESM(require("react"), 1);
 var h28 = import_react31.default.createElement;
+var EDITABLE_HIDDEN_KEYS = /* @__PURE__ */ new Set(["note", "kind", "style", "extruded", "extruded_height_m", "extrudedHeight", "height_m"]);
 function VectorCard({ selection, onClose, onChange, onDelete, onExport, t: t2 }) {
-  if (!selection) return null;
-  const feature = selection.feature ?? null;
-  const editable = Boolean(feature && selection.command);
-  const [name, setName] = import_react31.default.useState("");
-  const [note, setNote] = import_react31.default.useState("");
-  const [busy, setBusy] = import_react31.default.useState(false);
-  import_react31.default.useEffect(() => {
-    setName(feature?.properties?.name ?? "");
-    setNote(feature?.properties?.note ?? "");
-  }, [feature]);
+  const feature = selection?.feature ?? null;
+  const command = selection?.command ?? null;
+  const editable = Boolean(selection && feature && command);
+  const geomType = feature?.geometry?.type ?? "";
+  const isPolygon = geomType === "Polygon" || geomType === "MultiPolygon";
+  const shapeEditable = Boolean(editable && (geomType === "LineString" || geomType === "Polygon"));
   const savedName = feature?.properties?.name ?? "";
   const savedNote = feature?.properties?.note ?? "";
-  const dirty = editable && (name.trim() !== savedName || note.trim() !== savedNote);
+  const savedKind = annotationKindOf(feature);
+  const savedStyle = annotationStyleOf(feature, command?.style ?? "accent");
+  const savedExtrusion = annotationExtrusionOf(feature);
+  const [name, setName] = import_react31.default.useState("");
+  const [note, setNote] = import_react31.default.useState("");
+  const [kind, setKind] = import_react31.default.useState("point");
+  const [style, setStyle] = import_react31.default.useState("accent");
+  const [extruded, setExtruded] = import_react31.default.useState(false);
+  const [heightInput, setHeightInput] = import_react31.default.useState("15");
+  const [busy, setBusy] = import_react31.default.useState(false);
+  import_react31.default.useEffect(() => {
+    setName(savedName);
+    setNote(savedNote);
+    setKind(savedKind);
+    setStyle(savedStyle);
+    const ext = annotationExtrusionOf(feature);
+    setExtruded(ext.enabled);
+    setHeightInput(String(ext.height_m));
+  }, [feature, command]);
+  if (!selection) return null;
+  const trimmedHeight = heightInput.trim();
+  const parsedHeight = Number(trimmedHeight);
+  const heightValid = !isPolygon || !extruded || trimmedHeight !== "" && Number.isFinite(parsedHeight) && parsedHeight > 0 && parsedHeight <= ANNOTATION_MAX_HEIGHT_M;
+  const heightChanged = isPolygon && (extruded !== savedExtrusion.enabled || extruded && heightValid && Math.abs(parsedHeight - savedExtrusion.height_m) > 1e-4);
+  const dirty = editable && heightValid && (name.trim() !== savedName || note.trim() !== savedNote || kind !== savedKind || style !== savedStyle || heightChanged);
   const submit = (fn) => {
     if (!fn || busy) return;
     setBusy(true);
@@ -15951,14 +16350,49 @@ function VectorCard({ selection, onClose, onChange, onDelete, onExport, t: t2 })
       setBusy(false);
     }
   };
+  const savePatch = () => {
+    const patch = {
+      name: name.trim(),
+      note: note.trim(),
+      kind,
+      style
+    };
+    if (isPolygon) {
+      if (extruded) {
+        patch.extruded = true;
+        patch.height_m = Math.round(parsedHeight * 100) / 100;
+      } else if (savedExtrusion.enabled || feature?.properties?.extruded !== void 0 || savedExtrusion.has_height) {
+        patch.extruded = false;
+      }
+    }
+    onChange?.(patch);
+  };
+  const rows = (Array.isArray(selection.rows) ? selection.rows : []).filter(
+    ([rowKey]) => !editable || !EDITABLE_HIDDEN_KEYS.has(rowKey)
+  );
   return h28(
     "section",
     { className: "mv-vector-card", "aria-label": t2("vector.selection") },
     h28(
       "header",
       null,
-      h28("div", null, h28("span", { className: "eyebrow" }, selection.kind), h28("h3", null, selection.title)),
-      h28("button", { type: "button", className: "mv-icon-btn", title: t2("btn.close"), "aria-label": t2("btn.close"), onClick: onClose }, "✕")
+      h28(
+        "div",
+        null,
+        h28("span", { className: "eyebrow" }, selection.kind),
+        h28("h3", null, selection.title)
+      ),
+      h28(
+        "button",
+        {
+          type: "button",
+          className: "mv-icon-btn",
+          title: t2("btn.close"),
+          "aria-label": t2("btn.close"),
+          onClick: onClose
+        },
+        "✕"
+      )
     ),
     selection.summary ? h28("p", { className: "summary" }, selection.summary) : null,
     editable ? h28(
@@ -15976,6 +16410,74 @@ function VectorCard({ selection, onClose, onChange, onDelete, onExport, t: t2 })
         })
       ),
       h28(
+        "div",
+        { className: "mv-vector-row-2" },
+        h28(
+          "label",
+          null,
+          h28("span", null, t2("annotation.kindLabel")),
+          h28(
+            "select",
+            {
+              value: kind,
+              "aria-label": t2("annotation.kindLabel"),
+              onChange: (event) => setKind(event.target.value)
+            },
+            ...ANNOTATION_KINDS.map((item) => h28("option", { key: item, value: item }, t2(`annotation.kind.${item}`)))
+          )
+        ),
+        h28(
+          "div",
+          { className: "mv-vector-field" },
+          h28("span", { className: "mv-vector-field-label" }, t2("annotation.styleLabel")),
+          h28(
+            "div",
+            { className: "mv-swatch-row", role: "radiogroup", "aria-label": t2("annotation.styleLabel") },
+            ...ANNOTATION_STYLES.map(
+              (preset) => h28("button", {
+                key: preset,
+                type: "button",
+                className: `mv-swatch${style === preset ? " on" : ""}`,
+                style: { "--mv-swatch": VECTOR_COLORS[preset] },
+                title: t2(`annotation.style.${preset}`),
+                "aria-label": t2(`annotation.style.${preset}`),
+                "aria-checked": style === preset,
+                role: "radio",
+                onClick: () => setStyle(preset)
+              })
+            )
+          )
+        )
+      ),
+      isPolygon ? h28(
+        "div",
+        { className: "mv-extrude-box" },
+        h28(
+          "label",
+          { className: "mv-extrude-toggle" },
+          h28("input", {
+            type: "checkbox",
+            checked: extruded,
+            onChange: (event) => setExtruded(Boolean(event.target.checked))
+          }),
+          h28("span", null, t2("annotation.extrude3d"))
+        ),
+        extruded ? h28(
+          "label",
+          { className: "mv-extrude-height" },
+          h28("span", null, t2("annotation.extrudeHeight")),
+          h28("input", {
+            type: "number",
+            min: 0.5,
+            max: ANNOTATION_MAX_HEIGHT_M,
+            step: 0.5,
+            value: heightInput,
+            "aria-label": t2("annotation.extrudeHeight"),
+            onChange: (event) => setHeightInput(event.target.value)
+          })
+        ) : h28("span", { className: "mv-extrude-hint" }, t2("annotation.extrudeHint"))
+      ) : null,
+      h28(
         "label",
         null,
         h28("span", null, t2("annotation.note")),
@@ -15988,18 +16490,47 @@ function VectorCard({ selection, onClose, onChange, onDelete, onExport, t: t2 })
         })
       )
     ) : null,
-    selection.rows?.length ? h28("dl", null, selection.rows.map(([itemName, value], index) => h28("div", { key: index }, h28("dt", null, itemName), h28("dd", null, value)))) : null,
+    rows.length ? h28(
+      "dl",
+      null,
+      rows.map(
+        ([itemName, value], index) => h28("div", { key: index }, h28("dt", null, itemName), h28("dd", null, value))
+      )
+    ) : null,
+    shapeEditable ? h28("p", { className: "mv-vector-shortcuts" }, t2("annotation.shortcutHint")) : null,
     editable ? h28(
       "footer",
       { className: "mv-vector-actions" },
-      h28("button", {
-        type: "button",
-        className: "mv-btn",
-        disabled: !dirty || busy,
-        onClick: () => submit(() => onChange?.({ name: name.trim(), note: note.trim() }))
-      }, t2("annotation.save")),
-      h28("button", { type: "button", className: "mv-btn", disabled: busy, onClick: () => submit(() => onExport?.()) }, t2("annotation.export")),
-      h28("button", { type: "button", className: "mv-btn mv-danger", disabled: busy, onClick: () => submit(() => onDelete?.()) }, t2("annotation.delete"))
+      h28(
+        "button",
+        {
+          type: "button",
+          className: "mv-btn",
+          disabled: !dirty || busy,
+          onClick: () => submit(savePatch)
+        },
+        t2("annotation.save")
+      ),
+      h28(
+        "button",
+        {
+          type: "button",
+          className: "mv-btn",
+          disabled: busy,
+          onClick: () => submit(() => onExport?.())
+        },
+        t2("annotation.export")
+      ),
+      h28(
+        "button",
+        {
+          type: "button",
+          className: "mv-btn mv-danger",
+          disabled: busy,
+          onClick: () => submit(() => onDelete?.())
+        },
+        t2("annotation.delete")
+      )
     ) : null,
     h28("footer", null, editable ? t2("annotation.editHint") : t2("vector.selectedHint"))
   );
@@ -16856,227 +17387,6 @@ function runVectorImport(state, viewer, draw) {
   }
 }
 
-// src/client/scene/annotation-model.js
-var ANNOTATION_MAX_NAME = 80;
-var ANNOTATION_MAX_NOTE = 280;
-var ANNOTATION_KINDS = ["point", "line", "area", "note"];
-var ANNOTATION_COORDINATE_DECIMALS = 6;
-var DEFAULT_KIND_BY_GEOMETRY = {
-  Point: "point",
-  MultiPoint: "point",
-  LineString: "line",
-  MultiLineString: "line",
-  Polygon: "area",
-  MultiPolygon: "area"
-};
-function annotationText(value, limit) {
-  if (typeof value !== "string") return "";
-  return value.replace(/\s+/g, " ").trim().slice(0, limit);
-}
-function annotationKindOf(feature) {
-  const explicit = feature?.properties?.kind;
-  if (typeof explicit === "string" && ANNOTATION_KINDS.includes(explicit)) return explicit;
-  const type = feature?.geometry?.type;
-  return DEFAULT_KIND_BY_GEOMETRY[type] ?? "note";
-}
-function annotationName(feature) {
-  return annotationText(feature?.properties?.name, ANNOTATION_MAX_NAME);
-}
-var generatedFeatureCounter = 0;
-function annotationFeatureId(feature) {
-  const propId = feature?.properties?.feature_id;
-  if (typeof propId === "string" && propId.trim() !== "") return propId.trim();
-  if (typeof propId === "number" && Number.isFinite(propId)) return String(propId);
-  if (typeof feature?.id === "string" && feature.id.trim() !== "") return feature.id.trim();
-  if (typeof feature?.id === "number" && Number.isFinite(feature.id)) return String(feature.id);
-  return "";
-}
-function ensureAnnotationFeatureId(feature) {
-  if (feature === null || typeof feature !== "object" || feature.type !== "Feature") return feature;
-  const existing = annotationFeatureId(feature);
-  const id = existing !== "" ? existing : `feat-${Date.now().toString(36)}-${generatedFeatureCounter += 1}`;
-  if (feature.properties?.feature_id === id) return feature;
-  return { ...feature, properties: { ...feature.properties ?? {}, feature_id: id } };
-}
-function withAnnotationProperties(feature, patch = {}) {
-  if (feature === null || typeof feature !== "object" || feature.type !== "Feature") {
-    return { ok: false, error: "invalid_feature" };
-  }
-  const next = { ...feature, properties: { ...feature.properties ?? {} } };
-  if (patch.name !== void 0) {
-    const name = annotationText(patch.name, ANNOTATION_MAX_NAME);
-    if (name === "") delete next.properties.name;
-    else next.properties.name = name;
-  }
-  if (patch.note !== void 0) {
-    const note = annotationText(patch.note, ANNOTATION_MAX_NOTE);
-    if (note === "") delete next.properties.note;
-    else next.properties.note = note;
-  }
-  if (patch.kind !== void 0) {
-    if (!ANNOTATION_KINDS.includes(patch.kind)) return { ok: false, error: "invalid_kind" };
-    next.properties.kind = patch.kind;
-  }
-  return { ok: true, feature: next };
-}
-function withAnnotationGeometry(feature, geometry) {
-  if (feature === null || typeof feature !== "object" || feature.type !== "Feature") {
-    return { ok: false, error: "invalid_feature" };
-  }
-  if (geometry === null || typeof geometry !== "object" || typeof geometry.type !== "string") {
-    return { ok: false, error: "invalid_geometry" };
-  }
-  const next = { ...feature, geometry };
-  if (!annotationBoundsOk(next)) return { ok: false, error: "out_of_bounds" };
-  return { ok: true, feature: next };
-}
-function normalizeAnnotation(feature, { source = "manual" } = {}) {
-  if (feature === null || typeof feature !== "object" || feature.type !== "Feature") {
-    return { ok: false, error: "invalid_feature" };
-  }
-  const kind = annotationKindOf(feature);
-  const properties = {
-    ...feature.properties && typeof feature.properties === "object" ? feature.properties : {},
-    kind
-  };
-  const name = annotationText(properties.name, ANNOTATION_MAX_NAME);
-  if (name === "") delete properties.name;
-  else properties.name = name;
-  const note = annotationText(properties.note, ANNOTATION_MAX_NOTE);
-  if (note === "") delete properties.note;
-  else properties.note = note;
-  if (typeof properties.source !== "string" || properties.source === "") properties.source = source;
-  return { ok: true, feature: { type: "Feature", ...feature.id !== void 0 ? { id: feature.id } : {}, properties, geometry: feature.geometry } };
-}
-function annotationBoundsOk(feature) {
-  let valid = true;
-  const walk = (value) => {
-    if (!valid || !Array.isArray(value)) return;
-    if (typeof value[0] === "number" && typeof value[1] === "number") {
-      const [lon, lat] = value;
-      if (!Number.isFinite(lon) || !Number.isFinite(lat) || Math.abs(lon) > 180 || Math.abs(lat) > 90) valid = false;
-      return;
-    }
-    for (const item of value) walk(item);
-  };
-  walk(feature?.geometry?.coordinates);
-  return valid;
-}
-function roundAnnotationGeometry(geometry, digits = ANNOTATION_COORDINATE_DECIMALS) {
-  if (geometry === null || typeof geometry !== "object") return geometry;
-  const factor = 10 ** digits;
-  const round2 = (value) => Math.round(value * factor) / factor;
-  const walk = (value) => {
-    if (!Array.isArray(value)) return value;
-    if (typeof value[0] === "number") {
-      return value.map((part, index) => index < 2 ? round2(part) : part);
-    }
-    return value.map(walk);
-  };
-  const next = { ...geometry };
-  if (next.coordinates !== void 0) next.coordinates = walk(next.coordinates);
-  if (Array.isArray(next.geometries)) next.geometries = next.geometries.map((child) => roundAnnotationGeometry(child, digits));
-  return next;
-}
-function annotationFeaturesOfCommands(commands) {
-  const features = [];
-  for (const command of Array.isArray(commands) ? commands : []) {
-    const list = Array.isArray(command?.geojson?.features) ? command.geojson.features : [];
-    for (const feature of list) if (feature?.type === "Feature") features.push(feature);
-  }
-  return features;
-}
-function nextAnnotationName(features, kind, t2) {
-  const prefix = typeof t2 === "function" ? t2(`annotations.kind.${kind}`) : kind;
-  let index = 1;
-  const taken = new Set(
-    (Array.isArray(features) ? features : []).map((feature) => annotationName(feature)).filter((value) => value !== "")
-  );
-  while (taken.has(`${prefix} ${index}`)) index += 1;
-  return `${prefix} ${index}`;
-}
-function editableRings(feature) {
-  const geometry = feature?.geometry;
-  if (geometry?.type === "Point") return { kind: "point", rings: [geometry.coordinates] };
-  if (geometry?.type === "LineString") return { kind: "line", rings: [geometry.coordinates] };
-  if (geometry?.type === "Polygon") return { kind: "area", rings: geometry.coordinates };
-  return null;
-}
-function withRings(feature, rings, kind) {
-  const geometry = kind === "point" ? { type: "Point", coordinates: rings[0] } : kind === "line" ? { type: "LineString", coordinates: rings[0] } : { type: "Polygon", coordinates: rings };
-  return { ...feature, geometry };
-}
-function moveAnnotationVertex(feature, ringIndex, vertexIndex, lon, lat) {
-  const editable = editableRings(feature);
-  if (!editable) return { ok: false, error: "unsupported_geometry" };
-  const ring = editable.rings[ringIndex];
-  if (!Array.isArray(ring) || vertexIndex < 0 || vertexIndex >= ring.length) return { ok: false, error: "vertex_out_of_range" };
-  if (!Number.isFinite(lon) || !Number.isFinite(lat) || Math.abs(lon) > 180 || Math.abs(lat) > 90) {
-    return { ok: false, error: "vertex_out_of_range" };
-  }
-  const rings = editable.rings.map((item) => item.slice());
-  const closed = editable.kind === "area" && rings[ringIndex].length > 1;
-  const wrapped = closed && vertexIndex === 0 ? rings[ringIndex].length - 1 : -1;
-  rings[ringIndex][vertexIndex] = [lon, lat];
-  if (wrapped >= 0) rings[ringIndex][wrapped] = [lon, lat];
-  if (closed && vertexIndex === rings[ringIndex].length - 1) rings[ringIndex][0] = [lon, lat];
-  return { ok: true, feature: withRings(feature, rings, editable.kind) };
-}
-function ringCorners(ring, closed) {
-  if (!Array.isArray(ring) || ring.length === 0) return 0;
-  if (!closed || ring.length < 2) return ring.length;
-  const first = ring[0];
-  const last = ring[ring.length - 1];
-  return first?.[0] === last?.[0] && first?.[1] === last?.[1] ? ring.length - 1 : ring.length;
-}
-function insertAnnotationVertex(feature, ringIndex, vertexIndex, lon, lat) {
-  const editable = editableRings(feature);
-  if (!editable || editable.kind === "point") return { ok: false, error: "unsupported_geometry" };
-  const ring = editable.rings[ringIndex];
-  const corners = ringCorners(ring, editable.kind === "area");
-  if (!Array.isArray(ring) || vertexIndex < 0 || vertexIndex >= corners) return { ok: false, error: "vertex_out_of_range" };
-  if (!Number.isFinite(lon) || !Number.isFinite(lat) || Math.abs(lon) > 180 || Math.abs(lat) > 90) {
-    return { ok: false, error: "vertex_out_of_range" };
-  }
-  const rings = editable.rings.map((item) => item.slice());
-  const at = vertexIndex + 1;
-  rings[ringIndex].splice(at, 0, [lon, lat]);
-  if (editable.kind === "area") {
-    const next = rings[ringIndex];
-    next[next.length - 1] = [next[0][0], next[0][1]];
-  }
-  return { ok: true, feature: withRings(feature, rings, editable.kind) };
-}
-function deleteAnnotationVertex(feature, ringIndex, vertexIndex) {
-  const editable = editableRings(feature);
-  if (!editable || editable.kind === "point") return { ok: false, error: "unsupported_geometry" };
-  const ring = editable.rings[ringIndex];
-  const closed = editable.kind === "area";
-  const corners = ringCorners(ring, closed);
-  if (!Array.isArray(ring) || vertexIndex < 0 || vertexIndex >= corners) return { ok: false, error: "vertex_out_of_range" };
-  if (editable.kind === "line" && corners <= 2 || closed && corners <= 3) {
-    return { ok: false, error: "too_few_vertices" };
-  }
-  const rings = editable.rings.map((item) => item.slice());
-  if (closed && vertexIndex === 0) {
-    rings[ringIndex].splice(0, 1);
-    rings[ringIndex][rings[ringIndex].length - 1] = [rings[ringIndex][0][0], rings[ringIndex][0][1]];
-  } else {
-    rings[ringIndex].splice(vertexIndex, 1);
-  }
-  return { ok: true, feature: withRings(feature, rings, editable.kind) };
-}
-function translateAnnotation(feature, dLon, dLat) {
-  const editable = editableRings(feature);
-  if (!editable) return { ok: false, error: "unsupported_geometry" };
-  if (!Number.isFinite(dLon) || !Number.isFinite(dLat)) return { ok: false, error: "vertex_out_of_range" };
-  const rings = editable.rings.map((ring) => ring.map((vertex) => {
-    if (!Array.isArray(vertex) || vertex.length < 2) return vertex;
-    return [Math.max(-180, Math.min(180, vertex[0] + dLon)), Math.max(-90, Math.min(90, vertex[1] + dLat))];
-  }));
-  return { ok: true, feature: withRings(feature, rings, editable.kind) };
-}
-
 // src/client/scene/overlay-helpers.js
 function agentOverlayColor(Cesium, style) {
   const css = VECTOR_COLORS[style] ?? VECTOR_COLORS.accent;
@@ -17119,6 +17429,7 @@ function addAgentElevatedLabel(Cesium, add, lon, lat, height, text) {
 var finiteNumber2 = (value) => typeof value === "number" && Number.isFinite(value) ? value : null;
 function polygonVolume(properties, rings) {
   const props = properties && typeof properties === "object" ? properties : {};
+  if (props.extruded === false) return null;
   const baseExplicit = finiteNumber2(props.base_height_m) ?? finiteNumber2(props.ground_height_m) ?? finiteNumber2(props.baseHeight);
   const roofExplicit = finiteNumber2(props.extruded_height_m) ?? finiteNumber2(props.extrudedHeight);
   const relHeight = finiteNumber2(props.height_m) ?? finiteNumber2(props.building_height_m) ?? finiteNumber2(props.height);
@@ -17182,14 +17493,14 @@ function createVectorRenderer({ getState, getVector, t: t2, markSceneDirty, sync
       const name = properties?.name;
       return typeof name === "string" && name.trim() !== "" ? name.trim() : "";
     };
-    const drawLine = (coordinates, name) => {
+    const drawLine = (coordinates, name, lineColor = color) => {
       if (!Array.isArray(coordinates) || coordinates.length < 2) return;
       add({
         polyline: {
           positions: Cesium.Cartesian3.fromDegreesArray(flat2d(coordinates)),
           width: 3,
-          material: color,
-          depthFailMaterial: color.withAlpha(0.55),
+          material: lineColor,
+          depthFailMaterial: lineColor.withAlpha(0.55),
           clampToGround: true
         }
       });
@@ -17210,7 +17521,7 @@ function createVectorRenderer({ getState, getVector, t: t2, markSceneDirty, sync
       }
       return flat;
     };
-    const drawPolygon = (rings, name, properties) => {
+    const drawPolygon = (rings, name, properties, polyColor = color) => {
       if (!Array.isArray(rings) || rings.length === 0 || !Array.isArray(rings[0])) return;
       const volume = polygonVolume(properties, rings);
       const isPerPos3d = volume?.mode === "3d";
@@ -17224,9 +17535,9 @@ function createVectorRenderer({ getState, getVector, t: t2, markSceneDirty, sync
       );
       const polygonSpec = {
         hierarchy: new Cesium.PolygonHierarchy(outer, holes),
-        material: color.withAlpha(isExtruded || isPerPos3d ? 0.36 : 0.26),
+        material: polyColor.withAlpha(isExtruded || isPerPos3d ? 0.36 : 0.26),
         outline: isExtruded || isPerPos3d,
-        ...isExtruded || isPerPos3d ? { outlineColor: color.withAlpha(0.95) } : {},
+        ...isExtruded || isPerPos3d ? { outlineColor: polyColor.withAlpha(0.95) } : {},
         perPositionHeight: isPerPos3d,
         ...isExtruded ? { height: volume.baseHeight, extrudedHeight: volume.extrudedHeight } : {}
       };
@@ -17242,8 +17553,8 @@ function createVectorRenderer({ getState, getVector, t: t2, markSceneDirty, sync
           polyline: {
             positions: linePositions,
             width: 2,
-            material: color,
-            depthFailMaterial: color.withAlpha(0.55),
+            material: polyColor,
+            depthFailMaterial: polyColor.withAlpha(0.55),
             clampToGround: !isPerPos3d && !isExtruded
           }
         });
@@ -17270,13 +17581,13 @@ function createVectorRenderer({ getState, getVector, t: t2, markSceneDirty, sync
         }
       }
     };
-    const drawPoint = (coordinates, name) => {
+    const drawPoint = (coordinates, name, pointColor = color) => {
       if (!Array.isArray(coordinates) || coordinates.length < 2) return;
       add({
         position: Cesium.Cartesian3.fromDegrees(coordinates[0], coordinates[1]),
         point: {
           pixelSize: 11,
-          color,
+          color: pointColor,
           outlineColor: Cesium.Color.WHITE,
           outlineWidth: 2,
           heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
@@ -17291,9 +17602,13 @@ function createVectorRenderer({ getState, getVector, t: t2, markSceneDirty, sync
     const drawGeometry = (geometry, properties, feature) => {
       if (geometry === null || typeof geometry !== "object") return;
       const label = agentLabelText(nameOf(properties), caption);
+      const featureStyle = typeof properties?.style === "string" && VECTOR_COLORS[properties.style] ? properties.style : style;
+      const featureColor = featureStyle === style ? color : agentOverlayColor(Cesium, featureStyle);
       descriptor = {
         group: {},
         kind: t2("layers.vectorDrawn"),
+        style: featureStyle,
+        featureKind: typeof properties?.kind === "string" ? properties.kind : void 0,
         title: label || t2("layers.vectorDrawn"),
         summary: t2(`vector.geometry.${String(geometry.type ?? "").replace("Multi", "")}`),
         feature: feature ?? null,
@@ -17306,22 +17621,22 @@ function createVectorRenderer({ getState, getVector, t: t2, markSceneDirty, sync
           for (const child of geometry.geometries ?? []) drawGeometry(child, properties, feature);
           break;
         case "Point":
-          drawPoint(geometry.coordinates, label);
+          drawPoint(geometry.coordinates, label, featureColor);
           break;
         case "MultiPoint":
-          for (const position of geometry.coordinates ?? []) drawPoint(position, label);
+          for (const position of geometry.coordinates ?? []) drawPoint(position, label, featureColor);
           break;
         case "LineString":
-          drawLine(geometry.coordinates, label);
+          drawLine(geometry.coordinates, label, featureColor);
           break;
         case "MultiLineString":
-          for (const line of geometry.coordinates ?? []) drawLine(line, label);
+          for (const line of geometry.coordinates ?? []) drawLine(line, label, featureColor);
           break;
         case "Polygon":
-          drawPolygon(geometry.coordinates, label, properties);
+          drawPolygon(geometry.coordinates, label, properties, featureColor);
           break;
         case "MultiPolygon":
-          for (const polygon of geometry.coordinates ?? []) drawPolygon(polygon, label, properties);
+          for (const polygon of geometry.coordinates ?? []) drawPolygon(polygon, label, properties, featureColor);
           break;
         default:
           break;
@@ -17634,7 +17949,8 @@ function createAnnotationActions({ stateRef, viewerRef, getSelection, draw, show
         return false;
       }
       const identified = ensureAnnotationFeatureId(normalized.feature);
-      draw({ type: "FeatureCollection", features: [identified] }, "accent", name);
+      const featStyle = ANNOTATION_STYLES.includes(identified.properties?.style) ? identified.properties.style : "accent";
+      draw({ type: "FeatureCollection", features: [identified] }, featStyle, name);
       if (typeof onChanged === "function") onChanged();
       showToast(t2("annotation.added", { name }));
       return true;
@@ -17708,7 +18024,7 @@ function createAnnotationTool({ getCesium, getViewer, pickSurface, setTool, show
     if (!viewer) return null;
     let state = sessions3.get(viewer);
     if (!state) {
-      state = { kind: null, points: [], entities: [], handler: null, cursor: null, keydown: null };
+      state = { kind: null, style: null, points: [], entities: [], handler: null, cursor: null, keydown: null };
       sessions3.set(viewer, state);
     }
     return state;
@@ -17815,6 +18131,7 @@ function createAnnotationTool({ getCesium, getViewer, pickSurface, setTool, show
     destroyHandler(state);
     removeEntities(state);
     state.kind = null;
+    state.style = null;
     state.points = [];
     state.cursor = null;
   };
@@ -17824,18 +18141,24 @@ function createAnnotationTool({ getCesium, getViewer, pickSurface, setTool, show
     if (!Cesium || !state || !state.kind) return;
     const points = reason === "double" && state.points.length > 1 ? state.points.slice(0, -1) : state.points.slice();
     const kind = state.kind;
+    const style = state.style;
+    const singlePoint = kind === "point" || kind === "note";
     const minimum = kind === "area" ? 3 : 2;
-    if (kind !== "point" && points.length < minimum) {
+    if (!singlePoint && points.length < minimum) {
       showToast(t2(kind === "area" ? "annotation.needArea" : "annotation.needLine"));
       return;
     }
     const coordinates = points.map((point) => [point.lon, point.lat]);
     if (kind === "area") coordinates.push([points[0].lon, points[0].lat]);
-    const geometry = kind === "point" ? { type: "Point", coordinates: coordinates[0] } : kind === "area" ? { type: "Polygon", coordinates: [coordinates] } : { type: "LineString", coordinates };
+    const geometry = singlePoint ? { type: "Point", coordinates: coordinates[0] } : kind === "area" ? { type: "Polygon", coordinates: [coordinates] } : { type: "LineString", coordinates };
     clear();
     setTool(null);
     if (typeof onFinish === "function") {
-      onFinish({ type: "Feature", properties: { kind, source: "manual" }, geometry });
+      onFinish({
+        type: "Feature",
+        properties: { kind, source: "manual", ...style ? { style } : {} },
+        geometry
+      });
     }
   };
   function installHandler(state) {
@@ -17867,7 +18190,7 @@ function createAnnotationTool({ getCesium, getViewer, pickSurface, setTool, show
         lat: Cesium.Math.toDegrees(carto.latitude)
       });
       current.cursor = surface;
-      if (current.kind === "point") {
+      if (current.kind === "point" || current.kind === "note") {
         finish("click");
         return;
       }
@@ -17893,12 +18216,13 @@ function createAnnotationTool({ getCesium, getViewer, pickSurface, setTool, show
     };
     if (typeof globalThis.addEventListener === "function") globalThis.addEventListener("keydown", state.keydown);
   }
-  function start(kind = "point") {
+  function start(kind = "point", style = null) {
     clear();
     setTool("annotate");
     const state = sessionFor();
     if (!state) return;
     state.kind = kind;
+    state.style = typeof style === "string" && style !== "" ? style : null;
     showToast(t2(`annotation.${kind}Start`));
     installHandler(state);
   }

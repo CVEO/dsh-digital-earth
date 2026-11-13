@@ -11,6 +11,8 @@ import { SunTimeline } from './sun-timeline.js'
 import { ToolsBookmarks } from './tools-bookmarks.js'
 import { SelectionTool } from './selection-tool.js'
 import { ParseBody } from './parse-review.js'
+import { ANNOTATION_STYLES } from '../scene/annotation-model.js'
+import { VECTOR_COLORS } from '../scene/vector-style.js'
 
 const h = React.createElement
 
@@ -130,22 +132,45 @@ export function ViewBody({ t, getCurrentView, onFlyView, onStartTour }) {
 }
 
 export function AnnotationBody({ t, onStartAnnotation }) {
+  const [style, setStyle] = React.useState('accent')
   return h(
     React.Fragment,
     null,
     h(
       'div',
       { className: 'mv-tool-grid' },
-      ...['point', 'line', 'area'].map((kind) =>
+      ...['point', 'line', 'area', 'note'].map((kind) =>
         h(
           'button',
           {
             key: kind,
             type: 'button',
             className: 'mv-cta',
-            onClick: () => (typeof onStartAnnotation === 'function' ? onStartAnnotation(kind) : null),
+            onClick: () => (typeof onStartAnnotation === 'function' ? onStartAnnotation(kind, style) : null),
           },
           t(`annotation.draw${kind[0].toUpperCase()}${kind.slice(1)}`),
+        ),
+      ),
+    ),
+    h(
+      'div',
+      { className: 'mv-anno-palette', role: 'radiogroup', 'aria-label': t('annotation.styleLabel') },
+      h('span', { className: 'mv-anno-palette-label' }, t('annotation.styleLabel')),
+      h(
+        'div',
+        { className: 'mv-swatch-row' },
+        ...ANNOTATION_STYLES.map((preset) =>
+          h('button', {
+            key: preset,
+            type: 'button',
+            className: `mv-swatch${style === preset ? ' on' : ''}`,
+            style: { '--mv-swatch': VECTOR_COLORS[preset] },
+            title: t(`annotation.style.${preset}`),
+            'aria-label': t(`annotation.style.${preset}`),
+            'aria-checked': style === preset,
+            role: 'radio',
+            onClick: () => setStyle(preset),
+          }),
         ),
       ),
     ),
