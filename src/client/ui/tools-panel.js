@@ -48,6 +48,7 @@ export function ToolsPanel({
   getOverlayRows,
   onRemoveOverlayRows,
   onAskSelection,
+  onParseSelection,
   onVisionSelect,
   onActivateSelection,
 }) {
@@ -123,8 +124,10 @@ export function ToolsPanel({
     getOverlayRows,
     onRemoveOverlayRows,
     onAskSelection,
+    onParseSelection,
     onVisionSelect,
     onActivateSelection,
+    openRequest,
   }
 
   return h(

@@ -447,6 +447,12 @@ var PARSE_MESSAGES = {
     "parse.stage.capture": "截图",
     "parse.stage.request": "请求模型",
     "parse.stage.project": "落到地面",
+    "parse.stage.heights": "估算高度",
+    "parse.scopeView": "当前画面",
+    "parse.scopeAoi": "选区范围 AOI",
+    "parse.scopeAoiReady": "裁剪当前地面选区高清画面送视觉解析，适合密集建筑群",
+    "parse.scopeAoiNone": "请先用「选区」工具框选/套索地面范围，即可按选区高清解析",
+    "parse.aoiTag": "AOI 局部",
     "parse.hint": "只解析画面里看得见的地物；结果是 AI 推断的近似轮廓，采纳前请逐条确认，不要当作测绘成果。",
     "parse.empty": "没有识别到可用的地物。试着拉近视角、换一个角度，或让画面里的地物更大一些。",
     "parse.failed": "解析失败：{reason}",
@@ -454,6 +460,11 @@ var PARSE_MESSAGES = {
     "parse.selected": "已选 {n}/{total}",
     "parse.filterAll": "全部 ({n})",
     "parse.filterBuildings": "建筑 ({n})",
+    "parse.filterClass": "{label} ({n})",
+    "parse.sortDefault": "默认顺序",
+    "parse.sortHeight": "按高程↓",
+    "parse.sortArea": "按面积↓",
+    "parse.floors": "约{n}层",
     "parse.extrude3d": "3D 立体拉伸",
     "parse.buildingsLayerName": "建筑物矢量提取",
     "parse.adoptBuildings": "提取建筑图层 ({n})",
@@ -483,7 +494,8 @@ var PARSE_MESSAGES = {
     "parse.err.invalid_request": "请求无效，请重试",
     "parse.err.too_large": "截图太大，请重试",
     "parse.err.not_ready": "画面还没准备好（瓦片未加载完成）",
-    "parse.err.scene_loading": "画面还在加载，请等瓦片加载完成再解析"
+    "parse.err.scene_loading": "画面还在加载，请等瓦片加载完成再解析",
+    "parse.err.aoi_offscreen": "当前选区不在屏幕可视范围内，请把选区移回画面后重试"
   },
   en: {
     "tools.parse": "Scene parse",
@@ -493,6 +505,12 @@ var PARSE_MESSAGES = {
     "parse.stage.capture": "capture",
     "parse.stage.request": "model",
     "parse.stage.project": "project",
+    "parse.stage.heights": "heights",
+    "parse.scopeView": "Current view",
+    "parse.scopeAoi": "Selected AOI",
+    "parse.scopeAoiReady": "Crop the active ground selection at full detail for dense buildings",
+    "parse.scopeAoiNone": "Draw a ground selection (rect/lasso) first to parse an AOI crop",
+    "parse.aoiTag": "AOI crop",
     "parse.hint": "Only visible objects are parsed. Results are AI-inferred approximate outlines: review each one before adopting, and never treat them as a survey.",
     "parse.empty": "No usable objects were found. Zoom in, change the angle, or frame larger objects.",
     "parse.failed": "Parse failed: {reason}",
@@ -500,6 +518,11 @@ var PARSE_MESSAGES = {
     "parse.selected": "{n}/{total} selected",
     "parse.filterAll": "All ({n})",
     "parse.filterBuildings": "Buildings ({n})",
+    "parse.filterClass": "{label} ({n})",
+    "parse.sortDefault": "Default",
+    "parse.sortHeight": "Height ↓",
+    "parse.sortArea": "Area ↓",
+    "parse.floors": "{n}F",
     "parse.extrude3d": "3D extrusion",
     "parse.buildingsLayerName": "Extracted buildings",
     "parse.adoptBuildings": "Extract buildings ({n})",
@@ -529,7 +552,8 @@ var PARSE_MESSAGES = {
     "parse.err.invalid_request": "Invalid request; try again",
     "parse.err.too_large": "The screenshot was too large; try again",
     "parse.err.not_ready": "The view is not ready (tiles still loading)",
-    "parse.err.scene_loading": "The scene is still loading; wait for the tiles, then parse again"
+    "parse.err.scene_loading": "The scene is still loading; wait for the tiles, then parse again",
+    "parse.err.aoi_offscreen": "The active AOI lies outside the viewport; frame it in view and retry"
   }
 };
 
@@ -703,6 +727,12 @@ var V18_MESSAGES = {
     "shaderSync.done": "已将特效「{preset}」同步到 {n} 个可见图层",
     "shaderSync.doneSkipped": "已将特效「{preset}」同步到 {n} 个可见图层（已跳过 {skipped} 个隐藏或 3DGS 图层）",
     "shaderSync.partial": "多图层特效同步完成：成功 {ok} 个，失败 {fail} 个",
+    "selection.parseAoi": "解析此选区",
+    "selection.parseAoiHint": "将当前框选/套索地面范围局部高清裁剪，交由场景解析提取建筑与地物",
+    "layers.switch3d": "整层切换为 3D 白模拉伸",
+    "layers.switch2d": "整层切换为 2D 地表轮廓",
+    "layers.layerExtruded3d": "图层已切换为 3D 白模拉伸",
+    "layers.layerFlattened2d": "图层已切换为 2D 地表轮廓",
     ...SELECTION_MESSAGES.zh,
     ...PARSE_MESSAGES.zh
   },
@@ -874,6 +904,12 @@ var V18_MESSAGES = {
     "shaderSync.done": 'Synced "{preset}" across {n} visible layer(s)',
     "shaderSync.doneSkipped": 'Synced "{preset}" across {n} visible layer(s) ({skipped} hidden/3DGS skipped)',
     "shaderSync.partial": "Multi-layer sync finished: {ok} applied, {fail} failed",
+    "selection.parseAoi": "Parse AOI",
+    "selection.parseAoiHint": "Crop this ground selection at full detail and parse buildings and features",
+    "layers.switch3d": "Switch layer to 3D extruded massing",
+    "layers.switch2d": "Switch layer to 2D footprints",
+    "layers.layerExtruded3d": "Switched layer to 3D extruded massing",
+    "layers.layerFlattened2d": "Switched layer to 2D footprints",
     ...SELECTION_MESSAGES.en,
     ...PARSE_MESSAGES.en
   }
@@ -1987,7 +2023,7 @@ var MESSAGES = {
   }
 };
 var FALLBACK_ABOUT = {
-  version: "1.5.2",
+  version: "1.6.0",
   homepage: "https://github.com/CVEO/dsh-digital-earth",
   teamUrl: "https://www.whu-cveo.com/"
 };
@@ -2599,6 +2635,27 @@ var VECTOR_COLORS = Object.freeze({
   warm: "#ffce65",
   violet: "#b5a0ff"
 });
+var PARSE_CLASS_STYLES = Object.freeze({
+  building: "warm",
+  vegetation: "success",
+  water: "accent",
+  road: "violet",
+  vehicle: "alert",
+  other: "violet"
+});
+var PARSE_OUTLINE_COLORS = Object.freeze({
+  accent: "#bae6fd",
+  alert: "#fecdd3",
+  success: "#bbf7d0",
+  warm: "#fef3c7",
+  violet: "#e9d5ff"
+});
+function parseClassColor(kind, explicitStyle = null) {
+  const styleKey = typeof explicitStyle === "string" && VECTOR_COLORS[explicitStyle] ? explicitStyle : PARSE_CLASS_STYLES[kind] ?? "violet";
+  const hex = VECTOR_COLORS[styleKey] ?? VECTOR_COLORS.violet;
+  const outlineHex = PARSE_OUTLINE_COLORS[styleKey] ?? PARSE_OUTLINE_COLORS.violet;
+  return { styleKey, hex, outlineHex };
+}
 var VECTOR_FONT = '500 13px "Segoe UI", "Microsoft YaHei", "PingFang SC", sans-serif';
 function vectorLabel(Cesium, text, extra = {}) {
   return {
@@ -3386,6 +3443,363 @@ function createAnalysisEngine(deps) {
   };
 }
 
+// src/client/scene/annotation-model.js
+var ANNOTATION_MAX_NAME = 80;
+var ANNOTATION_MAX_NOTE = 280;
+var ANNOTATION_MAX_HEIGHT_M = 5e3;
+var ANNOTATION_KINDS = ["point", "line", "area", "note"];
+var ANNOTATION_STYLES = ["accent", "alert", "success", "warm", "violet"];
+var ANNOTATION_MAX_ATTR_KEY = 64;
+var ANNOTATION_MAX_ATTR_VALUE = 240;
+var ANNOTATION_COORDINATE_DECIMALS = 6;
+var ANNOTATION_RESERVED_KEYS = /* @__PURE__ */ new Set(["feature_id", "provenance", "source", "bbox"]);
+var ANNOTATION_STANDARD_KEYS = /* @__PURE__ */ new Set([
+  "name",
+  "note",
+  "kind",
+  "style",
+  "extruded",
+  "extruded_height_m",
+  "extrudedHeight",
+  "roof_height_m",
+  "height_m",
+  "building_height_m",
+  "height",
+  "base_height_m",
+  "ground_height_m",
+  "baseHeight"
+]);
+var isCustomAttributeKey = (key) => !ANNOTATION_RESERVED_KEYS.has(key) && !ANNOTATION_STANDARD_KEYS.has(key);
+function extractCustomAttributes(feature) {
+  const props = feature?.properties;
+  if (props === null || typeof props !== "object") return [];
+  const out = [];
+  for (const [key, raw] of Object.entries(props)) {
+    if (!isCustomAttributeKey(key)) continue;
+    const isComplex = raw !== null && typeof raw === "object";
+    out.push({
+      key,
+      text: raw === null || raw === void 0 ? "" : isComplex ? JSON.stringify(raw) : String(raw),
+      raw,
+      editable: !isComplex
+    });
+  }
+  return out;
+}
+var DEFAULT_KIND_BY_GEOMETRY = {
+  Point: "point",
+  MultiPoint: "point",
+  LineString: "line",
+  MultiLineString: "line",
+  Polygon: "area",
+  MultiPolygon: "area"
+};
+function annotationText(value, limit) {
+  if (typeof value !== "string") return "";
+  return value.replace(/\s+/g, " ").trim().slice(0, limit);
+}
+function annotationKindOf(feature) {
+  const explicit = feature?.properties?.kind;
+  if (typeof explicit === "string" && ANNOTATION_KINDS.includes(explicit)) return explicit;
+  const type = feature?.geometry?.type;
+  return DEFAULT_KIND_BY_GEOMETRY[type] ?? "note";
+}
+function annotationName(feature) {
+  return annotationText(feature?.properties?.name, ANNOTATION_MAX_NAME);
+}
+var finiteHeight = (value) => typeof value === "number" && Number.isFinite(value) ? value : null;
+function annotationStyleOf(feature, fallback = "accent") {
+  const explicit = feature?.properties?.style;
+  if (typeof explicit === "string" && ANNOTATION_STYLES.includes(explicit)) return explicit;
+  return typeof fallback === "string" && ANNOTATION_STYLES.includes(fallback) ? fallback : "accent";
+}
+function annotationExtrusionOf(feature, defaultHeight = 15) {
+  const props = feature?.properties && typeof feature.properties === "object" ? feature.properties : {};
+  const baseHeight = finiteHeight(props.base_height_m) ?? finiteHeight(props.ground_height_m) ?? finiteHeight(props.baseHeight) ?? 0;
+  const roofExplicit = finiteHeight(props.extruded_height_m) ?? finiteHeight(props.extrudedHeight);
+  const rel = finiteHeight(props.height_m) ?? finiteHeight(props.building_height_m) ?? finiteHeight(props.height);
+  let heightM = rel !== null && rel > 0 ? rel : null;
+  if (heightM === null && roofExplicit !== null && roofExplicit > baseHeight) {
+    heightM = Math.round((roofExplicit - baseHeight) * 100) / 100;
+  }
+  const hasExtrudedTrigger = roofExplicit !== null && roofExplicit > baseHeight || rel !== null && rel > 0 && (finiteHeight(props.base_height_m) !== null || finiteHeight(props.ground_height_m) !== null || finiteHeight(props.baseHeight) !== null || props.height_m != null || props.building_height_m != null || props.mode3d === true || props.extruded === true);
+  const enabled = props.extruded === false ? false : Boolean(hasExtrudedTrigger);
+  return {
+    enabled,
+    height_m: heightM ?? defaultHeight,
+    has_height: heightM !== null,
+    base_height_m: baseHeight
+  };
+}
+var generatedFeatureCounter = 0;
+function annotationFeatureId(feature) {
+  const propId = feature?.properties?.feature_id;
+  if (typeof propId === "string" && propId.trim() !== "") return propId.trim();
+  if (typeof propId === "number" && Number.isFinite(propId)) return String(propId);
+  if (typeof feature?.id === "string" && feature.id.trim() !== "") return feature.id.trim();
+  if (typeof feature?.id === "number" && Number.isFinite(feature.id)) return String(feature.id);
+  return "";
+}
+function ensureAnnotationFeatureId(feature) {
+  if (feature === null || typeof feature !== "object" || feature.type !== "Feature") return feature;
+  const existing = annotationFeatureId(feature);
+  const id = existing !== "" ? existing : `feat-${Date.now().toString(36)}-${generatedFeatureCounter += 1}`;
+  if (feature.properties?.feature_id === id) return feature;
+  return { ...feature, properties: { ...feature.properties ?? {}, feature_id: id } };
+}
+function withAnnotationProperties(feature, patch = {}) {
+  if (feature === null || typeof feature !== "object" || feature.type !== "Feature") {
+    return { ok: false, error: "invalid_feature" };
+  }
+  const next = { ...feature, properties: { ...feature.properties ?? {} } };
+  if (patch.name !== void 0) {
+    const name = annotationText(patch.name, ANNOTATION_MAX_NAME);
+    if (name === "") delete next.properties.name;
+    else next.properties.name = name;
+  }
+  if (patch.note !== void 0) {
+    const note = annotationText(patch.note, ANNOTATION_MAX_NOTE);
+    if (note === "") delete next.properties.note;
+    else next.properties.note = note;
+  }
+  if (patch.kind !== void 0) {
+    if (!ANNOTATION_KINDS.includes(patch.kind)) return { ok: false, error: "invalid_kind" };
+    next.properties.kind = patch.kind;
+  }
+  if (patch.style !== void 0) {
+    if (patch.style === "" || patch.style === null) delete next.properties.style;
+    else if (!ANNOTATION_STYLES.includes(patch.style)) return { ok: false, error: "invalid_style" };
+    else next.properties.style = patch.style;
+  }
+  if (patch.extruded !== void 0) {
+    if (typeof patch.extruded !== "boolean") return { ok: false, error: "invalid_extruded" };
+    next.properties.extruded = patch.extruded;
+  }
+  if (patch.height_m !== void 0) {
+    if (patch.height_m === "" || patch.height_m === null) {
+      delete next.properties.height_m;
+      delete next.properties.extruded_height_m;
+      delete next.properties.extrudedHeight;
+      delete next.properties.building_height_m;
+      delete next.properties.height;
+    } else {
+      const value = Number(patch.height_m);
+      if (!Number.isFinite(value) || value <= 0 || value > ANNOTATION_MAX_HEIGHT_M) {
+        return { ok: false, error: "invalid_height" };
+      }
+      const rounded = Math.round(value * 100) / 100;
+      next.properties.height_m = rounded;
+      const base = finiteHeight(next.properties.base_height_m) ?? finiteHeight(next.properties.ground_height_m) ?? finiteHeight(next.properties.baseHeight) ?? 0;
+      if (next.properties.extruded_height_m != null || next.properties.extrudedHeight != null || next.properties.roof_height_m != null) {
+        const roof = Math.round((base + rounded) * 100) / 100;
+        if (next.properties.extrudedHeight !== void 0 && next.properties.extruded_height_m === void 0) {
+          next.properties.extrudedHeight = roof;
+        } else {
+          next.properties.extruded_height_m = roof;
+        }
+        if (typeof next.properties.roof_height_m === "number") next.properties.roof_height_m = roof;
+      }
+    }
+  }
+  if (patch.attributes !== void 0) {
+    if (!Array.isArray(patch.attributes)) return { ok: false, error: "invalid_attributes" };
+    const previousProps = feature.properties && typeof feature.properties === "object" ? feature.properties : {};
+    const parsed = [];
+    const seen = /* @__PURE__ */ new Set();
+    for (const entry of patch.attributes) {
+      const key = typeof entry?.key === "string" ? entry.key.replace(/\s+/g, " ").trim().slice(0, ANNOTATION_MAX_ATTR_KEY) : "";
+      if (key === "") return { ok: false, error: "invalid_attribute_key" };
+      if (!isCustomAttributeKey(key)) return { ok: false, error: "reserved_attribute_key" };
+      if (seen.has(key)) return { ok: false, error: "duplicate_attribute_key" };
+      seen.add(key);
+      const prevRaw = previousProps[key];
+      if (entry.preserveObject && prevRaw !== null && typeof prevRaw === "object") {
+        parsed.push([key, prevRaw]);
+        continue;
+      }
+      const rawVal = entry?.value;
+      if (typeof rawVal === "number" && Number.isFinite(rawVal)) {
+        parsed.push([key, rawVal]);
+      } else if (typeof rawVal === "boolean") {
+        parsed.push([key, rawVal]);
+      } else {
+        const str = rawVal === null || rawVal === void 0 ? "" : String(rawVal).trim().slice(0, ANNOTATION_MAX_ATTR_VALUE);
+        if (typeof prevRaw === "number" && str !== "" && Number.isFinite(Number(str))) {
+          parsed.push([key, Number(str)]);
+        } else if (typeof prevRaw === "boolean" && (str === "true" || str === "false")) {
+          parsed.push([key, str === "true"]);
+        } else {
+          parsed.push([key, str]);
+        }
+      }
+    }
+    for (const existingKey of Object.keys(next.properties)) {
+      if (isCustomAttributeKey(existingKey)) delete next.properties[existingKey];
+    }
+    for (const [key, val] of parsed) {
+      next.properties[key] = val;
+    }
+  }
+  return { ok: true, feature: next };
+}
+function withAnnotationGeometry(feature, geometry) {
+  if (feature === null || typeof feature !== "object" || feature.type !== "Feature") {
+    return { ok: false, error: "invalid_feature" };
+  }
+  if (geometry === null || typeof geometry !== "object" || typeof geometry.type !== "string") {
+    return { ok: false, error: "invalid_geometry" };
+  }
+  const next = { ...feature, geometry };
+  if (!annotationBoundsOk(next)) return { ok: false, error: "out_of_bounds" };
+  return { ok: true, feature: next };
+}
+function normalizeAnnotation(feature, { source = "manual" } = {}) {
+  if (feature === null || typeof feature !== "object" || feature.type !== "Feature") {
+    return { ok: false, error: "invalid_feature" };
+  }
+  const kind = annotationKindOf(feature);
+  const properties = {
+    ...feature.properties && typeof feature.properties === "object" ? feature.properties : {},
+    kind
+  };
+  const name = annotationText(properties.name, ANNOTATION_MAX_NAME);
+  if (name === "") delete properties.name;
+  else properties.name = name;
+  const note = annotationText(properties.note, ANNOTATION_MAX_NOTE);
+  if (note === "") delete properties.note;
+  else properties.note = note;
+  if (typeof properties.source !== "string" || properties.source === "") properties.source = source;
+  return { ok: true, feature: { type: "Feature", ...feature.id !== void 0 ? { id: feature.id } : {}, properties, geometry: feature.geometry } };
+}
+function annotationBoundsOk(feature) {
+  let valid = true;
+  const walk = (value) => {
+    if (!valid || !Array.isArray(value)) return;
+    if (typeof value[0] === "number" && typeof value[1] === "number") {
+      const [lon, lat] = value;
+      if (!Number.isFinite(lon) || !Number.isFinite(lat) || Math.abs(lon) > 180 || Math.abs(lat) > 90) valid = false;
+      return;
+    }
+    for (const item of value) walk(item);
+  };
+  walk(feature?.geometry?.coordinates);
+  return valid;
+}
+function roundAnnotationGeometry(geometry, digits = ANNOTATION_COORDINATE_DECIMALS) {
+  if (geometry === null || typeof geometry !== "object") return geometry;
+  const factor = 10 ** digits;
+  const round2 = (value) => Math.round(value * factor) / factor;
+  const walk = (value) => {
+    if (!Array.isArray(value)) return value;
+    if (typeof value[0] === "number") {
+      return value.map((part, index) => index < 2 ? round2(part) : part);
+    }
+    return value.map(walk);
+  };
+  const next = { ...geometry };
+  if (next.coordinates !== void 0) next.coordinates = walk(next.coordinates);
+  if (Array.isArray(next.geometries)) next.geometries = next.geometries.map((child) => roundAnnotationGeometry(child, digits));
+  return next;
+}
+function annotationFeaturesOfCommands(commands) {
+  const features = [];
+  for (const command of Array.isArray(commands) ? commands : []) {
+    const list = Array.isArray(command?.geojson?.features) ? command.geojson.features : [];
+    for (const feature of list) if (feature?.type === "Feature") features.push(feature);
+  }
+  return features;
+}
+function nextAnnotationName(features, kind, t2) {
+  const prefix = typeof t2 === "function" ? t2(`annotation.kind.${kind}`) : kind;
+  let index = 1;
+  const taken = new Set(
+    (Array.isArray(features) ? features : []).map((feature) => annotationName(feature)).filter((value) => value !== "")
+  );
+  while (taken.has(`${prefix} ${index}`)) index += 1;
+  return `${prefix} ${index}`;
+}
+function editableRings(feature) {
+  const geometry = feature?.geometry;
+  if (geometry?.type === "Point") return { kind: "point", rings: [geometry.coordinates] };
+  if (geometry?.type === "LineString") return { kind: "line", rings: [geometry.coordinates] };
+  if (geometry?.type === "Polygon") return { kind: "area", rings: geometry.coordinates };
+  return null;
+}
+function withRings(feature, rings, kind) {
+  const geometry = kind === "point" ? { type: "Point", coordinates: rings[0] } : kind === "line" ? { type: "LineString", coordinates: rings[0] } : { type: "Polygon", coordinates: rings };
+  return { ...feature, geometry };
+}
+function moveAnnotationVertex(feature, ringIndex, vertexIndex, lon, lat) {
+  const editable = editableRings(feature);
+  if (!editable) return { ok: false, error: "unsupported_geometry" };
+  const ring = editable.rings[ringIndex];
+  if (!Array.isArray(ring) || vertexIndex < 0 || vertexIndex >= ring.length) return { ok: false, error: "vertex_out_of_range" };
+  if (!Number.isFinite(lon) || !Number.isFinite(lat) || Math.abs(lon) > 180 || Math.abs(lat) > 90) {
+    return { ok: false, error: "vertex_out_of_range" };
+  }
+  const rings = editable.rings.map((item) => item.slice());
+  const closed = editable.kind === "area" && rings[ringIndex].length > 1;
+  const wrapped = closed && vertexIndex === 0 ? rings[ringIndex].length - 1 : -1;
+  rings[ringIndex][vertexIndex] = [lon, lat];
+  if (wrapped >= 0) rings[ringIndex][wrapped] = [lon, lat];
+  if (closed && vertexIndex === rings[ringIndex].length - 1) rings[ringIndex][0] = [lon, lat];
+  return { ok: true, feature: withRings(feature, rings, editable.kind) };
+}
+function ringCorners(ring, closed) {
+  if (!Array.isArray(ring) || ring.length === 0) return 0;
+  if (!closed || ring.length < 2) return ring.length;
+  const first = ring[0];
+  const last = ring[ring.length - 1];
+  return first?.[0] === last?.[0] && first?.[1] === last?.[1] ? ring.length - 1 : ring.length;
+}
+function insertAnnotationVertex(feature, ringIndex, vertexIndex, lon, lat) {
+  const editable = editableRings(feature);
+  if (!editable || editable.kind === "point") return { ok: false, error: "unsupported_geometry" };
+  const ring = editable.rings[ringIndex];
+  const corners = ringCorners(ring, editable.kind === "area");
+  if (!Array.isArray(ring) || vertexIndex < 0 || vertexIndex >= corners) return { ok: false, error: "vertex_out_of_range" };
+  if (!Number.isFinite(lon) || !Number.isFinite(lat) || Math.abs(lon) > 180 || Math.abs(lat) > 90) {
+    return { ok: false, error: "vertex_out_of_range" };
+  }
+  const rings = editable.rings.map((item) => item.slice());
+  const at = vertexIndex + 1;
+  rings[ringIndex].splice(at, 0, [lon, lat]);
+  if (editable.kind === "area") {
+    const next = rings[ringIndex];
+    next[next.length - 1] = [next[0][0], next[0][1]];
+  }
+  return { ok: true, feature: withRings(feature, rings, editable.kind) };
+}
+function deleteAnnotationVertex(feature, ringIndex, vertexIndex) {
+  const editable = editableRings(feature);
+  if (!editable || editable.kind === "point") return { ok: false, error: "unsupported_geometry" };
+  const ring = editable.rings[ringIndex];
+  const closed = editable.kind === "area";
+  const corners = ringCorners(ring, closed);
+  if (!Array.isArray(ring) || vertexIndex < 0 || vertexIndex >= corners) return { ok: false, error: "vertex_out_of_range" };
+  if (editable.kind === "line" && corners <= 2 || closed && corners <= 3) {
+    return { ok: false, error: "too_few_vertices" };
+  }
+  const rings = editable.rings.map((item) => item.slice());
+  if (closed && vertexIndex === 0) {
+    rings[ringIndex].splice(0, 1);
+    rings[ringIndex][rings[ringIndex].length - 1] = [rings[ringIndex][0][0], rings[ringIndex][0][1]];
+  } else {
+    rings[ringIndex].splice(vertexIndex, 1);
+  }
+  return { ok: true, feature: withRings(feature, rings, editable.kind) };
+}
+function translateAnnotation(feature, dLon, dLat) {
+  const editable = editableRings(feature);
+  if (!editable) return { ok: false, error: "unsupported_geometry" };
+  if (!Number.isFinite(dLon) || !Number.isFinite(dLat)) return { ok: false, error: "vertex_out_of_range" };
+  const rings = editable.rings.map((ring) => ring.map((vertex) => {
+    if (!Array.isArray(vertex) || vertex.length < 2) return vertex;
+    return [Math.max(-180, Math.min(180, vertex[0] + dLon)), Math.max(-90, Math.min(90, vertex[1] + dLat))];
+  }));
+  return { ok: true, feature: withRings(feature, rings, editable.kind) };
+}
+
 // src/client/scene/agent-overlays.js
 function clearAgentOverlays(state, viewer, kind = "all") {
   const drop = (entities) => {
@@ -3446,7 +3860,10 @@ function overlayFeatureList(command) {
       name: typeof props.name === "string" && props.name.trim() !== "" ? props.name.trim() : null,
       geometryType: typeof feature.geometry?.type === "string" ? feature.geometry.type : "Geometry",
       kind: typeof props.kind === "string" ? props.kind : null,
-      style: typeof props.style === "string" && props.style !== "" ? props.style : defaultStyle
+      style: typeof props.style === "string" && props.style !== "" ? props.style : defaultStyle,
+      ...typeof props.height_m === "number" && Number.isFinite(props.height_m) ? { heightM: props.height_m } : {},
+      ...typeof props.est_floors === "number" && Number.isFinite(props.est_floors) ? { estFloors: props.est_floors } : {},
+      ...typeof props.class === "string" ? { featureClass: props.class } : {}
     });
   }
   return items;
@@ -3458,6 +3875,34 @@ function buildAgentOverlayDetails(state) {
     details[index] = overlayFeatureList(commands[index]);
   }
   return details;
+}
+function commandExtrusionSummary(command) {
+  const geojson = command?.geojson;
+  const features = geojson?.type === "FeatureCollection" && Array.isArray(geojson.features) ? geojson.features : geojson?.type === "Feature" ? [geojson] : [];
+  let heightCount = 0;
+  let extrudedCount = 0;
+  for (const feature of features) {
+    const geomType = feature?.geometry?.type;
+    if (geomType !== "Polygon" && geomType !== "MultiPolygon") continue;
+    const ext = annotationExtrusionOf(feature);
+    if (!ext.has_height) continue;
+    heightCount += 1;
+    if (ext.enabled) extrudedCount += 1;
+  }
+  return {
+    canExtrude: heightCount > 0,
+    extruded: extrudedCount > 0,
+    heightCount,
+    extrudedCount
+  };
+}
+function buildAgentOverlayExtrusions(state) {
+  const extrusions = {};
+  const commands = Array.isArray(state?.drawCommands) ? state.drawCommands : [];
+  for (let index = 0; index < commands.length; index += 1) {
+    extrusions[index] = commandExtrusionSummary(commands[index]);
+  }
+  return extrusions;
 }
 function buildAgentOverlayList(state) {
   const rows = [];
@@ -5615,363 +6060,6 @@ function createProfileTool({ getCesium, getViewer, pickSurface, setTool, runAnal
     })();
   }
   return { start, onPoint, cancel, clear, dispose: clear };
-}
-
-// src/client/scene/annotation-model.js
-var ANNOTATION_MAX_NAME = 80;
-var ANNOTATION_MAX_NOTE = 280;
-var ANNOTATION_MAX_HEIGHT_M = 5e3;
-var ANNOTATION_KINDS = ["point", "line", "area", "note"];
-var ANNOTATION_STYLES = ["accent", "alert", "success", "warm", "violet"];
-var ANNOTATION_MAX_ATTR_KEY = 64;
-var ANNOTATION_MAX_ATTR_VALUE = 240;
-var ANNOTATION_COORDINATE_DECIMALS = 6;
-var ANNOTATION_RESERVED_KEYS = /* @__PURE__ */ new Set(["feature_id", "provenance", "source", "bbox"]);
-var ANNOTATION_STANDARD_KEYS = /* @__PURE__ */ new Set([
-  "name",
-  "note",
-  "kind",
-  "style",
-  "extruded",
-  "extruded_height_m",
-  "extrudedHeight",
-  "roof_height_m",
-  "height_m",
-  "building_height_m",
-  "height",
-  "base_height_m",
-  "ground_height_m",
-  "baseHeight"
-]);
-var isCustomAttributeKey = (key) => !ANNOTATION_RESERVED_KEYS.has(key) && !ANNOTATION_STANDARD_KEYS.has(key);
-function extractCustomAttributes(feature) {
-  const props = feature?.properties;
-  if (props === null || typeof props !== "object") return [];
-  const out = [];
-  for (const [key, raw] of Object.entries(props)) {
-    if (!isCustomAttributeKey(key)) continue;
-    const isComplex = raw !== null && typeof raw === "object";
-    out.push({
-      key,
-      text: raw === null || raw === void 0 ? "" : isComplex ? JSON.stringify(raw) : String(raw),
-      raw,
-      editable: !isComplex
-    });
-  }
-  return out;
-}
-var DEFAULT_KIND_BY_GEOMETRY = {
-  Point: "point",
-  MultiPoint: "point",
-  LineString: "line",
-  MultiLineString: "line",
-  Polygon: "area",
-  MultiPolygon: "area"
-};
-function annotationText(value, limit) {
-  if (typeof value !== "string") return "";
-  return value.replace(/\s+/g, " ").trim().slice(0, limit);
-}
-function annotationKindOf(feature) {
-  const explicit = feature?.properties?.kind;
-  if (typeof explicit === "string" && ANNOTATION_KINDS.includes(explicit)) return explicit;
-  const type = feature?.geometry?.type;
-  return DEFAULT_KIND_BY_GEOMETRY[type] ?? "note";
-}
-function annotationName(feature) {
-  return annotationText(feature?.properties?.name, ANNOTATION_MAX_NAME);
-}
-var finiteHeight = (value) => typeof value === "number" && Number.isFinite(value) ? value : null;
-function annotationStyleOf(feature, fallback = "accent") {
-  const explicit = feature?.properties?.style;
-  if (typeof explicit === "string" && ANNOTATION_STYLES.includes(explicit)) return explicit;
-  return typeof fallback === "string" && ANNOTATION_STYLES.includes(fallback) ? fallback : "accent";
-}
-function annotationExtrusionOf(feature, defaultHeight = 15) {
-  const props = feature?.properties && typeof feature.properties === "object" ? feature.properties : {};
-  const baseHeight = finiteHeight(props.base_height_m) ?? finiteHeight(props.ground_height_m) ?? finiteHeight(props.baseHeight) ?? 0;
-  const roofExplicit = finiteHeight(props.extruded_height_m) ?? finiteHeight(props.extrudedHeight);
-  const rel = finiteHeight(props.height_m) ?? finiteHeight(props.building_height_m) ?? finiteHeight(props.height);
-  let heightM = rel !== null && rel > 0 ? rel : null;
-  if (heightM === null && roofExplicit !== null && roofExplicit > baseHeight) {
-    heightM = Math.round((roofExplicit - baseHeight) * 100) / 100;
-  }
-  const hasExtrudedTrigger = roofExplicit !== null && roofExplicit > baseHeight || rel !== null && rel > 0 && (finiteHeight(props.base_height_m) !== null || finiteHeight(props.ground_height_m) !== null || finiteHeight(props.baseHeight) !== null || props.height_m != null || props.building_height_m != null || props.mode3d === true || props.extruded === true);
-  const enabled = props.extruded === false ? false : Boolean(hasExtrudedTrigger);
-  return {
-    enabled,
-    height_m: heightM ?? defaultHeight,
-    has_height: heightM !== null,
-    base_height_m: baseHeight
-  };
-}
-var generatedFeatureCounter = 0;
-function annotationFeatureId(feature) {
-  const propId = feature?.properties?.feature_id;
-  if (typeof propId === "string" && propId.trim() !== "") return propId.trim();
-  if (typeof propId === "number" && Number.isFinite(propId)) return String(propId);
-  if (typeof feature?.id === "string" && feature.id.trim() !== "") return feature.id.trim();
-  if (typeof feature?.id === "number" && Number.isFinite(feature.id)) return String(feature.id);
-  return "";
-}
-function ensureAnnotationFeatureId(feature) {
-  if (feature === null || typeof feature !== "object" || feature.type !== "Feature") return feature;
-  const existing = annotationFeatureId(feature);
-  const id = existing !== "" ? existing : `feat-${Date.now().toString(36)}-${generatedFeatureCounter += 1}`;
-  if (feature.properties?.feature_id === id) return feature;
-  return { ...feature, properties: { ...feature.properties ?? {}, feature_id: id } };
-}
-function withAnnotationProperties(feature, patch = {}) {
-  if (feature === null || typeof feature !== "object" || feature.type !== "Feature") {
-    return { ok: false, error: "invalid_feature" };
-  }
-  const next = { ...feature, properties: { ...feature.properties ?? {} } };
-  if (patch.name !== void 0) {
-    const name = annotationText(patch.name, ANNOTATION_MAX_NAME);
-    if (name === "") delete next.properties.name;
-    else next.properties.name = name;
-  }
-  if (patch.note !== void 0) {
-    const note = annotationText(patch.note, ANNOTATION_MAX_NOTE);
-    if (note === "") delete next.properties.note;
-    else next.properties.note = note;
-  }
-  if (patch.kind !== void 0) {
-    if (!ANNOTATION_KINDS.includes(patch.kind)) return { ok: false, error: "invalid_kind" };
-    next.properties.kind = patch.kind;
-  }
-  if (patch.style !== void 0) {
-    if (patch.style === "" || patch.style === null) delete next.properties.style;
-    else if (!ANNOTATION_STYLES.includes(patch.style)) return { ok: false, error: "invalid_style" };
-    else next.properties.style = patch.style;
-  }
-  if (patch.extruded !== void 0) {
-    if (typeof patch.extruded !== "boolean") return { ok: false, error: "invalid_extruded" };
-    next.properties.extruded = patch.extruded;
-  }
-  if (patch.height_m !== void 0) {
-    if (patch.height_m === "" || patch.height_m === null) {
-      delete next.properties.height_m;
-      delete next.properties.extruded_height_m;
-      delete next.properties.extrudedHeight;
-      delete next.properties.building_height_m;
-      delete next.properties.height;
-    } else {
-      const value = Number(patch.height_m);
-      if (!Number.isFinite(value) || value <= 0 || value > ANNOTATION_MAX_HEIGHT_M) {
-        return { ok: false, error: "invalid_height" };
-      }
-      const rounded = Math.round(value * 100) / 100;
-      next.properties.height_m = rounded;
-      const base = finiteHeight(next.properties.base_height_m) ?? finiteHeight(next.properties.ground_height_m) ?? finiteHeight(next.properties.baseHeight) ?? 0;
-      if (next.properties.extruded_height_m != null || next.properties.extrudedHeight != null || next.properties.roof_height_m != null) {
-        const roof = Math.round((base + rounded) * 100) / 100;
-        if (next.properties.extrudedHeight !== void 0 && next.properties.extruded_height_m === void 0) {
-          next.properties.extrudedHeight = roof;
-        } else {
-          next.properties.extruded_height_m = roof;
-        }
-        if (typeof next.properties.roof_height_m === "number") next.properties.roof_height_m = roof;
-      }
-    }
-  }
-  if (patch.attributes !== void 0) {
-    if (!Array.isArray(patch.attributes)) return { ok: false, error: "invalid_attributes" };
-    const previousProps = feature.properties && typeof feature.properties === "object" ? feature.properties : {};
-    const parsed = [];
-    const seen = /* @__PURE__ */ new Set();
-    for (const entry of patch.attributes) {
-      const key = typeof entry?.key === "string" ? entry.key.replace(/\s+/g, " ").trim().slice(0, ANNOTATION_MAX_ATTR_KEY) : "";
-      if (key === "") return { ok: false, error: "invalid_attribute_key" };
-      if (!isCustomAttributeKey(key)) return { ok: false, error: "reserved_attribute_key" };
-      if (seen.has(key)) return { ok: false, error: "duplicate_attribute_key" };
-      seen.add(key);
-      const prevRaw = previousProps[key];
-      if (entry.preserveObject && prevRaw !== null && typeof prevRaw === "object") {
-        parsed.push([key, prevRaw]);
-        continue;
-      }
-      const rawVal = entry?.value;
-      if (typeof rawVal === "number" && Number.isFinite(rawVal)) {
-        parsed.push([key, rawVal]);
-      } else if (typeof rawVal === "boolean") {
-        parsed.push([key, rawVal]);
-      } else {
-        const str = rawVal === null || rawVal === void 0 ? "" : String(rawVal).trim().slice(0, ANNOTATION_MAX_ATTR_VALUE);
-        if (typeof prevRaw === "number" && str !== "" && Number.isFinite(Number(str))) {
-          parsed.push([key, Number(str)]);
-        } else if (typeof prevRaw === "boolean" && (str === "true" || str === "false")) {
-          parsed.push([key, str === "true"]);
-        } else {
-          parsed.push([key, str]);
-        }
-      }
-    }
-    for (const existingKey of Object.keys(next.properties)) {
-      if (isCustomAttributeKey(existingKey)) delete next.properties[existingKey];
-    }
-    for (const [key, val] of parsed) {
-      next.properties[key] = val;
-    }
-  }
-  return { ok: true, feature: next };
-}
-function withAnnotationGeometry(feature, geometry) {
-  if (feature === null || typeof feature !== "object" || feature.type !== "Feature") {
-    return { ok: false, error: "invalid_feature" };
-  }
-  if (geometry === null || typeof geometry !== "object" || typeof geometry.type !== "string") {
-    return { ok: false, error: "invalid_geometry" };
-  }
-  const next = { ...feature, geometry };
-  if (!annotationBoundsOk(next)) return { ok: false, error: "out_of_bounds" };
-  return { ok: true, feature: next };
-}
-function normalizeAnnotation(feature, { source = "manual" } = {}) {
-  if (feature === null || typeof feature !== "object" || feature.type !== "Feature") {
-    return { ok: false, error: "invalid_feature" };
-  }
-  const kind = annotationKindOf(feature);
-  const properties = {
-    ...feature.properties && typeof feature.properties === "object" ? feature.properties : {},
-    kind
-  };
-  const name = annotationText(properties.name, ANNOTATION_MAX_NAME);
-  if (name === "") delete properties.name;
-  else properties.name = name;
-  const note = annotationText(properties.note, ANNOTATION_MAX_NOTE);
-  if (note === "") delete properties.note;
-  else properties.note = note;
-  if (typeof properties.source !== "string" || properties.source === "") properties.source = source;
-  return { ok: true, feature: { type: "Feature", ...feature.id !== void 0 ? { id: feature.id } : {}, properties, geometry: feature.geometry } };
-}
-function annotationBoundsOk(feature) {
-  let valid = true;
-  const walk = (value) => {
-    if (!valid || !Array.isArray(value)) return;
-    if (typeof value[0] === "number" && typeof value[1] === "number") {
-      const [lon, lat] = value;
-      if (!Number.isFinite(lon) || !Number.isFinite(lat) || Math.abs(lon) > 180 || Math.abs(lat) > 90) valid = false;
-      return;
-    }
-    for (const item of value) walk(item);
-  };
-  walk(feature?.geometry?.coordinates);
-  return valid;
-}
-function roundAnnotationGeometry(geometry, digits = ANNOTATION_COORDINATE_DECIMALS) {
-  if (geometry === null || typeof geometry !== "object") return geometry;
-  const factor = 10 ** digits;
-  const round2 = (value) => Math.round(value * factor) / factor;
-  const walk = (value) => {
-    if (!Array.isArray(value)) return value;
-    if (typeof value[0] === "number") {
-      return value.map((part, index) => index < 2 ? round2(part) : part);
-    }
-    return value.map(walk);
-  };
-  const next = { ...geometry };
-  if (next.coordinates !== void 0) next.coordinates = walk(next.coordinates);
-  if (Array.isArray(next.geometries)) next.geometries = next.geometries.map((child) => roundAnnotationGeometry(child, digits));
-  return next;
-}
-function annotationFeaturesOfCommands(commands) {
-  const features = [];
-  for (const command of Array.isArray(commands) ? commands : []) {
-    const list = Array.isArray(command?.geojson?.features) ? command.geojson.features : [];
-    for (const feature of list) if (feature?.type === "Feature") features.push(feature);
-  }
-  return features;
-}
-function nextAnnotationName(features, kind, t2) {
-  const prefix = typeof t2 === "function" ? t2(`annotation.kind.${kind}`) : kind;
-  let index = 1;
-  const taken = new Set(
-    (Array.isArray(features) ? features : []).map((feature) => annotationName(feature)).filter((value) => value !== "")
-  );
-  while (taken.has(`${prefix} ${index}`)) index += 1;
-  return `${prefix} ${index}`;
-}
-function editableRings(feature) {
-  const geometry = feature?.geometry;
-  if (geometry?.type === "Point") return { kind: "point", rings: [geometry.coordinates] };
-  if (geometry?.type === "LineString") return { kind: "line", rings: [geometry.coordinates] };
-  if (geometry?.type === "Polygon") return { kind: "area", rings: geometry.coordinates };
-  return null;
-}
-function withRings(feature, rings, kind) {
-  const geometry = kind === "point" ? { type: "Point", coordinates: rings[0] } : kind === "line" ? { type: "LineString", coordinates: rings[0] } : { type: "Polygon", coordinates: rings };
-  return { ...feature, geometry };
-}
-function moveAnnotationVertex(feature, ringIndex, vertexIndex, lon, lat) {
-  const editable = editableRings(feature);
-  if (!editable) return { ok: false, error: "unsupported_geometry" };
-  const ring = editable.rings[ringIndex];
-  if (!Array.isArray(ring) || vertexIndex < 0 || vertexIndex >= ring.length) return { ok: false, error: "vertex_out_of_range" };
-  if (!Number.isFinite(lon) || !Number.isFinite(lat) || Math.abs(lon) > 180 || Math.abs(lat) > 90) {
-    return { ok: false, error: "vertex_out_of_range" };
-  }
-  const rings = editable.rings.map((item) => item.slice());
-  const closed = editable.kind === "area" && rings[ringIndex].length > 1;
-  const wrapped = closed && vertexIndex === 0 ? rings[ringIndex].length - 1 : -1;
-  rings[ringIndex][vertexIndex] = [lon, lat];
-  if (wrapped >= 0) rings[ringIndex][wrapped] = [lon, lat];
-  if (closed && vertexIndex === rings[ringIndex].length - 1) rings[ringIndex][0] = [lon, lat];
-  return { ok: true, feature: withRings(feature, rings, editable.kind) };
-}
-function ringCorners(ring, closed) {
-  if (!Array.isArray(ring) || ring.length === 0) return 0;
-  if (!closed || ring.length < 2) return ring.length;
-  const first = ring[0];
-  const last = ring[ring.length - 1];
-  return first?.[0] === last?.[0] && first?.[1] === last?.[1] ? ring.length - 1 : ring.length;
-}
-function insertAnnotationVertex(feature, ringIndex, vertexIndex, lon, lat) {
-  const editable = editableRings(feature);
-  if (!editable || editable.kind === "point") return { ok: false, error: "unsupported_geometry" };
-  const ring = editable.rings[ringIndex];
-  const corners = ringCorners(ring, editable.kind === "area");
-  if (!Array.isArray(ring) || vertexIndex < 0 || vertexIndex >= corners) return { ok: false, error: "vertex_out_of_range" };
-  if (!Number.isFinite(lon) || !Number.isFinite(lat) || Math.abs(lon) > 180 || Math.abs(lat) > 90) {
-    return { ok: false, error: "vertex_out_of_range" };
-  }
-  const rings = editable.rings.map((item) => item.slice());
-  const at = vertexIndex + 1;
-  rings[ringIndex].splice(at, 0, [lon, lat]);
-  if (editable.kind === "area") {
-    const next = rings[ringIndex];
-    next[next.length - 1] = [next[0][0], next[0][1]];
-  }
-  return { ok: true, feature: withRings(feature, rings, editable.kind) };
-}
-function deleteAnnotationVertex(feature, ringIndex, vertexIndex) {
-  const editable = editableRings(feature);
-  if (!editable || editable.kind === "point") return { ok: false, error: "unsupported_geometry" };
-  const ring = editable.rings[ringIndex];
-  const closed = editable.kind === "area";
-  const corners = ringCorners(ring, closed);
-  if (!Array.isArray(ring) || vertexIndex < 0 || vertexIndex >= corners) return { ok: false, error: "vertex_out_of_range" };
-  if (editable.kind === "line" && corners <= 2 || closed && corners <= 3) {
-    return { ok: false, error: "too_few_vertices" };
-  }
-  const rings = editable.rings.map((item) => item.slice());
-  if (closed && vertexIndex === 0) {
-    rings[ringIndex].splice(0, 1);
-    rings[ringIndex][rings[ringIndex].length - 1] = [rings[ringIndex][0][0], rings[ringIndex][0][1]];
-  } else {
-    rings[ringIndex].splice(vertexIndex, 1);
-  }
-  return { ok: true, feature: withRings(feature, rings, editable.kind) };
-}
-function translateAnnotation(feature, dLon, dLat) {
-  const editable = editableRings(feature);
-  if (!editable) return { ok: false, error: "unsupported_geometry" };
-  if (!Number.isFinite(dLon) || !Number.isFinite(dLat)) return { ok: false, error: "vertex_out_of_range" };
-  const rings = editable.rings.map((ring) => ring.map((vertex) => {
-    if (!Array.isArray(vertex) || vertex.length < 2) return vertex;
-    return [Math.max(-180, Math.min(180, vertex[0] + dLon)), Math.max(-90, Math.min(90, vertex[1] + dLat))];
-  }));
-  return { ok: true, feature: withRings(feature, rings, editable.kind) };
 }
 
 // src/client/scene/vector-labels.js
@@ -11236,7 +11324,12 @@ var VECTOR_CSS = `
 .mv-overlay-feature-pick:hover{background:color-mix(in srgb,var(--mv-lift) 70%,transparent)}
 .mv-overlay-feature-dot{width:7px;height:7px;border-radius:999px;flex:0 0 auto}
 .mv-overlay-feature-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mv-overlay-feature-meta{font-size:10px;color:var(--mv-accent);font-variant-numeric:tabular-nums;white-space:nowrap;flex:0 0 auto}
 .mv-overlay-feature-tag{font-size:10px;color:var(--mv-dim);flex:0 0 auto}
+.mv-layer-dim-btn{min-block-size:24px;min-inline-size:28px;padding:0 5px;border-radius:6px;border:1px solid var(--mv-line);font-size:10px;font-weight:700;letter-spacing:.02em;color:var(--mv-dim)}
+.mv-layer-dim-btn.on{border-color:color-mix(in srgb,var(--mv-accent) 60%,transparent);background:color-mix(in srgb,var(--mv-accent) 18%,transparent);color:var(--mv-fg)}
+.mv-layer-dim-btn:focus-visible{outline:2px solid var(--mv-accent);outline-offset:2px}
+@media(forced-colors:active){.mv-layer-dim-btn.on{border:2px solid Highlight;color:HighlightText;background:Highlight}}
 .mv-vector-card .mv-vector-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
 .mv-vector-card .mv-btn.mv-danger{color:#fca5a5}
 .mv-vector-card .mv-btn.mv-danger:hover{background:color-mix(in srgb,#f87171 22%,transparent)}
@@ -11307,24 +11400,33 @@ var SELECTION_QUESTION_CSS = `
 // src/client/ui/parse-css.js
 var PARSE_CSS = `
 .mv-parse{display:flex;flex-direction:column;gap:8px}
-.mv-parse-head{display:flex;align-items:baseline;justify-content:space-between;gap:8px;font-size:11px;color:var(--mv-dim)}
+.mv-parse-scope{display:grid;grid-template-columns:1fr 1fr;gap:4px}
+.mv-parse-scope-btn{appearance:none;min-block-size:26px;padding:4px 8px;border-radius:7px;border:1px solid var(--mv-line);background:transparent;color:var(--mv-dim);font:inherit;font-size:11px;cursor:pointer}
+.mv-parse-scope-btn.on{background:color-mix(in srgb,var(--mv-accent) 18%,transparent);border-color:color-mix(in srgb,var(--mv-accent) 55%,transparent);color:var(--mv-fg);font-weight:600}
+.mv-parse-scope-btn:disabled{opacity:.45;cursor:not-allowed}
+.mv-parse-scope-btn:focus-visible,.mv-parse-filter:focus-visible,.mv-parse-sort-btn:focus-visible{outline:2px solid var(--mv-accent);outline-offset:2px}
+.mv-parse-head{display:flex;align-items:baseline;justify-content:space-between;gap:8px;font-size:11px;color:var(--mv-dim);flex-wrap:wrap}
+.mv-parse-aoi-tag{padding:1px 6px;border-radius:999px;border:1px solid color-mix(in srgb,var(--mv-accent) 45%,transparent);background:color-mix(in srgb,var(--mv-accent) 14%,transparent);color:var(--mv-fg);font-size:10px}
 .mv-parse-controls{display:flex;align-items:center;justify-content:space-between;gap:6px;flex-wrap:wrap}
-.mv-parse-filters{display:inline-flex;align-items:center;gap:4px}
-.mv-parse-filter{appearance:none;padding:3px 7px;border-radius:999px;border:.5px solid var(--mv-line);background:transparent;color:var(--mv-dim);font:inherit;font-size:10.5px;cursor:pointer}
-.mv-parse-filter.on{background:color-mix(in srgb,#c084fc 18%,transparent);border-color:color-mix(in srgb,#c084fc 45%,transparent);color:var(--mv-fg);font-weight:600}
-.mv-parse-toggle{display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--mv-dim);cursor:pointer;user-select:none}
+.mv-parse-filters,.mv-parse-sort{display:inline-flex;align-items:center;gap:4px;flex-wrap:wrap}
+.mv-parse-filter,.mv-parse-sort-btn{appearance:none;display:inline-flex;align-items:center;gap:4px;min-block-size:24px;padding:3px 7px;border-radius:999px;border:.5px solid var(--mv-line);background:transparent;color:var(--mv-dim);font:inherit;font-size:10.5px;cursor:pointer}
+.mv-parse-filter.on,.mv-parse-sort-btn.on{background:color-mix(in srgb,#c084fc 18%,transparent);border-color:color-mix(in srgb,#c084fc 45%,transparent);color:var(--mv-fg);font-weight:600}
+.mv-parse-toggle{display:inline-flex;align-items:center;gap:5px;min-block-size:24px;font-size:11px;color:var(--mv-dim);cursor:pointer;user-select:none}
 .mv-parse-toggle input{accent-color:#c084fc;margin:0}
 .mv-parse-count{font-weight:600;color:var(--mv-fg)}
 .mv-parse-list{display:flex;flex-direction:column;gap:2px;max-height:180px;overflow:auto;padding:2px;border-radius:8px;background:rgba(148,163,184,.08)}
-.mv-parse-row{display:flex;align-items:center;gap:6px;padding:5px 7px;border-radius:6px;font-size:12px;cursor:pointer}
+.mv-parse-row{display:flex;align-items:center;gap:6px;min-block-size:26px;padding:5px 7px;border-radius:6px;font-size:12px;cursor:pointer}
 .mv-parse-row:hover{background:rgba(148,163,184,.14)}
 .mv-parse-row.on{background:color-mix(in srgb,#c084fc 16%,transparent)}
 .mv-parse-row input{accent-color:#c084fc;margin:0}
-.mv-parse-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mv-parse-dot{width:8px;height:8px;border-radius:999px;flex:0 0 auto;border:1px solid rgba(255,255,255,.35)}
+.mv-parse-class{font-size:10px;color:var(--mv-dim);padding:1px 5px;border-radius:4px;border:1px solid var(--mv-line);white-space:nowrap;flex:0 0 auto}
+.mv-parse-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mv-parse-metrics{font-size:10px;color:var(--mv-accent);font-variant-numeric:tabular-nums;white-space:nowrap}
 .mv-parse-conf{font-size:11px;color:var(--mv-dim);font-variant-numeric:tabular-nums;white-space:nowrap}
 .mv-parse .mv-actions{display:flex;gap:6px;flex-wrap:wrap}
 .mv-parse .mv-warn{margin:0}
+@media(forced-colors:active){.mv-parse-scope-btn.on,.mv-parse-filter.on,.mv-parse-sort-btn.on{border:2px solid Highlight;color:HighlightText;background:Highlight}}
 `;
 
 // src/client/ui/css.js
@@ -13851,6 +13953,8 @@ function LayersMap({
   onOverlayVisible,
   onOverlayMove,
   agentOverlays,
+  overlayExtrusions,
+  onToggleOverlayExtrude,
   annotations,
   onClearVector,
   onRemoveAgentOverlay,
@@ -13978,6 +14082,22 @@ function LayersMap({
             expanded ? "▾" : "▸"
           ) : null,
           h15("span", { className: "name", title: `${row.label} · ${row.detail}` }, `${row.label} · ${row.detail}`),
+          row.kind === "draw" && overlayExtrusions?.[row.index]?.canExtrude && typeof onToggleOverlayExtrude === "function" ? (() => {
+            const is3d = Boolean(overlayExtrusions[row.index].extruded);
+            const label = t2(is3d ? "layers.switch2d" : "layers.switch3d");
+            return h15(
+              "button",
+              {
+                type: "button",
+                className: `mv-icon-btn mv-layer-dim-btn${is3d ? " on" : ""}`,
+                "aria-pressed": is3d,
+                title: label,
+                "aria-label": label,
+                onClick: () => onToggleOverlayExtrude(row.index)
+              },
+              is3d ? "3D" : "2D"
+            );
+          })() : null,
           row.kind === "draw" && typeof vectorExport?.downloadOverlay === "function" ? h15(
             "button",
             {
@@ -14041,6 +14161,11 @@ function LayersMap({
                   style: { background: VECTOR_COLORS[feat.style] ?? VECTOR_COLORS.accent }
                 }),
                 h15("span", { className: "mv-overlay-feature-name" }, feat.name ?? t2("layers.featureUnnamed", { n: feat.featureIndex + 1 })),
+                feat.heightM != null ? h15(
+                  "span",
+                  { className: "mv-overlay-feature-meta" },
+                  `≈${Math.round(feat.heightM)}m${feat.estFloors != null ? `/${t2("parse.floors", { n: feat.estFloors })}` : ""}`
+                ) : null,
                 h15("span", { className: "mv-overlay-feature-tag" }, feat.geometryType)
               ),
               typeof onFlyAgentFeature === "function" ? h15(
@@ -14234,6 +14359,8 @@ function LayersPanel({
   onOverlayMove,
   onClearVector,
   agentOverlays,
+  overlayExtrusions,
+  onToggleOverlayExtrude,
   onRemoveAgentOverlay,
   onFlyAgentOverlay,
   onImportVector,
@@ -14332,6 +14459,8 @@ function LayersPanel({
       onOverlayMove,
       annotations,
       agentOverlays,
+      overlayExtrusions,
+      onToggleOverlayExtrude,
       onClearVector,
       onRemoveAgentOverlay,
       onFlyAgentOverlay,
@@ -15011,7 +15140,7 @@ function summaryText(t2, selection) {
   const verts = Math.max(0, selection.ring.length - 1);
   return `${t2("selection.area")}: ${area}; ${t2("selection.perimeter")}: ${perimeter}; ${t2("selection.vertices")}: ${verts}`;
 }
-function SelectionTool({ t: t2, getCesium, getViewer, showToast, runAnalysis, getTerrainActive, getOverlayRows, onRemoveOverlayRows, onActivateSelection, onAskSelection }) {
+function SelectionTool({ t: t2, getCesium, getViewer, showToast, runAnalysis, getTerrainActive, getOverlayRows, onRemoveOverlayRows, onActivateSelection, onAskSelection, onParseSelection }) {
   const [selection, setSelection] = import_react22.default.useState(null);
   const [activeMode, setActiveMode] = import_react22.default.useState(null);
   const toolRef = import_react22.default.useRef(null);
@@ -15230,6 +15359,7 @@ function SelectionTool({ t: t2, getCesium, getViewer, showToast, runAnalysis, ge
       ) : h20(
         "div",
         { className: "mv-selection-actions" },
+        typeof onParseSelection === "function" ? h20("button", { type: "button", className: "mv-cta", title: t2("selection.parseAoiHint"), onClick: () => onParseSelection(selection) }, t2("selection.parseAoi")) : null,
         h20("button", { type: "button", className: "mv-cta", title: t2("selection.floodBounds"), onClick: () => void flood() }, t2("selection.flood")),
         h20("button", { type: "button", className: "mv-cta", onClick: exportGeoJSON }, t2("selection.export"))
       ),
@@ -15566,27 +15696,108 @@ function projectVisionPolygon(frame, result) {
 var round12 = (value) => Math.round(value * 10) / 10;
 var PARSE_DEDUPE_IOU = 0.5;
 var PARSE_CLASSES = ["building", "vegetation", "water", "road", "vehicle", "other"];
+var PARSE_FLOOR_HEIGHT_M = 3;
+var AOI_SELECTION_KINDS = /* @__PURE__ */ new Set(["rectangle", "lasso", "area", "vision"]);
+var EXTERIOR_RING_RADII_M = [6, 14];
+var BATCH_NAME_KEYS = /* @__PURE__ */ new Set(["name", "label", "building_name", "bldg_name", "title", "名称", "建筑名称"]);
+var BATCH_HEIGHT_KEYS = /* @__PURE__ */ new Set(["height", "height_m", "building_height", "bldg_height", "h", "建筑高度", "高度"]);
+var BATCH_FLOOR_KEYS = /* @__PURE__ */ new Set(["floors", "floor", "levels", "num_floors", "stories", "storeys", "楼层", "层数", "地上层数"]);
 function sceneLoading(getLayers) {
   return getLayers().some((layer) => layer?.visible !== false && layer?.tileset?.tilesLoaded === false);
 }
-function captureSceneFrame({ viewer, Cesium, getLayers = () => [] }) {
+function isAoiSelectionCapable(selection) {
+  if (!selection || !AOI_SELECTION_KINDS.has(selection.kind)) return false;
+  const hasPositions = Array.isArray(selection.positions) && selection.positions.length >= 3;
+  const hasRing = Array.isArray(selection.ring) && selection.ring.length >= 3;
+  return hasPositions || hasRing;
+}
+function computeSelectionScreenCrop(viewer, Cesium, selection, { padPx = 14, minSizePx = 32 } = {}) {
+  const canvas = viewer?.canvas ?? viewer?.scene?.canvas;
+  const cssWidth = Number(canvas?.clientWidth ?? canvas?.width ?? 0);
+  const cssHeight = Number(canvas?.clientHeight ?? canvas?.height ?? 0);
+  if (!viewer?.scene || !(cssWidth > 0) || !(cssHeight > 0)) {
+    return { ok: false, reason: "not_ready", crop: null };
+  }
+  if (!isAoiSelectionCapable(selection)) {
+    return { ok: false, reason: "no_selection", crop: null };
+  }
+  const toScreen = Cesium?.SceneTransforms?.worldToWindowCoordinates;
+  if (typeof toScreen !== "function") {
+    return { ok: false, reason: "not_ready", crop: null };
+  }
+  let worldPoints = Array.isArray(selection.positions) && selection.positions.length >= 3 ? selection.positions : null;
+  if (!worldPoints && Array.isArray(selection.ring) && typeof Cesium?.Cartesian3?.fromDegrees === "function") {
+    const z = Number.isFinite(selection.heightRange?.mean) ? selection.heightRange.mean : Number.isFinite(selection.heightRange?.min) ? selection.heightRange.min : 0;
+    worldPoints = selection.ring.map(([lon, lat]) => Cesium.Cartesian3.fromDegrees(lon, lat, z));
+  }
+  if (!Array.isArray(worldPoints) || worldPoints.length < 3) {
+    return { ok: false, reason: "no_selection", crop: null };
+  }
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity, projectedCount = 0;
+  for (const cartesian of worldPoints) {
+    let pt = null;
+    try {
+      pt = toScreen.call(Cesium.SceneTransforms, viewer.scene, cartesian);
+    } catch {
+      pt = null;
+    }
+    if (!pt || !Number.isFinite(pt.x) || !Number.isFinite(pt.y)) continue;
+    projectedCount += 1;
+    if (pt.x < minX) minX = pt.x;
+    if (pt.y < minY) minY = pt.y;
+    if (pt.x > maxX) maxX = pt.x;
+    if (pt.y > maxY) maxY = pt.y;
+  }
+  if (projectedCount < 2 || maxX <= 0 || maxY <= 0 || minX >= cssWidth || minY >= cssHeight) {
+    return { ok: false, reason: "aoi_offscreen", crop: null };
+  }
+  const left = Math.max(0, Math.floor(minX - padPx));
+  const top = Math.max(0, Math.floor(minY - padPx));
+  const right = Math.min(cssWidth, Math.ceil(maxX + padPx));
+  const bottom = Math.min(cssHeight, Math.ceil(maxY + padPx));
+  const width = Math.max(0, right - left);
+  const height = Math.max(0, bottom - top);
+  if (width < minSizePx || height < minSizePx) {
+    return { ok: false, reason: "aoi_offscreen", crop: null };
+  }
+  return {
+    ok: true,
+    crop: { left, top, width, height },
+    kind: selection.kind,
+    area_m2: Number.isFinite(selection.area_m2) ? selection.area_m2 : null,
+    cssWidth,
+    cssHeight
+  };
+}
+function captureSceneFrame({ viewer, Cesium, getLayers = () => [], selection = null, scope = "view" }) {
   if (!viewer?.scene || viewer.isDestroyed?.()) throw visionError("not_ready");
   const canvas = viewer.canvas, scene = viewer.scene;
   if (typeof document === "undefined" || !canvas?.clientWidth || !canvas?.clientHeight || document.visibilityState === "hidden") throw visionError("not_ready");
   if (sceneLoading(getLayers) || scene.globe?.tilesLoaded === false) throw visionError("scene_loading");
+  const cssWidth = canvas.clientWidth, cssHeight = canvas.clientHeight;
+  const effectiveScope = scope === "aoi" ? "aoi" : "view";
+  let crop = { left: 0, top: 0, width: cssWidth, height: cssHeight };
+  let aoi = null;
+  if (effectiveScope === "aoi") {
+    const aoiBounds = computeSelectionScreenCrop(viewer, Cesium, selection);
+    if (!aoiBounds.ok) throw visionError(aoiBounds.reason === "no_selection" ? "no_selection" : "aoi_offscreen");
+    crop = aoiBounds.crop;
+    aoi = { kind: aoiBounds.kind, area_m2: aoiBounds.area_m2, crop };
+  }
   viewer.camera.cancelFlight?.();
   viewer.render();
-  const cssWidth = canvas.clientWidth, cssHeight = canvas.clientHeight;
   const scaleX = canvas.width / cssWidth, scaleY = canvas.height / cssHeight;
-  const sourceWidth = Math.max(1, Math.round(cssWidth * scaleX));
-  const sourceHeight = Math.max(1, Math.round(cssHeight * scaleY));
+  const srcX = Math.max(0, Math.round(crop.left * scaleX));
+  const srcY = Math.max(0, Math.round(crop.top * scaleY));
+  const sourceWidth = Math.max(1, Math.min(canvas.width - srcX, Math.round(crop.width * scaleX)));
+  const sourceHeight = Math.max(1, Math.min(canvas.height - srcY, Math.round(crop.height * scaleY)));
   const scale = Math.min(1, 1024 / Math.max(sourceWidth, sourceHeight));
   const image = document.createElement("canvas");
   image.width = Math.max(32, Math.round(sourceWidth * scale));
   image.height = Math.max(32, Math.round(sourceHeight * scale));
   const context = image.getContext("2d");
   if (!context) throw visionError("not_ready");
-  context.drawImage(canvas, 0, 0, sourceWidth, sourceHeight, 0, 0, image.width, image.height);
+  context.drawImage(canvas, srcX, srcY, sourceWidth, sourceHeight, 0, 0, image.width, image.height);
   const dataUrl = image.toDataURL("image/jpeg", 0.82);
   if (dataUrl.length > 2e6) throw visionError("too_large");
   return {
@@ -15594,7 +15805,9 @@ function captureSceneFrame({ viewer, Cesium, getLayers = () => [] }) {
     dataUrl,
     width: image.width,
     height: image.height,
-    crop: { left: 0, top: 0, width: cssWidth, height: cssHeight },
+    crop,
+    scope: effectiveScope,
+    aoi,
     cssWidth,
     cssHeight,
     viewer,
@@ -15612,7 +15825,7 @@ async function requestSceneParse(url, { frame, signal, fetchImpl = globalThis.fe
     method: "POST",
     credentials: "same-origin",
     headers: { "content-type": "application/json", "x-dsh-panel": "vision-batch" },
-    body: JSON.stringify({ frameId: frame.id, image: frame.dataUrl }),
+    body: JSON.stringify({ frameId: frame.id, image: frame.dataUrl, scope: frame.scope === "aoi" ? "aoi" : "view" }),
     signal
   });
   const payload = await response.json().catch(() => null);
@@ -15711,6 +15924,75 @@ function estimateCandidateMetrics(projected, interiorHeight = null) {
   const height_m = delta !== null && delta >= 0.5 ? delta : null;
   return { area_m2, ground_height_m, roof_height_m, height_m };
 }
+function buildingFloorEstimate(heightM, { floorHeightM = PARSE_FLOOR_HEIGHT_M } = {}) {
+  if (typeof heightM !== "number" || !Number.isFinite(heightM) || heightM < 2.2) return null;
+  return Math.max(1, Math.round(heightM / floorHeightM));
+}
+function parsePositiveNumber(raw, max = 5e3) {
+  if (typeof raw === "number") return Number.isFinite(raw) && raw > 0 && raw <= max ? raw : null;
+  if (typeof raw !== "string") return null;
+  const match = raw.trim().match(/^(\d+(?:\.\d+)?)\s*(?:m|层|f)?$/i);
+  if (!match) return null;
+  const num = Number(match[1]);
+  return Number.isFinite(num) && num > 0 && num <= max ? num : null;
+}
+function readPickedPropertyPairs(picked, viewer) {
+  const pairs = [];
+  if (!picked || typeof picked !== "object") return pairs;
+  if (typeof picked.getPropertyIds === "function" && typeof picked.getProperty === "function") {
+    try {
+      for (const id of picked.getPropertyIds()) {
+        if (pairs.length >= 32) break;
+        pairs.push([String(id), picked.getProperty(id)]);
+      }
+    } catch {
+    }
+    return pairs;
+  }
+  const bag = picked?.id?.properties;
+  const names = Array.isArray(bag?.propertyNames) ? bag.propertyNames : [];
+  const currentTime = viewer?.clock?.currentTime;
+  for (const key of names) {
+    if (pairs.length >= 32) break;
+    try {
+      const prop = bag[key];
+      const value = typeof prop?.getValue === "function" ? prop.getValue(currentTime) : prop;
+      pairs.push([String(key), value]);
+    } catch {
+    }
+  }
+  return pairs;
+}
+function extractFeatureMetadataAtAnchor(frame, center) {
+  const { viewer, Cesium } = frame ?? {};
+  if (typeof viewer?.scene?.pick !== "function" || !Cesium || !Array.isArray(center) || center.length < 2) return null;
+  const crop = frame.crop ?? { left: 0, top: 0, width: frame.cssWidth, height: frame.cssHeight };
+  if (!(crop?.width > 0) || !(crop?.height > 0)) return null;
+  let picked = null;
+  try {
+    const position = new Cesium.Cartesian2(crop.left + center[0] * crop.width, crop.top + center[1] * crop.height);
+    picked = viewer.scene.pick(position);
+  } catch {
+    return null;
+  }
+  const pairs = readPickedPropertyPairs(picked, viewer);
+  if (pairs.length === 0) return null;
+  let name = null, heightM = null, floors = null;
+  for (const [rawKey, rawValue] of pairs) {
+    const key = rawKey.trim().toLowerCase();
+    if (name === null && BATCH_NAME_KEYS.has(key) && typeof rawValue === "string" && rawValue.trim() !== "") {
+      name = rawValue.trim().slice(0, 80);
+    } else if (heightM === null && BATCH_HEIGHT_KEYS.has(key)) {
+      const h36 = parsePositiveNumber(rawValue, 2e3);
+      if (h36 !== null) heightM = round12(h36);
+    } else if (floors === null && BATCH_FLOOR_KEYS.has(key)) {
+      const f = parsePositiveNumber(rawValue, 300);
+      if (f !== null) floors = Math.max(1, Math.round(f));
+    }
+  }
+  if (name === null && heightM === null && floors === null) return null;
+  return { name, height_m: heightM, floors };
+}
 function projectBatchObjects(frame, objects, { t: t2 } = {}) {
   const features = [];
   let skipped = 0;
@@ -15741,26 +16023,194 @@ function projectBatchObjects(frame, objects, { t: t2 } = {}) {
     const kind = PARSE_CLASSES.includes(object.class) ? object.class : "other";
     const index = features.length + 1;
     const metrics = estimateCandidateMetrics(projected, sampleAnchorHeight(frame, center));
+    const batchMeta = extractFeatureMetadataAtAnchor(frame, center);
+    const { styleKey } = parseClassColor(kind);
+    const finalHeightM = batchMeta?.height_m > 0 ? batchMeta.height_m : metrics.height_m;
+    const finalRoofM = batchMeta?.height_m > 0 && metrics.ground_height_m !== null ? round12(metrics.ground_height_m + batchMeta.height_m) : metrics.roof_height_m;
+    const estFloors = kind === "building" ? batchMeta?.floors ?? buildingFloorEstimate(finalHeightM) : null;
     features.push({
       type: "Feature",
       properties: {
-        name: `${classLabel(t2, kind)} ${index}`,
+        name: batchMeta?.name ?? `${classLabel(t2, kind)} ${index}`,
         kind: "area",
         class: kind,
+        style: styleKey,
         confidence: object.confidence ?? null,
         source: "vision_model",
         basis: "inferred",
         approximate: true,
         depth_source: projected.depth_source,
+        ...batchMeta?.height_m ? { height_source: "batch_table", batch_height_m: batchMeta.height_m } : {},
+        ...batchMeta?.floors ? { batch_floors: batchMeta.floors } : {},
         ...metrics.area_m2 !== null ? { area_m2: metrics.area_m2 } : {},
         ...metrics.ground_height_m !== null ? { ground_height_m: metrics.ground_height_m } : {},
-        ...metrics.roof_height_m !== null ? { roof_height_m: metrics.roof_height_m } : {},
-        ...metrics.height_m !== null ? { height_m: metrics.height_m } : {}
+        ...finalRoofM !== null ? { roof_height_m: finalRoofM } : {},
+        ...finalHeightM !== null ? { height_m: finalHeightM } : {},
+        ...estFloors !== null ? { est_floors: estFloors } : {}
       },
       geometry: { type: "Polygon", coordinates: [ring] }
     });
   }
   return { features, skipped };
+}
+function toCartographic(Cesium, lon, lat, height = 0) {
+  if (typeof Cesium?.Cartographic?.fromDegrees === "function") {
+    return Cesium.Cartographic.fromDegrees(lon, lat, height);
+  }
+  const rad = Math.PI / 180;
+  return { longitude: lon * rad, latitude: lat * rad, height };
+}
+function quantile(sorted, ratio) {
+  if (!sorted.length) return null;
+  const idx = Math.min(sorted.length - 1, Math.max(0, Math.floor((sorted.length - 1) * ratio)));
+  return sorted[idx];
+}
+function buildMetricSamplePlan(ring) {
+  const open = (Array.isArray(ring) ? ring.slice(0, -1) : []).filter(
+    (pt) => Array.isArray(pt) && Number.isFinite(pt[0]) && Number.isFinite(pt[1])
+  );
+  if (open.length < 3) return null;
+  let cx = 0, cy = 0;
+  for (const [lon, lat] of open) {
+    cx += lon;
+    cy += lat;
+  }
+  cx /= open.length;
+  cy /= open.length;
+  const interior = [];
+  if (containsVisionPoint(open, [cx, cy])) interior.push([cx, cy]);
+  const step = Math.max(1, Math.floor(open.length / 4));
+  for (let i = 0; i < open.length && interior.length < 4; i += step) {
+    const [vx, vy] = open[i];
+    const probe = [cx + (vx - cx) * 0.45, cy + (vy - cy) * 0.45];
+    if (containsVisionPoint(open, probe)) interior.push(probe);
+  }
+  if (interior.length === 0) interior.push([cx, cy]);
+  const exterior = [];
+  const cosLat = Math.max(0.02, Math.cos(cy * Math.PI / 180));
+  for (let i = 0; i < open.length && exterior.length < 8; i += step) {
+    const [vx, vy] = open[i];
+    const east = (vx - cx) * cosLat;
+    const north = vy - cy;
+    const bearingDeg = (Math.atan2(east, north) * 180 / Math.PI + 360) % 360;
+    for (const radius of EXTERIOR_RING_RADII_M) {
+      const displaced = offsetCartographic(vx, vy, bearingDeg, radius);
+      if (displaced && !containsVisionPoint(open, [displaced.lon, displaced.lat])) {
+        exterior.push([displaced.lon, displaced.lat]);
+      }
+    }
+  }
+  return { interior, exterior, center: [cx, cy] };
+}
+async function refineBatchMetricsWithHeightService(frame, features, { getLayers = () => [] } = {}) {
+  const list = Array.isArray(features) ? features : [];
+  const viewer = frame?.viewer;
+  const Cesium = frame?.Cesium;
+  if (!viewer?.scene || !Cesium || list.length === 0) {
+    return { features: list, refined: 0, height_source: "scene_depth" };
+  }
+  const layers = typeof getLayers === "function" ? getLayers() : [];
+  const layer = (Array.isArray(layers) ? layers : []).find((item) => item && item.visible !== false && item.tileset) ?? null;
+  const heightService = createHeightService({ Cesium, viewer, layer });
+  const canSampleTiles = typeof layer?.tileset?.getHeight === "function";
+  const canSampleTerrain = heightService.hasRealTerrain();
+  if (!canSampleTiles && !canSampleTerrain) {
+    return { features: list, refined: 0, height_source: "scene_depth" };
+  }
+  const plans = list.map((feature) => buildMetricSamplePlan(feature?.geometry?.coordinates?.[0]));
+  const cartos = [];
+  const refs = [];
+  plans.forEach((plan, index) => {
+    if (!plan) return;
+    if (canSampleTiles) {
+      for (const [lon, lat] of plan.interior) {
+        refs.push({ index, role: "interior" });
+        cartos.push(toCartographic(Cesium, lon, lat));
+      }
+    }
+    const groundPts = plan.exterior.length > 0 ? plan.exterior : [plan.center];
+    for (const [lon, lat] of groundPts) {
+      refs.push({ index, role: "exterior" });
+      cartos.push(toCartographic(Cesium, lon, lat));
+    }
+  });
+  if (cartos.length === 0) {
+    return { features: list, refined: 0, height_source: "scene_depth" };
+  }
+  const primaryMode = canSampleTiles ? "tiles" : "terrain";
+  const run = await heightService.sampleMany(cartos, { mode: primaryMode });
+  const buckets = list.map(() => ({ interior: [], exterior: [] }));
+  for (let i = 0; i < (run.values?.length ?? 0); i += 1) {
+    const sample = run.values[i];
+    if (!sample || !Number.isFinite(sample.height)) continue;
+    buckets[refs[i].index][refs[i].role].push(sample.height);
+  }
+  if (canSampleTiles && canSampleTerrain) {
+    const terrainCartos = [];
+    const terrainFeatureIdx = [];
+    buckets.forEach((bucket, index) => {
+      const plan = plans[index];
+      if (!plan || bucket.exterior.length > 0) return;
+      for (const [lon, lat] of plan.exterior.length > 0 ? plan.exterior : [plan.center]) {
+        terrainFeatureIdx.push(index);
+        terrainCartos.push(toCartographic(Cesium, lon, lat));
+      }
+    });
+    if (terrainCartos.length > 0) {
+      const terrainRun = await heightService.sampleMany(terrainCartos, { mode: "terrain" });
+      for (let i = 0; i < (terrainRun.values?.length ?? 0); i += 1) {
+        const sample = terrainRun.values[i];
+        if (sample && Number.isFinite(sample.height)) buckets[terrainFeatureIdx[i]].exterior.push(sample.height);
+      }
+    }
+  }
+  let refined = 0;
+  const nextFeatures = list.map((feature, index) => {
+    const props = feature?.properties;
+    if (!props) return feature;
+    const bucket = buckets[index];
+    const extSorted = [...bucket.exterior].sort((a, b) => a - b);
+    const intSorted = [...bucket.interior].sort((a, b) => a - b);
+    const sampledGround = extSorted.length > 0 ? round12(quantile(extSorted, 0.2)) : null;
+    const sampledRoof = intSorted.length > 0 ? round12(intSorted[intSorted.length - 1]) : null;
+    if (sampledGround === null && sampledRoof === null) return feature;
+    refined += 1;
+    const nextProps = { ...props };
+    const ground = sampledGround ?? (typeof props.ground_height_m === "number" ? props.ground_height_m : null);
+    const explicitHeight = typeof props.batch_height_m === "number" && props.batch_height_m > 0 ? props.batch_height_m : null;
+    let roof = sampledRoof ?? (typeof props.roof_height_m === "number" ? props.roof_height_m : null);
+    let heightM = explicitHeight;
+    if (explicitHeight !== null && ground !== null) {
+      roof = round12(ground + explicitHeight);
+    } else if (explicitHeight === null) {
+      const delta = ground !== null && roof !== null ? round12(roof - ground) : null;
+      heightM = delta !== null && delta >= 0.5 ? delta : null;
+    }
+    if (ground !== null) nextProps.ground_height_m = ground;
+    if (roof !== null) nextProps.roof_height_m = roof;
+    if (heightM !== null) nextProps.height_m = heightM;
+    else delete nextProps.height_m;
+    if (props.class === "building") {
+      const floors = typeof props.batch_floors === "number" ? props.batch_floors : buildingFloorEstimate(heightM);
+      if (floors !== null) nextProps.est_floors = floors;
+    }
+    nextProps.height_source = explicitHeight !== null ? "batch_table" : canSampleTiles && (sampledRoof !== null || sampledGround !== null) ? "tiles_height_service" : "terrain_height_service";
+    return { ...feature, properties: nextProps };
+  });
+  return { features: nextFeatures, refined, height_source: run.height_source };
+}
+function compareBatchFeatures(a, b, sortBy = "default") {
+  if (sortBy === "height") {
+    const ah = typeof a?.properties?.height_m === "number" ? a.properties.height_m : -1;
+    const bh = typeof b?.properties?.height_m === "number" ? b.properties.height_m : -1;
+    return bh - ah;
+  }
+  if (sortBy === "area") {
+    const aa = typeof a?.properties?.area_m2 === "number" ? a.properties.area_m2 : -1;
+    const ba = typeof b?.properties?.area_m2 === "number" ? b.properties.area_m2 : -1;
+    return ba - aa;
+  }
+  return 0;
 }
 function featureBox(feature) {
   const ring = feature?.geometry?.coordinates?.[0];
@@ -15840,6 +16290,7 @@ function drawBatchPreview(Cesium, viewer, features, { extrude = false } = {}) {
     const ring = feature?.geometry?.coordinates?.[0];
     if (!Array.isArray(ring) || ring.length < 4) continue;
     const props = feature?.properties ?? {};
+    const { hex, outlineHex } = parseClassColor(props.class, props.style);
     const base = typeof props.ground_height_m === "number" && Number.isFinite(props.ground_height_m) ? props.ground_height_m : 0;
     const rel = typeof props.height_m === "number" && Number.isFinite(props.height_m) ? props.height_m : 0;
     const roof = typeof props.roof_height_m === "number" && Number.isFinite(props.roof_height_m) ? props.roof_height_m : base + rel;
@@ -15852,7 +16303,7 @@ function drawBatchPreview(Cesium, viewer, features, { extrude = false } = {}) {
           positions,
           width: 2,
           clampToGround: !is3d,
-          material: Cesium.Color.fromCssColorString("#c084fc").withAlpha(0.95)
+          material: Cesium.Color.fromCssColorString(hex).withAlpha(0.95)
         }
       }));
       if (is3d) {
@@ -15862,9 +16313,9 @@ function drawBatchPreview(Cesium, viewer, features, { extrude = false } = {}) {
             hierarchy,
             height: base,
             extrudedHeight: roof,
-            material: Cesium.Color.fromCssColorString("#c084fc").withAlpha(0.28),
+            material: Cesium.Color.fromCssColorString(hex).withAlpha(0.28),
             outline: true,
-            outlineColor: Cesium.Color.fromCssColorString("#e9d5ff").withAlpha(0.9)
+            outlineColor: Cesium.Color.fromCssColorString(outlineHex).withAlpha(0.9)
           }
         }));
       }
@@ -15890,12 +16341,16 @@ function batchFeatureCollection(features, name) {
 
 // src/client/ui/parse-review.js
 var h21 = import_react23.default.createElement;
-function candidateMetricText(properties) {
+function candidateMetricText(properties, t2) {
   const parts = [];
   const height = properties?.height_m;
+  const floors = properties?.est_floors;
   const area = properties?.area_m2;
   if (typeof height === "number" && Number.isFinite(height) && height >= 0.5) {
     parts.push(`≈${Math.round(height)}m`);
+  }
+  if (typeof floors === "number" && Number.isFinite(floors) && floors >= 1 && typeof t2 === "function") {
+    parts.push(t2("parse.floors", { n: floors }));
   }
   if (typeof area === "number" && Number.isFinite(area) && area > 0) {
     parts.push(area >= 1e4 ? `${(area / 1e4).toFixed(2)}ha` : `${Math.round(area)}m²`);
@@ -15909,29 +16364,44 @@ function errorText(t2, code) {
 function confidenceText(t2, value) {
   return typeof value === "number" && Number.isFinite(value) ? t2("parse.confidence", { n: Math.round(value * 100) }) : t2("parse.confidenceUnknown");
 }
-function ParseBody({ t: t2, getCesium, getViewer, getLayers, showToast, onAdoptParse }) {
+function ParseBody({ t: t2, getCesium, getViewer, getLayers, showToast, onAdoptParse, openRequest, getSelection }) {
   const [stage, setStage] = import_react23.default.useState(null);
+  const [scope, setScope] = import_react23.default.useState(() => (openRequest?.aoiSeq ?? 0) > 0 ? "aoi" : "view");
+  const [parsedScope, setParsedScope] = import_react23.default.useState("view");
   const [candidates, setCandidates] = import_react23.default.useState([]);
   const [selected, setSelected] = import_react23.default.useState(() => /* @__PURE__ */ new Set());
   const [filter, setFilter] = import_react23.default.useState("all");
+  const [sortBy, setSortBy] = import_react23.default.useState("default");
   const [extrude3d, setExtrude3d] = import_react23.default.useState(true);
   const [skipped, setSkipped] = import_react23.default.useState(0);
   const [error, setError] = import_react23.default.useState(null);
   const previewRef = import_react23.default.useRef([]);
   const aliveRef = import_react23.default.useRef(true);
+  const lastAoiSeqRef = import_react23.default.useRef(openRequest?.aoiSeq ?? 0);
+  import_react23.default.useEffect(() => {
+    const seq = openRequest?.aoiSeq ?? 0;
+    if (seq > 0 && seq !== lastAoiSeqRef.current) {
+      lastAoiSeqRef.current = seq;
+      setScope("aoi");
+    }
+  }, [openRequest?.aoiSeq]);
   import_react23.default.useEffect(() => () => {
     aliveRef.current = false;
     clearBatchPreview(getViewer(), previewRef.current);
   }, []);
+  const viewer = getViewer?.();
+  const activeSelection = (typeof getSelection === "function" ? getSelection() : null) ?? peekSelection(viewer);
+  const aoiReady = isAoiSelectionCapable(activeSelection);
+  const effectiveScope = scope === "aoi" && aoiReady ? "aoi" : "view";
   const bus = typeof stage === "string";
   const stageText = stage ? t2(`parse.stage.${stage}`) : "";
   const redrawPreview = (items, nextExtrude) => {
     const Cesium = getCesium();
-    const viewer = getViewer();
-    if (!viewer) return;
-    clearBatchPreview(viewer, previewRef.current);
+    const currentViewer = getViewer();
+    if (!currentViewer) return;
+    clearBatchPreview(currentViewer, previewRef.current);
     if (Cesium && items.length > 0) {
-      previewRef.current = drawBatchPreview(Cesium, viewer, items, { extrude: nextExtrude });
+      previewRef.current = drawBatchPreview(Cesium, currentViewer, items, { extrude: nextExtrude });
     }
   };
   const resetPreview = () => {
@@ -15939,14 +16409,15 @@ function ParseBody({ t: t2, getCesium, getViewer, getLayers, showToast, onAdoptP
     setCandidates([]);
     setSelected(/* @__PURE__ */ new Set());
     setFilter("all");
+    setSortBy("default");
     setSkipped(0);
     setError(null);
   };
   const parse = async () => {
     if (bus) return;
     const Cesium = getCesium();
-    const viewer = getViewer();
-    if (!Cesium || !viewer) {
+    const currentViewer = getViewer();
+    if (!Cesium || !currentViewer) {
       setError("not_ready");
       return;
     }
@@ -15954,7 +16425,13 @@ function ParseBody({ t: t2, getCesium, getViewer, getLayers, showToast, onAdoptP
     let frame = null;
     try {
       setStage("capture");
-      frame = captureSceneFrame({ viewer, Cesium, getLayers: typeof getLayers === "function" ? getLayers : () => [] });
+      frame = captureSceneFrame({
+        viewer: currentViewer,
+        Cesium,
+        getLayers: typeof getLayers === "function" ? getLayers : () => [],
+        selection: activeSelection,
+        scope: effectiveScope
+      });
       setStage("request");
       const meta = await loadMeta();
       if (!meta?.visionBatchUrl) throw Object.assign(new Error("unavailable"), { code: "unavailable" });
@@ -15962,17 +16439,27 @@ function ParseBody({ t: t2, getCesium, getViewer, getLayers, showToast, onAdoptP
       if (!aliveRef.current) return;
       setStage("project");
       const projected = projectBatchObjects(frame, payload.objects, { t: t2 });
-      const deduped = dedupeBatchFeatures(projected.features);
+      let resolvedFeatures = projected.features;
+      if (resolvedFeatures.length > 0) {
+        setStage("heights");
+        const refined = await refineBatchMetricsWithHeightService(frame, resolvedFeatures, {
+          getLayers: typeof getLayers === "function" ? getLayers : () => []
+        });
+        if (!aliveRef.current) return;
+        resolvedFeatures = refined.features;
+      }
+      const deduped = dedupeBatchFeatures(resolvedFeatures);
       if (!aliveRef.current) return;
       if (deduped.length === 0) {
         setError("no_target");
         return;
       }
+      setParsedScope(frame.scope === "aoi" ? "aoi" : "view");
       setCandidates(deduped);
       setSelected(new Set(deduped.map((_, index) => index)));
       setFilter("all");
       setSkipped(projected.skipped);
-      previewRef.current = drawBatchPreview(Cesium, viewer, deduped, { extrude: extrude3d });
+      previewRef.current = drawBatchPreview(Cesium, currentViewer, deduped, { extrude: extrude3d });
       showToast(t2("parse.candidates", { n: deduped.length }));
     } catch (failure) {
       if (!aliveRef.current) return;
@@ -15995,7 +16482,8 @@ function ParseBody({ t: t2, getCesium, getViewer, getLayers, showToast, onAdoptP
   };
   const counts = batchClassCounts(candidates);
   const buildingCount = counts.building ?? 0;
-  const visibleEntries = candidates.map((feature, index) => ({ feature, index })).filter(({ feature }) => filter === "all" || feature?.properties?.class === filter);
+  const extraClasses = PARSE_CLASSES.filter((kind) => kind !== "building" && (counts[kind] ?? 0) > 0);
+  const visibleEntries = candidates.map((feature, index) => ({ feature, index })).filter(({ feature }) => filter === "all" || feature?.properties?.class === filter).sort((left, right) => compareBatchFeatures(left.feature, right.feature, sortBy) || left.index - right.index);
   const changeFilter = (nextFilter) => {
     setFilter(nextFilter);
     redrawPreview(filterBatchFeatures(candidates, nextFilter), extrude3d);
@@ -16032,6 +16520,34 @@ function ParseBody({ t: t2, getCesium, getViewer, getLayers, showToast, onAdoptP
     { className: "mv-parse" },
     h21(
       "div",
+      { className: "mv-parse-scope" },
+      h21(
+        "button",
+        {
+          type: "button",
+          className: `mv-parse-scope-btn${effectiveScope === "view" ? " on" : ""}`,
+          "aria-pressed": effectiveScope === "view",
+          disabled: bus,
+          onClick: () => setScope("view")
+        },
+        t2("parse.scopeView")
+      ),
+      h21(
+        "button",
+        {
+          type: "button",
+          className: `mv-parse-scope-btn${effectiveScope === "aoi" ? " on" : ""}`,
+          "aria-pressed": effectiveScope === "aoi",
+          disabled: bus || !aoiReady,
+          title: t2(aoiReady ? "parse.scopeAoiReady" : "parse.scopeAoiNone"),
+          onClick: () => setScope("aoi")
+        },
+        t2("parse.scopeAoi")
+      )
+    ),
+    !aoiReady && candidates.length === 0 ? h21("p", { className: "mv-none" }, t2("parse.scopeAoiNone")) : null,
+    h21(
+      "div",
       { className: "mv-tool-grid" },
       h21(
         "button",
@@ -16048,6 +16564,7 @@ function ParseBody({ t: t2, getCesium, getViewer, getLayers, showToast, onAdoptP
         "div",
         { className: "mv-parse-head" },
         h21("span", { className: "mv-parse-count" }, t2("parse.candidates", { n: candidates.length })),
+        parsedScope === "aoi" ? h21("span", { className: "mv-parse-aoi-tag" }, t2("parse.aoiTag")) : null,
         h21("span", { className: "mv-parse-selected" }, t2("parse.selected", { n: selected.size, total: candidates.length }))
       ),
       h21(
@@ -16056,8 +16573,48 @@ function ParseBody({ t: t2, getCesium, getViewer, getLayers, showToast, onAdoptP
         h21(
           "div",
           { className: "mv-parse-filters" },
-          h21("button", { type: "button", className: `mv-parse-filter${filter === "all" ? " on" : ""}`, onClick: () => changeFilter("all") }, t2("parse.filterAll", { n: candidates.length })),
-          buildingCount > 0 ? h21("button", { type: "button", className: `mv-parse-filter${filter === "building" ? " on" : ""}`, onClick: () => changeFilter("building") }, t2("parse.filterBuildings", { n: buildingCount })) : null
+          h21(
+            "button",
+            { type: "button", className: `mv-parse-filter${filter === "all" ? " on" : ""}`, "aria-pressed": filter === "all", onClick: () => changeFilter("all") },
+            t2("parse.filterAll", { n: candidates.length })
+          ),
+          buildingCount > 0 ? h21(
+            "button",
+            { type: "button", className: `mv-parse-filter${filter === "building" ? " on" : ""}`, "aria-pressed": filter === "building", onClick: () => changeFilter("building") },
+            h21("span", { className: "mv-parse-dot", "aria-hidden": true, style: { background: parseClassColor("building").hex } }),
+            t2("parse.filterBuildings", { n: buildingCount })
+          ) : null,
+          ...extraClasses.map(
+            (kind) => h21(
+              "button",
+              {
+                key: kind,
+                type: "button",
+                className: `mv-parse-filter${filter === kind ? " on" : ""}`,
+                "aria-pressed": filter === kind,
+                onClick: () => changeFilter(kind)
+              },
+              h21("span", { className: "mv-parse-dot", "aria-hidden": true, style: { background: parseClassColor(kind).hex } }),
+              t2("parse.filterClass", { label: t2(`parse.class.${kind}`), n: counts[kind] })
+            )
+          )
+        ),
+        h21(
+          "div",
+          { className: "mv-parse-sort" },
+          ...["default", "height", "area"].map(
+            (mode) => h21(
+              "button",
+              {
+                key: mode,
+                type: "button",
+                className: `mv-parse-sort-btn${sortBy === mode ? " on" : ""}`,
+                "aria-pressed": sortBy === mode,
+                onClick: () => setSortBy(mode)
+              },
+              t2(`parse.sort${mode.charAt(0).toUpperCase()}${mode.slice(1)}`)
+            )
+          )
         ),
         h21(
           "label",
@@ -16071,18 +16628,23 @@ function ParseBody({ t: t2, getCesium, getViewer, getLayers, showToast, onAdoptP
         "div",
         { className: "mv-parse-list" },
         ...visibleEntries.map(({ feature, index }) => {
-          const metrics = candidateMetricText(feature.properties);
+          const props = feature.properties ?? {};
+          const kind = props.class ?? "other";
+          const color = parseClassColor(kind, props.style);
+          const metrics = candidateMetricText(props, t2);
           return h21(
             "label",
-            { key: `${index}-${feature.properties?.name ?? index}`, className: `mv-parse-row${selected.has(index) ? " on" : ""}` },
+            { key: `${index}-${props.name ?? index}`, className: `mv-parse-row${selected.has(index) ? " on" : ""}` },
             h21("input", {
               type: "checkbox",
               checked: selected.has(index),
               onChange: () => toggle(index)
             }),
-            h21("span", { className: "mv-parse-name" }, feature.properties?.name ?? ""),
+            h21("span", { className: "mv-parse-dot", "aria-hidden": true, style: { background: color.hex } }),
+            h21("span", { className: "mv-parse-class" }, t2(`parse.class.${kind}`)),
+            h21("span", { className: "mv-parse-name" }, props.name ?? ""),
             metrics !== "" ? h21("span", { className: "mv-parse-metrics" }, metrics) : null,
-            h21("span", { className: "mv-parse-conf" }, confidenceText(t2, feature.properties?.confidence))
+            h21("span", { className: "mv-parse-conf" }, confidenceText(t2, props.confidence))
           );
         })
       ),
@@ -16141,12 +16703,13 @@ function SelectBody({
   onRemoveOverlayRows,
   onActivateSelection,
   onAskSelection,
+  onParseSelection,
   onVisionSelect
 }) {
   return h22(
     import_react24.default.Fragment,
     null,
-    h22(SelectionTool, { t: t2, getCesium, getViewer, showToast, runAnalysis, getTerrainActive, getOverlayRows, onRemoveOverlayRows, onActivateSelection, onAskSelection }),
+    h22(SelectionTool, { t: t2, getCesium, getViewer, showToast, runAnalysis, getTerrainActive, getOverlayRows, onRemoveOverlayRows, onActivateSelection, onAskSelection, onParseSelection }),
     typeof onVisionSelect === "function" ? h22("button", { type: "button", className: "mv-cta", title: t2("vision.actionHint"), onClick: onVisionSelect }, t2("vision.title")) : null,
     // Ask Agent lives in the top toolbar only: one entry point for "hand the view
     // to the conversation", instead of a second one hiding inside the toolbox.
@@ -16424,6 +16987,7 @@ function ToolsPanel({
   getOverlayRows,
   onRemoveOverlayRows,
   onAskSelection,
+  onParseSelection,
   onVisionSelect,
   onActivateSelection
 }) {
@@ -16491,8 +17055,10 @@ function ToolsPanel({
     getOverlayRows,
     onRemoveOverlayRows,
     onAskSelection,
+    onParseSelection,
     onVisionSelect,
-    onActivateSelection
+    onActivateSelection,
+    openRequest
   };
   return h24(
     import_react26.default.Fragment,
@@ -19150,6 +19716,37 @@ function createAnnotationActions({ stateRef, viewerRef, getSelection, draw, show
       }
       const deleted = deleteAnnotationFeature(state, viewerRef.current, { command, feature }, replay);
       return finish(deleted, "annotation.deleted", { action: "remove", feature });
+    },
+    toggleLayerExtrusion: (overlayIndex) => {
+      const state = stateRef.current;
+      const command = state?.drawCommands?.[overlayIndex];
+      if (!command) return false;
+      const summary = commandExtrusionSummary(command);
+      if (!summary.canExtrude) return false;
+      const nextExtrude = !summary.extruded;
+      const rawFeatures = command?.geojson?.type === "FeatureCollection" && Array.isArray(command.geojson.features) ? command.geojson.features : command?.geojson?.type === "Feature" ? [command.geojson] : [];
+      const nextFeatures = rawFeatures.map((feature) => {
+        const geomType = feature?.geometry?.type;
+        if (geomType !== "Polygon" && geomType !== "MultiPolygon") return feature;
+        const ext = annotationExtrusionOf(feature);
+        if (!ext.has_height) return feature;
+        const props = { ...feature.properties ?? {} };
+        if (nextExtrude) {
+          props.extruded = true;
+          if (props.extruded_height_m == null) {
+            const roof = typeof props.roof_height_m === "number" && Number.isFinite(props.roof_height_m) ? props.roof_height_m : ext.base_height_m + ext.height_m;
+            props.extruded_height_m = Math.round(roof * 100) / 100;
+          }
+        } else {
+          props.extruded = false;
+        }
+        return { ...feature, properties: props };
+      });
+      return finish(
+        rebuildDrawCommand(state, viewerRef.current, command, nextFeatures, replay),
+        nextExtrude ? "layers.layerExtruded3d" : "layers.layerFlattened2d",
+        { action: "extrude" }
+      );
     },
     export: () => {
       const feature = selectionOf()?.feature;
@@ -22480,6 +23077,8 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
         onClearVector: () => clearAgentOverlays2("all"),
         agentOverlays: buildAgentOverlayList(agentOverlayRef.current),
         overlayDetails: buildAgentOverlayDetails(agentOverlayRef.current),
+        overlayExtrusions: buildAgentOverlayExtrusions(agentOverlayRef.current),
+        onToggleOverlayExtrude: (overlayIndex) => annotations.toggleLayerExtrusion(overlayIndex),
         onQuickAnnotate: () => {
           setShowTools(true);
           setToolRequest((prev) => ({ id: "annotation", seq: (prev?.seq ?? 0) + 1 }));
@@ -22549,6 +23148,10 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
           return removed + (manual ? 1 : 0);
         },
         onAskSelection: (options) => askAgentService.askSelection(options),
+        onParseSelection: () => {
+          setShowTools(true);
+          setToolRequest((prev) => ({ id: "parse", aoiSeq: (prev?.aoiSeq ?? 0) + 1, seq: (prev?.seq ?? 0) + 1 }));
+        },
         onVisionSelect: () => {
           selectionApiRef.current?.requestVision?.();
           setToolMode(null);

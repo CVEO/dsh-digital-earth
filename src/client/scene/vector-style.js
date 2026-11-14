@@ -6,6 +6,34 @@ export const VECTOR_COLORS = Object.freeze({
   violet: '#b5a0ff',
 })
 
+export const PARSE_CLASS_STYLES = Object.freeze({
+  building: 'warm',
+  vegetation: 'success',
+  water: 'accent',
+  road: 'violet',
+  vehicle: 'alert',
+  other: 'violet',
+})
+
+const PARSE_OUTLINE_COLORS = Object.freeze({
+  accent: '#bae6fd',
+  alert: '#fecdd3',
+  success: '#bbf7d0',
+  warm: '#fef3c7',
+  violet: '#e9d5ff',
+})
+
+/** Resolve vector style preset name + hex colours for a parsed object class. */
+export function parseClassColor(kind, explicitStyle = null) {
+  const styleKey =
+    typeof explicitStyle === 'string' && VECTOR_COLORS[explicitStyle]
+      ? explicitStyle
+      : PARSE_CLASS_STYLES[kind] ?? 'violet'
+  const hex = VECTOR_COLORS[styleKey] ?? VECTOR_COLORS.violet
+  const outlineHex = PARSE_OUTLINE_COLORS[styleKey] ?? PARSE_OUTLINE_COLORS.violet
+  return { styleKey, hex, outlineHex }
+}
+
 export const VECTOR_FONT = '500 13px "Segoe UI", "Microsoft YaHei", "PingFang SC", sans-serif'
 
 export function vectorLabel(Cesium, text, extra = {}) {

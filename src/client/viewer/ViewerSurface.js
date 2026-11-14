@@ -6,7 +6,7 @@
  */
 import React from 'react'
 import { createAnalysisEngine } from '../analysis/engine.js'
-import { buildAgentOverlayDetails, buildAgentOverlayList, clearAgentOverlays as clearAgentOverlaysInState, flyToAgentOverlay, flyToBbox, flyToOverlayFeature, manualMeasurementRow, overlayRowsWithEntities, removeAgentOverlay, removeAgentOverlayRows } from '../scene/agent-overlays.js'
+import { buildAgentOverlayDetails, buildAgentOverlayExtrusions, buildAgentOverlayList, clearAgentOverlays as clearAgentOverlaysInState, flyToAgentOverlay, flyToBbox, flyToOverlayFeature, manualMeasurementRow, overlayRowsWithEntities, removeAgentOverlay, removeAgentOverlayRows } from '../scene/agent-overlays.js'
 import { ACCESS_TIMEOUT_MS, imageryProvider, loadCesium, loadCesiumStyle, loadMeta, loadSources, persistSources, scanLocalDirectory, terrainProvider } from '../api.js'
 import { sampleCursor } from '../cursor.js'
 import { arrayBufferToBase64, b64url, clone, escapeHtml, formatArea, formatDistance, formatHeight, formatValue, geodesicLength, message, planarArea, redactUrl } from '../format.js'
@@ -2433,6 +2433,8 @@ const h = React.createElement
             onClearVector: () => clearAgentOverlays('all'),
             agentOverlays: buildAgentOverlayList(agentOverlayRef.current),
             overlayDetails: buildAgentOverlayDetails(agentOverlayRef.current),
+            overlayExtrusions: buildAgentOverlayExtrusions(agentOverlayRef.current),
+            onToggleOverlayExtrude: (overlayIndex) => annotations.toggleLayerExtrusion(overlayIndex),
             onQuickAnnotate: () => {
               setShowTools(true)
               setToolRequest((prev) => ({ id: 'annotation', seq: (prev?.seq ?? 0) + 1 }))
@@ -2500,6 +2502,10 @@ const h = React.createElement
               return removed + (manual ? 1 : 0)
             },
             onAskSelection: (options) => askAgentService.askSelection(options),
+            onParseSelection: () => {
+              setShowTools(true)
+              setToolRequest((prev) => ({ id: 'parse', aoiSeq: (prev?.aoiSeq ?? 0) + 1, seq: (prev?.seq ?? 0) + 1 }))
+            },
             onVisionSelect: () => { selectionApiRef.current?.requestVision?.(); setToolMode(null); setShowTools(false) },
           },
         }),

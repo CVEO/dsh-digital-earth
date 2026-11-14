@@ -10,6 +10,7 @@
  *     drawCommands: [{ geojson, style, caption?, entities, drawn }],
  *     measureCommands: [{ mode, points, draw, result, entities }] }
  */
+import { annotationExtrusionOf } from './annotation-model.js'
 
 /** Remove the entities of one kind (or everything) and reset the matching counters. */
 export function clearAgentOverlays(state, viewer, kind = 'all') {
@@ -83,6 +84,9 @@ export function overlayFeatureList(command) {
       geometryType: typeof feature.geometry?.type === 'string' ? feature.geometry.type : 'Geometry',
       kind: typeof props.kind === 'string' ? props.kind : null,
       style: typeof props.style === 'string' && props.style !== '' ? props.style : defaultStyle,
+      ...(typeof props.height_m === 'number' && Number.isFinite(props.height_m) ? { heightM: props.height_m } : {}),
+      ...(typeof props.est_floors === 'number' && Number.isFinite(props.est_floors) ? { estFloors: props.est_floors } : {}),
+      ...(typeof props.class === 'string' ? { featureClass: props.class } : {}),
     })
   }
   return items
@@ -96,6 +100,42 @@ export function buildAgentOverlayDetails(state) {
     details[index] = overlayFeatureList(commands[index])
   }
   return details
+}
+
+/** Inspect whether a draw command has height-capable polygons and active 3D extrusion. */
+export function commandExtrusionSummary(command) {
+  const geojson = command?.geojson
+  const features = geojson?.type === 'FeatureCollection' && Array.isArray(geojson.features)
+    ? geojson.features
+    : geojson?.type === 'Feature'
+      ? [geojson]
+      : []
+  let heightCount = 0
+  let extrudedCount = 0
+  for (const feature of features) {
+    const geomType = feature?.geometry?.type
+    if (geomType !== 'Polygon' && geomType !== 'MultiPolygon') continue
+    const ext = annotationExtrusionOf(feature)
+    if (!ext.has_height) continue
+    heightCount += 1
+    if (ext.enabled) extrudedCount += 1
+  }
+  return {
+    canExtrude: heightCount > 0,
+    extruded: extrudedCount > 0,
+    heightCount,
+    extrudedCount,
+  }
+}
+
+/** Per-overlay 2D/3D extrusion summary keyed by draw command index. */
+export function buildAgentOverlayExtrusions(state) {
+  const extrusions = {}
+  const commands = Array.isArray(state?.drawCommands) ? state.drawCommands : []
+  for (let index = 0; index < commands.length; index += 1) {
+    extrusions[index] = commandExtrusionSummary(commands[index])
+  }
+  return extrusions
 }
 
 /** Model-facing/panel-facing rows for the L4 vector overlay list. */

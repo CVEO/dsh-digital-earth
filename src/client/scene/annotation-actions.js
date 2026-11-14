@@ -6,9 +6,10 @@
  * close the card and tell the user. Kept out of ViewerSurface so the component
  * stays under its size budget.
  */
+import { commandExtrusionSummary } from './agent-overlays.js'
 import { downloadText } from './download.js'
 import { annotationFeatureText, deleteAnnotationFeature, findFeatureByTarget, rebuildDrawCommand, updateAnnotationFeature } from './annotation-edit.js'
-import { ANNOTATION_STYLES, annotationFeaturesOfCommands, annotationKindOf, ensureAnnotationFeatureId, nextAnnotationName, normalizeAnnotation, withAnnotationGeometry } from './annotation-model.js'
+import { ANNOTATION_STYLES, annotationExtrusionOf, annotationFeaturesOfCommands, annotationKindOf, ensureAnnotationFeatureId, nextAnnotationName, normalizeAnnotation, withAnnotationGeometry } from './annotation-model.js'
 
 export function createAnnotationActions({ stateRef, viewerRef, getSelection, draw, showToast, t, onChanged }) {
   const selectionOf = () => (typeof getSelection === 'function' ? getSelection() : null)
@@ -122,6 +123,44 @@ export function createAnnotationActions({ stateRef, viewerRef, getSelection, dra
       }
       const deleted = deleteAnnotationFeature(state, viewerRef.current, { command, feature }, replay)
       return finish(deleted, 'annotation.deleted', { action: 'remove', feature })
+    },
+    toggleLayerExtrusion: (overlayIndex) => {
+      const state = stateRef.current
+      const command = state?.drawCommands?.[overlayIndex]
+      if (!command) return false
+      const summary = commandExtrusionSummary(command)
+      if (!summary.canExtrude) return false
+      const nextExtrude = !summary.extruded
+      const rawFeatures = command?.geojson?.type === 'FeatureCollection' && Array.isArray(command.geojson.features)
+        ? command.geojson.features
+        : command?.geojson?.type === 'Feature'
+          ? [command.geojson]
+          : []
+      const nextFeatures = rawFeatures.map((feature) => {
+        const geomType = feature?.geometry?.type
+        if (geomType !== 'Polygon' && geomType !== 'MultiPolygon') return feature
+        const ext = annotationExtrusionOf(feature)
+        if (!ext.has_height) return feature
+        const props = { ...(feature.properties ?? {}) }
+        if (nextExtrude) {
+          props.extruded = true
+          if (props.extruded_height_m == null) {
+            const roof = typeof props.roof_height_m === 'number' && Number.isFinite(props.roof_height_m)
+              ? props.roof_height_m
+              : ext.base_height_m + ext.height_m
+            props.extruded_height_m = Math.round(roof * 100) / 100
+          }
+        } else {
+          // Keep height metrics and extruded_height_m intact while flagging flat 2D.
+          props.extruded = false
+        }
+        return { ...feature, properties: props }
+      })
+      return finish(
+        rebuildDrawCommand(state, viewerRef.current, command, nextFeatures, replay),
+        nextExtrude ? 'layers.layerExtruded3d' : 'layers.layerFlattened2d',
+        { action: 'extrude' },
+      )
     },
     export: () => {
       const feature = selectionOf()?.feature

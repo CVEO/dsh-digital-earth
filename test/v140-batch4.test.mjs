@@ -177,7 +177,8 @@ test('B4 README 中英对齐：章节数、工具行、安装命令与代码围�
   assert.equal(codeFences(readmeZh), 2)
   assert.equal(codeFences(readmeEn), 2)
   for (const text of [readmeZh, readmeEn]) {
-    assert.match(text, /dsh plugin --profile <profile> add @cveo\/dsh-digital-earth/)
+    assert.match(text, /dsh plugin --profile desktop add @cveo\/dsh-digital-earth/)
+    assert.match(text, /dsh plugin --profile web add @cveo\/dsh-digital-earth/)
     assert.match(text, /\[README\.md\]\(README\.md\)|\[中文\]\(README\.md\)/)
     assert.match(text, /\[README\.en\.md\]\(README\.en\.md\)|\[English\]\(README\.en\.md\)/)
   }

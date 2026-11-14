@@ -65,7 +65,12 @@ export const VECTOR_CSS = `
 .mv-overlay-feature-pick:hover{background:color-mix(in srgb,var(--mv-lift) 70%,transparent)}
 .mv-overlay-feature-dot{width:7px;height:7px;border-radius:999px;flex:0 0 auto}
 .mv-overlay-feature-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mv-overlay-feature-meta{font-size:10px;color:var(--mv-accent);font-variant-numeric:tabular-nums;white-space:nowrap;flex:0 0 auto}
 .mv-overlay-feature-tag{font-size:10px;color:var(--mv-dim);flex:0 0 auto}
+.mv-layer-dim-btn{min-block-size:24px;min-inline-size:28px;padding:0 5px;border-radius:6px;border:1px solid var(--mv-line);font-size:10px;font-weight:700;letter-spacing:.02em;color:var(--mv-dim)}
+.mv-layer-dim-btn.on{border-color:color-mix(in srgb,var(--mv-accent) 60%,transparent);background:color-mix(in srgb,var(--mv-accent) 18%,transparent);color:var(--mv-fg)}
+.mv-layer-dim-btn:focus-visible{outline:2px solid var(--mv-accent);outline-offset:2px}
+@media(forced-colors:active){.mv-layer-dim-btn.on{border:2px solid Highlight;color:HighlightText;background:Highlight}}
 .mv-vector-card .mv-vector-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
 .mv-vector-card .mv-btn.mv-danger{color:#fca5a5}
 .mv-vector-card .mv-btn.mv-danger:hover{background:color-mix(in srgb,#f87171 22%,transparent)}

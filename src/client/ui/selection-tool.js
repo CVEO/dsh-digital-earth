@@ -32,7 +32,7 @@ function summaryText(t, selection) {
   return `${t('selection.area')}: ${area}; ${t('selection.perimeter')}: ${perimeter}; ${t('selection.vertices')}: ${verts}`
 }
 
-export function SelectionTool({ t, getCesium, getViewer, showToast, runAnalysis, getTerrainActive, getOverlayRows, onRemoveOverlayRows, onActivateSelection, onAskSelection }) {
+export function SelectionTool({ t, getCesium, getViewer, showToast, runAnalysis, getTerrainActive, getOverlayRows, onRemoveOverlayRows, onActivateSelection, onAskSelection, onParseSelection }) {
   const [selection, setSelection] = React.useState(null)
   const [activeMode, setActiveMode] = React.useState(null)
   const toolRef = React.useRef(null)
@@ -276,6 +276,9 @@ export function SelectionTool({ t, getCesium, getViewer, showToast, runAnalysis,
               : h(
                   'div',
                   { className: 'mv-selection-actions' },
+                  typeof onParseSelection === 'function'
+                    ? h('button', { type: 'button', className: 'mv-cta', title: t('selection.parseAoiHint'), onClick: () => onParseSelection(selection) }, t('selection.parseAoi'))
+                    : null,
                   h('button', { type: 'button', className: 'mv-cta', title: t('selection.floodBounds'), onClick: () => void flood() }, t('selection.flood')),
                   h('button', { type: 'button', className: 'mv-cta', onClick: exportGeoJSON }, t('selection.export')),
                 ),

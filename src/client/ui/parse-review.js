@@ -10,27 +10,37 @@
 import React from 'react'
 
 import { loadMeta } from '../api.js'
+import { peekSelection } from '../scene/selection-tools.js'
+import { parseClassColor } from '../scene/vector-style.js'
 import {
+  PARSE_CLASSES,
   applyExtrusionToFeatures,
   batchClassCounts,
   batchFeatureCollection,
   captureSceneFrame,
   clearBatchPreview,
+  compareBatchFeatures,
   dedupeBatchFeatures,
   drawBatchPreview,
   filterBatchFeatures,
+  isAoiSelectionCapable,
   projectBatchObjects,
+  refineBatchMetricsWithHeightService,
   requestSceneParse,
 } from '../scene/vision-batch.js'
 
 const h = React.createElement
 
-function candidateMetricText(properties) {
+function candidateMetricText(properties, t) {
   const parts = []
   const height = properties?.height_m
+  const floors = properties?.est_floors
   const area = properties?.area_m2
   if (typeof height === 'number' && Number.isFinite(height) && height >= 0.5) {
     parts.push(`≈${Math.round(height)}m`)
+  }
+  if (typeof floors === 'number' && Number.isFinite(floors) && floors >= 1 && typeof t === 'function') {
+    parts.push(t('parse.floors', { n: floors }))
   }
   if (typeof area === 'number' && Number.isFinite(area) && area > 0) {
     parts.push(area >= 1e4 ? `${(area / 1e4).toFixed(2)}ha` : `${Math.round(area)}m²`)
@@ -49,29 +59,46 @@ function confidenceText(t, value) {
     : t('parse.confidenceUnknown')
 }
 
-export function ParseBody({ t, getCesium, getViewer, getLayers, showToast, onAdoptParse }) {
+export function ParseBody({ t, getCesium, getViewer, getLayers, showToast, onAdoptParse, openRequest, getSelection }) {
   const [stage, setStage] = React.useState(null)
+  const [scope, setScope] = React.useState(() => ((openRequest?.aoiSeq ?? 0) > 0 ? 'aoi' : 'view'))
+  const [parsedScope, setParsedScope] = React.useState('view')
   const [candidates, setCandidates] = React.useState([])
   const [selected, setSelected] = React.useState(() => new Set())
   const [filter, setFilter] = React.useState('all')
+  const [sortBy, setSortBy] = React.useState('default')
   const [extrude3d, setExtrude3d] = React.useState(true)
   const [skipped, setSkipped] = React.useState(0)
   const [error, setError] = React.useState(null)
   const previewRef = React.useRef([])
   const aliveRef = React.useRef(true)
+  const lastAoiSeqRef = React.useRef(openRequest?.aoiSeq ?? 0)
+
+  React.useEffect(() => {
+    const seq = openRequest?.aoiSeq ?? 0
+    if (seq > 0 && seq !== lastAoiSeqRef.current) {
+      lastAoiSeqRef.current = seq
+      setScope('aoi')
+    }
+  }, [openRequest?.aoiSeq])
 
   React.useEffect(() => () => { aliveRef.current = false; clearBatchPreview(getViewer(), previewRef.current) }, [])
+
+  const viewer = getViewer?.()
+  const activeSelection = (typeof getSelection === 'function' ? getSelection() : null) ?? peekSelection(viewer)
+  const aoiReady = isAoiSelectionCapable(activeSelection)
+  const effectiveScope = scope === 'aoi' && aoiReady ? 'aoi' : 'view'
 
   const bus = typeof stage === 'string'
   const stageText = stage ? t(`parse.stage.${stage}`) : ''
 
   const redrawPreview = (items, nextExtrude) => {
     const Cesium = getCesium()
-    const viewer = getViewer()
-    if (!viewer) return
-    clearBatchPreview(viewer, previewRef.current)
+    const currentViewer = getViewer()
+    if (!currentViewer) return
+    clearBatchPreview(currentViewer, previewRef.current)
     if (Cesium && items.length > 0) {
-      previewRef.current = drawBatchPreview(Cesium, viewer, items, { extrude: nextExtrude })
+      previewRef.current = drawBatchPreview(Cesium, currentViewer, items, { extrude: nextExtrude })
     }
   }
 
@@ -80,6 +107,7 @@ export function ParseBody({ t, getCesium, getViewer, getLayers, showToast, onAdo
     setCandidates([])
     setSelected(new Set())
     setFilter('all')
+    setSortBy('default')
     setSkipped(0)
     setError(null)
   }
@@ -87,13 +115,19 @@ export function ParseBody({ t, getCesium, getViewer, getLayers, showToast, onAdo
   const parse = async () => {
     if (bus) return
     const Cesium = getCesium()
-    const viewer = getViewer()
-    if (!Cesium || !viewer) { setError('not_ready'); return }
+    const currentViewer = getViewer()
+    if (!Cesium || !currentViewer) { setError('not_ready'); return }
     resetPreview()
     let frame = null
     try {
       setStage('capture')
-      frame = captureSceneFrame({ viewer, Cesium, getLayers: typeof getLayers === 'function' ? getLayers : () => [] })
+      frame = captureSceneFrame({
+        viewer: currentViewer,
+        Cesium,
+        getLayers: typeof getLayers === 'function' ? getLayers : () => [],
+        selection: activeSelection,
+        scope: effectiveScope,
+      })
       setStage('request')
       const meta = await loadMeta()
       if (!meta?.visionBatchUrl) throw Object.assign(new Error('unavailable'), { code: 'unavailable' })
@@ -101,14 +135,24 @@ export function ParseBody({ t, getCesium, getViewer, getLayers, showToast, onAdo
       if (!aliveRef.current) return
       setStage('project')
       const projected = projectBatchObjects(frame, payload.objects, { t })
-      const deduped = dedupeBatchFeatures(projected.features)
+      let resolvedFeatures = projected.features
+      if (resolvedFeatures.length > 0) {
+        setStage('heights')
+        const refined = await refineBatchMetricsWithHeightService(frame, resolvedFeatures, {
+          getLayers: typeof getLayers === 'function' ? getLayers : () => [],
+        })
+        if (!aliveRef.current) return
+        resolvedFeatures = refined.features
+      }
+      const deduped = dedupeBatchFeatures(resolvedFeatures)
       if (!aliveRef.current) return
       if (deduped.length === 0) { setError('no_target'); return }
+      setParsedScope(frame.scope === 'aoi' ? 'aoi' : 'view')
       setCandidates(deduped)
       setSelected(new Set(deduped.map((_, index) => index)))
       setFilter('all')
       setSkipped(projected.skipped)
-      previewRef.current = drawBatchPreview(Cesium, viewer, deduped, { extrude: extrude3d })
+      previewRef.current = drawBatchPreview(Cesium, currentViewer, deduped, { extrude: extrude3d })
       showToast(t('parse.candidates', { n: deduped.length }))
     } catch (failure) {
       if (!aliveRef.current) return
@@ -130,9 +174,11 @@ export function ParseBody({ t, getCesium, getViewer, getLayers, showToast, onAdo
 
   const counts = batchClassCounts(candidates)
   const buildingCount = counts.building ?? 0
+  const extraClasses = PARSE_CLASSES.filter((kind) => kind !== 'building' && (counts[kind] ?? 0) > 0)
   const visibleEntries = candidates
     .map((feature, index) => ({ feature, index }))
     .filter(({ feature }) => filter === 'all' || feature?.properties?.class === filter)
+    .sort((left, right) => compareBatchFeatures(left.feature, right.feature, sortBy) || (left.index - right.index))
 
   const changeFilter = (nextFilter) => {
     setFilter(nextFilter)
@@ -174,6 +220,34 @@ export function ParseBody({ t, getCesium, getViewer, getLayers, showToast, onAdo
     { className: 'mv-parse' },
     h(
       'div',
+      { className: 'mv-parse-scope' },
+      h(
+        'button',
+        {
+          type: 'button',
+          className: `mv-parse-scope-btn${effectiveScope === 'view' ? ' on' : ''}`,
+          'aria-pressed': effectiveScope === 'view',
+          disabled: bus,
+          onClick: () => setScope('view'),
+        },
+        t('parse.scopeView'),
+      ),
+      h(
+        'button',
+        {
+          type: 'button',
+          className: `mv-parse-scope-btn${effectiveScope === 'aoi' ? ' on' : ''}`,
+          'aria-pressed': effectiveScope === 'aoi',
+          disabled: bus || !aoiReady,
+          title: t(aoiReady ? 'parse.scopeAoiReady' : 'parse.scopeAoiNone'),
+          onClick: () => setScope('aoi'),
+        },
+        t('parse.scopeAoi'),
+      ),
+    ),
+    !aoiReady && candidates.length === 0 ? h('p', { className: 'mv-none' }, t('parse.scopeAoiNone')) : null,
+    h(
+      'div',
       { className: 'mv-tool-grid' },
       h(
         'button',
@@ -195,6 +269,7 @@ export function ParseBody({ t, getCesium, getViewer, getLayers, showToast, onAdo
           'div',
           { className: 'mv-parse-head' },
           h('span', { className: 'mv-parse-count' }, t('parse.candidates', { n: candidates.length })),
+          parsedScope === 'aoi' ? h('span', { className: 'mv-parse-aoi-tag' }, t('parse.aoiTag')) : null,
           h('span', { className: 'mv-parse-selected' }, t('parse.selected', { n: selected.size, total: candidates.length })),
         ),
         h(
@@ -203,10 +278,50 @@ export function ParseBody({ t, getCesium, getViewer, getLayers, showToast, onAdo
           h(
             'div',
             { className: 'mv-parse-filters' },
-            h('button', { type: 'button', className: `mv-parse-filter${filter === 'all' ? ' on' : ''}`, onClick: () => changeFilter('all') }, t('parse.filterAll', { n: candidates.length })),
+            h(
+              'button',
+              { type: 'button', className: `mv-parse-filter${filter === 'all' ? ' on' : ''}`, 'aria-pressed': filter === 'all', onClick: () => changeFilter('all') },
+              t('parse.filterAll', { n: candidates.length }),
+            ),
             buildingCount > 0
-              ? h('button', { type: 'button', className: `mv-parse-filter${filter === 'building' ? ' on' : ''}`, onClick: () => changeFilter('building') }, t('parse.filterBuildings', { n: buildingCount }))
+              ? h(
+                  'button',
+                  { type: 'button', className: `mv-parse-filter${filter === 'building' ? ' on' : ''}`, 'aria-pressed': filter === 'building', onClick: () => changeFilter('building') },
+                  h('span', { className: 'mv-parse-dot', 'aria-hidden': true, style: { background: parseClassColor('building').hex } }),
+                  t('parse.filterBuildings', { n: buildingCount }),
+                )
               : null,
+            ...extraClasses.map((kind) =>
+              h(
+                'button',
+                {
+                  key: kind,
+                  type: 'button',
+                  className: `mv-parse-filter${filter === kind ? ' on' : ''}`,
+                  'aria-pressed': filter === kind,
+                  onClick: () => changeFilter(kind),
+                },
+                h('span', { className: 'mv-parse-dot', 'aria-hidden': true, style: { background: parseClassColor(kind).hex } }),
+                t('parse.filterClass', { label: t(`parse.class.${kind}`), n: counts[kind] }),
+              ),
+            ),
+          ),
+          h(
+            'div',
+            { className: 'mv-parse-sort' },
+            ...['default', 'height', 'area'].map((mode) =>
+              h(
+                'button',
+                {
+                  key: mode,
+                  type: 'button',
+                  className: `mv-parse-sort-btn${sortBy === mode ? ' on' : ''}`,
+                  'aria-pressed': sortBy === mode,
+                  onClick: () => setSortBy(mode),
+                },
+                t(`parse.sort${mode.charAt(0).toUpperCase()}${mode.slice(1)}`),
+              ),
+            ),
           ),
           h(
             'label',
@@ -220,18 +335,23 @@ export function ParseBody({ t, getCesium, getViewer, getLayers, showToast, onAdo
           'div',
           { className: 'mv-parse-list' },
           ...visibleEntries.map(({ feature, index }) => {
-            const metrics = candidateMetricText(feature.properties)
+            const props = feature.properties ?? {}
+            const kind = props.class ?? 'other'
+            const color = parseClassColor(kind, props.style)
+            const metrics = candidateMetricText(props, t)
             return h(
               'label',
-              { key: `${index}-${feature.properties?.name ?? index}`, className: `mv-parse-row${selected.has(index) ? ' on' : ''}` },
+              { key: `${index}-${props.name ?? index}`, className: `mv-parse-row${selected.has(index) ? ' on' : ''}` },
               h('input', {
                 type: 'checkbox',
                 checked: selected.has(index),
                 onChange: () => toggle(index),
               }),
-              h('span', { className: 'mv-parse-name' }, feature.properties?.name ?? ''),
+              h('span', { className: 'mv-parse-dot', 'aria-hidden': true, style: { background: color.hex } }),
+              h('span', { className: 'mv-parse-class' }, t(`parse.class.${kind}`)),
+              h('span', { className: 'mv-parse-name' }, props.name ?? ''),
               metrics !== '' ? h('span', { className: 'mv-parse-metrics' }, metrics) : null,
-              h('span', { className: 'mv-parse-conf' }, confidenceText(t, feature.properties?.confidence)),
+              h('span', { className: 'mv-parse-conf' }, confidenceText(t, props.confidence)),
             )
           }),
         ),

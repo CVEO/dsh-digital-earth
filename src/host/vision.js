@@ -132,7 +132,8 @@ function decodeImagePayload(payload) {
 
 export function validateVisionBatchRequest(payload) {
   if (!payload || typeof payload.frameId !== 'string' || !/^[a-zA-Z0-9-]{1,80}$/.test(payload.frameId)) throw visionError('invalid_request')
-  return { ...decodeImagePayload(payload), frameId: payload.frameId }
+  const scope = payload.scope === 'aoi' ? 'aoi' : 'view'
+  return { ...decodeImagePayload(payload), frameId: payload.frameId, scope }
 }
 
 function normalizePolygon(value) {
@@ -184,7 +185,15 @@ export async function callVisionBatch(model, input, signal) {
     provider: model.provider, model: model.model,
     ...(model.reasoningEffort ? { reasoningEffort: model.reasoningEffort } : {}),
     system: BATCH_SYSTEM, maxTokens: 2000, temperature: 0, signal,
-    messages: [{ role: 'user', content: [{ type: 'text', text: `Image size: ${input.width} x ${input.height}. Parse the visible objects in this screenshot.` }, { type: 'image', attachment }] }],
+    messages: [{
+      role: 'user',
+      content: [{
+        type: 'text',
+        text: input.scope === 'aoi'
+          ? `Image size: ${input.width} x ${input.height}. This is a cropped region-of-interest (AOI) from a 3D digital earth view. Parse every clearly visible object (buildings, vegetation, water, roads, vehicles) inside this crop in detail.`
+          : `Image size: ${input.width} x ${input.height}. Parse the visible objects in this screenshot.`,
+      }, { type: 'image', attachment }],
+    }],
   })
   for await (const chunk of stream) {
     signal.throwIfAborted()

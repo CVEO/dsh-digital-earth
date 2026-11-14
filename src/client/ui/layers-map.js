@@ -41,6 +41,8 @@ export function LayersMap({
   onOverlayVisible,
   onOverlayMove,
   agentOverlays,
+  overlayExtrusions,
+  onToggleOverlayExtrude,
   annotations,
   onClearVector,
   onRemoveAgentOverlay,
@@ -174,6 +176,24 @@ export function LayersMap({
               )
             : null,
           h('span', { className: 'name', title: `${row.label} · ${row.detail}` }, `${row.label} · ${row.detail}`),
+          row.kind === 'draw' && overlayExtrusions?.[row.index]?.canExtrude && typeof onToggleOverlayExtrude === 'function'
+            ? (() => {
+                const is3d = Boolean(overlayExtrusions[row.index].extruded)
+                const label = t(is3d ? 'layers.switch2d' : 'layers.switch3d')
+                return h(
+                  'button',
+                  {
+                    type: 'button',
+                    className: `mv-icon-btn mv-layer-dim-btn${is3d ? ' on' : ''}`,
+                    'aria-pressed': is3d,
+                    title: label,
+                    'aria-label': label,
+                    onClick: () => onToggleOverlayExtrude(row.index),
+                  },
+                  is3d ? '3D' : '2D',
+                )
+              })()
+            : null,
           row.kind === 'draw' && typeof vectorExport?.downloadOverlay === 'function'
             ? h(
                 'button',
@@ -242,6 +262,13 @@ export function LayersMap({
                       style: { background: VECTOR_COLORS[feat.style] ?? VECTOR_COLORS.accent },
                     }),
                     h('span', { className: 'mv-overlay-feature-name' }, feat.name ?? t('layers.featureUnnamed', { n: feat.featureIndex + 1 })),
+                    feat.heightM != null
+                      ? h(
+                          'span',
+                          { className: 'mv-overlay-feature-meta' },
+                          `≈${Math.round(feat.heightM)}m${feat.estFloors != null ? `/${t('parse.floors', { n: feat.estFloors })}` : ''}`,
+                        )
+                      : null,
                     h('span', { className: 'mv-overlay-feature-tag' }, feat.geometryType),
                   ),
                   typeof onFlyAgentFeature === 'function'

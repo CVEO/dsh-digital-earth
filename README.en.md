@@ -10,7 +10,7 @@ Built by the CVEO Research Group, Wuhan University — a 3D component for 3D cit
 
 [中文](README.md) · [English](README.en.md) · [Changelog](CHANGELOG.md) · [License](LICENSE)
 
-![version](https://img.shields.io/badge/version-1.5.2-4f8cff)
+![version](https://img.shields.io/badge/version-1.6.0-4f8cff)
 ![license](https://img.shields.io/badge/license-MIT-2ea44f)
 ![DSH](https://img.shields.io/badge/DSH-plugin-0ea5e9)
 [![npm downloads](https://img.shields.io/npm/dm/@cveo/dsh-digital-earth?label=npm%20downloads&color=cb383f)](https://www.npmjs.com/package/@cveo/dsh-digital-earth)
@@ -30,17 +30,24 @@ The 3D engine and UI assets ship with the plugin, so no additional GIS server is
 
 **Easiest install**: open the desktop DeepSeek Harness, click **Plugins** in the top-right corner, enter the full package name `@cveo/dsh-digital-earth` in the plugin market search box, and install "Digital Earth". Then restart DSH as described in step 1.
 
-You can also install from npm or a local tgz in a terminal:
+You can also install from npm or a local `.tgz` in a terminal (`--profile` is required to select which DSH environment receives the plugin under `~/.dsh/profiles/`, `%USERPROFILE%\.dsh\profiles\` on Windows, or `$DSH_HOME/profiles/`; on Windows, if `dsh` is not on `PATH`, run `resources\runtime\cli\bin\dsh.cmd` inside your DSH install directory):
+
+- **Desktop app (most common)**: `--profile desktop` (used by the DeepSeek Harness desktop client)
+- **Web service**: `--profile web` (used when booting the browser UI with `dsh web`)
+- **Custom profile**: replace `desktop` with your own profile directory name
 
 ```bash
-# npm
-dsh plugin --profile <profile> add @cveo/dsh-digital-earth
+# Install into the DSH Desktop app (npm)
+dsh plugin --profile desktop add @cveo/dsh-digital-earth
 
-# local tarball
-dsh plugin --profile <profile> add ./cveo-dsh-digital-earth-1.5.2.tgz
+# Install into the DSH Web service (dsh web, npm)
+dsh plugin --profile web add @cveo/dsh-digital-earth
+
+# Install from a local tarball (Desktop example; change desktop to web for Web UI)
+dsh plugin --profile desktop add ./cveo-dsh-digital-earth-1.6.0.tgz
 ```
 
-1. Quit DSH completely and start it again (the client bundle registers at startup; a page refresh is not enough).
+1. Quit and reopen the DSH Desktop app completely, or restart the `dsh web` service (the client bundle registers at startup; a page refresh is not enough).
 2. Click the "Digital Earth" card on the start page, or the globe button in the chat header, to open the Digital Earth tab on the right.
 3. Data ▾ → open a local folder that contains a `tileset.json`, or paste an online URL / enter coordinates to fly there.
 

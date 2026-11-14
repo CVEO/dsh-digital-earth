@@ -10,7 +10,7 @@
 
 [中文](README.md) · [English](README.en.md) · [更新日志](CHANGELOG.md) · [许可](LICENSE)
 
-![版本](https://img.shields.io/badge/版本-1.5.2-4f8cff)
+![版本](https://img.shields.io/badge/版本-1.6.0-4f8cff)
 ![许可](https://img.shields.io/badge/许可-MIT-2ea44f)
 ![DSH](https://img.shields.io/badge/DSH-插件-0ea5e9)
 [![npm downloads](https://img.shields.io/npm/dm/@cveo/dsh-digital-earth?label=npm%20downloads&color=cb383f)](https://www.npmjs.com/package/@cveo/dsh-digital-earth)
@@ -30,17 +30,24 @@
 
 **最简单的安装方式**：打开桌面版 DeepSeek Harness，点击右上角「插件」，在插件市场搜索框输入完整包名 `@cveo/dsh-digital-earth`，选择「数字地球」安装即可；安装完成后按第 1 步重启 DSH。
 
-也可以在终端通过 npm / 本地 tgz 安装：
+也可以在终端通过 npm 或本地 `.tgz` 安装（`--profile` 为必填参数，用来指定插件安装到哪个 DSH 配置环境，默认目录为 `~/.dsh/profiles/`，Windows 为 `%USERPROFILE%\.dsh\profiles\`，也可通过 `DSH_HOME` 指定；Windows 终端若未将 `dsh` 加入 `PATH`，可直接调用 DSH 安装目录下的 `resources\runtime\cli\bin\dsh.cmd`）：
+
+- **桌面端应用（最常用）**：`--profile desktop`（对应 DeepSeek Harness 桌面客户端）
+- **Web 端服务**：`--profile web`（对应 `dsh web` 启动的浏览器端界面）
+- **自定义配置**：把 `desktop` 替换为你的配置名称即可
 
 ```bash
-# npm
-dsh plugin --profile <profile> add @cveo/dsh-digital-earth
+# 安装到 DSH 桌面端（npm）
+dsh plugin --profile desktop add @cveo/dsh-digital-earth
 
-# local tarball
-dsh plugin --profile <profile> add ./cveo-dsh-digital-earth-1.5.2.tgz
+# 安装到 DSH Web 端（dsh web，npm）
+dsh plugin --profile web add @cveo/dsh-digital-earth
+
+# 从本地构建包安装（桌面端示例；Web 端把 desktop 改为 web）
+dsh plugin --profile desktop add ./cveo-dsh-digital-earth-1.6.0.tgz
 ```
 
-1. 完全退出并重新打开 DSH（客户端 bundle 在启动时注册，刷新页面不够）。
+1. 完全退出并重新打开 DSH 桌面端，或重启 `dsh web` 服务（客户端 bundle 在启动时注册，仅刷新页面不够）。
 2. 在开始页点击「数字地球」卡片，或在对话标题栏点地球按钮，打开右侧「数字地球」页签。
 3. 数据 ▾ → 打开本地目录，选择包含 `tileset.json` 的文件夹；或粘贴在线地址 / 输入经纬度直接飞过去。
 
