@@ -139,7 +139,7 @@ test('AnalysisCard & AnalysisProfileChart：展示高程纵断面核心统计且
   assert.equal(circles.length, 2, 'peak dot + hover marker dot')
 })
 
-test('AnalysisBody & createProfileTool：支持切换高程采样目标（三维表面/纯地形）与采样点数（16/32/64）', async () => {
+test('AnalysisBody & createProfileTool：支持切换高程采样目标（三维表面/纯地形）与采样点数（自动/64/128/256/512）', async () => {
   const started = []
   const translate = t(MESSAGES.zh)
   const body = AnalysisBody({
@@ -153,10 +153,11 @@ test('AnalysisBody & createProfileTool：支持切换高程采样目标（三维
   })
   const selects = findElements(body, (el) => el.type === 'select')
   assert.equal(selects.length, 2, 'should expose elevation source and sample density selects')
+  assert.equal(selects[1].children.length, 5, 'should expose auto/64/128/256/512 sample options')
   const drawBtn = findElements(body, (el) => el.type === 'button' && collectText(el).join('') === '绘制高程纵断面')[0]
   assert.ok(drawBtn)
   drawBtn.props.onClick()
-  assert.deepEqual(started[0], { source: 'tiles', samples: 32 })
+  assert.deepEqual(started[0], { source: 'tiles', samples: undefined })
 
   const calls = []
   let picks = 0
@@ -182,7 +183,7 @@ test('AnalysisBody & createProfileTool：支持切换高程采样目标（三维
     showToast: () => {},
     t: (k) => k,
   })
-  profileTool.start({ source: 'terrain', samples: 64 })
+  profileTool.start({ source: 'terrain', samples: 256 })
   profileTool.onPoint({ x: 1, y: 1 })
   profileTool.onPoint({ x: 2, y: 2 })
   await Promise.resolve()
@@ -190,7 +191,7 @@ test('AnalysisBody & createProfileTool：支持切换高程采样目标（三维
     action: 'profile',
     from: [0.1, 0.1],
     to: [0.2, 0.2],
-    samples: 64,
+    samples: 256,
     source: 'terrain',
   })
 })

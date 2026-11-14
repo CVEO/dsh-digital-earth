@@ -86,7 +86,7 @@ test('normalizeAnalyzeRequest：导出、五动作枚举、返回对象只有 ar
 
   const profile = normalizeAnalyzeRequest(profileBase())
   assert.deepEqual(Object.keys(profile), ['args'])
-  assert.deepEqual(profile.args, { action: 'profile', from: [116.39, 39.9], to: [116.5, 40.0], samples: 32 })
+  assert.deepEqual(profile.args, { action: 'profile', from: [116.39, 39.9], to: [116.5, 40.0] })
 
   const flood = argsFor(floodBase())
   assert.deepEqual(Object.keys(flood).sort(), ['action', 'grid', 'region', 'water_height'])
@@ -97,13 +97,13 @@ test('normalizeAnalyzeRequest：导出、五动作枚举、返回对象只有 ar
   assert.deepEqual(argsFor({ action: 'clear' }), { action: 'clear' })
 })
 
-test('normalizeAnalyzeRequest：profile 默认 samples=32、范围 8..64、layer 去空白', () => {
-  assert.equal(argsFor(profileBase()).samples, 32)
+test('normalizeAnalyzeRequest：profile 默认省略 samples 触发自适应、范围 8..512、layer 去空白', () => {
+  assert.equal(argsFor(profileBase()).samples, undefined)
   assert.equal(argsFor({ ...profileBase(), layer: '  Tiles A  ' }).layer, 'Tiles A')
-  for (const samples of [8, 32, 64]) assert.equal(argsFor({ ...profileBase(), samples }).samples, samples)
+  for (const samples of [8, 128, 512]) assert.equal(argsFor({ ...profileBase(), samples }).samples, samples)
 
-  rejectsAnalyze({ ...profileBase(), samples: 7 }, /"samples" 7 is outside 8\.\.64/)
-  rejectsAnalyze({ ...profileBase(), samples: 65 }, /"samples" 65 is outside 8\.\.64/)
+  rejectsAnalyze({ ...profileBase(), samples: 7 }, /"samples" 7 is outside 8\.\.512/)
+  rejectsAnalyze({ ...profileBase(), samples: 513 }, /"samples" 513 is outside 8\.\.512/)
   rejectsAnalyze({ ...profileBase(), samples: 8.5 }, /"samples" must be an integer/)
   rejectsAnalyze({ ...profileBase(), samples: '32' }, /"samples" must be an integer/)
   rejectsAnalyze({ ...profileBase(), samples: null }, /"samples" must be an integer/)
@@ -515,33 +515,35 @@ test('client 高程采样：可见 3D Tiles getHeight 优先（同步/Promise）
   assert.match(core, /catch \{\n\s+\/\* no terrain provider: leave the sample empty \*\//)
 })
 
-test('client profile 引擎：samples 8..64 默认 32、测地线采样、≥2 有效点、stats/色带/起终点实体', () => {
+test('client profile 引擎：samples 自适应/8..512、测地线批量采样与加密、≥2 有效点、stats/色带/起终点实体', () => {
   const profile = block(client, 'const analyzeProfile = async', 'const analyzeFlood = async')
   assert.match(profile, /const from = analysisLonLat\(args\.from\)/)
   assert.match(profile, /const to = analysisLonLat\(args\.to\)/)
   // 非法坐标在面板侧也拒绝一次（Host 已校验，这里是纵深防御）。
   assert.match(profile, /`from`\/`to` must be \[lon, lat\] pairs/)
-  assert.match(profile, /analysisInteger\(args\.samples, 32, 8, 64\)/)
+  assert.match(profile, /analysisInteger\(args\.samples, 128, 8, PROFILE_MAX_SAMPLES\)/)
+  assert.match(profile, /autoProfileSamples\(length\)/)
+  assert.match(profile, /sampleProfileEntries\(\{/)
   assert.match(profile, /new Cesium\.EllipsoidGeodesic\(/)
   assert.match(profile, /geodesic\.interpolateUsingFraction\(fraction/)
   assert.match(profile, /if \(withData < ANALYSIS_MIN_SAMPLES\)/)
   // v1.5.2: one explicit source per run (tiles or terrain), no silent fall-back.
   assert.match(profile, /const heightMode = args\.source === 'terrain' \? 'terrain' : 'tiles'/)
-  assert.match(profile, /sampler\.sample\(carto, \{ mode: heightMode \}\)/)
+  assert.match(client, /sampler\.sampleMany\(initialProbes, \{ mode: heightMode \}\)/)
   assert.match(profile, /\[no_height_data\]/)
   assert.match(profile, /3DGS 不提供表面高程/)
   for (const field of ['min_height', 'max_height', 'relief_m', 'gain_m', 'loss_m']) {
     assert.match(profile, new RegExp(`${field}: analysisRound`))
   }
   // 数据缺口跳过，不跨缺口臆造起伏。
-  assert.match(profile, /if \(point\.height_m === null\) continue/)
+  assert.match(profile, /if \(left\.height_m === null \|\| right\.height_m === null\) continue/)
   assert.match(profile, /id: `profile-line-\$\{index\}`/)
   assert.match(profile, /marker\('profile-start'/)
   assert.match(profile, /marker\('profile-end'/)
   assert.match(profile, /analysisColorAt\(Cesium/)
   // 结果字段与契约一致，且驱动分析卡。
   assert.match(profile, /operation: 'profile'/)
-  assert.match(profile, /from,\n\s+to,\n\s+samples,/)
+  assert.match(profile, /from,\n\s+to,\n\s+samples: points\.length,/)
   assert.match(profile, /length_m: analysisRound\(length, 1\)/)
   assert.match(profile, /points,/)
   assert.match(profile, /setAnalysis\(\{ operation: 'profile'/)
@@ -697,14 +699,14 @@ test('client 分析卡与布局：右上方浮动卡、SVG 剖面、折叠/关�
   // F5：图表悬停换算成样本序号，地面读数由同一个序号驱动。
   assert.match(chart, /nearestProfileIndex\(points,/)
   assert.match(chart, /onPointerMove,/)
-  assert.match(card, /className: 'mv-card mv-analysis'/)
+  assert.match(card, /className: `mv-card mv-analysis \$\{floating\.className\}`/)
   assert.match(card, /role: 'region'/)
   assert.match(card, /analysis\.title\.\$\{operation\}/)
   assert.match(card, /t\('analysis\.close'\)/)
   assert.match(card, /'aria-expanded': open/)
   assert.match(card, /t\('analysis\.collapse'\)/)
   assert.match(card, /t\('analysis\.expand'\)/)
-  assert.match(card, /function AnalysisCard\(\{ state, t, onClose, hoverIndex = null, onHover \}\)/)
+  assert.match(card, /function AnalysisCard\(\{ state, t, onClose, hoverIndex = null, onHover, onStartProfile \}\)/)
 
   // 右栈与 300px 宽度上限（右栈样式块跨过图层卡样式，到分析卡提示行为止）。
   const layout = block(client, '.mv-right{', '.mv-analysis .hint{')
@@ -727,7 +729,10 @@ test('client 分析卡与布局：右上方浮动卡、SVG 剖面、折叠/关�
   // 面板把分析卡挂在右栈，关闭按钮走 clearAnalysis；右栈已抽成 ui/right-stack.js。
   const stack = readRepoFile('src/client/ui/right-stack.js')
   assert.match(stack, /className: 'mv-right'/)
-  assert.match(stack, /h\(AnalysisCard, \{ key: 'analysis', state: analysis, t, onClose: onCloseAnalysis, hoverIndex: analysisHover, onHover: onAnalysisHover \}\)/)
+  assert.match(
+    stack,
+    /h\(AnalysisCard,\s*\{[\s\S]*?key:\s*'analysis',\s*state:\s*analysis,\s*t,\s*onClose:\s*onCloseAnalysis,\s*hoverIndex:\s*analysisHover,\s*onHover:\s*onAnalysisHover/,
+  )
 })
 
 test('client i18n：analysis.* 49 个键中英对齐，关键文案都在', () => {

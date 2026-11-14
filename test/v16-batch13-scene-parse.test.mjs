@@ -175,8 +175,9 @@ test('宿主校验：截图请求必须有 frameId 与可解码的 32..1024 尺�
 test('接线：解析入口经工具箱进入，采纳后只生成一条标注图层命令', async () => {
   assert.ok(catalog.TOOL_IDS.includes('parse'))
   assert.equal(catalog.TOOL_IDS[catalog.TOOL_IDS.indexOf('annotation') + 1], 'parse')
-  const toolsPanel = await readRepoFile('src/client/ui/tools-panel.js')
-  assert.match(toolsPanel, /onAdoptParse/)
+  const rightStack = await readRepoFile('src/client/ui/right-stack.js')
+  assert.match(rightStack, /ToolBody/)
+  assert.match(rightStack, /\.\.\.\(toolsPanel \?\? \{\}\)/)
   const toolWindows = await readRepoFile('src/client/ui/tool-windows.js')
   assert.match(toolWindows, /import \{ ParseBody \} from '\.\/parse-review\.js'/)
   assert.match(toolWindows, /if \(entryId === 'parse'\) return h\(ParseBody, rest\)/)

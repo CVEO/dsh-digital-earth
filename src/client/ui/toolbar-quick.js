@@ -9,11 +9,25 @@ import React from 'react'
 
 const h = React.createElement
 
-export function ToolbarQuick({ t, showLayers, showTools, onToggleLayers, onToggleTools, button }) {
+export function ToolbarQuick({
+  t,
+  showSelect = false,
+  onToggleSelect,
+  showLayers,
+  showTools,
+  openToolCount = 0,
+  onToggleLayers,
+  onToggleTools,
+  button,
+}) {
+  const toolsLabel = openToolCount > 0 && !showTools ? `${t('btn.tools')} (${openToolCount})` : t('btn.tools')
   return h(
     React.Fragment,
     null,
-    button(t('btn.tools'), onToggleTools, showTools, undefined, showTools ? t('btn.toolsHide') : t('btn.toolsShow')),
+    typeof onToggleSelect === 'function'
+      ? button(t('btn.select'), onToggleSelect, showSelect, undefined, showSelect ? t('btn.selectHide') : t('btn.selectShow'))
+      : null,
+    button(toolsLabel, onToggleTools, showTools, undefined, showTools ? t('btn.toolsHide') : t('btn.toolsShow')),
     button(
       t('btn.layers'),
       onToggleLayers,

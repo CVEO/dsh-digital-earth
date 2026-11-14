@@ -95,7 +95,7 @@ test('人工剖面源码：自建 MOUSE_MOVE handler、草稿虚线、销毁路�
   assert.match(profileTool, /action: 'profile'/)
   assert.match(profileTool, /from: \[from\.lon, from\.lat\]/)
   assert.match(profileTool, /to: \[to\.lon, to\.lat\]/)
-  assert.match(profileTool, /samples: 32/)
+  assert.match(profileTool, /\.\.\.\(samples \? \{ samples \} : \{\}\)/)
 })
 
 function makeHarness() {
@@ -244,7 +244,7 @@ test('人工剖面：第二次点击立即固定草稿线，分析成功后再�
   assert.equal(args.action, 'profile')
   assert.deepEqual(args.from, [0.1, 0.05])
   assert.deepEqual(args.to, [0.2, 0.1])
-  assert.equal(args.samples, 32)
+  assert.equal(args.samples, undefined)
 })
 
 test('人工剖面：分析失败也清理草稿并 toast', async () => {

@@ -9,11 +9,13 @@ import { VECTOR_MESSAGES } from './messages-vector.js'
 import { VISION_MESSAGES } from './messages-vision.js'
 import { SELECTION_MESSAGES } from './messages-selection.js'
 import { PARSE_MESSAGES } from './messages-parse.js'
+import { UI_MESSAGES } from './messages-ui.js'
 
 export const V18_MESSAGES = {
   zh: {
     ...VECTOR_MESSAGES.zh,
     ...VISION_MESSAGES.zh,
+    ...UI_MESSAGES.zh,
     'panel.description': '在对话旁浏览、量测与分析 3D Tiles / 3DGS 场景。',
     'menu.recentUrls': '最近地址',
     'layers.tab.map': '地图',
@@ -364,5 +366,6 @@ export const V18_MESSAGES = {
     'layers.layerFlattened2d': 'Switched layer to 2D footprints',
     ...SELECTION_MESSAGES.en,
     ...PARSE_MESSAGES.en,
+    ...UI_MESSAGES.en,
   },
 }

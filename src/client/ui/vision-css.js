@@ -14,6 +14,6 @@ export const VISION_CSS = `
 .mv-vision-error{font-size:13px;line-height:1.5;color:light-dark(#a52f37,#ffadb4)}
 .mv-vision-actions{display:flex;flex-wrap:wrap;gap:8px}
 .mv-vision-actions .mv-cta{flex:1 1 120px;min-height:38px;font-size:12px}
-.mv-root:has(.mv-vision-screen) :is(.mv-top,.mv-right,.mv-shader,.mv-tour,.mv-scene-details){visibility:hidden;pointer-events:none}
+.mv-root:has(.mv-vision-screen) :is(.mv-top,.mv-right,.mv-shader,.mv-tour,.mv-scene-details,.mv-floating,.mv-toolwin){visibility:hidden;pointer-events:none}
 .mv-root.mv-capturing .mv-vision-screen{visibility:hidden!important}
 `

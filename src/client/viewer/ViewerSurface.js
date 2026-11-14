@@ -51,6 +51,7 @@ import { AskAgentIcon, FullscreenIcon, HudIcon, ResetIcon, ScreenshotIcon, Shade
 import { ToolbarQuick } from '../ui/toolbar-quick.js'
 import { ToolbarMenus } from '../ui/toolbar-menus.js'
 import { RightStack } from '../ui/right-stack.js'
+import { useToolWorkspace } from '../ui/tool-workspace.js'
 import { LoadingGlobe } from '../ui/loading-globe.js'
 import { SelectionOverlay } from '../ui/selection-overlay.js'
 import { VectorCard } from '../ui/vector-card.js'
@@ -159,6 +160,7 @@ const h = React.createElement
       const [shaderOpen, setShaderOpen] = React.useState(false)
       const [showTools, setShowTools] = React.useState(true)
       const [toolRequest, setToolRequest] = React.useState(null)
+      const workspace = useToolWorkspace(toolRequest)
       const [, setOverlayRev] = React.useState(0)
       const [shaderActive, setShaderActive] = React.useState([])
       const [shaderForm, setShaderForm] = React.useState({
@@ -962,7 +964,7 @@ const h = React.createElement
           action: 'profile',
           from,
           to,
-          samples: Number.isInteger(analysisRef.current?.result?.samples) ? analysisRef.current.result.samples : 32,
+          ...(Number.isInteger(analysisRef.current?.result?.requested_samples) ? { samples: analysisRef.current.result.requested_samples } : {}),
           ...(source === 'terrain' ? { source: 'terrain' } : {}),
         })
           .catch((error) => showToast(t('profile.recomputeFailed', { message: error?.message ?? String(error) }))),
@@ -2287,8 +2289,11 @@ const h = React.createElement
             h('i', { key: 's1', className: 'mv-sep' }),
             h(ToolbarQuick, {
               t,
+              showSelect: workspace.isOpen('select') || tool === 'select',
+              onToggleSelect: () => workspace.selectTool('select'),
               showLayers,
               showTools,
+              openToolCount: workspace.windows.length,
               onToggleLayers: () => updateSettings({ showLayers: !showLayers }),
               onToggleTools: () => setShowTools((value) => !value),
               button,
@@ -2374,14 +2379,14 @@ const h = React.createElement
           t,
           showToast,
           onMeasure: measureFromSelection,
-          onVisionCommit: (ground) => { getSelectionTool(viewerRef.current, { getCesium: () => cesiumRef.current, t, showToast })?.commitVision(ground); setShowTools(true) },
-          onVisionManual: () => setShowTools(true),
+          onVisionCommit: (ground) => { getSelectionTool(viewerRef.current, { getCesium: () => cesiumRef.current, t, showToast })?.commitVision(ground); workspace.openTool('select') },
+          onVisionManual: () => workspace.openTool('select'),
           onSelectArea: (card) => {
             const viewerNow = viewerRef.current
             if (!viewerNow || !card?.point) return
             const selectionTool = getSelectionTool(viewerNow, { getCesium: () => cesiumRef.current, t, showToast })
             selectionTool?.selectAreaAround?.({ lon: card.point.lon, lat: card.point.lat, radiusM: 15, height: card.point.surface_height_m ?? 0 })
-            setShowTools(true)
+            workspace.openTool('select')
           },
         }),
         tour.element,
@@ -2389,6 +2394,11 @@ const h = React.createElement
         sceneDetails.element,
         h(RightStack, {
           t,
+          openWindows: workspace.windows,
+          onSelectTool: workspace.selectTool,
+          onCloseToolWindow: workspace.closeTool,
+          onToggleMinimizeTool: workspace.toggleMinimize,
+          onToggleExpandTool: workspace.toggleExpand,
           analysis,
           analysisHover: profileHover,
           onAnalysisHover: (index) => {
@@ -2436,7 +2446,6 @@ const h = React.createElement
             overlayExtrusions: buildAgentOverlayExtrusions(agentOverlayRef.current),
             onToggleOverlayExtrude: (overlayIndex) => annotations.toggleLayerExtrusion(overlayIndex),
             onQuickAnnotate: () => {
-              setShowTools(true)
               setToolRequest((prev) => ({ id: 'annotation', seq: (prev?.seq ?? 0) + 1 }))
             },
             onSelectAgentFeature: (overlayIndex, featureIndex) => {
@@ -2503,7 +2512,6 @@ const h = React.createElement
             },
             onAskSelection: (options) => askAgentService.askSelection(options),
             onParseSelection: () => {
-              setShowTools(true)
               setToolRequest((prev) => ({ id: 'parse', aoiSeq: (prev?.aoiSeq ?? 0) + 1, seq: (prev?.seq ?? 0) + 1 }))
             },
             onVisionSelect: () => { selectionApiRef.current?.requestVision?.(); setToolMode(null); setShowTools(false) },

@@ -32,7 +32,8 @@ const { createVectorRenderer } = await import('../src/client/scene/vector-render
 const { createVectorExport } = await import('../src/client/scene/vector-export-service.js')
 const { LayersMap } = await import('../src/client/ui/layers-map.js')
 const { VectorCard } = await import('../src/client/ui/vector-card.js')
-const { ToolsPanel } = await import('../src/client/ui/tools-panel.js')
+const { RightStack } = await import('../src/client/ui/right-stack.js')
+const { useToolWorkspace } = await import('../src/client/ui/tool-workspace.js')
 
 function tZh(key, params) {
   let text = MESSAGES.zh[key] ?? key
@@ -804,19 +805,29 @@ test('LayersMap：展开要素列表、按层导出/发对话、点选/飞往/�
   }
 })
 
-test('ToolsPanel：支持外部 openRequest 直接打开标注子窗口', () => {
+test('RightStack + useToolWorkspace：支持外部 openRequest 直接打开标注子窗口', () => {
   let req = null
-  const r = createRenderer(() =>
-    ToolsPanel({
+  const Host = () => {
+    const ws = useToolWorkspace(req)
+    return RightStack({
       t: tZh,
-      tool: 'identify',
-      analysis: null,
-      shaderActive: [],
-      openRequest: req,
-      onCollapse() {},
-      onStartAnnotation() {},
-    }),
-  )
+      showTools: true,
+      openWindows: ws.windows,
+      onSelectTool: ws.selectTool,
+      onCloseToolWindow: ws.closeTool,
+      onToggleMinimizeTool: ws.toggleMinimize,
+      onToggleExpandTool: ws.toggleExpand,
+      toolsPanel: {
+        tool: 'identify',
+        analysis: null,
+        shaderActive: [],
+        openRequest: req,
+        onCollapse() {},
+        onStartAnnotation() {},
+      },
+    })
+  }
+  const r = createRenderer(() => Host())
   try {
     assert.equal(findNodes(r.getTree(), (n) => n.props?.entryId === 'annotation').length, 0)
     req = { id: 'annotation', seq: 1 }

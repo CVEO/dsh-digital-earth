@@ -12,6 +12,7 @@ import React from 'react'
 import { Layers3D } from './layers-3d.js'
 import { LayersMap, normalizeOverlayDraft } from './layers-map.js'
 import { ResizeHandle, usePanelResize } from './resizable.js'
+import { mergeRefs, useFloatingWindow } from './floating.js'
 
 const h = React.createElement
 let nextTabsId = 0
@@ -62,7 +63,22 @@ export function LayersPanel({
   // The 3D data tab is primary: the 3D Tiles the user loaded is why the panel is
   // open, while the map holds the supporting 2D sources.
   const [tab, setTab] = React.useState('3d')
-  const resize = usePanelResize({ storageKey: 'layers', initialHeight: null, minHeight: 120, maxHeight: 620 })
+  const resize = usePanelResize({
+    storageKey: 'layers',
+    widthDirection: 'right',
+    initialWidth: null,
+    minWidth: 240,
+    maxWidth: 680,
+    initialHeight: null,
+    minHeight: 120,
+    maxHeight: 620,
+  })
+  const floating = useFloatingWindow({
+    storageKey: 'layers',
+    title: t('layers.title'),
+    t,
+    hasExplicitWidth: Boolean(resize.size.width),
+  })
   const tabsId = React.useMemo(() => `mv-data-${++nextTabsId}`, [])
   const tabsRef = React.useRef(null)
   const onTabKey = (event) => {
@@ -74,17 +90,27 @@ export function LayersPanel({
   }
   const sourceName = (list, id) => list?.find((item) => item.id === id)?.name ?? null
   const terrainActive = sourceName(config?.terrain, settings?.terrain)
+  const panelStyle = floating.moved
+    ? { ...floating.style, ...resize.style }
+    : { ...floating.style, height: resize.style?.height, maxHeight: resize.style?.maxHeight }
 
   return h(
     'div',
-    { className: 'mv-layers mv-glass', ref: resize.ref, style: resize.style },
+    {
+      className: `mv-layers mv-glass ${floating.className}`,
+      ref: mergeRefs(floating.ref, resize.ref),
+      style: panelStyle,
+      ...floating.panelProps,
+    },
     h(
       'header',
-      null,
-      h('span', null, t('layers.title')),
+      floating.headerProps,
+      floating.dragHandle,
+      h('span', { className: 'title' }, t('layers.title')),
       h(
         'div',
         { className: 'mv-head-actions' },
+        floating.resetButton,
         h(
           'button',
           { type: 'button', className: 'mv-icon-btn', title: t('sceneDetails.openHint'), 'aria-label': t('sceneDetails.openHint'), onClick: () => onShowSceneDetails?.() },
@@ -97,6 +123,7 @@ export function LayersPanel({
         ),
       ),
     ),
+    floating.liveRegion,
     h(
       'div',
       { key: 'layer-tabs', ref: tabsRef, className: 'mv-layer-tabs', role: 'tablist', 'aria-label': t('layers.title'), onKeyDown: onTabKey },
@@ -167,5 +194,15 @@ export function LayersPanel({
       onPointerDown: resize.beginHeight,
       onKeyDown: resize.keyHeight,
     }),
+    floating.moved
+      ? h(ResizeHandle, {
+          axis: 'corner',
+          edge: 'corner',
+          label: t('resize.size'),
+          value: resize.size.width,
+          onPointerDown: resize.beginCorner,
+          onKeyDown: resize.keyWidth,
+        })
+      : null,
   )
 }

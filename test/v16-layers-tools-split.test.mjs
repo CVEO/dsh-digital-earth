@@ -88,10 +88,9 @@ test('工具箱只做入口：目录表 + 一行一入口，具体控件在工�
 
   const tools = toolsPanel()
   assert.match(tools, /TOOL_ENTRIES\.map/)
-  assert.match(tools, /h\(\s*ToolWindow,/)
-  assert.match(tools, /h\(ToolBody, \{ entryId/)
   assert.match(tools, /mv-tool-entry/)
-  // The index owns no tool controls: they moved to ui/tool-windows.js.
+  assert.match(tools, /useFloatingWindow/)
+  // The index owns no tool controls: they moved to ui/tool-windows.js and render in RightStack.
   for (const forbidden of ['MEASURE_TOOLS', 'SunTimeline', 'ToolsBookmarks', 'SelectionTool', "t('profile.draw')"]) {
     assert.ok(!tools.includes(forbidden), `工具箱入口不应内联 ${forbidden}`)
   }
@@ -99,14 +98,19 @@ test('工具箱只做入口：目录表 + 一行一入口，具体控件在工�
     assert.doesNotMatch(tools, new RegExp(forbidden.replaceAll('.', '\\.')), `工具箱不应包含数据图层 ${forbidden}`)
   }
 
-  // The window chrome: minimize to title bar, close, own height, no floating.
+  // The window chrome: minimize to title bar, close, own height + free 2D drag.
   const window = readRepoFile('src/client/ui/tool-window.js')
   for (const key of ['tools.windowMinimize', 'tools.windowExpand', 'tools.windowClose']) {
     assert.match(window, new RegExp(`t\\('${key.replaceAll('.', '\\.')}'\\)`), `工具窗口缺少 ${key}`)
   }
   assert.match(window, /usePanelResize/)
+  assert.match(window, /useFloatingWindow/)
   assert.match(window, /storageKey: 'tool-window'/)
   assert.match(window, /minimized \? null : h\('div', \{ className: 'mv-toolwin-body' \}/)
+
+  const stack = rightStack()
+  assert.match(stack, /h\(\s*ToolWindow,/)
+  assert.match(stack, /h\(ToolBody, \{/)
 
   // The bodies keep every existing control so nothing was lost in the move.
   const bodies = toolWindows()

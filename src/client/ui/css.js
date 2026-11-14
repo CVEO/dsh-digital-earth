@@ -43,7 +43,7 @@ import { PARSE_CSS } from './parse-css.js'
 .mv-btn:focus-visible{outline:2px solid var(--mv-accent);outline-offset:1px}
 .mv-sep{width:1px;height:17px;background:var(--mv-line);margin:0 3px}
 .mv-menu{position:relative;display:inline-flex}
-.mv-menu-panel{position:absolute;top:calc(100% + 6px);right:0;min-width:206px;padding:4px;border-radius:11px;z-index:20;display:flex;flex-direction:column;gap:1px}
+.mv-menu-panel{position:absolute;top:calc(100% + 6px);right:0;min-width:206px;padding:4px;border-radius:11px;z-index:26;display:flex;flex-direction:column;gap:1px}
 .mv-menu-item{appearance:none;border:0;background:transparent;color:var(--mv-text);font:inherit;font-size:12px;text-align:left;padding:8px 10px;border-radius:7px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px;white-space:nowrap}
 .mv-menu-item:hover{background:color-mix(in srgb,var(--mv-lift) 80%,transparent)}
 .mv-menu-item.on{color:var(--mv-accent)}
@@ -57,8 +57,8 @@ import { PARSE_CSS } from './parse-css.js'
 .mv-urlbar button:hover{border-color:var(--mv-accent)}
 /* Right-hand floating column: the analysis card (Agent result) and the layer
    card share one stack so a new analysis never overlaps the layers list. */
-.mv-right{position:absolute;top:60px;right:10px;width:min(300px,calc(100% - 20px));max-height:calc(100% - 150px);display:flex;flex-direction:column;gap:10px;z-index:9;pointer-events:none;overflow-y:auto;overflow-x:hidden;scrollbar-width:thin}
-.mv-right>*{pointer-events:auto;box-sizing:border-box;max-width:100%}
+.mv-right{position:absolute;top:60px;right:10px;width:min(300px,calc(100% - 20px));max-height:calc(100% - 150px);display:flex;flex-direction:column;gap:10px;z-index:auto;pointer-events:none;overflow:visible}
+.mv-right>*{pointer-events:auto;box-sizing:border-box;max-width:100%;z-index:9;min-height:0;flex:0 1 auto}
 .mv-card{background:var(--mv-glass);border:.5px solid var(--mv-line);box-shadow:var(--mv-shadow);border-radius:13px}
 /* Workbench resize grips: thin transparent edges, visible only on hover/focus. */
 .mv-resize-handle{position:absolute;z-index:40;touch-action:none;background:transparent;pointer-events:auto}
@@ -225,19 +225,27 @@ import { PARSE_CSS } from './parse-css.js'
 .mv-choice:focus-visible,.mv-layers .mv-cta:focus-visible,.mv-layers .mv-icon-btn:focus-visible{outline:2px solid var(--mv-accent);outline-offset:1px}
 .mv-group .mv-cta{flex:none;font-size:11px;padding:5px 8px}
 /* Collapsible card-within-card box for the long imagery basemap selector. */
-.mv-fold-box{margin-top:8px;border:.5px solid var(--mv-line);border-radius:10px;background:color-mix(in srgb,var(--mv-lift) 38%,transparent);overflow:hidden}
-.mv-fold-box.open{background:color-mix(in srgb,var(--mv-lift) 52%,transparent);border-color:color-mix(in srgb,var(--mv-accent) 22%,var(--mv-line))}
-.mv-fold-box>.mv-group{margin-top:0;border-top:0;padding:8px 10px}
+.mv-fold-box{margin-top:10px;border:1px solid color-mix(in srgb,var(--mv-accent) 26%,var(--mv-line));border-radius:10px;background:color-mix(in srgb,var(--mv-lift) 52%,transparent);overflow:hidden;transition:border-color .15s,background .15s}
+.mv-fold-box:hover{border-color:color-mix(in srgb,var(--mv-accent) 52%,var(--mv-line))}
+.mv-fold-box.open{background:color-mix(in srgb,var(--mv-lift) 68%,transparent);border-color:color-mix(in srgb,var(--mv-accent) 48%,var(--mv-line))}
+.mv-fold-box>.mv-group{margin-top:0;border-top:0;padding:9px 10px}
 .mv-fold-box.open>.mv-group{border-bottom:.5px solid var(--mv-line)}
 .mv-fold-body{display:flex;flex-direction:column;gap:2px;padding:6px 6px 8px}
 .mv-imagery-hint{margin:2px 2px 0;padding:4px 6px 2px;font-size:10.5px;line-height:1.45;opacity:.88}
-/* Foldable group header (the imagery basemap list is long and rarely changed). */
-.mv-group-toggle{appearance:none;width:100%;display:flex;align-items:center;gap:8px;background:transparent;border:0;padding:0;margin:0;font:inherit;color:inherit;cursor:pointer;text-align:left}
-.mv-group-toggle .mv-group-title{flex:none}
-.mv-group-current{min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right;font-size:11px;color:var(--mv-dim);opacity:.85}
-.mv-group-chevron{flex:none;color:var(--mv-dim);font-size:13px;line-height:1;transform:rotate(90deg);transition:transform 160ms cubic-bezier(0.16,1,0.3,1)}
-.mv-group-chevron.open{transform:rotate(-90deg)}
-.mv-group-toggle:hover .mv-group-title,.mv-group-toggle:hover .mv-group-current{color:var(--mv-text)}
+/* Foldable group header (unmistakable disclosure chevron + active basemap chip). */
+.mv-group-toggle{appearance:none;width:100%;display:flex;flex-direction:column;align-items:stretch;gap:6px;background:transparent;border:0;padding:0;margin:0;font:inherit;color:inherit;cursor:pointer;text-align:left}
+.mv-fold-top{display:flex;align-items:center;justify-content:space-between;gap:6px;width:100%}
+.mv-fold-heading{display:inline-flex;align-items:center;gap:5px;min-width:0}
+.mv-group-toggle .mv-group-title{flex:none;color:var(--mv-text);font-weight:600}
+.mv-fold-count{flex:none;font-size:10px;padding:1px 6px;border-radius:999px;background:color-mix(in srgb,var(--mv-line) 55%,transparent);color:var(--mv-dim);white-space:nowrap}
+.mv-fold-state{flex:none;font-size:10.5px;font-weight:500;padding:2px 7px;border-radius:999px;background:color-mix(in srgb,var(--mv-accent) 14%,transparent);color:var(--mv-accent);white-space:nowrap}
+.mv-fold-summary{display:flex;align-items:center;gap:6px;padding:5px 8px;border-radius:7px;background:color-mix(in srgb,var(--mv-bg) 58%,var(--mv-lift));border:.5px solid color-mix(in srgb,var(--mv-line) 75%,transparent);min-width:0}
+.mv-fold-dot{width:6px;height:6px;border-radius:50%;background:var(--mv-accent);flex:none}
+.mv-fold-label{font-size:10.5px;color:var(--mv-dim);flex:none}
+.mv-group-current{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11.5px;font-weight:500;color:var(--mv-text)}
+.mv-group-chevron{flex:none;color:var(--mv-accent);font-size:12px;line-height:1;transform:rotate(0deg);transition:transform 160ms cubic-bezier(0.16,1,0.3,1)}
+.mv-group-chevron.open{transform:rotate(90deg)}
+.mv-group-toggle:hover .mv-fold-state{background:color-mix(in srgb,var(--mv-accent) 22%,transparent)}
 .mv-group-toggle:focus-visible{outline:2px solid var(--mv-accent);outline-offset:2px;border-radius:6px}
 .mv-opacity{width:64px;flex:none;accent-color:var(--mv-accent)}
 .mv-overlay-row{gap:2px}
@@ -286,7 +294,7 @@ import { PARSE_CSS } from './parse-css.js'
 .mv-overlay.dim>.mv-empty>.mv-spinner{position:relative;box-sizing:border-box;flex:0 0 80px;width:80px!important;height:80px!important;min-width:80px;min-height:80px;max-width:80px;max-height:80px;aspect-ratio:1;overflow:hidden;isolation:isolate;border:0;border-radius:50%!important;corner-shape:round!important;clip-path:circle(50%);background:#e2f2fd;box-shadow:none;animation:none}
 .mv-overlay.dim>.mv-empty>.mv-spinner::before,.mv-overlay.dim>.mv-empty>.mv-spinner::after{content:none}
 .mv-loading-globe{display:block;width:80px!important;height:80px!important;border:0;border-radius:50%!important;corner-shape:round!important;clip-path:circle(50%)}
-.mv-modal{position:absolute;inset:0;z-index:30;display:flex;align-items:center;justify-content:center;background:var(--mv-scrim);padding:20px}
+.mv-modal{position:absolute;inset:0;z-index:35;display:flex;align-items:center;justify-content:center;background:var(--mv-scrim);padding:20px}
 .mv-dialog{width:min(740px,94%);max-height:86%;display:flex;flex-direction:column;border-radius:14px;overflow:hidden;background:var(--mv-glass-strong);border:.5px solid var(--mv-line);box-shadow:0 24px 64px var(--mv-shadow)}
 .mv-dialog>header{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 14px;border-bottom:.5px solid var(--mv-line);font-size:13px;font-weight:600}
 .mv-tabs{display:flex;gap:4px;padding:8px 12px 0;border-bottom:.5px solid var(--mv-line)}
@@ -365,7 +373,7 @@ import { PARSE_CSS } from './parse-css.js'
   .mv-root.mv-docked .mv-shader{top:92px;left:12px;width:min(320px,calc(100% - 24px));max-height:calc(100% - 236px)}
 }
 /* Snapshot mode: the picture is meant to be clean, so every overlay is hidden. */
-.mv-root.mv-capturing .mv-top,.mv-root.mv-capturing .mv-urlbar,.mv-root.mv-capturing .mv-right,.mv-root.mv-capturing .mv-shader,.mv-root.mv-capturing .mv-layers,.mv-root.mv-capturing .mv-analysis,.mv-root.mv-capturing .mv-hud,.mv-root.mv-capturing .mv-attr,.mv-root.mv-capturing .mv-credits,.mv-root.mv-capturing .mv-pick,.mv-root.mv-capturing .mv-measure,.mv-root.mv-capturing .mv-toast,.mv-root.mv-capturing .mv-select,.mv-root.mv-capturing .mv-sel-anchor,.mv-root.mv-capturing .mv-sel-hint,.mv-root.mv-capturing .mv-tour,.mv-root.mv-capturing .mv-scene-details,.mv-root.mv-capturing .mv-overlay,.mv-root.mv-capturing .mv-compass,.mv-root.mv-capturing .mv-modal{visibility:hidden!important}
+.mv-root.mv-capturing .mv-top,.mv-root.mv-capturing .mv-urlbar,.mv-root.mv-capturing .mv-right,.mv-root.mv-capturing .mv-shader,.mv-root.mv-capturing .mv-layers,.mv-root.mv-capturing .mv-analysis,.mv-root.mv-capturing .mv-floating,.mv-root.mv-capturing .mv-toolwin,.mv-root.mv-capturing .mv-hud,.mv-root.mv-capturing .mv-attr,.mv-root.mv-capturing .mv-credits,.mv-root.mv-capturing .mv-pick,.mv-root.mv-capturing .mv-measure,.mv-root.mv-capturing .mv-toast,.mv-root.mv-capturing .mv-select,.mv-root.mv-capturing .mv-sel-anchor,.mv-root.mv-capturing .mv-sel-hint,.mv-root.mv-capturing .mv-tour,.mv-root.mv-capturing .mv-scene-details,.mv-root.mv-capturing .mv-overlay,.mv-root.mv-capturing .mv-compass,.mv-root.mv-capturing .mv-modal{visibility:hidden!important}
 .mv-about{display:flex;flex-direction:column;gap:12px;padding:2px 0;font-size:12px}
 .mv-about .intro{margin:0;color:var(--mv-dim);line-height:1.75}
 .mv-about .row{display:flex;gap:12px;align-items:baseline}
@@ -526,8 +534,8 @@ import { PARSE_CSS } from './parse-css.js'
 .mv-tool-entry.on .mv-tool-entry-icon{background:color-mix(in srgb,var(--mv-accent) 18%,transparent);color:var(--mv-accent)}
 .mv-tool-entry-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mv-tool-entry-dot{width:6px;height:6px;border-radius:999px;background:var(--mv-accent);flex:none;box-shadow:0 0 0 2px color-mix(in srgb,var(--mv-accent) 22%,transparent)}
-.mv-toolwin{width:100%;flex:0 1 auto;min-height:0;display:flex;flex-direction:column;border-radius:13px;overflow:hidden;border-top:2px solid color-mix(in srgb,var(--mv-accent) 55%,transparent)}
-.mv-toolwin>header{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px 8px 12px;border-bottom:.5px solid var(--mv-line);flex-shrink:0;font-size:12px;font-weight:600;color:var(--mv-text)}
+.mv-toolwin{position:relative;width:100%;flex:0 1 auto;min-height:0;display:flex;flex-direction:column;border-radius:13px;overflow:hidden;border-top:2px solid color-mix(in srgb,var(--mv-accent) 55%,transparent)}
+.mv-toolwin>header{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:8px 10px 8px 12px;border-bottom:.5px solid var(--mv-line);flex-shrink:0;font-size:12px;font-weight:600;color:var(--mv-text)}
 .mv-toolwin.minimized>header{border-bottom:0}
 .mv-toolwin-title{display:inline-flex;align-items:center;gap:7px;min-width:0}
 .mv-toolwin-badge{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:6px;background:color-mix(in srgb,var(--mv-accent) 14%,transparent);color:var(--mv-accent);flex:none}
@@ -537,6 +545,18 @@ import { PARSE_CSS } from './parse-css.js'
 .mv-toolwin-body .mv-cta{border:.5px solid var(--mv-line);border-radius:8px;font-size:11px;line-height:1.4}
 .mv-toolwin-body .mv-cta[aria-pressed="true"]{border-color:var(--mv-accent);background:color-mix(in srgb,var(--mv-accent) 13%,var(--mv-glass))}
 .mv-toolwin-body .mv-group-title{margin-top:4px}
+.mv-floating.moved{position:absolute;right:auto;bottom:auto;margin:0;box-shadow:0 18px 48px rgba(2,8,20,.32),0 2px 10px rgba(2,8,20,.14)}
+.mv-floating.dragging{opacity:.96;box-shadow:0 24px 60px rgba(2,8,20,.42);transition:none!important;user-select:none;-webkit-user-select:none}
+.mv-floating.dragging *{user-select:none!important;-webkit-user-select:none!important}
+.mv-window-header{cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
+.mv-floating.dragging .mv-window-header,.mv-floating.dragging .mv-drag-handle{cursor:grabbing}
+.mv-window-header :is(.title,.mv-toolwin-title,.mv-tools-title,.mv-tabs){flex:1;min-width:0}
+.mv-drag-handle{appearance:none;display:inline-flex;align-items:center;justify-content:center;width:20px;height:24px;padding:0;margin:0 2px 0 -4px;border:0;border-radius:6px;background:transparent;color:var(--mv-dim);font-size:12px;letter-spacing:-1px;line-height:1;cursor:grab;touch-action:none;flex:none;user-select:none;-webkit-user-select:none}
+.mv-drag-handle:hover,.mv-drag-handle:focus-visible{color:var(--mv-accent);background:color-mix(in srgb,var(--mv-accent) 12%,transparent);outline:none}
+.mv-drag-handle:focus-visible{outline:2px solid var(--mv-accent);outline-offset:1px}
+.mv-sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.mv-tools-hint{font-size:11px;line-height:1.45;color:var(--mv-dim);margin:4px 0 0;padding-top:6px;border-top:.5px solid var(--mv-line)}
+.mv-tools-count{flex:none;font-size:10px;font-weight:500;padding:1px 6px;border-radius:999px;background:color-mix(in srgb,var(--mv-accent) 14%,transparent);color:var(--mv-accent)}
 .mv-profile-opts{display:flex;flex-direction:column;gap:4px;padding:6px 8px;border:.5px solid var(--mv-line);border-radius:8px;background:color-mix(in srgb,var(--mv-bg) 35%,transparent)}
 .mv-profile-opt{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:10.5px;color:var(--mv-dim)}
 .mv-profile-opt span{flex:none}

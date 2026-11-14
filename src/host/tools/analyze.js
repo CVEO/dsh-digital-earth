@@ -45,8 +45,8 @@ const ANALYZE_SOURCES = {
   flood: ['terrain', 'surface'],
 }
 const ANALYZE_MIN_SAMPLES = 8
-const ANALYZE_MAX_SAMPLES = 64
-const ANALYZE_DEFAULT_SAMPLES = 32
+const ANALYZE_MAX_SAMPLES = 512
+const ANALYZE_DEFAULT_SAMPLES = 128
 const ANALYZE_MIN_GRID = 4
 const ANALYZE_MAX_GRID = 24
 const ANALYZE_DEFAULT_GRID = 12
@@ -83,7 +83,7 @@ const ANALYZE_PARAMETERS = {
       type: 'integer',
       minimum: ANALYZE_MIN_SAMPLES,
       maximum: ANALYZE_MAX_SAMPLES,
-      description: `profile/skyline sample count, ${ANALYZE_MIN_SAMPLES}..${ANALYZE_MAX_SAMPLES}; default ${ANALYZE_DEFAULT_SAMPLES}.`,
+      description: `profile/skyline sample count, ${ANALYZE_MIN_SAMPLES}..${ANALYZE_MAX_SAMPLES}; default ${ANALYZE_DEFAULT_SAMPLES} (profile auto-scales ~1 m with edge refinement when omitted).`,
     },
     region: {
       type: 'object',
@@ -362,13 +362,15 @@ export function normalizeAnalyzeRequest(raw) {
         'choose two distinct positions along the profile line.',
       )
     }
-    args.samples = normalizeAnalyzeInteger(
-      input.samples,
-      'samples',
-      ANALYZE_MIN_SAMPLES,
-      ANALYZE_MAX_SAMPLES,
-      ANALYZE_DEFAULT_SAMPLES,
-    )
+    if (input.samples !== undefined) {
+      args.samples = normalizeAnalyzeInteger(
+        input.samples,
+        'samples',
+        ANALYZE_MIN_SAMPLES,
+        ANALYZE_MAX_SAMPLES,
+        ANALYZE_DEFAULT_SAMPLES,
+      )
+    }
     return { args }
   }
 

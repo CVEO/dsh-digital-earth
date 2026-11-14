@@ -26,7 +26,7 @@ export const MEASURE_TOOLS = [
   ['height', 'tool.height'],
 ]
 
-export function MeasureBody({ t, tool, onStartTool, onClearMeasure }) {
+export function MeasureBody({ t, tool, onStartTool, onClearMeasure, onStartProfile }) {
   return h(
     React.Fragment,
     null,
@@ -46,6 +46,19 @@ export function MeasureBody({ t, tool, onStartTool, onClearMeasure }) {
           t(labelKey),
         ),
       ),
+      typeof onStartProfile === 'function'
+        ? h(
+            'button',
+            {
+              key: 'profile-shortcut',
+              type: 'button',
+              className: `mv-cta${tool === 'profile' ? ' primary' : ''}`,
+              'aria-pressed': tool === 'profile',
+              onClick: () => onStartProfile(),
+            },
+            t('profile.draw'),
+          )
+        : null,
     ),
     h('button', { type: 'button', className: 'mv-cta', onClick: onClearMeasure }, t('tool.clear')),
     h('p', { className: 'mv-none' }, t('tools.measureHint')),
@@ -79,11 +92,11 @@ export function SelectBody({
 
 export function AnalysisBody({ t, analysis, onStartProfile, onClearAnalysis, getCesium, getViewer, getLayers }) {
   const [source, setSource] = React.useState('tiles')
-  const [samples, setSamples] = React.useState(32)
+  const [samples, setSamples] = React.useState('auto')
   return h(
     React.Fragment,
     null,
-    h('button', { type: 'button', className: 'mv-cta primary', onClick: () => onStartProfile({ source, samples }) }, t('profile.draw')),
+    h('button', { type: 'button', className: 'mv-cta primary', onClick: () => onStartProfile({ source, samples: samples === 'auto' ? undefined : samples }) }, t('profile.draw')),
     h('p', { className: 'mv-none' }, t('profile.subtitle')),
     h(
       'div',
@@ -112,11 +125,16 @@ export function AnalysisBody({ t, analysis, onStartProfile, onClearAnalysis, get
           {
             value: String(samples),
             'aria-label': t('profile.samplesLabel'),
-            onChange: (event) => setSamples(Number(event.target.value) || 32),
+            onChange: (event) => {
+              const value = event.target.value
+              setSamples(value === 'auto' ? 'auto' : Number(value) || 'auto')
+            },
           },
-          h('option', { value: '16' }, t('profile.samplesOption', { n: 16 })),
-          h('option', { value: '32' }, t('profile.samplesOption', { n: 32 })),
+          h('option', { value: 'auto' }, t('profile.samplesAuto')),
           h('option', { value: '64' }, t('profile.samplesOption', { n: 64 })),
+          h('option', { value: '128' }, t('profile.samplesOption', { n: 128 })),
+          h('option', { value: '256' }, t('profile.samplesOption', { n: 256 })),
+          h('option', { value: '512' }, t('profile.samplesOption', { n: 512 })),
         ),
       ),
     ),

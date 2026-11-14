@@ -46,7 +46,7 @@ test('窄面板：优先保留光标/高程主读数，隐藏次要遥测', () =
   assert.match(client, /className: 'row mv-hud-layer'/)
   assert.match(client, /detailed: hudDetailed/)
   const details = readRepoFile('src/client/ui/scene-details.js')
-  assert.match(details, /className: 'mv-scene-details/)
+  assert.match(details, /className: [`']mv-scene-details/)
   assert.match(details, /t\('hud\.heading'\)/)
   assert.match(details, /t\('sceneDetails\.layers'\)/)
   const panel = readRepoFile('src/client/ui/layers-panel.js')

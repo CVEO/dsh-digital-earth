@@ -7,9 +7,85 @@
  */
 import React from 'react'
 import { formatDistance, formatHeight } from '../format.js'
-import { nearestProfileIndex } from '../analysis/profile-metrics.js'
+import { nearestProfileIndex, profileCsv, profileSvg } from '../analysis/profile-metrics.js'
+import { downloadText } from '../scene/download.js'
 
 const h = React.createElement
+
+export const profileChartLabels = (t) => ({
+  title: t('analysis.title.profile'),
+  distance: t('profile.axisDistance'),
+  elevation: t('profile.axisElevation'),
+  terrain: t('profile.terrain'),
+  surfaceLength: t('profile.surfaceLength'),
+  slopeMean: t('profile.slopeMean'),
+  note: t('profile.note'),
+})
+
+/** Full-size profile preview; the card keeps a thumbnail that opens this. */
+export function ProfileChartDialog({ metrics, t, onClose }) {
+  const dialogRef = React.useRef(null)
+  React.useEffect(() => {
+    const previous = document.activeElement
+    dialogRef.current?.focus()
+    const onKey = (event) => {
+      if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); onClose() }
+      if (event.key === 'Tab') {
+        const buttons = [...(dialogRef.current?.querySelectorAll('button:not([disabled]),[href],input,select,textarea,[tabindex="0"]') ?? [])]
+        const first = buttons[0], last = buttons.at(-1)
+        if (!first) { event.preventDefault(); return }
+        if (event.shiftKey && (document.activeElement === first || document.activeElement === dialogRef.current)) { event.preventDefault(); last.focus() }
+        else if (!event.shiftKey && (document.activeElement === last || document.activeElement === dialogRef.current)) { event.preventDefault(); first.focus() }
+      }
+    }
+    document.addEventListener('keydown', onKey, true)
+    return () => { document.removeEventListener('keydown', onKey, true); if (previous?.isConnected) previous.focus() }
+  }, [])
+
+  const svg = profileSvg(metrics, profileChartLabels(t))
+  const src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
+  return h(
+    'div',
+    {
+      className: 'mv-modal mv-chart-modal',
+      onPointerDown: (event) => event.target === event.currentTarget && onClose(),
+    },
+    h(
+      'div',
+      { ref: dialogRef, tabIndex: -1, className: 'mv-chart-dialog', role: 'dialog', 'aria-modal': true, 'aria-labelledby': 'mv-chart-title' },
+      h(
+        'header',
+        null,
+        h('b', { id: 'mv-chart-title' }, t('profile.chartTitle')),
+        h('button', { type: 'button', className: 'mv-icon-btn', title: t('btn.close'), 'aria-label': t('btn.close'), onClick: onClose }, '✕'),
+      ),
+      h('div', { className: 'mv-chart-body' }, h('img', { src, alt: t('profile.chartTitle') })),
+      h(
+        'div',
+        { className: 'mv-chart-actions' },
+        h(
+          'button',
+          {
+            type: 'button',
+            className: 'mv-cta',
+            onClick: () => downloadText(`elevation-profile-${Date.now()}.csv`, profileCsv(metrics), 'text/csv;charset=utf-8'),
+          },
+          t('profile.exportCsv'),
+        ),
+        h(
+          'button',
+          {
+            type: 'button',
+            className: 'mv-cta',
+            onClick: () => downloadText(`elevation-profile-${Date.now()}.svg`, svg, 'image/svg+xml'),
+          },
+          t('profile.exportSvg'),
+        ),
+        h('span', { className: 'mv-chart-note' }, t('profile.note')),
+      ),
+    ),
+  )
+}
 
 /** SVG distance–elevation chart; gaps in the sampled data stay visible. */
 export function AnalysisProfileChart({ points, t, hoverIndex = null, onHover }) {

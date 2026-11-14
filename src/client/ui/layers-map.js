@@ -431,9 +431,29 @@ export function LayersMap({
             title: imageryOpen ? t('layers.imageryFold') : t('layers.imageryUnfold'),
             onClick: toggleImagery,
           },
-          h('span', { className: 'mv-group-title' }, t('layers.imagery')),
-          h('span', { className: 'mv-group-current' }, imagerySummary(t, config, settings)),
-          h('span', { className: `mv-group-chevron${imageryOpen ? ' open' : ''}`, 'aria-hidden': true }, '›'),
+          h(
+            'div',
+            { className: 'mv-fold-top' },
+            h(
+              'span',
+              { className: 'mv-fold-heading' },
+              h('span', { className: `mv-group-chevron${imageryOpen ? ' open' : ''}`, 'aria-hidden': true }, '▸'),
+              h('span', { className: 'mv-group-title' }, t('layers.imagery')),
+              h('span', { className: 'mv-fold-count' }, t('layers.imageryCount', { n: (config?.imagery?.length ?? 0) + 1 })),
+            ),
+            h(
+              'span',
+              { className: 'mv-fold-state' },
+              imageryOpen ? t('layers.imageryClickFold') : t('layers.imageryClickExpand'),
+            ),
+          ),
+          h(
+            'div',
+            { className: 'mv-fold-summary' },
+            h('span', { className: 'mv-fold-dot', 'aria-hidden': true }),
+            h('span', { className: 'mv-fold-label' }, t('layers.imageryCurrent')),
+            h('span', { className: 'mv-group-current' }, imagerySummary(t, config, settings)),
+          ),
         ),
       ),
       imageryOpen

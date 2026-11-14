@@ -47,7 +47,7 @@ __export(index_exports, {
 module.exports = __toCommonJS(index_exports);
 
 // src/client/plugin.js
-var import_react39 = __toESM(require("react"), 1);
+var import_react41 = __toESM(require("react"), 1);
 
 // src/client/messages-v17.js
 var V17_MESSAGES = {
@@ -557,11 +557,50 @@ var PARSE_MESSAGES = {
   }
 };
 
+// src/client/messages-ui.js
+var UI_MESSAGES = {
+  zh: {
+    "btn.select": "选择",
+    "btn.selectShow": "打开选择窗口（点选 / 框选 / 套索 / 对象）",
+    "btn.selectHide": "关闭选择窗口",
+    "window.dragHint": "按住拖动可自由移动窗口位置；焦点在此手柄时可用方向键微调",
+    "window.resetDock": "恢复默认停靠位置",
+    "window.moved": "{title}已移动至 ({x}, {y})",
+    "window.docked": "{title}已恢复默认停靠位置",
+    "tools.independentHint": "打开的工具窗口可各自自由拖动，关闭工具箱不会关闭选择等已打开窗口。",
+    "tools.openCount": "已开 {n}",
+    "layers.imageryCurrent": "当前底图",
+    "layers.imageryCount": "{n} 项可选",
+    "layers.imageryClickExpand": "点击切换 ▾",
+    "layers.imageryClickFold": "收起 ▴",
+    "analysis.redrawProfile": "重画剖面",
+    "analysis.redrawProfileHint": "无需回到工具箱，立即绘制下一条高程纵断面"
+  },
+  en: {
+    "btn.select": "Select",
+    "btn.selectShow": "Open selection window (point / box / lasso / objects)",
+    "btn.selectHide": "Close selection window",
+    "window.dragHint": "Drag to move window freely (Arrow keys nudge when focused)",
+    "window.resetDock": "Dock back to default position",
+    "window.moved": "{title} moved to ({x}, {y})",
+    "window.docked": "{title} docked back to default position",
+    "tools.independentHint": "Open tool windows float independently and stay open when Tools closes.",
+    "tools.openCount": "{n} open",
+    "layers.imageryCurrent": "Active",
+    "layers.imageryCount": "{n} sources",
+    "layers.imageryClickExpand": "Switch ▾",
+    "layers.imageryClickFold": "Hide ▴",
+    "analysis.redrawProfile": "Draw another profile",
+    "analysis.redrawProfileHint": "Start a new elevation profile without returning to Tools"
+  }
+};
+
 // src/client/messages-v18.js
 var V18_MESSAGES = {
   zh: {
     ...VECTOR_MESSAGES.zh,
     ...VISION_MESSAGES.zh,
+    ...UI_MESSAGES.zh,
     "panel.description": "在对话旁浏览、量测与分析 3D Tiles / 3DGS 场景。",
     "menu.recentUrls": "最近地址",
     "layers.tab.map": "地图",
@@ -911,7 +950,8 @@ var V18_MESSAGES = {
     "layers.layerExtruded3d": "Switched layer to 3D extruded massing",
     "layers.layerFlattened2d": "Switched layer to 2D footprints",
     ...SELECTION_MESSAGES.en,
-    ...PARSE_MESSAGES.en
+    ...PARSE_MESSAGES.en,
+    ...UI_MESSAGES.en
   }
 };
 
@@ -1128,7 +1168,12 @@ var PROFILE_MESSAGES = {
     "profile.sourceTiles": "三维表面（含建筑/植被）",
     "profile.sourceTerrain": "纯地形（DEM）",
     "profile.samplesLabel": "采样点数",
+    "profile.samplesAuto": "自动（~1 m + 边缘加密）",
     "profile.samplesOption": "{n} 点",
+    "profile.warning.tilesSurface": "3D Tiles 表面采样",
+    "profile.warning.tilesUnavailable": "部分点位未命中 3D Tiles",
+    "profile.warning.terrainUnavailable": "部分点位地形高程缺失",
+    "profile.warning.budgetTruncated": "已达单次采样上限",
     "profile.surfaceLength": "贴表面长度",
     "profile.startEndHeight": "起 / 终高程",
     "profile.netChange": "起终点高差",
@@ -1151,7 +1196,12 @@ var PROFILE_MESSAGES = {
     "profile.sourceTiles": "3D surface (buildings & canopy)",
     "profile.sourceTerrain": "Bare terrain (DEM)",
     "profile.samplesLabel": "Samples",
+    "profile.samplesAuto": "Auto (~1 m + edge detail)",
     "profile.samplesOption": "{n} pts",
+    "profile.warning.tilesSurface": "3D Tiles surface",
+    "profile.warning.tilesUnavailable": "Partial 3D Tiles misses",
+    "profile.warning.terrainUnavailable": "Partial terrain gaps",
+    "profile.warning.budgetTruncated": "Sample budget reached",
     "profile.surfaceLength": "Surface 3D length",
     "profile.startEndHeight": "Start / End height",
     "profile.netChange": "Net elevation change",
@@ -2185,16 +2235,53 @@ var EyeIcon = ({ size = 15, off = false }) => h(
 );
 
 // src/client/ui/layout.js
-var import_react37 = __toESM(require("react"), 1);
+var import_react39 = __toESM(require("react"), 1);
 
 // src/client/viewer/ViewerSurface.js
-var import_react36 = __toESM(require("react"), 1);
+var import_react38 = __toESM(require("react"), 1);
 
 // src/client/analysis/height-service.js
 var CACHE_DEGREES = 1e-7;
-var DEFAULT_SAMPLE_BUDGET = 600;
+var DEFAULT_SAMPLE_BUDGET = 800;
+var TILES_BATCH_SIZE = 32;
+var PROBE_TIMEOUT_MS = 8e3;
 function isThenable(value) {
   return value !== null && typeof value === "object" && typeof value.then === "function";
+}
+function withTimeout(promise, ms = PROBE_TIMEOUT_MS) {
+  if (!isThenable(promise)) return Promise.resolve(promise);
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error("height probe timed out")), ms);
+    Promise.resolve(promise).then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (error) => {
+        clearTimeout(timer);
+        reject(error);
+      }
+    );
+  });
+}
+function isTilesetHit(object, tileset) {
+  if (!object || !tileset) return false;
+  return object === tileset || object.primitive === tileset || object.tileset === tileset || object.content?.tileset === tileset || object.primitive?.tileset === tileset;
+}
+function collectExcludedPrimitives(scene, tileset) {
+  const excluded = [];
+  const walk = (collection) => {
+    const length = collection?.length;
+    if (typeof length !== "number" || typeof collection?.get !== "function") return;
+    for (let index = 0; index < length; index += 1) {
+      const item = collection.get(index);
+      if (!item || item === tileset) continue;
+      if (typeof item.get === "function" && typeof item.length === "number") walk(item);
+      else excluded.push(item);
+    }
+  };
+  walk(scene?.primitives);
+  return excluded;
 }
 function createHeightService({ Cesium, viewer, layer = null } = {}) {
   const cache = /* @__PURE__ */ new Map();
@@ -2215,16 +2302,77 @@ function createHeightService({ Cesium, viewer, layer = null } = {}) {
     return true;
   };
   const targetTileset = () => {
-    if (!layer || layer.visible === false) return null;
+    if (!layer || layer.visible === false || !layer.tileset) return null;
     const tileset = layer.tileset;
-    return tileset && typeof tileset.getHeight === "function" ? tileset : null;
+    return typeof tileset.getHeight === "function" || viewer?.scene?.sampleHeightSupported !== false && typeof viewer?.scene?.pickFromRayMostDetailed === "function" ? tileset : null;
   };
   const cacheKey = (carto, mode) => `${mode}|${Math.round(carto.longitude / CACHE_DEGREES)}|${Math.round(carto.latitude / CACHE_DEGREES)}`;
-  async function fromTiles(carto) {
+  const skyRayForCarto = (carto) => {
+    const scene = viewer?.scene;
+    if (!scene || typeof Cesium?.Ray !== "function" || typeof Cesium?.Cartesian3?.fromRadians !== "function") return null;
+    const ellipsoid = scene.globe?.ellipsoid || Cesium.Ellipsoid?.WGS84;
+    if (!ellipsoid || typeof ellipsoid.geodeticSurfaceNormalCartographic !== "function") return null;
+    let topHeight = 9e3;
+    try {
+      const globeHeight = typeof scene.globe?.getHeight === "function" ? scene.globe.getHeight(carto) : null;
+      if (typeof globeHeight === "number" && Number.isFinite(globeHeight)) {
+        topHeight = Math.max(9e3, globeHeight + 2e3);
+      }
+    } catch {
+    }
+    const origin = Cesium.Cartesian3.fromRadians(carto.longitude, carto.latitude, topHeight, ellipsoid);
+    const up = ellipsoid.geodeticSurfaceNormalCartographic(carto);
+    if (!origin || !up) return null;
+    const direction = typeof Cesium.Cartesian3?.negate === "function" ? Cesium.Cartesian3.negate(up, new Cesium.Cartesian3()) : new Cesium.Cartesian3(-up.x, -up.y, -up.z);
+    return new Cesium.Ray(origin, direction);
+  };
+  const heightFromCartesian = (position) => {
+    if (!position) return null;
+    const ellipsoid = viewer?.scene?.globe?.ellipsoid || Cesium?.Ellipsoid?.WGS84;
+    const carto = typeof ellipsoid?.cartesianToCartographic === "function" ? ellipsoid.cartesianToCartographic(position) : typeof Cesium?.Cartographic?.fromCartesian === "function" ? Cesium.Cartographic.fromCartesian(position) : null;
+    const height = carto?.height;
+    return typeof height === "number" && Number.isFinite(height) ? height : null;
+  };
+  async function fromTilesMostDetailed(carto, tileset, exclude) {
+    const scene = viewer?.scene;
+    if (!scene || scene.sampleHeightSupported === false || typeof scene.pickFromRayMostDetailed !== "function") {
+      return null;
+    }
+    const ray = skyRayForCarto(carto);
+    if (!ray) return null;
+    try {
+      const hit = await withTimeout(scene.pickFromRayMostDetailed(ray, exclude));
+      if (hit && isTilesetHit(hit.object, tileset)) {
+        const height = heightFromCartesian(hit.position);
+        if (height !== null) return height;
+      }
+      const globe = scene.globe;
+      if (globe?.show && typeof scene.pickFromRay === "function") {
+        const prevShow = globe.show;
+        globe.show = false;
+        try {
+          const underHit = scene.pickFromRay(ray, exclude);
+          if (underHit && isTilesetHit(underHit.object, tileset)) {
+            const height = heightFromCartesian(underHit.position);
+            if (height !== null) return height;
+          }
+        } finally {
+          globe.show = prevShow;
+        }
+      }
+    } catch {
+    }
+    return null;
+  }
+  async function fromTiles(carto, exclude = null) {
     const tileset = targetTileset();
     if (!tileset) return null;
+    const excluded = exclude ?? collectExcludedPrimitives(viewer?.scene, tileset);
+    const detailed = await fromTilesMostDetailed(carto, tileset, excluded);
+    if (detailed !== null) return detailed;
+    if (typeof tileset.getHeight !== "function") return null;
     try {
-      const raw = tileset.getHeight(carto, viewer.scene);
+      const raw = tileset.getHeight(carto, viewer?.scene);
       const value = isThenable(raw) ? await raw : raw;
       if (typeof value === "number" && Number.isFinite(value)) return value;
     } catch {
@@ -2239,6 +2387,60 @@ function createHeightService({ Cesium, viewer, layer = null } = {}) {
     } catch {
     }
     return null;
+  }
+  async function probeBatch(pending, heightMode) {
+    const resolved = /* @__PURE__ */ new Map();
+    if (pending.length === 0) return resolved;
+    if (heightMode === "terrain") {
+      if (!hasRealTerrain()) {
+        for (const item of pending) resolved.set(item.key, null);
+        return resolved;
+      }
+      const provider = terrainProvider2();
+      let detailed = null;
+      if (typeof Cesium?.sampleTerrainMostDetailed === "function" && typeof Cesium?.Cartographic === "function") {
+        try {
+          const copies = pending.map((item) => new Cesium.Cartographic(item.carto.longitude, item.carto.latitude, 0));
+          await withTimeout(Cesium.sampleTerrainMostDetailed(provider, copies));
+          detailed = copies;
+        } catch {
+          detailed = null;
+        }
+      }
+      for (let index = 0; index < pending.length; index += 1) {
+        const item = pending[index];
+        const sampledHeight = detailed?.[index]?.height;
+        const height = typeof sampledHeight === "number" && Number.isFinite(sampledHeight) ? sampledHeight : fromTerrain(item.carto);
+        resolved.set(item.key, height !== null ? { height, source: "terrain" } : null);
+      }
+      return resolved;
+    }
+    const tileset = targetTileset();
+    if (!tileset) {
+      for (const item of pending) resolved.set(item.key, null);
+      return resolved;
+    }
+    const exclude = collectExcludedPrimitives(viewer?.scene, tileset);
+    for (let offset = 0; offset < pending.length; offset += TILES_BATCH_SIZE) {
+      const chunk = pending.slice(offset, offset + TILES_BATCH_SIZE);
+      await Promise.all(
+        chunk.map(async (item) => {
+          const height = await fromTiles(item.carto, exclude);
+          resolved.set(item.key, height !== null ? { height, source: "tiles" } : null);
+        })
+      );
+    }
+    return resolved;
+  }
+  function commitProbeResult(key, result, heightMode) {
+    if (result) {
+      if (result.source === "tiles") warnings.add("surface_height_from_tiles");
+    } else {
+      warnings.add(heightMode === "terrain" ? "terrain_height_unavailable" : "tiles_height_unavailable");
+    }
+    counts[result ? result.source : "none"] += 1;
+    cache.set(key, result);
+    return result;
   }
   async function sample(carto, { mode = "tiles" } = {}) {
     if (!carto) return null;
@@ -2265,10 +2467,41 @@ function createHeightService({ Cesium, viewer, layer = null } = {}) {
   }
   async function sampleMany(cartos, { mode = "tiles", budget = DEFAULT_SAMPLE_BUDGET } = {}) {
     const list = Array.isArray(cartos) ? cartos : [];
-    const values = [];
-    for (let index = 0; index < list.length; index += 1) {
-      if (index >= budget) break;
-      values.push(await sample(list[index], { mode }));
+    const heightMode = mode === "terrain" ? "terrain" : "tiles";
+    const limit = Math.min(list.length, budget);
+    const slots = new Array(limit);
+    const pending = [];
+    const pendingKeys = /* @__PURE__ */ new Set();
+    for (let index = 0; index < limit; index += 1) {
+      const carto = list[index];
+      if (!carto) {
+        slots[index] = { kind: "empty" };
+        continue;
+      }
+      const key = cacheKey(carto, heightMode);
+      if (cache.has(key)) {
+        slots[index] = { kind: "cached", result: cache.get(key) };
+      } else {
+        slots[index] = { kind: "pending", key };
+        if (!pendingKeys.has(key)) {
+          pendingKeys.add(key);
+          pending.push({ key, carto });
+        }
+      }
+    }
+    const resolved = await probeBatch(pending, heightMode);
+    const values = new Array(limit);
+    for (let index = 0; index < limit; index += 1) {
+      const slot = slots[index];
+      if (slot.kind === "empty") {
+        values[index] = null;
+      } else if (slot.kind === "cached") {
+        values[index] = slot.result;
+      } else if (cache.has(slot.key)) {
+        values[index] = cache.get(slot.key);
+      } else {
+        values[index] = commitProbeResult(slot.key, resolved.get(slot.key) ?? null, heightMode);
+      }
     }
     if (list.length > budget) warnings.add("sample_budget_truncated");
     return { values, ...report() };
@@ -2364,6 +2597,10 @@ function resolveAnalysisTarget({ operation, args = {}, layers = [], findLayer })
 var ANALYSIS_ENTITY_PREFIX = "analysis-";
 var ANALYSIS_MIN_SAMPLES = 2;
 var ANALYSIS_ELEVATION_STOPS = ["#38c9ff", "#45dfbe", "#ffd16b"];
+var PROFILE_MAX_SAMPLES = 512;
+var PROFILE_MIN_BASE_SAMPLES = 64;
+var PROFILE_AUTO_MAX_BASE = 320;
+var PROFILE_SURFACE_OFFSET_M = 0.5;
 var analysisRound = (value, digits = 1) => {
   const factor = 10 ** digits;
   return Math.round(value * factor) / factor;
@@ -2372,6 +2609,92 @@ var analysisInteger = (value, fallback, minimum, maximum) => {
   const number = Number(value);
   if (!Number.isFinite(number)) return fallback;
   return Math.min(maximum, Math.max(minimum, Math.round(number)));
+};
+var autoProfileSamples = (lengthMeters) => {
+  if (!Number.isFinite(lengthMeters) || lengthMeters <= 0) return PROFILE_MIN_BASE_SAMPLES;
+  const desired = Math.round(lengthMeters) + 1;
+  return Math.min(PROFILE_AUTO_MAX_BASE, Math.max(PROFILE_MIN_BASE_SAMPLES, desired));
+};
+var collectProfileRefinementFractions = (entries, lengthMeters, remainingBudget, { minJumpM = 1.5, minStepM = 0.25, dedupeDistanceM = 0.05 } = {}) => {
+  if (!Array.isArray(entries) || entries.length < 2) return [];
+  const budget = Number.isFinite(remainingBudget) ? Math.max(0, Math.floor(remainingBudget)) : 0;
+  if (budget <= 0) return [];
+  const length = Number.isFinite(lengthMeters) && lengthMeters > 0 ? lengthMeters : 0;
+  const candidates = [];
+  for (let index = 1; index < entries.length; index += 1) {
+    const left = entries[index - 1];
+    const right = entries[index];
+    if (!left || !right) continue;
+    const spanM = (right.fraction - left.fraction) * length;
+    if (length > 0 && spanM <= minStepM) continue;
+    if (length === 0 && right.fraction - left.fraction <= 2e-3) continue;
+    const leftValid = typeof left.height === "number" && Number.isFinite(left.height);
+    const rightValid = typeof right.height === "number" && Number.isFinite(right.height);
+    const isJump = leftValid && rightValid && Math.abs(right.height - left.height) >= minJumpM;
+    const isBoundary = leftValid !== rightValid;
+    if (!isJump && !isBoundary) continue;
+    const score = isJump ? Math.abs(right.height - left.height) : minJumpM * 2;
+    candidates.push({ fraction: (left.fraction + right.fraction) / 2, score });
+  }
+  candidates.sort((a, b) => b.score - a.score);
+  const minFractionGap = length > 0 ? dedupeDistanceM / length : 1e-4;
+  const selected = [];
+  for (const candidate of candidates) {
+    if (selected.length >= budget) break;
+    const nearExisting = entries.some((entry) => Math.abs(entry.fraction - candidate.fraction) <= minFractionGap);
+    const nearSelected = selected.some((fraction) => Math.abs(fraction - candidate.fraction) <= minFractionGap);
+    if (!nearExisting && !nearSelected) selected.push(candidate.fraction);
+  }
+  return selected.sort((a, b) => a - b);
+};
+var sampleProfileEntries = async ({
+  Cesium,
+  geodesic,
+  length,
+  baseSamples,
+  maxPoints,
+  heightMode,
+  sampler,
+  rounds = 3
+}) => {
+  const initialFractions = [];
+  const initialProbes = [];
+  for (let index = 0; index < baseSamples; index += 1) {
+    const fraction = baseSamples === 1 ? 0 : index / (baseSamples - 1);
+    initialFractions.push(fraction);
+    initialProbes.push(geodesic.interpolateUsingFraction(fraction, new Cesium.Cartographic()));
+  }
+  const initialBatch = await sampler.sampleMany(initialProbes, { mode: heightMode });
+  let entries = initialFractions.map((fraction, index) => ({
+    fraction,
+    height: initialBatch.values[index] ? initialBatch.values[index].height : null
+  }));
+  if (entries.some((entry) => entry.height !== null)) {
+    for (let round2 = 0; round2 < rounds; round2 += 1) {
+      const remaining = maxPoints - entries.length;
+      if (remaining <= 0) break;
+      const extraFractions = collectProfileRefinementFractions(entries, length, remaining);
+      if (extraFractions.length === 0) break;
+      const extraProbes = extraFractions.map(
+        (fraction) => geodesic.interpolateUsingFraction(fraction, new Cesium.Cartographic())
+      );
+      const extraBatch = await sampler.sampleMany(extraProbes, { mode: heightMode });
+      const added = extraFractions.map((fraction, index) => ({
+        fraction,
+        height: extraBatch.values[index] ? extraBatch.values[index].height : null
+      }));
+      entries = entries.concat(added).sort((a, b) => a.fraction - b.fraction);
+    }
+  }
+  let withData = 0;
+  const points = entries.map((entry) => {
+    if (entry.height !== null) withData += 1;
+    return {
+      distance_m: analysisRound(length * entry.fraction, 2),
+      height_m: entry.height === null ? null : analysisRound(entry.height, 2)
+    };
+  });
+  return { entries, points, withData };
 };
 var analysisLonLat = (value) => {
   if (!Array.isArray(value) || value.length < 2) return null;
@@ -2924,7 +3247,6 @@ function createAnalysisEngine(deps) {
     if (!from || !to) {
       throw new Error("analysis: `from`/`to` must be [lon, lat] pairs. next: pass two legal WGS84 [lon, lat] arrays.");
     }
-    const samples = analysisInteger(args.samples, 32, 8, 64);
     const heightMode = args.source === "terrain" ? "terrain" : "tiles";
     const ellipsoid = viewer.scene.globe.ellipsoid;
     const geodesic = new Cesium.EllipsoidGeodesic(
@@ -2933,19 +3255,18 @@ function createAnalysisEngine(deps) {
       ellipsoid
     );
     const length = Number.isFinite(geodesic.surfaceDistance) ? geodesic.surfaceDistance : 0;
-    const points = [];
-    let withData = 0;
-    for (let index = 0; index < samples; index += 1) {
-      const fraction = samples === 1 ? 0 : index / (samples - 1);
-      const carto = geodesic.interpolateUsingFraction(fraction, new Cesium.Cartographic());
-      const probe = carto ? await sampler.sample(carto, { mode: heightMode }) : null;
-      const height = probe ? probe.height : null;
-      if (height !== null) withData += 1;
-      points.push({
-        distance_m: analysisRound(length * fraction, 1),
-        height_m: height === null ? null : analysisRound(height, 1)
-      });
-    }
+    const isAutoSamples = args.samples === void 0 || args.samples === null || args.samples === "auto";
+    const requestedSamples = isAutoSamples ? null : analysisInteger(args.samples, 128, 8, PROFILE_MAX_SAMPLES);
+    const baseSamples = requestedSamples ?? autoProfileSamples(length);
+    const { entries, points, withData } = await sampleProfileEntries({
+      Cesium,
+      geodesic,
+      length,
+      baseSamples,
+      maxPoints: Math.min(PROFILE_MAX_SAMPLES, DEFAULT_SAMPLE_BUDGET),
+      heightMode,
+      sampler
+    });
     if (withData < ANALYSIS_MIN_SAMPLES) {
       throw new Error(
         heightMode === "terrain" ? 'analysis: [no_height_data] 地形没有返回可采样的高程。next: 在「地图」Tab 打开地形，或改用 source="tiles" 的 mesh 图层。' : 'analysis: [no_height_data] 所选图层没有返回可采样的表面高程（3DGS 不提供表面高程）。next: 选择 source="terrain" 并加载地形，或改用 mesh 3D Tiles 图层。'
@@ -2977,9 +3298,8 @@ function createAnalysisEngine(deps) {
     beginAnalysis("profile", layer);
     const positionAt = (fraction, height) => {
       const carto = geodesic.interpolateUsingFraction(fraction, new Cesium.Cartographic());
-      return Cesium.Cartesian3.fromRadians(carto.longitude, carto.latitude, height + 2);
+      return Cesium.Cartesian3.fromRadians(carto.longitude, carto.latitude, height + PROFILE_SURFACE_OFFSET_M);
     };
-    const step = samples > 1 ? 1 / (samples - 1) : 0;
     for (let index = 1; index < points.length; index += 1) {
       const left = points[index - 1];
       const right = points[index];
@@ -2990,8 +3310,8 @@ function createAnalysisEngine(deps) {
         id: `profile-line-${index}`,
         polyline: {
           positions: [
-            positionAt((index - 1) * step, left.height_m),
-            positionAt(index * step, right.height_m)
+            positionAt(entries[index - 1].fraction, left.height_m),
+            positionAt(entries[index].fraction, right.height_m)
           ],
           width: 4.5,
           arcType: Cesium.ArcType.NONE,
@@ -3024,7 +3344,9 @@ function createAnalysisEngine(deps) {
       layer: layer ? layer.name : null,
       from,
       to,
-      samples,
+      samples: points.length,
+      requested_samples: requestedSamples,
+      samples_mode: requestedSamples === null ? "auto" : "fixed",
       length_m: analysisRound(length, 1),
       height_mode: heightMode,
       stats,
@@ -3043,7 +3365,7 @@ function createAnalysisEngine(deps) {
         "analysis: `from`/`to` must be [lon, lat] pairs. next: pass the observer and a direction target."
       );
     }
-    const samples = analysisInteger(args.samples, 32, 8, 64);
+    const samples = analysisInteger(args.samples, 128, 8, PROFILE_MAX_SAMPLES);
     const ellipsoid = viewer.scene.globe.ellipsoid;
     const geodesic = new Cesium.EllipsoidGeodesic(
       Cesium.Cartographic.fromDegrees(from[0], from[1]),
@@ -5877,7 +6199,7 @@ function createProfileTool({ getCesium, getViewer, pickSurface, setTool, runAnal
     if (!viewer) return null;
     let state = sessions.get(viewer);
     if (!state) {
-      state = { points: [], entities: [], handler: null, start: null, cursor: null, locked: false, run: 0, source: null, samples: 32 };
+      state = { points: [], entities: [], handler: null, start: null, cursor: null, locked: false, run: 0, source: null, samples: null };
       sessions.set(viewer, state);
     }
     return state;
@@ -5984,7 +6306,7 @@ function createProfileTool({ getCesium, getViewer, pickSurface, setTool, runAnal
     const state = sessionFor();
     if (!state) return;
     state.source = options?.source === "terrain" ? "terrain" : options?.source === "tiles" ? "tiles" : null;
-    state.samples = Number.isInteger(options?.samples) ? Math.min(64, Math.max(8, options.samples)) : 32;
+    state.samples = Number.isInteger(options?.samples) ? Math.min(512, Math.max(8, options.samples)) : null;
     state.run += 1;
     installHandler(state);
   }
@@ -6040,12 +6362,12 @@ function createProfileTool({ getCesium, getViewer, pickSurface, setTool, runAnal
     showToast(t2("profile.running"));
     void (async () => {
       try {
-        const samples = state.samples && state.samples !== 32 ? state.samples : 32;
+        const samples = state.samples;
         await runAnalysis({
           action: "profile",
           from: [from.lon, from.lat],
           to: [to.lon, to.lat],
-          ...samples === 32 ? { samples: 32 } : { samples },
+          ...samples ? { samples } : {},
           ...state.source ? { source: state.source } : {}
         });
       } catch (error) {
@@ -9301,7 +9623,7 @@ function useEnvironmentDark() {
 }
 
 // src/client/ui/cards.js
-var import_react7 = __toESM(require("react"), 1);
+var import_react8 = __toESM(require("react"), 1);
 
 // src/client/analysis/profile-metrics.js
 var DEFAULT_WIDTH_M = 7;
@@ -10210,7 +10532,111 @@ function ElevationLegend({ range, minimum, maximum, t: t2, onFit, busy }) {
 
 // src/client/ui/profile-chart.js
 var import_react5 = __toESM(require("react"), 1);
+
+// src/client/scene/download.js
+function downloadText(filename, text, mime) {
+  if (typeof document === "undefined" || typeof Blob === "undefined" || typeof URL === "undefined") return false;
+  const blob = new Blob([text], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.rel = "noopener";
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1e3);
+  return true;
+}
+
+// src/client/ui/profile-chart.js
 var h3 = import_react5.default.createElement;
+var profileChartLabels = (t2) => ({
+  title: t2("analysis.title.profile"),
+  distance: t2("profile.axisDistance"),
+  elevation: t2("profile.axisElevation"),
+  terrain: t2("profile.terrain"),
+  surfaceLength: t2("profile.surfaceLength"),
+  slopeMean: t2("profile.slopeMean"),
+  note: t2("profile.note")
+});
+function ProfileChartDialog({ metrics, t: t2, onClose }) {
+  const dialogRef = import_react5.default.useRef(null);
+  import_react5.default.useEffect(() => {
+    const previous = document.activeElement;
+    dialogRef.current?.focus();
+    const onKey = (event) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        event.stopPropagation();
+        onClose();
+      }
+      if (event.key === "Tab") {
+        const buttons = [...dialogRef.current?.querySelectorAll('button:not([disabled]),[href],input,select,textarea,[tabindex="0"]') ?? []];
+        const first = buttons[0], last = buttons.at(-1);
+        if (!first) {
+          event.preventDefault();
+          return;
+        }
+        if (event.shiftKey && (document.activeElement === first || document.activeElement === dialogRef.current)) {
+          event.preventDefault();
+          last.focus();
+        } else if (!event.shiftKey && (document.activeElement === last || document.activeElement === dialogRef.current)) {
+          event.preventDefault();
+          first.focus();
+        }
+      }
+    };
+    document.addEventListener("keydown", onKey, true);
+    return () => {
+      document.removeEventListener("keydown", onKey, true);
+      if (previous?.isConnected) previous.focus();
+    };
+  }, []);
+  const svg = profileSvg(metrics, profileChartLabels(t2));
+  const src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+  return h3(
+    "div",
+    {
+      className: "mv-modal mv-chart-modal",
+      onPointerDown: (event) => event.target === event.currentTarget && onClose()
+    },
+    h3(
+      "div",
+      { ref: dialogRef, tabIndex: -1, className: "mv-chart-dialog", role: "dialog", "aria-modal": true, "aria-labelledby": "mv-chart-title" },
+      h3(
+        "header",
+        null,
+        h3("b", { id: "mv-chart-title" }, t2("profile.chartTitle")),
+        h3("button", { type: "button", className: "mv-icon-btn", title: t2("btn.close"), "aria-label": t2("btn.close"), onClick: onClose }, "✕")
+      ),
+      h3("div", { className: "mv-chart-body" }, h3("img", { src, alt: t2("profile.chartTitle") })),
+      h3(
+        "div",
+        { className: "mv-chart-actions" },
+        h3(
+          "button",
+          {
+            type: "button",
+            className: "mv-cta",
+            onClick: () => downloadText(`elevation-profile-${Date.now()}.csv`, profileCsv(metrics), "text/csv;charset=utf-8")
+          },
+          t2("profile.exportCsv")
+        ),
+        h3(
+          "button",
+          {
+            type: "button",
+            className: "mv-cta",
+            onClick: () => downloadText(`elevation-profile-${Date.now()}.svg`, svg, "image/svg+xml")
+          },
+          t2("profile.exportSvg")
+        ),
+        h3("span", { className: "mv-chart-note" }, t2("profile.note"))
+      )
+    )
+  );
+}
 function AnalysisProfileChart({ points, t: t2, hoverIndex = null, onHover }) {
   if (!Array.isArray(points) || points.length < 2) return null;
   const width = 260;
@@ -10326,22 +10752,6 @@ function AnalysisProfileChart({ points, t: t2, hoverIndex = null, onHover }) {
       )
     ) : null
   );
-}
-
-// src/client/scene/download.js
-function downloadText(filename, text, mime) {
-  if (typeof document === "undefined" || typeof Blob === "undefined" || typeof URL === "undefined") return false;
-  const blob = new Blob([text], { type: mime });
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = filename;
-  anchor.rel = "noopener";
-  document.body.appendChild(anchor);
-  anchor.click();
-  anchor.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1e3);
-  return true;
 }
 
 // src/client/ui/resizable.js
@@ -10506,107 +10916,407 @@ function ResizeHandle({ axis = "width", edge = "left", label, value, onPointerDo
   });
 }
 
-// src/client/ui/cards.js
+// src/client/ui/floating.js
+var import_react7 = __toESM(require("react"), 1);
 var h5 = import_react7.default.createElement;
-var analysisMetric = (value, digits = 1) => typeof value === "number" && Number.isFinite(value) ? value.toFixed(digits) : "—";
-var profileChartLabels = (t2) => ({
-  title: t2("analysis.title.profile"),
-  distance: t2("profile.axisDistance"),
-  elevation: t2("profile.axisElevation"),
-  terrain: t2("profile.terrain"),
-  surfaceLength: t2("profile.surfaceLength"),
-  slopeMean: t2("profile.slopeMean"),
-  note: t2("profile.note")
-});
-function ProfileChartDialog({ metrics, t: t2, onClose }) {
-  const dialogRef = import_react7.default.useRef(null);
-  import_react7.default.useEffect(() => {
-    const previous = document.activeElement;
-    dialogRef.current?.focus();
-    const onKey = (event) => {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        event.stopPropagation();
-        onClose();
-      }
-      if (event.key === "Tab") {
-        const buttons = [...dialogRef.current?.querySelectorAll('button:not([disabled]),[href],input,select,textarea,[tabindex="0"]') ?? []];
-        const first = buttons[0], last = buttons.at(-1);
-        if (!first) {
-          event.preventDefault();
-          return;
-        }
-        if (event.shiftKey && (document.activeElement === first || document.activeElement === dialogRef.current)) {
-          event.preventDefault();
-          last.focus();
-        } else if (!event.shiftKey && (document.activeElement === last || document.activeElement === dialogRef.current)) {
-          event.preventDefault();
-          first.focus();
-        }
-      }
-    };
-    document.addEventListener("keydown", onKey, true);
-    return () => {
-      document.removeEventListener("keydown", onKey, true);
-      if (previous?.isConnected) previous.focus();
-    };
-  }, []);
-  const svg = profileSvg(metrics, profileChartLabels(t2));
-  const src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+var POSITION_STORAGE_KEY = "mv.panel.pos.v1";
+var BASE_Z_INDEX = 12;
+var DRAG_THRESHOLD_PX = 4;
+var focusOrder = [];
+var focusListeners = /* @__PURE__ */ new Set();
+function notifyFocus() {
+  for (const listener of focusListeners) listener();
+}
+function focusFloatingWindow(storageKey) {
+  if (!storageKey) return;
+  if (focusOrder[focusOrder.length - 1] === storageKey) return;
+  focusOrder = focusOrder.filter((key) => key !== storageKey);
+  focusOrder.push(storageKey);
+  notifyFocus();
+}
+function getFloatingZIndex(storageKey, fallback = BASE_Z_INDEX) {
+  const idx = storageKey ? focusOrder.indexOf(storageKey) : -1;
+  return idx >= 0 ? BASE_Z_INDEX + Math.min(idx + 1, 12) : fallback;
+}
+function readAllSavedPositions() {
+  try {
+    const raw = globalThis.localStorage?.getItem(POSITION_STORAGE_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+function readSavedPos(storageKey) {
+  if (!storageKey) return null;
+  const entry = readAllSavedPositions()[storageKey];
+  if (!entry || !Number.isFinite(entry.x) || !Number.isFinite(entry.y)) return null;
+  const result = { x: Math.round(entry.x), y: Math.round(entry.y) };
+  if (Number.isFinite(entry.width) && entry.width > 0) result.width = Math.round(entry.width);
+  return result;
+}
+function writeSavedPos(storageKey, pos) {
+  if (!storageKey) return;
+  try {
+    const next = readAllSavedPositions();
+    if (!pos) delete next[storageKey];
+    else {
+      next[storageKey] = {
+        x: Math.round(pos.x),
+        y: Math.round(pos.y),
+        ...Number.isFinite(pos.width) && pos.width > 0 ? { width: Math.round(pos.width) } : null
+      };
+    }
+    if (Object.keys(next).length === 0) globalThis.localStorage?.removeItem(POSITION_STORAGE_KEY);
+    else globalThis.localStorage?.setItem(POSITION_STORAGE_KEY, JSON.stringify(next));
+  } catch {
+  }
+}
+function clampWindowPos(pos, panelRect, rootRect, margin = 8, topOffset = 52) {
+  const width = Math.max(0, Number(panelRect?.width) || 0);
+  const height = Math.max(0, Number(panelRect?.height) || 0);
+  const rootW = Math.max(width + margin * 2, Number(rootRect?.width) || 0);
+  const rootH = Math.max(height + topOffset + margin, Number(rootRect?.height) || 0);
+  const maxX = Math.max(margin, rootW - width - margin);
+  const maxY = Math.max(topOffset, rootH - height - margin);
+  return {
+    x: Math.round(Math.min(maxX, Math.max(margin, Number(pos?.x) || 0))),
+    y: Math.round(Math.min(maxY, Math.max(topOffset, Number(pos?.y) || 0)))
+  };
+}
+function nudgeWindowPos(pos, key, shiftKey = false) {
+  const step = shiftKey ? 48 : 16;
+  const x = Number(pos?.x) || 0;
+  const y = Number(pos?.y) || 0;
+  if (key === "ArrowLeft") return { x: x - step, y };
+  if (key === "ArrowRight") return { x: x + step, y };
+  if (key === "ArrowUp") return { x, y: y - step };
+  if (key === "ArrowDown") return { x, y: y + step };
+  return null;
+}
+function defaultToolFloatPos(slotIndex, panelRect, rootRect, dockRect) {
+  const rootW = Number(rootRect?.width) || 0;
+  const dockH = Number(dockRect?.height) || 0;
+  if (rootW < 780 || dockH <= 20) return null;
+  const panelW = Math.max(260, Number(panelRect?.width) || 300);
+  const rightColLeft = (Number(dockRect?.left) || 0) - (Number(rootRect?.left) || 0);
+  const idx = Math.max(0, Number(slotIndex) || 0);
+  const cascadeX = idx % 3 * 18;
+  const cascadeY = idx % 5 * 28;
+  const clamped = clampWindowPos(
+    { x: rightColLeft - panelW - 12 - cascadeX, y: 60 + cascadeY },
+    { width: panelW, height: Number(panelRect?.height) || 280 },
+    rootRect
+  );
+  return { ...clamped, width: Math.round(panelW) };
+}
+function mergeRefs(...refs) {
+  return (node) => {
+    for (const ref of refs) {
+      if (!ref) continue;
+      if (typeof ref === "function") ref(node);
+      else ref.current = node;
+    }
+  };
+}
+function measureDom(el) {
+  if (!el || typeof el.getBoundingClientRect !== "function") return null;
+  const root = el.closest?.(".mv-root");
+  if (!root || typeof root.getBoundingClientRect !== "function") return null;
+  const rootRect = root.getBoundingClientRect();
+  const elRect = el.getBoundingClientRect();
+  const op = el.offsetParent || root;
+  const opRect = typeof op.getBoundingClientRect === "function" ? op.getBoundingClientRect() : rootRect;
+  return { root, rootRect, elRect, op, opRect };
+}
+function DragHandle({ t: t2, onPointerDown, onKeyDown }) {
+  const label = typeof t2 === "function" ? t2("window.dragHint") : "Drag to move";
   return h5(
-    "div",
+    "button",
     {
-      className: "mv-modal mv-chart-modal",
-      onPointerDown: (event) => event.target === event.currentTarget && onClose()
+      type: "button",
+      "data-drag-handle": "1",
+      className: "mv-drag-handle",
+      title: label,
+      "aria-label": label,
+      onPointerDown,
+      onKeyDown
     },
-    h5(
-      "div",
-      { ref: dialogRef, tabIndex: -1, className: "mv-chart-dialog", role: "dialog", "aria-modal": true, "aria-labelledby": "mv-chart-title" },
-      h5(
-        "header",
-        null,
-        h5("b", { id: "mv-chart-title" }, t2("profile.chartTitle")),
-        h5("button", { type: "button", className: "mv-icon-btn", title: t2("btn.close"), "aria-label": t2("btn.close"), onClick: onClose }, "✕")
-      ),
-      h5("div", { className: "mv-chart-body" }, h5("img", { src, alt: t2("profile.chartTitle") })),
-      h5(
-        "div",
-        { className: "mv-chart-actions" },
-        h5(
-          "button",
-          {
-            type: "button",
-            className: "mv-cta",
-            onClick: () => downloadText(`elevation-profile-${Date.now()}.csv`, profileCsv(metrics), "text/csv;charset=utf-8")
-          },
-          t2("profile.exportCsv")
-        ),
-        h5(
-          "button",
-          {
-            type: "button",
-            className: "mv-cta",
-            onClick: () => downloadText(`elevation-profile-${Date.now()}.svg`, svg, "image/svg+xml")
-          },
-          t2("profile.exportSvg")
-        ),
-        h5("span", { className: "mv-chart-note" }, t2("profile.note"))
-      )
-    )
+    "⋮⋮"
   );
 }
-function AnalysisCard({ state, t: t2, onClose, hoverIndex = null, onHover }) {
-  const [open, setOpen] = import_react7.default.useState(true);
-  const [chartOpen, setChartOpen] = import_react7.default.useState(false);
-  const resize = usePanelResize({ storageKey: "analysis", initialHeight: null, minHeight: 180, maxHeight: 680 });
+function ResetDockButton({ t: t2, visible, onClick }) {
+  if (!visible) return null;
+  const label = typeof t2 === "function" ? t2("window.resetDock") : "Reset position";
+  return h5(
+    "button",
+    {
+      type: "button",
+      className: "mv-icon-btn mv-dock-reset",
+      title: label,
+      "aria-label": label,
+      onClick
+    },
+    "↺"
+  );
+}
+function useFloatingWindow({
+  storageKey,
+  title = "",
+  t: t2,
+  autoFloat = false,
+  floatIndex = 0,
+  dockEmpty = false,
+  hasExplicitWidth = false
+}) {
+  const panelRef = import_react7.default.useRef(null);
+  const dragCleanupRef = import_react7.default.useRef(null);
+  const autoTriedRef = import_react7.default.useRef(false);
+  const [savedPos, setSavedPos] = import_react7.default.useState(() => storageKey ? readSavedPos(storageKey) : null);
+  const [autoPos, setAutoPos] = import_react7.default.useState(null);
+  const [dragPos, setDragPos] = import_react7.default.useState(null);
+  const [dragging, setDragging] = import_react7.default.useState(false);
+  const [announcement, setAnnouncement] = import_react7.default.useState("");
+  const [delta, setDelta] = import_react7.default.useState({ dx: 0, dy: 0, rootW: 0, rootH: 0 });
+  const [, setFocusTick] = import_react7.default.useState(0);
+  import_react7.default.useEffect(() => {
+    const listener = () => setFocusTick((n) => n + 1);
+    focusListeners.add(listener);
+    return () => focusListeners.delete(listener);
+  }, []);
+  import_react7.default.useEffect(() => () => dragCleanupRef.current?.(), []);
+  const activePos = dragPos ?? savedPos ?? autoPos;
+  const moved = activePos !== null;
+  const userMoved = savedPos !== null;
+  const syncLayout = import_react7.default.useCallback(() => {
+    const m = measureDom(panelRef.current);
+    if (!m) return null;
+    const dx = Math.round(m.opRect.left - m.rootRect.left);
+    const dy = Math.round(m.opRect.top - m.rootRect.top);
+    const rootW = Math.round(m.rootRect.width);
+    const rootH = Math.round(m.rootRect.height);
+    setDelta((prev) => prev.dx === dx && prev.dy === dy && prev.rootW === rootW && prev.rootH === rootH ? prev : { dx, dy, rootW, rootH });
+    if (savedPos === null && autoFloat && !autoTriedRef.current) {
+      autoTriedRef.current = true;
+      if (!dockEmpty) {
+        const nextAuto = defaultToolFloatPos(floatIndex, m.elRect, m.rootRect, m.opRect);
+        if (nextAuto) setAutoPos(nextAuto);
+      }
+    }
+    return { ...m, dx, dy, rootW, rootH };
+  }, [savedPos, autoFloat, floatIndex, dockEmpty]);
+  import_react7.default.useEffect(() => {
+    const info = syncLayout();
+    if (!info) return void 0;
+    const onResize = () => {
+      const m = measureDom(panelRef.current);
+      if (!m) return;
+      setDelta({
+        dx: Math.round(m.opRect.left - m.rootRect.left),
+        dy: Math.round(m.opRect.top - m.rootRect.top),
+        rootW: Math.round(m.rootRect.width),
+        rootH: Math.round(m.rootRect.height)
+      });
+      if (savedPos) {
+        const clamped = clampWindowPos(savedPos, m.elRect, m.rootRect);
+        if (clamped.x !== savedPos.x || clamped.y !== savedPos.y) {
+          const next = { ...savedPos, ...clamped };
+          setSavedPos(next);
+          writeSavedPos(storageKey, next);
+        }
+      } else if (autoPos) {
+        const clamped = clampWindowPos(autoPos, m.elRect, m.rootRect);
+        if (clamped.x !== autoPos.x || clamped.y !== autoPos.y) setAutoPos({ ...autoPos, ...clamped });
+      }
+    };
+    let observer = null;
+    if (typeof ResizeObserver === "function") {
+      observer = new ResizeObserver(onResize);
+      observer.observe(info.root);
+    }
+    globalThis.addEventListener?.("resize", onResize);
+    return () => {
+      observer?.disconnect();
+      globalThis.removeEventListener?.("resize", onResize);
+    };
+  }, [syncLayout, savedPos, autoPos, storageKey]);
+  const announce = import_react7.default.useCallback(
+    (key, pos) => {
+      if (typeof t2 !== "function") return;
+      setAnnouncement(t2(key, { title, x: pos?.x ?? 0, y: pos?.y ?? 0 }));
+    },
+    [t2, title]
+  );
+  const startDrag = import_react7.default.useCallback(
+    (event) => {
+      if (event?.__mvDragHandled) return;
+      if (event?.button !== void 0 && event.button !== 0) return;
+      const el = panelRef.current;
+      const m = measureDom(el);
+      if (!m) return;
+      event.__mvDragHandled = true;
+      focusFloatingWindow(storageKey);
+      const startX = event.clientX;
+      const startY = event.clientY;
+      const cur = dragPos ?? savedPos ?? autoPos;
+      const originX = cur ? cur.x : Math.round(m.elRect.left - m.rootRect.left);
+      const originY = cur ? cur.y : Math.round(m.elRect.top - m.rootRect.top);
+      const lockedW = cur?.width ?? Math.round(m.elRect.width);
+      setDelta({
+        dx: Math.round(m.opRect.left - m.rootRect.left),
+        dy: Math.round(m.opRect.top - m.rootRect.top),
+        rootW: Math.round(m.rootRect.width),
+        rootH: Math.round(m.rootRect.height)
+      });
+      const target = event.currentTarget;
+      try {
+        target?.setPointerCapture?.(event.pointerId);
+      } catch {
+      }
+      let active = false;
+      let latest = { x: originX, y: originY, width: lockedW };
+      const doc = el.ownerDocument ?? globalThis.document;
+      const onMove = (moveEvent) => {
+        if (moveEvent.pointerId !== void 0 && event.pointerId !== void 0 && moveEvent.pointerId !== event.pointerId) return;
+        const dx = moveEvent.clientX - startX;
+        const dy = moveEvent.clientY - startY;
+        if (!active && Math.hypot(dx, dy) < DRAG_THRESHOLD_PX) return;
+        if (!active) {
+          active = true;
+          setDragging(true);
+        }
+        const liveMetrics = measureDom(panelRef.current) ?? m;
+        const clamped = clampWindowPos({ x: originX + dx, y: originY + dy }, liveMetrics.elRect, liveMetrics.rootRect);
+        latest = { x: clamped.x, y: clamped.y, width: lockedW };
+        setDragPos(latest);
+      };
+      const finish = () => {
+        dragCleanupRef.current?.();
+        dragCleanupRef.current = null;
+        setDragging(false);
+        setDragPos(null);
+        if (!active) return;
+        setAutoPos(null);
+        setSavedPos(latest);
+        writeSavedPos(storageKey, latest);
+        announce("window.moved", latest);
+      };
+      doc?.addEventListener?.("pointermove", onMove);
+      doc?.addEventListener?.("pointerup", finish);
+      doc?.addEventListener?.("pointercancel", finish);
+      target?.addEventListener?.("lostpointercapture", finish);
+      dragCleanupRef.current = () => {
+        doc?.removeEventListener?.("pointermove", onMove);
+        doc?.removeEventListener?.("pointerup", finish);
+        doc?.removeEventListener?.("pointercancel", finish);
+        target?.removeEventListener?.("lostpointercapture", finish);
+      };
+    },
+    [dragPos, savedPos, autoPos, storageKey, announce]
+  );
+  const onHeaderPointerDown = import_react7.default.useCallback(
+    (event) => {
+      if (event?.__mvDragHandled) return;
+      const target = event?.target;
+      const blocked = target?.closest?.("button, input, select, textarea, a, label, [data-no-drag]");
+      const handle = target?.closest?.("[data-drag-handle]");
+      if (blocked && !handle) return;
+      startDrag(event);
+    },
+    [startDrag]
+  );
+  const onHandleKeyDown = import_react7.default.useCallback(
+    (event) => {
+      const m = measureDom(panelRef.current);
+      const cur = activePos ?? (m ? { x: Math.round(m.elRect.left - m.rootRect.left), y: Math.round(m.elRect.top - m.rootRect.top), width: Math.round(m.elRect.width) } : { x: 24, y: 64 });
+      const nudged = nudgeWindowPos(cur, event.key, Boolean(event.shiftKey));
+      if (!nudged) return;
+      event.preventDefault?.();
+      focusFloatingWindow(storageKey);
+      const next = m ? { ...clampWindowPos(nudged, m.elRect, m.rootRect), width: cur.width ?? Math.round(m.elRect.width) } : nudged;
+      setAutoPos(null);
+      setSavedPos(next);
+      writeSavedPos(storageKey, next);
+      announce("window.moved", next);
+    },
+    [activePos, storageKey, announce]
+  );
+  const resetDock = import_react7.default.useCallback(() => {
+    setAutoPos(null);
+    setSavedPos(null);
+    setDragPos(null);
+    writeSavedPos(storageKey, null);
+    announce("window.docked");
+  }, [storageKey, announce]);
+  const zIndex = getFloatingZIndex(storageKey, BASE_Z_INDEX);
+  const style = moved ? {
+    position: "absolute",
+    left: `${Math.round(activePos.x - delta.dx)}px`,
+    top: `${Math.round(activePos.y - delta.dy)}px`,
+    right: "auto",
+    bottom: "auto",
+    margin: 0,
+    zIndex,
+    ...delta.rootW > 0 ? { maxWidth: `${Math.max(220, delta.rootW - 16)}px` } : null,
+    ...delta.rootH > 0 ? { maxHeight: `${Math.max(200, delta.rootH - 64)}px` } : null,
+    ...!hasExplicitWidth && activePos.width && delta.rootW > 0 ? { width: `${Math.min(activePos.width, Math.max(220, delta.rootW - 16))}px` } : null
+  } : { zIndex };
+  return {
+    ref: panelRef,
+    moved,
+    userMoved,
+    dragging,
+    zIndex,
+    style,
+    className: `mv-floating${moved ? " moved" : ""}${dragging ? " dragging" : ""}`,
+    panelProps: { onPointerDownCapture: () => focusFloatingWindow(storageKey) },
+    headerProps: { className: "mv-window-header", onPointerDown: onHeaderPointerDown },
+    dragHandle: h5(DragHandle, { t: t2, onPointerDown: startDrag, onKeyDown: onHandleKeyDown }),
+    resetButton: h5(ResetDockButton, { t: t2, visible: userMoved, onClick: resetDock }),
+    liveRegion: h5("span", { className: "mv-sr-only", "aria-live": "polite" }, announcement)
+  };
+}
+
+// src/client/ui/cards.js
+var h6 = import_react8.default.createElement;
+var analysisMetric = (value, digits = 1) => typeof value === "number" && Number.isFinite(value) ? value.toFixed(digits) : "—";
+function AnalysisCard({ state, t: t2, onClose, hoverIndex = null, onHover, onStartProfile }) {
+  const [open, setOpen] = import_react8.default.useState(true);
+  const [chartOpen, setChartOpen] = import_react8.default.useState(false);
+  const resize = usePanelResize({
+    storageKey: "analysis",
+    widthDirection: "right",
+    initialWidth: null,
+    minWidth: 240,
+    maxWidth: 680,
+    initialHeight: null,
+    minHeight: 180,
+    maxHeight: 680
+  });
+  const operation = state?.operation;
+  const titleText = operation ? t2(`analysis.title.${operation}`) : "";
+  const floating = useFloatingWindow({
+    storageKey: "analysis",
+    title: titleText,
+    t: t2,
+    hasExplicitWidth: Boolean(resize.size.width)
+  });
   if (!state || !state.result) return null;
   const result = state.result;
-  const operation = state.operation;
+  const cardStyle = floating.moved ? { ...floating.style, ...resize.style } : { ...floating.style, height: resize.style?.height, maxHeight: resize.style?.maxHeight };
   const profile = operation === "profile" ? profileMetrics(result.points, { includeDesign: false }) : null;
   const showProfile = Boolean(profile && profile.valid_count >= 2);
   const heightSource = typeof result.height_source === "string" && result.height_source !== "" ? result.height_source : null;
   const warningCodes = (Array.isArray(result.warnings) ? result.warnings : []).filter((code) => typeof code === "string" && code.trim() !== "").slice(0, 2);
-  const chartBlock = operation === "profile" ? showProfile ? h5(
+  const warningKeyByCode = {
+    surface_height_from_tiles: "profile.warning.tilesSurface",
+    tiles_height_unavailable: "profile.warning.tilesUnavailable",
+    terrain_height_unavailable: "profile.warning.terrainUnavailable",
+    sample_budget_truncated: "profile.warning.budgetTruncated"
+  };
+  const warningLabels = warningCodes.map((code) => warningKeyByCode[code] ? t2(warningKeyByCode[code]) : code);
+  const chartBlock = operation === "profile" ? showProfile ? h6(
     "button",
     {
       type: "button",
@@ -10615,11 +11325,11 @@ function AnalysisCard({ state, t: t2, onClose, hoverIndex = null, onHover }) {
       "aria-label": t2("profile.expandChart"),
       onClick: () => setChartOpen(true)
     },
-    h5(AnalysisProfileChart, { points: result.points, t: t2, hoverIndex, onHover }),
-    h5("span", { className: "profile-chart-hint" }, t2("profile.expandChart"))
-  ) : h5(AnalysisProfileChart, { points: result.points, t: t2, hoverIndex, onHover }) : null;
+    h6(AnalysisProfileChart, { points: result.points, t: t2, hoverIndex, onHover }),
+    h6("span", { className: "profile-chart-hint" }, t2("profile.expandChart"))
+  ) : h6(AnalysisProfileChart, { points: result.points, t: t2, hoverIndex, onHover }) : null;
   const rows = [];
-  const row = (key, label, value) => rows.push(h5("div", { key, className: "stat" }, h5("span", null, label), h5("b", null, value)));
+  const row = (key, label, value) => rows.push(h6("div", { key, className: "stat" }, h6("span", null, label), h6("b", null, value)));
   if (operation === "profile") {
     const stats = result.stats ?? {};
     row("length", t2("analysis.length"), formatDistance(result.length_m ?? 0));
@@ -10703,14 +11413,23 @@ function AnalysisCard({ state, t: t2, onClose, hoverIndex = null, onHover }) {
     );
     row("planes", t2("analysis.clipPlanes"), `${result.planes ?? 1}`);
   }
-  return h5(
+  return h6(
     "div",
-    { className: "mv-card mv-analysis", ref: resize.ref, style: resize.style, role: "region", "aria-label": t2(`analysis.title.${operation}`) },
-    h5(
+    {
+      className: `mv-card mv-analysis ${floating.className}`,
+      ref: mergeRefs(floating.ref, resize.ref),
+      style: cardStyle,
+      role: "region",
+      "aria-label": t2(`analysis.title.${operation}`),
+      ...floating.panelProps
+    },
+    h6(
       "header",
-      null,
-      h5("span", { className: "title" }, t2(`analysis.title.${operation}`)),
-      h5(
+      floating.headerProps,
+      floating.dragHandle,
+      h6("span", { className: "title" }, t2(`analysis.title.${operation}`)),
+      floating.resetButton,
+      h6(
         "button",
         {
           type: "button",
@@ -10722,36 +11441,37 @@ function AnalysisCard({ state, t: t2, onClose, hoverIndex = null, onHover }) {
         },
         open ? "▾" : "▸"
       ),
-      h5(
+      h6(
         "button",
         { type: "button", className: "mv-icon-btn", title: t2("analysis.close"), "aria-label": t2("analysis.close"), onClick: onClose },
         "✕"
       )
     ),
-    open ? h5(
+    floating.liveRegion,
+    open ? h6(
       "div",
       { className: "body" },
       chartBlock,
-      heightSource ? h5(
+      heightSource ? h6(
         "div",
         { key: "source", className: "stat" },
-        h5("span", null, t2("analysis.source")),
-        h5("b", null, t2(`analysis.source.${heightSource}`))
+        h6("span", null, t2("analysis.source")),
+        h6("b", null, t2(`analysis.source.${heightSource}`))
       ) : null,
-      warningCodes.length > 0 ? h5(
+      warningCodes.length > 0 ? h6(
         "p",
         { key: "warnings", className: "warnings", title: warningCodes.join(" · ") },
-        `${t2("analysis.warnings")}: ${warningCodes.join(" · ")}`
+        `${t2("analysis.warnings")}: ${warningLabels.join(" · ")}`
       ) : null,
-      state.layerName ? h5("div", { className: "layer", title: state.layerName }, `${t2("analysis.layer")}: ${state.layerName}`) : null,
+      state.layerName ? h6("div", { className: "layer", title: state.layerName }, `${t2("analysis.layer")}: ${state.layerName}`) : null,
       ...rows,
-      showProfile ? h5(
+      showProfile ? h6(
         "div",
         { key: "profile-tools", className: "profile-tools" },
-        h5(
+        h6(
           "div",
           { className: "profile-row" },
-          h5(
+          h6(
             "button",
             {
               type: "button",
@@ -10760,7 +11480,7 @@ function AnalysisCard({ state, t: t2, onClose, hoverIndex = null, onHover }) {
             },
             t2("profile.exportCsv")
           ),
-          h5(
+          h6(
             "button",
             {
               type: "button",
@@ -10772,21 +11492,39 @@ function AnalysisCard({ state, t: t2, onClose, hoverIndex = null, onHover }) {
               )
             },
             t2("profile.exportSvg")
-          )
+          ),
+          typeof onStartProfile === "function" ? h6(
+            "button",
+            {
+              type: "button",
+              className: "mv-cta primary",
+              title: t2("analysis.redrawProfileHint"),
+              onClick: () => onStartProfile()
+            },
+            t2("analysis.redrawProfile")
+          ) : null
         ),
-        h5("p", { className: "profile-note" }, t2("profile.hoverChartHint"))
+        h6("p", { className: "profile-note" }, t2("profile.hoverChartHint"))
       ) : null,
-      h5("p", { className: "hint" }, t2("analysis.hint"))
+      h6("p", { className: "hint" }, t2("analysis.hint"))
     ) : null,
-    chartOpen && showProfile ? h5(ProfileChartDialog, { key: "chart-dialog", metrics: profile, t: t2, onClose: () => setChartOpen(false) }) : null,
-    h5(ResizeHandle, {
+    chartOpen && showProfile ? h6(ProfileChartDialog, { key: "chart-dialog", metrics: profile, t: t2, onClose: () => setChartOpen(false) }) : null,
+    h6(ResizeHandle, {
       axis: "height",
       edge: "bottom",
       label: t2("resize.height"),
       value: resize.size.height,
       onPointerDown: resize.beginHeight,
       onKeyDown: resize.keyHeight
-    })
+    }),
+    floating.moved ? h6(ResizeHandle, {
+      axis: "corner",
+      edge: "corner",
+      label: t2("resize.size"),
+      value: resize.size.width,
+      onPointerDown: resize.beginCorner,
+      onKeyDown: resize.keyWidth
+    }) : null
   );
 }
 function ShaderWorkbench({
@@ -10820,15 +11558,21 @@ function ShaderWorkbench({
     minHeight: 220,
     maxHeight: 760
   });
+  const floating = useFloatingWindow({
+    storageKey: "shader",
+    title: t2("shader.title"),
+    t: t2,
+    hasExplicitWidth: Boolean(resize.size.width)
+  });
   const visibleLayers = layers.filter((layer) => layer.visible);
   const { eligible: eligibleLayers, skippedGaussian: skippedGaussianCount } = eligibleShaderLayers(layers);
   const eligibleCount = eligibleLayers.length;
   const selectedPresets = Array.isArray(form.preset) ? form.preset : [form.preset];
   const presetLabel = (value) => (Array.isArray(value) ? value : [value]).map((item) => t2(`shader.preset.${item}`)).join(" + ");
-  const [live, setLive] = import_react7.default.useState(false);
-  const [comparing, setComparing] = import_react7.default.useState(false);
-  const comparingRef = import_react7.default.useRef(false);
-  import_react7.default.useEffect(
+  const [live, setLive] = import_react8.default.useState(false);
+  const [comparing, setComparing] = import_react8.default.useState(false);
+  const comparingRef = import_react8.default.useRef(false);
+  import_react8.default.useEffect(
     () => () => {
       if (comparingRef.current) onCompare(false);
     },
@@ -10839,7 +11583,7 @@ function ShaderWorkbench({
   const sampledRange = elevation.range?.source === "visible_surface" ? elevation.range : null;
   const heightPreset = selectedPresets.includes("height-false-color");
   const sampledRangeKey = sampledRange ? `${sampledRange.minimum}|${sampledRange.maximum}` : "";
-  import_react7.default.useEffect(() => {
+  import_react8.default.useEffect(() => {
     if (!sampledRange || !heightPreset) return;
     if (form.minHeight !== "" || form.maxHeight !== "") return;
     onField("minHeight", String(sampledRange.minimum));
@@ -10895,14 +11639,14 @@ function ShaderWorkbench({
     stopCompare();
     onResetAll();
   };
-  const sliderField = (key, labelKey, min, max, step, fallback = "") => h5(
+  const sliderField = (key, labelKey, min, max, step, fallback = "") => h6(
     "div",
     { className: "param", key },
-    h5("div", { className: "param-head" }, h5("label", { htmlFor: `mv-shader-${key}` }, t2(labelKey))),
-    h5(
+    h6("div", { className: "param-head" }, h6("label", { htmlFor: `mv-shader-${key}` }, t2(labelKey))),
+    h6(
       "div",
       { className: "param-controls" },
-      h5("input", {
+      h6("input", {
         className: "slider",
         type: "range",
         min,
@@ -10912,7 +11656,7 @@ function ShaderWorkbench({
         "aria-label": t2(labelKey),
         onChange: (event) => changeField(key, event.target.value)
       }),
-      h5("input", {
+      h6("input", {
         className: "number",
         id: `mv-shader-${key}`,
         type: "number",
@@ -10941,38 +11685,38 @@ function ShaderWorkbench({
   if (selectedPresets.includes("water-depth")) {
     paramRows.push(sliderField("waterHeight", "shader.param.waterHeight", bounds.min, bounds.max, bounds.step, "0"), sliderField("depthMax", "shader.param.depthMax", 0.5, Math.max(50, Math.min(500, Number(form.depthMax) || 50, (elevation.range?.maximum ?? 50) - (elevation.range?.minimum ?? 0))), 0.5, "50"));
   }
-  const params = paramRows.length > 0 ? h5("div", { className: "params" }, ...paramRows) : null;
+  const params = paramRows.length > 0 ? h6("div", { className: "params" }, ...paramRows) : null;
   const thumb = (preset) => {
     const viewBox = "0 0 96 40";
     const common = { viewBox, preserveAspectRatio: "none", className: "thumb-svg", "aria-hidden": true };
     if (preset === "height-false-color") {
-      return h5(
+      return h6(
         "svg",
         common,
-        h5(
+        h6(
           "defs",
           null,
-          h5(
+          h6(
             "linearGradient",
             { id: "mv-thumb-ramp", x1: "0", y1: "0", x2: "1", y2: "0" },
-            h5("stop", { offset: "0", stopColor: "#172466" }),
-            h5("stop", { offset: "0.28", stopColor: "#157db3" }),
-            h5("stop", { offset: "0.52", stopColor: "#3dcc99" }),
-            h5("stop", { offset: "0.78", stopColor: "#fcc951" }),
-            h5("stop", { offset: "1", stopColor: "#f05c4d" })
+            h6("stop", { offset: "0", stopColor: "#172466" }),
+            h6("stop", { offset: "0.28", stopColor: "#157db3" }),
+            h6("stop", { offset: "0.52", stopColor: "#3dcc99" }),
+            h6("stop", { offset: "0.78", stopColor: "#fcc951" }),
+            h6("stop", { offset: "1", stopColor: "#f05c4d" })
           )
         ),
-        h5("rect", { width: "96", height: "40", fill: "url(#mv-thumb-ramp)", opacity: "0.9" }),
-        h5("path", { d: "M0 34 L18 22 L34 28 L52 12 L70 18 L96 6 L96 40 L0 40 Z", fill: "rgba(8,14,24,.35)" })
+        h6("rect", { width: "96", height: "40", fill: "url(#mv-thumb-ramp)", opacity: "0.9" }),
+        h6("path", { d: "M0 34 L18 22 L34 28 L52 12 L70 18 L96 6 L96 40 L0 40 Z", fill: "rgba(8,14,24,.35)" })
       );
     }
     if (preset === "contour") {
-      return h5(
+      return h6(
         "svg",
         common,
-        h5("rect", { width: "96", height: "40", fill: "#0e1620" }),
+        h6("rect", { width: "96", height: "40", fill: "#0e1620" }),
         ...[0, 1, 2, 3].map(
-          (index) => h5("path", {
+          (index) => h6("path", {
             key: index,
             d: `M0 ${10 + index * 7} C 16 ${4 + index * 8}, 32 ${18 + index * 6}, 48 ${10 + index * 7} S 80 ${2 + index * 9}, 96 ${12 + index * 6}`,
             fill: "none",
@@ -10984,44 +11728,44 @@ function ShaderWorkbench({
       );
     }
     if (preset === "scan") {
-      return h5(
+      return h6(
         "svg",
         common,
-        h5("rect", { width: "96", height: "40", fill: "#0b1119" }),
+        h6("rect", { width: "96", height: "40", fill: "#0b1119" }),
         ...[0, 1, 2, 3, 4].map(
-          (index) => h5("line", { key: index, x1: "0", y1: 8 + index * 8, x2: "96", y2: 8 + index * 8, stroke: "#243244", strokeWidth: "0.5" })
+          (index) => h6("line", { key: index, x1: "0", y1: 8 + index * 8, x2: "96", y2: 8 + index * 8, stroke: "#243244", strokeWidth: "0.5" })
         ),
-        h5(
+        h6(
           "defs",
           null,
-          h5(
+          h6(
             "linearGradient",
             { id: "mv-thumb-scan", x1: "0", y1: "0", x2: "1", y2: "0" },
-            h5("stop", { offset: "0", stopColor: "rgba(55,230,255,0)" }),
-            h5("stop", { offset: "0.5", stopColor: "rgba(55,230,255,.85)" }),
-            h5("stop", { offset: "1", stopColor: "rgba(55,230,255,0)" })
+            h6("stop", { offset: "0", stopColor: "rgba(55,230,255,0)" }),
+            h6("stop", { offset: "0.5", stopColor: "rgba(55,230,255,.85)" }),
+            h6("stop", { offset: "1", stopColor: "rgba(55,230,255,0)" })
           )
         ),
-        h5("rect", { x: "30", y: "14", width: "36", height: "12", fill: "url(#mv-thumb-scan)" })
+        h6("rect", { x: "30", y: "14", width: "36", height: "12", fill: "url(#mv-thumb-scan)" })
       );
     }
     if (preset === "water") {
-      return h5(
+      return h6(
         "svg",
         common,
-        h5(
+        h6(
           "defs",
           null,
-          h5(
+          h6(
             "linearGradient",
             { id: "mv-thumb-water", x1: "0", y1: "0", x2: "0", y2: "1" },
-            h5("stop", { offset: "0", stopColor: "#0b2b52" }),
-            h5("stop", { offset: "1", stopColor: "#1b6fae" })
+            h6("stop", { offset: "0", stopColor: "#0b2b52" }),
+            h6("stop", { offset: "1", stopColor: "#1b6fae" })
           )
         ),
-        h5("rect", { width: "96", height: "40", fill: "url(#mv-thumb-water)" }),
+        h6("rect", { width: "96", height: "40", fill: "url(#mv-thumb-water)" }),
         ...[0, 1, 2].map(
-          (index) => h5("path", {
+          (index) => h6("path", {
             key: index,
             d: `M0 ${14 + index * 8} Q 12 ${8 + index * 8}, 24 ${14 + index * 8} T 48 ${14 + index * 8} T 72 ${14 + index * 8} T 96 ${14 + index * 8}`,
             fill: "none",
@@ -11032,28 +11776,28 @@ function ShaderWorkbench({
         )
       );
     }
-    return h5(
+    return h6(
       "svg",
       common,
-      h5(
+      h6(
         "defs",
         null,
-        h5(
+        h6(
           "linearGradient",
           { id: "mv-thumb-depth", x1: "0", y1: "0", x2: "0", y2: "1" },
-          h5("stop", { offset: "0", stopColor: "#67e8f9" }),
-          h5("stop", { offset: "0.55", stopColor: "#0e7490" }),
-          h5("stop", { offset: "1", stopColor: "#0b1e4b" })
+          h6("stop", { offset: "0", stopColor: "#67e8f9" }),
+          h6("stop", { offset: "0.55", stopColor: "#0e7490" }),
+          h6("stop", { offset: "1", stopColor: "#0b1e4b" })
         )
       ),
-      h5("rect", { width: "96", height: "40", fill: "url(#mv-thumb-depth)" }),
-      h5("line", { x1: "0", y1: "16", x2: "96", y2: "16", stroke: "rgba(255,255,255,.65)", strokeWidth: "0.8" })
+      h6("rect", { width: "96", height: "40", fill: "url(#mv-thumb-depth)" }),
+      h6("line", { x1: "0", y1: "16", x2: "96", y2: "16", stroke: "rgba(255,255,255,.65)", strokeWidth: "0.8" })
     );
   };
   const presetChip = (preset) => {
     const selected = selectedPresets.includes(preset);
     const order = selected ? selectedPresets.indexOf(preset) + 1 : 0;
-    return h5(
+    return h6(
       "button",
       {
         key: preset,
@@ -11063,56 +11807,66 @@ function ShaderWorkbench({
         "aria-pressed": selected,
         onClick: () => onPreset(preset)
       },
-      h5("span", { className: "thumb" }, thumb(preset)),
-      h5("span", { className: "preset-name" }, t2(`shader.preset.${preset}`)),
-      order > 0 ? h5("span", { className: "order-badge", "aria-hidden": true }, `${order}`) : null
+      h6("span", { className: "thumb" }, thumb(preset)),
+      h6("span", { className: "preset-name" }, t2(`shader.preset.${preset}`)),
+      order > 0 ? h6("span", { className: "order-badge", "aria-hidden": true }, `${order}`) : null
     );
   };
-  const orderList = selectedPresets.length > 1 ? h5(
+  const orderList = selectedPresets.length > 1 ? h6(
     "div",
     { className: "order", role: "list", "aria-label": t2("shader.orderLabel") },
     ...selectedPresets.map(
-      (preset, index) => h5(
+      (preset, index) => h6(
         "div",
         { key: preset, className: "order-item", role: "listitem" },
-        h5("span", { className: "index" }, `${index + 1}`),
-        h5("span", { className: "order-name", title: t2(`shader.preset.${preset}`) }, t2(`shader.preset.${preset}`)),
-        h5(
+        h6("span", { className: "index" }, `${index + 1}`),
+        h6("span", { className: "order-name", title: t2(`shader.preset.${preset}`) }, t2(`shader.preset.${preset}`)),
+        h6(
           "button",
           { type: "button", className: "mv-icon-btn", title: t2("shader.moveUp"), disabled: index === 0, onClick: () => onPresetMove(preset, -1) },
           "↑"
         ),
-        h5(
+        h6(
           "button",
           { type: "button", className: "mv-icon-btn", title: t2("shader.moveDown"), disabled: index === selectedPresets.length - 1, onClick: () => onPresetMove(preset, 1) },
           "↓"
         ),
-        h5("button", { type: "button", className: "mv-icon-btn", title: t2("shader.removePreset"), onClick: () => onPreset(preset) }, "✕")
+        h6("button", { type: "button", className: "mv-icon-btn", title: t2("shader.removePreset"), onClick: () => onPreset(preset) }, "✕")
       )
     )
   ) : null;
-  return h5(
+  return h6(
     "div",
-    { className: "mv-card mv-shader", ref: resize.ref, style: resize.style, role: "region", "aria-label": t2("shader.title") },
-    h5(
+    {
+      className: `mv-card mv-shader ${floating.className}`,
+      ref: mergeRefs(floating.ref, resize.ref),
+      style: { ...floating.style, ...resize.style },
+      role: "region",
+      "aria-label": t2("shader.title"),
+      ...floating.panelProps
+    },
+    h6(
       "header",
-      null,
-      h5("span", { className: "title" }, t2("shader.title")),
-      h5("span", { className: "subtitle" }, targetName !== "" ? t2("shader.targetChip", { name: targetName }) : t2("shader.targetNone")),
-      h5(
+      floating.headerProps,
+      floating.dragHandle,
+      h6("span", { className: "title" }, t2("shader.title")),
+      h6("span", { className: "subtitle" }, targetName !== "" ? t2("shader.targetChip", { name: targetName }) : t2("shader.targetNone")),
+      floating.resetButton,
+      h6(
         "button",
         { type: "button", className: "mv-icon-btn", title: t2("shader.close"), "aria-label": t2("shader.close"), onClick: onClose },
         "✕"
       )
     ),
-    h5(
+    floating.liveRegion,
+    h6(
       "div",
       { className: "body" },
-      h5(
+      h6(
         "div",
         { className: "field" },
-        h5("label", { htmlFor: "mv-shader-layer" }, t2("shader.layerLabel")),
-        h5(
+        h6("label", { htmlFor: "mv-shader-layer" }, t2("shader.layerLabel")),
+        h6(
           "select",
           {
             id: "mv-shader-layer",
@@ -11120,36 +11874,36 @@ function ShaderWorkbench({
             disabled: visibleLayers.length === 0,
             onChange: (event) => onLayer(event.target.value)
           },
-          h5("option", { value: "" }, targetName !== "" ? t2("shader.layerAutoNamed", { name: targetName }) : t2("shader.layerAuto")),
-          ...visibleLayers.map((layer) => h5("option", { key: layer.id, value: layer.id }, layer.name))
+          h6("option", { value: "" }, targetName !== "" ? t2("shader.layerAutoNamed", { name: targetName }) : t2("shader.layerAuto")),
+          ...visibleLayers.map((layer) => h6("option", { key: layer.id, value: layer.id }, layer.name))
         ),
-        h5(
+        h6(
           "p",
           { className: "target-line" },
           targetName === "" ? t2("shader.targetNone") : target?.auto ? t2("shader.targetAuto", { name: targetName }) : t2("shader.targetFixed", { name: targetName })
         ),
-        h5("p", { className: "hint target-hint" }, t2("shader.targetHint"))
+        h6("p", { className: "hint target-hint" }, t2("shader.targetHint"))
       ),
-      h5(
+      h6(
         "div",
         { className: "field" },
-        h5("label", null, t2("shader.presetLabel")),
-        h5(
+        h6("label", null, t2("shader.presetLabel")),
+        h6(
           "div",
           { className: "presets primary" },
           ...SHADER_PRIMARY_PRESETS.map((preset) => presetChip(preset))
         ),
-        h5("p", { className: "hint" }, t2("shader.stackHint")),
-        h5("p", { className: "hint single-hint" }, t2("shader.singleHint"))
+        h6("p", { className: "hint" }, t2("shader.stackHint")),
+        h6("p", { className: "hint single-hint" }, t2("shader.singleHint"))
       ),
       orderList,
-      selectedPresets.includes("height-false-color") ? h5(ElevationLegend, { range: elevation.range, minimum: rangeMinimum, maximum: rangeMaximum, t: t2, busy: elevation.busy, onFit: fitRange }) : null,
-      selectedPresets.includes("water") ? h5("p", { className: "hint" }, t2(selectedPresets.includes("water-depth") ? "shader.waterMasked" : "shader.waterPurpose")) : null,
+      selectedPresets.includes("height-false-color") ? h6(ElevationLegend, { range: elevation.range, minimum: rangeMinimum, maximum: rangeMaximum, t: t2, busy: elevation.busy, onFit: fitRange }) : null,
+      selectedPresets.includes("water") ? h6("p", { className: "hint" }, t2(selectedPresets.includes("water-depth") ? "shader.waterMasked" : "shader.waterPurpose")) : null,
       params,
-      h5(
+      h6(
         "label",
         { className: "live-row" },
-        h5("input", {
+        h6("input", {
           type: "checkbox",
           checked: live,
           onChange: (event) => {
@@ -11157,13 +11911,13 @@ function ShaderWorkbench({
             if (event.target.checked) onPreview();
           }
         }),
-        h5("span", null, t2("shader.livePreview"))
+        h6("span", null, t2("shader.livePreview"))
       ),
-      h5(
+      h6(
         "div",
         { className: "row" },
-        h5("button", { type: "button", className: "mv-cta primary", disabled: visibleLayers.length === 0 || elevation.busy, onClick: runApply }, t2("shader.apply")),
-        h5(
+        h6("button", { type: "button", className: "mv-cta primary", disabled: visibleLayers.length === 0 || elevation.busy, onClick: runApply }, t2("shader.apply")),
+        h6(
           "button",
           {
             type: "button",
@@ -11176,10 +11930,10 @@ function ShaderWorkbench({
           comparing ? t2("shader.compareOn") : t2("shader.compare")
         )
       ),
-      onApplyAll ? h5(
+      onApplyAll ? h6(
         "div",
         { className: "row" },
-        h5(
+        h6(
           "button",
           {
             type: "button",
@@ -11191,22 +11945,22 @@ function ShaderWorkbench({
           eligibleCount > 1 ? t2("shaderSync.applyAllCount", { n: eligibleCount }) : t2("shaderSync.applyAll")
         )
       ) : null,
-      skippedGaussianCount > 0 ? h5("p", { className: "hint" }, t2("shaderSync.skip3dgsHint", { n: skippedGaussianCount })) : null,
-      h5(
+      skippedGaussianCount > 0 ? h6("p", { className: "hint" }, t2("shaderSync.skip3dgsHint", { n: skippedGaussianCount })) : null,
+      h6(
         "div",
         { className: "row" },
-        h5("button", { type: "button", className: "mv-cta", onClick: runResetLayer }, t2("shader.resetLayer")),
-        h5("button", { type: "button", className: "mv-cta", disabled: active.length === 0, onClick: runResetAll }, t2("shader.resetAll"))
+        h6("button", { type: "button", className: "mv-cta", onClick: runResetLayer }, t2("shader.resetLayer")),
+        h6("button", { type: "button", className: "mv-cta", disabled: active.length === 0, onClick: runResetAll }, t2("shader.resetAll"))
       ),
-      h5(
+      h6(
         "div",
         { className: "active" },
-        h5("b", null, t2("shader.active")),
-        active.length === 0 ? h5("span", { className: "empty" }, t2("shader.activeEmpty")) : active.map(
-          (entry) => h5(
+        h6("b", null, t2("shader.active")),
+        active.length === 0 ? h6("span", { className: "empty" }, t2("shader.activeEmpty")) : active.map(
+          (entry) => h6(
             "div",
             { key: entry.layer, className: "item" },
-            onLoadEntry ? h5(
+            onLoadEntry ? h6(
               "button",
               {
                 type: "button",
@@ -11214,11 +11968,11 @@ function ShaderWorkbench({
                 title: t2("shaderSync.loadRow", { name: entry.layer }),
                 onClick: () => onLoadEntry(entry)
               },
-              h5("span", null, entry.layer)
-            ) : h5("span", { title: entry.layer }, entry.layer),
-            h5("span", { className: "applied-tag" }, t2("shader.appliedTag")),
-            h5("em", { title: presetLabel(entry.preset) }, presetLabel(entry.preset)),
-            onSyncEntry && eligibleCount > 1 ? h5(
+              h6("span", null, entry.layer)
+            ) : h6("span", { title: entry.layer }, entry.layer),
+            h6("span", { className: "applied-tag" }, t2("shader.appliedTag")),
+            h6("em", { title: presetLabel(entry.preset) }, presetLabel(entry.preset)),
+            onSyncEntry && eligibleCount > 1 ? h6(
               "button",
               {
                 type: "button",
@@ -11229,7 +11983,7 @@ function ShaderWorkbench({
               },
               "⇄"
             ) : null,
-            onResetEntry ? h5(
+            onResetEntry ? h6(
               "button",
               {
                 type: "button",
@@ -11243,9 +11997,9 @@ function ShaderWorkbench({
           )
         )
       ),
-      visibleLayers.length === 0 ? h5("p", { className: "hint" }, t2("shader.noLayers")) : null
+      visibleLayers.length === 0 ? h6("p", { className: "hint" }, t2("shader.noLayers")) : null
     ),
-    h5(ResizeHandle, {
+    h6(ResizeHandle, {
       axis: "corner",
       edge: "corner",
       label: t2("resize.size"),
@@ -11276,7 +12030,8 @@ var VECTOR_CSS = `
 .mv-root[data-mv-scheme="dark"] .mv-vector-label:is([data-state="hover"],[data-state="selected"]){background:#223b53;border-color:#79b6e8}
 .mv-vector-hovering .cesium-widget canvas{cursor:pointer}
 .mv-vector-card{position:absolute;left:12px;bottom:48px;z-index:13;box-sizing:border-box;width:min(344px,calc(100% - 24px));max-height:min(520px,68%);overflow:auto;padding:16px;border:1px solid var(--mv-line);border-radius:12px;background:var(--mv-glass-strong);box-shadow:var(--mv-shadow);font-size:13px;line-height:1.6;animation:mv-fade .16s ease-out}
-.mv-vector-card header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.mv-vector-card header{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.mv-vector-card header>div{flex:1;min-width:0}
 .mv-vector-card .eyebrow{display:block;font-size:11px;color:var(--mv-dim);margin-bottom:3px}
 .mv-vector-card h3{margin:0;font-size:15px;font-weight:600;overflow-wrap:anywhere}
 .mv-vector-card .summary{margin:10px 0;color:var(--mv-text);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
@@ -11368,7 +12123,7 @@ var VISION_CSS = `
 .mv-vision-error{font-size:13px;line-height:1.5;color:light-dark(#a52f37,#ffadb4)}
 .mv-vision-actions{display:flex;flex-wrap:wrap;gap:8px}
 .mv-vision-actions .mv-cta{flex:1 1 120px;min-height:38px;font-size:12px}
-.mv-root:has(.mv-vision-screen) :is(.mv-top,.mv-right,.mv-shader,.mv-tour,.mv-scene-details){visibility:hidden;pointer-events:none}
+.mv-root:has(.mv-vision-screen) :is(.mv-top,.mv-right,.mv-shader,.mv-tour,.mv-scene-details,.mv-floating,.mv-toolwin){visibility:hidden;pointer-events:none}
 .mv-root.mv-capturing .mv-vision-screen{visibility:hidden!important}
 `;
 
@@ -11463,7 +12218,7 @@ var CSS = `
 .mv-btn:focus-visible{outline:2px solid var(--mv-accent);outline-offset:1px}
 .mv-sep{width:1px;height:17px;background:var(--mv-line);margin:0 3px}
 .mv-menu{position:relative;display:inline-flex}
-.mv-menu-panel{position:absolute;top:calc(100% + 6px);right:0;min-width:206px;padding:4px;border-radius:11px;z-index:20;display:flex;flex-direction:column;gap:1px}
+.mv-menu-panel{position:absolute;top:calc(100% + 6px);right:0;min-width:206px;padding:4px;border-radius:11px;z-index:26;display:flex;flex-direction:column;gap:1px}
 .mv-menu-item{appearance:none;border:0;background:transparent;color:var(--mv-text);font:inherit;font-size:12px;text-align:left;padding:8px 10px;border-radius:7px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px;white-space:nowrap}
 .mv-menu-item:hover{background:color-mix(in srgb,var(--mv-lift) 80%,transparent)}
 .mv-menu-item.on{color:var(--mv-accent)}
@@ -11477,8 +12232,8 @@ var CSS = `
 .mv-urlbar button:hover{border-color:var(--mv-accent)}
 /* Right-hand floating column: the analysis card (Agent result) and the layer
    card share one stack so a new analysis never overlaps the layers list. */
-.mv-right{position:absolute;top:60px;right:10px;width:min(300px,calc(100% - 20px));max-height:calc(100% - 150px);display:flex;flex-direction:column;gap:10px;z-index:9;pointer-events:none;overflow-y:auto;overflow-x:hidden;scrollbar-width:thin}
-.mv-right>*{pointer-events:auto;box-sizing:border-box;max-width:100%}
+.mv-right{position:absolute;top:60px;right:10px;width:min(300px,calc(100% - 20px));max-height:calc(100% - 150px);display:flex;flex-direction:column;gap:10px;z-index:auto;pointer-events:none;overflow:visible}
+.mv-right>*{pointer-events:auto;box-sizing:border-box;max-width:100%;z-index:9;min-height:0;flex:0 1 auto}
 .mv-card{background:var(--mv-glass);border:.5px solid var(--mv-line);box-shadow:var(--mv-shadow);border-radius:13px}
 /* Workbench resize grips: thin transparent edges, visible only on hover/focus. */
 .mv-resize-handle{position:absolute;z-index:40;touch-action:none;background:transparent;pointer-events:auto}
@@ -11645,19 +12400,27 @@ var CSS = `
 .mv-choice:focus-visible,.mv-layers .mv-cta:focus-visible,.mv-layers .mv-icon-btn:focus-visible{outline:2px solid var(--mv-accent);outline-offset:1px}
 .mv-group .mv-cta{flex:none;font-size:11px;padding:5px 8px}
 /* Collapsible card-within-card box for the long imagery basemap selector. */
-.mv-fold-box{margin-top:8px;border:.5px solid var(--mv-line);border-radius:10px;background:color-mix(in srgb,var(--mv-lift) 38%,transparent);overflow:hidden}
-.mv-fold-box.open{background:color-mix(in srgb,var(--mv-lift) 52%,transparent);border-color:color-mix(in srgb,var(--mv-accent) 22%,var(--mv-line))}
-.mv-fold-box>.mv-group{margin-top:0;border-top:0;padding:8px 10px}
+.mv-fold-box{margin-top:10px;border:1px solid color-mix(in srgb,var(--mv-accent) 26%,var(--mv-line));border-radius:10px;background:color-mix(in srgb,var(--mv-lift) 52%,transparent);overflow:hidden;transition:border-color .15s,background .15s}
+.mv-fold-box:hover{border-color:color-mix(in srgb,var(--mv-accent) 52%,var(--mv-line))}
+.mv-fold-box.open{background:color-mix(in srgb,var(--mv-lift) 68%,transparent);border-color:color-mix(in srgb,var(--mv-accent) 48%,var(--mv-line))}
+.mv-fold-box>.mv-group{margin-top:0;border-top:0;padding:9px 10px}
 .mv-fold-box.open>.mv-group{border-bottom:.5px solid var(--mv-line)}
 .mv-fold-body{display:flex;flex-direction:column;gap:2px;padding:6px 6px 8px}
 .mv-imagery-hint{margin:2px 2px 0;padding:4px 6px 2px;font-size:10.5px;line-height:1.45;opacity:.88}
-/* Foldable group header (the imagery basemap list is long and rarely changed). */
-.mv-group-toggle{appearance:none;width:100%;display:flex;align-items:center;gap:8px;background:transparent;border:0;padding:0;margin:0;font:inherit;color:inherit;cursor:pointer;text-align:left}
-.mv-group-toggle .mv-group-title{flex:none}
-.mv-group-current{min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right;font-size:11px;color:var(--mv-dim);opacity:.85}
-.mv-group-chevron{flex:none;color:var(--mv-dim);font-size:13px;line-height:1;transform:rotate(90deg);transition:transform 160ms cubic-bezier(0.16,1,0.3,1)}
-.mv-group-chevron.open{transform:rotate(-90deg)}
-.mv-group-toggle:hover .mv-group-title,.mv-group-toggle:hover .mv-group-current{color:var(--mv-text)}
+/* Foldable group header (unmistakable disclosure chevron + active basemap chip). */
+.mv-group-toggle{appearance:none;width:100%;display:flex;flex-direction:column;align-items:stretch;gap:6px;background:transparent;border:0;padding:0;margin:0;font:inherit;color:inherit;cursor:pointer;text-align:left}
+.mv-fold-top{display:flex;align-items:center;justify-content:space-between;gap:6px;width:100%}
+.mv-fold-heading{display:inline-flex;align-items:center;gap:5px;min-width:0}
+.mv-group-toggle .mv-group-title{flex:none;color:var(--mv-text);font-weight:600}
+.mv-fold-count{flex:none;font-size:10px;padding:1px 6px;border-radius:999px;background:color-mix(in srgb,var(--mv-line) 55%,transparent);color:var(--mv-dim);white-space:nowrap}
+.mv-fold-state{flex:none;font-size:10.5px;font-weight:500;padding:2px 7px;border-radius:999px;background:color-mix(in srgb,var(--mv-accent) 14%,transparent);color:var(--mv-accent);white-space:nowrap}
+.mv-fold-summary{display:flex;align-items:center;gap:6px;padding:5px 8px;border-radius:7px;background:color-mix(in srgb,var(--mv-bg) 58%,var(--mv-lift));border:.5px solid color-mix(in srgb,var(--mv-line) 75%,transparent);min-width:0}
+.mv-fold-dot{width:6px;height:6px;border-radius:50%;background:var(--mv-accent);flex:none}
+.mv-fold-label{font-size:10.5px;color:var(--mv-dim);flex:none}
+.mv-group-current{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11.5px;font-weight:500;color:var(--mv-text)}
+.mv-group-chevron{flex:none;color:var(--mv-accent);font-size:12px;line-height:1;transform:rotate(0deg);transition:transform 160ms cubic-bezier(0.16,1,0.3,1)}
+.mv-group-chevron.open{transform:rotate(90deg)}
+.mv-group-toggle:hover .mv-fold-state{background:color-mix(in srgb,var(--mv-accent) 22%,transparent)}
 .mv-group-toggle:focus-visible{outline:2px solid var(--mv-accent);outline-offset:2px;border-radius:6px}
 .mv-opacity{width:64px;flex:none;accent-color:var(--mv-accent)}
 .mv-overlay-row{gap:2px}
@@ -11706,7 +12469,7 @@ var CSS = `
 .mv-overlay.dim>.mv-empty>.mv-spinner{position:relative;box-sizing:border-box;flex:0 0 80px;width:80px!important;height:80px!important;min-width:80px;min-height:80px;max-width:80px;max-height:80px;aspect-ratio:1;overflow:hidden;isolation:isolate;border:0;border-radius:50%!important;corner-shape:round!important;clip-path:circle(50%);background:#e2f2fd;box-shadow:none;animation:none}
 .mv-overlay.dim>.mv-empty>.mv-spinner::before,.mv-overlay.dim>.mv-empty>.mv-spinner::after{content:none}
 .mv-loading-globe{display:block;width:80px!important;height:80px!important;border:0;border-radius:50%!important;corner-shape:round!important;clip-path:circle(50%)}
-.mv-modal{position:absolute;inset:0;z-index:30;display:flex;align-items:center;justify-content:center;background:var(--mv-scrim);padding:20px}
+.mv-modal{position:absolute;inset:0;z-index:35;display:flex;align-items:center;justify-content:center;background:var(--mv-scrim);padding:20px}
 .mv-dialog{width:min(740px,94%);max-height:86%;display:flex;flex-direction:column;border-radius:14px;overflow:hidden;background:var(--mv-glass-strong);border:.5px solid var(--mv-line);box-shadow:0 24px 64px var(--mv-shadow)}
 .mv-dialog>header{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 14px;border-bottom:.5px solid var(--mv-line);font-size:13px;font-weight:600}
 .mv-tabs{display:flex;gap:4px;padding:8px 12px 0;border-bottom:.5px solid var(--mv-line)}
@@ -11785,7 +12548,7 @@ var CSS = `
   .mv-root.mv-docked .mv-shader{top:92px;left:12px;width:min(320px,calc(100% - 24px));max-height:calc(100% - 236px)}
 }
 /* Snapshot mode: the picture is meant to be clean, so every overlay is hidden. */
-.mv-root.mv-capturing .mv-top,.mv-root.mv-capturing .mv-urlbar,.mv-root.mv-capturing .mv-right,.mv-root.mv-capturing .mv-shader,.mv-root.mv-capturing .mv-layers,.mv-root.mv-capturing .mv-analysis,.mv-root.mv-capturing .mv-hud,.mv-root.mv-capturing .mv-attr,.mv-root.mv-capturing .mv-credits,.mv-root.mv-capturing .mv-pick,.mv-root.mv-capturing .mv-measure,.mv-root.mv-capturing .mv-toast,.mv-root.mv-capturing .mv-select,.mv-root.mv-capturing .mv-sel-anchor,.mv-root.mv-capturing .mv-sel-hint,.mv-root.mv-capturing .mv-tour,.mv-root.mv-capturing .mv-scene-details,.mv-root.mv-capturing .mv-overlay,.mv-root.mv-capturing .mv-compass,.mv-root.mv-capturing .mv-modal{visibility:hidden!important}
+.mv-root.mv-capturing .mv-top,.mv-root.mv-capturing .mv-urlbar,.mv-root.mv-capturing .mv-right,.mv-root.mv-capturing .mv-shader,.mv-root.mv-capturing .mv-layers,.mv-root.mv-capturing .mv-analysis,.mv-root.mv-capturing .mv-floating,.mv-root.mv-capturing .mv-toolwin,.mv-root.mv-capturing .mv-hud,.mv-root.mv-capturing .mv-attr,.mv-root.mv-capturing .mv-credits,.mv-root.mv-capturing .mv-pick,.mv-root.mv-capturing .mv-measure,.mv-root.mv-capturing .mv-toast,.mv-root.mv-capturing .mv-select,.mv-root.mv-capturing .mv-sel-anchor,.mv-root.mv-capturing .mv-sel-hint,.mv-root.mv-capturing .mv-tour,.mv-root.mv-capturing .mv-scene-details,.mv-root.mv-capturing .mv-overlay,.mv-root.mv-capturing .mv-compass,.mv-root.mv-capturing .mv-modal{visibility:hidden!important}
 .mv-about{display:flex;flex-direction:column;gap:12px;padding:2px 0;font-size:12px}
 .mv-about .intro{margin:0;color:var(--mv-dim);line-height:1.75}
 .mv-about .row{display:flex;gap:12px;align-items:baseline}
@@ -11946,8 +12709,8 @@ var CSS = `
 .mv-tool-entry.on .mv-tool-entry-icon{background:color-mix(in srgb,var(--mv-accent) 18%,transparent);color:var(--mv-accent)}
 .mv-tool-entry-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mv-tool-entry-dot{width:6px;height:6px;border-radius:999px;background:var(--mv-accent);flex:none;box-shadow:0 0 0 2px color-mix(in srgb,var(--mv-accent) 22%,transparent)}
-.mv-toolwin{width:100%;flex:0 1 auto;min-height:0;display:flex;flex-direction:column;border-radius:13px;overflow:hidden;border-top:2px solid color-mix(in srgb,var(--mv-accent) 55%,transparent)}
-.mv-toolwin>header{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px 8px 12px;border-bottom:.5px solid var(--mv-line);flex-shrink:0;font-size:12px;font-weight:600;color:var(--mv-text)}
+.mv-toolwin{position:relative;width:100%;flex:0 1 auto;min-height:0;display:flex;flex-direction:column;border-radius:13px;overflow:hidden;border-top:2px solid color-mix(in srgb,var(--mv-accent) 55%,transparent)}
+.mv-toolwin>header{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:8px 10px 8px 12px;border-bottom:.5px solid var(--mv-line);flex-shrink:0;font-size:12px;font-weight:600;color:var(--mv-text)}
 .mv-toolwin.minimized>header{border-bottom:0}
 .mv-toolwin-title{display:inline-flex;align-items:center;gap:7px;min-width:0}
 .mv-toolwin-badge{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:6px;background:color-mix(in srgb,var(--mv-accent) 14%,transparent);color:var(--mv-accent);flex:none}
@@ -11957,6 +12720,18 @@ var CSS = `
 .mv-toolwin-body .mv-cta{border:.5px solid var(--mv-line);border-radius:8px;font-size:11px;line-height:1.4}
 .mv-toolwin-body .mv-cta[aria-pressed="true"]{border-color:var(--mv-accent);background:color-mix(in srgb,var(--mv-accent) 13%,var(--mv-glass))}
 .mv-toolwin-body .mv-group-title{margin-top:4px}
+.mv-floating.moved{position:absolute;right:auto;bottom:auto;margin:0;box-shadow:0 18px 48px rgba(2,8,20,.32),0 2px 10px rgba(2,8,20,.14)}
+.mv-floating.dragging{opacity:.96;box-shadow:0 24px 60px rgba(2,8,20,.42);transition:none!important;user-select:none;-webkit-user-select:none}
+.mv-floating.dragging *{user-select:none!important;-webkit-user-select:none!important}
+.mv-window-header{cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
+.mv-floating.dragging .mv-window-header,.mv-floating.dragging .mv-drag-handle{cursor:grabbing}
+.mv-window-header :is(.title,.mv-toolwin-title,.mv-tools-title,.mv-tabs){flex:1;min-width:0}
+.mv-drag-handle{appearance:none;display:inline-flex;align-items:center;justify-content:center;width:20px;height:24px;padding:0;margin:0 2px 0 -4px;border:0;border-radius:6px;background:transparent;color:var(--mv-dim);font-size:12px;letter-spacing:-1px;line-height:1;cursor:grab;touch-action:none;flex:none;user-select:none;-webkit-user-select:none}
+.mv-drag-handle:hover,.mv-drag-handle:focus-visible{color:var(--mv-accent);background:color-mix(in srgb,var(--mv-accent) 12%,transparent);outline:none}
+.mv-drag-handle:focus-visible{outline:2px solid var(--mv-accent);outline-offset:1px}
+.mv-sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.mv-tools-hint{font-size:11px;line-height:1.45;color:var(--mv-dim);margin:4px 0 0;padding-top:6px;border-top:.5px solid var(--mv-line)}
+.mv-tools-count{flex:none;font-size:10px;font-weight:500;padding:1px 6px;border-radius:999px;background:color-mix(in srgb,var(--mv-accent) 14%,transparent);color:var(--mv-accent)}
 .mv-profile-opts{display:flex;flex-direction:column;gap:4px;padding:6px 8px;border:.5px solid var(--mv-line);border-radius:8px;background:color-mix(in srgb,var(--mv-bg) 35%,transparent)}
 .mv-profile-opt{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:10.5px;color:var(--mv-dim)}
 .mv-profile-opt span{flex:none}
@@ -12044,8 +12819,8 @@ function revealPanel() {
 }
 
 // src/client/ui/dialogs.js
-var import_react8 = __toESM(require("react"), 1);
-var h6 = import_react8.default.createElement;
+var import_react9 = __toESM(require("react"), 1);
+var h7 = import_react9.default.createElement;
 var SOURCE_TYPES = {
   imagery: ["xyz", "arcgis", "wms"],
   terrain: ["arcgis", "cesium"]
@@ -12065,42 +12840,42 @@ var emptySource = (kind) => ({
 });
 function SourceForm({ kind, source, onPickLocal, onChange, onCancel, t: t2 }) {
   const set = (patch) => onChange({ ...source, ...patch });
-  const field = (label, input) => h6("div", { className: "mv-field" }, h6("label", null, label), input);
+  const field = (label, input) => h7("div", { className: "mv-field" }, h7("label", null, label), input);
   const pickTiles = async () => {
     if (typeof onPickLocal !== "function") return;
     const url = await onPickLocal();
     if (url) set({ type: "xyz", url, maximumLevel: source.maximumLevel ?? 18 });
   };
-  const text = (key, value, placeholder) => h6("input", {
+  const text = (key, value, placeholder) => h7("input", {
     key,
     value: value ?? "",
     placeholder: placeholder ?? "",
     onChange: (event) => set({ [key]: event.target.value })
   });
-  return h6(
+  return h7(
     "div",
     { className: "mv-form" },
-    h6(
+    h7(
       "div",
       { className: "grid" },
       field(t2("settings.field.name"), text("name", source.name)),
       field(
         t2("settings.field.type"),
-        h6(
+        h7(
           "select",
           { value: source.type, onChange: (event) => set({ type: event.target.value }) },
-          SOURCE_TYPES[kind].map((type) => h6("option", { key: type, value: type }, t2(SOURCE_TYPE_KEY[type])))
+          SOURCE_TYPES[kind].map((type) => h7("option", { key: type, value: type }, t2(SOURCE_TYPE_KEY[type])))
         )
       )
     ),
     field(t2("settings.field.url"), text("url", source.url, kind === "imagery" ? "https://…/{z}/{x}/{y}.png" : "https://…")),
     field(t2("settings.field.credit"), text("credit", source.credit)),
-    kind === "imagery" && source.type === "xyz" ? h6(
+    kind === "imagery" && source.type === "xyz" ? h7(
       "div",
       { className: "grid" },
       field(
         t2("settings.field.maxLevel"),
-        h6("input", {
+        h7("input", {
           type: "number",
           min: 0,
           max: 25,
@@ -12110,19 +12885,19 @@ function SourceForm({ kind, source, onPickLocal, onChange, onCancel, t: t2 }) {
       ),
       field(
         t2("settings.field.tilingScheme"),
-        h6(
+        h7(
           "select",
           {
             value: source.tilingScheme ?? "web-mercator",
             onChange: (event) => set({ tilingScheme: event.target.value })
           },
-          h6("option", { value: "web-mercator" }, t2("settings.tiling.webMercator")),
-          h6("option", { value: "geographic" }, t2("settings.tiling.geographic"))
+          h7("option", { value: "web-mercator" }, t2("settings.tiling.webMercator")),
+          h7("option", { value: "geographic" }, t2("settings.tiling.geographic"))
         )
       ),
       field(
         t2("settings.field.subdomains"),
-        h6("input", {
+        h7("input", {
           value: (source.subdomains ?? []).join(","),
           onChange: (event) => set({
             subdomains: event.target.value.split(",").map((item) => item.trim()).filter((item) => item !== "")
@@ -12130,24 +12905,24 @@ function SourceForm({ kind, source, onPickLocal, onChange, onCancel, t: t2 }) {
         })
       )
     ) : null,
-    kind === "imagery" && source.type === "xyz" ? h6(
+    kind === "imagery" && source.type === "xyz" ? h7(
       "div",
       { className: "grid" },
-      h6(
+      h7(
         "div",
         { className: "mv-field check" },
-        h6("input", {
+        h7("input", {
           id: "mv-reverse-y",
           type: "checkbox",
           checked: source.reverseY === true,
           onChange: (event) => set({ reverseY: event.target.checked })
         }),
-        h6("label", { htmlFor: "mv-reverse-y" }, t2("settings.field.tms"))
+        h7("label", { htmlFor: "mv-reverse-y" }, t2("settings.field.tms"))
       ),
-      h6(
+      h7(
         "div",
         { className: "mv-field" },
-        h6(
+        h7(
           "button",
           { type: "button", className: "mv-cta", onClick: pickTiles },
           t2("settings.field.localTiles")
@@ -12155,48 +12930,48 @@ function SourceForm({ kind, source, onPickLocal, onChange, onCancel, t: t2 }) {
       )
     ) : null,
     kind === "imagery" && source.type === "wms" ? field(t2("settings.field.layers"), text("layers", source.layers)) : null,
-    kind === "terrain" ? h6(
+    kind === "terrain" ? h7(
       "div",
       { className: "grid" },
-      h6(
+      h7(
         "div",
         { className: "mv-field check" },
-        h6("input", {
+        h7("input", {
           id: "mv-normals",
           type: "checkbox",
           checked: source.requestVertexNormals === true,
           onChange: (event) => set({ requestVertexNormals: event.target.checked })
         }),
-        h6("label", { htmlFor: "mv-normals" }, t2("settings.field.normals"))
+        h7("label", { htmlFor: "mv-normals" }, t2("settings.field.normals"))
       ),
-      h6(
+      h7(
         "div",
         { className: "mv-field check" },
-        h6("input", {
+        h7("input", {
           id: "mv-water",
           type: "checkbox",
           checked: source.requestWaterMask === true,
           onChange: (event) => set({ requestWaterMask: event.target.checked })
         }),
-        h6("label", { htmlFor: "mv-water" }, t2("settings.field.waterMask"))
+        h7("label", { htmlFor: "mv-water" }, t2("settings.field.waterMask"))
       )
     ) : null,
-    h6(
+    h7(
       "div",
       { style: { display: "flex", justifyContent: "flex-end", gap: "8px" } },
-      h6("button", { type: "button", className: "mv-cta", onClick: onCancel }, t2("btn.cancel"))
+      h7("button", { type: "button", className: "mv-cta", onClick: onCancel }, t2("btn.cancel"))
     )
   );
 }
 function SourcesDialog({ config, defaults, environmentDark, themeMode, onPickLocal, onSave, onClose, messages, meta, bridgeOn, bridgeReload }) {
   const t2 = messages;
-  const [draft, setDraft] = import_react8.default.useState(() => clone(config));
-  const [tab, setTab] = import_react8.default.useState("imagery");
-  const [editing, setEditing] = import_react8.default.useState(null);
-  const field = (label, input) => h6("div", { className: "mv-field" }, h6("label", null, label), input);
-  const [autoOpen, setAutoOpen] = import_react8.default.useState(readAutoOpen);
+  const [draft, setDraft] = import_react9.default.useState(() => clone(config));
+  const [tab, setTab] = import_react9.default.useState("imagery");
+  const [editing, setEditing] = import_react9.default.useState(null);
+  const field = (label, input) => h7("div", { className: "mv-field" }, h7("label", null, label), input);
+  const [autoOpen, setAutoOpen] = import_react9.default.useState(readAutoOpen);
   const activeId = (kind) => kind === "imagery" ? draft.settings.imagery : draft.settings.terrain;
-  import_react8.default.useEffect(() => {
+  import_react9.default.useEffect(() => {
     const onKey = (event) => {
       if (event.key !== "Escape") return;
       event.stopPropagation();
@@ -12247,7 +13022,7 @@ function SourcesDialog({ config, defaults, environmentDark, themeMode, onPickLoc
     ["dark", "theme.dark"]
   ];
   const rowsFor = (kind) => draft[kind].map(
-    (source) => editing?.kind === kind && editing.id === source.id ? h6(SourceForm, {
+    (source) => editing?.kind === kind && editing.id === source.id ? h7(SourceForm, {
       key: source.id,
       kind,
       source,
@@ -12255,10 +13030,10 @@ function SourcesDialog({ config, defaults, environmentDark, themeMode, onPickLoc
       onPickLocal,
       onChange: (next) => updateSource(kind, next),
       onCancel: () => setEditing(null)
-    }) : h6(
+    }) : h7(
       "div",
       { key: source.id, className: "mv-src" },
-      h6("span", {
+      h7("span", {
         className: `radio${activeId(kind) === source.id ? " on" : ""}`,
         role: "radio",
         "aria-checked": activeId(kind) === source.id,
@@ -12268,14 +13043,14 @@ function SourcesDialog({ config, defaults, environmentDark, themeMode, onPickLoc
           if (event.key === "Enter" || event.key === " ") selectSource(kind, source.id);
         }
       }),
-      h6(
+      h7(
         "div",
         { className: "meta" },
-        h6("b", null, source.name),
-        h6("span", null, source.url)
+        h7("b", null, source.name),
+        h7("span", null, source.url)
       ),
-      h6("span", { className: "badge" }, t2(SOURCE_TYPE_KEY[source.type] ?? source.type)),
-      h6(
+      h7("span", { className: "badge" }, t2(SOURCE_TYPE_KEY[source.type] ?? source.type)),
+      h7(
         "button",
         {
           type: "button",
@@ -12285,7 +13060,7 @@ function SourcesDialog({ config, defaults, environmentDark, themeMode, onPickLoc
         },
         "✎"
       ),
-      h6(
+      h7(
         "button",
         {
           type: "button",
@@ -12299,15 +13074,15 @@ function SourcesDialog({ config, defaults, environmentDark, themeMode, onPickLoc
       )
     )
   );
-  const appearance = h6(
+  const appearance = h7(
     "div",
     { style: { display: "flex", flexDirection: "column", gap: "10px" } },
-    h6("p", { className: "mv-note" }, t2("theme.appearanceHint")),
-    h6(
+    h7("p", { className: "mv-note" }, t2("theme.appearanceHint")),
+    h7(
       "div",
       { className: "mv-seg", role: "radiogroup" },
       segments.map(
-        ([value, key]) => h6(
+        ([value, key]) => h7(
           "button",
           {
             key: value,
@@ -12321,17 +13096,17 @@ function SourcesDialog({ config, defaults, environmentDark, themeMode, onPickLoc
         )
       )
     ),
-    h6("p", { className: "mv-note" }, `${t2("theme.auto")} · ${environmentDark ? t2("theme.dark") : t2("theme.light")}`),
-    h6(
+    h7("p", { className: "mv-note" }, `${t2("theme.auto")} · ${environmentDark ? t2("theme.dark") : t2("theme.light")}`),
+    h7(
       "label",
       { className: "mv-toggle" },
-      h6(
+      h7(
         "span",
         { className: "text" },
-        h6("b", null, t2("settings.autoOpenPanel")),
-        h6("span", null, t2("settings.autoOpenPanelHint"))
+        h7("b", null, t2("settings.autoOpenPanel")),
+        h7("span", null, t2("settings.autoOpenPanelHint"))
       ),
-      h6("input", {
+      h7("input", {
         type: "checkbox",
         checked: autoOpen,
         onChange: (event) => {
@@ -12340,16 +13115,16 @@ function SourcesDialog({ config, defaults, environmentDark, themeMode, onPickLoc
         }
       })
     ),
-    h6(
+    h7(
       "label",
       { className: "mv-toggle" },
-      h6(
+      h7(
         "span",
         { className: "text" },
-        h6("b", null, t2("settings.screenshotHud")),
-        h6("span", null, t2("settings.screenshotHudHint"))
+        h7("b", null, t2("settings.screenshotHud")),
+        h7("span", null, t2("settings.screenshotHudHint"))
       ),
-      h6("input", {
+      h7("input", {
         type: "checkbox",
         checked: draft.settings.screenshotHud === true,
         onChange: (event) => setDraft((current) => ({
@@ -12360,7 +13135,7 @@ function SourcesDialog({ config, defaults, environmentDark, themeMode, onPickLoc
     ),
     field(
       t2("settings.quality"),
-      h6(
+      h7(
         "select",
         {
           value: draft.settings.quality === "high" ? "high" : "balanced",
@@ -12369,21 +13144,21 @@ function SourcesDialog({ config, defaults, environmentDark, themeMode, onPickLoc
             settings: { ...current.settings, quality: event.target.value }
           }))
         },
-        h6("option", { value: "balanced" }, t2("settings.qualityBalanced")),
-        h6("option", { value: "high" }, t2("settings.qualityHigh"))
+        h7("option", { value: "balanced" }, t2("settings.qualityBalanced")),
+        h7("option", { value: "high" }, t2("settings.qualityHigh"))
       )
     ),
-    h6("p", { className: "mv-note" }, t2("settings.qualityHint")),
-    h6(
+    h7("p", { className: "mv-note" }, t2("settings.qualityHint")),
+    h7(
       "label",
       { className: "mv-toggle" },
-      h6(
+      h7(
         "span",
         { className: "text" },
-        h6("b", null, t2("settings.terrainDepthTest")),
-        h6("span", null, t2("settings.terrainDepthTestHint"))
+        h7("b", null, t2("settings.terrainDepthTest")),
+        h7("span", null, t2("settings.terrainDepthTestHint"))
       ),
-      h6("input", {
+      h7("input", {
         type: "checkbox",
         // Missing/false = off: underground content stays visible, matching the
         // Cesium default and the documented behaviour before v1.5.
@@ -12394,16 +13169,16 @@ function SourcesDialog({ config, defaults, environmentDark, themeMode, onPickLoc
         }))
       })
     ),
-    h6(
+    h7(
       "label",
       { className: "mv-toggle" },
-      h6(
+      h7(
         "span",
         { className: "text" },
-        h6("b", null, t2("settings.showLayers")),
-        h6("span", null, t2("settings.showLayersHint"))
+        h7("b", null, t2("settings.showLayers")),
+        h7("span", null, t2("settings.showLayersHint"))
       ),
-      h6("input", {
+      h7("input", {
         type: "checkbox",
         checked: draft.settings.showLayers !== false,
         onChange: (event) => setDraft((current) => ({
@@ -12412,16 +13187,16 @@ function SourcesDialog({ config, defaults, environmentDark, themeMode, onPickLoc
         }))
       })
     ),
-    h6(
+    h7(
       "label",
       { className: "mv-toggle" },
-      h6(
+      h7(
         "span",
         { className: "text" },
-        h6("b", null, t2("settings.showHud")),
-        h6("span", null, t2("settings.showHudHint"))
+        h7("b", null, t2("settings.showHud")),
+        h7("span", null, t2("settings.showHudHint"))
       ),
-      h6("input", {
+      h7("input", {
         type: "checkbox",
         checked: draft.settings.showHud !== false,
         onChange: (event) => setDraft((current) => ({
@@ -12430,16 +13205,16 @@ function SourcesDialog({ config, defaults, environmentDark, themeMode, onPickLoc
         }))
       })
     ),
-    h6(
+    h7(
       "label",
       { className: "mv-toggle" },
-      h6(
+      h7(
         "span",
         { className: "text" },
-        h6("b", null, t2("settings.hudDetailed")),
-        h6("span", null, t2("settings.hudDetailedHint"))
+        h7("b", null, t2("settings.hudDetailed")),
+        h7("span", null, t2("settings.hudDetailedHint"))
       ),
-      h6("input", {
+      h7("input", {
         type: "checkbox",
         // Off by default: the instrument keeps five numbers unless asked.
         checked: draft.settings.hudDetailed === true,
@@ -12453,69 +13228,69 @@ function SourcesDialog({ config, defaults, environmentDark, themeMode, onPickLoc
   const homepage = meta?.homepage ?? FALLBACK_ABOUT.homepage;
   const issuesUrl = meta?.issues ?? `${String(homepage).replace(/\/+$/, "")}/issues`;
   const teamUrl = meta?.team?.url ?? FALLBACK_ABOUT.teamUrl;
-  const about = h6(
+  const about = h7(
     "div",
     { className: "mv-about" },
-    h6("p", { className: "intro" }, t2("about.intro")),
-    h6(
+    h7("p", { className: "intro" }, t2("about.intro")),
+    h7(
       "div",
       { className: "row" },
-      h6("span", { className: "key" }, t2("about.version")),
-      h6("span", null, meta?.version ?? FALLBACK_ABOUT.version)
+      h7("span", { className: "key" }, t2("about.version")),
+      h7("span", null, meta?.version ?? FALLBACK_ABOUT.version)
     ),
-    h6(
+    h7(
       "div",
       { className: "row" },
-      h6("span", { className: "key" }, t2("about.homepage")),
-      h6("a", { href: homepage, target: "_blank", rel: "noopener noreferrer" }, homepage)
+      h7("span", { className: "key" }, t2("about.homepage")),
+      h7("a", { href: homepage, target: "_blank", rel: "noopener noreferrer" }, homepage)
     ),
-    h6(
+    h7(
       "div",
       { className: "row" },
-      h6("span", { className: "key" }, t2("about.issues")),
-      h6("a", { href: issuesUrl, target: "_blank", rel: "noopener noreferrer" }, "GitHub Issues")
+      h7("span", { className: "key" }, t2("about.issues")),
+      h7("a", { href: issuesUrl, target: "_blank", rel: "noopener noreferrer" }, "GitHub Issues")
     ),
-    h6(
+    h7(
       "div",
       { className: "row" },
-      h6("span", { className: "key" }, t2("about.team")),
-      h6(
+      h7("span", { className: "key" }, t2("about.team")),
+      h7(
         "div",
         { className: "team" },
-        h6("a", { href: teamUrl, target: "_blank", rel: "noopener noreferrer" }, meta?.team?.name ?? t2("about.teamName")),
-        h6("small", null, teamUrl)
+        h7("a", { href: teamUrl, target: "_blank", rel: "noopener noreferrer" }, meta?.team?.name ?? t2("about.teamName")),
+        h7("small", null, teamUrl)
       )
     ),
-    h6(
+    h7(
       "div",
       { className: "row" },
-      h6("span", { className: "key" }, t2("about.agent")),
-      h6("span", null, bridgeReload ? t2("about.agent.stale") : bridgeOn ? t2("about.agent.on") : t2("about.agent.off"))
+      h7("span", { className: "key" }, t2("about.agent")),
+      h7("span", null, bridgeReload ? t2("about.agent.stale") : bridgeOn ? t2("about.agent.on") : t2("about.agent.off"))
     ),
-    h6(
+    h7(
       "div",
       { className: "row" },
-      h6("span", { className: "key" }, t2("about.licenseLabel")),
-      h6("span", null, t2("about.license"))
+      h7("span", { className: "key" }, t2("about.licenseLabel")),
+      h7("span", null, t2("about.license"))
     )
   );
-  return h6(
+  return h7(
     "div",
     { className: "mv-modal", onPointerDown: (event) => event.target === event.currentTarget && onClose() },
-    h6(
+    h7(
       "div",
       { className: "mv-dialog", role: "dialog", "aria-modal": true },
-      h6(
+      h7(
         "header",
         null,
-        h6("b", null, t2("settings.title")),
-        h6("button", { type: "button", className: "mv-icon-btn", onClick: onClose, title: t2("btn.close") }, "✕")
+        h7("b", null, t2("settings.title")),
+        h7("button", { type: "button", className: "mv-icon-btn", onClick: onClose, title: t2("btn.close") }, "✕")
       ),
-      h6(
+      h7(
         "div",
         { className: "mv-tabs" },
         [["imagery", "settings.tab.imagery"], ["terrain", "settings.tab.terrain"], ["appearance", "settings.tab.appearance"], ["about", "settings.tab.about"]].map(
-          ([value, key]) => h6(
+          ([value, key]) => h7(
             "button",
             {
               key: value,
@@ -12527,35 +13302,35 @@ function SourcesDialog({ config, defaults, environmentDark, themeMode, onPickLoc
           )
         )
       ),
-      h6(
+      h7(
         "div",
         { className: "body" },
-        tab === "about" ? about : tab === "appearance" ? appearance : h6(
-          import_react8.default.Fragment,
+        tab === "about" ? about : tab === "appearance" ? appearance : h7(
+          import_react9.default.Fragment,
           null,
-          h6("p", { className: "mv-note" }, t2(tab === "imagery" ? "settings.imageryHint" : "settings.terrainHint")),
+          h7("p", { className: "mv-note" }, t2(tab === "imagery" ? "settings.imageryHint" : "settings.terrainHint")),
           rowsFor(tab),
-          draft[tab].length === 0 && editing === null ? h6("p", { className: "mv-note" }, t2("settings.empty")) : null,
-          h6(
+          draft[tab].length === 0 && editing === null ? h7("p", { className: "mv-note" }, t2("settings.empty")) : null,
+          h7(
             "div",
             { style: { display: "flex", justifyContent: "flex-start" } },
-            h6("button", { type: "button", className: "mv-cta", onClick: () => addSource(tab) }, `+ ${t2("btn.add")}`)
+            h7("button", { type: "button", className: "mv-cta", onClick: () => addSource(tab) }, `+ ${t2("btn.add")}`)
           )
         )
       ),
-      h6(
+      h7(
         "div",
         { className: "footer" },
-        h6(
+        h7(
           "div",
           { style: { display: "flex", alignItems: "center", gap: "10px", minWidth: 0 } },
-          h6("button", { type: "button", className: "mv-cta", onClick: restore }, t2("btn.restore"))
+          h7("button", { type: "button", className: "mv-cta", onClick: restore }, t2("btn.restore"))
         ),
-        h6(
+        h7(
           "div",
           { className: "right" },
-          h6("button", { type: "button", className: "mv-cta", onClick: onClose }, t2("btn.cancel")),
-          h6("button", { type: "button", className: "mv-cta primary", onClick: save }, t2("btn.save"))
+          h7("button", { type: "button", className: "mv-cta", onClick: onClose }, t2("btn.cancel")),
+          h7("button", { type: "button", className: "mv-cta primary", onClick: save }, t2("btn.save"))
         )
       )
     )
@@ -12577,84 +13352,84 @@ function HealthDialog({ state, messages: t2, onClose, onCopy }) {
   ] : [];
   const runtime = report?.runtime ?? null;
   const reportPath = state?.reportPath ?? report?.reportPath ?? "";
-  const body = state?.loading ? h6(
+  const body = state?.loading ? h7(
     "div",
     { className: "mv-health-loading" },
-    h6("div", { className: "mv-spinner" }),
-    h6("p", { className: "mv-note" }, t2("health.loading"))
-  ) : state?.error ? h6("p", { className: "mv-note" }, t2("health.failed", { message: state.error })) : report ? h6(
+    h7("div", { className: "mv-spinner" }),
+    h7("p", { className: "mv-note" }, t2("health.loading"))
+  ) : state?.error ? h7("p", { className: "mv-note" }, t2("health.failed", { message: state.error })) : report ? h7(
     "div",
     { className: "mv-health-body" },
-    h6(
+    h7(
       "div",
       { className: "mv-health-rows" },
       rows.map(
-        ([key, value]) => h6(
+        ([key, value]) => h7(
           "div",
           { className: "row", key },
-          h6("span", { className: "key" }, t2(key)),
-          h6("span", { className: "value" }, value)
+          h7("span", { className: "key" }, t2(key)),
+          h7("span", { className: "value" }, value)
         )
       )
     ),
-    h6(
+    h7(
       "div",
       { className: "mv-health-section" },
-      h6("b", null, `${t2("health.issues")} · ${issues.length}`),
-      issues.length > 0 ? h6(
+      h7("b", null, `${t2("health.issues")} · ${issues.length}`),
+      issues.length > 0 ? h7(
         "ul",
         { className: "issues" },
         issues.map(
-          (issue, index) => h6(
+          (issue, index) => h7(
             "li",
             { key: `${issue.code}-${index}`, className: `lvl-${issue.level}` },
-            h6("span", { className: "badge" }, t2(`health.level.${issue.level}`)),
-            h6("code", null, issue.code),
-            h6("span", { className: "msg" }, issue.message)
+            h7("span", { className: "badge" }, t2(`health.level.${issue.level}`)),
+            h7("code", null, issue.code),
+            h7("span", { className: "msg" }, issue.message)
           )
         )
-      ) : h6("p", { className: "mv-note" }, t2("health.noIssues"))
+      ) : h7("p", { className: "mv-note" }, t2("health.noIssues"))
     ),
-    runtime ? h6(
+    runtime ? h7(
       "div",
       { className: "mv-health-section" },
-      h6("b", null, t2("health.runtime")),
-      h6(
+      h7("b", null, t2("health.runtime")),
+      h7(
         "div",
         { className: "mv-health-runtime" },
         `${t2("hud.tiles")} ${runtime.tiles ?? 0} · ${t2("hud.pending")} ${runtime.pending ?? 0} · ${t2("hud.triangles")} ${runtime.triangles ?? 0}`
       )
     ) : null,
-    h6(
+    h7(
       "div",
       { className: "mv-health-path" },
-      h6("span", { className: "key" }, t2("health.reportPath")),
-      h6("code", { title: reportPath }, reportPath || t2("health.unknown")),
-      reportPath ? h6("button", { type: "button", className: "mv-cta", onClick: onCopy }, t2("health.copy")) : null
+      h7("span", { className: "key" }, t2("health.reportPath")),
+      h7("code", { title: reportPath }, reportPath || t2("health.unknown")),
+      reportPath ? h7("button", { type: "button", className: "mv-cta", onClick: onCopy }, t2("health.copy")) : null
     )
   ) : null;
-  return h6(
+  return h7(
     "div",
     { className: "mv-modal", onPointerDown: (event) => event.target === event.currentTarget && onClose() },
-    h6(
+    h7(
       "div",
       { className: "mv-dialog mv-health", role: "dialog", "aria-modal": true },
-      h6(
+      h7(
         "header",
         null,
-        h6("b", null, state?.layer ? `${t2("health.title")} · ${state.layer}` : t2("health.title")),
-        h6("button", { type: "button", className: "mv-icon-btn", onClick: onClose, title: t2("btn.close") }, "✕")
+        h7("b", null, state?.layer ? `${t2("health.title")} · ${state.layer}` : t2("health.title")),
+        h7("button", { type: "button", className: "mv-icon-btn", onClick: onClose, title: t2("btn.close") }, "✕")
       ),
-      h6("div", { className: "body" }, body)
+      h7("div", { className: "body" }, body)
     )
   );
 }
 function PathAccessDialog({ request, busy, t: t2, onAllow, onDeny }) {
-  const denyRef = import_react8.default.useRef(null);
-  import_react8.default.useEffect(() => {
+  const denyRef = import_react9.default.useRef(null);
+  import_react9.default.useEffect(() => {
     denyRef.current?.focus?.();
   }, []);
-  import_react8.default.useEffect(() => {
+  import_react9.default.useEffect(() => {
     const onKey = (event) => {
       if (event.key !== "Escape") return;
       event.preventDefault();
@@ -12664,41 +13439,41 @@ function PathAccessDialog({ request, busy, t: t2, onAllow, onDeny }) {
     return () => document.removeEventListener("keydown", onKey);
   }, [onDeny]);
   const action = request.request === "load" ? t2("access.request.load") : request.request === "inspect" ? t2("access.request.inspect") : t2("access.request.generic");
-  const row = (key, value) => value ? h6("div", { key, className: "row" }, h6("span", { className: "key" }, t2(key)), h6("code", { title: value }, value)) : null;
-  return h6(
+  const row = (key, value) => value ? h7("div", { key, className: "row" }, h7("span", { className: "key" }, t2(key)), h7("code", { title: value }, value)) : null;
+  return h7(
     "div",
     { className: "mv-modal", onPointerDown: (event) => event.target === event.currentTarget && !busy && onDeny() },
-    h6(
+    h7(
       "div",
       { className: "mv-dialog mv-access", role: "dialog", "aria-modal": true, "aria-labelledby": "mv-access-title" },
-      h6(
+      h7(
         "header",
         null,
-        h6("b", { id: "mv-access-title" }, `${t2("access.title")} · ${action}`),
-        h6("button", { type: "button", className: "mv-icon-btn", onClick: onDeny, disabled: busy, title: t2("btn.close") }, "✕")
+        h7("b", { id: "mv-access-title" }, `${t2("access.title")} · ${action}`),
+        h7("button", { type: "button", className: "mv-icon-btn", onClick: onDeny, disabled: busy, title: t2("btn.close") }, "✕")
       ),
-      h6(
+      h7(
         "div",
         { className: "body" },
-        h6("p", { className: "mv-note" }, t2("access.body")),
-        h6(
+        h7("p", { className: "mv-note" }, t2("access.body")),
+        h7(
           "div",
           { className: "mv-access-path" },
           row("access.path", request.path),
           row("access.dir", request.directory),
           request.resolved ? row("access.target", request.target) : null
         ),
-        request.kind === "missing" ? h6("p", { className: "mv-note" }, t2("access.missing")) : null,
-        request.resolved ? h6("p", { className: "mv-note" }, t2("access.resolved")) : null
+        request.kind === "missing" ? h7("p", { className: "mv-note" }, t2("access.missing")) : null,
+        request.resolved ? h7("p", { className: "mv-note" }, t2("access.resolved")) : null
       ),
-      h6(
+      h7(
         "div",
         { className: "footer" },
-        h6(
+        h7(
           "div",
           { className: "right" },
-          h6("button", { ref: denyRef, type: "button", className: "mv-cta", onClick: onDeny, disabled: busy }, t2("access.cancel")),
-          h6(
+          h7("button", { ref: denyRef, type: "button", className: "mv-cta", onClick: onDeny, disabled: busy }, t2("access.cancel")),
+          h7(
             "button",
             { type: "button", className: "mv-cta primary", onClick: onAllow, disabled: busy },
             busy ? t2("access.allowing") : t2("access.allow")
@@ -12711,26 +13486,26 @@ function PathAccessDialog({ request, busy, t: t2, onAllow, onDeny }) {
 function ScanDialog({ scan, t: t2, onSelect, onClose }) {
   if (!scan) return null;
   const items = Array.isArray(scan.items) ? scan.items : [];
-  return h6(
+  return h7(
     "div",
     { className: "mv-modal", onPointerDown: (event) => event.target === event.currentTarget && onClose() },
-    h6(
+    h7(
       "div",
       { className: "mv-dialog", role: "dialog", "aria-modal": true },
-      h6(
+      h7(
         "header",
         null,
-        h6("b", null, t2("layers.title")),
-        h6("span", { className: "path", style: { fontWeight: 400, color: "var(--mv-dim)" } }, scan.dir),
-        h6("button", { type: "button", className: "mv-icon-btn", onClick: onClose, title: t2("btn.close") }, "✕")
+        h7("b", null, t2("layers.title")),
+        h7("span", { className: "path", style: { fontWeight: 400, color: "var(--mv-dim)" } }, scan.dir),
+        h7("button", { type: "button", className: "mv-icon-btn", onClick: onClose, title: t2("btn.close") }, "✕")
       ),
-      h6(
+      h7(
         "div",
         { className: "body" },
-        h6("p", { className: "mv-note" }, t2("scan.foundCount", { n: items.length })),
-        scan.truncated ? h6("p", { className: "mv-note" }, t2("scan.truncatedHint", { limit: scan.limit ?? 200 })) : null,
+        h7("p", { className: "mv-note" }, t2("scan.foundCount", { n: items.length })),
+        scan.truncated ? h7("p", { className: "mv-note" }, t2("scan.truncatedHint", { limit: scan.limit ?? 200 })) : null,
         items.map(
-          (item) => h6(
+          (item) => h7(
             "button",
             {
               key: item.url,
@@ -12739,7 +13514,7 @@ function ScanDialog({ scan, t: t2, onSelect, onClose }) {
               style: { textAlign: "left", display: "flex", flexDirection: "column", gap: "2px" },
               onClick: () => onSelect(item)
             },
-            h6("span", null, item.name)
+            h7("span", null, item.name)
           )
         )
       )
@@ -12748,13 +13523,13 @@ function ScanDialog({ scan, t: t2, onSelect, onClose }) {
 }
 
 // src/client/ui/url-bar.js
-var import_react9 = __toESM(require("react"), 1);
-var h7 = import_react9.default.createElement;
+var import_react10 = __toESM(require("react"), 1);
+var h8 = import_react10.default.createElement;
 function UrlBar({ value, placeholder, submitLabel, onChange, onSubmit, onClose }) {
-  return h7(
+  return h8(
     "div",
     { className: "mv-urlbar mv-glass" },
-    h7("input", {
+    h8("input", {
       autoFocus: true,
       value,
       placeholder,
@@ -12764,12 +13539,12 @@ function UrlBar({ value, placeholder, submitLabel, onChange, onSubmit, onClose }
         if (event.key === "Escape") onClose();
       }
     }),
-    h7("button", { type: "button", onClick: onSubmit }, submitLabel)
+    h8("button", { type: "button", onClick: onSubmit }, submitLabel)
   );
 }
 
 // src/client/ui/compass.js
-var import_react10 = __toESM(require("react"), 1);
+var import_react11 = __toESM(require("react"), 1);
 
 // src/client/scene/heading.js
 function headingDegrees(heading) {
@@ -12779,7 +13554,7 @@ function headingDegrees(heading) {
 }
 
 // src/client/ui/compass.js
-var h8 = import_react10.default.createElement;
+var h9 = import_react11.default.createElement;
 var TICKS = Array.from({ length: 24 }, (_, index) => {
   const angle = index * 15 * Math.PI / 180;
   const major = index % 6 === 0;
@@ -12795,9 +13570,9 @@ var TICKS = Array.from({ length: 24 }, (_, index) => {
   };
 });
 function Compass({ getViewer, t: t2 }) {
-  const needleRef = import_react10.default.useRef(null);
-  const viewerRef = import_react10.default.useRef(null);
-  import_react10.default.useEffect(() => {
+  const needleRef = import_react11.default.useRef(null);
+  const viewerRef = import_react11.default.useRef(null);
+  import_react11.default.useEffect(() => {
     const viewer = getViewer?.();
     viewerRef.current = viewer;
     if (!viewer) return void 0;
@@ -12826,7 +13601,7 @@ function Compass({ getViewer, t: t2 }) {
       duration: 0.5
     });
   };
-  return h8(
+  return h9(
     "button",
     {
       type: "button",
@@ -12835,13 +13610,13 @@ function Compass({ getViewer, t: t2 }) {
       "aria-label": t2("compass.reset"),
       onClick: resetNorth
     },
-    h8(
+    h9(
       "svg",
       { viewBox: "0 0 56 56", width: 56, height: 56, "aria-hidden": true },
-      h8("circle", { cx: 28, cy: 28, r: 26, fill: "none", stroke: "currentColor", strokeWidth: 0.8, opacity: 0.4 }),
-      h8("circle", { cx: 28, cy: 28, r: 20.8, fill: "none", stroke: "currentColor", strokeWidth: 0.55, opacity: 0.28 }),
+      h9("circle", { cx: 28, cy: 28, r: 26, fill: "none", stroke: "currentColor", strokeWidth: 0.8, opacity: 0.4 }),
+      h9("circle", { cx: 28, cy: 28, r: 20.8, fill: "none", stroke: "currentColor", strokeWidth: 0.55, opacity: 0.28 }),
       ...TICKS.map(
-        (tick) => h8("line", {
+        (tick) => h9("line", {
           key: tick.key,
           x1: tick.x1,
           y1: tick.y1,
@@ -12852,27 +13627,27 @@ function Compass({ getViewer, t: t2 }) {
           opacity: tick.opacity
         })
       ),
-      h8("text", { x: 28, y: 10.6, textAnchor: "middle", fontSize: 7, fontWeight: 700, fill: "var(--mv-accent)" }, "N"),
-      h8("text", { x: 46.8, y: 30.4, textAnchor: "middle", fontSize: 6, fontWeight: 600, fill: "currentColor", opacity: 0.66 }, "E"),
-      h8("text", { x: 28, y: 49.8, textAnchor: "middle", fontSize: 6, fontWeight: 600, fill: "currentColor", opacity: 0.66 }, "S"),
-      h8("text", { x: 9.2, y: 30.4, textAnchor: "middle", fontSize: 6, fontWeight: 600, fill: "currentColor", opacity: 0.66 }, "W"),
-      h8(
+      h9("text", { x: 28, y: 10.6, textAnchor: "middle", fontSize: 7, fontWeight: 700, fill: "var(--mv-accent)" }, "N"),
+      h9("text", { x: 46.8, y: 30.4, textAnchor: "middle", fontSize: 6, fontWeight: 600, fill: "currentColor", opacity: 0.66 }, "E"),
+      h9("text", { x: 28, y: 49.8, textAnchor: "middle", fontSize: 6, fontWeight: 600, fill: "currentColor", opacity: 0.66 }, "S"),
+      h9("text", { x: 9.2, y: 30.4, textAnchor: "middle", fontSize: 6, fontWeight: 600, fill: "currentColor", opacity: 0.66 }, "W"),
+      h9(
         "g",
         { ref: needleRef, className: "mv-compass-rose" },
-        h8("path", { d: "M28 13 32.2 28 28 26.2 23.8 28Z", fill: "#e5484d" }),
-        h8("path", { d: "M28 43 23.8 28 28 29.8 32.2 28Z", fill: "currentColor", opacity: 0.52 }),
-        h8("circle", { cx: 28, cy: 28, r: 2.1, fill: "var(--mv-glass-strong, #fff)", stroke: "currentColor", strokeWidth: 0.6, opacity: 0.95 })
+        h9("path", { d: "M28 13 32.2 28 28 26.2 23.8 28Z", fill: "#e5484d" }),
+        h9("path", { d: "M28 43 23.8 28 28 29.8 32.2 28Z", fill: "currentColor", opacity: 0.52 }),
+        h9("circle", { cx: 28, cy: 28, r: 2.1, fill: "var(--mv-glass-strong, #fff)", stroke: "currentColor", strokeWidth: 0.6, opacity: 0.95 })
       )
     )
   );
 }
 
 // src/client/ui/hud.js
-var import_react11 = __toESM(require("react"), 1);
-var h9 = import_react11.default.createElement;
+var import_react12 = __toESM(require("react"), 1);
+var h10 = import_react12.default.createElement;
 function StatusHud({ fps, stats, viewerRef, cesiumRef, labels, readoutRef, detailed = false }) {
-  const cursorRef = import_react11.default.useRef(null);
-  import_react11.default.useEffect(() => {
+  const cursorRef = import_react12.default.useRef(null);
+  import_react12.default.useEffect(() => {
     const viewer = viewerRef.current;
     const Cesium = cesiumRef.current;
     if (!viewer || !Cesium) return void 0;
@@ -12951,41 +13726,53 @@ function StatusHud({ fps, stats, viewerRef, cesiumRef, labels, readoutRef, detai
       if (readoutRef) readoutRef.current = null;
     };
   }, []);
-  return h9(
+  return h10(
     "div",
     { className: "mv-hud mv-glass" },
-    h9(
+    h10(
       "div",
       { className: "row mv-hud-primary" },
       // fps is null while the scene is idle (no render pass for 2 s); a dash is
       // honest, a 0 would suggest the scene renders nothing while idling.
-      h9("span", { className: "mv-hud-fps", title: t("hud.fpsTitle") }, "FPS ", h9("b", null, fps === null ? "—" : fps)),
-      h9("span", { className: "mv-hud-cursor" }, `${labels.pointer} `, h9("b", { ref: cursorRef }, t("hud.empty"))),
-      h9("span", { className: "mv-hud-camera" }, `${labels.camera} `, h9("b", null, stats.height)),
-      detailed ? h9("span", { className: "mv-hud-heading" }, `${labels.heading} `, h9("b", null, `${stats.heading} / ${stats.pitch}`)) : null
+      h10("span", { className: "mv-hud-fps", title: t("hud.fpsTitle") }, "FPS ", h10("b", null, fps === null ? "—" : fps)),
+      h10("span", { className: "mv-hud-cursor" }, `${labels.pointer} `, h10("b", { ref: cursorRef }, t("hud.empty"))),
+      h10("span", { className: "mv-hud-camera" }, `${labels.camera} `, h10("b", null, stats.height)),
+      detailed ? h10("span", { className: "mv-hud-heading" }, `${labels.heading} `, h10("b", null, `${stats.heading} / ${stats.pitch}`)) : null
     ),
     detailed ? (stats.layers ?? []).map(
-      (row) => h9(
+      (row) => h10(
         "div",
         { key: row.id, className: "row mv-hud-layer" },
-        h9("b", null, row.name),
-        h9("span", null, `${labels.tiles} `, h9("b", null, formatCount(row.tiles))),
-        h9("span", null, `${labels.pending} `, h9("b", null, formatCount(row.pending))),
-        h9("span", null, `${labels.triangles} `, h9("b", null, formatCount(row.triangles))),
-        h9("span", null, `${labels.cache} `, h9("b", null, formatBytes(row.memory)))
+        h10("b", null, row.name),
+        h10("span", null, `${labels.tiles} `, h10("b", null, formatCount(row.tiles))),
+        h10("span", null, `${labels.pending} `, h10("b", null, formatCount(row.pending))),
+        h10("span", null, `${labels.triangles} `, h10("b", null, formatCount(row.triangles))),
+        h10("span", null, `${labels.cache} `, h10("b", null, formatBytes(row.memory)))
       )
     ) : null
   );
 }
 
 // src/client/ui/toolbar-quick.js
-var import_react12 = __toESM(require("react"), 1);
-var h10 = import_react12.default.createElement;
-function ToolbarQuick({ t: t2, showLayers, showTools, onToggleLayers, onToggleTools, button }) {
-  return h10(
-    import_react12.default.Fragment,
+var import_react13 = __toESM(require("react"), 1);
+var h11 = import_react13.default.createElement;
+function ToolbarQuick({
+  t: t2,
+  showSelect = false,
+  onToggleSelect,
+  showLayers,
+  showTools,
+  openToolCount = 0,
+  onToggleLayers,
+  onToggleTools,
+  button
+}) {
+  const toolsLabel = openToolCount > 0 && !showTools ? `${t2("btn.tools")} (${openToolCount})` : t2("btn.tools");
+  return h11(
+    import_react13.default.Fragment,
     null,
-    button(t2("btn.tools"), onToggleTools, showTools, void 0, showTools ? t2("btn.toolsHide") : t2("btn.toolsShow")),
+    typeof onToggleSelect === "function" ? button(t2("btn.select"), onToggleSelect, showSelect, void 0, showSelect ? t2("btn.selectHide") : t2("btn.selectShow")) : null,
+    button(toolsLabel, onToggleTools, showTools, void 0, showTools ? t2("btn.toolsHide") : t2("btn.toolsShow")),
     button(
       t2("btn.layers"),
       onToggleLayers,
@@ -12999,30 +13786,30 @@ function ToolbarQuick({ t: t2, showLayers, showTools, onToggleLayers, onToggleTo
 }
 
 // src/client/ui/toolbar-menus.js
-var import_react14 = __toESM(require("react"), 1);
+var import_react15 = __toESM(require("react"), 1);
 
 // src/client/ui/menu-item.js
-var import_react13 = __toESM(require("react"), 1);
-var h11 = import_react13.default.createElement;
+var import_react14 = __toESM(require("react"), 1);
+var h12 = import_react14.default.createElement;
 function MenuItem({ onClick, children, active, title }) {
-  return h11(
+  return h12(
     "button",
     { type: "button", className: `mv-menu-item${active ? " on" : ""}`, onClick, title },
     children,
-    active ? h11("span", { className: "check", "aria-hidden": true }, "✓") : null
+    active ? h12("span", { className: "check", "aria-hidden": true }, "✓") : null
   );
 }
 
 // src/client/ui/toolbar-menus.js
-var h12 = import_react14.default.createElement;
+var h13 = import_react15.default.createElement;
 function ToolbarMenus({ t: t2, themeMode, resolvedDark, openMenu, setOpenMenu, setTheme, setSettingsOpen }) {
-  return h12(
-    import_react14.default.Fragment,
+  return h13(
+    import_react15.default.Fragment,
     null,
-    h12(
+    h13(
       "div",
       { key: "appearance", className: "mv-menu" },
-      h12(
+      h13(
         "button",
         {
           type: "button",
@@ -13031,9 +13818,9 @@ function ToolbarMenus({ t: t2, themeMode, resolvedDark, openMenu, setOpenMenu, s
           "aria-haspopup": "menu",
           onClick: () => setOpenMenu(openMenu === "appearance" ? null : "appearance")
         },
-        h12(ThemeIcon, { mode: resolvedDark ? "dark" : "light" })
+        h13(ThemeIcon, { mode: resolvedDark ? "dark" : "light" })
       ),
-      openMenu === "appearance" ? h12(
+      openMenu === "appearance" ? h13(
         "div",
         { className: "mv-menu-panel mv-glass" },
         [
@@ -13041,7 +13828,7 @@ function ToolbarMenus({ t: t2, themeMode, resolvedDark, openMenu, setOpenMenu, s
           ["light", "theme.light"],
           ["dark", "theme.dark"]
         ].map(
-          ([mode, label]) => h12(
+          ([mode, label]) => h13(
             MenuItem,
             {
               key: mode,
@@ -13053,7 +13840,7 @@ function ToolbarMenus({ t: t2, themeMode, resolvedDark, openMenu, setOpenMenu, s
         )
       ) : null
     ),
-    h12(
+    h13(
       "button",
       {
         key: "settings",
@@ -13062,14 +13849,14 @@ function ToolbarMenus({ t: t2, themeMode, resolvedDark, openMenu, setOpenMenu, s
         title: t2("btn.settings"),
         onClick: () => setSettingsOpen(true)
       },
-      h12(
+      h13(
         "svg",
         { viewBox: "0 0 24 24", width: 16, height: 16, "aria-hidden": true, style: { display: "block" } },
-        h12(
+        h13(
           "g",
           { stroke: "currentColor", strokeWidth: 1.7, fill: "none", strokeLinecap: "round" },
-          h12("circle", { cx: 12, cy: 12, r: 3.2 }),
-          h12("path", {
+          h13("circle", { cx: 12, cy: 12, r: 3.2 }),
+          h13("path", {
             d: "M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.2a1.6 1.6 0 0 0-1-1.5 1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.2a1.6 1.6 0 0 0 1.5-1 1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.2a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.2a1.6 1.6 0 0 0-1.4 1z"
           })
         )
@@ -13079,23 +13866,23 @@ function ToolbarMenus({ t: t2, themeMode, resolvedDark, openMenu, setOpenMenu, s
 }
 
 // src/client/ui/right-stack.js
-var import_react27 = __toESM(require("react"), 1);
+var import_react28 = __toESM(require("react"), 1);
 
 // src/client/ui/layers-panel.js
-var import_react18 = __toESM(require("react"), 1);
+var import_react19 = __toESM(require("react"), 1);
 
 // src/client/ui/layers-3d.js
-var import_react16 = __toESM(require("react"), 1);
+var import_react17 = __toESM(require("react"), 1);
 
 // src/client/ui/layer-row.js
-var import_react15 = __toESM(require("react"), 1);
-var h13 = import_react15.default.createElement;
+var import_react16 = __toESM(require("react"), 1);
+var h14 = import_react16.default.createElement;
 function LayerRow({ t: t2, layer, shader, swipeActive, onFlyLayer, onToggleLayer, onInspectLayer, onRemoveLayer, onEditShader, onShowSceneDetails, onSwipeLayer }) {
   const stop = (event) => event.stopPropagation();
   const summary = shader ? shaderEntrySummary(t2, shader) : "";
   const openShader = () => onEditShader(layer, shader);
   const is3dgs = layer.kind === "3dgs";
-  return h13(
+  return h14(
     "div",
     {
       className: `mv-layer${layer.visible ? "" : " off"}${shader ? " has-shader" : ""}`,
@@ -13113,8 +13900,8 @@ function LayerRow({ t: t2, layer, shader, swipeActive, onFlyLayer, onToggleLayer
         }
       } : {}
     },
-    layer.georefIssue ? h13("span", { className: "mv-warn", title: t2("layers.georefWarning"), "aria-label": t2("layers.georefWarning") }, "⚠") : null,
-    h13(
+    layer.georefIssue ? h14("span", { className: "mv-warn", title: t2("layers.georefWarning"), "aria-label": t2("layers.georefWarning") }, "⚠") : null,
+    h14(
       "span",
       {
         className: "name",
@@ -13126,7 +13913,7 @@ function LayerRow({ t: t2, layer, shader, swipeActive, onFlyLayer, onToggleLayer
       },
       layer.name
     ),
-    shader ? h13(
+    shader ? h14(
       "button",
       {
         type: "button",
@@ -13140,7 +13927,7 @@ function LayerRow({ t: t2, layer, shader, swipeActive, onFlyLayer, onToggleLayer
       },
       "✦"
     ) : null,
-    h13(
+    h14(
       "button",
       {
         type: "button",
@@ -13152,13 +13939,13 @@ function LayerRow({ t: t2, layer, shader, swipeActive, onFlyLayer, onToggleLayer
           onToggleLayer(layer.id);
         }
       },
-      h13(EyeIcon, { size: 15, off: !layer.visible })
+      h14(EyeIcon, { size: 15, off: !layer.visible })
     ),
-    h13("button", { type: "button", className: "mv-icon-btn", title: t2("sceneDetails.openLayerHint"), "aria-label": t2("sceneDetails.openLayerHint"), onClick: (event) => {
+    h14("button", { type: "button", className: "mv-icon-btn", title: t2("sceneDetails.openLayerHint"), "aria-label": t2("sceneDetails.openLayerHint"), onClick: (event) => {
       stop(event);
       onShowSceneDetails?.(layer.id);
     } }, "ⓘ"),
-    onSwipeLayer ? h13(
+    onSwipeLayer ? h14(
       "button",
       {
         type: "button",
@@ -13174,15 +13961,15 @@ function LayerRow({ t: t2, layer, shader, swipeActive, onFlyLayer, onToggleLayer
       },
       "◧"
     ) : null,
-    h13("button", { type: "button", className: "mv-icon-btn", title: t2("btn.flyTo"), "aria-label": t2("btn.flyTo"), onClick: (event) => {
+    h14("button", { type: "button", className: "mv-icon-btn", title: t2("btn.flyTo"), "aria-label": t2("btn.flyTo"), onClick: (event) => {
       stop(event);
       onFlyLayer(layer.id);
     } }, "⌖"),
-    h13("button", { type: "button", className: "mv-icon-btn", title: t2("btn.health"), "aria-label": t2("btn.health"), onClick: (event) => {
+    h14("button", { type: "button", className: "mv-icon-btn", title: t2("btn.health"), "aria-label": t2("btn.health"), onClick: (event) => {
       stop(event);
       onInspectLayer(layer.id);
     } }, "⌕"),
-    h13("button", { type: "button", className: "mv-icon-btn", title: t2("btn.delete"), "aria-label": t2("btn.delete"), onClick: (event) => {
+    h14("button", { type: "button", className: "mv-icon-btn", title: t2("btn.delete"), "aria-label": t2("btn.delete"), onClick: (event) => {
       stop(event);
       onRemoveLayer(layer.id);
     } }, "✕")
@@ -13190,7 +13977,7 @@ function LayerRow({ t: t2, layer, shader, swipeActive, onFlyLayer, onToggleLayer
 }
 
 // src/client/ui/layers-3d.js
-var h14 = import_react16.default.createElement;
+var h15 = import_react17.default.createElement;
 function Layers3D({
   t: t2,
   config,
@@ -13215,10 +14002,10 @@ function Layers3D({
   recentDirs,
   onOpenRecent
 }) {
-  const [addOpen, setAddOpen] = import_react16.default.useState(false);
-  const addBtnRef = import_react16.default.useRef(null);
-  const addMenuRef = import_react16.default.useRef(null);
-  import_react16.default.useEffect(() => {
+  const [addOpen, setAddOpen] = import_react17.default.useState(false);
+  const addBtnRef = import_react17.default.useRef(null);
+  const addMenuRef = import_react17.default.useRef(null);
+  import_react17.default.useEffect(() => {
     if (!addOpen || typeof document === "undefined") return void 0;
     const onKey = (event) => {
       if (event.key !== "Escape") return;
@@ -13237,40 +14024,40 @@ function Layers3D({
     };
   }, [addOpen]);
   const recents = Array.isArray(recentDirs) ? recentDirs : [];
-  const radioRow = (key, label, active, onClick) => h14(
+  const radioRow = (key, label, active, onClick) => h15(
     "button",
     { key, type: "button", className: `mv-layer mv-choice${active ? " on" : ""}`, "aria-pressed": active, onClick },
-    h14("span", { className: "name" }, label),
-    h14("span", { className: "tick", "aria-hidden": true }, active ? "✓" : "")
+    h15("span", { className: "name" }, label),
+    h15("span", { className: "tick", "aria-hidden": true }, active ? "✓" : "")
   );
   const shaderFor = (layer) => (shaderActive ?? []).find(
     (entry) => entry.layerId === layer.id || entry.layerId === void 0 && entry.layer === layer.name
   ) ?? null;
-  return h14(
+  return h15(
     "div",
     { key: "list-3d", className: "mv-layer-list" },
     // ---- L1 terrain -----------------------------------------------------------
-    h14("div", { key: "g1", className: "mv-group" }, h14("div", { className: "mv-group-title" }, t2("layers.terrain"))),
+    h15("div", { key: "g1", className: "mv-group" }, h15("div", { className: "mv-group-title" }, t2("layers.terrain"))),
     radioRow("t-off", t2("menu.terrainOff"), terrainActive === null, () => onSelectTerrain(null)),
     ...(config?.terrain ?? []).map(
       (source) => radioRow(`t-${source.id}`, source.name, settings?.terrain === source.id, () => onSelectTerrain(source.id))
     ),
-    terrainError ? h14(
+    terrainError ? h15(
       "div",
       { key: "terrain-error", className: "mv-none mv-terrain-error" },
-      h14("span", null, terrainError),
-      h14("button", { type: "button", className: "mv-icon-btn", title: t2("terrain.retry"), "aria-label": t2("terrain.retry"), onClick: onRetryTerrain }, "↻")
+      h15("span", null, terrainError),
+      h15("button", { type: "button", className: "mv-icon-btn", title: t2("terrain.retry"), "aria-label": t2("terrain.retry"), onClick: onRetryTerrain }, "↻")
     ) : null,
     // ---- 3D content -----------------------------------------------------------
-    h14(
+    h15(
       "div",
       { key: "g6", className: "mv-group" },
-      h14("div", { className: "mv-group-title" }, `${t2("layers.content")} · ${layers.length}`),
-      h14(
+      h15("div", { className: "mv-group-title" }, `${t2("layers.content")} · ${layers.length}`),
+      h15(
         "div",
         { className: "mv-group-actions" },
-        layers.length > 0 ? h14("button", { type: "button", className: "mv-cta", onClick: onFrameAll }, t2("layers.frameAll")) : null,
-        h14(
+        layers.length > 0 ? h15("button", { type: "button", className: "mv-cta", onClick: onFrameAll }, t2("layers.frameAll")) : null,
+        h15(
           "button",
           {
             ref: addBtnRef,
@@ -13285,10 +14072,10 @@ function Layers3D({
         )
       )
     ),
-    addOpen ? h14(
+    addOpen ? h15(
       "div",
       { id: "mv-add-3d-menu", ref: addMenuRef, key: "add-3d-menu", className: "mv-overlay-form mv-add3d-menu", role: "menu" },
-      h14(
+      h15(
         "button",
         {
           key: "add-local",
@@ -13302,7 +14089,7 @@ function Layers3D({
         },
         t2("btn.openLocal")
       ),
-      h14(
+      h15(
         "button",
         {
           key: "add-url",
@@ -13316,9 +14103,9 @@ function Layers3D({
         },
         t2("layers.openUrl")
       ),
-      recents.length > 0 ? h14("span", { key: "recent-label", className: "mv-menu-label" }, t2("menu.recentDirs")) : null,
+      recents.length > 0 ? h15("span", { key: "recent-label", className: "mv-menu-label" }, t2("menu.recentDirs")) : null,
       ...recents.map(
-        (entry) => h14(
+        (entry) => h15(
           "button",
           {
             key: entry.dir,
@@ -13335,8 +14122,8 @@ function Layers3D({
         )
       )
     ) : null,
-    layers.length === 0 ? h14("div", { key: "no-3d", className: "mv-none" }, t2("layers.contentEmpty")) : layers.map(
-      (layer) => h14(LayerRow, {
+    layers.length === 0 ? h15("div", { key: "no-3d", className: "mv-none" }, t2("layers.contentEmpty")) : layers.map(
+      (layer) => h15(LayerRow, {
         key: layer.id,
         t: t2,
         layer,
@@ -13355,7 +14142,7 @@ function Layers3D({
 }
 
 // src/client/ui/layers-map.js
-var import_react17 = __toESM(require("react"), 1);
+var import_react18 = __toESM(require("react"), 1);
 
 // src/client/scene/vector-errors.js
 function vectorError(message2) {
@@ -13934,7 +14721,7 @@ var IMAGERY_OPEN_KEY = "layers.imagery.open";
 var TOOLS_MINIMIZED_KEY = "tools.index.minimized";
 
 // src/client/ui/layers-map.js
-var h15 = import_react17.default.createElement;
+var h16 = import_react18.default.createElement;
 var OVERLAY_TYPES2 = ["wms", "xyz", "arcgis"];
 function imagerySummary(t2, config, settings) {
   const sources = Array.isArray(config?.imagery) ? config.imagery : [];
@@ -13970,23 +14757,23 @@ function LayersMap({
   onOverlaySwipe,
   vectorExport
 }) {
-  const [adding, setAdding] = import_react17.default.useState(false);
-  const [draft, setDraft] = import_react17.default.useState({ type: "wms", name: "", url: "", layers: "", opacity: 0.7 });
-  const [error, setError] = import_react17.default.useState("");
-  const [vectorError2, setVectorError] = import_react17.default.useState("");
-  const [imageryOpen, setImageryOpen] = import_react17.default.useState(() => readPanelFlag(IMAGERY_OPEN_KEY, false));
-  const [expandedOverlays, setExpandedOverlays] = import_react17.default.useState(() => ({}));
-  const fileRef = import_react17.default.useRef(null);
+  const [adding, setAdding] = import_react18.default.useState(false);
+  const [draft, setDraft] = import_react18.default.useState({ type: "wms", name: "", url: "", layers: "", opacity: 0.7 });
+  const [error, setError] = import_react18.default.useState("");
+  const [vectorError2, setVectorError] = import_react18.default.useState("");
+  const [imageryOpen, setImageryOpen] = import_react18.default.useState(() => readPanelFlag(IMAGERY_OPEN_KEY, false));
+  const [expandedOverlays, setExpandedOverlays] = import_react18.default.useState(() => ({}));
+  const fileRef = import_react18.default.useRef(null);
   const toggleOverlay = (id) => setExpandedOverlays((prev) => ({ ...prev, [id]: !prev[id] }));
   const overlays = Array.isArray(config?.rasterOverlays) ? config.rasterOverlays : [];
   const drawn = annotations?.drawn_features ?? 0;
   const measured = annotations?.measured_points ?? 0;
-  const field = (label, input) => h15("div", { className: "mv-field" }, h15("label", null, label), input);
-  const radioRow = (key, label, active, onClick) => h15(
+  const field = (label, input) => h16("div", { className: "mv-field" }, h16("label", null, label), input);
+  const radioRow = (key, label, active, onClick) => h16(
     "button",
     { key, type: "button", className: `mv-layer mv-choice${active ? " on" : ""}`, "aria-pressed": active, onClick },
-    h15("span", { className: "name" }, label),
-    h15("span", { className: "tick", "aria-hidden": true }, active ? "✓" : "")
+    h16("span", { className: "name" }, label),
+    h16("span", { className: "tick", "aria-hidden": true }, active ? "✓" : "")
   );
   const toggleImagery = () => {
     setImageryOpen((value) => {
@@ -14006,30 +14793,30 @@ function LayersMap({
     setError("");
     setDraft({ type: "wms", name: "", url: "", layers: "", opacity: 0.7 });
   };
-  return h15(
+  return h16(
     "div",
     { key: "list-map", className: "mv-layer-list" },
     // ---- L2 vector overlays (2D data, not a 3D layer) --------------------------
-    h15(
+    h16(
       "div",
       { key: "g2", className: "mv-group" },
-      h15("div", { className: "mv-group-title" }, `${t2("layers.vector")}${drawn + measured > 0 ? ` · ${drawn + measured}` : ""}`),
-      h15(
+      h16("div", { className: "mv-group-title" }, `${t2("layers.vector")}${drawn + measured > 0 ? ` · ${drawn + measured}` : ""}`),
+      h16(
         "div",
         { className: "mv-group-actions" },
-        h15("button", { type: "button", className: "mv-icon-btn", title: t2("layers.vectorExportHint"), "aria-label": t2("layers.exportVector"), disabled: !vectorExport, onClick: () => vectorExport?.download() }, "⤓"),
-        h15("button", { type: "button", className: "mv-icon-btn", title: t2("layers.vectorChatHint"), "aria-label": t2("layers.vectorToChat"), disabled: !vectorExport?.canSend?.(), onClick: () => {
+        h16("button", { type: "button", className: "mv-icon-btn", title: t2("layers.vectorExportHint"), "aria-label": t2("layers.exportVector"), disabled: !vectorExport, onClick: () => vectorExport?.download() }, "⤓"),
+        h16("button", { type: "button", className: "mv-icon-btn", title: t2("layers.vectorChatHint"), "aria-label": t2("layers.vectorToChat"), disabled: !vectorExport?.canSend?.(), onClick: () => {
           void vectorExport?.send();
         } }, "➤")
       )
     ),
-    h15(
+    h16(
       "div",
       { key: "g2-actions", className: "mv-group-subactions" },
-      h15("button", { type: "button", className: "mv-cta", onClick: () => fileRef.current?.click() }, t2("layers.importVector")),
-      typeof onQuickAnnotate === "function" ? h15("button", { type: "button", className: "mv-cta", onClick: onQuickAnnotate }, t2("annotation.quickDraw")) : null
+      h16("button", { type: "button", className: "mv-cta", onClick: () => fileRef.current?.click() }, t2("layers.importVector")),
+      typeof onQuickAnnotate === "function" ? h16("button", { type: "button", className: "mv-cta", onClick: onQuickAnnotate }, t2("annotation.quickDraw")) : null
     ),
-    h15("input", {
+    h16("input", {
       key: "import-vector-input",
       ref: fileRef,
       type: "file",
@@ -14052,24 +14839,24 @@ function LayersMap({
         })();
       }
     }),
-    vectorError2 !== "" ? h15("p", { key: "vector-error", className: "mv-note" }, vectorError2) : null,
-    h15(
+    vectorError2 !== "" ? h16("p", { key: "vector-error", className: "mv-note" }, vectorError2) : null,
+    h16(
       "div",
       { key: "vector-row", className: "mv-layer" },
-      h15("span", { className: "name" }, `${t2("layers.vectorDrawn")} ${drawn} · ${t2("layers.vectorMeasured")} ${measured}`),
-      h15("button", { type: "button", className: "mv-icon-btn", title: t2("tool.clear"), "aria-label": t2("tool.clear"), onClick: onClearVector }, "✕")
+      h16("span", { className: "name" }, `${t2("layers.vectorDrawn")} ${drawn} · ${t2("layers.vectorMeasured")} ${measured}`),
+      h16("button", { type: "button", className: "mv-icon-btn", title: t2("tool.clear"), "aria-label": t2("tool.clear"), onClick: onClearVector }, "✕")
     ),
     ...(Array.isArray(agentOverlays) ? agentOverlays : []).map((row) => {
       const features = row.kind === "draw" && Array.isArray(overlayDetails?.[row.index]) ? overlayDetails[row.index] : [];
       const canExpand = row.kind === "draw" && features.length > 0;
       const expanded = canExpand && Boolean(expandedOverlays[row.id]);
-      return h15(
-        import_react17.default.Fragment,
+      return h16(
+        import_react18.default.Fragment,
         { key: row.id },
-        h15(
+        h16(
           "div",
           { className: "mv-layer" },
-          canExpand ? h15(
+          canExpand ? h16(
             "button",
             {
               type: "button",
@@ -14081,11 +14868,11 @@ function LayersMap({
             },
             expanded ? "▾" : "▸"
           ) : null,
-          h15("span", { className: "name", title: `${row.label} · ${row.detail}` }, `${row.label} · ${row.detail}`),
+          h16("span", { className: "name", title: `${row.label} · ${row.detail}` }, `${row.label} · ${row.detail}`),
           row.kind === "draw" && overlayExtrusions?.[row.index]?.canExtrude && typeof onToggleOverlayExtrude === "function" ? (() => {
             const is3d = Boolean(overlayExtrusions[row.index].extruded);
             const label = t2(is3d ? "layers.switch2d" : "layers.switch3d");
-            return h15(
+            return h16(
               "button",
               {
                 type: "button",
@@ -14098,7 +14885,7 @@ function LayersMap({
               is3d ? "3D" : "2D"
             );
           })() : null,
-          row.kind === "draw" && typeof vectorExport?.downloadOverlay === "function" ? h15(
+          row.kind === "draw" && typeof vectorExport?.downloadOverlay === "function" ? h16(
             "button",
             {
               type: "button",
@@ -14109,7 +14896,7 @@ function LayersMap({
             },
             "⤓"
           ) : null,
-          row.kind === "draw" && typeof vectorExport?.sendOverlay === "function" ? h15(
+          row.kind === "draw" && typeof vectorExport?.sendOverlay === "function" ? h16(
             "button",
             {
               type: "button",
@@ -14123,7 +14910,7 @@ function LayersMap({
             },
             "➤"
           ) : null,
-          typeof onFlyAgentOverlay === "function" ? h15(
+          typeof onFlyAgentOverlay === "function" ? h16(
             "button",
             {
               type: "button",
@@ -14134,20 +14921,20 @@ function LayersMap({
             },
             "◎"
           ) : null,
-          h15(
+          h16(
             "button",
             { type: "button", className: "mv-icon-btn", title: t2("layers.vectorRemove"), "aria-label": t2("layers.vectorRemove"), onClick: () => onRemoveAgentOverlay(row.kind, row.index) },
             "✕"
           )
         ),
-        expanded ? h15(
+        expanded ? h16(
           "div",
           { className: "mv-overlay-features" },
           ...features.map(
-            (feat) => h15(
+            (feat) => h16(
               "div",
               { key: feat.featureId || `${row.id}-${feat.featureIndex}`, className: "mv-overlay-feature" },
-              h15(
+              h16(
                 "button",
                 {
                   type: "button",
@@ -14155,20 +14942,20 @@ function LayersMap({
                   title: t2("layers.featureSelectHint"),
                   onClick: () => onSelectAgentFeature?.(row.index, feat.featureIndex)
                 },
-                h15("span", {
+                h16("span", {
                   className: "mv-overlay-feature-dot",
                   "aria-hidden": true,
                   style: { background: VECTOR_COLORS[feat.style] ?? VECTOR_COLORS.accent }
                 }),
-                h15("span", { className: "mv-overlay-feature-name" }, feat.name ?? t2("layers.featureUnnamed", { n: feat.featureIndex + 1 })),
-                feat.heightM != null ? h15(
+                h16("span", { className: "mv-overlay-feature-name" }, feat.name ?? t2("layers.featureUnnamed", { n: feat.featureIndex + 1 })),
+                feat.heightM != null ? h16(
                   "span",
                   { className: "mv-overlay-feature-meta" },
                   `≈${Math.round(feat.heightM)}m${feat.estFloors != null ? `/${t2("parse.floors", { n: feat.estFloors })}` : ""}`
                 ) : null,
-                h15("span", { className: "mv-overlay-feature-tag" }, feat.geometryType)
+                h16("span", { className: "mv-overlay-feature-tag" }, feat.geometryType)
               ),
-              typeof onFlyAgentFeature === "function" ? h15(
+              typeof onFlyAgentFeature === "function" ? h16(
                 "button",
                 {
                   type: "button",
@@ -14179,7 +14966,7 @@ function LayersMap({
                 },
                 "◎"
               ) : null,
-              typeof onRemoveAgentFeature === "function" ? h15(
+              typeof onRemoveAgentFeature === "function" ? h16(
                 "button",
                 {
                   type: "button",
@@ -14196,26 +14983,26 @@ function LayersMap({
       );
     }),
     // ---- L3 raster overlays ---------------------------------------------------
-    h15(
+    h16(
       "div",
       { key: "g3", className: "mv-group" },
-      h15("div", { className: "mv-group-title" }, `${t2("layers.raster")}${overlays.length ? ` · ${overlays.length}` : ""}`),
-      h15("button", { type: "button", className: "mv-cta", onClick: () => setAdding((value) => !value) }, adding ? t2("layers.overlayCancel") : t2("layers.addOverlay"))
+      h16("div", { className: "mv-group-title" }, `${t2("layers.raster")}${overlays.length ? ` · ${overlays.length}` : ""}`),
+      h16("button", { type: "button", className: "mv-cta", onClick: () => setAdding((value) => !value) }, adding ? t2("layers.overlayCancel") : t2("layers.addOverlay"))
     ),
-    adding ? h15(
+    adding ? h16(
       "div",
       { key: "add-form", className: "mv-overlay-form" },
       field(
         t2("layers.overlayType"),
-        h15(
+        h16(
           "select",
           { value: draft.type, onChange: (event) => setDraft((current) => ({ ...current, type: event.target.value })) },
-          OVERLAY_TYPES2.map((type) => h15("option", { key: type, value: type }, type.toUpperCase()))
+          OVERLAY_TYPES2.map((type) => h16("option", { key: type, value: type }, type.toUpperCase()))
         )
       ),
-      field(t2("layers.overlayName"), h15("input", { value: draft.name, onChange: (event) => setDraft((current) => ({ ...current, name: event.target.value })) })),
-      field(t2("layers.overlayUrl"), h15("input", { value: draft.url, placeholder: "https://…", onChange: (event) => setDraft((current) => ({ ...current, url: event.target.value })) })),
-      typeof onPickLocalTiles === "function" ? h15(
+      field(t2("layers.overlayName"), h16("input", { value: draft.name, onChange: (event) => setDraft((current) => ({ ...current, name: event.target.value })) })),
+      field(t2("layers.overlayUrl"), h16("input", { value: draft.url, placeholder: "https://…", onChange: (event) => setDraft((current) => ({ ...current, url: event.target.value })) })),
+      typeof onPickLocalTiles === "function" ? h16(
         "button",
         {
           type: "button",
@@ -14239,10 +15026,10 @@ function LayersMap({
         },
         t2("settings.field.localTiles")
       ) : null,
-      draft.type === "wms" ? field(t2("layers.overlayLayers"), h15("input", { value: draft.layers, placeholder: "flood:risk", onChange: (event) => setDraft((current) => ({ ...current, layers: event.target.value })) })) : null,
+      draft.type === "wms" ? field(t2("layers.overlayLayers"), h16("input", { value: draft.layers, placeholder: "flood:risk", onChange: (event) => setDraft((current) => ({ ...current, layers: event.target.value })) })) : null,
       field(
         t2("layers.overlayOpacity"),
-        h15("input", {
+        h16("input", {
           type: "range",
           min: 0,
           max: 100,
@@ -14250,15 +15037,15 @@ function LayersMap({
           onChange: (event) => setDraft((current) => ({ ...current, opacity: Number(event.target.value) / 100 }))
         })
       ),
-      error ? h15("p", { className: "mv-note" }, error) : null,
-      h15("button", { type: "button", className: "mv-cta primary", onClick: submitDraft }, t2("layers.overlayAdd"))
+      error ? h16("p", { className: "mv-note" }, error) : null,
+      h16("button", { type: "button", className: "mv-cta primary", onClick: submitDraft }, t2("layers.overlayAdd"))
     ) : null,
-    overlays.length === 0 && !adding ? h15("div", { key: "no-overlay", className: "mv-none" }, t2("layers.emptyRaster")) : overlays.map(
-      (overlay, index) => h15(
+    overlays.length === 0 && !adding ? h16("div", { key: "no-overlay", className: "mv-none" }, t2("layers.emptyRaster")) : overlays.map(
+      (overlay, index) => h16(
         "div",
         { key: overlay.id, className: `mv-layer mv-overlay-row${overlay.visible === false ? " off" : ""}` },
-        h15("span", { className: "name", title: overlay.url }, overlay.name),
-        h15("input", {
+        h16("span", { className: "name", title: overlay.url }, overlay.name),
+        h16("input", {
           className: "mv-opacity",
           type: "range",
           min: 0,
@@ -14268,7 +15055,7 @@ function LayersMap({
           value: Math.round((overlay.opacity ?? 1) * 100),
           onChange: (event) => onOverlayOpacity(overlay.id, Number(event.target.value) / 100)
         }),
-        h15(
+        h16(
           "button",
           {
             type: "button",
@@ -14277,9 +15064,9 @@ function LayersMap({
             "aria-label": overlay.visible === false ? t2("btn.visible") : t2("btn.hidden"),
             onClick: () => onOverlayVisible(overlay.id, overlay.visible === false)
           },
-          h15(EyeIcon, { size: 15, off: overlay.visible === false })
+          h16(EyeIcon, { size: 15, off: overlay.visible === false })
         ),
-        onOverlaySwipe ? h15(
+        onOverlaySwipe ? h16(
           "button",
           {
             type: "button",
@@ -14292,19 +15079,19 @@ function LayersMap({
           },
           "◧"
         ) : null,
-        h15("button", { type: "button", className: "mv-icon-btn", title: t2("layers.overlayDown"), "aria-label": t2("layers.overlayDown"), disabled: index === 0, onClick: () => onOverlayMove(overlay.id, -1) }, "↑"),
-        h15("button", { type: "button", className: "mv-icon-btn", title: t2("layers.overlayUp"), "aria-label": t2("layers.overlayUp"), disabled: index === overlays.length - 1, onClick: () => onOverlayMove(overlay.id, 1) }, "↓"),
-        h15("button", { type: "button", className: "mv-icon-btn", title: t2("layers.overlayRemove"), "aria-label": t2("layers.overlayRemove"), onClick: () => onOverlayRemove(overlay.id) }, "✕")
+        h16("button", { type: "button", className: "mv-icon-btn", title: t2("layers.overlayDown"), "aria-label": t2("layers.overlayDown"), disabled: index === 0, onClick: () => onOverlayMove(overlay.id, -1) }, "↑"),
+        h16("button", { type: "button", className: "mv-icon-btn", title: t2("layers.overlayUp"), "aria-label": t2("layers.overlayUp"), disabled: index === overlays.length - 1, onClick: () => onOverlayMove(overlay.id, 1) }, "↓"),
+        h16("button", { type: "button", className: "mv-icon-btn", title: t2("layers.overlayRemove"), "aria-label": t2("layers.overlayRemove"), onClick: () => onOverlayRemove(overlay.id) }, "✕")
       )
     ),
     // ---- L4 imagery basemap (folded box: one source is normally in use) --------
-    h15(
+    h16(
       "div",
       { key: "g4-box", className: `mv-fold-box${imageryOpen ? " open" : ""}` },
-      h15(
+      h16(
         "div",
         { key: "g4", className: "mv-group" },
-        h15(
+        h16(
           "button",
           {
             type: "button",
@@ -14313,26 +15100,46 @@ function LayersMap({
             title: imageryOpen ? t2("layers.imageryFold") : t2("layers.imageryUnfold"),
             onClick: toggleImagery
           },
-          h15("span", { className: "mv-group-title" }, t2("layers.imagery")),
-          h15("span", { className: "mv-group-current" }, imagerySummary(t2, config, settings)),
-          h15("span", { className: `mv-group-chevron${imageryOpen ? " open" : ""}`, "aria-hidden": true }, "›")
+          h16(
+            "div",
+            { className: "mv-fold-top" },
+            h16(
+              "span",
+              { className: "mv-fold-heading" },
+              h16("span", { className: `mv-group-chevron${imageryOpen ? " open" : ""}`, "aria-hidden": true }, "▸"),
+              h16("span", { className: "mv-group-title" }, t2("layers.imagery")),
+              h16("span", { className: "mv-fold-count" }, t2("layers.imageryCount", { n: (config?.imagery?.length ?? 0) + 1 }))
+            ),
+            h16(
+              "span",
+              { className: "mv-fold-state" },
+              imageryOpen ? t2("layers.imageryClickFold") : t2("layers.imageryClickExpand")
+            )
+          ),
+          h16(
+            "div",
+            { className: "mv-fold-summary" },
+            h16("span", { className: "mv-fold-dot", "aria-hidden": true }),
+            h16("span", { className: "mv-fold-label" }, t2("layers.imageryCurrent")),
+            h16("span", { className: "mv-group-current" }, imagerySummary(t2, config, settings))
+          )
         )
       ),
-      imageryOpen ? h15(
+      imageryOpen ? h16(
         "div",
         { key: "g4-body", className: "mv-fold-body" },
         radioRow("i-off", t2("menu.none"), settings?.imagery == null, () => onSelectImagery(null)),
         (config?.imagery ?? []).map(
           (source) => radioRow(`i-${source.id}`, source.name, settings?.imagery === source.id, () => onSelectImagery(source.id))
         ),
-        h15("p", { key: "imagery-hint", className: "mv-none mv-imagery-hint" }, t2("layers.imageryCoverageHint"))
+        h16("p", { key: "imagery-hint", className: "mv-none mv-imagery-hint" }, t2("layers.imageryCoverageHint"))
       ) : null
     )
   );
 }
 
 // src/client/ui/layers-panel.js
-var h16 = import_react18.default.createElement;
+var h17 = import_react19.default.createElement;
 var nextTabsId = 0;
 function LayersPanel({
   t: t2,
@@ -14375,10 +15182,25 @@ function LayersPanel({
   onOverlaySwipe,
   vectorExport
 }) {
-  const [tab, setTab] = import_react18.default.useState("3d");
-  const resize = usePanelResize({ storageKey: "layers", initialHeight: null, minHeight: 120, maxHeight: 620 });
-  const tabsId = import_react18.default.useMemo(() => `mv-data-${++nextTabsId}`, []);
-  const tabsRef = import_react18.default.useRef(null);
+  const [tab, setTab] = import_react19.default.useState("3d");
+  const resize = usePanelResize({
+    storageKey: "layers",
+    widthDirection: "right",
+    initialWidth: null,
+    minWidth: 240,
+    maxWidth: 680,
+    initialHeight: null,
+    minHeight: 120,
+    maxHeight: 620
+  });
+  const floating = useFloatingWindow({
+    storageKey: "layers",
+    title: t2("layers.title"),
+    t: t2,
+    hasExplicitWidth: Boolean(resize.size.width)
+  });
+  const tabsId = import_react19.default.useMemo(() => `mv-data-${++nextTabsId}`, []);
+  const tabsRef = import_react19.default.useRef(null);
   const onTabKey = (event) => {
     if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
     event.preventDefault();
@@ -14388,43 +15210,52 @@ function LayersPanel({
   };
   const sourceName = (list, id) => list?.find((item) => item.id === id)?.name ?? null;
   const terrainActive = sourceName(config?.terrain, settings?.terrain);
-  return h16(
+  const panelStyle = floating.moved ? { ...floating.style, ...resize.style } : { ...floating.style, height: resize.style?.height, maxHeight: resize.style?.maxHeight };
+  return h17(
     "div",
-    { className: "mv-layers mv-glass", ref: resize.ref, style: resize.style },
-    h16(
+    {
+      className: `mv-layers mv-glass ${floating.className}`,
+      ref: mergeRefs(floating.ref, resize.ref),
+      style: panelStyle,
+      ...floating.panelProps
+    },
+    h17(
       "header",
-      null,
-      h16("span", null, t2("layers.title")),
-      h16(
+      floating.headerProps,
+      floating.dragHandle,
+      h17("span", { className: "title" }, t2("layers.title")),
+      h17(
         "div",
         { className: "mv-head-actions" },
-        h16(
+        floating.resetButton,
+        h17(
           "button",
           { type: "button", className: "mv-icon-btn", title: t2("sceneDetails.openHint"), "aria-label": t2("sceneDetails.openHint"), onClick: () => onShowSceneDetails?.() },
           "ⓘ"
         ),
-        h16(
+        h17(
           "button",
           { type: "button", className: "mv-icon-btn", title: t2("layers.collapse"), "aria-label": t2("layers.collapse"), onClick: onCollapse },
           "✕"
         )
       )
     ),
-    h16(
+    floating.liveRegion,
+    h17(
       "div",
       { key: "layer-tabs", ref: tabsRef, className: "mv-layer-tabs", role: "tablist", "aria-label": t2("layers.title"), onKeyDown: onTabKey },
-      h16(
+      h17(
         "button",
         { type: "button", id: `${tabsId}-3d`, "data-tab": "3d", role: "tab", tabIndex: tab === "3d" ? 0 : -1, "aria-controls": `${tabsId}-panel`, "aria-selected": tab === "3d", className: `mv-layer-tab${tab === "3d" ? " on" : ""}`, onClick: () => setTab("3d") },
         `${t2("layers.tab.3d")}${layers.length ? ` · ${layers.length}` : ""}`
       ),
-      h16(
+      h17(
         "button",
         { type: "button", id: `${tabsId}-map`, "data-tab": "map", role: "tab", tabIndex: tab === "map" ? 0 : -1, "aria-controls": `${tabsId}-panel`, "aria-selected": tab === "map", className: `mv-layer-tab${tab === "map" ? " on" : ""}`, onClick: () => setTab("map") },
         t2("layers.tab.map")
       )
     ),
-    h16("div", { id: `${tabsId}-panel`, role: "tabpanel", "aria-labelledby": `${tabsId}-${tab}`, className: "mv-data-panel" }, tab === "3d" ? h16(Layers3D, {
+    h17("div", { id: `${tabsId}-panel`, role: "tabpanel", "aria-labelledby": `${tabsId}-${tab}`, className: "mv-data-panel" }, tab === "3d" ? h17(Layers3D, {
       t: t2,
       config,
       settings,
@@ -14447,7 +15278,7 @@ function LayersPanel({
       onOpenUrl,
       recentDirs,
       onOpenRecent
-    }) : h16(LayersMap, {
+    }) : h17(LayersMap, {
       t: t2,
       config,
       settings,
@@ -14470,19 +15301,27 @@ function LayersPanel({
       onOverlaySwipe,
       vectorExport
     })),
-    h16(ResizeHandle, {
+    h17(ResizeHandle, {
       axis: "height",
       edge: "bottom",
       label: t2("resize.height"),
       value: resize.size.height,
       onPointerDown: resize.beginHeight,
       onKeyDown: resize.keyHeight
-    })
+    }),
+    floating.moved ? h17(ResizeHandle, {
+      axis: "corner",
+      edge: "corner",
+      label: t2("resize.size"),
+      value: resize.size.width,
+      onPointerDown: resize.beginCorner,
+      onKeyDown: resize.keyWidth
+    }) : null
   );
 }
 
 // src/client/ui/tools-panel.js
-var import_react26 = __toESM(require("react"), 1);
+var import_react20 = __toESM(require("react"), 1);
 
 // src/client/ui/tool-catalog.js
 var TOOL_ENTRIES = [
@@ -14498,20 +15337,262 @@ var TOOL_IDS = TOOL_ENTRIES.map((entry) => entry.id);
 function toolEntry(id) {
   return TOOL_ENTRIES.find((entry) => entry.id === id) ?? null;
 }
-function selectToolWindow(state, clicked) {
-  const current = state?.openTool ?? null;
-  const minimized = Boolean(state?.minimized);
-  if (!toolEntry(clicked)) return { openTool: current, minimized };
-  if (current === clicked && minimized) return { openTool: clicked, minimized: false };
-  const next = current === clicked ? null : clicked;
-  return { openTool: next, minimized: false };
+
+// src/client/ui/tools-panel.js
+var h18 = import_react20.default.createElement;
+function ToolsPanel({
+  t: t2,
+  openWindows = [],
+  onSelectTool,
+  onCollapse
+}) {
+  const resize = usePanelResize({
+    storageKey: "tools",
+    widthDirection: "right",
+    initialWidth: null,
+    minWidth: 220,
+    maxWidth: 620,
+    initialHeight: null,
+    minHeight: 160,
+    maxHeight: 700
+  });
+  const floating = useFloatingWindow({
+    storageKey: "tools",
+    title: t2("tools.title"),
+    t: t2,
+    hasExplicitWidth: Boolean(resize.size.width)
+  });
+  const [indexMinimized, setIndexMinimized] = import_react20.default.useState(() => readPanelFlag(TOOLS_MINIMIZED_KEY, false));
+  const activeEntries = (Array.isArray(openWindows) ? openWindows : []).map((win) => toolEntry(typeof win === "string" ? win : win?.id)).filter(Boolean);
+  const openSet = new Set(activeEntries.map((item) => item.id));
+  const toggleIndexMinimized = () => {
+    setIndexMinimized((value) => {
+      const next = !value;
+      writePanelFlag(TOOLS_MINIMIZED_KEY, next);
+      return next;
+    });
+  };
+  const row = (item) => {
+    const active = openSet.has(item.id);
+    return h18(
+      "button",
+      {
+        key: item.id,
+        type: "button",
+        className: `mv-tool-entry${active ? " on" : ""}`,
+        "aria-pressed": active,
+        title: t2(item.hintKey),
+        onClick: () => onSelectTool?.(item.id)
+      },
+      h18("span", { className: "mv-tool-entry-icon" }, h18(ToolEntryIcon, { kind: item.icon })),
+      h18("span", { className: "mv-tool-entry-name" }, t2(item.labelKey)),
+      active ? h18("span", { className: "mv-tool-entry-dot", "aria-hidden": true }) : null
+    );
+  };
+  const panelStyle = indexMinimized ? floating.moved ? floating.style : { zIndex: floating.zIndex } : floating.moved ? { ...floating.style, ...resize.style } : { ...floating.style, height: resize.style?.height, maxHeight: resize.style?.maxHeight };
+  return h18(
+    "div",
+    {
+      className: `mv-tools mv-glass ${floating.className}${indexMinimized ? " minimized" : ""}`,
+      ref: mergeRefs(floating.ref, resize.ref),
+      style: panelStyle,
+      ...floating.panelProps
+    },
+    h18(
+      "header",
+      floating.headerProps,
+      floating.dragHandle,
+      h18(
+        "span",
+        { className: "mv-tools-title" },
+        h18("span", null, t2("tools.title")),
+        activeEntries.length > 0 && !indexMinimized ? h18("span", { className: "mv-tools-count" }, t2("tools.openCount", { n: activeEntries.length })) : null,
+        indexMinimized ? activeEntries.map(
+          (entry) => h18(
+            "button",
+            {
+              key: entry.id,
+              type: "button",
+              className: "mv-tools-active-pill",
+              onClick: () => onSelectTool?.(entry.id)
+            },
+            t2(entry.labelKey)
+          )
+        ) : null
+      ),
+      h18(
+        "div",
+        { className: "mv-head-actions" },
+        floating.resetButton,
+        h18(
+          "button",
+          {
+            type: "button",
+            className: "mv-icon-btn",
+            title: t2(indexMinimized ? "tools.indexExpand" : "tools.indexMinimize"),
+            "aria-label": t2(indexMinimized ? "tools.indexExpand" : "tools.indexMinimize"),
+            "aria-expanded": !indexMinimized,
+            onClick: toggleIndexMinimized
+          },
+          indexMinimized ? "▸" : "▾"
+        ),
+        h18("button", { type: "button", className: "mv-icon-btn", title: t2("tools.collapse"), "aria-label": t2("tools.collapse"), onClick: onCollapse }, "✕")
+      )
+    ),
+    floating.liveRegion,
+    indexMinimized ? null : h18(
+      "div",
+      { className: "mv-tool-index-wrap" },
+      h18("div", { className: "mv-tool-index", role: "group", "aria-label": t2("tools.index") }, ...TOOL_ENTRIES.map(row)),
+      h18("p", { className: "mv-tools-hint" }, t2("tools.independentHint"))
+    ),
+    indexMinimized ? null : h18(ResizeHandle, {
+      axis: "height",
+      edge: "bottom",
+      label: t2("resize.height"),
+      value: resize.size.height,
+      onPointerDown: resize.beginHeight,
+      onKeyDown: resize.keyHeight
+    }),
+    indexMinimized || !floating.moved ? null : h18(ResizeHandle, {
+      axis: "corner",
+      edge: "corner",
+      label: t2("resize.size"),
+      value: resize.size.width,
+      onPointerDown: resize.beginCorner,
+      onKeyDown: resize.keyWidth
+    })
+  );
+}
+
+// src/client/ui/tool-window.js
+var import_react21 = __toESM(require("react"), 1);
+var h19 = import_react21.default.createElement;
+function ToolWindow({
+  t: t2,
+  entry,
+  minimized = false,
+  expanded = false,
+  autoFloat = false,
+  floatIndex = 0,
+  dockEmpty = false,
+  onToggleMinimize,
+  onToggleExpand,
+  onClose,
+  children
+}) {
+  const resize = usePanelResize({
+    storageKey: "tool-window",
+    widthDirection: "right",
+    initialWidth: null,
+    minWidth: 240,
+    maxWidth: 680,
+    initialHeight: 260,
+    minHeight: 150,
+    maxHeight: 560
+  });
+  const label = entry ? t2(entry.labelKey) : "";
+  const floating = useFloatingWindow({
+    storageKey: entry ? `toolwin.${entry.id}` : "toolwin.none",
+    title: label,
+    t: t2,
+    autoFloat,
+    floatIndex,
+    dockEmpty,
+    hasExplicitWidth: Boolean(resize.size.width)
+  });
+  if (!entry) return null;
+  const toggleLabel = minimized ? t2("tools.windowExpand") : t2("tools.windowMinimize");
+  const zoomLabel = expanded ? t2("tools.windowRestore") : t2("tools.windowZoom");
+  const dockedResize = { height: resize.style?.height, maxHeight: resize.style?.maxHeight };
+  const baseStyle = floating.moved ? { ...floating.style, ...resize.style } : { ...floating.style, ...dockedResize };
+  const bodyStyle = minimized ? floating.moved ? floating.style : void 0 : expanded ? { ...baseStyle, height: "min(480px, 60vh)", maxHeight: "none", flex: "0 0 auto" } : baseStyle;
+  return h19(
+    "section",
+    {
+      className: `mv-toolwin mv-glass ${floating.className}${minimized ? " minimized" : ""}${expanded && !minimized ? " expanded" : ""}`,
+      ref: mergeRefs(floating.ref, resize.ref),
+      style: bodyStyle,
+      "aria-label": label,
+      ...floating.panelProps
+    },
+    h19(
+      "header",
+      floating.headerProps,
+      floating.dragHandle,
+      h19(
+        "span",
+        { className: "mv-toolwin-title" },
+        h19("span", { className: "mv-toolwin-badge" }, h19(ToolEntryIcon, { kind: entry.icon, size: 14 })),
+        h19("span", null, label)
+      ),
+      h19(
+        "div",
+        { className: "mv-head-actions" },
+        floating.resetButton,
+        typeof onToggleExpand === "function" ? h19(
+          "button",
+          {
+            type: "button",
+            className: `mv-icon-btn${expanded && !minimized ? " on" : ""}`,
+            title: zoomLabel,
+            "aria-label": zoomLabel,
+            "aria-pressed": expanded && !minimized,
+            onClick: onToggleExpand
+          },
+          expanded && !minimized ? "⤡" : "⤢"
+        ) : null,
+        h19(
+          "button",
+          {
+            type: "button",
+            className: "mv-icon-btn",
+            title: toggleLabel,
+            "aria-label": toggleLabel,
+            "aria-expanded": !minimized,
+            onClick: onToggleMinimize
+          },
+          minimized ? "▸" : "▾"
+        ),
+        h19(
+          "button",
+          {
+            type: "button",
+            className: "mv-icon-btn",
+            title: t2("tools.windowClose"),
+            "aria-label": t2("tools.windowClose"),
+            onClick: onClose
+          },
+          "✕"
+        )
+      )
+    ),
+    floating.liveRegion,
+    minimized ? null : h19("div", { className: "mv-toolwin-body" }, children),
+    minimized || expanded ? null : h19(ResizeHandle, {
+      axis: "height",
+      edge: "bottom",
+      label: t2("resize.height"),
+      value: resize.size.height,
+      onPointerDown: resize.beginHeight,
+      onKeyDown: resize.keyHeight
+    }),
+    minimized || expanded || !floating.moved ? null : h19(ResizeHandle, {
+      axis: "corner",
+      edge: "corner",
+      label: t2("resize.size"),
+      value: resize.size.width,
+      onPointerDown: resize.beginCorner,
+      onKeyDown: resize.keyWidth
+    })
+  );
 }
 
 // src/client/ui/tool-windows.js
-var import_react24 = __toESM(require("react"), 1);
+var import_react27 = __toESM(require("react"), 1);
 
 // src/client/ui/sun-timeline.js
-var import_react19 = __toESM(require("react"), 1);
+var import_react22 = __toESM(require("react"), 1);
 
 // src/client/scene/sun-timeline.js
 var SUN_NIGHT_MIN_BRIGHTNESS = 0.5;
@@ -14744,7 +15825,7 @@ function createSunTimeline({ getCesium, getViewer, getLayers }) {
 }
 
 // src/client/ui/sun-timeline.js
-var h17 = import_react19.default.createElement;
+var h20 = import_react22.default.createElement;
 var ZONE_MODES = ["scene", "browser", "utc"];
 function translate(t2, key, vars) {
   try {
@@ -14755,15 +15836,15 @@ function translate(t2, key, vars) {
   }
 }
 function SunTimeline({ t: t2, getCesium, getViewer, getLayers, onBeforeEnable, active }) {
-  const [enabled, setEnabled] = import_react19.default.useState(false);
-  const [zoneMode, setZoneMode] = import_react19.default.useState("scene");
-  const [day, setDay] = import_react19.default.useState(sunTodayInput);
-  const [minutes, setMinutes] = import_react19.default.useState(10 * 60);
-  const [shadows, setShadows] = import_react19.default.useState(true);
-  const [readout, setReadout] = import_react19.default.useState(null);
-  const [failed, setFailed] = import_react19.default.useState(null);
-  const sunRef = import_react19.default.useRef(null);
-  const layersRef = import_react19.default.useRef(getLayers);
+  const [enabled, setEnabled] = import_react22.default.useState(false);
+  const [zoneMode, setZoneMode] = import_react22.default.useState("scene");
+  const [day, setDay] = import_react22.default.useState(sunTodayInput);
+  const [minutes, setMinutes] = import_react22.default.useState(10 * 60);
+  const [shadows, setShadows] = import_react22.default.useState(true);
+  const [readout, setReadout] = import_react22.default.useState(null);
+  const [failed, setFailed] = import_react22.default.useState(null);
+  const sunRef = import_react22.default.useRef(null);
+  const layersRef = import_react22.default.useRef(getLayers);
   layersRef.current = getLayers;
   if (!sunRef.current) {
     sunRef.current = createSunTimeline({ getCesium, getViewer, getLayers: () => layersRef.current?.() });
@@ -14823,14 +15904,14 @@ function SunTimeline({ t: t2, getCesium, getViewer, getLayers, onBeforeEnable, a
     setZoneMode(next);
     if (enabled) apply2(day, minutes, shadows, next);
   };
-  import_react19.default.useEffect(() => {
+  import_react22.default.useEffect(() => {
     if (active !== false || !enabled) return;
     sunRef.current.restore();
     setEnabled(false);
     setReadout(null);
     setFailed(null);
   }, [active, enabled]);
-  import_react19.default.useEffect(
+  import_react22.default.useEffect(
     () => () => {
       sunRef.current?.restore();
     },
@@ -14847,39 +15928,39 @@ function SunTimeline({ t: t2, getCesium, getViewer, getLayers, onBeforeEnable, a
   };
   const notes = [];
   if (failed) {
-    notes.push(h17("p", { key: "failed", className: "mv-sun-note mv-sun-alert" }, failureText()));
+    notes.push(h20("p", { key: "failed", className: "mv-sun-note mv-sun-alert" }, failureText()));
   } else if (readout?.night) {
-    notes.push(h17("p", { key: "night", className: "mv-sun-note mv-sun-night" }, translate(t2, "sun.nightHint")));
+    notes.push(h20("p", { key: "night", className: "mv-sun-note mv-sun-night" }, translate(t2, "sun.nightHint")));
   }
-  notes.push(h17("p", { key: "tz", className: "mv-sun-note" }, translate(t2, "sun.timezoneHint")));
+  notes.push(h20("p", { key: "tz", className: "mv-sun-note" }, translate(t2, "sun.timezoneHint")));
   if (readout) {
-    notes.push(h17("p", { key: "sky", className: "mv-sun-note" }, translate(t2, "sun.skyHint")));
+    notes.push(h20("p", { key: "sky", className: "mv-sun-note" }, translate(t2, "sun.skyHint")));
   }
-  return h17(
+  return h20(
     "div",
     { className: "mv-sun" },
-    h17(
+    h20(
       "div",
       { className: "mv-sun-head" },
-      h17("b", null, t2("sun.title")),
-      h17(
+      h20("b", null, t2("sun.title")),
+      h20(
         "label",
         { className: "mv-sun-toggle" },
-        h17("input", { type: "checkbox", checked: enabled, onChange: (event) => toggle(event.target.checked) }),
+        h20("input", { type: "checkbox", checked: enabled, onChange: (event) => toggle(event.target.checked) }),
         t2("sun.enable")
       )
     ),
-    enabled ? h17(
-      import_react19.default.Fragment,
+    enabled ? h20(
+      import_react22.default.Fragment,
       null,
-      h17(
+      h20(
         "div",
         { className: "mv-sun-row" },
-        h17("span", null, t2("sun.date")),
-        h17("input", { type: "date", value: day, "aria-label": t2("sun.date"), onChange: (event) => changeDay(event.target.value) }),
-        h17("span", { className: "mv-sun-clock" }, sunClockLabel(minutes))
+        h20("span", null, t2("sun.date")),
+        h20("input", { type: "date", value: day, "aria-label": t2("sun.date"), onChange: (event) => changeDay(event.target.value) }),
+        h20("span", { className: "mv-sun-clock" }, sunClockLabel(minutes))
       ),
-      h17("input", {
+      h20("input", {
         className: "mv-sun-range",
         type: "range",
         min: 0,
@@ -14889,40 +15970,40 @@ function SunTimeline({ t: t2, getCesium, getViewer, getLayers, onBeforeEnable, a
         "aria-label": t2("sun.time"),
         onChange: (event) => changeMinutes(Number(event.target.value))
       }),
-      h17(
+      h20(
         "div",
         { className: "mv-sun-row" },
-        h17("span", null, t2("sun.zone")),
-        h17(
+        h20("span", null, t2("sun.zone")),
+        h20(
           "select",
           { value: zoneMode, "aria-label": t2("sun.zone"), onChange: (event) => changeZone(event.target.value) },
-          ...ZONE_MODES.map((mode) => h17("option", { key: mode, value: mode }, translate(t2, `sun.zone.${mode}`)))
+          ...ZONE_MODES.map((mode) => h20("option", { key: mode, value: mode }, translate(t2, `sun.zone.${mode}`)))
         )
       ),
-      h17("div", { className: "mv-sun-zone" }, zoneLabel),
-      h17(
+      h20("div", { className: "mv-sun-zone" }, zoneLabel),
+      h20(
         "div",
         { className: "mv-sun-readout" },
-        h17("span", null, `${t2("sun.altitude")} ${readout ? `${readout.altitude.toFixed(1)}°` : "—"}`),
-        h17("span", null, `${t2("sun.azimuth")} ${readout ? `${readout.azimuth.toFixed(1)}°` : "—"}`)
+        h20("span", null, `${t2("sun.altitude")} ${readout ? `${readout.altitude.toFixed(1)}°` : "—"}`),
+        h20("span", null, `${t2("sun.azimuth")} ${readout ? `${readout.azimuth.toFixed(1)}°` : "—"}`)
       ),
-      h17(
+      h20(
         "label",
         { className: "mv-sun-check" },
-        h17("input", { type: "checkbox", checked: shadows, onChange: (event) => changeShadows(event.target.checked) }),
+        h20("input", { type: "checkbox", checked: shadows, onChange: (event) => changeShadows(event.target.checked) }),
         t2("sun.shadows")
       ),
       notes
-    ) : h17("p", { className: "mv-none" }, t2("sun.hint"))
+    ) : h20("p", { className: "mv-none" }, t2("sun.hint"))
   );
 }
 
 // src/client/ui/tools-bookmarks.js
-var import_react20 = __toESM(require("react"), 1);
-var h18 = import_react20.default.createElement;
+var import_react23 = __toESM(require("react"), 1);
+var h21 = import_react23.default.createElement;
 function ToolsBookmarks({ t: t2, getCurrentView, onFlyView, onStartTour }) {
-  const [bookmarks, setBookmarks] = import_react20.default.useState(() => loadBookmarks());
-  const [notice, setNotice] = import_react20.default.useState("");
+  const [bookmarks, setBookmarks] = import_react23.default.useState(() => loadBookmarks());
+  const [notice, setNotice] = import_react23.default.useState("");
   const saveCurrent = () => {
     const view = typeof getCurrentView === "function" ? getCurrentView() : null;
     if (!view) {
@@ -14944,14 +16025,14 @@ function ToolsBookmarks({ t: t2, getCurrentView, onFlyView, onStartTour }) {
     setBookmarks(next);
     saveBookmarks(next);
   };
-  return h18(
-    import_react20.default.Fragment,
+  return h21(
+    import_react23.default.Fragment,
     null,
-    h18(
+    h21(
       "div",
       { className: "mv-group-actions" },
-      h18("button", { type: "button", className: "mv-cta", onClick: saveCurrent }, t2("bookmarks.save")),
-      h18(
+      h21("button", { type: "button", className: "mv-cta", onClick: saveCurrent }, t2("bookmarks.save")),
+      h21(
         "button",
         {
           type: "button",
@@ -14965,18 +16046,18 @@ function ToolsBookmarks({ t: t2, getCurrentView, onFlyView, onStartTour }) {
         t2("tour.start")
       )
     ),
-    notice !== "" ? h18("div", { className: "mv-none" }, notice) : null,
-    bookmarks.length === 0 ? h18("div", { className: "mv-none" }, t2("bookmarks.empty")) : bookmarks.map(
-      (item) => h18(
+    notice !== "" ? h21("div", { className: "mv-none" }, notice) : null,
+    bookmarks.length === 0 ? h21("div", { className: "mv-none" }, t2("bookmarks.empty")) : bookmarks.map(
+      (item) => h21(
         "div",
         { key: item.id, className: "mv-bookmark" },
-        h18(
+        h21(
           "div",
           { className: "mv-layer" },
-          h18("button", { type: "button", className: "name mv-bookmark-name", title: t2("bookmarks.flyHint"), onClick: () => onFlyView(item.view) }, item.name),
-          h18("button", { type: "button", className: "mv-icon-btn", title: t2("bookmarks.remove"), "aria-label": t2("bookmarks.remove"), onClick: () => remove(item.id) }, "✕")
+          h21("button", { type: "button", className: "name mv-bookmark-name", title: t2("bookmarks.flyHint"), onClick: () => onFlyView(item.view) }, item.name),
+          h21("button", { type: "button", className: "mv-icon-btn", title: t2("bookmarks.remove"), "aria-label": t2("bookmarks.remove"), onClick: () => remove(item.id) }, "✕")
         ),
-        h18("input", {
+        h21("input", {
           className: "mv-caption",
           value: item.caption ?? "",
           placeholder: t2("bookmarks.captionPlaceholder"),
@@ -14994,28 +16075,28 @@ function ToolsBookmarks({ t: t2, getCurrentView, onFlyView, onStartTour }) {
 }
 
 // src/client/ui/selection-tool.js
-var import_react22 = __toESM(require("react"), 1);
+var import_react25 = __toESM(require("react"), 1);
 
 // src/client/ui/selection-question.js
-var import_react21 = __toESM(require("react"), 1);
-var h19 = import_react21.default.createElement;
+var import_react24 = __toESM(require("react"), 1);
+var h22 = import_react24.default.createElement;
 function SelectionQuestion({ selection, t: t2, onAskSelection, showToast }) {
-  const [open, setOpen] = import_react21.default.useState(true);
-  const [question, setQuestion] = import_react21.default.useState("");
-  const [includeImage, setIncludeImage] = import_react21.default.useState(Boolean(selection.frame?.image));
-  const [status, setStatus] = import_react21.default.useState("idle");
-  const [error, setError] = import_react21.default.useState("");
-  const inputRef = import_react21.default.useRef(null);
-  const requestRef = import_react21.default.useRef(null);
-  const busyRef = import_react21.default.useRef(false);
-  const aliveRef = import_react21.default.useRef(true);
-  import_react21.default.useEffect(() => {
+  const [open, setOpen] = import_react24.default.useState(true);
+  const [question, setQuestion] = import_react24.default.useState("");
+  const [includeImage, setIncludeImage] = import_react24.default.useState(Boolean(selection.frame?.image));
+  const [status, setStatus] = import_react24.default.useState("idle");
+  const [error, setError] = import_react24.default.useState("");
+  const inputRef = import_react24.default.useRef(null);
+  const requestRef = import_react24.default.useRef(null);
+  const busyRef = import_react24.default.useRef(false);
+  const aliveRef = import_react24.default.useRef(true);
+  import_react24.default.useEffect(() => {
     aliveRef.current = true;
     return () => {
       aliveRef.current = false;
     };
   }, []);
-  import_react21.default.useEffect(() => {
+  import_react24.default.useEffect(() => {
     if (open) {
       inputRef.current?.scrollIntoView?.({ block: "nearest", behavior: "auto" });
     }
@@ -15062,25 +16143,25 @@ ${JSON.stringify(selectionQuestionContext(selection))}`);
       showToast?.(t2("selection.copyFailed"));
     }
   };
-  if (!open) return h19("button", { type: "button", className: "mv-cta primary", onClick: () => setOpen(true) }, t2("question.open"));
+  if (!open) return h22("button", { type: "button", className: "mv-cta primary", onClick: () => setOpen(true) }, t2("question.open"));
   const sending = status === "sending";
   const noContext = selection.kind === "screen" && (!includeImage || !selection.frame?.image);
-  return h19(
+  return h22(
     "form",
     { className: "mv-selection-question", onSubmit: submit, "aria-label": t2("question.title"), "aria-busy": sending },
-    h19(
+    h22(
       "div",
       { className: "mv-question-head" },
-      h19("strong", null, t2("question.title")),
-      h19("button", { type: "button", className: "mv-icon-btn", disabled: sending, "aria-label": t2("question.close"), onClick: () => setOpen(false) }, "✕")
+      h22("strong", null, t2("question.title")),
+      h22("button", { type: "button", className: "mv-icon-btn", disabled: sending, "aria-label": t2("question.close"), onClick: () => setOpen(false) }, "✕")
     ),
-    h19("p", { className: "mv-question-note" }, t2("question.hint")),
-    selection.frame?.image ? h19("img", { className: "mv-question-preview", src: selection.frame.image, alt: t2("question.imageAlt") }) : h19("p", { className: "mv-question-note" }, t2(selection.kind === "screen" ? "question.error.screen_requires_image" : "question.noImage")),
-    h19(
+    h22("p", { className: "mv-question-note" }, t2("question.hint")),
+    selection.frame?.image ? h22("img", { className: "mv-question-preview", src: selection.frame.image, alt: t2("question.imageAlt") }) : h22("p", { className: "mv-question-note" }, t2(selection.kind === "screen" ? "question.error.screen_requires_image" : "question.noImage")),
+    h22(
       "label",
       { className: "mv-question-label" },
       t2("question.label"),
-      h19("textarea", {
+      h22("textarea", {
         ref: inputRef,
         value: question,
         rows: 3,
@@ -15093,7 +16174,7 @@ ${JSON.stringify(selectionQuestionContext(selection))}`);
         }
       })
     ),
-    h19("div", { className: "mv-question-prompts" }, ...["describe", "compare", "next"].map((key) => h19("button", {
+    h22("div", { className: "mv-question-prompts" }, ...["describe", "compare", "next"].map((key) => h22("button", {
       type: "button",
       key,
       disabled: sending,
@@ -15102,10 +16183,10 @@ ${JSON.stringify(selectionQuestionContext(selection))}`);
         inputRef.current?.focus?.({ preventScroll: true });
       }
     }, t2(`question.quick.${key}`)))),
-    selection.frame?.image ? h19(
+    selection.frame?.image ? h22(
       "label",
       { className: "mv-question-image" },
-      h19("input", { type: "checkbox", checked: includeImage, disabled: sending, onChange: (event) => {
+      h22("input", { type: "checkbox", checked: includeImage, disabled: sending, onChange: (event) => {
         setIncludeImage(event.target.checked);
         requestRef.current = null;
         setStatus("idle");
@@ -15113,20 +16194,20 @@ ${JSON.stringify(selectionQuestionContext(selection))}`);
       } }),
       t2("question.includeImage")
     ) : null,
-    h19(
+    h22(
       "div",
       { className: "mv-question-actions" },
-      h19("button", { type: "submit", className: "mv-cta primary", disabled: sending || status === "sent" || noContext || !question.trim() || typeof onAskSelection !== "function" }, t2(sending ? "question.sending" : "question.send")),
-      h19("button", { type: "button", className: "mv-cta", onClick: () => void copy() }, t2("question.copy"))
+      h22("button", { type: "submit", className: "mv-cta primary", disabled: sending || status === "sent" || noContext || !question.trim() || typeof onAskSelection !== "function" }, t2(sending ? "question.sending" : "question.send")),
+      h22("button", { type: "button", className: "mv-cta", onClick: () => void copy() }, t2("question.copy"))
     ),
-    status === "sent" ? h19("p", { className: "mv-question-status", role: "status" }, t2("question.sent")) : null,
-    error ? h19("p", { className: "mv-question-error", role: "alert" }, t2(`question.error.${error}`)) : null,
-    noContext && selection.frame?.image ? h19("p", { className: "mv-question-note" }, t2("question.error.screen_requires_image")) : null
+    status === "sent" ? h22("p", { className: "mv-question-status", role: "status" }, t2("question.sent")) : null,
+    error ? h22("p", { className: "mv-question-error", role: "alert" }, t2(`question.error.${error}`)) : null,
+    noContext && selection.frame?.image ? h22("p", { className: "mv-question-note" }, t2("question.error.screen_requires_image")) : null
   );
 }
 
 // src/client/ui/selection-tool.js
-var h20 = import_react22.default.createElement;
+var h23 = import_react25.default.createElement;
 function summaryText(t2, selection) {
   if (selection.kind === "screen") return t2("selection.surfaceUnavailable");
   if (selection.kind === "objects") {
@@ -15141,9 +16222,9 @@ function summaryText(t2, selection) {
   return `${t2("selection.area")}: ${area}; ${t2("selection.perimeter")}: ${perimeter}; ${t2("selection.vertices")}: ${verts}`;
 }
 function SelectionTool({ t: t2, getCesium, getViewer, showToast, runAnalysis, getTerrainActive, getOverlayRows, onRemoveOverlayRows, onActivateSelection, onAskSelection, onParseSelection }) {
-  const [selection, setSelection] = import_react22.default.useState(null);
-  const [activeMode, setActiveMode] = import_react22.default.useState(null);
-  const toolRef = import_react22.default.useRef(null);
+  const [selection, setSelection] = import_react25.default.useState(null);
+  const [activeMode, setActiveMode] = import_react25.default.useState(null);
+  const toolRef = import_react25.default.useRef(null);
   const viewer = typeof getViewer === "function" ? getViewer() : null;
   const commit = () => {
     setSelection(toolRef.current?.getSelection() ?? null);
@@ -15164,11 +16245,11 @@ function SelectionTool({ t: t2, getCesium, getViewer, showToast, runAnalysis, ge
       }
     });
   }
-  import_react22.default.useEffect(() => {
+  import_react25.default.useEffect(() => {
     setSelection(toolRef.current?.getSelection() ?? null);
     setActiveMode(toolRef.current?.isActive() ? toolRef.current?.getMode?.() ?? null : null);
   }, [viewer]);
-  import_react22.default.useEffect(() => {
+  import_react25.default.useEffect(() => {
     const session = toolRef.current;
     return () => session?.cancel();
   }, [viewer]);
@@ -15270,111 +16351,111 @@ function SelectionTool({ t: t2, getCesium, getViewer, showToast, runAnalysis, ge
   if (isObjects) {
     const rows = Array.isArray(selection.rows) ? selection.rows : [];
     stats.push(
-      h20("div", { key: "count", className: "stat" }, h20("span", null, t2("selection.objectsSelected")), h20("b", null, String(rows.length))),
+      h23("div", { key: "count", className: "stat" }, h23("span", null, t2("selection.objectsSelected")), h23("b", null, String(rows.length))),
       ...rows.slice(0, 8).map(
-        (row, index) => h20(
+        (row, index) => h23(
           "div",
           { key: `row-${index}-${row.kind}-${row.index}`, className: "stat" },
-          h20("span", null, row.label ?? `${row.kind} ${row.index + 1}`),
-          h20("b", null, row.detail ?? "")
+          h23("span", null, row.label ?? `${row.kind} ${row.index + 1}`),
+          h23("b", null, row.detail ?? "")
         )
       )
     );
   } else if (selection?.kind === "point") {
     stats.push(
-      h20("div", { key: "lon", className: "stat" }, h20("span", null, t2("selection.lon")), h20("b", null, selection.lon.toFixed(6))),
-      h20("div", { key: "lat", className: "stat" }, h20("span", null, t2("selection.lat")), h20("b", null, selection.lat.toFixed(6))),
-      h20(
+      h23("div", { key: "lon", className: "stat" }, h23("span", null, t2("selection.lon")), h23("b", null, selection.lon.toFixed(6))),
+      h23("div", { key: "lat", className: "stat" }, h23("span", null, t2("selection.lat")), h23("b", null, selection.lat.toFixed(6))),
+      h23(
         "div",
         { key: "height", className: "stat" },
-        h20("span", null, t2("selection.height")),
-        h20("b", null, selection.height === null ? "—" : formatHeight(selection.height))
+        h23("span", null, t2("selection.height")),
+        h23("b", null, selection.height === null ? "—" : formatHeight(selection.height))
       )
     );
   } else if (selection && !isScreen) {
     stats.push(
-      h20("div", { key: "area", className: "stat" }, h20("span", null, t2("selection.area")), h20("b", null, formatArea(selection.area_m2))),
-      h20("div", { key: "perimeter", className: "stat" }, h20("span", null, t2("selection.perimeter")), h20("b", null, formatDistance(selection.perimeter_m))),
-      selection.heightRange ? h20(
+      h23("div", { key: "area", className: "stat" }, h23("span", null, t2("selection.area")), h23("b", null, formatArea(selection.area_m2))),
+      h23("div", { key: "perimeter", className: "stat" }, h23("span", null, t2("selection.perimeter")), h23("b", null, formatDistance(selection.perimeter_m))),
+      selection.heightRange ? h23(
         "div",
         { key: "height", className: "stat" },
-        h20("span", null, t2("selection.heightRange")),
-        h20("b", null, `${formatHeight(selection.heightRange.min)} – ${formatHeight(selection.heightRange.max)}`)
+        h23("span", null, t2("selection.heightRange")),
+        h23("b", null, `${formatHeight(selection.heightRange.min)} – ${formatHeight(selection.heightRange.max)}`)
       ) : null,
-      h20("div", { key: "verts", className: "stat" }, h20("span", null, t2("selection.vertices")), h20("b", null, `${Math.max(0, selection.ring.length - 1)}`))
+      h23("div", { key: "verts", className: "stat" }, h23("span", null, t2("selection.vertices")), h23("b", null, `${Math.max(0, selection.ring.length - 1)}`))
     );
   }
-  return h20(
+  return h23(
     "div",
     { className: "mv-selection" },
-    h20(
+    h23(
       "div",
       { className: "mv-selection-actions mv-selection-modes" },
-      h20(
+      h23(
         "button",
         { type: "button", className: `mv-cta${activeMode === "point" ? " primary" : ""}`, "aria-pressed": activeMode === "point", onClick: () => start("point") },
         t2(activeMode === "point" ? "selection.pointActive" : "selection.point")
       ),
-      h20(
+      h23(
         "button",
         { type: "button", className: `mv-cta${activeMode === "lasso" ? " primary" : ""}`, "aria-pressed": activeMode === "lasso", onClick: () => start("lasso") },
         t2(activeMode === "lasso" ? "selection.lassoActive" : "selection.lasso")
       ),
-      h20(
+      h23(
         "button",
         { type: "button", className: `mv-cta${activeMode === "rect" ? " primary" : ""}`, "aria-pressed": activeMode === "rect", onClick: () => start("rect") },
         t2(activeMode === "rect" ? "selection.rectActive" : "selection.rect")
       ),
-      h20(
+      h23(
         "button",
         { type: "button", className: `mv-cta${activeMode === "objects" ? " primary" : ""}`, "aria-pressed": activeMode === "objects", onClick: () => start("objects") },
         t2(activeMode === "objects" ? "selection.objectsActive" : "selection.objects")
       )
     ),
-    h20(
+    h23(
       "p",
       { className: "mv-none" },
       t2(
         activeMode === "point" ? "selection.pointHint" : activeMode === "lasso" ? "selection.lassoHint" : activeMode === "objects" ? "selection.objectsHint" : activeMode === "rect" ? "selection.dragHint" : "selection.hint"
       )
     ),
-    selection ? h20(
-      import_react22.default.Fragment,
+    selection ? h23(
+      import_react25.default.Fragment,
       null,
-      h20(SelectionQuestion, { key: `${selection.created_at}-${selection.kind}`, selection, t: t2, onAskSelection, showToast }),
+      h23(SelectionQuestion, { key: `${selection.created_at}-${selection.kind}`, selection, t: t2, onAskSelection, showToast }),
       ...stats,
-      selection.approximate && !isScreen ? h20("p", { key: "approx", className: "mv-none" }, t2(selection.kind === "vision" ? "vision.selectionApproximate" : selection.source === "screen-visible-surface" ? "selection.surfaceApproximate" : "selection.approximate")) : null,
-      selection.complete ? null : h20("p", { key: "partial", className: "mv-none" }, t2(isScreen ? "selection.surfaceUnavailable" : "selection.partial")),
-      isScreen ? null : isObjects ? h20(
+      selection.approximate && !isScreen ? h23("p", { key: "approx", className: "mv-none" }, t2(selection.kind === "vision" ? "vision.selectionApproximate" : selection.source === "screen-visible-surface" ? "selection.surfaceApproximate" : "selection.approximate")) : null,
+      selection.complete ? null : h23("p", { key: "partial", className: "mv-none" }, t2(isScreen ? "selection.surfaceUnavailable" : "selection.partial")),
+      isScreen ? null : isObjects ? h23(
         "div",
         { className: "mv-selection-actions" },
-        h20("button", { type: "button", className: "mv-cta", onClick: removeObjects }, t2("selection.objectsRemove")),
-        h20("button", { type: "button", className: "mv-cta", onClick: exportObjects }, t2("selection.objectsExport")),
-        h20("button", { type: "button", className: "mv-cta", onClick: copySummary }, t2("selection.objectsCopy"))
-      ) : isPoint ? h20(
+        h23("button", { type: "button", className: "mv-cta", onClick: removeObjects }, t2("selection.objectsRemove")),
+        h23("button", { type: "button", className: "mv-cta", onClick: exportObjects }, t2("selection.objectsExport")),
+        h23("button", { type: "button", className: "mv-cta", onClick: copySummary }, t2("selection.objectsCopy"))
+      ) : isPoint ? h23(
         "div",
         { className: "mv-selection-actions" },
-        h20("button", { type: "button", className: "mv-cta", onClick: () => void skyline() }, t2("selection.skyline")),
-        h20("button", { type: "button", className: "mv-cta", onClick: exportGeoJSON }, t2("selection.export"))
-      ) : h20(
+        h23("button", { type: "button", className: "mv-cta", onClick: () => void skyline() }, t2("selection.skyline")),
+        h23("button", { type: "button", className: "mv-cta", onClick: exportGeoJSON }, t2("selection.export"))
+      ) : h23(
         "div",
         { className: "mv-selection-actions" },
-        typeof onParseSelection === "function" ? h20("button", { type: "button", className: "mv-cta", title: t2("selection.parseAoiHint"), onClick: () => onParseSelection(selection) }, t2("selection.parseAoi")) : null,
-        h20("button", { type: "button", className: "mv-cta", title: t2("selection.floodBounds"), onClick: () => void flood() }, t2("selection.flood")),
-        h20("button", { type: "button", className: "mv-cta", onClick: exportGeoJSON }, t2("selection.export"))
+        typeof onParseSelection === "function" ? h23("button", { type: "button", className: "mv-cta", title: t2("selection.parseAoiHint"), onClick: () => onParseSelection(selection) }, t2("selection.parseAoi")) : null,
+        h23("button", { type: "button", className: "mv-cta", title: t2("selection.floodBounds"), onClick: () => void flood() }, t2("selection.flood")),
+        h23("button", { type: "button", className: "mv-cta", onClick: exportGeoJSON }, t2("selection.export"))
       ),
-      h20(
+      h23(
         "div",
         { className: "mv-selection-actions" },
-        isObjects ? null : h20("button", { type: "button", className: "mv-cta", onClick: copySummary }, t2("selection.copy")),
-        h20("button", { type: "button", className: "mv-cta", onClick: clear }, t2("selection.clear"))
+        isObjects ? null : h23("button", { type: "button", className: "mv-cta", onClick: copySummary }, t2("selection.copy")),
+        h23("button", { type: "button", className: "mv-cta", onClick: clear }, t2("selection.clear"))
       )
     ) : null
   );
 }
 
 // src/client/ui/parse-review.js
-var import_react23 = __toESM(require("react"), 1);
+var import_react26 = __toESM(require("react"), 1);
 
 // src/client/scene/vision-geometry.js
 var visionError = (code) => Object.assign(new Error(code), { code });
@@ -15983,8 +17064,8 @@ function extractFeatureMetadataAtAnchor(frame, center) {
     if (name === null && BATCH_NAME_KEYS.has(key) && typeof rawValue === "string" && rawValue.trim() !== "") {
       name = rawValue.trim().slice(0, 80);
     } else if (heightM === null && BATCH_HEIGHT_KEYS.has(key)) {
-      const h36 = parsePositiveNumber(rawValue, 2e3);
-      if (h36 !== null) heightM = round12(h36);
+      const h37 = parsePositiveNumber(rawValue, 2e3);
+      if (h37 !== null) heightM = round12(h37);
     } else if (floors === null && BATCH_FLOOR_KEYS.has(key)) {
       const f = parsePositiveNumber(rawValue, 300);
       if (f !== null) floors = Math.max(1, Math.round(f));
@@ -16340,7 +17421,7 @@ function batchFeatureCollection(features, name) {
 }
 
 // src/client/ui/parse-review.js
-var h21 = import_react23.default.createElement;
+var h24 = import_react26.default.createElement;
 function candidateMetricText(properties, t2) {
   const parts = [];
   const height = properties?.height_m;
@@ -16365,27 +17446,27 @@ function confidenceText(t2, value) {
   return typeof value === "number" && Number.isFinite(value) ? t2("parse.confidence", { n: Math.round(value * 100) }) : t2("parse.confidenceUnknown");
 }
 function ParseBody({ t: t2, getCesium, getViewer, getLayers, showToast, onAdoptParse, openRequest, getSelection }) {
-  const [stage, setStage] = import_react23.default.useState(null);
-  const [scope, setScope] = import_react23.default.useState(() => (openRequest?.aoiSeq ?? 0) > 0 ? "aoi" : "view");
-  const [parsedScope, setParsedScope] = import_react23.default.useState("view");
-  const [candidates, setCandidates] = import_react23.default.useState([]);
-  const [selected, setSelected] = import_react23.default.useState(() => /* @__PURE__ */ new Set());
-  const [filter, setFilter] = import_react23.default.useState("all");
-  const [sortBy, setSortBy] = import_react23.default.useState("default");
-  const [extrude3d, setExtrude3d] = import_react23.default.useState(true);
-  const [skipped, setSkipped] = import_react23.default.useState(0);
-  const [error, setError] = import_react23.default.useState(null);
-  const previewRef = import_react23.default.useRef([]);
-  const aliveRef = import_react23.default.useRef(true);
-  const lastAoiSeqRef = import_react23.default.useRef(openRequest?.aoiSeq ?? 0);
-  import_react23.default.useEffect(() => {
+  const [stage, setStage] = import_react26.default.useState(null);
+  const [scope, setScope] = import_react26.default.useState(() => (openRequest?.aoiSeq ?? 0) > 0 ? "aoi" : "view");
+  const [parsedScope, setParsedScope] = import_react26.default.useState("view");
+  const [candidates, setCandidates] = import_react26.default.useState([]);
+  const [selected, setSelected] = import_react26.default.useState(() => /* @__PURE__ */ new Set());
+  const [filter, setFilter] = import_react26.default.useState("all");
+  const [sortBy, setSortBy] = import_react26.default.useState("default");
+  const [extrude3d, setExtrude3d] = import_react26.default.useState(true);
+  const [skipped, setSkipped] = import_react26.default.useState(0);
+  const [error, setError] = import_react26.default.useState(null);
+  const previewRef = import_react26.default.useRef([]);
+  const aliveRef = import_react26.default.useRef(true);
+  const lastAoiSeqRef = import_react26.default.useRef(openRequest?.aoiSeq ?? 0);
+  import_react26.default.useEffect(() => {
     const seq = openRequest?.aoiSeq ?? 0;
     if (seq > 0 && seq !== lastAoiSeqRef.current) {
       lastAoiSeqRef.current = seq;
       setScope("aoi");
     }
   }, [openRequest?.aoiSeq]);
-  import_react23.default.useEffect(() => () => {
+  import_react26.default.useEffect(() => () => {
     aliveRef.current = false;
     clearBatchPreview(getViewer(), previewRef.current);
   }, []);
@@ -16515,13 +17596,13 @@ function ParseBody({ t: t2, getCesium, getViewer, getLayers, showToast, onAdoptP
     const list = selectedBuildings.length > 0 ? selectedBuildings : filterBatchFeatures(candidates, "building");
     adoptFeatures(list, t2("parse.buildingsLayerName"));
   };
-  return h21(
+  return h24(
     "div",
     { className: "mv-parse" },
-    h21(
+    h24(
       "div",
       { className: "mv-parse-scope" },
-      h21(
+      h24(
         "button",
         {
           type: "button",
@@ -16532,7 +17613,7 @@ function ParseBody({ t: t2, getCesium, getViewer, getLayers, showToast, onAdoptP
         },
         t2("parse.scopeView")
       ),
-      h21(
+      h24(
         "button",
         {
           type: "button",
@@ -16545,47 +17626,47 @@ function ParseBody({ t: t2, getCesium, getViewer, getLayers, showToast, onAdoptP
         t2("parse.scopeAoi")
       )
     ),
-    !aoiReady && candidates.length === 0 ? h21("p", { className: "mv-none" }, t2("parse.scopeAoiNone")) : null,
-    h21(
+    !aoiReady && candidates.length === 0 ? h24("p", { className: "mv-none" }, t2("parse.scopeAoiNone")) : null,
+    h24(
       "div",
       { className: "mv-tool-grid" },
-      h21(
+      h24(
         "button",
         { type: "button", className: "mv-cta", disabled: bus, onClick: parse },
         bus ? t2("parse.running", { stage: stageText }) : t2("parse.run")
       ),
-      candidates.length > 0 ? h21("button", { type: "button", className: "mv-cta", onClick: resetPreview }, t2("parse.clear")) : null
+      candidates.length > 0 ? h24("button", { type: "button", className: "mv-cta", onClick: resetPreview }, t2("parse.clear")) : null
     ),
-    error ? h21("p", { className: "mv-warn" }, t2("parse.failed", { reason: errorText(t2, error) })) : null,
-    candidates.length > 0 ? h21(
-      import_react23.default.Fragment,
+    error ? h24("p", { className: "mv-warn" }, t2("parse.failed", { reason: errorText(t2, error) })) : null,
+    candidates.length > 0 ? h24(
+      import_react26.default.Fragment,
       null,
-      h21(
+      h24(
         "div",
         { className: "mv-parse-head" },
-        h21("span", { className: "mv-parse-count" }, t2("parse.candidates", { n: candidates.length })),
-        parsedScope === "aoi" ? h21("span", { className: "mv-parse-aoi-tag" }, t2("parse.aoiTag")) : null,
-        h21("span", { className: "mv-parse-selected" }, t2("parse.selected", { n: selected.size, total: candidates.length }))
+        h24("span", { className: "mv-parse-count" }, t2("parse.candidates", { n: candidates.length })),
+        parsedScope === "aoi" ? h24("span", { className: "mv-parse-aoi-tag" }, t2("parse.aoiTag")) : null,
+        h24("span", { className: "mv-parse-selected" }, t2("parse.selected", { n: selected.size, total: candidates.length }))
       ),
-      h21(
+      h24(
         "div",
         { className: "mv-parse-controls" },
-        h21(
+        h24(
           "div",
           { className: "mv-parse-filters" },
-          h21(
+          h24(
             "button",
             { type: "button", className: `mv-parse-filter${filter === "all" ? " on" : ""}`, "aria-pressed": filter === "all", onClick: () => changeFilter("all") },
             t2("parse.filterAll", { n: candidates.length })
           ),
-          buildingCount > 0 ? h21(
+          buildingCount > 0 ? h24(
             "button",
             { type: "button", className: `mv-parse-filter${filter === "building" ? " on" : ""}`, "aria-pressed": filter === "building", onClick: () => changeFilter("building") },
-            h21("span", { className: "mv-parse-dot", "aria-hidden": true, style: { background: parseClassColor("building").hex } }),
+            h24("span", { className: "mv-parse-dot", "aria-hidden": true, style: { background: parseClassColor("building").hex } }),
             t2("parse.filterBuildings", { n: buildingCount })
           ) : null,
           ...extraClasses.map(
-            (kind) => h21(
+            (kind) => h24(
               "button",
               {
                 key: kind,
@@ -16594,16 +17675,16 @@ function ParseBody({ t: t2, getCesium, getViewer, getLayers, showToast, onAdoptP
                 "aria-pressed": filter === kind,
                 onClick: () => changeFilter(kind)
               },
-              h21("span", { className: "mv-parse-dot", "aria-hidden": true, style: { background: parseClassColor(kind).hex } }),
+              h24("span", { className: "mv-parse-dot", "aria-hidden": true, style: { background: parseClassColor(kind).hex } }),
               t2("parse.filterClass", { label: t2(`parse.class.${kind}`), n: counts[kind] })
             )
           )
         ),
-        h21(
+        h24(
           "div",
           { className: "mv-parse-sort" },
           ...["default", "height", "area"].map(
-            (mode) => h21(
+            (mode) => h24(
               "button",
               {
                 key: mode,
@@ -16616,15 +17697,15 @@ function ParseBody({ t: t2, getCesium, getViewer, getLayers, showToast, onAdoptP
             )
           )
         ),
-        h21(
+        h24(
           "label",
           { className: "mv-parse-toggle" },
-          h21("input", { type: "checkbox", checked: extrude3d, onChange: toggleExtrude }),
-          h21("span", null, t2("parse.extrude3d"))
+          h24("input", { type: "checkbox", checked: extrude3d, onChange: toggleExtrude }),
+          h24("span", null, t2("parse.extrude3d"))
         )
       ),
-      skipped > 0 ? h21("p", { className: "mv-none" }, t2("parse.skipped", { n: skipped })) : null,
-      h21(
+      skipped > 0 ? h24("p", { className: "mv-none" }, t2("parse.skipped", { n: skipped })) : null,
+      h24(
         "div",
         { className: "mv-parse-list" },
         ...visibleEntries.map(({ feature, index }) => {
@@ -16632,50 +17713,50 @@ function ParseBody({ t: t2, getCesium, getViewer, getLayers, showToast, onAdoptP
           const kind = props.class ?? "other";
           const color = parseClassColor(kind, props.style);
           const metrics = candidateMetricText(props, t2);
-          return h21(
+          return h24(
             "label",
             { key: `${index}-${props.name ?? index}`, className: `mv-parse-row${selected.has(index) ? " on" : ""}` },
-            h21("input", {
+            h24("input", {
               type: "checkbox",
               checked: selected.has(index),
               onChange: () => toggle(index)
             }),
-            h21("span", { className: "mv-parse-dot", "aria-hidden": true, style: { background: color.hex } }),
-            h21("span", { className: "mv-parse-class" }, t2(`parse.class.${kind}`)),
-            h21("span", { className: "mv-parse-name" }, props.name ?? ""),
-            metrics !== "" ? h21("span", { className: "mv-parse-metrics" }, metrics) : null,
-            h21("span", { className: "mv-parse-conf" }, confidenceText(t2, props.confidence))
+            h24("span", { className: "mv-parse-dot", "aria-hidden": true, style: { background: color.hex } }),
+            h24("span", { className: "mv-parse-class" }, t2(`parse.class.${kind}`)),
+            h24("span", { className: "mv-parse-name" }, props.name ?? ""),
+            metrics !== "" ? h24("span", { className: "mv-parse-metrics" }, metrics) : null,
+            h24("span", { className: "mv-parse-conf" }, confidenceText(t2, props.confidence))
           );
         })
       ),
-      h21(
+      h24(
         "div",
         { className: "mv-actions" },
-        buildingCount > 0 ? h21("button", { type: "button", className: "mv-cta primary", onClick: adoptBuildings }, t2("parse.adoptBuildings", { n: selectedBuildings.length > 0 ? selectedBuildings.length : buildingCount })) : null,
-        h21("button", { type: "button", className: "mv-cta", onClick: () => adopt(new Set(candidates.map((_, index) => index))) }, t2("parse.adoptAll")),
-        h21("button", { type: "button", className: "mv-btn", onClick: () => adopt(selected) }, t2("parse.adoptSelected"))
+        buildingCount > 0 ? h24("button", { type: "button", className: "mv-cta primary", onClick: adoptBuildings }, t2("parse.adoptBuildings", { n: selectedBuildings.length > 0 ? selectedBuildings.length : buildingCount })) : null,
+        h24("button", { type: "button", className: "mv-cta", onClick: () => adopt(new Set(candidates.map((_, index) => index))) }, t2("parse.adoptAll")),
+        h24("button", { type: "button", className: "mv-btn", onClick: () => adopt(selected) }, t2("parse.adoptSelected"))
       )
-    ) : h21("p", { className: "mv-none" }, t2("parse.empty")),
-    h21("p", { className: "mv-none" }, t2("parse.hint"))
+    ) : h24("p", { className: "mv-none" }, t2("parse.empty")),
+    h24("p", { className: "mv-none" }, t2("parse.hint"))
   );
 }
 
 // src/client/ui/tool-windows.js
-var h22 = import_react24.default.createElement;
+var h25 = import_react27.default.createElement;
 var MEASURE_TOOLS = [
   ["distance", "tool.distance"],
   ["area", "tool.area"],
   ["height", "tool.height"]
 ];
-function MeasureBody({ t: t2, tool, onStartTool, onClearMeasure }) {
-  return h22(
-    import_react24.default.Fragment,
+function MeasureBody({ t: t2, tool, onStartTool, onClearMeasure, onStartProfile }) {
+  return h25(
+    import_react27.default.Fragment,
     null,
-    h22(
+    h25(
       "div",
       { className: "mv-tool-grid" },
       ...MEASURE_TOOLS.map(
-        ([mode, labelKey]) => h22(
+        ([mode, labelKey]) => h25(
           "button",
           {
             key: mode,
@@ -16686,10 +17767,21 @@ function MeasureBody({ t: t2, tool, onStartTool, onClearMeasure }) {
           },
           t2(labelKey)
         )
-      )
+      ),
+      typeof onStartProfile === "function" ? h25(
+        "button",
+        {
+          key: "profile-shortcut",
+          type: "button",
+          className: `mv-cta${tool === "profile" ? " primary" : ""}`,
+          "aria-pressed": tool === "profile",
+          onClick: () => onStartProfile()
+        },
+        t2("profile.draw")
+      ) : null
     ),
-    h22("button", { type: "button", className: "mv-cta", onClick: onClearMeasure }, t2("tool.clear")),
-    h22("p", { className: "mv-none" }, t2("tools.measureHint"))
+    h25("button", { type: "button", className: "mv-cta", onClick: onClearMeasure }, t2("tool.clear")),
+    h25("p", { className: "mv-none" }, t2("tools.measureHint"))
   );
 }
 function SelectBody({
@@ -16706,72 +17798,77 @@ function SelectBody({
   onParseSelection,
   onVisionSelect
 }) {
-  return h22(
-    import_react24.default.Fragment,
+  return h25(
+    import_react27.default.Fragment,
     null,
-    h22(SelectionTool, { t: t2, getCesium, getViewer, showToast, runAnalysis, getTerrainActive, getOverlayRows, onRemoveOverlayRows, onActivateSelection, onAskSelection, onParseSelection }),
-    typeof onVisionSelect === "function" ? h22("button", { type: "button", className: "mv-cta", title: t2("vision.actionHint"), onClick: onVisionSelect }, t2("vision.title")) : null,
+    h25(SelectionTool, { t: t2, getCesium, getViewer, showToast, runAnalysis, getTerrainActive, getOverlayRows, onRemoveOverlayRows, onActivateSelection, onAskSelection, onParseSelection }),
+    typeof onVisionSelect === "function" ? h25("button", { type: "button", className: "mv-cta", title: t2("vision.actionHint"), onClick: onVisionSelect }, t2("vision.title")) : null,
     // Ask Agent lives in the top toolbar only: one entry point for "hand the view
     // to the conversation", instead of a second one hiding inside the toolbox.
-    h22("p", { className: "mv-none" }, t2("tools.selectHint"))
+    h25("p", { className: "mv-none" }, t2("tools.selectHint"))
   );
 }
 function AnalysisBody({ t: t2, analysis, onStartProfile, onClearAnalysis, getCesium, getViewer, getLayers }) {
-  const [source, setSource] = import_react24.default.useState("tiles");
-  const [samples, setSamples] = import_react24.default.useState(32);
-  return h22(
-    import_react24.default.Fragment,
+  const [source, setSource] = import_react27.default.useState("tiles");
+  const [samples, setSamples] = import_react27.default.useState("auto");
+  return h25(
+    import_react27.default.Fragment,
     null,
-    h22("button", { type: "button", className: "mv-cta primary", onClick: () => onStartProfile({ source, samples }) }, t2("profile.draw")),
-    h22("p", { className: "mv-none" }, t2("profile.subtitle")),
-    h22(
+    h25("button", { type: "button", className: "mv-cta primary", onClick: () => onStartProfile({ source, samples: samples === "auto" ? void 0 : samples }) }, t2("profile.draw")),
+    h25("p", { className: "mv-none" }, t2("profile.subtitle")),
+    h25(
       "div",
       { className: "mv-profile-opts" },
-      h22(
+      h25(
         "label",
         { className: "mv-profile-opt" },
-        h22("span", null, t2("profile.sourceLabel")),
-        h22(
+        h25("span", null, t2("profile.sourceLabel")),
+        h25(
           "select",
           {
             value: source,
             "aria-label": t2("profile.sourceLabel"),
             onChange: (event) => setSource(event.target.value)
           },
-          h22("option", { value: "tiles" }, t2("profile.sourceTiles")),
-          h22("option", { value: "terrain" }, t2("profile.sourceTerrain"))
+          h25("option", { value: "tiles" }, t2("profile.sourceTiles")),
+          h25("option", { value: "terrain" }, t2("profile.sourceTerrain"))
         )
       ),
-      h22(
+      h25(
         "label",
         { className: "mv-profile-opt" },
-        h22("span", null, t2("profile.samplesLabel")),
-        h22(
+        h25("span", null, t2("profile.samplesLabel")),
+        h25(
           "select",
           {
             value: String(samples),
             "aria-label": t2("profile.samplesLabel"),
-            onChange: (event) => setSamples(Number(event.target.value) || 32)
+            onChange: (event) => {
+              const value = event.target.value;
+              setSamples(value === "auto" ? "auto" : Number(value) || "auto");
+            }
           },
-          h22("option", { value: "16" }, t2("profile.samplesOption", { n: 16 })),
-          h22("option", { value: "32" }, t2("profile.samplesOption", { n: 32 })),
-          h22("option", { value: "64" }, t2("profile.samplesOption", { n: 64 }))
+          h25("option", { value: "auto" }, t2("profile.samplesAuto")),
+          h25("option", { value: "64" }, t2("profile.samplesOption", { n: 64 })),
+          h25("option", { value: "128" }, t2("profile.samplesOption", { n: 128 })),
+          h25("option", { value: "256" }, t2("profile.samplesOption", { n: 256 })),
+          h25("option", { value: "512" }, t2("profile.samplesOption", { n: 512 }))
         )
       )
     ),
-    analysis ? h22(
+    analysis ? h25(
       "div",
       { className: "mv-layer" },
-      h22(
+      h25(
         "span",
         { className: "name" },
         `${typeof analysis.operation === "string" && analysis.operation !== "" ? t2(`analysis.title.${analysis.operation}`) : t2("layers.analysis")}${typeof analysis.layerName === "string" && analysis.layerName !== "" ? ` · ${analysis.layerName}` : ""}`
       ),
-      h22("button", { type: "button", className: "mv-icon-btn", title: t2("layers.analysisClear"), "aria-label": t2("layers.analysisClear"), onClick: onClearAnalysis }, "✕")
+      h25("button", { type: "button", className: "mv-icon-btn", title: t2("layers.analysisClear"), "aria-label": t2("layers.analysisClear"), onClick: onClearAnalysis }, "✕")
     ) : null,
-    h22("p", { className: "mv-none" }, t2("tools.analysisHint")),
-    h22("div", { className: "mv-group-title" }, t2("tools.sun")),
-    h22(SunTimeline, { t: t2, getCesium, getViewer, getLayers, onBeforeEnable: onClearAnalysis, active: true })
+    h25("p", { className: "mv-none" }, t2("tools.analysisHint")),
+    h25("div", { className: "mv-group-title" }, t2("tools.sun")),
+    h25(SunTimeline, { t: t2, getCesium, getViewer, getLayers, onBeforeEnable: onClearAnalysis, active: true })
   );
 }
 function EffectsBody({ t: t2, shaderActive, onOpenShader, onResetAllShaders }) {
@@ -16786,43 +17883,43 @@ function EffectsBody({ t: t2, shaderActive, onOpenShader, onResetAllShaders }) {
       return translated && translated !== key ? translated : String(item);
     }).join(" + ");
   };
-  return h22(
-    import_react24.default.Fragment,
+  return h25(
+    import_react27.default.Fragment,
     null,
-    list.length > 0 && typeof onResetAllShaders === "function" ? h22(
+    list.length > 0 && typeof onResetAllShaders === "function" ? h25(
       "div",
       { className: "mv-tool-grid" },
-      h22("button", { type: "button", className: "mv-cta primary", onClick: onOpenShader }, t2("btn.shaderShow")),
-      h22("button", { type: "button", className: "mv-cta", onClick: onResetAllShaders }, t2("shader.resetAll"))
-    ) : h22("button", { type: "button", className: "mv-cta primary", onClick: onOpenShader }, t2("btn.shaderShow")),
-    list.length > 0 ? h22(
+      h25("button", { type: "button", className: "mv-cta primary", onClick: onOpenShader }, t2("btn.shaderShow")),
+      h25("button", { type: "button", className: "mv-cta", onClick: onResetAllShaders }, t2("shader.resetAll"))
+    ) : h25("button", { type: "button", className: "mv-cta primary", onClick: onOpenShader }, t2("btn.shaderShow")),
+    list.length > 0 ? h25(
       "div",
       { className: "mv-tool-effects-list" },
       ...list.slice(0, 6).map(
-        (entry) => h22(
+        (entry) => h25(
           "div",
           { key: entry.layerId ?? entry.layer, className: "mv-layer has-shader" },
-          h22("span", { className: "name", title: entry.layer }, entry.layer),
-          h22("span", { className: "mv-tools-active-pill" }, formatEffect(entry))
+          h25("span", { className: "name", title: entry.layer }, entry.layer),
+          h25("span", { className: "mv-tools-active-pill" }, formatEffect(entry))
         )
       )
     ) : null,
-    h22("p", { className: "mv-none" }, list.length > 0 ? t2("tools.effectsActive", { n: list.length }) : t2("tools.effectsEmpty"))
+    h25("p", { className: "mv-none" }, list.length > 0 ? t2("tools.effectsActive", { n: list.length }) : t2("tools.effectsEmpty"))
   );
 }
 function ViewBody({ t: t2, getCurrentView, onFlyView, onStartTour }) {
-  return h22(ToolsBookmarks, { t: t2, getCurrentView, onFlyView, onStartTour });
+  return h25(ToolsBookmarks, { t: t2, getCurrentView, onFlyView, onStartTour });
 }
 function AnnotationBody({ t: t2, onStartAnnotation }) {
-  const [style, setStyle] = import_react24.default.useState("accent");
-  return h22(
-    import_react24.default.Fragment,
+  const [style, setStyle] = import_react27.default.useState("accent");
+  return h25(
+    import_react27.default.Fragment,
     null,
-    h22(
+    h25(
       "div",
       { className: "mv-tool-grid" },
       ...["point", "line", "area", "note"].map(
-        (kind) => h22(
+        (kind) => h25(
           "button",
           {
             key: kind,
@@ -16834,15 +17931,15 @@ function AnnotationBody({ t: t2, onStartAnnotation }) {
         )
       )
     ),
-    h22(
+    h25(
       "div",
       { className: "mv-anno-palette", role: "radiogroup", "aria-label": t2("annotation.styleLabel") },
-      h22("span", { className: "mv-anno-palette-label" }, t2("annotation.styleLabel")),
-      h22(
+      h25("span", { className: "mv-anno-palette-label" }, t2("annotation.styleLabel")),
+      h25(
         "div",
         { className: "mv-swatch-row" },
         ...ANNOTATION_STYLES.map(
-          (preset) => h22("button", {
+          (preset) => h25("button", {
             key: preset,
             type: "button",
             className: `mv-swatch${style === preset ? " on" : ""}`,
@@ -16856,285 +17953,46 @@ function AnnotationBody({ t: t2, onStartAnnotation }) {
         )
       )
     ),
-    h22("p", { className: "mv-none" }, t2("annotation.drawHint"))
+    h25("p", { className: "mv-none" }, t2("annotation.drawHint"))
   );
 }
 function ToolBody({ entryId, ...rest }) {
-  if (entryId === "measure") return h22(MeasureBody, rest);
-  if (entryId === "select") return h22(SelectBody, rest);
-  if (entryId === "annotation") return h22(AnnotationBody, rest);
-  if (entryId === "parse") return h22(ParseBody, rest);
-  if (entryId === "analysis") return h22(AnalysisBody, rest);
-  if (entryId === "effects") return h22(EffectsBody, rest);
-  if (entryId === "view") return h22(ViewBody, rest);
+  if (entryId === "measure") return h25(MeasureBody, rest);
+  if (entryId === "select") return h25(SelectBody, rest);
+  if (entryId === "annotation") return h25(AnnotationBody, rest);
+  if (entryId === "parse") return h25(ParseBody, rest);
+  if (entryId === "analysis") return h25(AnalysisBody, rest);
+  if (entryId === "effects") return h25(EffectsBody, rest);
+  if (entryId === "view") return h25(ViewBody, rest);
   return null;
 }
 
-// src/client/ui/tool-window.js
-var import_react25 = __toESM(require("react"), 1);
-var h23 = import_react25.default.createElement;
-function ToolWindow({
-  t: t2,
-  entry,
-  minimized = false,
-  expanded = false,
-  onToggleMinimize,
-  onToggleExpand,
-  onClose,
-  children
-}) {
-  const resize = usePanelResize({ storageKey: "tool-window", initialHeight: 260, minHeight: 150, maxHeight: 560 });
-  if (!entry) return null;
-  const label = t2(entry.labelKey);
-  const toggleLabel = minimized ? t2("tools.windowExpand") : t2("tools.windowMinimize");
-  const zoomLabel = expanded ? t2("tools.windowRestore") : t2("tools.windowZoom");
-  const bodyStyle = minimized ? void 0 : expanded ? { ...resize.style, height: "min(480px, 60vh)", maxHeight: "none", flex: "0 0 auto" } : resize.style;
-  return h23(
-    "section",
-    {
-      className: `mv-toolwin mv-glass${minimized ? " minimized" : ""}${expanded && !minimized ? " expanded" : ""}`,
-      ref: resize.ref,
-      style: bodyStyle,
-      "aria-label": label
-    },
-    h23(
-      "header",
-      null,
-      h23(
-        "span",
-        { className: "mv-toolwin-title" },
-        h23("span", { className: "mv-toolwin-badge" }, h23(ToolEntryIcon, { kind: entry.icon, size: 14 })),
-        h23("span", null, label)
-      ),
-      h23(
-        "div",
-        { className: "mv-head-actions" },
-        typeof onToggleExpand === "function" ? h23(
-          "button",
-          {
-            type: "button",
-            className: `mv-icon-btn${expanded && !minimized ? " on" : ""}`,
-            title: zoomLabel,
-            "aria-label": zoomLabel,
-            "aria-pressed": expanded && !minimized,
-            onClick: onToggleExpand
-          },
-          expanded && !minimized ? "⤡" : "⤢"
-        ) : null,
-        h23(
-          "button",
-          {
-            type: "button",
-            className: "mv-icon-btn",
-            title: toggleLabel,
-            "aria-label": toggleLabel,
-            "aria-expanded": !minimized,
-            onClick: onToggleMinimize
-          },
-          minimized ? "▸" : "▾"
-        ),
-        h23(
-          "button",
-          {
-            type: "button",
-            className: "mv-icon-btn",
-            title: t2("tools.windowClose"),
-            "aria-label": t2("tools.windowClose"),
-            onClick: onClose
-          },
-          "✕"
-        )
-      )
-    ),
-    minimized ? null : h23("div", { className: "mv-toolwin-body" }, children),
-    minimized || expanded ? null : h23(ResizeHandle, {
-      axis: "height",
-      edge: "bottom",
-      label: t2("resize.height"),
-      value: resize.size.height,
-      onPointerDown: resize.beginHeight,
-      onKeyDown: resize.keyHeight
-    })
-  );
-}
-
-// src/client/ui/tools-panel.js
-var h24 = import_react26.default.createElement;
-function ToolsPanel({
-  t: t2,
-  tool,
-  analysis,
-  shaderActive,
-  openRequest,
-  onCollapse,
-  onStartTool,
-  onClearMeasure,
-  onStartProfile,
-  onStartAnnotation,
-  onAdoptParse,
-  onClearAnalysis,
-  onOpenShader,
-  onResetAllShaders,
-  getCesium,
-  getViewer,
-  getLayers,
-  getCurrentView,
-  onFlyView,
-  onStartTour,
-  showToast,
-  runAnalysis,
-  getTerrainActive,
-  getOverlayRows,
-  onRemoveOverlayRows,
-  onAskSelection,
-  onParseSelection,
-  onVisionSelect,
-  onActivateSelection
-}) {
-  const resize = usePanelResize({ storageKey: "tools", initialHeight: null, minHeight: 160, maxHeight: 700 });
-  const [openTool, setOpenTool] = import_react26.default.useState(null);
-  const [minimized, setMinimized] = import_react26.default.useState(false);
-  const [expanded, setExpanded] = import_react26.default.useState(false);
-  const [indexMinimized, setIndexMinimized] = import_react26.default.useState(() => readPanelFlag(TOOLS_MINIMIZED_KEY, false));
-  const entry = toolEntry(openTool);
-  import_react26.default.useEffect(() => {
-    if (!openRequest?.id || !toolEntry(openRequest.id)) return;
-    setOpenTool(openRequest.id);
-    setMinimized(false);
-    setExpanded(false);
-  }, [openRequest]);
-  const openToolById = (id) => {
-    const next = selectToolWindow({ openTool, minimized }, id);
-    setOpenTool(next.openTool);
-    setMinimized(next.minimized);
-    if (next.openTool !== openTool) setExpanded(false);
-  };
-  const toggleIndexMinimized = () => {
-    setIndexMinimized((value) => {
-      const next = !value;
-      writePanelFlag(TOOLS_MINIMIZED_KEY, next);
-      return next;
-    });
-  };
-  const row = (item) => h24(
-    "button",
-    {
-      key: item.id,
-      type: "button",
-      className: `mv-tool-entry${openTool === item.id ? " on" : ""}`,
-      "aria-pressed": openTool === item.id,
-      title: t2(item.hintKey),
-      onClick: () => openToolById(item.id)
-    },
-    h24("span", { className: "mv-tool-entry-icon" }, h24(ToolEntryIcon, { kind: item.icon })),
-    h24("span", { className: "mv-tool-entry-name" }, t2(item.labelKey)),
-    openTool === item.id ? h24("span", { className: "mv-tool-entry-dot", "aria-hidden": true }) : null
-  );
-  const bodyProps = {
-    t: t2,
-    tool,
-    analysis,
-    shaderActive,
-    onStartTool,
-    onClearMeasure,
-    onStartProfile,
-    onStartAnnotation,
-    onAdoptParse,
-    onClearAnalysis,
-    onOpenShader,
-    onResetAllShaders,
-    getCesium,
-    getViewer,
-    getLayers,
-    getCurrentView,
-    onFlyView,
-    onStartTour,
-    showToast,
-    runAnalysis,
-    getTerrainActive,
-    getOverlayRows,
-    onRemoveOverlayRows,
-    onAskSelection,
-    onParseSelection,
-    onVisionSelect,
-    onActivateSelection,
-    openRequest
-  };
-  return h24(
-    import_react26.default.Fragment,
-    null,
-    entry ? h24(
-      ToolWindow,
-      {
-        t: t2,
-        entry,
-        minimized,
-        expanded,
-        onToggleMinimize: () => setMinimized((value) => !value),
-        onToggleExpand: () => {
-          setMinimized(false);
-          setExpanded((value) => !value);
-        },
-        onClose: () => {
-          setOpenTool(null);
-          setMinimized(false);
-          setExpanded(false);
-        }
-      },
-      h24(ToolBody, { entryId: entry.id, ...bodyProps })
-    ) : null,
-    h24(
-      "div",
-      { className: `mv-tools mv-glass${indexMinimized ? " minimized" : ""}`, ref: resize.ref, style: indexMinimized ? void 0 : resize.style },
-      h24(
-        "header",
-        null,
-        h24(
-          "span",
-          { className: "mv-tools-title" },
-          h24("span", null, t2("tools.title")),
-          entry && indexMinimized ? h24("span", { className: "mv-tools-active-pill" }, t2(entry.labelKey)) : null
-        ),
-        h24(
-          "div",
-          { className: "mv-head-actions" },
-          h24(
-            "button",
-            {
-              type: "button",
-              className: "mv-icon-btn",
-              title: t2(indexMinimized ? "tools.indexExpand" : "tools.indexMinimize"),
-              "aria-label": t2(indexMinimized ? "tools.indexExpand" : "tools.indexMinimize"),
-              "aria-expanded": !indexMinimized,
-              onClick: toggleIndexMinimized
-            },
-            indexMinimized ? "▸" : "▾"
-          ),
-          h24("button", { type: "button", className: "mv-icon-btn", title: t2("tools.collapse"), "aria-label": t2("tools.collapse"), onClick: onCollapse }, "✕")
-        )
-      ),
-      indexMinimized ? null : h24("div", { className: "mv-tool-index", role: "group", "aria-label": t2("tools.index") }, ...TOOL_ENTRIES.map(row)),
-      indexMinimized ? null : h24(ResizeHandle, {
-        axis: "height",
-        edge: "bottom",
-        label: t2("resize.height"),
-        value: resize.size.height,
-        onPointerDown: resize.beginHeight,
-        onKeyDown: resize.keyHeight
-      })
-    )
-  );
-}
-
 // src/client/ui/right-stack.js
-var h25 = import_react27.default.createElement;
-function RightStack({ t: t2, analysis, onCloseAnalysis, analysisHover, onAnalysisHover, layersPanel, showLayers, toolsPanel, showTools }) {
+var h26 = import_react28.default.createElement;
+function RightStack({
+  t: t2,
+  analysis,
+  onCloseAnalysis,
+  analysisHover,
+  onAnalysisHover,
+  layersPanel,
+  showLayers,
+  toolsPanel,
+  showTools,
+  openWindows = [],
+  onSelectTool,
+  onCloseToolWindow,
+  onToggleMinimizeTool,
+  onToggleExpandTool
+}) {
   const resize = usePanelResize({ storageKey: "right-stack", initialWidth: 300, minWidth: 240, maxWidth: 720 });
-  if (!analysis && !showLayers && !showTools) return null;
-  return h25(
+  const visibleWindows = Array.isArray(openWindows) ? openWindows.filter((win) => Boolean(toolEntry(win?.id))) : [];
+  if (!analysis && !showLayers && !showTools && visibleWindows.length === 0) return null;
+  const dockEmpty = !analysis && !showLayers && !showTools;
+  return h26(
     "div",
     { className: "mv-right", ref: resize.ref, style: resize.style },
-    h25(ResizeHandle, {
+    h26(ResizeHandle, {
       axis: "width",
       edge: "left",
       label: t2("resize.width"),
@@ -17142,14 +18000,120 @@ function RightStack({ t: t2, analysis, onCloseAnalysis, analysisHover, onAnalysi
       onPointerDown: resize.beginWidth,
       onKeyDown: resize.keyWidth
     }),
-    analysis ? h25(AnalysisCard, { key: "analysis", state: analysis, t: t2, onClose: onCloseAnalysis, hoverIndex: analysisHover, onHover: onAnalysisHover }) : null,
-    showLayers ? h25(LayersPanel, { key: "layers", t: t2, ...layersPanel }) : null,
-    showTools ? h25(ToolsPanel, { key: "tools", t: t2, ...toolsPanel }) : null
+    analysis ? h26(AnalysisCard, {
+      key: "analysis",
+      state: analysis,
+      t: t2,
+      onClose: onCloseAnalysis,
+      hoverIndex: analysisHover,
+      onHover: onAnalysisHover,
+      onStartProfile: toolsPanel?.onStartProfile
+    }) : null,
+    ...visibleWindows.map((win, idx) => {
+      const entry = toolEntry(win.id);
+      return h26(
+        ToolWindow,
+        {
+          key: `win-${win.id}`,
+          t: t2,
+          entry,
+          minimized: Boolean(win.minimized),
+          expanded: Boolean(win.expanded),
+          autoFloat: true,
+          floatIndex: idx,
+          dockEmpty,
+          onToggleMinimize: () => onToggleMinimizeTool?.(win.id),
+          onToggleExpand: () => onToggleExpandTool?.(win.id),
+          onClose: () => onCloseToolWindow?.(win.id)
+        },
+        h26(ToolBody, {
+          t: t2,
+          ...toolsPanel ?? {},
+          entryId: win.id,
+          openRequest: toolsPanel?.openRequest?.id === win.id ? toolsPanel.openRequest : null
+        })
+      );
+    }),
+    showLayers ? h26(LayersPanel, { key: "layers", t: t2, ...layersPanel }) : null,
+    showTools ? h26(ToolsPanel, {
+      key: "tools",
+      t: t2,
+      ...toolsPanel ?? {},
+      openWindows: visibleWindows,
+      onSelectTool,
+      onCloseTool: onCloseToolWindow
+    }) : null
   );
 }
 
+// src/client/ui/tool-workspace.js
+var import_react29 = __toESM(require("react"), 1);
+function openWorkspaceTool(windows, id, { toggleIfOpen = false } = {}) {
+  const list = Array.isArray(windows) ? windows : [];
+  if (!toolEntry(id)) return list;
+  const existing = list.find((item) => item.id === id);
+  if (!existing) return [...list, { id, minimized: false, expanded: false }];
+  if (existing.minimized) {
+    return list.map((item) => item.id === id ? { ...item, minimized: false } : item);
+  }
+  if (toggleIfOpen) return list.filter((item) => item.id !== id);
+  return [...list.filter((item) => item.id !== id), existing];
+}
+function closeWorkspaceTool(windows, id) {
+  const list = Array.isArray(windows) ? windows : [];
+  return list.filter((item) => item.id !== id);
+}
+function toggleMinimizeWorkspaceTool(windows, id) {
+  const list = Array.isArray(windows) ? windows : [];
+  return list.map((item) => item.id === id ? { ...item, minimized: !item.minimized } : item);
+}
+function toggleExpandWorkspaceTool(windows, id) {
+  const list = Array.isArray(windows) ? windows : [];
+  return list.map(
+    (item) => item.id === id ? { ...item, expanded: !item.expanded, minimized: false } : item
+  );
+}
+function useToolWorkspace(openRequest) {
+  const [windows, setWindows] = import_react29.default.useState([]);
+  const lastSeqRef = import_react29.default.useRef(0);
+  import_react29.default.useEffect(() => {
+    const seq = openRequest?.seq ?? 0;
+    if (!openRequest?.id || seq <= lastSeqRef.current) return;
+    lastSeqRef.current = seq;
+    setWindows((prev) => openWorkspaceTool(prev, openRequest.id, { toggleIfOpen: false }));
+    focusFloatingWindow(`toolwin.${openRequest.id}`);
+  }, [openRequest?.id, openRequest?.seq]);
+  const selectTool = import_react29.default.useCallback((id) => {
+    setWindows((prev) => openWorkspaceTool(prev, id, { toggleIfOpen: true }));
+    focusFloatingWindow(`toolwin.${id}`);
+  }, []);
+  const openTool = import_react29.default.useCallback((id) => {
+    setWindows((prev) => openWorkspaceTool(prev, id, { toggleIfOpen: false }));
+    focusFloatingWindow(`toolwin.${id}`);
+  }, []);
+  const closeTool = import_react29.default.useCallback((id) => {
+    setWindows((prev) => closeWorkspaceTool(prev, id));
+  }, []);
+  const toggleMinimize = import_react29.default.useCallback((id) => {
+    setWindows((prev) => toggleMinimizeWorkspaceTool(prev, id));
+  }, []);
+  const toggleExpand = import_react29.default.useCallback((id) => {
+    setWindows((prev) => toggleExpandWorkspaceTool(prev, id));
+    focusFloatingWindow(`toolwin.${id}`);
+  }, []);
+  return {
+    windows,
+    isOpen: (id) => windows.some((item) => item.id === id),
+    selectTool,
+    openTool,
+    closeTool,
+    toggleMinimize,
+    toggleExpand
+  };
+}
+
 // src/client/ui/loading-globe.js
-var import_react28 = __toESM(require("react"), 1);
+var import_react30 = __toESM(require("react"), 1);
 
 // src/client/ui/earth-mask.js
 var EARTH_MASK = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAgAAAAEACAYAAADFkM5nAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAABUQSURBVHhe7dmLjuW2siDR8/8/PQPbt+zqSD1I8U1GAAuNm5uiKO2qds+c//3vf//7f5Ik6ThhIEmS9hcGkiRpf2EgSZL2FwaSJGl/YSBJkvYXBpIkaX9hIEmS9hcGkiRpf2EgSZL2FwaSJGl/YSBluYprJEnTCQMpWU68dga94v14DkkaIAykJCnxmhZWjc8hSZ2FgfSv3/+xuovXtNAr3leSNhYG0r/e4voWWsZ7SdJBwkD6w+//UI76j+dTXPu2/ne8TpIOEgbSEp7+A87/wF/937xGkg4TBtJ2+A8ASVIcSEv7+Q89/1/8/gNAqustrtd0wkBa2lNcK+mb0rifhggDaQtXcY10ulHxHBoiDJTJH+j53MV10qlGxDNouDBQhre4Xn0xfi6dYrZ4Pg0RBsrw1NVaztQW4+fSF6v8LO0Qn+nu+fiZkoSBMqX88L3F9Tl7t/IU185s1XNLX50c34UehYE6SonX9JASr5kZ4+fSSIyf362z+/juUuXG6xcTBuooJ17b2l1ctwLGz6VR7kpdZ8/xPf68y17vlPf+ff8JhEFTJXGvWXw925e4x8xmOu+q7/AUT3Htbu5KWWNrx5+FAcKgup7x3iUYP+cafpbi7vqnuEeq0utzMX7e21Vco7ZqxD1Xd1fKGtsv/nw0FgbVWIzvqBfGz+/krqe7uK4Xxs9VX894756+9HRdjf3Nnmr6D4C/WIzv6M3X6672YFx3dw0/y3EX17VyFdeojZHxLF+MbKaz2J49/lTxB7DU7u34nPwOSzB+XttdXKf6Zopno5mb/Xy2dv/+/wA8xV+Yr3Zut2fl89TUev8fd3Gd6pkxnnH285r1qsn/BGBr9fOd8Xus4SmubeEurlO53Equ/YlnuGNmsSb/APiLrRG/t9re4voWruKakZ7i2lnlVnr977gXmdl1zf4BQDZn/J5auoprWmL8fCTGz2f1pRp7mFl+/N3zHwCHxu+nF8bPexl57x18rdY+ZpYff/+a/wPA5orfj5TrSzX2MLPv8Xfw/4RBNTZP/G6kXF/jPiV7mVl6/L27EAbV2Dzxu2lp1H3VRmnc7+ueJdeazRR/H6gk7vUiDKqqEfdMYf/Fd9PKW1yv+dWIe37d/8s1ZrPF34E7ufH6RGHQxJe4R4mT47toITVep7mVxv2emO0ef+YnEAZNpcbrajoxvoPacuK1mldp3O+J2ezxZ3YDYdAV4+etnRSfvabceL3mVRL3umM2a/xZ3UwYHOek+Ow11Yx7a05vcf0Vsxnjz2lLV3FNI2FwpJPis9dSO+6vb1q/07u4LuUasxniz2sLb3F9I2FwtJPis5dqEe+hPFdxTam7uC7lGrOR8ee0lZR4TSNhoMQvaLf4DnK1ivdRuqu45ounuPaK2WzxZ7Slt7i+oTBQwhd0Qnwnd3rEeyrdVVyT4ymuvWI2Y/w5bekprm0sDPR/7L/4bka8J95Xf2Jvn/8V17xJ6cs1ZqPjz21LT3FtY2GgX+y/+G5meD88z6mu+rLmjtkp8We/hau4ppMwENh/zfZueJ5TXfX2+U/cK+UasxP6/bvA348SV/cYJAx0wf5ptvfC85zs6b28xfUp15jtHn8X+DtSovZ+H4WBbth88TvStbdy1pqdEn8n+Hu1gTDQAxsbvw+lu+pubmb+A0AXrH58x+rLzP7s6veDvzcbCAMlsLrx/b4puVZ/MrPY1e8If3c2EAbKYPXiu71zFdcoMrO07n53ON9AGCjDDvGZRj4Xz3HlKq5RZGZp8XdnY2GgDKvH5xn5bLy/2jCz+/j7srkwUIYd4jONfD7eX/WZ2X38fdlcGCjDrvE5Rzwv7616Vu7p/E+fpcZ3tcM7s/T4vW8uDJThhEY9M++relrUat+/4vmvnuNunhP3L93P1orf+wHCQBlOqeUz852qvdr12jvHl7jH131snfh9U87aBYWBMuzW3TPVfGa+Q/X3padra+x/F/fOkROv/bKHrRW/6yuMny8uDJRht1o/F9+f6qoR9+I9+PnvuOZuXWrc66vUeF3u9TZ/P98nv+M7jJ8vLgyUwdLju1N9pXG/N4yf361LjfuUSInX5F5vc8bvMlfNvSYTBspgafG9qb4acc8UjJ8/rU2Je3yVGq/7sofNEb8/BWGgDPYe35naKIl7ffW235dy9uDalGuu4vVf97Fx8bvTpTBQBnuO70vtfIl71PC0/1Upa3rHM810NnuP35tuhYEy2H18V2rrS9yjhqf9GT+/W9c7nmems50Yv4O374Nrvqi518TCQBnsOr4ntfcl7tFD6v1HxrPMcq7T4ru/w/j5F7X3m1QYKJP9Gd+P+vgS9+gl5Qwj41lmONOp8Tu4chXX5GD8fCNhoA/sn/he1E9OvLa3lHOMjGeZ4Uz2T/xOnr4brklVY49FhIE+sH/ie1Ffb3F9rlr7pBrdTGexf+LPyNN3xM+fXMU1GwoDfWRH/MIsI+U7KYl7jWLnxO+eGD+/cxfXbSgMVODk+C40v9K43yi2f/zO7+RecxfXbSoMVOjE+A40Xut4v9Fs3/hdl3iL6zcXBqrgpPjsGq9HvOdotnf8vr+4i+sOEgaqaOf4rBqvd7z/KHZG/N5VLAxU2Y7xGTXe6HienuyM+L2rWBiogZ3is2kOs8RzEePnueys+P2rSBiokR3iM2keM8Wz5Z6R192x8+LPgIqEgTqYrdQz8Tk0B7NT4s++ioSBOpkhnulK7nr1Z3Xync4ff/ZVJAzUSY94z69a7Kk6rF6+27nj96NiYaAOesR7lmi1r8pY3fh+fcdzxe9GxcJAHfAHukW8Z6mWeyuftfn94Xuuvb99i9+JqggDDVA77l9D6/2Vxv6r1XvhO29xD8uL34WqCAMNVCvuW0vr/fXM/qzl++HeT6xtfN+qJgw0WI24p/ZgsZbvh+//jbWJ71nVhIEmUBr30/rsupbviXvXZu/xnamqMNAkSuJeWp/d1/Jdce/f+3Oey+7ju1ITYaCJfIl7aH32HN/XiHfG+6eyGN+RmgkDTSY3Xq+1WVp8byPeHe+fyv6L70ZNhYEmlBOvbaHnvU5n6Y1+d7x/qhGNvv9PfBfqKgw0oZx4bQu973cqy2v0++P9c/SK9219/7u9eX8NEQaaVE689g7j5ymu4hp9Z+nx3fV8f7xvqRbxHlS7q/0501BhoEnlxGuvXMU1KUqu1TvLi++vxzvk/WqoHfe/UyvuqymFgSaWE69924PrariKa/TM8uL7a/0Oea9aasV939SIe2paYaDJ5ZRzLdfWcBXX6Jnlx3fY6j3yHrWVxv1S1Yh7akphoIXUjHtrDvYtvsfa75J7t1AS98pRK+5bqsWehwsDLaZW3FdzsG/xPdZ6l9yzpa9xn1y14r6lWux5uDDQgmrFfTWWlVXzfXKvXnLitV9xz5K491ct9lQcaGE1497qz8qq9T65T28p8ZpS3LMk7v1F7f30tzDQxnLj9erLyit5p7x2lJR4TQslca8vau6lv4WBNpcbr1c/Vqecd8rvYAZvcX0rJXGvL2rto3+FgQ70FNeqH6vb03vlu5/JW1zfSkncS1MIAx3sLq5TH1a3q/fKdz6jt7i+Fd4zJ+6lKYSBDnYV16gvqx/f8Qqe4tpWru6XGvfSFMJAh7uKa3LV2udEVj++4xU8xbWt3N0vJV6jKYSBxN/d8PmT1Hidnln/+B2MdhfXjXAX12kqYSD97csvca24r/5h/eN3MNJVXDMS4+c1td7/EGEg/SHnF6123P901je+/xkwfn6K05+/kjCQLr39srWM9zqV9Y3vfxYjzzfqvvQ7fqZkYSBl6RnvfSLrE9/7zFY8c6lVv6vJhIGUpXe8/4msfXznM1vxzLWc+tyVhIGUZUQ8w4msXXzXsxtx7t73UxNhIGUbFc9xmpq12nfF+J4V+b62EAZStpni2U7xJe5Rut8O8T2c7u6dtHhnjJ+rujCQss0Wz6dvTovPr/v/eYHx8xx3cZ2qCwMp24zxjKpj5/is+sfd+6nx7p7iWlUXBlK2GeMZVc+O8Rn1n7v3dDdP9RbXq7owkLLMHM+qOnaLz6foLa5/kxKvUXVhICWbPZ5XdewSn0vPnuLaOznxWlUXBlKSVeK5VW6X+Fx69hTXXsmN16u6MJBerRTPrjI7xGdSuru4jr7EPVRdGEivVovn13czVHIWPo/yXcU1V3Lj9aouDKRHu8TnUpoZ+noWPou+u4prKCdeqybCQHq0U3w2vZuhr2fhs+i7p7g29bqfnq7hZ1/c7VPzHosIA+nRjvEZ9WzV+Bwq8xTXpl73V2/r+Xku7vEUr91MGEiPTorPrv+sEs+tuu7iujuMn6euyfE17rOBMJAenRafX/+ZPZ5XbVzFNSUYP//ia9xncWEgPTo5vovTzR7PqzYYP6+l1f5f4h6LCgPp0enxfZxu5nhWtbPDe8+N1y8oDKRXp8f3cbKZ41nVx6rvPzdev6AwkF6dHt/H6WaN51Q/q34HX+M+iwgDKcnJ8V2cbtZ4To3H+PlIpXG/BYSBlOzU+B5ON2s8p8Zi/HwGbz2t414LCAMp2cnxXZxu1nhOKRXj57/XcL6IMJCynBjfgeb9OeA5Jf0rDKQsp8Xn1z9mjmeV9LcwkLKdEJ9Zf5o5nlXS38JA+mT3+Lz608zxrJL+FgbSZ7vG51Q0czyrznMX113JWbuYMJA+2zU+p/40ezyvzvIU11LO2gWFgfTZrvE59afZ43nvMH6u9bzF9cT4+eLCQCqyW3w+RbPH8165ims0r6vvLTXudbfv29oFhYFUbKf4bPrTCvHMdBfXaU6lcb+3vblmYWEgVbFDfCZFK8Qzp5yf6zSfmnHvp3twzcLCQGpixfgMimaP5009O9dqPi1KvQfXLSoMpGZWi+dXNGs8Jz3FtZpPy1LvwTMtKAykZlaL51c0Wzzflbe4XnOZJZ5rQWEgNbNaPL+uzRLPdectrtc8ZopnW1AYSE2tFM+uazPEMz15i+s1hxnjGRcTBlJTq8Rz697oeJ43b3G9xlohnnkRYSA1tUI8s96NjGd58xTXqr9V43MsIAykplaIZ9a7kfEsb57iWvWzenyeBYSB1MwK8cxKNyqe481TXKs+donPNbkwkJqZMZ5R342K53jzFNeqvd3i800sDKRmZopnUx0j4hne3MV16mPH+IyTCgOpmVniuVTPiHiGN3dxnfrYNT7nhMJAamaGeCbV1TveP1WNPVTHrvE5JxQGUjOj43nURq94X61p5/iskwkDqZmR8Sxqp0e8p9a1e3zeiYSB1MToeB610zreT2vbPT7vRMJAamJkPIvaah3vp7XtHp93ImEgNTEynkXttYz30vp2js86kTCQmhgVz6F+WsR7aA87x2edSBhI1Y2MZ1E/LeI9tIed47NOJAyk6kbFc6i/mnFv7WXX+JwTCQOpuhHxDBqnNO6nPe0Yn3EyYSBV1zveX2OVxL20r5q12PNLfMbJhIFUXc94b41XEvfSvr7GfVL0iPecUBhI1fWK99UcvsZ9tLfceH2u1vF+EwoDqbpe8b6aj9+V7jzFtbW0iveZVBhIVbWO95O0LsbPW6oV951YGEhVtYr3kaRSNeKeEwsDqZqW8V6SVENp3G9iYSBV0zLeS5JqKIl7TS4MpGpaxntJUi1f4h6zeDhfGEjVtIj3kKRW+HfPan8PMXweL5BqqRX3lSS9Y/g8XiDVUhr3kySle/m7NAykakriXpKkqsJAquZL3EOSZjPz31kZ5woDqZrceL0kzYjx8xE+nCcMpGpy4/WSNKPZ/t76eJ4wkKrJjddL0qxm+XuL8fMHYSBVkxOvlSTdu4prXoSBVE1OvFaSdI/x8wRhIFWRGq+TJL2r8PdoGEhVpMRrJElpKvw9GgZSsZx4rSSpizCQiuXEayVJXYSBVCw1XidJ6iYMpGKp8TpJUjdhIFXxFtdLkroKA6mKt7hektRVGEjV3MV1kqTuwkCq5i6ukyR1FwZSNXdxnSSpuzCQqmL8XJI0RBhIkqT9hYEkSdpfGEjN+T8HSNJwYSBJkvYXBpIkaX9hIEmS9hcGkiRpf2EgSZL2FwaSJGl/YSBJkvYXBpIkaX9hIEmS9hcGkiRpf2EgSZL2FwaSJGl/YSBJkvYXBpIkaX9hIEmS9hcGkiRpf2EgSbrwO362o7e4fjZvcf2BwkAaxl9MzeYprl1Ny3ivmmrFfVOVXDuZMJCGqfHLKaXqFe/byqzxnDzzzGd/is+yoDCQhmD8XKplVDxHDSu18tlz47NOKgyk7q7iGqnEDPFMNazWquduEb/LAcJA6uourpNyzBbPd3VOfka2Z/yeOwoDqZmceK3qK437tbJ6fJ6dns3qxZ+NDsJAaiI3Xq97P+9rtfgcKz7DU3y2HLZGP9/V7z9TfIl7VBAGUnVf4h6KbM74PX1lc8fvK0dp3O+jMNBiKv4wNJMbr9efbI5+fx/8jmqxM+PPQSNhoIXkxGt/X895TbnxeuW/Q+sTv6fa7Lz4M9BYGGghreJ9SrXce1c2V/x+WusV75tjlXjuWc/OM3YQBscpiXv1Nks8l76zNeL3VkvPeO8aZoxnnPGsPFsnYXCUGeMZn/To7T48k8r0jPfOdXp8HyVGxDPUNDKe5U5qP2t//1lTiz0ThcFydo/Pe6VFvMfd/fiZyvH9tor3zWX943fA74Gf/f6c89Zqxr0pZ+3ddYxrW+l9v1/CYHq94n1bSI3Xpfh9XWrco5Yv97iKa05n/8V3QzOWej4+yypqxD1n8hbX32H8vKEwmFLLeK+eUuN1d77GfWr7cp+f9W/xutOcHt/Hk1Xjc6yiRtxzJm9x/RPGzxsJA00g5wegRtxT6zg5vosUV93NW8ZzrWpkPMspKj57GChTSdzri5K4l9YzMp5FZxkdz7O7Bs8eBpI28tTP51/+lEbH8+zqKq75KAwkLaTBXwpSsp+fu95/nuYqrvkgDCRJ0v7CQJIk7S8MtJDSuJ8knaI07regMNBCSuN+u2L8XNJ5avWzV86fkwgDLaQ07reTlHjNinZ5DumLleOzDBAGuvHzhU3yxf2tNO63gxH93Lf3n+yvuXSSnfp5Hj5jMzxAbmHDBf08B5/n9/wu7pXrhPjMNVlZfJ/q7+d7yP2zFu6b+ucMrKyl3+BMPwA/Z8n902z1+DPd88/V1epnr9w/a8V9e/1pZfkWzczMDsx/AJiZmR2Y/wAwMzM7MP8BYGZmdmD/H2qz0FAxQljGAAAAAElFTkSuQmCC";
@@ -17203,8 +18167,8 @@ function renderGlobePixels(projection, texture, elapsed = 0) {
 
 // src/client/ui/loading-globe.js
 function LoadingGlobe() {
-  const canvasRef = import_react28.default.useRef(null);
-  import_react28.default.useEffect(() => {
+  const canvasRef = import_react30.default.useRef(null);
+  import_react30.default.useEffect(() => {
     const canvas = canvasRef.current;
     const context = canvas?.getContext("2d");
     if (!context) return;
@@ -17255,18 +18219,18 @@ function LoadingGlobe() {
       document.removeEventListener("visibilitychange", resume);
     };
   }, []);
-  return import_react28.default.createElement(
+  return import_react30.default.createElement(
     "div",
     { className: "mv-spinner", "aria-hidden": true },
-    import_react28.default.createElement("canvas", { ref: canvasRef, className: "mv-loading-globe" })
+    import_react30.default.createElement("canvas", { ref: canvasRef, className: "mv-loading-globe" })
   );
 }
 
 // src/client/ui/selection-overlay.js
-var import_react30 = __toESM(require("react"), 1);
+var import_react32 = __toESM(require("react"), 1);
 
 // src/client/ui/vision-select.js
-var import_react29 = __toESM(require("react"), 1);
+var import_react31 = __toESM(require("react"), 1);
 
 // src/client/scene/vision-request.js
 async function visionRequest(url, { frame, signal, fetchImpl = fetch } = {}) {
@@ -17291,20 +18255,20 @@ async function visionRequest(url, { frame, signal, fetchImpl = fetch } = {}) {
 }
 
 // src/client/ui/vision-select.js
-var h26 = import_react29.default.createElement;
+var h27 = import_react31.default.createElement;
 function VisionSelect({ controller, anchor, t: t2, onClose, onCommit, onManual }) {
-  const [state, setState] = import_react29.default.useState({ phase: "loading", frame: null, result: null, error: "" });
-  const [attempt, setAttempt] = import_react29.default.useState(0);
-  const frameRef = import_react29.default.useRef(null);
-  const dialogRef = import_react29.default.useRef(null);
-  import_react29.default.useEffect(() => {
+  const [state, setState] = import_react31.default.useState({ phase: "loading", frame: null, result: null, error: "" });
+  const [attempt, setAttempt] = import_react31.default.useState(0);
+  const frameRef = import_react31.default.useRef(null);
+  const dialogRef = import_react31.default.useRef(null);
+  import_react31.default.useEffect(() => {
     const previous = document.activeElement;
     dialogRef.current?.focus();
     return () => {
       if (previous?.isConnected) previous.focus?.();
     };
   }, []);
-  import_react29.default.useEffect(() => {
+  import_react31.default.useEffect(() => {
     const abort = new AbortController();
     let frame, interval, current = true, timedOut = false, stale = false;
     const timer = setTimeout(() => {
@@ -17380,49 +18344,49 @@ function VisionSelect({ controller, anchor, t: t2, onClose, onCommit, onManual }
   };
   const errorKey = `vision.error.${state.error}`;
   const errorText2 = state.error && (t2(errorKey) === errorKey ? t2("vision.error.model_failed") : t2(errorKey));
-  return h26(
+  return h27(
     "div",
     { className: "mv-vision-screen", onKeyDown },
-    h26(
+    h27(
       "section",
       { className: "mv-vision", role: "dialog", "aria-modal": true, "aria-label": t2("vision.title"), tabIndex: -1, ref: dialogRef },
-      h26("header", null, h26("h3", null, t2("vision.title")), h26("button", { type: "button", className: "mv-icon-btn", "aria-label": t2("btn.close"), onClick: onClose }, "✕")),
-      h26("p", { className: "mv-vision-note" }, t2("vision.notice")),
-      state.frame ? h26(
+      h27("header", null, h27("h3", null, t2("vision.title")), h27("button", { type: "button", className: "mv-icon-btn", "aria-label": t2("btn.close"), onClick: onClose }, "✕")),
+      h27("p", { className: "mv-vision-note" }, t2("vision.notice")),
+      state.frame ? h27(
         "div",
         { className: "mv-vision-image", style: { aspectRatio: `${state.frame.width}/${state.frame.height}` } },
-        h26("img", { src: state.frame.dataUrl, alt: t2("vision.imageAlt"), draggable: false }),
-        h26(
+        h27("img", { src: state.frame.dataUrl, alt: t2("vision.imageAlt"), draggable: false }),
+        h27(
           "svg",
           { viewBox: "0 0 1000 1000", preserveAspectRatio: "none", "aria-hidden": true },
-          state.result ? h26("polygon", { points: state.result.polygon.map(([lon, lat]) => `${lon * 1e3},${lat * 1e3}`).join(" "), vectorEffect: "non-scaling-stroke" }) : null,
-          h26("circle", { cx: state.frame.point[0] * 1e3, cy: state.frame.point[1] * 1e3, r: 6, vectorEffect: "non-scaling-stroke" })
+          state.result ? h27("polygon", { points: state.result.polygon.map(([lon, lat]) => `${lon * 1e3},${lat * 1e3}`).join(" "), vectorEffect: "non-scaling-stroke" }) : null,
+          h27("circle", { cx: state.frame.point[0] * 1e3, cy: state.frame.point[1] * 1e3, r: 6, vectorEffect: "non-scaling-stroke" })
         )
       ) : null,
-      h26(
+      h27(
         "p",
         { role: state.error ? "alert" : "status", "aria-live": "polite", className: state.error ? "mv-vision-error" : "mv-vision-status" },
         errorText2 || t2(state.phase === "loading" ? "vision.loading" : state.result?.shape === "box" ? "vision.boxReady" : "vision.ready")
       ),
-      state.result?.model ? h26("p", { className: "mv-vision-note" }, t2("vision.model", { model: state.result.model })) : null,
-      h26(
+      state.result?.model ? h27("p", { className: "mv-vision-note" }, t2("vision.model", { model: state.result.model })) : null,
+      h27(
         "div",
         { className: "mv-vision-actions" },
-        state.phase === "preview" ? h26("button", { type: "button", className: "mv-cta primary", disabled: Boolean(state.error), onClick: accept }, t2("vision.accept")) : null,
-        state.phase !== "loading" ? h26("button", { type: "button", className: "mv-cta", onClick: () => setAttempt((value) => value + 1) }, t2("vision.retry")) : null,
-        h26("button", { type: "button", className: "mv-cta", onClick: () => {
+        state.phase === "preview" ? h27("button", { type: "button", className: "mv-cta primary", disabled: Boolean(state.error), onClick: accept }, t2("vision.accept")) : null,
+        state.phase !== "loading" ? h27("button", { type: "button", className: "mv-cta", onClick: () => setAttempt((value) => value + 1) }, t2("vision.retry")) : null,
+        h27("button", { type: "button", className: "mv-cta", onClick: () => {
           frameRef.current?.release();
           onClose();
           onManual();
         } }, t2("vision.manual")),
-        h26("button", { type: "button", className: "mv-cta", onClick: onClose }, t2("vision.cancel"))
+        h27("button", { type: "button", className: "mv-cta", onClick: onClose }, t2("vision.cancel"))
       )
     )
   );
 }
 
 // src/client/ui/selection-overlay.js
-var h27 = import_react30.default.createElement;
+var h28 = import_react32.default.createElement;
 var CONFIDENCE_TIER = {
   measured: { key: "selection.confidence.high", tone: "high" },
   estimated: { key: "selection.confidence.medium", tone: "medium" },
@@ -17445,19 +18409,19 @@ function numberText(value, suffix = " m", digits = 0) {
   return `${rounded}${suffix}`;
 }
 function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t: t2, showToast, onMeasure, onSelectArea, onVisionCommit, onVisionManual }) {
-  const [card, setCard] = import_react30.default.useState(null);
-  const [busy, setBusy] = import_react30.default.useState(false);
-  const [errorLine, setErrorLine] = import_react30.default.useState("");
-  const [exporting, setExporting] = import_react30.default.useState(false);
-  const [visionOpen, setVisionOpen] = import_react30.default.useState(false);
-  const [showAllProps, setShowAllProps] = import_react30.default.useState(false);
-  const visionPendingRef = import_react30.default.useRef(false);
-  const anchorRef = import_react30.default.useRef(null);
-  const bracketRef = import_react30.default.useRef(null);
-  const chipRef = import_react30.default.useRef(null);
-  const requestRef = import_react30.default.useRef(null);
-  const validityRef = import_react30.default.useRef(null);
-  const dismiss = import_react30.default.useCallback(() => {
+  const [card, setCard] = import_react32.default.useState(null);
+  const [busy, setBusy] = import_react32.default.useState(false);
+  const [errorLine, setErrorLine] = import_react32.default.useState("");
+  const [exporting, setExporting] = import_react32.default.useState(false);
+  const [visionOpen, setVisionOpen] = import_react32.default.useState(false);
+  const [showAllProps, setShowAllProps] = import_react32.default.useState(false);
+  const visionPendingRef = import_react32.default.useRef(false);
+  const anchorRef = import_react32.default.useRef(null);
+  const bracketRef = import_react32.default.useRef(null);
+  const chipRef = import_react32.default.useRef(null);
+  const requestRef = import_react32.default.useRef(null);
+  const validityRef = import_react32.default.useRef(null);
+  const dismiss = import_react32.default.useCallback(() => {
     requestRef.current?.abort();
     requestRef.current = null;
     validityRef.current = null;
@@ -17470,11 +18434,11 @@ function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t: t2, s
     setVisionOpen(false);
     setShowAllProps(false);
   }, []);
-  const requestVision = import_react30.default.useCallback(() => {
+  const requestVision = import_react32.default.useCallback(() => {
     visionPendingRef.current = true;
     setVisionOpen(false);
   }, []);
-  const identify = import_react30.default.useCallback(
+  const identify = import_react32.default.useCallback(
     async (position) => {
       if (!controller) return;
       requestRef.current?.abort();
@@ -17516,7 +18480,7 @@ function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t: t2, s
     },
     [controller, t2, dismiss]
   );
-  import_react30.default.useEffect(() => {
+  import_react32.default.useEffect(() => {
     if (!apiRef) return void 0;
     identify.cancel = dismiss;
     identify.requestVision = requestVision;
@@ -17525,15 +18489,15 @@ function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t: t2, s
       if (apiRef) apiRef.current = null;
     };
   }, [apiRef, active, identify, dismiss, requestVision]);
-  import_react30.default.useEffect(() => {
+  import_react32.default.useEffect(() => {
     if (active) return;
     dismiss();
   }, [active, dismiss]);
-  import_react30.default.useEffect(() => () => {
+  import_react32.default.useEffect(() => () => {
     requestRef.current?.abort();
     if (bracketRef.current) bracketRef.current.style.display = "none";
   }, []);
-  import_react30.default.useEffect(() => {
+  import_react32.default.useEffect(() => {
     if (!active || !card) return void 0;
     const viewer = controller?.getViewer?.();
     const Cesium = controller?.getCesium?.();
@@ -17570,7 +18534,7 @@ function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t: t2, s
       }
     };
   }, [active, card, controller, dismiss]);
-  import_react30.default.useEffect(() => {
+  import_react32.default.useEffect(() => {
     if (!active) return void 0;
     const onKey = (event) => {
       if (event.key === "Escape") {
@@ -17627,7 +18591,7 @@ function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t: t2, s
   const groundSourceFact = factOf(card, "ground_source");
   const confidenceChip = (basis) => {
     const tier = CONFIDENCE_TIER[basis] ?? CONFIDENCE_TIER.inferred;
-    return h27("span", { className: `mv-sel-conf ${tier.tone}`, title: t2(tier.key) }, t2(tier.key));
+    return h28("span", { className: `mv-sel-conf ${tier.tone}`, title: t2(tier.key) }, t2(tier.key));
   };
   const limitations = Array.isArray(card?.limitations) ? card.limitations : [];
   const radii = card?.sampling?.radii_m ?? [30, 60, 120];
@@ -17654,26 +18618,26 @@ function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t: t2, s
     showToast(t2("selection.copyFailed"));
   };
   const showFootnote = limitations.includes("no_building_identity") || limitations.includes("tile_feature_only");
-  return h27(
-    import_react30.default.Fragment,
+  return h28(
+    import_react32.default.Fragment,
     null,
-    h27(
+    h28(
       "div",
       { ref: bracketRef, className: "mv-sel-anchor", style: { display: "none" }, "aria-hidden": true },
-      h27("i", { className: "c tl" }),
-      h27("i", { className: "c tr" }),
-      h27("i", { className: "c bl" }),
-      h27("i", { className: "c br" }),
-      h27("span", { className: "leader" }),
-      h27("b", { ref: chipRef, className: "chip" }, object && object.value !== null ? `≈ ${numberText(object.value, " m")}` : t2("selection.noHeight"))
+      h28("i", { className: "c tl" }),
+      h28("i", { className: "c tr" }),
+      h28("i", { className: "c bl" }),
+      h28("i", { className: "c br" }),
+      h28("span", { className: "leader" }),
+      h28("b", { ref: chipRef, className: "chip" }, object && object.value !== null ? `≈ ${numberText(object.value, " m")}` : t2("selection.noHeight"))
     ),
-    busy ? h27("div", { className: "mv-select mv-select-loading mv-glass", role: "status" }, h27("div", { className: "mv-spinner" }), h27("span", null, t2("selection.reading"))) : null,
-    errorLine !== "" ? h27(
+    busy ? h28("div", { className: "mv-select mv-select-loading mv-glass", role: "status" }, h28("div", { className: "mv-spinner" }), h28("span", null, t2("selection.reading"))) : null,
+    errorLine !== "" ? h28(
       "div",
       { className: "mv-select mv-glass" },
-      h27("div", { className: "mv-select-error" }, h27("span", null, errorLine))
+      h28("div", { className: "mv-select-error" }, h28("span", null, errorLine))
     ) : null,
-    card && visionOpen ? h27(VisionSelect, {
+    card && visionOpen ? h28(VisionSelect, {
       controller,
       anchor: anchorRef.current,
       t: t2,
@@ -17684,61 +18648,61 @@ function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t: t2, s
         getSelectionTool(controller.getViewer(), { getCesium: controller.getCesium, t: t2, showToast })?.start("lasso");
       }
     }) : null,
-    card && !visionOpen ? h27(
+    card && !visionOpen ? h28(
       "div",
       { className: "mv-select mv-glass" },
-      h27(
+      h28(
         "header",
         null,
-        h27("span", { className: "kind" }, t2("selection.resultLabel")),
-        h27(
+        h28("span", { className: "kind" }, t2("selection.resultLabel")),
+        h28(
           "button",
           { type: "button", className: "mv-icon-btn", title: t2("btn.close"), "aria-label": t2("btn.close"), onClick: dismiss },
           "✕"
         )
       ),
-      h27("h3", null, card.identity?.name ?? t2(TITLE_KEY[card.identity?.kind] ?? TITLE_KEY.tile_feature)),
-      h27("p", { className: "layer" }, card.layer?.name ?? t2("selection.unknownLayer")),
-      h27(
+      h28("h3", null, card.identity?.name ?? t2(TITLE_KEY[card.identity?.kind] ?? TITLE_KEY.tile_feature)),
+      h28("p", { className: "layer" }, card.layer?.name ?? t2("selection.unknownLayer")),
+      h28(
         "div",
         { className: "mv-sel-meta" },
-        h27("span", { className: "mv-sel-meta-chip" }, t2(hitKindKey)),
-        groundSourceFact ? h27("span", { className: "mv-sel-meta-chip" }, t2(groundSourceLabelKey(groundSourceFact.value))) : null,
-        featureId != null ? h27("span", { className: "mv-sel-meta-chip" }, t2("selection.featureId", { id: featureId })) : null
+        h28("span", { className: "mv-sel-meta-chip" }, t2(hitKindKey)),
+        groundSourceFact ? h28("span", { className: "mv-sel-meta-chip" }, t2(groundSourceLabelKey(groundSourceFact.value))) : null,
+        featureId != null ? h28("span", { className: "mv-sel-meta-chip" }, t2("selection.featureId", { id: featureId })) : null
       ),
-      lonLat !== "" ? h27(
+      lonLat !== "" ? h28(
         "div",
         { className: "coords" },
-        h27("span", { className: "key" }, t2("selection.coordinates")),
-        h27("code", { title: t2("selection.copyCoords") }, lonLat),
-        h27(
+        h28("span", { className: "key" }, t2("selection.coordinates")),
+        h28("code", { title: t2("selection.copyCoords") }, lonLat),
+        h28(
           "button",
           { type: "button", className: "mv-icon-btn", title: t2("selection.copyCoords"), "aria-label": t2("selection.copyCoords"), onClick: copyCoordinates },
           "⧉"
         )
       ) : null,
-      h27(
+      h28(
         "div",
         { className: "facts" },
-        surface ? h27(
+        surface ? h28(
           "div",
           { className: "fact" },
-          h27("span", { className: "key" }, t2("selection.surfaceHeight")),
-          h27("b", null, numberText(surface.value)),
+          h28("span", { className: "key" }, t2("selection.surfaceHeight")),
+          h28("b", null, numberText(surface.value)),
           confidenceChip("measured")
         ) : null,
-        object ? h27(
+        object ? h28(
           "div",
           { className: "fact" },
-          h27("span", { className: "key" }, t2("selection.objectHeight")),
-          h27("b", null, numberText(object.value)),
+          h28("span", { className: "key" }, t2("selection.objectHeight")),
+          h28("b", null, numberText(object.value)),
           confidenceChip(object.basis)
         ) : null,
-        above ? h27(
+        above ? h28(
           "div",
           { className: "fact" },
-          h27("span", { className: "key", title: t2("selection.aboveMedianHint") }, t2("selection.aboveMedian")),
-          h27(
+          h28("span", { className: "key", title: t2("selection.aboveMedianHint") }, t2("selection.aboveMedian")),
+          h28(
             "b",
             null,
             typeof above.value === "number" ? `${Math.round(above.value) > 0 ? "+" : ""}${Math.round(above.value)} m` : "—"
@@ -17746,26 +18710,26 @@ function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t: t2, s
           confidenceChip(above.basis)
         ) : null
       ),
-      properties.length > 0 ? h27(
+      properties.length > 0 ? h28(
         "div",
         { className: "props" },
-        h27(
+        h28(
           "span",
           { className: "props-title" },
           propertyInfo.hidden > 0 ? t2("selection.propertiesCount", { shown: properties.length, total: propertyInfo.total }) : t2("selection.properties")
         ),
         ...properties.map(
-          (property, index) => h27(
+          (property, index) => h28(
             "div",
             { key: `${property.name}-${index}`, className: "prop" },
-            h27("span", { title: property.name }, property.name),
-            h27("b", { title: property.value }, property.value)
+            h28("span", { title: property.name }, property.name),
+            h28("b", { title: property.value }, property.value)
           )
         ),
-        propertyInfo.hidden > 0 ? h27(
-          import_react30.default.Fragment,
+        propertyInfo.hidden > 0 ? h28(
+          import_react32.default.Fragment,
           null,
-          h27(
+          h28(
             "button",
             {
               type: "button",
@@ -17778,7 +18742,7 @@ function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t: t2, s
           )
         ) : null
       ) : null,
-      samplingMin != null && samplingMax != null ? h27(
+      samplingMin != null && samplingMax != null ? h28(
         "p",
         { className: "sampling" },
         t2("selection.neighborBand", {
@@ -17787,28 +18751,28 @@ function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t: t2, s
           spread: Math.round(samplingSpread ?? 0)
         })
       ) : null,
-      h27(
+      h28(
         "p",
         { className: "sampling", title: t2("selection.samplingHint") },
         t2("selection.sampling", { count: card.sampling?.count ?? 0, radii: radii.join("/") })
       ),
-      showFootnote ? h27("p", { className: "footnote" }, t2("selection.footnote")) : null,
-      h27(
+      showFootnote ? h28("p", { className: "footnote" }, t2("selection.footnote")) : null,
+      h28(
         "div",
         { className: "actions" },
-        typeof onVisionCommit === "function" ? h27("button", { type: "button", className: "mv-cta", title: t2("vision.actionHint"), onClick: () => setVisionOpen(true) }, t2("vision.action")) : null,
-        h27("button", { type: "button", className: "mv-cta", title: t2("selection.flyHint"), onClick: flyNear }, t2("selection.fly")),
-        h27("button", { type: "button", className: "mv-cta", title: t2("selection.measureHint"), onClick: measure }, t2("selection.measure")),
-        h27(
+        typeof onVisionCommit === "function" ? h28("button", { type: "button", className: "mv-cta", title: t2("vision.actionHint"), onClick: () => setVisionOpen(true) }, t2("vision.action")) : null,
+        h28("button", { type: "button", className: "mv-cta", title: t2("selection.flyHint"), onClick: flyNear }, t2("selection.fly")),
+        h28("button", { type: "button", className: "mv-cta", title: t2("selection.measureHint"), onClick: measure }, t2("selection.measure")),
+        h28(
           "button",
           { type: "button", className: "mv-cta primary", title: t2("selection.exportHint"), disabled: exporting, onClick: takeAway },
           exporting ? t2("selection.exporting") : t2("selection.takeAway")
         )
       ),
-      typeof onSelectArea === "function" ? h27(
+      typeof onSelectArea === "function" ? h28(
         "div",
         { className: "actions secondary" },
-        h27(
+        h28(
           "button",
           { type: "button", className: "mv-cta", title: t2("selection.approximate"), onClick: selectAround },
           t2("selection.areaAction")
@@ -17819,8 +18783,8 @@ function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t: t2, s
 }
 
 // src/client/ui/vector-card.js
-var import_react31 = __toESM(require("react"), 1);
-var h28 = import_react31.default.createElement;
+var import_react33 = __toESM(require("react"), 1);
+var h29 = import_react33.default.createElement;
 function VectorCard({ selection, onClose, onChange, onDelete, onExport, onSendToChat, t: t2 }) {
   const feature = selection?.feature ?? null;
   const command = selection?.command ?? null;
@@ -17838,20 +18802,25 @@ function VectorCard({ selection, onClose, onChange, onDelete, onExport, onSendTo
   const savedKind = annotationKindOf(feature);
   const savedStyle = annotationStyleOf(feature, command?.style ?? "accent");
   const savedExtrusion = annotationExtrusionOf(feature);
-  const savedAttrs = import_react31.default.useMemo(() => extractCustomAttributes(feature), [feature]);
-  const [name, setName] = import_react31.default.useState("");
-  const [note, setNote] = import_react31.default.useState("");
-  const [kind, setKind] = import_react31.default.useState("point");
-  const [style, setStyle] = import_react31.default.useState("accent");
-  const [extruded, setExtruded] = import_react31.default.useState(false);
-  const [heightInput, setHeightInput] = import_react31.default.useState("15");
-  const [lonInput, setLonInput] = import_react31.default.useState("");
-  const [latInput, setLatInput] = import_react31.default.useState("");
-  const nextAttrId = import_react31.default.useRef(1);
-  const [attrs, setAttrs] = import_react31.default.useState([]);
-  const [attrsOpen, setAttrsOpen] = import_react31.default.useState(false);
-  const [busy, setBusy] = import_react31.default.useState(false);
-  import_react31.default.useEffect(() => {
+  const savedAttrs = import_react33.default.useMemo(() => extractCustomAttributes(feature), [feature]);
+  const [name, setName] = import_react33.default.useState("");
+  const [note, setNote] = import_react33.default.useState("");
+  const [kind, setKind] = import_react33.default.useState("point");
+  const [style, setStyle] = import_react33.default.useState("accent");
+  const [extruded, setExtruded] = import_react33.default.useState(false);
+  const [heightInput, setHeightInput] = import_react33.default.useState("15");
+  const [lonInput, setLonInput] = import_react33.default.useState("");
+  const [latInput, setLatInput] = import_react33.default.useState("");
+  const nextAttrId = import_react33.default.useRef(1);
+  const [attrs, setAttrs] = import_react33.default.useState([]);
+  const [attrsOpen, setAttrsOpen] = import_react33.default.useState(false);
+  const [busy, setBusy] = import_react33.default.useState(false);
+  const floating = useFloatingWindow({
+    storageKey: "vector-card",
+    title: selection?.title || t2("vector.selection"),
+    t: t2
+  });
+  import_react33.default.useEffect(() => {
     setName(savedName);
     setNote(savedNote);
     setKind(savedKind);
@@ -17951,19 +18920,27 @@ function VectorCard({ selection, onClose, onChange, onDelete, onExport, onSendTo
   const removeAttrRow = (id) => {
     setAttrs((prev) => prev.filter((item) => item.id !== id));
   };
-  return h28(
+  return h29(
     "section",
-    { className: "mv-vector-card", "aria-label": t2("vector.selection") },
-    h28(
+    {
+      className: `mv-vector-card ${floating.className}`,
+      ref: floating.ref,
+      style: floating.style,
+      "aria-label": t2("vector.selection"),
+      ...floating.panelProps
+    },
+    h29(
       "header",
-      null,
-      h28(
+      floating.headerProps,
+      floating.dragHandle,
+      h29(
         "div",
         null,
-        h28("span", { className: "eyebrow" }, selection.kind),
-        h28("h3", null, selection.title)
+        h29("span", { className: "eyebrow" }, selection.kind),
+        h29("h3", null, selection.title)
       ),
-      h28(
+      floating.resetButton,
+      h29(
         "button",
         {
           type: "button",
@@ -17975,47 +18952,48 @@ function VectorCard({ selection, onClose, onChange, onDelete, onExport, onSendTo
         "✕"
       )
     ),
-    selection.summary ? h28("p", { className: "summary" }, selection.summary) : null,
-    editable ? h28(
+    floating.liveRegion,
+    selection.summary ? h29("p", { className: "summary" }, selection.summary) : null,
+    editable ? h29(
       "div",
       { className: "mv-vector-edit" },
-      h28(
+      h29(
         "label",
         null,
-        h28("span", null, t2("annotation.name")),
-        h28("input", {
+        h29("span", null, t2("annotation.name")),
+        h29("input", {
           value: name,
           maxLength: 80,
           placeholder: t2("annotation.namePlaceholder"),
           onChange: (event) => setName(event.target.value)
         })
       ),
-      h28(
+      h29(
         "div",
         { className: "mv-vector-row-2" },
-        h28(
+        h29(
           "label",
           null,
-          h28("span", null, t2("annotation.kindLabel")),
-          h28(
+          h29("span", null, t2("annotation.kindLabel")),
+          h29(
             "select",
             {
               value: kind,
               "aria-label": t2("annotation.kindLabel"),
               onChange: (event) => setKind(event.target.value)
             },
-            ...ANNOTATION_KINDS.map((item) => h28("option", { key: item, value: item }, t2(`annotation.kind.${item}`)))
+            ...ANNOTATION_KINDS.map((item) => h29("option", { key: item, value: item }, t2(`annotation.kind.${item}`)))
           )
         ),
-        h28(
+        h29(
           "div",
           { className: "mv-vector-field" },
-          h28("span", { className: "mv-vector-field-label" }, t2("annotation.styleLabel")),
-          h28(
+          h29("span", { className: "mv-vector-field-label" }, t2("annotation.styleLabel")),
+          h29(
             "div",
             { className: "mv-swatch-row", role: "radiogroup", "aria-label": t2("annotation.styleLabel") },
             ...ANNOTATION_STYLES.map(
-              (preset) => h28("button", {
+              (preset) => h29("button", {
                 key: preset,
                 type: "button",
                 className: `mv-swatch${style === preset ? " on" : ""}`,
@@ -18030,24 +19008,24 @@ function VectorCard({ selection, onClose, onChange, onDelete, onExport, onSendTo
           )
         )
       ),
-      isPolygon ? h28(
+      isPolygon ? h29(
         "div",
         { className: "mv-extrude-box" },
-        h28(
+        h29(
           "label",
           { className: "mv-extrude-toggle" },
-          h28("input", {
+          h29("input", {
             type: "checkbox",
             checked: extruded,
             onChange: (event) => setExtruded(Boolean(event.target.checked))
           }),
-          h28("span", null, t2("annotation.extrude3d"))
+          h29("span", null, t2("annotation.extrude3d"))
         ),
-        extruded ? h28(
+        extruded ? h29(
           "label",
           { className: "mv-extrude-height" },
-          h28("span", null, t2("annotation.extrudeHeight")),
-          h28("input", {
+          h29("span", null, t2("annotation.extrudeHeight")),
+          h29("input", {
             type: "number",
             min: 0.5,
             max: ANNOTATION_MAX_HEIGHT_M,
@@ -18056,20 +19034,20 @@ function VectorCard({ selection, onClose, onChange, onDelete, onExport, onSendTo
             "aria-label": t2("annotation.extrudeHeight"),
             onChange: (event) => setHeightInput(event.target.value)
           })
-        ) : h28("span", { className: "mv-extrude-hint" }, t2("annotation.extrudeHint"))
+        ) : h29("span", { className: "mv-extrude-hint" }, t2("annotation.extrudeHint"))
       ) : null,
-      isPoint ? h28(
+      isPoint ? h29(
         "div",
         { className: "mv-vector-field" },
-        h28("span", { className: "mv-vector-field-label" }, t2("annotation.pointCoords")),
-        h28(
+        h29("span", { className: "mv-vector-field-label" }, t2("annotation.pointCoords")),
+        h29(
           "div",
           { className: "mv-point-coords" },
-          h28(
+          h29(
             "label",
             null,
-            h28("span", null, t2("annotation.lon")),
-            h28("input", {
+            h29("span", null, t2("annotation.lon")),
+            h29("input", {
               type: "number",
               step: "0.000001",
               min: -180,
@@ -18079,11 +19057,11 @@ function VectorCard({ selection, onClose, onChange, onDelete, onExport, onSendTo
               onChange: (event) => setLonInput(event.target.value)
             })
           ),
-          h28(
+          h29(
             "label",
             null,
-            h28("span", null, t2("annotation.lat")),
-            h28("input", {
+            h29("span", null, t2("annotation.lat")),
+            h29("input", {
               type: "number",
               step: "0.000001",
               min: -90,
@@ -18095,11 +19073,11 @@ function VectorCard({ selection, onClose, onChange, onDelete, onExport, onSendTo
           )
         )
       ) : null,
-      h28(
+      h29(
         "label",
         null,
-        h28("span", null, t2("annotation.note")),
-        h28("textarea", {
+        h29("span", null, t2("annotation.note")),
+        h29("textarea", {
           value: note,
           maxLength: 280,
           rows: 2,
@@ -18107,13 +19085,13 @@ function VectorCard({ selection, onClose, onChange, onDelete, onExport, onSendTo
           onChange: (event) => setNote(event.target.value)
         })
       ),
-      h28(
+      h29(
         "div",
         { className: "mv-attr-box" },
-        h28(
+        h29(
           "div",
           { className: "mv-attr-head" },
-          h28(
+          h29(
             "button",
             {
               type: "button",
@@ -18122,23 +19100,23 @@ function VectorCard({ selection, onClose, onChange, onDelete, onExport, onSendTo
               "aria-label": t2(attrsOpen ? "annotation.attributesCollapse" : "annotation.attributesExpand"),
               onClick: () => setAttrsOpen((open) => !open)
             },
-            h28("span", { "aria-hidden": true }, attrsOpen ? "▾" : "▸"),
-            h28("span", null, `${t2("annotation.attributes")}${attrs.length ? ` (${attrs.length})` : ""}`)
+            h29("span", { "aria-hidden": true }, attrsOpen ? "▾" : "▸"),
+            h29("span", null, `${t2("annotation.attributes")}${attrs.length ? ` (${attrs.length})` : ""}`)
           ),
-          h28(
+          h29(
             "button",
             { type: "button", className: "mv-attr-add", onClick: addAttrRow },
             t2("annotation.addAttribute")
           )
         ),
-        attrsOpen && attrs.length > 0 ? h28(
+        attrsOpen && attrs.length > 0 ? h29(
           "div",
           { className: "mv-attr-list" },
           ...attrs.map(
-            (item) => h28(
+            (item) => h29(
               "div",
               { key: item.id, className: "mv-attr-row" },
-              h28("input", {
+              h29("input", {
                 type: "text",
                 maxLength: ANNOTATION_MAX_ATTR_KEY,
                 value: item.key,
@@ -18147,7 +19125,7 @@ function VectorCard({ selection, onClose, onChange, onDelete, onExport, onSendTo
                 "aria-label": t2("annotation.attrKeyPlaceholder"),
                 onChange: (event) => updateAttrRow(item.id, "key", event.target.value)
               }),
-              item.preserveObject ? h28("span", { className: "mv-attr-json", title: item.value }, item.value) : h28("input", {
+              item.preserveObject ? h29("span", { className: "mv-attr-json", title: item.value }, item.value) : h29("input", {
                 type: "text",
                 maxLength: ANNOTATION_MAX_ATTR_VALUE,
                 value: item.value,
@@ -18155,7 +19133,7 @@ function VectorCard({ selection, onClose, onChange, onDelete, onExport, onSendTo
                 "aria-label": item.key || t2("annotation.attrValuePlaceholder"),
                 onChange: (event) => updateAttrRow(item.id, "value", event.target.value)
               }),
-              h28(
+              h29(
                 "button",
                 {
                   type: "button",
@@ -18169,21 +19147,21 @@ function VectorCard({ selection, onClose, onChange, onDelete, onExport, onSendTo
             )
           )
         ) : null,
-        attrsOpen && complexAttrCount > 0 ? h28("span", { className: "mv-attr-hint" }, t2("annotation.attrsComplexHint", { n: complexAttrCount })) : null
+        attrsOpen && complexAttrCount > 0 ? h29("span", { className: "mv-attr-hint" }, t2("annotation.attrsComplexHint", { n: complexAttrCount })) : null
       )
     ) : null,
-    rows.length ? h28(
+    rows.length ? h29(
       "dl",
       null,
       rows.map(
-        ([itemName, value], index) => h28("div", { key: index }, h28("dt", null, itemName), h28("dd", null, value))
+        ([itemName, value], index) => h29("div", { key: index }, h29("dt", null, itemName), h29("dd", null, value))
       )
     ) : null,
-    shapeEditable ? h28("p", { className: "mv-vector-shortcuts" }, t2("annotation.shortcutHint")) : null,
-    editable ? h28(
+    shapeEditable ? h29("p", { className: "mv-vector-shortcuts" }, t2("annotation.shortcutHint")) : null,
+    editable ? h29(
       "footer",
       { className: "mv-vector-actions" },
-      h28(
+      h29(
         "button",
         {
           type: "button",
@@ -18193,7 +19171,7 @@ function VectorCard({ selection, onClose, onChange, onDelete, onExport, onSendTo
         },
         t2("annotation.save")
       ),
-      h28(
+      h29(
         "button",
         {
           type: "button",
@@ -18203,7 +19181,7 @@ function VectorCard({ selection, onClose, onChange, onDelete, onExport, onSendTo
         },
         t2("annotation.export")
       ),
-      typeof onSendToChat === "function" ? h28(
+      typeof onSendToChat === "function" ? h29(
         "button",
         {
           type: "button",
@@ -18214,7 +19192,7 @@ function VectorCard({ selection, onClose, onChange, onDelete, onExport, onSendTo
         },
         t2("annotation.sendToChat")
       ) : null,
-      h28(
+      h29(
         "button",
         {
           type: "button",
@@ -18225,12 +19203,12 @@ function VectorCard({ selection, onClose, onChange, onDelete, onExport, onSendTo
         t2("annotation.delete")
       )
     ) : null,
-    h28("footer", null, editable ? t2("annotation.editHint") : t2("vector.selectedHint"))
+    h29("footer", null, editable ? t2("annotation.editHint") : t2("vector.selectedHint"))
   );
 }
 
 // src/client/ui/tour-bar.js
-var import_react32 = __toESM(require("react"), 1);
+var import_react34 = __toESM(require("react"), 1);
 
 // src/client/scene/tour.js
 var TOUR_MIN_DURATION = 1.6;
@@ -18275,16 +19253,16 @@ function tourDuration(fromView, toView) {
 }
 
 // src/client/ui/tour-bar.js
-var h29 = import_react32.default.createElement;
+var h30 = import_react34.default.createElement;
 function useTour({ t: t2, showToast, getCurrentView, onFlyView, onFinish }) {
-  const [state, setState] = import_react32.default.useState(null);
-  const barRef = import_react32.default.useRef(null);
-  const apiRef = import_react32.default.useRef({});
+  const [state, setState] = import_react34.default.useState(null);
+  const barRef = import_react34.default.useRef(null);
+  const apiRef = import_react34.default.useRef({});
   apiRef.current = { t: t2, showToast, getCurrentView, onFlyView, onFinish };
-  const stop = import_react32.default.useCallback(() => {
+  const stop = import_react34.default.useCallback(() => {
     setState(null);
   }, []);
-  const start = import_react32.default.useCallback(
+  const start = import_react34.default.useCallback(
     (bookmarks) => {
       const stops = buildTour(bookmarks);
       if (stops.length < TOUR_MIN_STOPS) {
@@ -18296,7 +19274,7 @@ function useTour({ t: t2, showToast, getCurrentView, onFlyView, onFinish }) {
     },
     [showToast, t2]
   );
-  import_react32.default.useEffect(() => {
+  import_react34.default.useEffect(() => {
     if (!state || !state.playing) return void 0;
     const api = apiRef.current;
     const current2 = state.stops[state.index];
@@ -18316,7 +19294,7 @@ function useTour({ t: t2, showToast, getCurrentView, onFlyView, onFinish }) {
     }, Math.round(duration * 1e3) + TOUR_DWELL_MS);
     return () => clearTimeout(timer);
   }, [state]);
-  import_react32.default.useEffect(() => {
+  import_react34.default.useEffect(() => {
     if (!state || !state.playing) return void 0;
     const onPointerDown = (event) => {
       const bar = barRef.current;
@@ -18326,7 +19304,7 @@ function useTour({ t: t2, showToast, getCurrentView, onFlyView, onFinish }) {
     document.addEventListener("pointerdown", onPointerDown, true);
     return () => document.removeEventListener("pointerdown", onPointerDown, true);
   }, [state]);
-  import_react32.default.useEffect(() => {
+  import_react34.default.useEffect(() => {
     if (!state) return void 0;
     const onKey = (event) => {
       if (event.key === "Escape") setState(null);
@@ -18335,22 +19313,22 @@ function useTour({ t: t2, showToast, getCurrentView, onFlyView, onFinish }) {
     return () => document.removeEventListener("keydown", onKey);
   }, [state]);
   const current = state ? state.stops[state.index] : null;
-  const element = state ? h29(
+  const element = state ? h30(
     "div",
     { ref: barRef, className: "mv-tour mv-glass", role: "region", "aria-label": t2("tour.title") },
-    h29(
+    h30(
       "div",
       { className: "mv-tour-head" },
-      h29("b", null, t2("tour.title")),
-      h29("span", { className: "mv-tour-progress" }, t2("tour.progress", { index: state.index + 1, total: state.stops.length })),
-      h29("button", { type: "button", className: "mv-icon-btn", title: t2("tour.exit"), "aria-label": t2("tour.exit"), onClick: stop }, "✕")
+      h30("b", null, t2("tour.title")),
+      h30("span", { className: "mv-tour-progress" }, t2("tour.progress", { index: state.index + 1, total: state.stops.length })),
+      h30("button", { type: "button", className: "mv-icon-btn", title: t2("tour.exit"), "aria-label": t2("tour.exit"), onClick: stop }, "✕")
     ),
-    h29("p", { className: "mv-tour-caption" }, stopCaption(current, state.index, t2)),
-    h29(
+    h30("p", { className: "mv-tour-caption" }, stopCaption(current, state.index, t2)),
+    h30(
       "div",
       { className: "mv-tour-actions" },
-      h29("button", { type: "button", className: "mv-icon-btn", title: t2("tour.prev"), "aria-label": t2("tour.prev"), onClick: () => setState((previous) => previous ? { ...previous, index: stepIndex(previous.index, -1, previous.stops.length), playing: true } : null) }, "⏮"),
-      h29(
+      h30("button", { type: "button", className: "mv-icon-btn", title: t2("tour.prev"), "aria-label": t2("tour.prev"), onClick: () => setState((previous) => previous ? { ...previous, index: stepIndex(previous.index, -1, previous.stops.length), playing: true } : null) }, "⏮"),
+      h30(
         "button",
         {
           type: "button",
@@ -18359,15 +19337,15 @@ function useTour({ t: t2, showToast, getCurrentView, onFlyView, onFinish }) {
         },
         state.playing ? t2("tour.pause") : t2("tour.play")
       ),
-      h29("button", { type: "button", className: "mv-icon-btn", title: t2("tour.next"), "aria-label": t2("tour.next"), onClick: () => setState((previous) => previous ? { ...previous, index: stepIndex(previous.index, 1, previous.stops.length), playing: true } : null) }, "⏭")
+      h30("button", { type: "button", className: "mv-icon-btn", title: t2("tour.next"), "aria-label": t2("tour.next"), onClick: () => setState((previous) => previous ? { ...previous, index: stepIndex(previous.index, 1, previous.stops.length), playing: true } : null) }, "⏭")
     ),
-    h29("p", { className: "mv-tour-hint" }, t2("tour.hint"))
+    h30("p", { className: "mv-tour-hint" }, t2("tour.hint"))
   ) : null;
   return { start, stop, element };
 }
 
 // src/client/ui/swipe-bar.js
-var import_react33 = __toESM(require("react"), 1);
+var import_react35 = __toESM(require("react"), 1);
 
 // src/client/scene/swipe.js
 var clampSwipeRatio = (value) => {
@@ -18655,19 +19633,19 @@ function createSwipeSession({ getCesium, getViewer, getLayers, getOverlayLayers 
 }
 
 // src/client/ui/swipe-bar.js
-var h30 = import_react33.default.createElement;
+var h31 = import_react35.default.createElement;
 function engineLayersOf(deps) {
   const full = deps?.getLayers?.();
   if (Array.isArray(full)) return full;
   return Array.isArray(deps?.layers) ? deps.layers : [];
 }
 function useSwipe({ t: t2, showToast, layers, overlays, getCesium, getViewer, getOverlayLayers, getLayers }) {
-  const [state, setState] = import_react33.default.useState(null);
-  const containerRef = import_react33.default.useRef(null);
-  const draggingRef = import_react33.default.useRef(false);
-  const depsRef = import_react33.default.useRef({});
+  const [state, setState] = import_react35.default.useState(null);
+  const containerRef = import_react35.default.useRef(null);
+  const draggingRef = import_react35.default.useRef(false);
+  const depsRef = import_react35.default.useRef({});
   depsRef.current = { t: t2, showToast, layers, overlays, getCesium, getViewer, getOverlayLayers, getLayers };
-  const sessionRef = import_react33.default.useRef(null);
+  const sessionRef = import_react35.default.useRef(null);
   if (!sessionRef.current) {
     sessionRef.current = createSwipeSession({
       getCesium: () => depsRef.current.getCesium?.(),
@@ -18676,11 +19654,11 @@ function useSwipe({ t: t2, showToast, layers, overlays, getCesium, getViewer, ge
       getOverlayLayers: () => depsRef.current.getOverlayLayers?.()
     });
   }
-  const stop = import_react33.default.useCallback(() => {
+  const stop = import_react35.default.useCallback(() => {
     sessionRef.current?.stop();
     setState(null);
   }, []);
-  const toggle3d = import_react33.default.useCallback((layerId) => {
+  const toggle3d = import_react35.default.useCallback((layerId) => {
     const current = sessionRef.current?.getState();
     if (current && current.kind === "3d" && current.id === layerId) {
       stop();
@@ -18702,7 +19680,7 @@ function useSwipe({ t: t2, showToast, layers, overlays, getCesium, getViewer, ge
     setState(res.state);
     return true;
   }, [stop]);
-  const toggleRaster = import_react33.default.useCallback((overlayId) => {
+  const toggleRaster = import_react35.default.useCallback((overlayId) => {
     const current = sessionRef.current?.getState();
     if (current && current.kind === "raster" && current.id === overlayId) {
       stop();
@@ -18723,13 +19701,13 @@ function useSwipe({ t: t2, showToast, layers, overlays, getCesium, getViewer, ge
     setState(res.state);
     return true;
   }, [stop]);
-  import_react33.default.useEffect(() => {
+  import_react35.default.useEffect(() => {
     if (!state) return;
     if (sessionRef.current?.reconcile({ layers: engineLayersOf(depsRef.current), overlays: overlays ?? [] })) {
       setState(null);
     }
   }, [state, layers, overlays]);
-  import_react33.default.useEffect(() => {
+  import_react35.default.useEffect(() => {
     if (!state || typeof document === "undefined") return void 0;
     const onKeyDown = (event) => {
       if (event.key !== "Escape") return;
@@ -18739,7 +19717,7 @@ function useSwipe({ t: t2, showToast, layers, overlays, getCesium, getViewer, ge
     document.addEventListener("keydown", onKeyDown, true);
     return () => document.removeEventListener("keydown", onKeyDown, true);
   }, [state, stop]);
-  import_react33.default.useEffect(() => () => sessionRef.current?.stop(), []);
+  import_react35.default.useEffect(() => () => sessionRef.current?.stop(), []);
   const updateRatioFromClient = (clientX, clientY) => {
     const current = sessionRef.current?.getState();
     if (!current) return;
@@ -18783,7 +19761,7 @@ function useSwipe({ t: t2, showToast, layers, overlays, getCesium, getViewer, ge
   };
   const horiz = state?.orientation === "horizontal";
   const pct = state ? `${(state.ratio * 100).toFixed(1)}%` : "50%";
-  const element = state ? h30(
+  const element = state ? h31(
     "div",
     {
       key: "swipe",
@@ -18791,14 +19769,14 @@ function useSwipe({ t: t2, showToast, layers, overlays, getCesium, getViewer, ge
       className: `mv-swipe ${horiz ? "horiz" : "vert"}`,
       "data-capture-hide": "1"
     },
-    h30(
+    h31(
       "div",
       {
         className: "mv-swipe-line",
         style: horiz ? { top: pct } : { left: pct }
       },
-      h30("span", { className: "mv-swipe-badge with" }, t2("swipe.withLayer", { name: state.name })),
-      h30(
+      h31("span", { className: "mv-swipe-badge with" }, t2("swipe.withLayer", { name: state.name })),
+      h31(
         "div",
         {
           className: "mv-swipe-handle",
@@ -18817,13 +19795,13 @@ function useSwipe({ t: t2, showToast, layers, overlays, getCesium, getViewer, ge
         },
         horiz ? "═" : "║"
       ),
-      h30("span", { className: "mv-swipe-badge without" }, t2("swipe.withoutLayer", { name: state.name }))
+      h31("span", { className: "mv-swipe-badge without" }, t2("swipe.withoutLayer", { name: state.name }))
     ),
-    h30(
+    h31(
       "div",
       { className: "mv-swipe-bar mv-glass" },
-      h30("span", { className: "mv-swipe-title" }, `${t2("swipe.title")} · ${state.name}`),
-      h30(
+      h31("span", { className: "mv-swipe-title" }, `${t2("swipe.title")} · ${state.name}`),
+      h31(
         "button",
         {
           type: "button",
@@ -18834,7 +19812,7 @@ function useSwipe({ t: t2, showToast, layers, overlays, getCesium, getViewer, ge
         },
         horiz ? t2("swipe.vertical") : t2("swipe.horizontal")
       ),
-      h30(
+      h31(
         "button",
         {
           type: "button",
@@ -18849,13 +19827,13 @@ function useSwipe({ t: t2, showToast, layers, overlays, getCesium, getViewer, ge
 }
 
 // src/client/ui/scene-details.js
-var import_react34 = __toESM(require("react"), 1);
-var h31 = import_react34.default.createElement;
+var import_react36 = __toESM(require("react"), 1);
+var h32 = import_react36.default.createElement;
 function useSceneDetails({ t: t2, stats, config, layers, analysis, shaderActive }) {
-  const [focus, setFocus] = import_react34.default.useState(null);
-  const open = import_react34.default.useCallback((layerId) => setFocus({ layerId: typeof layerId === "string" ? layerId : null }), []);
-  const close = import_react34.default.useCallback(() => setFocus(null), []);
-  import_react34.default.useEffect(() => {
+  const [focus, setFocus] = import_react36.default.useState(null);
+  const open = import_react36.default.useCallback((layerId) => setFocus({ layerId: typeof layerId === "string" ? layerId : null }), []);
+  const close = import_react36.default.useCallback(() => setFocus(null), []);
+  import_react36.default.useEffect(() => {
     if (!focus) return void 0;
     const onKey = (event) => {
       if (event.key === "Escape") setFocus(null);
@@ -18864,24 +19842,39 @@ function useSceneDetails({ t: t2, stats, config, layers, analysis, shaderActive 
     return () => document.removeEventListener("keydown", onKey);
   }, [focus]);
   const focusedLayer = focus?.layerId ? (layers ?? []).find((layer) => layer.id === focus.layerId) ?? null : null;
+  const floating = useFloatingWindow({
+    storageKey: "scene-details",
+    title: focusedLayer ? t2("sceneDetails.layerTitle") : t2("sceneDetails.title"),
+    t: t2
+  });
   const sourceName = (list, id) => (Array.isArray(list) ? list.find((source) => source.id === id)?.name : null) ?? t2("sceneDetails.none");
-  const row = (label, value) => h31("div", { className: "mv-sd-row" }, h31("span", null, label), h31("b", null, value));
+  const row = (label, value) => h32("div", { className: "mv-sd-row" }, h32("span", null, label), h32("b", null, value));
   const layerRows = (stats?.layers ?? (layers ?? []).map((layer) => ({ id: layer.id, name: layer.name }))).filter(
     (layer) => focusedLayer === null || layer.id === focusedLayer.id
   );
-  const element = focus ? h31(
+  const element = focus ? h32(
     "div",
-    { className: "mv-scene-details mv-glass", role: "dialog", "aria-label": focusedLayer ? t2("sceneDetails.layerTitle") : t2("sceneDetails.title") },
-    h31(
+    {
+      className: `mv-scene-details mv-glass ${floating.className}`,
+      ref: floating.ref,
+      style: floating.style,
+      role: "dialog",
+      "aria-label": focusedLayer ? t2("sceneDetails.layerTitle") : t2("sceneDetails.title"),
+      ...floating.panelProps
+    },
+    h32(
       "header",
-      null,
-      h31("b", null, focusedLayer ? t2("sceneDetails.layerTitle") : t2("sceneDetails.title")),
-      h31("button", { type: "button", className: "mv-icon-btn", title: t2("btn.close"), "aria-label": t2("btn.close"), onClick: close }, "✕")
+      floating.headerProps,
+      floating.dragHandle,
+      h32("b", { className: "title" }, focusedLayer ? t2("sceneDetails.layerTitle") : t2("sceneDetails.title")),
+      floating.resetButton,
+      h32("button", { type: "button", className: "mv-icon-btn", title: t2("btn.close"), "aria-label": t2("btn.close"), onClick: close }, "✕")
     ),
-    h31(
+    floating.liveRegion,
+    h32(
       "div",
       { className: "mv-sd-section" },
-      h31("div", { className: "mv-sd-title" }, t2("sceneDetails.scene")),
+      h32("div", { className: "mv-sd-title" }, t2("sceneDetails.scene")),
       row(t2("hud.camera"), stats?.height ?? "—"),
       row(t2("hud.heading"), `${stats?.heading ?? "—"} / ${stats?.pitch ?? "—"}`),
       row(t2("layers.imagery"), sourceName(config?.imagery, config?.settings?.imagery)),
@@ -18892,17 +19885,17 @@ function useSceneDetails({ t: t2, stats, config, layers, analysis, shaderActive 
       ),
       row(t2("sceneDetails.shader"), shaderActive?.length ? String(shaderActive.length) : t2("sceneDetails.none"))
     ),
-    focusedLayer?.georefIssue ? h31("p", { className: "mv-sd-warn" }, `⚠ ${t2("layers.georefWarning")}`) : null,
-    h31(
+    focusedLayer?.georefIssue ? h32("p", { className: "mv-sd-warn" }, `⚠ ${t2("layers.georefWarning")}`) : null,
+    h32(
       "div",
       { className: "mv-sd-section" },
-      h31("div", { className: "mv-sd-title" }, focusedLayer ? t2("sceneDetails.layer") : t2("sceneDetails.layers")),
-      layerRows.length === 0 ? h31("div", { className: "mv-sd-empty" }, t2("sceneDetails.none")) : layerRows.map(
-        (layer) => h31(
+      h32("div", { className: "mv-sd-title" }, focusedLayer ? t2("sceneDetails.layer") : t2("sceneDetails.layers")),
+      layerRows.length === 0 ? h32("div", { className: "mv-sd-empty" }, t2("sceneDetails.none")) : layerRows.map(
+        (layer) => h32(
           "div",
           { key: layer.id, className: "mv-sd-layer" },
-          h31("b", null, layer.name ?? "—"),
-          h31(
+          h32("b", null, layer.name ?? "—"),
+          h32(
             "span",
             null,
             `${t2("hud.tiles")} ${formatCount(layer.tiles)} · ${t2("hud.pending")} ${formatCount(layer.pending)} · ${t2("hud.triangles")} ${formatCount(layer.triangles)} · ${t2("hud.cache")} ${formatBytes(layer.memory)}`
@@ -18915,13 +19908,13 @@ function useSceneDetails({ t: t2, stats, config, layers, analysis, shaderActive 
 }
 
 // src/client/ui/use-workbench.js
-var import_react35 = __toESM(require("react"), 1);
+var import_react37 = __toESM(require("react"), 1);
 function useWorkbenchWiring(deps) {
-  const latest = import_react35.default.useRef(deps);
+  const latest = import_react37.default.useRef(deps);
   latest.current = deps;
-  const service2 = import_react35.default.useRef(null);
+  const service2 = import_react37.default.useRef(null);
   if (!service2.current) service2.current = createWorkbenchWiring(Object.fromEntries(Object.keys(deps).map((key) => [key, (...args) => latest.current[key]?.(...args)])));
-  import_react35.default.useEffect(() => {
+  import_react37.default.useEffect(() => {
     service2.current.activate();
     return () => service2.current.dispose();
   }, []);
@@ -19006,7 +19999,7 @@ function writeRecentUrls(list, storage) {
 // src/client/ui/data-menu.js
 var MENU_SEP = { width: "auto", height: ".5px", margin: "4px 8px" };
 function dataMenuItems({
-  h: h36,
+  h: h37,
   MenuItem: MenuItem2,
   t: t2,
   recentDirs,
@@ -19025,38 +20018,38 @@ function dataMenuItems({
     if (typeof closeMenu === "function") closeMenu();
     action();
   };
-  const items = [h36(MenuItem2, { key: "local", onClick: run(onOpenLocal) }, t2("btn.openLocal"))];
+  const items = [h37(MenuItem2, { key: "local", onClick: run(onOpenLocal) }, t2("btn.openLocal"))];
   if (Array.isArray(recentDirs) && recentDirs.length > 0) {
-    items.push(h36("span", { key: "recent-dirs-label", className: "mv-menu-label" }, t2("menu.recentDirs")));
+    items.push(h37("span", { key: "recent-dirs-label", className: "mv-menu-label" }, t2("menu.recentDirs")));
     for (const entry of recentDirs) {
       items.push(
-        h36(
+        h37(
           MenuItem2,
           { key: `dir:${entry.dir}`, title: entry.dir, onClick: run(() => onOpenRecentDirectory(entry.dir)) },
-          h36("span", { className: "ellipsis" }, entry.name)
+          h37("span", { className: "ellipsis" }, entry.name)
         )
       );
     }
   }
   if (Array.isArray(recentUrls) && recentUrls.length > 0) {
-    items.push(h36("span", { key: "recent-urls-label", className: "mv-menu-label" }, t2("menu.recentUrls")));
+    items.push(h37("span", { key: "recent-urls-label", className: "mv-menu-label" }, t2("menu.recentUrls")));
     for (const entry of recentUrls) {
       items.push(
-        h36(
+        h37(
           MenuItem2,
           { key: `url:${entry.url}`, title: entry.url, onClick: run(() => onOpenRecentUrl(entry.url)) },
-          h36("span", { className: "ellipsis" }, recentUrlLabel(entry.url))
+          h37("span", { className: "ellipsis" }, recentUrlLabel(entry.url))
         )
       );
     }
   }
   if (agentOverlayCount > 0) {
-    items.push(h36(MenuItem2, { key: "clearAgent", onClick: run(onClearAgent) }, t2("menu.clearAgent")));
+    items.push(h37(MenuItem2, { key: "clearAgent", onClick: run(onClearAgent) }, t2("menu.clearAgent")));
   }
-  items.push(h36(MenuItem2, { key: "url", onClick: run(onToggleUrlBar) }, t2("btn.openUrl")));
-  items.push(h36(MenuItem2, { key: "report", onClick: run(onReport) }, t2("menu.report")));
-  items.push(h36("i", { key: "sep", className: "mv-sep", style: MENU_SEP }));
-  items.push(h36(MenuItem2, { key: "clear", onClick: run(onClearTools) }, t2("tool.clear")));
+  items.push(h37(MenuItem2, { key: "url", onClick: run(onToggleUrlBar) }, t2("btn.openUrl")));
+  items.push(h37(MenuItem2, { key: "report", onClick: run(onReport) }, t2("menu.report")));
+  items.push(h37("i", { key: "sep", className: "mv-sep", style: MENU_SEP }));
+  items.push(h37(MenuItem2, { key: "clear", onClick: run(onClearTools) }, t2("tool.clear")));
   return items;
 }
 
@@ -20895,11 +21888,17 @@ function createProfileEdit({ getCesium, getViewer, getRoot, pickSurface, onRecom
       Cesium.Cartographic.fromDegrees(endpoints.from[0], endpoints.from[1]),
       Cesium.Cartographic.fromDegrees(endpoints.to[0], endpoints.to[1])
     );
+    const lastDistance = Number(points[points.length - 1]?.distance_m);
+    const lengthM = Number(analysis?.result?.length_m);
+    const totalDistance = Number.isFinite(lengthM) && lengthM > 0 ? lengthM : Number.isFinite(lastDistance) && lastDistance > 0 ? lastDistance : 0;
     const step = points.length > 1 ? 1 / (points.length - 1) : 0;
     return points.map((sample, index) => {
-      const carto = geodesic.interpolateUsingFraction(index * step, new Cesium.Cartographic());
+      const distanceM = Number(sample?.distance_m);
+      const rawFraction = totalDistance > 0 && Number.isFinite(distanceM) ? distanceM / totalDistance : index * step;
+      const fraction = Math.min(1, Math.max(0, rawFraction));
+      const carto = geodesic.interpolateUsingFraction(fraction, new Cesium.Cartographic());
       const height = typeof sample?.height_m === "number" ? sample.height_m : 0;
-      return Cesium.Cartesian3.fromRadians(carto.longitude, carto.latitude, height + 2);
+      return Cesium.Cartesian3.fromRadians(carto.longitude, carto.latitude, height + PROFILE_SURFACE_OFFSET_M);
     });
   }
   function canvasToRootOffset() {
@@ -21027,8 +22026,9 @@ function createProfileEdit({ getCesium, getViewer, getRoot, pickSurface, onRecom
     const cartesian = state.samples[index];
     if (!Cesium || !viewer || !point || !cartesian) return;
     removeReadout(state);
-    const distance = `${Math.round(Number(point.distance_m) || 0)} m`;
-    const text = typeof point.height_m === "number" ? t2("profile.hoverReadout", { distance, height: `${Math.round(point.height_m)} m` }) : t2("profile.hoverEmpty", { distance });
+    const distanceNum = Number(point.distance_m);
+    const distance = `${(Number.isFinite(distanceNum) ? distanceNum : 0).toFixed(1)} m`;
+    const text = typeof point.height_m === "number" ? t2("profile.hoverReadout", { distance, height: `${point.height_m.toFixed(1)} m` }) : t2("profile.hoverEmpty", { distance });
     try {
       state.readout = viewer.entities.add({
         id: `${READOUT_ID}-${index}`,
@@ -21121,74 +22121,75 @@ function createProfileEdit({ getCesium, getViewer, getRoot, pickSurface, onRecom
 }
 
 // src/client/viewer/ViewerSurface.js
-var h32 = import_react36.default.createElement;
+var h33 = import_react38.default.createElement;
 function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
   const fallbackT = useTranslation();
   const t2 = typeof injectedT === "function" ? injectedT : fallbackT;
   const net = createNetwork({ t: t2 });
   const environmentDark = useEnvironmentDark();
-  const rootRef = import_react36.default.useRef(null);
-  const globeRef = import_react36.default.useRef(null);
-  const creditRef = import_react36.default.useRef(null);
-  const menuRef = import_react36.default.useRef(null);
-  const viewerRef = import_react36.default.useRef(null);
-  const cesiumRef = import_react36.default.useRef(null);
-  const metaRef = import_react36.default.useRef(null);
-  const layersRef = import_react36.default.useRef([]);
-  const toolRef = import_react36.default.useRef("identify");
-  const profileToolRef = import_react36.default.useRef(null);
-  const measureRef = import_react36.default.useRef({ points: [], entities: [] });
-  const measurePreviewRef = import_react36.default.useRef(null);
-  const vectorRef = import_react36.default.useRef(null);
-  const handlerRef = import_react36.default.useRef(null);
-  const imageryRef = import_react36.default.useRef(null);
-  const overlayLayersRef = import_react36.default.useRef(null);
-  const sourcesRef = import_react36.default.useRef(null);
-  const toastTimer = import_react36.default.useRef(0);
-  const captureReadoutRef = import_react36.default.useRef(null);
-  const commandChainRef = import_react36.default.useRef(Promise.resolve());
-  const commandRef = import_react36.default.useRef(null);
-  const selectionApiRef = import_react36.default.useRef(null);
-  const accessRef = import_react36.default.useRef(null);
-  const analysisRef = import_react36.default.useRef({ operation: null, layerId: null, layerName: null, entities: [], restore: null });
-  const analysisCommandRef = import_react36.default.useRef(null);
-  const shaderEntriesRef = import_react36.default.useRef(/* @__PURE__ */ new Map());
-  const shaderTickRef = import_react36.default.useRef(null);
-  const readyGateRef = import_react36.default.useRef({ ready: false, error: null, waiters: [] });
-  const healthSeqRef = import_react36.default.useRef(0);
-  const sessionRef = import_react36.default.useRef(sessionId);
+  const rootRef = import_react38.default.useRef(null);
+  const globeRef = import_react38.default.useRef(null);
+  const creditRef = import_react38.default.useRef(null);
+  const menuRef = import_react38.default.useRef(null);
+  const viewerRef = import_react38.default.useRef(null);
+  const cesiumRef = import_react38.default.useRef(null);
+  const metaRef = import_react38.default.useRef(null);
+  const layersRef = import_react38.default.useRef([]);
+  const toolRef = import_react38.default.useRef("identify");
+  const profileToolRef = import_react38.default.useRef(null);
+  const measureRef = import_react38.default.useRef({ points: [], entities: [] });
+  const measurePreviewRef = import_react38.default.useRef(null);
+  const vectorRef = import_react38.default.useRef(null);
+  const handlerRef = import_react38.default.useRef(null);
+  const imageryRef = import_react38.default.useRef(null);
+  const overlayLayersRef = import_react38.default.useRef(null);
+  const sourcesRef = import_react38.default.useRef(null);
+  const toastTimer = import_react38.default.useRef(0);
+  const captureReadoutRef = import_react38.default.useRef(null);
+  const commandChainRef = import_react38.default.useRef(Promise.resolve());
+  const commandRef = import_react38.default.useRef(null);
+  const selectionApiRef = import_react38.default.useRef(null);
+  const accessRef = import_react38.default.useRef(null);
+  const analysisRef = import_react38.default.useRef({ operation: null, layerId: null, layerName: null, entities: [], restore: null });
+  const analysisCommandRef = import_react38.default.useRef(null);
+  const shaderEntriesRef = import_react38.default.useRef(/* @__PURE__ */ new Map());
+  const shaderTickRef = import_react38.default.useRef(null);
+  const readyGateRef = import_react38.default.useRef({ ready: false, error: null, waiters: [] });
+  const healthSeqRef = import_react38.default.useRef(0);
+  const sessionRef = import_react38.default.useRef(sessionId);
   sessionRef.current = sessionId;
-  const [phase, setPhase] = import_react36.default.useState("loading");
-  const [error, setError] = import_react36.default.useState("");
-  const [layers, setLayers] = import_react36.default.useState([]);
-  const [sources, setSources] = import_react36.default.useState(null);
-  const [defaults, setDefaults] = import_react36.default.useState(null);
-  const [tool, setTool] = import_react36.default.useState("identify");
-  const [fps, setFps] = import_react36.default.useState(null);
-  const [fullscreen, setFullscreen] = import_react36.default.useState(false);
-  const [stats, setStats] = import_react36.default.useState(null);
-  const [measureInfo, setMeasureInfo] = import_react36.default.useState(null);
-  const [vectorSelection, setVectorSelection] = import_react36.default.useState(null);
-  const [scan, setScan] = import_react36.default.useState(null);
-  const [emptyDismissed, setEmptyDismissed] = import_react36.default.useState(false);
-  const [restoringScene, setRestoringScene] = import_react36.default.useState(false);
-  const [urlBar, setUrlBar] = import_react36.default.useState(false);
-  const [urlInput, setUrlInput] = import_react36.default.useState("");
-  const [busy, setBusy] = import_react36.default.useState("");
-  const [toast, setToast] = import_react36.default.useState("");
-  const [openMenu, setOpenMenu] = import_react36.default.useState(null);
-  const [recentDirs, setRecentDirs] = import_react36.default.useState([]);
-  const [recentUrls, setRecentUrls] = import_react36.default.useState(() => readRecentUrls());
-  const [accessRequest, setAccessRequest] = import_react36.default.useState(null);
-  const [accessBusy, setAccessBusy] = import_react36.default.useState(false);
-  const [analysis, setAnalysis] = import_react36.default.useState(null);
-  const [profileHover, setProfileHover] = import_react36.default.useState(null);
-  const [shaderOpen, setShaderOpen] = import_react36.default.useState(false);
-  const [showTools, setShowTools] = import_react36.default.useState(true);
-  const [toolRequest, setToolRequest] = import_react36.default.useState(null);
-  const [, setOverlayRev] = import_react36.default.useState(0);
-  const [shaderActive, setShaderActive] = import_react36.default.useState([]);
-  const [shaderForm, setShaderForm] = import_react36.default.useState({
+  const [phase, setPhase] = import_react38.default.useState("loading");
+  const [error, setError] = import_react38.default.useState("");
+  const [layers, setLayers] = import_react38.default.useState([]);
+  const [sources, setSources] = import_react38.default.useState(null);
+  const [defaults, setDefaults] = import_react38.default.useState(null);
+  const [tool, setTool] = import_react38.default.useState("identify");
+  const [fps, setFps] = import_react38.default.useState(null);
+  const [fullscreen, setFullscreen] = import_react38.default.useState(false);
+  const [stats, setStats] = import_react38.default.useState(null);
+  const [measureInfo, setMeasureInfo] = import_react38.default.useState(null);
+  const [vectorSelection, setVectorSelection] = import_react38.default.useState(null);
+  const [scan, setScan] = import_react38.default.useState(null);
+  const [emptyDismissed, setEmptyDismissed] = import_react38.default.useState(false);
+  const [restoringScene, setRestoringScene] = import_react38.default.useState(false);
+  const [urlBar, setUrlBar] = import_react38.default.useState(false);
+  const [urlInput, setUrlInput] = import_react38.default.useState("");
+  const [busy, setBusy] = import_react38.default.useState("");
+  const [toast, setToast] = import_react38.default.useState("");
+  const [openMenu, setOpenMenu] = import_react38.default.useState(null);
+  const [recentDirs, setRecentDirs] = import_react38.default.useState([]);
+  const [recentUrls, setRecentUrls] = import_react38.default.useState(() => readRecentUrls());
+  const [accessRequest, setAccessRequest] = import_react38.default.useState(null);
+  const [accessBusy, setAccessBusy] = import_react38.default.useState(false);
+  const [analysis, setAnalysis] = import_react38.default.useState(null);
+  const [profileHover, setProfileHover] = import_react38.default.useState(null);
+  const [shaderOpen, setShaderOpen] = import_react38.default.useState(false);
+  const [showTools, setShowTools] = import_react38.default.useState(true);
+  const [toolRequest, setToolRequest] = import_react38.default.useState(null);
+  const workspace = useToolWorkspace(toolRequest);
+  const [, setOverlayRev] = import_react38.default.useState(0);
+  const [shaderActive, setShaderActive] = import_react38.default.useState([]);
+  const [shaderForm, setShaderForm] = import_react38.default.useState({
     layerId: "",
     preset: "height-false-color",
     minHeight: "",
@@ -21200,15 +22201,15 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     waterHeight: "",
     depthMax: ""
   });
-  const [settingsOpen, setSettingsOpen] = import_react36.default.useState(false);
-  const [health, setHealth] = import_react36.default.useState(null);
-  const [terrainBusy, setTerrainBusy] = import_react36.default.useState(false);
-  const [terrainError, setTerrainError] = import_react36.default.useState("");
-  const [imageryBusy, setImageryBusy] = import_react36.default.useState(false);
-  const [meta, setMeta] = import_react36.default.useState(null);
-  const [bridgeOn, setBridgeOn] = import_react36.default.useState(false);
-  const [bridgeReload, setBridgeReload] = import_react36.default.useState(false);
-  const [bridgeEpoch, setBridgeEpoch] = import_react36.default.useState(0);
+  const [settingsOpen, setSettingsOpen] = import_react38.default.useState(false);
+  const [health, setHealth] = import_react38.default.useState(null);
+  const [terrainBusy, setTerrainBusy] = import_react38.default.useState(false);
+  const [terrainError, setTerrainError] = import_react38.default.useState("");
+  const [imageryBusy, setImageryBusy] = import_react38.default.useState(false);
+  const [meta, setMeta] = import_react38.default.useState(null);
+  const [bridgeOn, setBridgeOn] = import_react38.default.useState(false);
+  const [bridgeReload, setBridgeReload] = import_react38.default.useState(false);
+  const [bridgeEpoch, setBridgeEpoch] = import_react38.default.useState(0);
   const themeMode = sources?.settings?.theme ?? "auto";
   const resolvedDark = themeMode === "auto" ? environmentDark : themeMode === "dark";
   const showLayers = sources?.settings?.showLayers !== false;
@@ -21265,8 +22266,8 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     setLayers(layersRef.current.map((layer) => ({ id: layer.id, name: layer.name, visible: layer.visible, kind: layer.kind, georefIssue: layer.georefIssue })));
     markSceneDirty();
   };
-  const saveChainRef = import_react36.default.useRef(Promise.resolve());
-  const saveSeqRef = import_react36.default.useRef(0);
+  const saveChainRef = import_react38.default.useRef(Promise.resolve());
+  const saveSeqRef = import_react38.default.useRef(0);
   const commitSources = (next, notify) => {
     const previous = sourcesRef.current;
     sourcesRef.current = next;
@@ -21447,9 +22448,9 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
       showToast(t2("toast.reportFailed", { message: message(error2) }));
     }
   }
-  const imagerySeqRef = import_react36.default.useRef(0);
-  const terrainSeqRef = import_react36.default.useRef(0);
-  const imageryErrorUnsubRef = import_react36.default.useRef(null);
+  const imagerySeqRef = import_react38.default.useRef(0);
+  const terrainSeqRef = import_react38.default.useRef(0);
+  const imageryErrorUnsubRef = import_react38.default.useRef(null);
   async function applyImagery(id, notify) {
     const Cesium = cesiumRef.current;
     const viewer = viewerRef.current;
@@ -21712,7 +22713,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     vectorRef.current.refresh(descriptor);
     if (toolRef.current === mode) measurePreviewRef.current?.sync(mode);
   }
-  const agentOverlayRef = import_react36.default.useRef({
+  const agentOverlayRef = import_react38.default.useRef({
     draw: [],
     measure: [],
     drawnFeatures: 0,
@@ -21723,7 +22724,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     // Entities per command (WeakMap keeps snapshots JSON-clean).
     entityGroups: /* @__PURE__ */ new WeakMap()
   });
-  const [agentOverlayCount, setAgentOverlayCount] = import_react36.default.useState(0);
+  const [agentOverlayCount, setAgentOverlayCount] = import_react38.default.useState(0);
   const syncAgentOverlayCount = () => {
     const state = agentOverlayRef.current;
     setAgentOverlayCount(state.draw.length + state.measure.length);
@@ -21776,7 +22777,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     t: t2,
     onFinish: annotations.add
   });
-  import_react36.default.useEffect(() => {
+  import_react38.default.useEffect(() => {
     if (tool !== "annotate") annotationTool.abort();
   }, [tool]);
   const annotationEditor = createAnnotationEditor({
@@ -21788,10 +22789,10 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     showToast,
     t: t2
   });
-  import_react36.default.useEffect(() => {
+  import_react38.default.useEffect(() => {
     annotationEditor.focus(vectorSelection);
   }, [vectorSelection]);
-  import_react36.default.useEffect(() => () => annotationEditor.dispose(), []);
+  import_react38.default.useEffect(() => () => annotationEditor.dispose(), []);
   const vectorExport = createVectorExport({ stateRef: agentOverlayRef, getMeta: () => metaRef.current, getSession: () => sessionId, showToast, t: t2 });
   const vectorRenderer = createVectorRenderer({
     getState: () => agentOverlayRef.current,
@@ -21838,11 +22839,11 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
       action: "profile",
       from,
       to,
-      samples: Number.isInteger(analysisRef.current?.result?.samples) ? analysisRef.current.result.samples : 32,
+      ...Number.isInteger(analysisRef.current?.result?.requested_samples) ? { samples: analysisRef.current.result.requested_samples } : {},
       ...source === "terrain" ? { source: "terrain" } : {}
     }).catch((error2) => showToast(t2("profile.recomputeFailed", { message: error2?.message ?? String(error2) })))
   });
-  import_react36.default.useEffect(() => {
+  import_react38.default.useEffect(() => {
     profileEdit.sync(analysis);
     return () => profileEdit.clear();
   }, [analysis]);
@@ -21862,9 +22863,9 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
   const shaderActiveList = () => shaderEngine.activeList();
   const detachShaderForLayer = (id, restore) => shaderEngine.detachForLayer(id, restore);
   const releaseShaderTick = () => shaderEngine.releaseTick();
-  const sceneDirtyRef = import_react36.default.useRef(false);
-  const restoringRef = import_react36.default.useRef(false);
-  const sceneRestoredRef = import_react36.default.useRef(false);
+  const sceneDirtyRef = import_react38.default.useRef(false);
+  const restoringRef = import_react38.default.useRef(false);
+  const sceneRestoredRef = import_react38.default.useRef(false);
   const hostSceneStore = createHostSceneStore({
     getMeta: () => metaRef.current,
     loadMeta,
@@ -22087,7 +23088,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     drawVectorLabels: (context, width, height) => vectorRef.current?.drawLabels(context, width, height)
   });
   const { renderSnapshot, screenshot, captureScene } = capture;
-  const selectionController = import_react36.default.useMemo(() => createSelectionController({
+  const selectionController = import_react38.default.useMemo(() => createSelectionController({
     getViewer: () => viewerRef.current,
     getCesium: () => cesiumRef.current,
     getLayers: () => layersRef.current,
@@ -22388,7 +23389,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
   });
   const runCommand = (action, args = {}, session = null) => commandBridge.runCommand(action, args, session);
   commandRef.current = runCommand;
-  import_react36.default.useEffect(() => {
+  import_react38.default.useEffect(() => {
     if (!sessionId || !meta?.bridgeUrl) return void 0;
     const bridgeSession = sessionId;
     const endpoint = `${meta.bridgeUrl}?token=${encodeURIComponent(meta.token)}&session=${encodeURIComponent(bridgeSession)}`;
@@ -22497,7 +23498,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
       }
     };
   }, [sessionId, meta, bridgeEpoch]);
-  import_react36.default.useEffect(
+  import_react38.default.useEffect(
     () => () => {
       const current = accessRef.current;
       if (!current) return;
@@ -22507,7 +23508,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     },
     []
   );
-  import_react36.default.useEffect(() => {
+  import_react38.default.useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
@@ -22639,7 +23640,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
       layersRef.current = [];
     };
   }, []);
-  import_react36.default.useEffect(() => {
+  import_react38.default.useEffect(() => {
     if (phase !== "ready" || sceneRestoredRef.current) return void 0;
     if (typeof sessionId !== "string" || sessionId === "") return void 0;
     sceneRestoredRef.current = true;
@@ -22653,7 +23654,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
       cancelled = true;
     };
   }, [phase, sessionId]);
-  import_react36.default.useEffect(() => {
+  import_react38.default.useEffect(() => {
     const timer = setInterval(() => {
       if (sceneDirtyRef.current) saveSceneSnapshot();
     }, 3e3);
@@ -22671,7 +23672,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
       document.removeEventListener("visibilitychange", onVisibility);
     };
   }, []);
-  import_react36.default.useEffect(() => {
+  import_react38.default.useEffect(() => {
     if (!openMenu) return void 0;
     const close = (event) => {
       if (!menuRef.current?.contains(event.target)) setOpenMenu(null);
@@ -22679,10 +23680,10 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     document.addEventListener("pointerdown", close, true);
     return () => document.removeEventListener("pointerdown", close, true);
   }, [openMenu]);
-  import_react36.default.useEffect(() => {
+  import_react38.default.useEffect(() => {
     if (openMenu === "data" || showLayers) refreshRecentDirs();
   }, [openMenu, showLayers, meta?.directoriesUrl]);
-  import_react36.default.useEffect(() => {
+  import_react38.default.useEffect(() => {
     if (phase !== "ready") return void 0;
     const element = globeRef.current;
     if (!element || typeof ResizeObserver === "undefined") return void 0;
@@ -22695,7 +23696,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     observer.observe(element);
     return () => observer.disconnect();
   }, [phase]);
-  import_react36.default.useEffect(() => {
+  import_react38.default.useEffect(() => {
     const onChange = () => {
       setFullscreen(document.fullscreenElement === rootRef.current);
       try {
@@ -22706,7 +23707,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     document.addEventListener("fullscreenchange", onChange);
     return () => document.removeEventListener("fullscreenchange", onChange);
   }, []);
-  import_react36.default.useEffect(() => {
+  import_react38.default.useEffect(() => {
     if (phase !== "ready") return void 0;
     const viewer = viewerRef.current;
     if (!viewer) return void 0;
@@ -22759,7 +23760,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
       canvas.removeEventListener("webglcontextrestored", onRestored);
     };
   }, [phase]);
-  import_react36.default.useEffect(() => {
+  import_react38.default.useEffect(() => {
     if (!scan) return void 0;
     const onKey = (event) => {
       if (event.key === "Escape") setScan(null);
@@ -22768,7 +23769,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     return () => document.removeEventListener("keydown", onKey);
   }, [scan]);
   const measureMode = tool === "distance" || tool === "area" || tool === "height" || tool === "profile";
-  import_react36.default.useEffect(() => {
+  import_react38.default.useEffect(() => {
     if (!measureMode) return void 0;
     const onKey = (event) => {
       if (event.key === "Escape") finishMeasure();
@@ -22776,7 +23777,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [measureMode]);
-  import_react36.default.useEffect(() => {
+  import_react38.default.useEffect(() => {
     if (phase !== "ready") return void 0;
     let lastKey = "";
     const timer = setInterval(() => {
@@ -22788,7 +23789,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     }, 1e3);
     return () => clearInterval(timer);
   }, [phase]);
-  import_react36.default.useEffect(() => {
+  import_react38.default.useEffect(() => {
     const viewer = viewerRef.current;
     const Cesium = cesiumRef.current;
     if (phase !== "ready" || !viewer || !Cesium) return;
@@ -22797,12 +23798,12 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     if (viewer.scene.skyAtmosphere) viewer.scene.skyAtmosphere.show = resolvedDark;
     viewer.scene.requestRender?.();
   }, [phase, resolvedDark]);
-  const button = (label, onClick, active, extra, title) => h32(
+  const button = (label, onClick, active, extra, title) => h33(
     "button",
     { type: "button", className: `mv-btn${active ? " on" : ""}${extra ? ` ${extra}` : ""}`, onClick, title },
     label
   );
-  const iconButton = (icon, title, onClick, active) => h32(
+  const iconButton = (icon, title, onClick, active) => h33(
     "button",
     {
       type: "button",
@@ -22814,11 +23815,11 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     },
     icon
   );
-  const menu = (id, label, items, active) => h32(
+  const menu = (id, label, items, active) => h33(
     "div",
     { key: id, className: "mv-menu" },
     button(`${label} ▾`, () => setOpenMenu(openMenu === id ? null : id), active),
-    openMenu === id ? h32("div", { className: "mv-menu-panel mv-glass" }, items) : null
+    openMenu === id ? h33("div", { className: "mv-menu-panel mv-glass" }, items) : null
   );
   const status = busy || (phase === "loading" ? t2("panel.status.loading") : t2("panel.status.ready"));
   const hudLabels = {
@@ -22858,7 +23859,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
     getViewer: () => viewerRef.current,
     getOverlayLayers: () => overlayLayersRef.current
   });
-  return h32(
+  return h33(
     "div",
     {
       ref: rootRef,
@@ -22884,29 +23885,29 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
         );
       }
     },
-    h32("style", { key: "css" }, CSS),
-    h32("div", { key: "globe", ref: globeRef, className: "mv-globe" }),
-    activeImagery?.credit ? h32("div", { key: "attr", className: "mv-attr" }, `${t2("credit.imagery")} © ${activeImagery.credit}`) : null,
-    h32("div", { key: "credits", ref: creditRef, className: "mv-credits" }),
-    h32(Compass, { key: "compass", getViewer: () => viewerRef.current, t: t2 }),
-    h32(
+    h33("style", { key: "css" }, CSS),
+    h33("div", { key: "globe", ref: globeRef, className: "mv-globe" }),
+    activeImagery?.credit ? h33("div", { key: "attr", className: "mv-attr" }, `${t2("credit.imagery")} © ${activeImagery.credit}`) : null,
+    h33("div", { key: "credits", ref: creditRef, className: "mv-credits" }),
+    h33(Compass, { key: "compass", getViewer: () => viewerRef.current, t: t2 }),
+    h33(
       "div",
       { key: "top", className: "mv-top" },
-      h32(
+      h33(
         "div",
         { className: "mv-brand mv-glass" },
-        h32(ViewerIcon, { size: 18 }),
-        h32("b", null, t2("panel.title")),
-        h32("span", null, status)
+        h33(ViewerIcon, { size: 18 }),
+        h33("b", null, t2("panel.title")),
+        h33("span", null, status)
       ),
-      h32(
+      h33(
         "div",
         { ref: menuRef, className: "mv-actions mv-glass" },
         menu(
           "data",
           t2("btn.data"),
           dataMenuItems({
-            h: h32,
+            h: h33,
             MenuItem,
             t: t2,
             recentDirs,
@@ -22928,23 +23929,26 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
             }
           })
         ),
-        h32("i", { key: "s1", className: "mv-sep" }),
-        h32(ToolbarQuick, {
+        h33("i", { key: "s1", className: "mv-sep" }),
+        h33(ToolbarQuick, {
           t: t2,
+          showSelect: workspace.isOpen("select") || tool === "select",
+          onToggleSelect: () => workspace.selectTool("select"),
           showLayers,
           showTools,
+          openToolCount: workspace.windows.length,
           onToggleLayers: () => updateSettings({ showLayers: !showLayers }),
           onToggleTools: () => setShowTools((value) => !value),
           button
         }),
         iconButton(
-          h32(HudIcon),
+          h33(HudIcon),
           showHud ? t2("btn.hudHide") : t2("btn.hudShow"),
           () => updateSettings({ showHud: !showHud }),
           showHud
         ),
         iconButton(
-          h32(ShaderIcon),
+          h33(ShaderIcon),
           shaderOpen ? t2("btn.shaderHide") : t2("btn.shaderShow"),
           () => setShaderOpen((value) => !value),
           shaderOpen
@@ -22956,21 +23960,21 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
         // narrow panel the text labels were what wrapped the toolbar onto a
         // second row. The four dropdown menus keep their text labels because a
         // bare icon does not tell the user what the menu contains.
-        iconButton(h32(ScreenshotIcon), t2("btn.screenshot"), screenshot),
-        sessionId ? iconButton(h32(AskAgentIcon), t2("btn.askAgent"), askAgent) : null,
-        iconButton(h32(ResetIcon), t2("btn.reset"), resetView),
+        iconButton(h33(ScreenshotIcon), t2("btn.screenshot"), screenshot),
+        sessionId ? iconButton(h33(AskAgentIcon), t2("btn.askAgent"), askAgent) : null,
+        iconButton(h33(ResetIcon), t2("btn.reset"), resetView),
         // Only the main panel offers "open beside chat"; the docked tab is
         // already beside the conversation.
         docked ? null : button(t2("btn.beside"), openBeside),
         // Single fullscreen entry point for both mounts (DOM Fullscreen API).
         // Expanding the sidebar is DSH's own feature, so the duplicate
         // "maximize sidebar" action is gone.
-        iconButton(h32(FullscreenIcon), fullscreen ? t2("btn.fullscreenExit") : t2("btn.fullscreenTitle"), toggleDomFullscreen, fullscreen),
-        h32("i", { key: "s3", className: "mv-sep" }),
-        h32(ToolbarMenus, { t: t2, themeMode, resolvedDark, openMenu, setOpenMenu, setTheme, setSettingsOpen })
+        iconButton(h33(FullscreenIcon), fullscreen ? t2("btn.fullscreenExit") : t2("btn.fullscreenTitle"), toggleDomFullscreen, fullscreen),
+        h33("i", { key: "s3", className: "mv-sep" }),
+        h33(ToolbarMenus, { t: t2, themeMode, resolvedDark, openMenu, setOpenMenu, setTheme, setSettingsOpen })
       )
     ),
-    urlBar ? h32(UrlBar, {
+    urlBar ? h33(UrlBar, {
       key: "urlbar",
       value: urlInput,
       placeholder: t2("urlbar.placeholder"),
@@ -22979,7 +23983,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
       onSubmit: submitUrl,
       onClose: () => setUrlBar(false)
     }) : null,
-    shaderOpen ? h32(ShaderWorkbench, {
+    shaderOpen ? h33(ShaderWorkbench, {
       key: "shader",
       t: t2,
       layers,
@@ -23006,7 +24010,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
       onResetEntry: workbench.resetLayerFor
     }) : null,
     // v1.7 P0: 指认 card + corner brackets (panel-only) and the tour bar.
-    h32(SelectionOverlay, {
+    h33(SelectionOverlay, {
       key: "selection",
       active: tool === "identify",
       apiRef: selectionApiRef,
@@ -23017,22 +24021,27 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
       onMeasure: measureFromSelection,
       onVisionCommit: (ground) => {
         getSelectionTool(viewerRef.current, { getCesium: () => cesiumRef.current, t: t2, showToast })?.commitVision(ground);
-        setShowTools(true);
+        workspace.openTool("select");
       },
-      onVisionManual: () => setShowTools(true),
+      onVisionManual: () => workspace.openTool("select"),
       onSelectArea: (card) => {
         const viewerNow = viewerRef.current;
         if (!viewerNow || !card?.point) return;
         const selectionTool = getSelectionTool(viewerNow, { getCesium: () => cesiumRef.current, t: t2, showToast });
         selectionTool?.selectAreaAround?.({ lon: card.point.lon, lat: card.point.lat, radiusM: 15, height: card.point.surface_height_m ?? 0 });
-        setShowTools(true);
+        workspace.openTool("select");
       }
     }),
     tour.element,
     swipe.element,
     sceneDetails.element,
-    h32(RightStack, {
+    h33(RightStack, {
       t: t2,
+      openWindows: workspace.windows,
+      onSelectTool: workspace.selectTool,
+      onCloseToolWindow: workspace.closeTool,
+      onToggleMinimizeTool: workspace.toggleMinimize,
+      onToggleExpandTool: workspace.toggleExpand,
       analysis,
       analysisHover: profileHover,
       onAnalysisHover: (index) => {
@@ -23080,7 +24089,6 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
         overlayExtrusions: buildAgentOverlayExtrusions(agentOverlayRef.current),
         onToggleOverlayExtrude: (overlayIndex) => annotations.toggleLayerExtrusion(overlayIndex),
         onQuickAnnotate: () => {
-          setShowTools(true);
           setToolRequest((prev) => ({ id: "annotation", seq: (prev?.seq ?? 0) + 1 }));
         },
         onSelectAgentFeature: (overlayIndex, featureIndex) => {
@@ -23149,7 +24157,6 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
         },
         onAskSelection: (options) => askAgentService.askSelection(options),
         onParseSelection: () => {
-          setShowTools(true);
           setToolRequest((prev) => ({ id: "parse", aoiSeq: (prev?.aoiSeq ?? 0) + 1, seq: (prev?.seq ?? 0) + 1 }));
         },
         onVisionSelect: () => {
@@ -23159,13 +24166,13 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
         }
       }
     }),
-    phase === "ready" && layers.length === 0 && !emptyDismissed && !restoringScene ? h32(
+    phase === "ready" && layers.length === 0 && !emptyDismissed && !restoringScene ? h33(
       "div",
       { key: "empty", className: "mv-overlay" },
-      h32(
+      h33(
         "div",
         { className: "mv-empty" },
-        h32(
+        h33(
           "button",
           {
             type: "button",
@@ -23176,35 +24183,35 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
           },
           "✕"
         ),
-        h32(ViewerIcon, { size: 30 }),
-        h32("h2", null, t2("panel.empty.title")),
-        h32("p", null, t2("panel.empty.body")),
-        h32(
+        h33(ViewerIcon, { size: 30 }),
+        h33("h2", null, t2("panel.empty.title")),
+        h33("p", null, t2("panel.empty.body")),
+        h33(
           "div",
           { className: "buttons" },
-          h32("button", { type: "button", className: "mv-cta primary", onClick: pickLocal }, t2("panel.empty.local")),
-          h32("button", { type: "button", className: "mv-cta", onClick: () => setUrlBar(true) }, t2("panel.empty.url"))
+          h33("button", { type: "button", className: "mv-cta primary", onClick: pickLocal }, t2("panel.empty.local")),
+          h33("button", { type: "button", className: "mv-cta", onClick: () => setUrlBar(true) }, t2("panel.empty.url"))
         )
       )
     ) : null,
-    phase === "loading" ? h32("div", { key: "loading", className: "mv-overlay dim", role: "status" }, h32("div", { className: "mv-empty" }, h32(LoadingGlobe), h32("p", null, t2("panel.status.loading")))) : null,
-    phase === "error" ? h32(
+    phase === "loading" ? h33("div", { key: "loading", className: "mv-overlay dim", role: "status" }, h33("div", { className: "mv-empty" }, h33(LoadingGlobe), h33("p", null, t2("panel.status.loading")))) : null,
+    phase === "error" ? h33(
       "div",
       { key: "error", className: "mv-overlay dim" },
-      h32(
+      h33(
         "div",
         { className: "mv-empty" },
-        h32("h2", null, "⚠"),
-        h32("p", null, error),
-        h32("div", { className: "buttons" }, h32("button", { type: "button", className: "mv-cta", onClick: () => location.reload() }, t2("btn.retry")))
+        h33("h2", null, "⚠"),
+        h33("p", null, error),
+        h33("div", { className: "buttons" }, h33("button", { type: "button", className: "mv-cta", onClick: () => location.reload() }, t2("btn.retry")))
       )
     ) : null,
-    stats && showHud ? h32(StatusHud, { key: "hud", fps, stats, viewerRef, cesiumRef, labels: hudLabels, readoutRef: captureReadoutRef, detailed: hudDetailed }) : null,
-    measureInfo ? h32(
+    stats && showHud ? h33(StatusHud, { key: "hud", fps, stats, viewerRef, cesiumRef, labels: hudLabels, readoutRef: captureReadoutRef, detailed: hudDetailed }) : null,
+    measureInfo ? h33(
       "div",
       { key: "measure", className: "mv-measure mv-glass" },
-      h32("span", { className: "text" }, measureInfo.text),
-      h32(
+      h33("span", { className: "text" }, measureInfo.text),
+      h33(
         "button",
         {
           type: "button",
@@ -23216,7 +24223,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
         measureMode ? t2("measure.end") : t2("tool.clear")
       )
     ) : null,
-    h32(VectorCard, {
+    h33(VectorCard, {
       key: "vector-selection",
       selection: vectorSelection,
       onClose: () => vectorRef.current?.clearSelection(),
@@ -23226,8 +24233,8 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
       onSendToChat: (feature, fallbackName) => vectorExport.sendFeature?.(feature, fallbackName),
       t: t2
     }),
-    toast ? h32("div", { key: "toast", className: "mv-toast" }, toast) : null,
-    scan ? h32(ScanDialog, {
+    toast ? h33("div", { key: "toast", className: "mv-toast" }, toast) : null,
+    scan ? h33(ScanDialog, {
       key: "scan",
       scan,
       t: t2,
@@ -23237,7 +24244,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
         path: net.joinLocalPath(scan.dir, item.name)
       })
     }) : null,
-    health ? h32(HealthDialog, {
+    health ? h33(HealthDialog, {
       key: "health",
       state: health,
       messages: t2,
@@ -23253,7 +24260,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
         }
       }
     }) : null,
-    settingsOpen && sources && defaults ? h32(SourcesDialog, {
+    settingsOpen && sources && defaults ? h33(SourcesDialog, {
       key: "settings",
       config: sources,
       defaults,
@@ -23267,7 +24274,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
       onSave: saveSources,
       onClose: () => setSettingsOpen(false)
     }) : null,
-    accessRequest ? h32(PathAccessDialog, {
+    accessRequest ? h33(PathAccessDialog, {
       key: "access",
       request: accessRequest,
       busy: accessBusy,
@@ -23275,29 +24282,29 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
       onAllow: allowPathAccess,
       onDeny: () => settleAccess({ allowed: false, message: t2("access.denied") })
     }) : null,
-    imageryBusy || terrainBusy ? h32("div", { key: "busy", className: "mv-measure mv-glass", style: { bottom: "44px" } }, t2("toast.loadingData")) : null
+    imageryBusy || terrainBusy ? h33("div", { key: "busy", className: "mv-measure mv-glass", style: { bottom: "44px" } }, t2("toast.loadingData")) : null
   );
 }
 
 // src/client/ui/layout.js
-var h33 = import_react37.default.createElement;
+var h34 = import_react39.default.createElement;
 function ViewerPanel(props) {
-  return h33(ViewerSurface, { t: props.t, sessionId: null, docked: false });
+  return h34(ViewerSurface, { t: props.t, sessionId: null, docked: false });
 }
 function EarthTabBody(props) {
   const info = typeof props.useTabInfo === "function" ? props.useTabInfo() : null;
   const sessionId = props.sessionId ?? info?.tab?.sessionId ?? info?.sessionId ?? null;
-  return h33(ViewerSurface, { t: props.t, sessionId, docked: true });
+  return h34(ViewerSurface, { t: props.t, sessionId, docked: true });
 }
 
 // src/client/ui/tool-row.js
-var import_react38 = __toESM(require("react"), 1);
-var h34 = import_react38.default.createElement;
+var import_react40 = __toESM(require("react"), 1);
+var h35 = import_react40.default.createElement;
 function HeaderButton(props) {
   const fallbackT = useTranslation();
   const t2 = typeof props.t === "function" ? props.t : fallbackT;
-  const [hover, setHover] = import_react38.default.useState(false);
-  return h34(
+  const [hover, setHover] = import_react40.default.useState(false);
+  return h35(
     "button",
     {
       type: "button",
@@ -23324,7 +24331,7 @@ function HeaderButton(props) {
       onMouseEnter: () => setHover(true),
       onMouseLeave: () => setHover(false)
     },
-    h34(ViewerIcon, { size: 16 })
+    h35(ViewerIcon, { size: 16 })
   );
 }
 var ensureToolCss = () => {
@@ -23381,8 +24388,8 @@ var TOOL_SUMMARY_KEYS = {
 var AUTO_OPENED_CALLS = /* @__PURE__ */ new Set();
 function EarthToolRow({ toolName, phase, block, callId }) {
   const t2 = useTranslation();
-  const openedRef = import_react38.default.useRef(false);
-  import_react38.default.useEffect(() => {
+  const openedRef = import_react40.default.useRef(false);
+  import_react40.default.useEffect(() => {
     if (phase === "result" || openedRef.current) return;
     if (typeof callId === "string" && AUTO_OPENED_CALLS.has(callId)) return;
     if (!readAutoOpen()) return;
@@ -23396,8 +24403,8 @@ function EarthToolRow({ toolName, phase, block, callId }) {
     } catch {
     }
   }, [phase, callId]);
-  const [thumbUrl, setThumbUrl] = import_react38.default.useState("");
-  import_react38.default.useEffect(() => {
+  const [thumbUrl, setThumbUrl] = import_react40.default.useState("");
+  import_react40.default.useEffect(() => {
     if (toolName !== "earth_capture" || phase !== "result" || block?.isError === true) return void 0;
     const content = Array.isArray(block?.content) ? block.content : [];
     const text = content.filter((part) => part?.type === "text" && typeof part.text === "string").map((part) => part.text).join("\n");
@@ -23420,14 +24427,14 @@ function EarthToolRow({ toolName, phase, block, callId }) {
   const failure = state === "error" ? resultFirstLine(block) : "";
   const summaryKey = toolName === "earth_scene" ? SCENE_ACTION_KEYS[action] ?? "tool.action.generic" : TOOL_SUMMARY_KEYS[toolName] ?? "tool.action.generic";
   const summary = failure !== "" ? failure : t2(summaryKey);
-  return h34(
+  return h35(
     "div",
     { className: "mv-toolrow", "data-state": state, "data-tool": toolName },
-    h34("span", { className: "glyph", "aria-hidden": true }, h34(ViewerIcon, { size: 14 })),
-    h34("span", { className: "title" }, t2("panel.title")),
-    h34("span", { className: "sep", "aria-hidden": true }),
-    h34("span", { className: "summary", title: failure !== "" ? failure : void 0 }, summary),
-    thumbUrl === "" ? null : h34(
+    h35("span", { className: "glyph", "aria-hidden": true }, h35(ViewerIcon, { size: 14 })),
+    h35("span", { className: "title" }, t2("panel.title")),
+    h35("span", { className: "sep", "aria-hidden": true }),
+    h35("span", { className: "summary", title: failure !== "" ? failure : void 0 }, summary),
+    thumbUrl === "" ? null : h35(
       "a",
       {
         className: "thumb",
@@ -23436,9 +24443,9 @@ function EarthToolRow({ toolName, phase, block, callId }) {
         rel: "noopener noreferrer",
         title: t2("tool.thumbOpen")
       },
-      h34("img", { src: thumbUrl, alt: "", loading: "lazy" })
+      h35("img", { src: thumbUrl, alt: "", loading: "lazy" })
     ),
-    h34(
+    h35(
       "button",
       { type: "button", className: "open", title: t2("tool.openTip"), onClick: openEarthPanel },
       t2("tool.open")
@@ -23447,7 +24454,7 @@ function EarthToolRow({ toolName, phase, block, callId }) {
 }
 
 // src/client/plugin.js
-var h35 = import_react39.default.createElement;
+var h36 = import_react41.default.createElement;
 var plugin = {
   inject: ["slots", "uiWorkspace", "locale", "theme"],
   apply(ctx) {
@@ -23498,7 +24505,7 @@ var plugin = {
       "conversation.session.header.utilities",
       () => ctx.slots.register(
         { name: "conversation.session.header.utilities", id: "digital-earth-open", order: -1, locale: NS },
-        (props) => h35(HeaderButton, { ...props, onOpen: openEarthPanel })
+        (props) => h36(HeaderButton, { ...props, onOpen: openEarthPanel })
       )
     );
     ctx.inject(["betterSidebar"], (betterScope) => {
@@ -23509,12 +24516,12 @@ var plugin = {
           id: "dsh-digital-earth",
           title: () => translate2("panel.title"),
           description: () => translate2("panel.description"),
-          icon: (size) => h35(ViewerIcon, { size }),
+          icon: (size) => h36(ViewerIcon, { size }),
           order: 15,
           // One Digital Earth pane per session: clicking the start-page card
           // again should focus the existing tab, never stack duplicates.
           single: true,
-          component: ({ scope: tabScope }) => h35(EarthTabBody, { t: translate2, sessionId: tabScope?.sessionId ?? null })
+          component: ({ scope: tabScope }) => h36(EarthTabBody, { t: translate2, sessionId: tabScope?.sessionId ?? null })
         }),
         "dsh-digital-earth: better-sidebar tab"
       );

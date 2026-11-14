@@ -1,77 +1,48 @@
 /**
- * ui/tools-panel.js — the toolbox: an INDEX of tool entry points.
+ * ui/tools-panel.js — the toolbox: an independent LAUNCHER INDEX of tools.
  *
- * Meeting 2026-11-12: the old card rendered every control of every tool inline, so
- * the entry points were buried in a long scroll. It now lists one row per tool;
- * clicking a row opens that tool's panel above the index (ui/tool-window.js) and
- * the actual controls live in ui/tool-windows.js. Data layers stay in the layer
- * card, so this file never renders a layer list.
- *
- * Presentational apart from "which window is open / minimized", which is pure UI
- * state and stays here instead of leaking into ViewerSurface.
+ * The active tool windows (Selection, Measure, Analysis, etc.) live outside this
+ * drawer in RightStack / ToolWorkspace, so collapsing Tools never closes or
+ * cancels Selection or any other opened workbench.
  */
 import React from 'react'
 
 import { ResizeHandle, usePanelResize } from './resizable.js'
+import { mergeRefs, useFloatingWindow } from './floating.js'
 import { TOOLS_MINIMIZED_KEY, readPanelFlag, writePanelFlag } from './panel-prefs.js'
-import { TOOL_ENTRIES, selectToolWindow, toolEntry } from './tool-catalog.js'
+import { TOOL_ENTRIES, toolEntry } from './tool-catalog.js'
 import { ToolEntryIcon } from './icons.js'
-import { ToolBody } from './tool-windows.js'
-import { ToolWindow } from './tool-window.js'
 
 const h = React.createElement
 
 export function ToolsPanel({
   t,
-  tool,
-  analysis,
-  shaderActive,
-  openRequest,
+  openWindows = [],
+  onSelectTool,
   onCollapse,
-  onStartTool,
-  onClearMeasure,
-  onStartProfile,
-  onStartAnnotation,
-  onAdoptParse,
-  onClearAnalysis,
-  onOpenShader,
-  onResetAllShaders,
-  getCesium,
-  getViewer,
-  getLayers,
-  getCurrentView,
-  onFlyView,
-  onStartTour,
-  showToast,
-  runAnalysis,
-  getTerrainActive,
-  getOverlayRows,
-  onRemoveOverlayRows,
-  onAskSelection,
-  onParseSelection,
-  onVisionSelect,
-  onActivateSelection,
 }) {
-  const resize = usePanelResize({ storageKey: 'tools', initialHeight: null, minHeight: 160, maxHeight: 700 })
-  const [openTool, setOpenTool] = React.useState(null)
-  const [minimized, setMinimized] = React.useState(false)
-  const [expanded, setExpanded] = React.useState(false)
+  const resize = usePanelResize({
+    storageKey: 'tools',
+    widthDirection: 'right',
+    initialWidth: null,
+    minWidth: 220,
+    maxWidth: 620,
+    initialHeight: null,
+    minHeight: 160,
+    maxHeight: 700,
+  })
+  const floating = useFloatingWindow({
+    storageKey: 'tools',
+    title: t('tools.title'),
+    t,
+    hasExplicitWidth: Boolean(resize.size.width),
+  })
   const [indexMinimized, setIndexMinimized] = React.useState(() => readPanelFlag(TOOLS_MINIMIZED_KEY, false))
-  const entry = toolEntry(openTool)
 
-  React.useEffect(() => {
-    if (!openRequest?.id || !toolEntry(openRequest.id)) return
-    setOpenTool(openRequest.id)
-    setMinimized(false)
-    setExpanded(false)
-  }, [openRequest])
-
-  const openToolById = (id) => {
-    const next = selectToolWindow({ openTool, minimized }, id)
-    setOpenTool(next.openTool)
-    setMinimized(next.minimized)
-    if (next.openTool !== openTool) setExpanded(false)
-  }
+  const activeEntries = (Array.isArray(openWindows) ? openWindows : [])
+    .map((win) => toolEntry(typeof win === 'string' ? win : win?.id))
+    .filter(Boolean)
+  const openSet = new Set(activeEntries.map((item) => item.id))
 
   const toggleIndexMinimized = () => {
     setIndexMinimized((value) => {
@@ -81,121 +52,113 @@ export function ToolsPanel({
     })
   }
 
-  // A tool window opens with a hint of what it is for, and the row that owns it
-  // reads as active so the two surfaces never disagree.
-  const row = (item) =>
-    h(
+  const row = (item) => {
+    const active = openSet.has(item.id)
+    return h(
       'button',
       {
         key: item.id,
         type: 'button',
-        className: `mv-tool-entry${openTool === item.id ? ' on' : ''}`,
-        'aria-pressed': openTool === item.id,
+        className: `mv-tool-entry${active ? ' on' : ''}`,
+        'aria-pressed': active,
         title: t(item.hintKey),
-        onClick: () => openToolById(item.id),
+        onClick: () => onSelectTool?.(item.id),
       },
       h('span', { className: 'mv-tool-entry-icon' }, h(ToolEntryIcon, { kind: item.icon })),
       h('span', { className: 'mv-tool-entry-name' }, t(item.labelKey)),
-      openTool === item.id ? h('span', { className: 'mv-tool-entry-dot', 'aria-hidden': true }) : null,
+      active ? h('span', { className: 'mv-tool-entry-dot', 'aria-hidden': true }) : null,
     )
-
-  const bodyProps = {
-    t,
-    tool,
-    analysis,
-    shaderActive,
-    onStartTool,
-    onClearMeasure,
-    onStartProfile,
-    onStartAnnotation,
-    onAdoptParse,
-    onClearAnalysis,
-    onOpenShader,
-    onResetAllShaders,
-    getCesium,
-    getViewer,
-    getLayers,
-    getCurrentView,
-    onFlyView,
-    onStartTour,
-    showToast,
-    runAnalysis,
-    getTerrainActive,
-    getOverlayRows,
-    onRemoveOverlayRows,
-    onAskSelection,
-    onParseSelection,
-    onVisionSelect,
-    onActivateSelection,
-    openRequest,
   }
 
+  const panelStyle = indexMinimized
+    ? floating.moved
+      ? floating.style
+      : { zIndex: floating.zIndex }
+    : floating.moved
+      ? { ...floating.style, ...resize.style }
+      : { ...floating.style, height: resize.style?.height, maxHeight: resize.style?.maxHeight }
+
   return h(
-    React.Fragment,
-    null,
-    entry
-      ? h(
-          ToolWindow,
-          {
-            t,
-            entry,
-            minimized,
-            expanded,
-            onToggleMinimize: () => setMinimized((value) => !value),
-            onToggleExpand: () => {
-              setMinimized(false)
-              setExpanded((value) => !value)
-            },
-            onClose: () => {
-              setOpenTool(null)
-              setMinimized(false)
-              setExpanded(false)
-            },
-          },
-          h(ToolBody, { entryId: entry.id, ...bodyProps }),
-        )
-      : null,
+    'div',
+    {
+      className: `mv-tools mv-glass ${floating.className}${indexMinimized ? ' minimized' : ''}`,
+      ref: mergeRefs(floating.ref, resize.ref),
+      style: panelStyle,
+      ...floating.panelProps,
+    },
     h(
-      'div',
-      { className: `mv-tools mv-glass${indexMinimized ? ' minimized' : ''}`, ref: resize.ref, style: indexMinimized ? undefined : resize.style },
+      'header',
+      floating.headerProps,
+      floating.dragHandle,
       h(
-        'header',
-        null,
-        h(
-          'span',
-          { className: 'mv-tools-title' },
-          h('span', null, t('tools.title')),
-          entry && indexMinimized ? h('span', { className: 'mv-tools-active-pill' }, t(entry.labelKey)) : null,
-        ),
-        h(
-          'div',
-          { className: 'mv-head-actions' },
-          h(
-            'button',
-            {
-              type: 'button',
-              className: 'mv-icon-btn',
-              title: t(indexMinimized ? 'tools.indexExpand' : 'tools.indexMinimize'),
-              'aria-label': t(indexMinimized ? 'tools.indexExpand' : 'tools.indexMinimize'),
-              'aria-expanded': !indexMinimized,
-              onClick: toggleIndexMinimized,
-            },
-            indexMinimized ? '▸' : '▾',
-          ),
-          h('button', { type: 'button', className: 'mv-icon-btn', title: t('tools.collapse'), 'aria-label': t('tools.collapse'), onClick: onCollapse }, '✕'),
-        ),
+        'span',
+        { className: 'mv-tools-title' },
+        h('span', null, t('tools.title')),
+        activeEntries.length > 0 && !indexMinimized
+          ? h('span', { className: 'mv-tools-count' }, t('tools.openCount', { n: activeEntries.length }))
+          : null,
+        indexMinimized
+          ? activeEntries.map((entry) =>
+              h(
+                'button',
+                {
+                  key: entry.id,
+                  type: 'button',
+                  className: 'mv-tools-active-pill',
+                  onClick: () => onSelectTool?.(entry.id),
+                },
+                t(entry.labelKey),
+              ),
+            )
+          : null,
       ),
-      indexMinimized ? null : h('div', { className: 'mv-tool-index', role: 'group', 'aria-label': t('tools.index') }, ...TOOL_ENTRIES.map(row)),
-      indexMinimized
-        ? null
-        : h(ResizeHandle, {
-            axis: 'height',
-            edge: 'bottom',
-            label: t('resize.height'),
-            value: resize.size.height,
-            onPointerDown: resize.beginHeight,
-            onKeyDown: resize.keyHeight,
-          }),
+      h(
+        'div',
+        { className: 'mv-head-actions' },
+        floating.resetButton,
+        h(
+          'button',
+          {
+            type: 'button',
+            className: 'mv-icon-btn',
+            title: t(indexMinimized ? 'tools.indexExpand' : 'tools.indexMinimize'),
+            'aria-label': t(indexMinimized ? 'tools.indexExpand' : 'tools.indexMinimize'),
+            'aria-expanded': !indexMinimized,
+            onClick: toggleIndexMinimized,
+          },
+          indexMinimized ? '▸' : '▾',
+        ),
+        h('button', { type: 'button', className: 'mv-icon-btn', title: t('tools.collapse'), 'aria-label': t('tools.collapse'), onClick: onCollapse }, '✕'),
+      ),
     ),
+    floating.liveRegion,
+    indexMinimized
+      ? null
+      : h(
+          'div',
+          { className: 'mv-tool-index-wrap' },
+          h('div', { className: 'mv-tool-index', role: 'group', 'aria-label': t('tools.index') }, ...TOOL_ENTRIES.map(row)),
+          h('p', { className: 'mv-tools-hint' }, t('tools.independentHint')),
+        ),
+    indexMinimized
+      ? null
+      : h(ResizeHandle, {
+          axis: 'height',
+          edge: 'bottom',
+          label: t('resize.height'),
+          value: resize.size.height,
+          onPointerDown: resize.beginHeight,
+          onKeyDown: resize.keyHeight,
+        }),
+    indexMinimized || !floating.moved
+      ? null
+      : h(ResizeHandle, {
+          axis: 'corner',
+          edge: 'corner',
+          label: t('resize.size'),
+          value: resize.size.width,
+          onPointerDown: resize.beginCorner,
+          onKeyDown: resize.keyWidth,
+        }),
   )
 }

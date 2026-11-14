@@ -17,7 +17,8 @@ export const VECTOR_CSS = `
 .mv-root[data-mv-scheme="dark"] .mv-vector-label:is([data-state="hover"],[data-state="selected"]){background:#223b53;border-color:#79b6e8}
 .mv-vector-hovering .cesium-widget canvas{cursor:pointer}
 .mv-vector-card{position:absolute;left:12px;bottom:48px;z-index:13;box-sizing:border-box;width:min(344px,calc(100% - 24px));max-height:min(520px,68%);overflow:auto;padding:16px;border:1px solid var(--mv-line);border-radius:12px;background:var(--mv-glass-strong);box-shadow:var(--mv-shadow);font-size:13px;line-height:1.6;animation:mv-fade .16s ease-out}
-.mv-vector-card header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.mv-vector-card header{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.mv-vector-card header>div{flex:1;min-width:0}
 .mv-vector-card .eyebrow{display:block;font-size:11px;color:var(--mv-dim);margin-bottom:3px}
 .mv-vector-card h3{margin:0;font-size:15px;font-weight:600;overflow-wrap:anywhere}
 .mv-vector-card .summary{margin:10px 0;color:var(--mv-text);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}

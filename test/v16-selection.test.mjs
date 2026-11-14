@@ -452,7 +452,7 @@ test('接线：识别卡「框选此点周围」→ 程序化 AOI，不冒充建
   const viewer = readRepoFile('src/client/viewer/ViewerSurface.js')
   assert.match(viewer, /onSelectArea: \(card\) =>/)
   assert.match(viewer, /selectAreaAround\?\.\(\{ lon: card\.point\.lon/)
-  assert.match(viewer, /setShowTools\(true\)/)
+  assert.match(viewer, /workspace\.openTool\('select'\)/)
   const tool = readRepoFile('src/client/ui/selection-tool.js')
   assert.match(tool, /selection\.approximate/)
   const messages = readRepoFile('src/client/messages-v18.js')

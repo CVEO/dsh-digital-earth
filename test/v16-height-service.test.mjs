@@ -116,7 +116,7 @@ test('接线：profile/flood 走 HeightService，结果带 height_source/warning
   assert.match(client, /const sampler = createHeightService\(\{ Cesium, viewer, layer \}\)/)
   assert.match(client, /analyzeProfile\(Cesium, viewer, layer, args, sampler\)/)
   assert.match(client, /analyzeFlood\(Cesium, viewer, layer, args, sampler\)/)
-  assert.match(client, /const probe = carto \? await sampler\.sample\(carto, \{ mode: heightMode \}\) : null/)
+  assert.match(client, /await sampler\.sampleMany\(initialProbes, \{ mode: heightMode \}\)/)
   // 旧结果字段仍在，provenance 是加法。
   for (const field of ['operation: ', 'length_m: ', 'points,', 'stats,']) assert.ok(client.includes(field), `profile 旧字段丢失：${field}`)
   assert.match(client, /\.\.\.sampler\.report\(\)/)
@@ -128,4 +128,78 @@ test('接线：分析文本把来源与告警讲给模型听', async () => {
   const host = hostSource()
   assert.match(host, /Height source: \$\{value\.height_source\}/)
   assert.match(host, /Warnings: \$\{warnings\.join/)
+})
+
+test('tiles GPU 精密拾取：pickFromRayMostDetailed 优先、严格拒斥裸地球/他图层，被地形遮挡时 offscreen 隐藏 globe 重拾', async () => {
+  const tileset = { name: 'bridge-tiles', getHeight: () => 5 }
+  const otherLayer = { name: 'other-tiles' }
+  const globe = {
+    show: true,
+    terrainProvider: { name: 'arcgis' },
+    ellipsoid: {
+      geodeticSurfaceNormalCartographic: () => ({ x: 0, y: 0, z: 1 }),
+      cartesianToCartographic: (p) => ({ longitude: p.lon, latitude: p.lat, height: p.height }),
+    },
+    getHeight: () => 10,
+  }
+  const RichCesium = {
+    EllipsoidTerrainProvider,
+    Ray: class { constructor(origin, direction) { this.origin = origin; this.direction = direction } },
+    Cartographic: class { constructor(lon = 0, lat = 0, h = 0) { this.longitude = lon; this.latitude = lat; this.height = h } },
+    Cartesian3: class {
+      constructor(x = 0, y = 0, z = 0) { this.x = x; this.y = y; this.z = z }
+      static fromRadians(lon, lat, h) { return { lon, lat, height: h } }
+      static negate(v) { return { x: -v.x, y: -v.y, z: -v.z } }
+    },
+  }
+  let excludedSeen = null
+  const viewer = {
+    scene: {
+      globe,
+      sampleHeightSupported: true,
+      primitives: { length: 2, get: (i) => (i === 0 ? tileset : otherLayer) },
+      async pickFromRayMostDetailed(ray, exclude) {
+        excludedSeen = exclude
+        const lon = ray.origin.lon
+        if (lon === 1) return { object: { content: { tileset } }, position: { lon, lat: 0, height: 27.4 } }
+        if (lon === 2) return { object: { primitive: otherLayer }, position: { lon, lat: 0, height: 99 } }
+        if (lon === 3) return { object: undefined, position: { lon, lat: 0, height: 20 } }
+        return undefined
+      },
+      pickFromRay(ray) {
+        assert.equal(globe.show, false, 'offscreen 穿透拾取时必须临时隐藏 globe')
+        if (ray.origin.lon === 3) return { object: { primitive: tileset }, position: { lon: 3, lat: 0, height: 14.2 } }
+        return undefined
+      },
+    },
+  }
+  const service = createHeightService({ Cesium: RichCesium, viewer, layer: { visible: true, tileset } })
+  const sampled = await service.sampleMany([carto(1, 0), carto(2, 0), carto(3, 0)], { mode: 'tiles' })
+  assert.deepEqual(excludedSeen, [otherLayer], 'pick 必须排除目标之外的 primitives')
+  assert.equal(sampled.values[0].height, 27.4, '目标 tileset 命中不得被粗 tileset.getHeight 覆盖')
+  assert.equal(sampled.values[1].height, 5, '非目标图层命中必须被拒斥（仅允许回退本图层 getHeight）')
+  assert.equal(sampled.values[2].height, 14.2, '被 terrain/globe 遮挡时应隐藏 globe 重拾到下层 tileset')
+  assert.equal(globe.show, true, 'pick 结束后 globe.show 必须严格恢复')
+})
+
+test('terrain 批量精密采样：sampleTerrainMostDetailed 生效并在缺失时回退 globe.getHeight', async () => {
+  const TerrainCesium = {
+    EllipsoidTerrainProvider,
+    Cartographic: class { constructor(lon = 0, lat = 0, h = 0) { this.longitude = lon; this.latitude = lat; this.height = h } },
+    async sampleTerrainMostDetailed(_provider, positions) {
+      positions[0].height = 31.25
+      positions[1].height = Number.NaN
+    },
+  }
+  const service = createHeightService({
+    Cesium: TerrainCesium,
+    viewer: fakeViewer({ terrainHeight: 19.5 }),
+    layer: tilesLayer(999),
+  })
+  const sampled = await service.sampleMany([carto(10, 20), carto(11, 20)], { mode: 'terrain' })
+  assert.deepEqual(sampled.values, [
+    { height: 31.25, source: 'terrain' },
+    { height: 19.5, source: 'terrain' },
+  ])
+  assert.deepEqual(sampled.warnings, [], 'terrain 正常采样不得附带多余告警')
 })

@@ -1,0 +1,40 @@
+/**
+ * messages-ui.js — UI strings for the decoupled floating-window workspace,
+ * direct toolbar entry points, and accessible imagery basemap disclosure.
+ */
+export const UI_MESSAGES = {
+  zh: {
+    'btn.select': '选择',
+    'btn.selectShow': '打开选择窗口（点选 / 框选 / 套索 / 对象）',
+    'btn.selectHide': '关闭选择窗口',
+    'window.dragHint': '按住拖动可自由移动窗口位置；焦点在此手柄时可用方向键微调',
+    'window.resetDock': '恢复默认停靠位置',
+    'window.moved': '{title}已移动至 ({x}, {y})',
+    'window.docked': '{title}已恢复默认停靠位置',
+    'tools.independentHint': '打开的工具窗口可各自自由拖动，关闭工具箱不会关闭选择等已打开窗口。',
+    'tools.openCount': '已开 {n}',
+    'layers.imageryCurrent': '当前底图',
+    'layers.imageryCount': '{n} 项可选',
+    'layers.imageryClickExpand': '点击切换 ▾',
+    'layers.imageryClickFold': '收起 ▴',
+    'analysis.redrawProfile': '重画剖面',
+    'analysis.redrawProfileHint': '无需回到工具箱，立即绘制下一条高程纵断面',
+  },
+  en: {
+    'btn.select': 'Select',
+    'btn.selectShow': 'Open selection window (point / box / lasso / objects)',
+    'btn.selectHide': 'Close selection window',
+    'window.dragHint': 'Drag to move window freely (Arrow keys nudge when focused)',
+    'window.resetDock': 'Dock back to default position',
+    'window.moved': '{title} moved to ({x}, {y})',
+    'window.docked': '{title} docked back to default position',
+    'tools.independentHint': 'Open tool windows float independently and stay open when Tools closes.',
+    'tools.openCount': '{n} open',
+    'layers.imageryCurrent': 'Active',
+    'layers.imageryCount': '{n} sources',
+    'layers.imageryClickExpand': 'Switch ▾',
+    'layers.imageryClickFold': 'Hide ▴',
+    'analysis.redrawProfile': 'Draw another profile',
+    'analysis.redrawProfileHint': 'Start a new elevation profile without returning to Tools',
+  },
+}

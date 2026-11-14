@@ -15,7 +15,7 @@ test('场景详情是独立浮层：可从整场景或单个图层打开', () =>
   const details = readRepoFile('src/client/ui/scene-details.js')
   assert.match(details, /export function useSceneDetails/)
   assert.match(details, /focus\.layerId/)
-  assert.match(details, /className: 'mv-scene-details mv-glass'/)
+  assert.match(details, /className: `mv-scene-details mv-glass \$\{floating\.className\}`/)
   assert.match(details, /sceneDetails\.scene/)
   assert.match(details, /sceneDetails\.analysis/)
   assert.match(details, /sceneDetails\.shader/)

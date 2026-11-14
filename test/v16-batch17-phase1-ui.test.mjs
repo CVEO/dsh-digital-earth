@@ -18,6 +18,8 @@ const { TOOLS_MINIMIZED_KEY, IMAGERY_OPEN_KEY, readPanelFlag, writePanelFlag } =
 )
 const { selectToolWindow } = await import('../src/client/ui/tool-catalog.js')
 const { LayersMap } = await import('../src/client/ui/layers-map.js')
+const { RightStack } = await import('../src/client/ui/right-stack.js')
+const { useToolWorkspace } = await import('../src/client/ui/tool-workspace.js')
 const { ToolsPanel } = await import('../src/client/ui/tools-panel.js')
 const { ToolWindow } = await import('../src/client/ui/tool-window.js')
 const { EffectsBody } = await import('../src/client/ui/tool-windows.js')
@@ -237,9 +239,22 @@ test('LayersMap separates vector import CTA into subaction bar and wraps imagery
   })
 })
 
-test('ToolsPanel supports index minimize + active pill and ToolWindow zoom/minimize/restore', () => {
+test('RightStack + ToolsPanel supports index minimize + active pill and ToolWindow zoom/minimize/restore', () => {
   withStorage(() => {
-    const renderer = createRenderer(ToolsPanel, () => ({
+    const Host = (props) => {
+      const ws = useToolWorkspace()
+      return React.createElement(RightStack, {
+        t,
+        showTools: true,
+        openWindows: ws.windows,
+        onSelectTool: ws.selectTool,
+        onCloseToolWindow: ws.closeTool,
+        onToggleMinimizeTool: ws.toggleMinimize,
+        onToggleExpandTool: ws.toggleExpand,
+        toolsPanel: props,
+      })
+    }
+    const renderer = createRenderer(Host, () => ({
       t,
       tool: null,
       analysis: null,

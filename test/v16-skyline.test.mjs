@@ -23,13 +23,13 @@ const rejects = (raw, pattern) => {
   })
 }
 
-test('skyline：动作枚举含 skyline，from/to 必填、采样默认 32、layer 可选', () => {
+test('skyline：动作枚举含 skyline，from/to 必填、采样默认 128、layer 可选', () => {
   assert.deepEqual([...ANALYZE_ACTIONS], ['profile', 'flood', 'sunlight', 'clip', 'skyline', 'clear'])
   assert.deepEqual(args({ action: 'skyline', from: [114.3, 30.5], to: [114.31, 30.5] }), {
     action: 'skyline',
     from: [114.3, 30.5],
     to: [114.31, 30.5],
-    samples: 32,
+    samples: 128,
   })
   assert.deepEqual(args({ action: 'skyline', from: [0, 0], to: [0, 1], samples: 8, layer: ' L ' }), {
     action: 'skyline',
@@ -44,7 +44,7 @@ test('skyline：缺 from/to、重合点、非法采样、多余参数都被拒�
   rejects({ action: 'skyline' }, /skyline needs "from"/)
   rejects({ action: 'skyline', from: [0, 0] }, /skyline needs "to"/)
   rejects({ action: 'skyline', from: [0, 0], to: [0, 0] }, /same point/)
-  rejects({ action: 'skyline', from: [0, 0], to: [0, 1], samples: 7 }, /"samples" 7 is outside 8\.\.64/)
+  rejects({ action: 'skyline', from: [0, 0], to: [0, 1], samples: 7 }, /"samples" 7 is outside 8\.\.512/)
   rejects({ action: 'skyline', from: [0, 0], to: [0, 1], water_height: 5 }, /does not accept "water_height"/)
   rejects({ action: 'profile', from: [0, 0], to: [0, 1], height: 10 }, /use action "clip" for these arguments/)
 })

@@ -120,12 +120,12 @@ test('接线：编辑器只加手柄/读数，图表与右栈共享同一个 hov
   assert.match(chart, /nearestProfileIndex\(points,/)
 
   const stack = readRepoFile('src/client/ui/right-stack.js')
-  assert.match(stack, /hoverIndex: analysisHover, onHover: onAnalysisHover/)
+  assert.match(stack, /hoverIndex: analysisHover,\s+onHover: onAnalysisHover/)
 
   const surface = readRepoFile('src/client/viewer/ViewerSurface.js')
   assert.match(surface, /createProfileEdit\(\{/)
   assert.match(surface, /profileEdit\.sync\(analysis\); return \(\) => profileEdit\.clear\(\)/)
   assert.match(surface, /analysisHover: profileHover,/)
   assert.match(surface, /profileEdit\.setHover\(index\)/)
-  assert.match(surface, /action: 'profile',\s*from,\s*to,\s*samples:/)
+  assert.match(surface, /action: 'profile',\s*from,\s*to,\s*\.\.\.\(Number\.isInteger\(analysisRef\.current\?\.result\?\.requested_samples\)/)
 })

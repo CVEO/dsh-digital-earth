@@ -13,6 +13,8 @@
  * Nothing here invents heights: the readout always comes from the engine points.
  */
 
+import { PROFILE_SURFACE_OFFSET_M } from '../analysis/math.js'
+
 /** Endpoints of an active profile analysis, or null when it is not a profile. */
 export function profileEndpoints(analysis) {
   if (!analysis || analysis.operation !== 'profile') return null
@@ -134,11 +136,25 @@ export function createProfileEdit({ getCesium, getViewer, getRoot, pickSurface, 
       Cesium.Cartographic.fromDegrees(endpoints.from[0], endpoints.from[1]),
       Cesium.Cartographic.fromDegrees(endpoints.to[0], endpoints.to[1]),
     )
+    const lastDistance = Number(points[points.length - 1]?.distance_m)
+    const lengthM = Number(analysis?.result?.length_m)
+    const totalDistance =
+      Number.isFinite(lengthM) && lengthM > 0
+        ? lengthM
+        : Number.isFinite(lastDistance) && lastDistance > 0
+          ? lastDistance
+          : 0
     const step = points.length > 1 ? 1 / (points.length - 1) : 0
     return points.map((sample, index) => {
-      const carto = geodesic.interpolateUsingFraction(index * step, new Cesium.Cartographic())
+      const distanceM = Number(sample?.distance_m)
+      const rawFraction =
+        totalDistance > 0 && Number.isFinite(distanceM)
+          ? distanceM / totalDistance
+          : index * step
+      const fraction = Math.min(1, Math.max(0, rawFraction))
+      const carto = geodesic.interpolateUsingFraction(fraction, new Cesium.Cartographic())
       const height = typeof sample?.height_m === 'number' ? sample.height_m : 0
-      return Cesium.Cartesian3.fromRadians(carto.longitude, carto.latitude, height + 2)
+      return Cesium.Cartesian3.fromRadians(carto.longitude, carto.latitude, height + PROFILE_SURFACE_OFFSET_M)
     })
   }
 
@@ -274,10 +290,11 @@ export function createProfileEdit({ getCesium, getViewer, getRoot, pickSurface, 
     const cartesian = state.samples[index]
     if (!Cesium || !viewer || !point || !cartesian) return
     removeReadout(state)
-    const distance = `${Math.round(Number(point.distance_m) || 0)} m`
+    const distanceNum = Number(point.distance_m)
+    const distance = `${(Number.isFinite(distanceNum) ? distanceNum : 0).toFixed(1)} m`
     const text =
       typeof point.height_m === 'number'
-        ? t('profile.hoverReadout', { distance, height: `${Math.round(point.height_m)} m` })
+        ? t('profile.hoverReadout', { distance, height: `${point.height_m.toFixed(1)} m` })
         : t('profile.hoverEmpty', { distance })
     try {
       state.readout = viewer.entities.add({

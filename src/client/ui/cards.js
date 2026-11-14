@@ -10,9 +10,10 @@ import { profileCsv, profileMetrics, profileSvg } from '../analysis/profile-metr
 import { SHADER_PRIMARY_PRESETS } from '../shader/presets.js'
 import { eligibleShaderLayers } from './workbench-wiring.js'
 import { ElevationLegend, elevationSliderBounds, useShaderElevation } from './shader-elevation.js'
-import { AnalysisProfileChart } from './profile-chart.js'
+import { AnalysisProfileChart, ProfileChartDialog, profileChartLabels } from './profile-chart.js'
 import { downloadText } from '../scene/download.js'
 import { ResizeHandle, usePanelResize } from './resizable.js'
+import { mergeRefs, useFloatingWindow } from './floating.js'
 
 const h = React.createElement
 
@@ -21,89 +22,33 @@ const h = React.createElement
     const analysisMetric = (value, digits = 1) =>
       typeof value === 'number' && Number.isFinite(value) ? value.toFixed(digits) : '—'
 
-    const profileChartLabels = (t) => ({
-      title: t('analysis.title.profile'),
-      distance: t('profile.axisDistance'),
-      elevation: t('profile.axisElevation'),
-      terrain: t('profile.terrain'),
-      surfaceLength: t('profile.surfaceLength'),
-      slopeMean: t('profile.slopeMean'),
-      note: t('profile.note'),
-    })
-
-    /** Full-size profile preview; the card keeps a thumbnail that opens this. */
-    function ProfileChartDialog({ metrics, t, onClose }) {
-      const dialogRef = React.useRef(null)
-      React.useEffect(() => {
-        const previous = document.activeElement
-        dialogRef.current?.focus()
-        const onKey = (event) => {
-          if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); onClose() }
-          if (event.key === 'Tab') {
-            const buttons = [...(dialogRef.current?.querySelectorAll('button:not([disabled]),[href],input,select,textarea,[tabindex="0"]') ?? [])]
-            const first = buttons[0], last = buttons.at(-1)
-            if (!first) { event.preventDefault(); return }
-            if (event.shiftKey && (document.activeElement === first || document.activeElement === dialogRef.current)) { event.preventDefault(); last.focus() }
-            else if (!event.shiftKey && (document.activeElement === last || document.activeElement === dialogRef.current)) { event.preventDefault(); first.focus() }
-          }
-        }
-        document.addEventListener('keydown', onKey, true)
-        return () => { document.removeEventListener('keydown', onKey, true); if (previous?.isConnected) previous.focus() }
-      }, [])
-
-      const svg = profileSvg(metrics, profileChartLabels(t))
-      const src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
-      return h(
-        'div',
-        {
-          className: 'mv-modal mv-chart-modal',
-          onPointerDown: (event) => event.target === event.currentTarget && onClose(),
-        },
-        h(
-          'div',
-          { ref: dialogRef, tabIndex: -1, className: 'mv-chart-dialog', role: 'dialog', 'aria-modal': true, 'aria-labelledby': 'mv-chart-title' },
-          h(
-            'header',
-            null,
-            h('b', { id: 'mv-chart-title' }, t('profile.chartTitle')),
-            h('button', { type: 'button', className: 'mv-icon-btn', title: t('btn.close'), 'aria-label': t('btn.close'), onClick: onClose }, '✕'),
-          ),
-          h('div', { className: 'mv-chart-body' }, h('img', { src, alt: t('profile.chartTitle') })),
-          h(
-            'div',
-            { className: 'mv-chart-actions' },
-            h(
-              'button',
-              {
-                type: 'button',
-                className: 'mv-cta',
-                onClick: () => downloadText(`elevation-profile-${Date.now()}.csv`, profileCsv(metrics), 'text/csv;charset=utf-8'),
-              },
-              t('profile.exportCsv'),
-            ),
-            h(
-              'button',
-              {
-                type: 'button',
-                className: 'mv-cta',
-                onClick: () => downloadText(`elevation-profile-${Date.now()}.svg`, svg, 'image/svg+xml'),
-              },
-              t('profile.exportSvg'),
-            ),
-            h('span', { className: 'mv-chart-note' }, t('profile.note')),
-          ),
-        ),
-      )
-    }
-
     /** Floating result card for the single active analysis. */
-    function AnalysisCard({ state, t, onClose, hoverIndex = null, onHover }) {
+    function AnalysisCard({ state, t, onClose, hoverIndex = null, onHover, onStartProfile }) {
       const [open, setOpen] = React.useState(true)
       const [chartOpen, setChartOpen] = React.useState(false)
-      const resize = usePanelResize({ storageKey: 'analysis', initialHeight: null, minHeight: 180, maxHeight: 680 })
+      const resize = usePanelResize({
+        storageKey: 'analysis',
+        widthDirection: 'right',
+        initialWidth: null,
+        minWidth: 240,
+        maxWidth: 680,
+        initialHeight: null,
+        minHeight: 180,
+        maxHeight: 680,
+      })
+      const operation = state?.operation
+      const titleText = operation ? t(`analysis.title.${operation}`) : ''
+      const floating = useFloatingWindow({
+        storageKey: 'analysis',
+        title: titleText,
+        t,
+        hasExplicitWidth: Boolean(resize.size.width),
+      })
       if (!state || !state.result) return null
       const result = state.result
-      const operation = state.operation
+      const cardStyle = floating.moved
+        ? { ...floating.style, ...resize.style }
+        : { ...floating.style, height: resize.style?.height, maxHeight: resize.style?.maxHeight }
       const profile = operation === 'profile' ? profileMetrics(result.points, { includeDesign: false }) : null
       const showProfile = Boolean(profile && profile.valid_count >= 2)
       // v1.5.2: the chart is the first thing in the body (the stats below used to
@@ -114,6 +59,13 @@ const h = React.createElement
       const warningCodes = (Array.isArray(result.warnings) ? result.warnings : [])
         .filter((code) => typeof code === 'string' && code.trim() !== '')
         .slice(0, 2)
+      const warningKeyByCode = {
+        surface_height_from_tiles: 'profile.warning.tilesSurface',
+        tiles_height_unavailable: 'profile.warning.tilesUnavailable',
+        terrain_height_unavailable: 'profile.warning.terrainUnavailable',
+        sample_budget_truncated: 'profile.warning.budgetTruncated',
+      }
+      const warningLabels = warningCodes.map((code) => (warningKeyByCode[code] ? t(warningKeyByCode[code]) : code))
       const chartBlock =
         operation === 'profile'
           ? showProfile
@@ -220,11 +172,20 @@ const h = React.createElement
       }
       return h(
         'div',
-        { className: 'mv-card mv-analysis', ref: resize.ref, style: resize.style, role: 'region', 'aria-label': t(`analysis.title.${operation}`) },
+        {
+          className: `mv-card mv-analysis ${floating.className}`,
+          ref: mergeRefs(floating.ref, resize.ref),
+          style: cardStyle,
+          role: 'region',
+          'aria-label': t(`analysis.title.${operation}`),
+          ...floating.panelProps,
+        },
         h(
           'header',
-          null,
+          floating.headerProps,
+          floating.dragHandle,
           h('span', { className: 'title' }, t(`analysis.title.${operation}`)),
+          floating.resetButton,
           h(
             'button',
             {
@@ -243,6 +204,7 @@ const h = React.createElement
             '✕',
           ),
         ),
+        floating.liveRegion,
         open
           ? h(
               'div',
@@ -260,7 +222,7 @@ const h = React.createElement
                 ? h(
                     'p',
                     { key: 'warnings', className: 'warnings', title: warningCodes.join(' · ') },
-                    `${t('analysis.warnings')}: ${warningCodes.join(' · ')}`,
+                    `${t('analysis.warnings')}: ${warningLabels.join(' · ')}`,
                   )
                 : null,
               state.layerName
@@ -298,6 +260,18 @@ const h = React.createElement
                         },
                         t('profile.exportSvg'),
                       ),
+                      typeof onStartProfile === 'function'
+                        ? h(
+                            'button',
+                            {
+                              type: 'button',
+                              className: 'mv-cta primary',
+                              title: t('analysis.redrawProfileHint'),
+                              onClick: () => onStartProfile(),
+                            },
+                            t('analysis.redrawProfile'),
+                          )
+                        : null,
                     ),
                     h('p', { className: 'profile-note' }, t('profile.hoverChartHint')),
                   )
@@ -316,6 +290,16 @@ const h = React.createElement
           onPointerDown: resize.beginHeight,
           onKeyDown: resize.keyHeight,
         }),
+        floating.moved
+          ? h(ResizeHandle, {
+              axis: 'corner',
+              edge: 'corner',
+              label: t('resize.size'),
+              value: resize.size.width,
+              onPointerDown: resize.beginCorner,
+              onKeyDown: resize.keyWidth,
+            })
+          : null,
       )
     }
     //#endregion analysis card
@@ -358,6 +342,12 @@ const h = React.createElement
         maxWidth: 720,
         minHeight: 220,
         maxHeight: 760,
+      })
+      const floating = useFloatingWindow({
+        storageKey: 'shader',
+        title: t('shader.title'),
+        t,
+        hasExplicitWidth: Boolean(resize.size.width),
       })
       const visibleLayers = layers.filter((layer) => layer.visible)
       const { eligible: eligibleLayers, skippedGaussian: skippedGaussianCount } = eligibleShaderLayers(layers)
@@ -660,18 +650,28 @@ const h = React.createElement
 
       return h(
         'div',
-        { className: 'mv-card mv-shader', ref: resize.ref, style: resize.style, role: 'region', 'aria-label': t('shader.title') },
+        {
+          className: `mv-card mv-shader ${floating.className}`,
+          ref: mergeRefs(floating.ref, resize.ref),
+          style: { ...floating.style, ...resize.style },
+          role: 'region',
+          'aria-label': t('shader.title'),
+          ...floating.panelProps,
+        },
         h(
           'header',
-          null,
+          floating.headerProps,
+          floating.dragHandle,
           h('span', { className: 'title' }, t('shader.title')),
           h('span', { className: 'subtitle' }, targetName !== '' ? t('shader.targetChip', { name: targetName }) : t('shader.targetNone')),
+          floating.resetButton,
           h(
             'button',
             { type: 'button', className: 'mv-icon-btn', title: t('shader.close'), 'aria-label': t('shader.close'), onClick: onClose },
             '✕',
           ),
         ),
+        floating.liveRegion,
         h(
           'div',
           { className: 'body' },

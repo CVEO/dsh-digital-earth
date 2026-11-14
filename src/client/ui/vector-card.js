@@ -13,6 +13,7 @@ import {
   extractCustomAttributes,
 } from '../scene/annotation-model.js'
 import { VECTOR_COLORS } from '../scene/vector-style.js'
+import { mergeRefs, useFloatingWindow } from './floating.js'
 
 const h = React.createElement
 
@@ -54,6 +55,11 @@ export function VectorCard({ selection, onClose, onChange, onDelete, onExport, o
   const [attrs, setAttrs] = React.useState([])
   const [attrsOpen, setAttrsOpen] = React.useState(false)
   const [busy, setBusy] = React.useState(false)
+  const floating = useFloatingWindow({
+    storageKey: 'vector-card',
+    title: selection?.title || t('vector.selection'),
+    t,
+  })
 
   React.useEffect(() => {
     setName(savedName)
@@ -201,16 +207,24 @@ export function VectorCard({ selection, onClose, onChange, onDelete, onExport, o
 
   return h(
     'section',
-    { className: 'mv-vector-card', 'aria-label': t('vector.selection') },
+    {
+      className: `mv-vector-card ${floating.className}`,
+      ref: floating.ref,
+      style: floating.style,
+      'aria-label': t('vector.selection'),
+      ...floating.panelProps,
+    },
     h(
       'header',
-      null,
+      floating.headerProps,
+      floating.dragHandle,
       h(
         'div',
         null,
         h('span', { className: 'eyebrow' }, selection.kind),
         h('h3', null, selection.title),
       ),
+      floating.resetButton,
       h(
         'button',
         {
@@ -223,6 +237,7 @@ export function VectorCard({ selection, onClose, onChange, onDelete, onExport, o
         '✕',
       ),
     ),
+    floating.liveRegion,
     selection.summary ? h('p', { className: 'summary' }, selection.summary) : null,
     editable
       ? h(

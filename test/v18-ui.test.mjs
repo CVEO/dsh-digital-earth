@@ -113,7 +113,7 @@ test('人工剖面：第一次点存点，第二次点自动调用既有 profile
   assert.equal(calls[0].action, 'profile')
   assert.equal(calls[0].from.length, 2)
   assert.equal(calls[0].to.length, 2)
-  assert.equal(calls[0].samples, 32)
+  assert.equal(calls[0].samples, undefined)
 })
 
 test('人工剖面：cancel 清掉草稿并退出工具', () => {
@@ -145,11 +145,13 @@ test('人工剖面：cancel 清掉草稿并退出工具', () => {
 
 test('剖面卡：缩略图可展开大图，大图内继续导出', () => {
   const cards = readRepoFile('src/client/ui/cards.js')
+  const chart = readRepoFile('src/client/ui/profile-chart.js')
   assert.match(cards, /ProfileChartDialog/)
   assert.match(cards, /profile-chart-thumb/)
   assert.match(cards, /profile\.expandChart/)
-  assert.match(cards, /profileSvg\(metrics, profileChartLabels\(t\)\)/)
-  assert.match(cards, /onPointerDown: \(event\) => event\.target === event\.currentTarget && onClose\(\)/)
+  assert.match(chart, /export function ProfileChartDialog/)
+  assert.match(chart, /profileSvg\(metrics, profileChartLabels\(t\)\)/)
+  assert.match(chart, /onPointerDown: \(event\) => event\.target === event\.currentTarget && onClose\(\)/)
 
   const messages = readRepoFile('src/client/messages-v18.js')
   for (const key of ['profile.chartTitle', 'profile.expandChart']) {

@@ -11,9 +11,9 @@
  * The factory receives lazy ref getters instead of the refs themselves so the
  * module never holds a stale viewer/layer list across panel remounts.
  */
-import { createHeightService } from './height-service.js'
+import { createHeightService, DEFAULT_SAMPLE_BUDGET } from './height-service.js'
 import { resolveAnalysisTarget } from './source-policy.js'
-import { ANALYSIS_ENTITY_PREFIX, ANALYSIS_MIN_SAMPLES, analysisClipPlane, analysisColorAt, analysisInteger, analysisLocalizeClipPlane, analysisLonLat, analysisObserver, analysisRegion, analysisRound, analysisSunAngles } from './math.js'
+import { ANALYSIS_ENTITY_PREFIX, ANALYSIS_MIN_SAMPLES, PROFILE_MAX_SAMPLES, PROFILE_SURFACE_OFFSET_M, analysisClipPlane, analysisColorAt, analysisInteger, analysisLocalizeClipPlane, analysisLonLat, analysisObserver, analysisRegion, analysisRound, analysisSunAngles, autoProfileSamples, sampleProfileEntries } from './math.js'
 import { formatHeight } from '../format.js'
 import { vectorLabel } from '../scene/vector-style.js'
 import {
@@ -126,7 +126,6 @@ export function createAnalysisEngine(deps) {
         if (!from || !to) {
           throw new Error('analysis: `from`/`to` must be [lon, lat] pairs. next: pass two legal WGS84 [lon, lat] arrays.')
         }
-        const samples = analysisInteger(args.samples, 32, 8, 64)
         const heightMode = args.source === 'terrain' ? 'terrain' : 'tiles'
         const ellipsoid = viewer.scene.globe.ellipsoid
         const geodesic = new Cesium.EllipsoidGeodesic(
@@ -135,19 +134,18 @@ export function createAnalysisEngine(deps) {
           ellipsoid,
         )
         const length = Number.isFinite(geodesic.surfaceDistance) ? geodesic.surfaceDistance : 0
-        const points = []
-        let withData = 0
-        for (let index = 0; index < samples; index += 1) {
-          const fraction = samples === 1 ? 0 : index / (samples - 1)
-          const carto = geodesic.interpolateUsingFraction(fraction, new Cesium.Cartographic())
-          const probe = carto ? await sampler.sample(carto, { mode: heightMode }) : null
-          const height = probe ? probe.height : null
-          if (height !== null) withData += 1
-          points.push({
-            distance_m: analysisRound(length * fraction, 1),
-            height_m: height === null ? null : analysisRound(height, 1),
-          })
-        }
+        const isAutoSamples = args.samples === undefined || args.samples === null || args.samples === 'auto'
+        const requestedSamples = isAutoSamples ? null : analysisInteger(args.samples, 128, 8, PROFILE_MAX_SAMPLES)
+        const baseSamples = requestedSamples ?? autoProfileSamples(length)
+        const { entries, points, withData } = await sampleProfileEntries({
+          Cesium,
+          geodesic,
+          length,
+          baseSamples,
+          maxPoints: Math.min(PROFILE_MAX_SAMPLES, DEFAULT_SAMPLE_BUDGET),
+          heightMode,
+          sampler,
+        })
         if (withData < ANALYSIS_MIN_SAMPLES) {
           throw new Error(
             heightMode === 'terrain'
@@ -183,9 +181,8 @@ export function createAnalysisEngine(deps) {
         beginAnalysis('profile', layer)
         const positionAt = (fraction, height) => {
           const carto = geodesic.interpolateUsingFraction(fraction, new Cesium.Cartographic())
-          return Cesium.Cartesian3.fromRadians(carto.longitude, carto.latitude, height + 2)
+          return Cesium.Cartesian3.fromRadians(carto.longitude, carto.latitude, height + PROFILE_SURFACE_OFFSET_M)
         }
-        const step = samples > 1 ? 1 / (samples - 1) : 0
         for (let index = 1; index < points.length; index += 1) {
           const left = points[index - 1]
           const right = points[index]
@@ -196,8 +193,8 @@ export function createAnalysisEngine(deps) {
             id: `profile-line-${index}`,
             polyline: {
               positions: [
-                positionAt((index - 1) * step, left.height_m),
-                positionAt(index * step, right.height_m),
+                positionAt(entries[index - 1].fraction, left.height_m),
+                positionAt(entries[index].fraction, right.height_m),
               ],
               width: 4.5,
               arcType: Cesium.ArcType.NONE,
@@ -232,7 +229,9 @@ export function createAnalysisEngine(deps) {
           layer: layer ? layer.name : null,
           from,
           to,
-          samples,
+          samples: points.length,
+          requested_samples: requestedSamples,
+          samples_mode: requestedSamples === null ? 'auto' : 'fixed',
           length_m: analysisRound(length, 1),
           height_mode: heightMode,
           stats,
@@ -258,7 +257,7 @@ export function createAnalysisEngine(deps) {
             'analysis: `from`/`to` must be [lon, lat] pairs. next: pass the observer and a direction target.',
           )
         }
-        const samples = analysisInteger(args.samples, 32, 8, 64)
+        const samples = analysisInteger(args.samples, 128, 8, PROFILE_MAX_SAMPLES)
         const ellipsoid = viewer.scene.globe.ellipsoid
         const geodesic = new Cesium.EllipsoidGeodesic(
           Cesium.Cartographic.fromDegrees(from[0], from[1]),

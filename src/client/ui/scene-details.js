@@ -9,6 +9,7 @@
 import React from 'react'
 
 import { formatBytes, formatCount } from '../format.js'
+import { useFloatingWindow } from './floating.js'
 
 const h = React.createElement
 
@@ -27,6 +28,11 @@ export function useSceneDetails({ t, stats, config, layers, analysis, shaderActi
   }, [focus])
 
   const focusedLayer = focus?.layerId ? ((layers ?? []).find((layer) => layer.id === focus.layerId) ?? null) : null
+  const floating = useFloatingWindow({
+    storageKey: 'scene-details',
+    title: focusedLayer ? t('sceneDetails.layerTitle') : t('sceneDetails.title'),
+    t,
+  })
   const sourceName = (list, id) => (Array.isArray(list) ? list.find((source) => source.id === id)?.name : null) ?? t('sceneDetails.none')
   const row = (label, value) => h('div', { className: 'mv-sd-row' }, h('span', null, label), h('b', null, value))
   const layerRows = (stats?.layers ?? (layers ?? []).map((layer) => ({ id: layer.id, name: layer.name }))).filter(
@@ -36,13 +42,23 @@ export function useSceneDetails({ t, stats, config, layers, analysis, shaderActi
   const element = focus
     ? h(
         'div',
-        { className: 'mv-scene-details mv-glass', role: 'dialog', 'aria-label': focusedLayer ? t('sceneDetails.layerTitle') : t('sceneDetails.title') },
+        {
+          className: `mv-scene-details mv-glass ${floating.className}`,
+          ref: floating.ref,
+          style: floating.style,
+          role: 'dialog',
+          'aria-label': focusedLayer ? t('sceneDetails.layerTitle') : t('sceneDetails.title'),
+          ...floating.panelProps,
+        },
         h(
           'header',
-          null,
-          h('b', null, focusedLayer ? t('sceneDetails.layerTitle') : t('sceneDetails.title')),
+          floating.headerProps,
+          floating.dragHandle,
+          h('b', { className: 'title' }, focusedLayer ? t('sceneDetails.layerTitle') : t('sceneDetails.title')),
+          floating.resetButton,
           h('button', { type: 'button', className: 'mv-icon-btn', title: t('btn.close'), 'aria-label': t('btn.close'), onClick: close }, '✕'),
         ),
+        floating.liveRegion,
         h(
           'div',
           { className: 'mv-sd-section' },

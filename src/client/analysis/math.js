@@ -11,22 +11,129 @@
     // React card state; these helpers stay pure so the sampling/formatting rules
     // are the same for every operation.
 
-    /** Analysis entities share this id prefix so clear() never touches agent overlays. */
-    const ANALYSIS_ENTITY_PREFIX = 'analysis-'
-    /** At least this many elevation samples are required for a surface statistic. */
-    const ANALYSIS_MIN_SAMPLES = 2
-    const ANALYSIS_ELEVATION_STOPS = ['#38c9ff', '#45dfbe', '#ffd16b']
+/** Analysis entities share this id prefix so clear() never touches agent overlays. */
+const ANALYSIS_ENTITY_PREFIX = 'analysis-'
+/** At least this many elevation samples are required for a surface statistic. */
+const ANALYSIS_MIN_SAMPLES = 2
+const ANALYSIS_ELEVATION_STOPS = ['#38c9ff', '#45dfbe', '#ffd16b']
+const PROFILE_MAX_SAMPLES = 512
+const PROFILE_MIN_BASE_SAMPLES = 64
+const PROFILE_AUTO_MAX_BASE = 320
+/** Lift 3D profile ribbons/markers slightly above the sampled surface to avoid z-fighting. */
+const PROFILE_SURFACE_OFFSET_M = 0.5
 
-    const analysisRound = (value, digits = 1) => {
-      const factor = 10 ** digits
-      return Math.round(value * factor) / factor
-    }
+const analysisRound = (value, digits = 1) => {
+  const factor = 10 ** digits
+  return Math.round(value * factor) / factor
+}
 
-    const analysisInteger = (value, fallback, minimum, maximum) => {
-      const number = Number(value)
-      if (!Number.isFinite(number)) return fallback
-      return Math.min(maximum, Math.max(minimum, Math.round(number)))
+const analysisInteger = (value, fallback, minimum, maximum) => {
+  const number = Number(value)
+  if (!Number.isFinite(number)) return fallback
+  return Math.min(maximum, Math.max(minimum, Math.round(number)))
+}
+
+const autoProfileSamples = (lengthMeters) => {
+  if (!Number.isFinite(lengthMeters) || lengthMeters <= 0) return PROFILE_MIN_BASE_SAMPLES
+  const desired = Math.round(lengthMeters) + 1
+  return Math.min(PROFILE_AUTO_MAX_BASE, Math.max(PROFILE_MIN_BASE_SAMPLES, desired))
+}
+
+/**
+ * Pick midpoint fractions to bisect across steep elevation jumps or valid/null transitions
+ * so bridge decks, walls, and roof edges preserve sharp vertical steps instead of triangles.
+ */
+const collectProfileRefinementFractions = (
+  entries,
+  lengthMeters,
+  remainingBudget,
+  { minJumpM = 1.5, minStepM = 0.25, dedupeDistanceM = 0.05 } = {},
+) => {
+  if (!Array.isArray(entries) || entries.length < 2) return []
+  const budget = Number.isFinite(remainingBudget) ? Math.max(0, Math.floor(remainingBudget)) : 0
+  if (budget <= 0) return []
+  const length = Number.isFinite(lengthMeters) && lengthMeters > 0 ? lengthMeters : 0
+  const candidates = []
+  for (let index = 1; index < entries.length; index += 1) {
+    const left = entries[index - 1]
+    const right = entries[index]
+    if (!left || !right) continue
+    const spanM = (right.fraction - left.fraction) * length
+    if (length > 0 && spanM <= minStepM) continue
+    if (length === 0 && right.fraction - left.fraction <= 0.002) continue
+    const leftValid = typeof left.height === 'number' && Number.isFinite(left.height)
+    const rightValid = typeof right.height === 'number' && Number.isFinite(right.height)
+    const isJump = leftValid && rightValid && Math.abs(right.height - left.height) >= minJumpM
+    const isBoundary = leftValid !== rightValid
+    if (!isJump && !isBoundary) continue
+    const score = isJump ? Math.abs(right.height - left.height) : minJumpM * 2
+    candidates.push({ fraction: (left.fraction + right.fraction) / 2, score })
+  }
+  candidates.sort((a, b) => b.score - a.score)
+  const minFractionGap = length > 0 ? dedupeDistanceM / length : 1e-4
+  const selected = []
+  for (const candidate of candidates) {
+    if (selected.length >= budget) break
+    const nearExisting = entries.some((entry) => Math.abs(entry.fraction - candidate.fraction) <= minFractionGap)
+    const nearSelected = selected.some((fraction) => Math.abs(fraction - candidate.fraction) <= minFractionGap)
+    if (!nearExisting && !nearSelected) selected.push(candidate.fraction)
+  }
+  return selected.sort((a, b) => a - b)
+}
+
+/**
+ * Sample a geodesic profile in batched queries plus up to three rounds of midpoint
+ * refinement across sharp steps so bridge decks, roofs, and walls stay crisp.
+ */
+const sampleProfileEntries = async ({
+  Cesium,
+  geodesic,
+  length,
+  baseSamples,
+  maxPoints,
+  heightMode,
+  sampler,
+  rounds = 3,
+}) => {
+  const initialFractions = []
+  const initialProbes = []
+  for (let index = 0; index < baseSamples; index += 1) {
+    const fraction = baseSamples === 1 ? 0 : index / (baseSamples - 1)
+    initialFractions.push(fraction)
+    initialProbes.push(geodesic.interpolateUsingFraction(fraction, new Cesium.Cartographic()))
+  }
+  const initialBatch = await sampler.sampleMany(initialProbes, { mode: heightMode })
+  let entries = initialFractions.map((fraction, index) => ({
+    fraction,
+    height: initialBatch.values[index] ? initialBatch.values[index].height : null,
+  }))
+  if (entries.some((entry) => entry.height !== null)) {
+    for (let round = 0; round < rounds; round += 1) {
+      const remaining = maxPoints - entries.length
+      if (remaining <= 0) break
+      const extraFractions = collectProfileRefinementFractions(entries, length, remaining)
+      if (extraFractions.length === 0) break
+      const extraProbes = extraFractions.map((fraction) =>
+        geodesic.interpolateUsingFraction(fraction, new Cesium.Cartographic()),
+      )
+      const extraBatch = await sampler.sampleMany(extraProbes, { mode: heightMode })
+      const added = extraFractions.map((fraction, index) => ({
+        fraction,
+        height: extraBatch.values[index] ? extraBatch.values[index].height : null,
+      }))
+      entries = entries.concat(added).sort((a, b) => a.fraction - b.fraction)
     }
+  }
+  let withData = 0
+  const points = entries.map((entry) => {
+    if (entry.height !== null) withData += 1
+    return {
+      distance_m: analysisRound(length * entry.fraction, 2),
+      height_m: entry.height === null ? null : analysisRound(entry.height, 2),
+    }
+  })
+  return { entries, points, withData }
+}
 
     const analysisLonLat = (value) => {
       if (!Array.isArray(value) || value.length < 2) return null
@@ -257,4 +364,4 @@
     }
     //#endregion analysis core
 
-export { ANALYSIS_ENTITY_PREFIX, ANALYSIS_MIN_SAMPLES, ANALYSIS_ELEVATION_STOPS, analysisRound, analysisInteger, analysisLonLat, analysisRegion, analysisColorAt, analysisElevation, analysisSunAngles, analysisObserver, analysisClipPlane, analysisLocalizeClipPlane }
+export { ANALYSIS_ENTITY_PREFIX, ANALYSIS_MIN_SAMPLES, ANALYSIS_ELEVATION_STOPS, PROFILE_MAX_SAMPLES, PROFILE_MIN_BASE_SAMPLES, PROFILE_AUTO_MAX_BASE, PROFILE_SURFACE_OFFSET_M, analysisRound, analysisInteger, autoProfileSamples, collectProfileRefinementFractions, sampleProfileEntries, analysisLonLat, analysisRegion, analysisColorAt, analysisElevation, analysisSunAngles, analysisObserver, analysisClipPlane, analysisLocalizeClipPlane }
