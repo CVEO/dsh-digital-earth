@@ -14,7 +14,7 @@
  */
 import { after, test } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, realpath, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -38,7 +38,7 @@ after(async () => {
 })
 
 async function makeTemp(prefix) {
-  const dir = await mkdtemp(join(tmpdir(), `dsh-req-a-${prefix}-`))
+  const dir = await realpath(await mkdtemp(join(tmpdir(), `dsh-req-a-${prefix}-`)))
   tempDirs.push(dir)
   return dir
 }
