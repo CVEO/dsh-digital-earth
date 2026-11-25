@@ -30,16 +30,17 @@ export async function sceneSnapshotHandler(req, res) {
   } catch {
     return sendText(res, 400, 'bad request')
   }
-  const session = parsed.searchParams.get('session') ?? ''
-  if (!validSessionId(session)) return sendText(res, 400, 'missing or invalid session')
-  const file = sceneSnapshotFile(session)
+  const hasQuerySession = parsed.searchParams.has('session')
+  const querySession = parsed.searchParams.get('session') ?? ''
   if (req.method === 'GET') {
+    if (!validSessionId(querySession)) return sendText(res, 400, 'missing or invalid session')
+    const file = sceneSnapshotFile(querySession)
     try {
       const stored = JSON.parse(await fs.readFile(file, 'utf8'))
       if (
         stored === null ||
         typeof stored !== 'object' ||
-        stored.session !== session ||
+        stored.session !== querySession ||
         stored.snapshot === null ||
         typeof stored.snapshot !== 'object'
       ) {
@@ -54,7 +55,14 @@ export async function sceneSnapshotHandler(req, res) {
       return sendJson(res, 200, { snapshot: null })
     }
   }
-  if (req.method !== 'PUT') return sendText(res, 405, 'method not allowed')
+  if (req.method !== 'PUT') {
+    if (!validSessionId(querySession)) return sendText(res, 400, 'missing or invalid session')
+    return sendText(res, 405, 'method not allowed')
+  }
+  // An explicitly provided query session must be valid; do not mask it with body.session.
+  if (hasQuerySession && !validSessionId(querySession)) {
+    return sendText(res, 400, 'missing or invalid session')
+  }
   let body = ''
   try {
     for await (const chunk of req) {
@@ -73,10 +81,14 @@ export async function sceneSnapshotHandler(req, res) {
   } catch {
     return sendText(res, 400, 'invalid json')
   }
+  // Prefer query session; fall back to body.session when query omits it (e.g. older clients).
+  const session = hasQuerySession ? querySession : (typeof payload?.session === 'string' ? payload.session : '')
+  if (!validSessionId(session)) return sendText(res, 400, 'missing or invalid session')
   const snapshot = payload?.snapshot
   if (snapshot === null || typeof snapshot !== 'object' || Array.isArray(snapshot)) {
     return sendText(res, 400, 'invalid snapshot')
   }
+  const file = sceneSnapshotFile(session)
   const stored = { version: 1, session, savedAt: new Date().toISOString(), snapshot }
   try {
     await writeJsonAtomic(file, stored, { space: undefined, trailingNewline: false })
