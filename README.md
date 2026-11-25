@@ -10,7 +10,7 @@
 
 [中文](README.md) · [English](README.en.md) · [更新日志](CHANGELOG.md) · [许可](LICENSE)
 
-![版本](https://img.shields.io/badge/版本-1.6.3-4f8cff)
+![版本](https://img.shields.io/badge/版本-1.6.0-4f8cff)
 ![许可](https://img.shields.io/badge/许可-MIT-2ea44f)
 ![DSH](https://img.shields.io/badge/DSH-插件-0ea5e9)
 [![npm downloads](https://img.shields.io/npm/dm/@cveo/dsh-digital-earth?label=npm%20downloads&color=cb383f)](https://www.npmjs.com/package/@cveo/dsh-digital-earth)
@@ -44,7 +44,7 @@ dsh plugin --profile desktop add @cveo/dsh-digital-earth
 dsh plugin --profile web add @cveo/dsh-digital-earth
 
 # 从本地构建包安装（桌面端示例；Web 端把 desktop 改为 web）
-dsh plugin --profile desktop add ./cveo-dsh-digital-earth-1.6.3.tgz
+dsh plugin --profile desktop add ./cveo-dsh-digital-earth-1.6.0.tgz
 ```
 
 1. 完全退出并重新打开 DSH 桌面端，或重启 `dsh web` 服务（客户端 bundle 在启动时注册，仅刷新页面不够）。
