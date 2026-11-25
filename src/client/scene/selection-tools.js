@@ -25,6 +25,7 @@ import { rowsInScreenBox } from './screen-intersection.js'
 import { captureSelectionFrame, createScreenSelectionOverlay, usableSurfaceRing } from './selection-frame.js'
 
 const sessions = new WeakMap()
+const listenerSets = new WeakMap()
 const SELECTION_COLOR = '#22d3ee'
 const MIN_DRAG_PX = 4
 
@@ -41,6 +42,18 @@ export function isSelectionActive(viewer) {
 export function peekSelection(viewer) {
   const tool = viewer ? sessions.get(viewer) : null
   return tool && typeof tool.getSelection === 'function' ? tool.getSelection() : null
+}
+
+/** Subscribe to selection commit/cancel/clear events on a viewer (works even before session creation). */
+export function subscribeSelection(viewer, listener) {
+  if (!viewer || typeof listener !== 'function') return () => {}
+  let set = listenerSets.get(viewer)
+  if (!set) {
+    set = new Set()
+    listenerSets.set(viewer, set)
+  }
+  set.add(listener)
+  return () => set.delete(listener)
 }
 
 /**
@@ -87,6 +100,25 @@ export function getSelectionTool(viewer, deps) {
 
 function createSelectionSession(viewer) {
   const screenOverlay = createScreenSelectionOverlay(viewer)
+  const emit = (type, selection = null) => {
+    const set = listenerSets.get(viewer)
+    if (!set) return
+    for (const fn of [...set]) {
+      try { fn({ type, selection, mode: state.mode }) } catch { /* listener errors stay isolated */ }
+    }
+  }
+  const notifyCommit = (selection) => {
+    tool.deps?.onCommit?.(selection)
+    emit('commit', selection)
+  }
+  const notifyCancel = () => {
+    tool.deps?.onCancel?.()
+    emit('cancel', state.selection)
+  }
+  const notifyClear = () => {
+    tool.deps?.onClear?.()
+    emit('clear', null)
+  }
   const state = {
     mode: null,
     dragStart: null,
@@ -234,7 +266,7 @@ function createSelectionSession(viewer) {
     if (!usableSurfaceRing(ringCandidate)) {
       state.selection = { kind: 'screen', requested_kind: kind, frame, complete: false, approximate: true, created_at: now() }
       toast(t('selection.surfaceUnavailable'))
-      tool.deps?.onCommit?.(state.selection)
+      notifyCommit(state.selection)
       return
     }
     const last = ground.ring[ground.ring.length - 1]
@@ -267,7 +299,7 @@ function createSelectionSession(viewer) {
     drawCommittedShape(Cesium, selection)
     state.selection = selection
     if (!ground.complete) toast(t('selection.partial'))
-    tool.deps?.onCommit?.(selection)
+    notifyCommit(selection)
   }
 
   /**
@@ -300,7 +332,7 @@ function createSelectionSession(viewer) {
     }
     state.selection = selection
     drawCommittedShape(Cesium, selection)
-    tool.deps?.onCommit?.(selection)
+    notifyCommit(selection)
     return selection
   }
 
@@ -338,7 +370,7 @@ function createSelectionSession(viewer) {
       /* the readout still works without a rendered marker */
     }
     state.selection = selection
-    tool.deps?.onCommit?.(selection)
+    notifyCommit(selection)
   }
 
   function commitVision(ground) {
@@ -363,7 +395,7 @@ function createSelectionSession(viewer) {
     state.dragStart = null
     if (!Cesium || screenRing.length < 3) {
       toast(t('selection.tooSmall'))
-      tool.deps?.onCancel?.()
+      notifyCancel()
       return
     }
     const ground = groundRingFromScreen(viewer, Cesium, screenRing)
@@ -383,7 +415,7 @@ function createSelectionSession(viewer) {
     state.previewPositions = []
     if (!Cesium || path.length < 3) {
       toast(t('selection.tooSmall'))
-      tool.deps?.onCancel?.()
+      notifyCancel()
       return
     }
     const ground = groundRingFromScreen(viewer, Cesium, path)
@@ -398,19 +430,19 @@ function createSelectionSession(viewer) {
     restoreCamera()
     clearObjectBox()
     if (!Cesium || !rect) {
-      tool.deps?.onCancel?.()
+      notifyCancel()
       return
     }
     const rows = tool.deps?.getOverlayRows?.() ?? []
     const selected = rowsInScreenBox(Cesium, viewer, rows, rect)
     if (selected.length === 0) {
       toast(t('selection.objectsEmpty'))
-      tool.deps?.onCancel?.()
+      notifyCancel()
       return
     }
     const selection = { kind: 'objects', rows: selected, frame: captureSelectionFrame(viewer, rectScreenRing({ x: rect.x1, y: rect.y1 }, { x: rect.x2, y: rect.y2 }, 1)), created_at: now() }
     state.selection = selection
-    tool.deps?.onCommit?.(selection)
+    notifyCommit(selection)
   }
 
   function cancel() {
@@ -428,7 +460,7 @@ function createSelectionSession(viewer) {
     removeEntity(state.previewEntity)
     state.previewEntity = null
     clearObjectBox()
-    tool.deps?.onCancel?.()
+    notifyCancel()
   }
 
   function start(mode = 'rect') {
@@ -566,7 +598,7 @@ function createSelectionSession(viewer) {
   function clear() {
     cancel()
     clearSelection()
-    tool.deps?.onClear?.()
+    notifyClear()
   }
 
   function exportGeoJSON() {
@@ -631,6 +663,9 @@ function createSelectionSession(viewer) {
     exportGeoJSON,
     selectAreaAround,
     commitVision,
+    subscribe(fn) {
+      return subscribeSelection(viewer, fn)
+    },
     isActive: () => Boolean(state.mode),
     getMode: () => state.mode,
     getSelection: () => state.selection,

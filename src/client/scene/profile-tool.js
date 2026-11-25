@@ -16,6 +16,7 @@
 const DRAFT_COLOR = '#2563eb'
 const DRAFT_WIDTH = 2.5
 const FIXED_WIDTH = 3
+const MOVE_THROTTLE_MS = 32
 
 // One session per viewer. ViewerSurface re-creates the tool object on every
 // render and the click route may belong to an older instance than the start
@@ -49,6 +50,12 @@ export function createProfileTool({ getCesium, getViewer, pickSurface, setTool, 
   }
 
   function destroyHandler(state) {
+    if (state.moveTimer !== null && state.moveTimer !== undefined) {
+      clearTimeout(state.moveTimer)
+      state.moveTimer = null
+    }
+    state.pendingMove = null
+    state.lastPickAt = 0
     if (!state.handler) return
     try {
       state.handler.destroy()
@@ -121,11 +128,10 @@ export function createProfileTool({ getCesium, getViewer, pickSurface, setTool, 
     destroyHandler(state)
     try {
       const handler = new EventHandler(canvas)
-      handler.setInputAction((event) => {
-        const position = event?.endPosition
-        if (!position) return
+      const applyMove = (position) => {
         const current = sessionFor()
-        if (!current) return
+        if (!current || current.points.length === 0 || current.locked) return
+        current.lastPickAt = Date.now()
         const surface = pickSurface?.(position)
         if (!surface) return
         current.cursor = surface
@@ -133,6 +139,29 @@ export function createProfileTool({ getCesium, getViewer, pickSurface, setTool, 
           viewer.scene.requestRender?.()
         } catch {
           /* no render loop to nudge */
+        }
+      }
+      handler.setInputAction((event) => {
+        const position = event?.endPosition
+        if (!position) return
+        const current = sessionFor()
+        if (!current || current.points.length === 0 || current.locked) return
+        const throttleMs = typeof requestAnimationFrame === 'function' ? MOVE_THROTTLE_MS : 0
+        const elapsed = Date.now() - (current.lastPickAt ?? 0)
+        if (throttleMs === 0 || !current.lastPickAt || elapsed >= throttleMs) {
+          if (current.moveTimer) { clearTimeout(current.moveTimer); current.moveTimer = null }
+          current.pendingMove = null
+          applyMove(position)
+          return
+        }
+        current.pendingMove = position
+        if (!current.moveTimer) {
+          current.moveTimer = setTimeout(() => {
+            current.moveTimer = null
+            const next = current.pendingMove
+            current.pendingMove = null
+            if (next) applyMove(next)
+          }, throttleMs - elapsed)
         }
       }, moveType)
       state.handler = handler

@@ -195,6 +195,12 @@ const h = React.createElement
           h('path', { key: 'axes', d: 'M4 20V4M4 20h16', ...stroke }),
           h('path', { key: 'curve', d: 'M7 16l4-5 3 3 5-7', ...stroke }),
         ]
+      } else if (kind === 'compare') {
+        shapes = [
+          h('rect', { key: 'frame', x: 3.5, y: 4.5, width: 17, height: 15, rx: 2, ...stroke }),
+          h('path', { key: 'split', d: 'M12 3v18', ...stroke }),
+          h('path', { key: 'arrows', d: 'M9 12H6.5m0 0L8 10.5M6.5 12 8 13.5M15 12h2.5m0 0L16 10.5m1.5 1.5L16 13.5', ...stroke }),
+        ]
       } else if (kind === 'annotation') {
         shapes = [
           h('path', { key: 'pin', d: 'M12 21s6-6.1 6-11a6 6 0 1 0-12 0c0 4.9 6 11 6 11z', ...stroke }),

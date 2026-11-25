@@ -10,12 +10,17 @@ import assert from 'node:assert/strict'
 import {
   addBookmark,
   BOOKMARK_STORAGE_KEY,
+  captureBookmarkThumbnail,
   flyToBookmark,
+  formatBookmarkMeta,
   loadBookmarks,
+  moveBookmark,
   normalizeBookmarkView,
   normalizeBookmarks,
   removeBookmark,
+  renameBookmark,
   saveBookmarks,
+  updateBookmarkView,
 } from '../src/client/scene/bookmarks.js'
 import { clientSource, readRepoFile } from './helpers/source.mjs'
 
@@ -74,21 +79,50 @@ test('load/save：往返、缺失/损坏/不可用存储都安全', () => {
   assert.equal(saveBookmarks(list, broken), false)
 })
 
-test('add/remove：新收藏置顶、名称自动编号、无效视角不新增', () => {
-  const first = addBookmark([], view(), null, { now: 1000, idFactory: () => 'id-1' })
+test('add/remove/rename/move/update：按 1→2→3 顺序追加、编号不冲突、支持重命名与调序与缩略图', () => {
+  const first = addBookmark([], view(), null, { now: 1000, idFactory: () => 'id-1', thumb: 'data:image/jpeg;base64,AAA' })
   assert.equal(first.bookmark.name, '视角 1')
+  assert.equal(first.bookmark.thumb, 'data:image/jpeg;base64,AAA')
   assert.equal(first.list.length, 1)
   const second = addBookmark(first.list, view({ lon: 120 }), '  东侧  ', { now: 2000, idFactory: () => 'id-2' })
-  assert.deepEqual(second.list.map((item) => item.id), ['id-2', 'id-1'])
+  assert.deepEqual(second.list.map((item) => item.id), ['id-1', 'id-2'], '新收藏应按导览顺序追加在末尾')
   assert.equal(second.bookmark.name, '东侧')
   assert.equal(second.bookmark.createdAt, 2000)
+
+  // Deleting an earlier item must not cause the next auto-generated name to collide.
+  const third = addBookmark(second.list, view({ lon: 121 }), null, { now: 3000, idFactory: () => 'id-3' })
+  assert.equal(third.bookmark.name, '视角 3')
+  const withoutSecond = removeBookmark(third.list, 'id-2')
+  const fourth = addBookmark(withoutSecond, view({ lon: 122 }), null, { now: 4000, idFactory: () => 'id-4' })
+  assert.equal(fourth.bookmark.name, '视角 4')
 
   const rejected = addBookmark(second.list, { lon: 999, lat: 0, height: 0 }, null)
   assert.equal(rejected.bookmark, null)
   assert.equal(rejected.list.length, 2)
 
   assert.deepEqual(removeBookmark(second.list, 'id-2').map((item) => item.id), ['id-1'])
-  assert.deepEqual(removeBookmark(second.list, 'missing').map((item) => item.id), ['id-2', 'id-1'])
+  assert.deepEqual(removeBookmark(second.list, 'missing').map((item) => item.id), ['id-1', 'id-2'])
+
+  // Rename, reorder and in-place view recapture
+  const renamed = renameBookmark(second.list, 'id-1', '  南门入口  ')
+  assert.equal(renamed[0].name, '南门入口')
+  assert.equal(renameBookmark(renamed, 'id-1', '   ')[0].name, '南门入口')
+
+  const moved = moveBookmark(renamed, 'id-2', -1)
+  assert.deepEqual(moved.map((item) => item.id), ['id-2', 'id-1'])
+  assert.deepEqual(moveBookmark(moved, 'id-2', -1).map((item) => item.id), ['id-2', 'id-1'])
+
+  const recaptured = updateBookmarkView(moved, 'id-2', view({ height: 320 }), { thumb: 'data:image/jpeg;base64,BBB' })
+  assert.equal(recaptured[0].view.height, 320)
+  assert.equal(recaptured[0].thumb, 'data:image/jpeg;base64,BBB')
+
+  // Spatial readout formatting
+  const meta = formatBookmarkMeta({ lon: 3.0815, lat: 45.7742, height: 412, heading: 45, pitch: -38 })
+  assert.equal(meta.alt, '412 m')
+  assert.equal(meta.compass, 'NE')
+  assert.equal(meta.pitchDeg, -38)
+  assert.equal(meta.coords, '45.7742°N, 3.0815°E')
+  assert.equal(captureBookmarkThumbnail(null), '')
 })
 
 test('flyToBookmark：把视角换算成弧度并调用相机；非法输入返回 false', () => {
@@ -112,7 +146,7 @@ test('接线：工具卡有收藏区，ViewerSurface 传入当前视角与飞行
   // the data/tools split, and the tools card owns the group title.
   const panel = readRepoFile('src/client/ui/tools-bookmarks.js')
   assert.match(panel, /loadBookmarks\(\)/)
-  assert.match(panel, /addBookmark\(bookmarks, view, null\)/)
+  assert.match(panel, /addBookmark\(bookmarks, view, null/)
   assert.match(panel, /saveBookmarks\(result\.list\)/)
   assert.match(panel, /removeBookmark\(bookmarks, id\)/)
   assert.match(panel, /t\('bookmarks\.save'\)/)

@@ -17,28 +17,39 @@ export function createVectorInteraction({ Cesium, viewer, root, getTool, onSelec
   const enabled = () => !moving && (!getTool() || getTool() === 'pick' || getTool() === 'identify')
   const labels = createVectorLabels({ Cesium, viewer, root, onHover: setHover, onSelect: select, isInteractive: enabled })
 
+  function applyEntityState(entity, group) {
+    const entry = entries.get(entity)
+    if (!entry) return
+    const active = group === selected || group === hovered
+    for (const [graphic, property, original] of entry.originals) graphic[property] = original
+    if (!active) return
+    if (entity.polyline) {
+      const isSelected = group === selected
+      entity.polyline.width = valueOf(entry.width) + (isSelected ? 2.5 : 1.5)
+      const material = entry.options.polyline.material
+      if (material instanceof Cesium.PolylineOutlineMaterialProperty) {
+        const color = Cesium.Color.lerp(valueOf(material.color), Cesium.Color.WHITE, isSelected ? 0.4 : 0.2, new Cesium.Color())
+        entity.polyline.material = vectorLineMaterial(Cesium, color, isSelected ? 1.75 : 1.5)
+      }
+    }
+    if (entity.point) entity.point.pixelSize = 11
+    for (const kind of ['polygon', 'rectangle']) {
+      const graphic = entity[kind]
+      const color = entry.options[kind]?.material
+      if (graphic && color instanceof Cesium.Color) graphic.material = color.withAlpha(group === selected ? 0.3 : 0.23)
+    }
+  }
+
   function applyState(group) {
     if (!group) return
-    const active = group === selected || group === hovered
-    for (const entity of groups.get(group)?.entities ?? []) {
-      const entry = entries.get(entity)
-      for (const [graphic, property, original] of entry.originals) graphic[property] = original
-      if (!active) continue
-      if (entity.polyline) {
-        const isSelected = group === selected
-        entity.polyline.width = valueOf(entry.width) + (isSelected ? 2.5 : 1.5)
-        const material = entry.options.polyline.material
-        if (material instanceof Cesium.PolylineOutlineMaterialProperty) {
-          const color = Cesium.Color.lerp(valueOf(material.color), Cesium.Color.WHITE, isSelected ? 0.4 : 0.2, new Cesium.Color())
-          entity.polyline.material = vectorLineMaterial(Cesium, color, isSelected ? 1.75 : 1.5)
-        }
-      }
-      if (entity.point) entity.point.pixelSize = 11
-      for (const kind of ['polygon', 'rectangle']) {
-        const graphic = entity[kind]
-        const color = entry.options[kind]?.material
-        if (graphic && color instanceof Cesium.Color) graphic.material = color.withAlpha(group === selected ? 0.3 : 0.23)
-      }
+    const record = groups.get(group)
+    if (!record || record.descriptor?.staticStyle === true) return
+    if (group !== selected && record.entities.size > 24) return
+    viewer.entities?.suspendEvents?.()
+    try {
+      for (const entity of record.entities) applyEntityState(entity, group)
+    } finally {
+      viewer.entities?.resumeEvents?.()
     }
   }
 
@@ -170,7 +181,7 @@ export function createVectorInteraction({ Cesium, viewer, root, getTool, onSelec
     entries.set(entity, { group, options: styled, originals, width: entity.polyline?.width })
     labels.add(entity, styled, group, descriptor)
     labels.setState(hovered, selected)
-    applyState(group)
+    if (!descriptor?.staticStyle && (group === selected || group === hovered)) applyEntityState(entity, group)
     viewer.scene.requestRender()
     return entity
   }

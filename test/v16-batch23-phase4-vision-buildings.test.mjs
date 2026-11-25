@@ -577,6 +577,17 @@ test('Phase 4 zh/en i18n keys exist symmetrically in MESSAGES', () => {
     'parse.scopeAoi',
     'parse.scopeAoiReady',
     'parse.scopeAoiNone',
+    'parse.drawRect',
+    'parse.drawRectActive',
+    'parse.drawLasso',
+    'parse.drawLassoActive',
+    'parse.drawHint',
+    'parse.aoiReadyLabel',
+    'parse.aoiClear',
+    'parse.targetsLabel',
+    'parse.targetsAll',
+    'parse.diagAllSkipped',
+    'parse.diagSnapshot',
     'parse.aoiTag',
     'parse.filterClass',
     'parse.sortDefault',
@@ -596,5 +607,177 @@ test('Phase 4 zh/en i18n keys exist symmetrically in MESSAGES', () => {
     assert.equal(typeof MESSAGES.en[key], 'string', `missing en key ${key}`)
     assert.ok(MESSAGES.zh[key].trim().length > 0)
     assert.ok(MESSAGES.en[key].trim().length > 0)
+  }
+})
+
+test('ParseBody Plan C: self-contained AOI draw buttons, target class filter payload, and clean initial state', async () => {
+  const Cesium = makeFakeCesium()
+  const viewer = {
+    ...makeFakeViewer(),
+    entities: { add: (e) => e, remove: () => {} },
+  }
+  const savedDoc = globalThis.document
+  const savedFetch = globalThis.fetch
+  const bodies = []
+  globalThis.document = {
+    visibilityState: 'visible',
+    createElement: () => ({ width: 0, height: 0, getContext: () => ({ drawImage: () => {} }), toDataURL: () => 'data:image/jpeg;base64,ok' }),
+  }
+  globalThis.fetch = async (url, init) => {
+    if (String(url).includes('meta')) return { ok: true, json: async () => ({ visionBatchUrl: '/api/vision-batch' }) }
+    bodies.push(JSON.parse(init.body))
+    return {
+      ok: true,
+      json: async () => ({
+        ok: true,
+        objects: [{ class: 'building', confidence: 0.85, polygon: [[0.2, 0.2], [0.4, 0.2], [0.4, 0.4], [0.2, 0.4]] }],
+      }),
+    }
+  }
+  try {
+    const renderer = createRenderer(ParseBody, () => ({
+      t,
+      getCesium: () => Cesium,
+      getViewer: () => viewer,
+      getLayers: () => [],
+      getSelection: () => null,
+      showToast: () => {},
+      onAdoptParse: () => true,
+    }))
+    // Clean initial state: no bogus "no usable objects" message before first run.
+    assert.equal(textOf(renderer.tree()).includes('parse.empty'), false)
+
+    // Clicking AOI tab exposes built-in rect/lasso draw buttons directly inside ParseBody.
+    const scopeBtns = findAll(renderer.tree(), (n) => hasClass(n, 'mv-parse-scope-btn'))
+    assert.equal(scopeBtns[1].props.disabled, false)
+    scopeBtns[1].props.onClick()
+    const aoiText = textOf(renderer.tree())
+    assert.ok(aoiText.includes('parse.drawRect') && aoiText.includes('parse.drawLasso'))
+
+    // Switch back to current view, pick only 'building' target class, and verify classes payload.
+    findAll(renderer.tree(), (n) => hasClass(n, 'mv-parse-scope-btn'))[0].props.onClick()
+    const bldgTarget = findAll(renderer.tree(), (n) => hasClass(n, 'mv-parse-target') && textOf(n).includes('parse.class.building'))[0]
+    assert.ok(bldgTarget)
+    bldgTarget.props.onClick()
+    const runBtn = findAll(renderer.tree(), (n) => n.type === 'button' && textOf(n).includes('parse.run'))[0]
+    await runBtn.props.onClick()
+    assert.deepEqual(bodies[0].classes, ['building'])
+
+    // Rendered 3D Tiles must not be permanently blocked by slow background globe tiles (globe.tilesLoaded === false).
+    const slowGlobeViewer = makeFakeViewer({ tilesLoaded: false })
+    const readyLayer = { visible: true, tileset: { tilesLoaded: false, statistics: { numberOfTilesWithContentReady: 12 } } }
+    const frameOk = batch.captureSceneFrame({ viewer: slowGlobeViewer, Cesium, getLayers: () => [readyLayer] })
+    assert.ok(frameOk?.dataUrl)
+  } finally {
+    globalThis.document = savedDoc
+    globalThis.fetch = savedFetch
+  }
+})
+
+test('Alignment guards: camera lock + viewMatrix invariance + AOI containment + 400m fallback outlier drop + building-only extrusion', async () => {
+  const { projectVisionPolygon } = await import('../src/client/scene/vision-frame.js')
+  const Cesium = makeFakeCesium()
+  const savedDoc = globalThis.document
+  globalThis.document = {
+    visibilityState: 'visible',
+    createElement: () => ({ width: 0, height: 0, getContext: () => ({ drawImage: () => {} }), toDataURL: () => 'data:image/jpeg;base64,ok' }),
+  }
+  try {
+    // 1. Camera lock & viewMatrix invariance guard
+    const controller = { enableInputs: true, enableRotate: true, enableZoom: true }
+    const viewMatrix = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]
+    const viewer = {
+      ...makeFakeViewer(),
+      scene: { ...makeFakeViewer().scene, mode: 3, screenSpaceCameraController: controller },
+      camera: { getPickRay: () => null, cancelFlight: () => {}, viewMatrix, frustum: { fov: 1.0, aspectRatio: 1.5 } },
+    }
+    const frame = batch.captureSceneFrame({ viewer, Cesium, getLayers: () => [] })
+    assert.equal(controller.enableInputs, false)
+    assert.equal(controller.enableRotate, false)
+    assert.equal(frame.isValid(), true)
+    // Simulate camera drift during async VLM call -> must reject with scene_changed, never project misaligned ghosts
+    viewMatrix[12] = 25.0
+    assert.equal(frame.isValid(), false)
+    assert.throws(
+      () => batch.projectBatchObjects(frame, [{ class: 'building', confidence: 0.9, polygon: [[0.2, 0.2], [0.4, 0.2], [0.4, 0.4], [0.2, 0.4]] }], { t }),
+      (err) => err?.code === 'scene_changed',
+    )
+    frame.release()
+    assert.equal(controller.enableInputs, true)
+    assert.equal(controller.enableRotate, true)
+
+    // 2. AOI containment filter drops objects falling outside selection.ring
+    const aoiViewer = makeFakeViewer()
+    const selection = {
+      kind: 'lasso',
+      area_m2: 1000,
+      ring: [[114.31, 30.51], [114.32, 30.51], [114.32, 30.52], [114.31, 30.52], [114.31, 30.51]],
+      positions: [
+        Cesium.Cartesian3.fromDegrees(114.31, 30.51, 0),
+        Cesium.Cartesian3.fromDegrees(114.32, 30.51, 0),
+        Cesium.Cartesian3.fromDegrees(114.32, 30.52, 0),
+        Cesium.Cartesian3.fromDegrees(114.31, 30.52, 0),
+      ],
+    }
+    const aoiFrame = batch.captureSceneFrame({ viewer: aoiViewer, Cesium, getLayers: () => [], selection, scope: 'aoi' })
+    const aoiResult = batch.projectBatchObjects(aoiFrame, [
+      // Inside AOI (normalized 0.3..0.6 -> ~114.312..114.316)
+      { class: 'building', confidence: 0.9, polygon: [[0.3, 0.3], [0.6, 0.3], [0.6, 0.6], [0.3, 0.6]] },
+      // In the 14px padding margin strictly outside AOI (normalized 0.01..0.05 -> ~114.3087..114.3092 < 114.31)
+      { class: 'building', confidence: 0.9, polygon: [[0.01, 0.01], [0.05, 0.01], [0.05, 0.05], [0.01, 0.05]] },
+    ], { t })
+    assert.equal(aoiResult.features.length, 1)
+    assert.equal(aoiResult.skipped, 1)
+    aoiFrame.release()
+
+    // 3. Elevated 3D Tiles (~400m) rejects bare-ellipsoid (0m) groundPick fallback spike
+    let callIdx = 0
+    const elevatedViewer = {
+      ...makeFakeViewer(),
+      scene: {
+        pickPositionSupported: true,
+        pickPosition: (pos) => {
+          callIdx += 1
+          if (callIdx === 3) return null // 1 edge sample misses the 400m tileset
+          return { lon: 114.3 + pos.x * 0.0001, lat: 30.5 + pos.y * 0.0001, h: 405 }
+        },
+        globe: { pick: () => ({ lon: 114.35, lat: 30.55, h: 0 }), tilesLoaded: true },
+        requestRender: () => {},
+      },
+      camera: { getPickRay: () => ({ origin: {}, direction: {} }), cancelFlight: () => {} },
+    }
+    const elevatedFrame = {
+      id: 'elev-1',
+      viewer: elevatedViewer,
+      Cesium,
+      crop: { left: 0, top: 0, width: 100, height: 100 },
+      cssWidth: 100,
+      cssHeight: 100,
+      point: [0.3, 0.3],
+      isValid: () => true,
+    }
+    const proj = projectVisionPolygon(elevatedFrame, { polygon: [[0.2, 0.2], [0.4, 0.2], [0.4, 0.4], [0.2, 0.4]] })
+    assert.equal(proj.points.length, 7)
+    assert.ok(proj.points.every((pt) => pt.height > 390), '0m bare-ellipsoid spike must be discarded')
+
+    // 4. Class-aware 3D extrusion: building extrudes, road/vehicle/vegetation stay surface-draped
+    const ring = [[[114.3, 30.5], [114.301, 30.5], [114.301, 30.501], [114.3, 30.5]]]
+    const mixed = [
+      { type: 'Feature', properties: { class: 'building', ground_height_m: 400, roof_height_m: 412, height_m: 12 }, geometry: { type: 'Polygon', coordinates: ring } },
+      { type: 'Feature', properties: { class: 'road', ground_height_m: 400, roof_height_m: 410, height_m: 10 }, geometry: { type: 'Polygon', coordinates: ring } },
+      { type: 'Feature', properties: { class: 'vehicle', ground_height_m: 400, roof_height_m: 408, height_m: 8 }, geometry: { type: 'Polygon', coordinates: ring } },
+    ]
+    const applied = batch.applyExtrusionToFeatures(mixed, true)
+    assert.equal(applied[0].properties.extruded, true)
+    assert.equal(applied[1].properties.extruded, false)
+    assert.equal(applied[2].properties.extruded, false)
+
+    const drawn = []
+    const previewViewer = { ...makeFakeViewer(), entities: { add: (e) => { drawn.push(e); return e }, remove: () => {} } }
+    batch.drawBatchPreview(Cesium, previewViewer, mixed, { extrude: true })
+    const extrudedPolys = drawn.filter((e) => e.polygon && typeof e.polygon.extrudedHeight === 'number')
+    assert.equal(extrudedPolys.length, 1, 'only building should render as a 3D extruded prism')
+  } finally {
+    globalThis.document = savedDoc
   }
 })

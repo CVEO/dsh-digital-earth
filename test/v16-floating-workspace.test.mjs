@@ -28,6 +28,7 @@ const { RightStack } = await import('../src/client/ui/right-stack.js')
 const { ToolbarQuick } = await import('../src/client/ui/toolbar-quick.js')
 const { LayersMap } = await import('../src/client/ui/layers-map.js')
 const { AnalysisCard } = await import('../src/client/ui/cards.js')
+const { UrlBar } = await import('../src/client/ui/url-bar.js')
 const { UI_MESSAGES } = await import('../src/client/messages-ui.js')
 const { MESSAGES } = await import('../src/client/messages.js')
 const { IMAGERY_OPEN_KEY, readPanelFlag } = await import('../src/client/ui/panel-prefs.js')
@@ -285,6 +286,11 @@ test('floating pure helpers clamp within viewport, nudge by 16/48px, cascade aut
     assert.ok(getFloatingZIndex('toolwin.measure') > getFloatingZIndex('toolwin.select'))
     focusFloatingWindow('toolwin.select')
     assert.ok(getFloatingZIndex('toolwin.select') > getFloatingZIndex('toolwin.measure'))
+    for (let index = 0; index < 12; index += 1) focusFloatingWindow(`toolwin.extra-${index}`)
+    focusFloatingWindow('urlbar')
+    assert.ok(getFloatingZIndex('urlbar') > getFloatingZIndex('toolwin.extra-11'))
+    focusFloatingWindow('layers')
+    assert.ok(getFloatingZIndex('layers') > getFloatingZIndex('urlbar'))
   })
 })
 
@@ -535,4 +541,32 @@ test('UI_MESSAGES zh/en keys are complete, non-empty, and merged into MESSAGES',
     assert.equal(MESSAGES.zh[key], UI_MESSAGES.zh[key])
     assert.equal(MESSAGES.en[key], UI_MESSAGES.en[key])
   }
+})
+
+test('UrlBar renders a close button that invokes onClose', () => {
+  withEnv(() => {
+    let closed = 0
+    const r = renderHooks(() =>
+      UrlBar({
+        value: 'https://example.com/tileset.json',
+        placeholder: 'URL',
+        submitLabel: 'Load',
+        closeLabel: 'Close',
+        onChange: () => {},
+        onSubmit: () => {},
+        onClose: () => {
+          closed += 1
+        },
+      }),
+    )
+    try {
+      const closeBtn = findAll(r.getTree(), (n) => n.type === 'button' && hasClass(n, 'mv-urlbar-close'))[0]
+      assert.ok(closeBtn)
+      assert.equal(closeBtn.props['aria-label'], 'Close')
+      closeBtn.props.onClick()
+      assert.equal(closed, 1)
+    } finally {
+      r.cleanup()
+    }
+  })
 })

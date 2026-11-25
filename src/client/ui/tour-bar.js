@@ -97,10 +97,16 @@ export function useTour({ t, showToast, getCurrentView, onFlyView, onFinish }) {
           'div',
           { className: 'mv-tour-head' },
           h('b', null, t('tour.title')),
+          current?.name ? h('span', { className: 'mv-tour-stop-name' }, current.name) : null,
           h('span', { className: 'mv-tour-progress' }, t('tour.progress', { index: state.index + 1, total: state.stops.length })),
           h('button', { type: 'button', className: 'mv-icon-btn', title: t('tour.exit'), 'aria-label': t('tour.exit'), onClick: stop }, '✕'),
         ),
-        h('p', { className: 'mv-tour-caption' }, stopCaption(current, state.index, t)),
+        h(
+          'div',
+          { className: 'mv-tour-body' },
+          current?.thumb ? h('img', { className: 'mv-tour-thumb', src: current.thumb, alt: current.name || t('tour.title') }) : null,
+          h('p', { className: 'mv-tour-caption' }, stopCaption(current, state.index, t)),
+        ),
         h(
           'div',
           { className: 'mv-tour-actions' },

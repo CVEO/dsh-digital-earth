@@ -26,12 +26,24 @@ export function focusFloatingWindow(storageKey) {
   if (focusOrder[focusOrder.length - 1] === storageKey) return
   focusOrder = focusOrder.filter((key) => key !== storageKey)
   focusOrder.push(storageKey)
+  if (focusOrder.length > 12) focusOrder.shift()
   notifyFocus()
 }
 
 export function getFloatingZIndex(storageKey, fallback = BASE_Z_INDEX) {
   const idx = storageKey ? focusOrder.indexOf(storageKey) : -1
-  return idx >= 0 ? BASE_Z_INDEX + Math.min(idx + 1, 12) : fallback
+  return idx >= 0 ? BASE_Z_INDEX + idx + 1 : fallback
+}
+
+export function useFloatingZIndex(storageKey) {
+  const [zIndex, setZIndex] = React.useState(() => getFloatingZIndex(storageKey))
+  React.useEffect(() => {
+    const refresh = () => setZIndex(getFloatingZIndex(storageKey))
+    focusListeners.add(refresh)
+    refresh()
+    return () => focusListeners.delete(refresh)
+  }, [storageKey])
+  return zIndex
 }
 
 function readAllSavedPositions() {
@@ -191,13 +203,7 @@ export function useFloatingWindow({
   const [dragging, setDragging] = React.useState(false)
   const [announcement, setAnnouncement] = React.useState('')
   const [delta, setDelta] = React.useState({ dx: 0, dy: 0, rootW: 0, rootH: 0 })
-  const [, setFocusTick] = React.useState(0)
-
-  React.useEffect(() => {
-    const listener = () => setFocusTick((n) => n + 1)
-    focusListeners.add(listener)
-    return () => focusListeners.delete(listener)
-  }, [])
+  const zIndex = useFloatingZIndex(storageKey)
 
   React.useEffect(() => () => dragCleanupRef.current?.(), [])
 
@@ -373,7 +379,6 @@ export function useFloatingWindow({
     announce('window.docked')
   }, [storageKey, announce])
 
-  const zIndex = getFloatingZIndex(storageKey, BASE_Z_INDEX)
   const style = moved
     ? {
         position: 'absolute',
@@ -399,7 +404,10 @@ export function useFloatingWindow({
     zIndex,
     style,
     className: `mv-floating${moved ? ' moved' : ''}${dragging ? ' dragging' : ''}`,
-    panelProps: { onPointerDownCapture: () => focusFloatingWindow(storageKey) },
+    panelProps: {
+      onPointerDownCapture: () => focusFloatingWindow(storageKey),
+      onFocusCapture: () => focusFloatingWindow(storageKey),
+    },
     headerProps: { className: 'mv-window-header', onPointerDown: onHeaderPointerDown },
     dragHandle: h(DragHandle, { t, onPointerDown: startDrag, onKeyDown: onHandleKeyDown }),
     resetButton: h(ResetDockButton, { t, visible: userMoved, onClick: resetDock }),

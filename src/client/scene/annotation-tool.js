@@ -12,6 +12,7 @@
 const DRAFT_COLOR = '#f472b6'
 const DRAFT_WIDTH = 2.5
 const MARKER_PIXELS = 7
+const MOVE_THROTTLE_MS = 32
 
 // One session per viewer: ViewerSurface re-creates the tool every render, and the
 // canvas click route may belong to an older instance than the start button.
@@ -58,6 +59,12 @@ export function createAnnotationTool({ getCesium, getViewer, pickSurface, setToo
   const draftColor = (Cesium) => Cesium.Color?.fromCssColorString?.(DRAFT_COLOR) ?? Cesium.Color.WHITE
 
   const destroyHandler = (state) => {
+    if (state.moveTimer) {
+      clearTimeout(state.moveTimer)
+      state.moveTimer = null
+    }
+    state.pendingMove = null
+    state.lastPickAt = 0
     if (state.handler) {
       try { state.handler.destroy() } catch { /* Cesium may already be gone */ }
       state.handler = null
@@ -203,12 +210,36 @@ export function createAnnotationTool({ getCesium, getViewer, pickSurface, setToo
       syncDraft(current)
       showToast(t(`annotation.${current.kind}Hint`, { n: current.points.length }))
     }, events.LEFT_CLICK)
-    handler.setInputAction((event) => {
+    const applyMove = (position) => {
       const current = sessionFor()
-      if (!current || !current.kind) return
-      const surface = pickSurface?.(event?.endPosition ?? event?.position)
+      if (!current || !current.kind || current.kind === 'point' || current.kind === 'note' || current.points.length === 0) return
+      current.lastPickAt = Date.now()
+      const surface = pickSurface?.(position)
       current.cursor = surface ?? current.cursor
       try { viewer.scene.requestRender?.() } catch { /* no render loop to nudge */ }
+    }
+    handler.setInputAction((event) => {
+      const position = event?.endPosition ?? event?.position
+      if (!position) return
+      const current = sessionFor()
+      if (!current || !current.kind || current.kind === 'point' || current.kind === 'note' || current.points.length === 0) return
+      const throttleMs = typeof requestAnimationFrame === 'function' ? MOVE_THROTTLE_MS : 0
+      const elapsed = Date.now() - (current.lastPickAt ?? 0)
+      if (throttleMs === 0 || !current.lastPickAt || elapsed >= throttleMs) {
+        if (current.moveTimer) { clearTimeout(current.moveTimer); current.moveTimer = null }
+        current.pendingMove = null
+        applyMove(position)
+        return
+      }
+      current.pendingMove = position
+      if (!current.moveTimer) {
+        current.moveTimer = setTimeout(() => {
+          current.moveTimer = null
+          const next = current.pendingMove
+          current.pendingMove = null
+          if (next) applyMove(next)
+        }, throttleMs - elapsed)
+      }
     }, events.MOUSE_MOVE)
     handler.setInputAction(() => finish('double'), events.LEFT_DOUBLE_CLICK)
     handler.setInputAction(() => cancel(), events.RIGHT_CLICK)

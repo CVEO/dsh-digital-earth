@@ -203,3 +203,117 @@ test('terrain 批量精密采样：sampleTerrainMostDetailed 生效并在缺失�
   ])
   assert.deepEqual(sampled.warnings, [], 'terrain 正常采样不得附带多余告警')
 })
+
+test('tiles 快速拾取模式（detailed: false）：仅用已加载场景 pickFromRay，不阻塞在 pickFromRayMostDetailed', async () => {
+  const tileset = { name: 'fast-tiles' }
+  const globe = {
+    show: true,
+    terrainProvider: new EllipsoidTerrainProvider(),
+    ellipsoid: {
+      geodeticSurfaceNormalCartographic: () => ({ x: 0, y: 0, z: 1 }),
+      cartesianToCartographic: (p) => ({ longitude: p.lon, latitude: p.lat, height: p.height }),
+    },
+  }
+  const RichCesium = {
+    EllipsoidTerrainProvider,
+    Ray: class { constructor(origin, direction) { this.origin = origin; this.direction = direction } },
+    Cartesian3: class {
+      constructor(x = 0, y = 0, z = 0) { this.x = x; this.y = y; this.z = z }
+      static fromRadians(lon, lat, h) { return { lon, lat, height: h } }
+      static negate(v) { return { x: -v.x, y: -v.y, z: -v.z } }
+    },
+  }
+  let mostDetailedCalls = 0
+  let fastCalls = 0
+  const viewer = {
+    scene: {
+      globe,
+      sampleHeightSupported: true,
+      primitives: { length: 1, get: () => tileset },
+      pickFromRayMostDetailed() {
+        mostDetailedCalls += 1
+        return new Promise(() => {}) // never resolves
+      },
+      pickFromRay(ray) {
+        fastCalls += 1
+        return { object: { primitive: tileset }, position: { lon: ray.origin.lon, lat: ray.origin.lat, height: 33.5 } }
+      },
+    },
+  }
+  const service = createHeightService({ Cesium: RichCesium, viewer, layer: { visible: true, tileset } })
+  const sampled = await service.sampleMany([carto(1, 0), carto(2, 0)], { mode: 'tiles', detailed: false })
+  assert.equal(mostDetailedCalls, 0, 'detailed: false 严禁触发 pickFromRayMostDetailed')
+  assert.equal(fastCalls, 2)
+  assert.deepEqual(sampled.values, [
+    { height: 33.5, source: 'tiles' },
+    { height: 33.5, source: 'tiles' },
+  ])
+})
+
+test('tiles 3DGS 快速短路与超时兜底：3DGS 不调用 pickFromRayMostDetailed，超时时回退 pickFromRay', async () => {
+  const gsTileset = { name: 'splat', isGaussianSplat: true }
+  const meshTileset = { name: 'mesh' }
+  const globe = {
+    show: true,
+    terrainProvider: new EllipsoidTerrainProvider(),
+    ellipsoid: {
+      geodeticSurfaceNormalCartographic: () => ({ x: 0, y: 0, z: 1 }),
+      cartesianToCartographic: (p) => ({ longitude: p.lon, latitude: p.lat, height: p.height }),
+    },
+  }
+  const RichCesium = {
+    EllipsoidTerrainProvider,
+    Ray: class { constructor(origin, direction) { this.origin = origin; this.direction = direction } },
+    Cartesian3: class {
+      constructor(x = 0, y = 0, z = 0) { this.x = x; this.y = y; this.z = z }
+      static fromRadians(lon, lat, h) { return { lon, lat, height: h } }
+      static negate(v) { return { x: -v.x, y: -v.y, z: -v.z } }
+    },
+  }
+  let mostDetailedCalls = 0
+  const viewer = {
+    scene: {
+      globe,
+      sampleHeightSupported: true,
+      primitives: { length: 2, get: (i) => (i === 0 ? gsTileset : meshTileset) },
+      async pickFromRayMostDetailed() {
+        mostDetailedCalls += 1
+        throw new Error('height probe timed out')
+      },
+      pickFromRay(ray) {
+        return { object: { primitive: meshTileset }, position: { lon: ray.origin.lon, lat: ray.origin.lat, height: 18.25 } }
+      },
+    },
+  }
+  const gsService = createHeightService({ Cesium: RichCesium, viewer, layer: { visible: true, kind: '3dgs', tileset: gsTileset } })
+  assert.equal(await gsService.sample(carto(1, 0), { mode: 'tiles' }), null)
+  assert.equal(mostDetailedCalls, 0, '3DGS 不应发起 pickFromRayMostDetailed')
+
+  const meshService = createHeightService({ Cesium: RichCesium, viewer, layer: { visible: true, kind: 'mesh', tileset: meshTileset } })
+  const fallback = await meshService.sample(carto(2, 0), { mode: 'tiles' })
+  assert.equal(mostDetailedCalls, 1)
+  assert.deepEqual(fallback, { height: 18.25, source: 'tiles' }, 'pickFromRayMostDetailed 超时/失败时应回退同步 pickFromRay')
+
+  const liveTileset = { name: 'live-mesh', isCesium3DTileset: true }
+  const liveViewer = {
+    scene: {
+      globe,
+      sampleHeightSupported: true,
+      primitives: { length: 1, get: () => liveTileset },
+      pickFromRayMostDetailed() {
+        mostDetailedCalls += 1
+        return new Promise(() => {})
+      },
+      pickFromRay(ray) {
+        return { object: { primitive: liveTileset }, position: { lon: ray.origin.lon, lat: ray.origin.lat, height: 24.5 } }
+      },
+    },
+  }
+  const liveService = createHeightService({ Cesium: RichCesium, viewer: liveViewer, layer: { visible: true, kind: 'mesh', tileset: liveTileset } })
+  const liveBatch = await liveService.sampleMany([carto(3, 0), carto(4, 0)], { mode: 'tiles' })
+  assert.equal(mostDetailedCalls, 1, '已渲染的 Cesium3DTileset 应直走同步 pickFromRay 而不阻塞在 pickFromRayMostDetailed')
+  assert.deepEqual(liveBatch.values, [
+    { height: 24.5, source: 'tiles' },
+    { height: 24.5, source: 'tiles' },
+  ])
+})

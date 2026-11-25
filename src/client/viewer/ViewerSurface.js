@@ -7,7 +7,7 @@
 import React from 'react'
 import { createAnalysisEngine } from '../analysis/engine.js'
 import { buildAgentOverlayDetails, buildAgentOverlayExtrusions, buildAgentOverlayList, clearAgentOverlays as clearAgentOverlaysInState, flyToAgentOverlay, flyToBbox, flyToOverlayFeature, manualMeasurementRow, overlayRowsWithEntities, removeAgentOverlay, removeAgentOverlayRows } from '../scene/agent-overlays.js'
-import { ACCESS_TIMEOUT_MS, imageryProvider, loadCesium, loadCesiumStyle, loadMeta, loadSources, persistSources, scanLocalDirectory, terrainProvider } from '../api.js'
+import { ACCESS_TIMEOUT_MS, imageryProvider, loadCesium, loadCesiumStyle, loadMeta, loadSources, persistSources, prefetchTerrainProvider, scanLocalDirectory, terrainProvider } from '../api.js'
 import { sampleCursor } from '../cursor.js'
 import { arrayBufferToBase64, b64url, clone, escapeHtml, formatArea, formatDistance, formatHeight, formatValue, geodesicLength, message, planarArea, redactUrl } from '../format.js'
 import { isChinese, t, useTranslation } from '../i18n.js'
@@ -41,6 +41,8 @@ import { createSceneStatus } from '../scene/status.js'
 import { createHostSceneStore } from '../scene/host-scene-store.js'
 import { applyInitialSceneToViewer, initialSceneCoordinator, normalizeInitialScene } from '../scene/initial-scene.js'
 import { applyQuality, normalizeQuality, qualityProfile } from '../scene/quality.js'
+import { buildTilesetLoadOptions } from '../scene/tileset-diagnostics.js'
+import { collectLayerStats, layerRuntime, sourceOfLayer } from '../scene/layer-telemetry.js'
 import { createShaderEngine } from '../scene/shader-engine.js'
 import { useEnvironmentDark } from '../theme.js'
 import { ShaderWorkbench } from '../ui/cards.js'
@@ -65,7 +67,7 @@ import { useWorkbenchWiring } from '../ui/use-workbench.js'
 import { createLocalDirectoryWiring, formatScanFailure } from '../ui/workbench-wiring.js'
 import { MenuItem } from '../ui/menu-item.js'
 import { dataMenuItems } from '../ui/data-menu.js'
-import { readRecentUrls, recentUrlLabel, rememberRecentUrl, writeRecentUrls } from '../ui/recent-urls.js'
+import { readRecentUrls, recentUrlLabel, recordRecentTilesetUrl } from '../ui/recent-urls.js'
 import { hasVectorFile, isVectorDrag, readVectorFiles } from '../scene/vector-file.js'
 import { vectorErrorText } from '../scene/vector-errors.js'
 import { runVectorImport } from '../scene/vector-import-transaction.js'
@@ -143,6 +145,7 @@ const h = React.createElement
       const [defaults, setDefaults] = React.useState(null)
       const [tool, setTool] = React.useState('identify')
       const [fps, setFps] = React.useState(null)
+      const fpsRef = React.useRef(null)
       // True while the panel root is the document's fullscreen element.
       const [fullscreen, setFullscreen] = React.useState(false)
       const [stats, setStats] = React.useState(null)
@@ -160,6 +163,7 @@ const h = React.createElement
       const [openMenu, setOpenMenu] = React.useState(null)
       const [recentDirs, setRecentDirs] = React.useState([])
       const [recentUrls, setRecentUrls] = React.useState(() => readRecentUrls())
+      const recentUrlsRef = React.useRef(recentUrls)
       const [accessRequest, setAccessRequest] = React.useState(null)
       const [accessBusy, setAccessBusy] = React.useState(false)
       const [analysis, setAnalysis] = React.useState(null)
@@ -419,12 +423,11 @@ const h = React.createElement
         const viewer = viewerRef.current
         if (!Cesium || !viewer) throw new Error(t('agent.notReady'))
         const label = name || decodeURIComponent(url.split('/').filter(Boolean).slice(-2).join('/'))
-        // The tier decides the photogrammetry LOD; both the direct and the proxy
-        // path must use the same option, otherwise a proxied load silently
-        // reverts to Cesium's default 16 and looks heavier than the direct one.
-        const tilesetOptions = {
+        // The tier decides the photogrammetry LOD; both direct & proxy use it
+        // (`enableDebugWireframe` is added in tileset-diagnostics for wireframe mode).
+        const tilesetOptions = buildTilesetLoadOptions({
           maximumScreenSpaceError: qualityProfile(sourcesRef.current?.settings?.quality).tilesetMaximumScreenSpaceError,
-        }
+        })
         setBusy(t('toast.loadingData'))
         try {
           let tileset
@@ -450,6 +453,12 @@ const h = React.createElement
             georefIssue,
           }
           layersRef.current.push(layer)
+          const previousUrls = recentUrlsRef.current
+          const nextUrls = recordRecentTilesetUrl(previousUrls, source, { restored: options.fly === false })
+          if (nextUrls !== previousUrls) {
+            recentUrlsRef.current = nextUrls
+            setRecentUrls(nextUrls)
+          }
           syncLayers()
           setScan(null)
           // Classify the content in the background (shader rejection, layer badge,
@@ -498,15 +507,6 @@ const h = React.createElement
         showToast,
         t,
       })
-
-      /** Remember a remote tileset address that has just loaded (page-local only). */
-      function rememberLoadedUrl(value) {
-        setRecentUrls((previous) => {
-          const next = rememberRecentUrl(previous, value)
-          writeRecentUrls(next)
-          return next
-        })
-      }
 
       /** Data-menu entry: reload an address from the recent online-address list. */
       function openRecentUrl(url) {
@@ -701,6 +701,7 @@ const h = React.createElement
         a?.type === b?.type &&
         a?.url === b?.url &&
         (a?.layers ?? '') === (b?.layers ?? '') &&
+        (a?.tilingScheme ?? '') === (b?.tilingScheme ?? '') &&
         temporalSignature(a) === temporalSignature(b)
 
       const saveSources = (draft) => {
@@ -739,12 +740,13 @@ const h = React.createElement
         if (next !== 'profile') profileToolRef.current?.clear()
         if (next !== 'distance' && next !== 'area' && next !== 'height') measurePreviewRef.current?.clear()
         vectorRef.current?.clearSelection()
-        if (next !== 'identify' || measureRef.current.points.length < (measureRef.current.mode === 'area' ? 3 : 2)) clearMeasure()
+        if (next !== 'identify' || measureRef.current.points.length < (measureRef.current.mode === 'area' ? 3 : 2)) clearMeasure({ keepProfile: next === 'profile' })
         setOpenMenu(null)
       }
 
-      function clearMeasure() {
+      function clearMeasure({ keepProfile = false } = {}) {
         measurePreviewRef.current?.clear()
+        if (!keepProfile) profileToolRef.current?.clear()
         const viewer = viewerRef.current
         const state = measureRef.current
         if (viewer) {
@@ -753,6 +755,19 @@ const h = React.createElement
         state.entities = []
         state.points = []
         setMeasureInfo(null)
+        viewer?.scene?.requestRender?.()
+      }
+
+      /** Explicit "清除量测结果" action: clear manual, preview, profile, and Agent measurements. */
+      function clearAllMeasurements() {
+        clearMeasure()
+        if (analysisRef.current?.result?.action === 'profile') clearAnalysis()
+        if (agentOverlayRef.current.measure.length > 0) clearAgentOverlays('measure')
+        if (['distance', 'area', 'height', 'profile'].includes(toolRef.current)) {
+          toolRef.current = 'identify'
+          setTool('identify')
+        }
+        viewerRef.current?.scene?.requestRender?.()
       }
 
       function redrawMeasure(mode) {
@@ -1574,51 +1589,8 @@ const h = React.createElement
         return layer
       }
 
-      function collectStats() {
-        const Cesium = cesiumRef.current
-        const viewer = viewerRef.current
-        if (!Cesium || !viewer) return null
-        const layerRows = layersRef.current.map((layer) => {
-          const statistics = layer.tileset.statistics ?? {}
-          return {
-            id: layer.id,
-            name: layer.name,
-            tiles: statistics.numberOfTilesWithContentReady ?? statistics.numberOfTilesLoaded,
-            pending: statistics.numberOfPendingRequests,
-            triangles: statistics.numberOfTrianglesSelected,
-            memory: layer.tileset.cacheBytes ?? layer.tileset.totalMemoryUsageInBytes,
-          }
-        })
-        const heading = Cesium.Math.toDegrees(viewer.camera.heading ?? 0)
-        const pitch = Cesium.Math.toDegrees(viewer.camera.pitch ?? 0)
-        return {
-          height: formatHeight(viewer.camera.positionCartographic.height),
-          heading: `${heading.toFixed(0)}°`,
-          pitch: `${pitch.toFixed(0)}°`,
-          layers: layerRows,
-        }
-      }
-
-      /** The original source behind a layer, for the Host inspector. */
-      function sourceOfLayer(layer) {
-        if (layer?.source) return layer.source
-        if (typeof layer?.url === 'string' && /^https?:\/\//i.test(layer.url)) {
-          return { kind: 'remote', url: layer.url }
-        }
-        return null
-      }
-
-      /** Runtime counters merged into the Host report when the panel is online. */
-      function layerRuntime(layer) {
-        const statistics = layer?.tileset?.statistics ?? {}
-        const memory = layer?.tileset?.cacheBytes ?? layer?.tileset?.totalMemoryUsageInBytes
-        return {
-          tiles: statistics.numberOfTilesWithContentReady ?? statistics.numberOfTilesLoaded ?? 0,
-          pending: statistics.numberOfPendingRequests ?? 0,
-          triangles: statistics.numberOfTrianglesSelected ?? 0,
-          memory: typeof memory === 'number' ? memory : 0,
-        }
-      }
+      const collectStats = () =>
+        collectLayerStats({ Cesium: cesiumRef.current, viewer: viewerRef.current, layers: layersRef.current, formatHeight })
 
       /** Run the Host data-health inspector for one loaded layer. */
       async function inspectLayer(layerId) {
@@ -1688,11 +1660,7 @@ const h = React.createElement
         setUrlInput('')
         const local = /^[a-zA-Z]:[\\/]/.test(value) || value.startsWith('\\\\')
         const source = local ? { kind: 'local', path: value } : { kind: 'remote', url: value }
-        const added = await addTileset(url, value.split(/[\\/]/).filter(Boolean).slice(-2).join('/'), source)
-        // Parity with remembered local folders: a remote tileset that actually
-        // loaded is offered again next session. Local paths are already
-        // remembered by the Host `/scan` gesture.
-        if (added && !local) rememberLoadedUrl(value)
+        await addTileset(url, value.split(/[\\/]/).filter(Boolean).slice(-2).join('/'), source)
       }
 
       const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
@@ -1713,7 +1681,7 @@ const h = React.createElement
         getRasterFrames: () => rasterFramesRef.current,
         getAgentOverlays: () => agentOverlayRef.current,
         getToolMode: () => toolRef.current,
-        getFps: () => fps,
+        getFps: () => fpsRef.current,
         getBusy: () => busy,
         t,
         redactUrl,
@@ -1915,6 +1883,8 @@ const h = React.createElement
             metaRef.current = meta
             setMeta(meta)
             const [Cesium, catalog] = await Promise.all([loadCesium(), loadSources(meta)])
+            const bootTerrain = catalog.config.terrain?.find((item) => item.id === catalog.config.settings?.terrain) ?? null
+            if (bootTerrain) prefetchTerrainProvider(Cesium, bootTerrain)
             await loadCesiumStyle()
             if (cancelled || !globeRef.current) return
             cesiumRef.current = Cesium
@@ -2229,23 +2199,20 @@ const h = React.createElement
         const timer = setInterval(() => {
           const now = performance.now()
           const elapsed = now - last
-          // No render pass for two seconds (hidden panel, lost context, destroyed
-          // viewer) is IDLE, not 0 fps: the HUD shows a dash instead of a fake 0.
           const idle = lost || document.visibilityState === 'hidden' || now - lastFrameAt > 2000
           if (idle) {
-            frames = 0
-            last = now
-            ema = 0
+            frames = 0; last = now; ema = 0; fpsRef.current = null
             setFps((previous) => (previous === null ? previous : null))
             return
           }
           const instant = elapsed > 0 ? (frames * 1000) / elapsed : 0
-          frames = 0
-          last = now
+          frames = 0; last = now
           ema = ema === 0 ? instant : ema * 0.8 + instant * 0.2
           const value = Math.round(ema)
-          setFps((previous) => (previous === value ? previous : value))
-        }, 500)
+          fpsRef.current = value
+          if (sourcesRef.current?.settings?.showHud === false) return
+          setFps((previous) => (previous !== null && Math.abs(previous - value) < 2 ? previous : value))
+        }, 1000)
         return () => {
           clearInterval(timer)
           scene.postRender.removeEventListener(onFrame)
@@ -2286,6 +2253,7 @@ const h = React.createElement
         // value check that makes an idle scene cost zero React work.
         let lastKey = ''
         const timer = setInterval(() => {
+          if (sourcesRef.current?.settings?.showHud === false) return
           const next = collectStats()
           const key = next === null ? 'null' : JSON.stringify(next)
           if (key === lastKey) return
@@ -2302,11 +2270,12 @@ const h = React.createElement
         const viewer = viewerRef.current
         const Cesium = cesiumRef.current
         if (phase !== 'ready' || !viewer || !Cesium) return
-        viewer.scene.globe.baseColor = Cesium.Color.fromCssColorString(resolvedDark ? '#05080f' : '#dde6f2')
+        const bareLight = !resolvedDark && !activeImageryId
+        viewer.scene.globe.baseColor = Cesium.Color.fromCssColorString(bareLight ? '#dde6f2' : '#05080f')
         viewer.scene.globe.showGroundAtmosphere = resolvedDark
         if (viewer.scene.skyAtmosphere) viewer.scene.skyAtmosphere.show = resolvedDark
         viewer.scene.requestRender?.()
-      }, [phase, resolvedDark])
+      }, [phase, resolvedDark, activeImageryId])
 
       const button = (label, onClick, active, extra, title) =>
         h(
@@ -2330,7 +2299,7 @@ const h = React.createElement
       const menu = (id, label, items, active) =>
         h(
           'div',
-          { key: id, className: 'mv-menu' },
+          { key: id, className: 'mv-menu mv-data-menu' },
           button(`${label} ▾`, () => setOpenMenu(openMenu === id ? null : id), active),
           openMenu === id ? h('div', { className: 'mv-menu-panel mv-glass' }, items) : null,
         )
@@ -2416,7 +2385,7 @@ const h = React.createElement
         h(Compass, { key: 'compass', getViewer: () => viewerRef.current, t }),
         h(
           'div',
-          { key: 'top', className: 'mv-top' },
+          { key: 'top', className: `mv-top${openMenu ? ' menu-open' : ''}` },
           h(
             'div',
             { className: 'mv-brand mv-glass' },
@@ -2503,7 +2472,7 @@ const h = React.createElement
               key: 'urlbar',
               value: urlInput,
               placeholder: t('urlbar.placeholder'),
-              submitLabel: t('urlbar.submit'),
+              submitLabel: t('urlbar.submit'), closeLabel: t('btn.close'),
               onChange: setUrlInput,
               onSubmit: submitUrl,
               onClose: () => setUrlBar(false),
@@ -2649,7 +2618,7 @@ const h = React.createElement
             openRequest: toolRequest,
             onCollapse: () => setShowTools(false),
             onStartTool: (mode) => setToolMode(mode),
-            onClearMeasure: clearMeasure,
+            onClearMeasure: clearAllMeasurements,
             onStartProfile: (options) => profileTool.start(options),
             onStartAnnotation: annotationTool.start,
             onAdoptParse: annotations.adoptCollection,
@@ -2659,6 +2628,10 @@ const h = React.createElement
             getCesium: () => cesiumRef.current,
             getViewer: () => viewerRef.current,
             getLayers: () => layersRef.current,
+            getMeta: () => metaRef.current,
+            layers,
+            swipe,
+            renderSnapshot,
             // Camera bookmarks: panel-managed list, storage in localStorage.
             getCurrentView: () => currentSceneSnapshot()?.view ?? null,
             onFlyView: (view) => flyToBookmark(viewerRef.current, cesiumRef.current, view),
@@ -2749,7 +2722,7 @@ const h = React.createElement
                   className: 'mv-measure-end',
                   title: measureMode ? t('measure.endHint') : t('tool.clear'),
                   'aria-label': measureMode ? t('measure.endHint') : t('tool.clear'),
-                  onClick: () => (measureMode ? finishMeasure() : clearMeasure()),
+                  onClick: () => (measureMode ? finishMeasure() : clearAllMeasurements()),
                 },
                 measureMode ? t('measure.end') : t('tool.clear'),
               ),

@@ -24,6 +24,12 @@
  * to that local time.
  */
 import { analysisObserver, analysisSunAngles } from '../analysis/math.js'
+import {
+  applySunSkyFx,
+  createSunSkyPostProcessStage,
+  restoreAtmosphereFx,
+  snapshotAtmosphereFx,
+} from './sun-sky-fx.js'
 
 /** Brightness factor at deep night. Cesium's brightness stage is
  * `mix(black, color, brightness)` (see vendor/cesium: czm_brightness stage), so
@@ -114,8 +120,11 @@ export function utcOffsetLabelFromMinutes(minutes) {
  * Date is the true UTC instant the slider means.
  */
 export function sunDateAtOffset(day, minutes, offsetMinutes) {
-  const wall = sunLocalDate(day, minutes)
-  const wallUtc = Date.UTC(wall.getFullYear(), wall.getMonth(), wall.getDate(), wall.getHours(), wall.getMinutes(), 0, 0)
+  const raw = Number.isFinite(Number(minutes)) ? Math.max(0, Math.min(1439.98, Number(minutes))) : 0
+  const wholeMinutes = Math.floor(raw)
+  const seconds = Math.min(59, Math.round((raw - wholeMinutes) * 60))
+  const wall = sunLocalDate(day, wholeMinutes)
+  const wallUtc = Date.UTC(wall.getFullYear(), wall.getMonth(), wall.getDate(), wall.getHours(), wall.getMinutes(), seconds, 0)
   const offset = Number.isFinite(Number(offsetMinutes)) ? Math.round(Number(offsetMinutes)) : 0
   return new Date(wallUtc - offset * 60000)
 }
@@ -162,14 +171,17 @@ export function createSunTimeline({ getCesium, getViewer, getLayers }) {
     sunShow: viewer.scene?.sun ? viewer.scene.sun.show : undefined,
     groundAtmosphere: viewer.scene?.globe ? viewer.scene.globe.showGroundAtmosphere : undefined,
     tilesetShadows: (getLayers?.() ?? []).map((layer) => [layer, layer?.tileset?.shadows]),
+    atmosphereFx: snapshotAtmosphereFx(viewer.scene),
     nightStage: null,
   })
 
-  /** Create the whole-scene night filter once; it also lands in captures. */
+  /** Create the whole-scene sky-curtain/night filter once; it also lands in captures. */
   const ensureNightStage = (Cesium, viewer) => {
     if (saved?.nightStage) return saved.nightStage
     try {
-      const stage = Cesium.PostProcessStageLibrary?.createBrightnessStage?.()
+      const stage =
+        createSunSkyPostProcessStage(Cesium, viewer.scene) ??
+        Cesium.PostProcessStageLibrary?.createBrightnessStage?.()
       if (!stage || !viewer.scene?.postProcessStages) return null
       stage.enabled = false
       viewer.scene.postProcessStages.add(stage)
@@ -206,7 +218,7 @@ export function createSunTimeline({ getCesium, getViewer, getLayers }) {
   }
 
   /** Apply one instant. Returns false when the viewer/Cesium is not ready. */
-  function apply(date, { shadows = true } = {}) {
+  function apply(date, { shadows = true, effects = true } = {}) {
     lastError = null
     const Cesium = getCesium?.()
     const viewer = getViewer?.()
@@ -242,12 +254,14 @@ export function createSunTimeline({ getCesium, getViewer, getLayers }) {
       // materials participate in. The stage factor is mix(black, color, b):
       // b=1 means untouched, b=0 would be black, so the floor stays above zero.
       const stage = ensureNightStage(Cesium, viewer)
-      if (stage) {
-        const angles = readout(date)
-        const brightness = nightBrightness(angles?.altitude)
-        if (stage.uniforms) stage.uniforms.brightness = brightness
-        stage.enabled = brightness < 0.999
-      }
+      const angles = readout(date)
+      const brightness = nightBrightness(angles?.altitude)
+      applySunSkyFx(Cesium, scene, stage, {
+        altitude: angles?.altitude,
+        brightness,
+        effects,
+        fxSnapshot: saved.atmosphereFx,
+      })
       scene.requestRender?.()
       return true
     } catch (error) {
@@ -283,6 +297,7 @@ export function createSunTimeline({ getCesium, getViewer, getLayers }) {
       for (const [layer, value] of previous.tilesetShadows) {
         if (layer?.tileset && value !== undefined) layer.tileset.shadows = value
       }
+      restoreAtmosphereFx(getCesium?.(), scene, previous.atmosphereFx)
       if (previous.nightStage && scene.postProcessStages) scene.postProcessStages.remove(previous.nightStage)
       scene.requestRender?.()
     } catch {

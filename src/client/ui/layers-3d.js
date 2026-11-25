@@ -174,7 +174,9 @@ export function Layers3D({
             t,
             layer,
             shader: shaderFor(layer),
-            swipeActive: swipeState?.kind === '3d' && swipeState?.id === layer.id,
+            swipeActive:
+              ((swipeState?.kind === '3d' || swipeState?.kind === 'split') && swipeState?.id === layer.id) ||
+              (swipeState?.kind === 'pair' && (swipeState?.leftId === layer.id || swipeState?.rightId === layer.id)),
             onFlyLayer,
             onToggleLayer,
             onInspectLayer,

@@ -322,6 +322,52 @@ test('createMeasurePreview：未落点或非量测模式不触发 pick；测距/
   height.state.points.push({ lon: 0.03, lat: 0.04, height: 22.5 })
   height.preview.sync('height')
   assert.equal(height.entities.every((e) => e.removed), true, 'clears ephemeral height preview once 2nd point finishes')
+
+  // Re-creating createMeasurePreview on the same viewer (simulating React re-renders)
+  // must share session state so clear() removes entities installed by an earlier render.
+  const sharedEntities = []
+  const sharedViewer = {
+    entities: {
+      add(options) {
+        const entity = { options, removed: false }
+        sharedEntities.push(entity)
+        return entity
+      },
+      remove(entity) {
+        entity.removed = true
+      },
+    },
+    scene: { requestRender() {} },
+  }
+  const sharedCesium = {
+    Color: { fromCssColorString: () => ({ withAlpha: () => ({}) }) },
+    CallbackProperty: class { constructor(fn) { this.fn = fn } getValue() { return this.fn() } },
+    PolygonHierarchy: class { constructor(positions) { this.positions = positions } },
+    PolylineDashMaterialProperty: class { constructor(opts) { this.opts = opts } },
+  }
+  const sharedToolRef = { current: 'area' }
+  const sharedMeasureRef = { current: { points: [{ x: 0, y: 0 }, { x: 10, y: 0 }] } }
+  const makeInstance = () =>
+    createMeasurePreview({
+      getCesium: () => sharedCesium,
+      getViewer: () => sharedViewer,
+      toolRef: sharedToolRef,
+      measureRef: sharedMeasureRef,
+      pickSurface: () => ({ x: 5, y: 8 }),
+      geodesicLength: () => 10,
+      planarArea: () => 40,
+      formatDistance: (v) => `${v} m`,
+      formatArea: (v) => `${v} m²`,
+      t: (k) => k,
+    })
+  const render1 = makeInstance()
+  render1.sync('area')
+  render1.onMove({ x: 40, y: 40 })
+  assert.ok(sharedEntities.length >= 2)
+  assert.equal(sharedEntities.some((e) => !e.removed), true)
+  const render2 = makeInstance()
+  render2.clear()
+  assert.equal(sharedEntities.every((e) => e.removed), true, 'clear() on re-rendered instance must remove all earlier preview entities')
 })
 
 test('canvas-input 与 i18n：MOUSE_MOVE 在未进行框选时转发给量测预览，中英文案成对存在', () => {

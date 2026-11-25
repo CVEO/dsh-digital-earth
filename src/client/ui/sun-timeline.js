@@ -30,6 +30,7 @@ import {
 const h = React.createElement
 
 const ZONE_MODES = ['scene', 'browser', 'utc']
+const PLAYBACK_SPEEDS = [15, 60, 180] // simulated minutes per real second
 
 /** Read one t() key without letting a missing key break the whole card. */
 function translate(t, key, vars) {
@@ -47,9 +48,13 @@ export function SunTimeline({ t, getCesium, getViewer, getLayers, onBeforeEnable
   const [day, setDay] = React.useState(sunTodayInput)
   const [minutes, setMinutes] = React.useState(10 * 60)
   const [shadows, setShadows] = React.useState(true)
+  const [effects, setEffects] = React.useState(true)
+  const [playing, setPlaying] = React.useState(false)
+  const [speed, setSpeed] = React.useState(60)
   const [readout, setReadout] = React.useState(null)
   const [failed, setFailed] = React.useState(null)
   const sunRef = React.useRef(null)
+  const exactMinutesRef = React.useRef(10 * 60)
   // The layer list changes as data loads; keep the latest getter without
   // recreating the scene controller (which would lose its restore snapshot).
   const layersRef = React.useRef(getLayers)
@@ -81,24 +86,27 @@ export function SunTimeline({ t, getCesium, getViewer, getLayers, onBeforeEnable
         : translate(t, 'sun.zone.browserLabel', { zone: browserZone, offset: offsetLabel })
   const dateFor = (dayValue, minuteValue, mode) => sunDateAtOffset(dayValue, minuteValue, offsetFor(mode, dayValue, minuteValue))
 
-  const apply = (nextDay, nextMinutes, nextShadows, mode = zoneMode) => {
-    const ok = sunRef.current.apply(dateFor(nextDay, nextMinutes, mode), { shadows: nextShadows })
+  const apply = (nextDay, nextMinutes, nextShadows, mode = zoneMode, nextEffects = effects) => {
+    const instant = dateFor(nextDay, nextMinutes, mode)
+    const ok = sunRef.current.apply(instant, { shadows: nextShadows, effects: nextEffects })
     if (!ok) {
       setReadout(null)
       setFailed(sunRef.current.getError() || '')
       return false
     }
     setFailed(null)
-    setReadout(sunRef.current.readout(dateFor(nextDay, nextMinutes, mode)))
+    setReadout(sunRef.current.readout(instant))
     return true
   }
 
   const toggle = (next) => {
     if (next) {
       onBeforeEnable?.()
+      exactMinutesRef.current = minutes
       setEnabled(true)
-      apply(day, minutes, shadows)
+      apply(day, minutes, shadows, zoneMode, effects)
     } else {
+      setPlaying(false)
       sunRef.current.restore()
       setEnabled(false)
       setReadout(null)
@@ -108,28 +116,67 @@ export function SunTimeline({ t, getCesium, getViewer, getLayers, onBeforeEnable
 
   const changeDay = (next) => {
     setDay(next)
-    if (enabled) apply(next, minutes, shadows)
+    if (enabled) apply(next, exactMinutesRef.current, shadows, zoneMode, effects)
   }
 
   const changeMinutes = (next) => {
+    exactMinutesRef.current = next
     setMinutes(next)
-    if (enabled) apply(day, next, shadows)
+    if (enabled) apply(day, next, shadows, zoneMode, effects)
   }
 
   const changeShadows = (next) => {
     setShadows(next)
-    if (enabled) apply(day, minutes, next)
+    if (enabled) apply(day, exactMinutesRef.current, next, zoneMode, effects)
+  }
+
+  const changeEffects = (next) => {
+    setEffects(next)
+    if (enabled) apply(day, exactMinutesRef.current, shadows, zoneMode, next)
   }
 
   const changeZone = (next) => {
     if (!ZONE_MODES.includes(next)) return
     setZoneMode(next)
-    if (enabled) apply(day, minutes, shadows, next)
+    if (enabled) apply(day, exactMinutesRef.current, shadows, next, effects)
   }
+
+  // Smooth solar sweep animation while playing.
+  React.useEffect(() => {
+    if (!enabled || !playing || typeof requestAnimationFrame !== 'function') return undefined
+    let frameId = 0
+    let lastTime = performance.now()
+    let lastUiSync = lastTime
+    const tick = (now) => {
+      const dt = Math.min(0.1, Math.max(0, (now - lastTime) / 1000))
+      lastTime = now
+      let nextExact = exactMinutesRef.current + dt * speed
+      if (nextExact >= 1440) nextExact %= 1440
+      exactMinutesRef.current = nextExact
+      const instant = dateFor(day, nextExact, zoneMode)
+      const ok = sunRef.current.apply(instant, { shadows, effects })
+      if (!ok) {
+        setPlaying(false)
+        setReadout(null)
+        setFailed(sunRef.current.getError() || '')
+        return
+      }
+      if (now - lastUiSync >= 80) {
+        lastUiSync = now
+        setMinutes(Math.floor(nextExact))
+        setReadout(sunRef.current.readout(instant))
+      }
+      frameId = requestAnimationFrame(tick)
+    }
+    frameId = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(frameId)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enabled, playing, speed, day, zoneMode, shadows, effects])
 
   // The card lives in the "三维" tab: leaving that tab must restore the scene.
   React.useEffect(() => {
     if (active !== false || !enabled) return
+    setPlaying(false)
     sunRef.current.restore()
     setEnabled(false)
     setReadout(null)
@@ -162,7 +209,7 @@ export function SunTimeline({ t, getCesium, getViewer, getLayers, onBeforeEnable
   }
   notes.push(h('p', { key: 'tz', className: 'mv-sun-note' }, translate(t, 'sun.timezoneHint')))
   if (readout) {
-    notes.push(h('p', { key: 'sky', className: 'mv-sun-note' }, translate(t, 'sun.skyHint')))
+    notes.push(h('p', { key: 'sky', className: 'mv-sun-note' }, translate(t, effects ? 'sun.fxHint' : 'sun.skyHint')))
   }
 
   return h(
@@ -202,6 +249,35 @@ export function SunTimeline({ t, getCesium, getViewer, getLayers, onBeforeEnable
           }),
           h(
             'div',
+            { className: 'mv-sun-playback' },
+            h(
+              'button',
+              {
+                type: 'button',
+                className: `mv-sun-play${playing ? ' on' : ''}`,
+                onClick: () => setPlaying((prev) => !prev),
+              },
+              playing ? `⏸ ${translate(t, 'sun.pause') || 'Pause'}` : `▶ ${translate(t, 'sun.play') || 'Play'}`,
+            ),
+            h(
+              'div',
+              { className: 'mv-sun-speeds' },
+              ...PLAYBACK_SPEEDS.map((value) =>
+                h(
+                  'button',
+                  {
+                    key: value,
+                    type: 'button',
+                    className: `mv-sun-speed${speed === value ? ' on' : ''}`,
+                    onClick: () => setSpeed(value),
+                  },
+                  translate(t, `sun.speed.${value}`) || `${value}m/s`,
+                ),
+              ),
+            ),
+          ),
+          h(
+            'div',
             { className: 'mv-sun-row' },
             h('span', null, t('sun.zone')),
             h(
@@ -218,10 +294,20 @@ export function SunTimeline({ t, getCesium, getViewer, getLayers, onBeforeEnable
             h('span', null, `${t('sun.azimuth')} ${readout ? `${readout.azimuth.toFixed(1)}°` : '—'}`),
           ),
           h(
-            'label',
-            { className: 'mv-sun-check' },
-            h('input', { type: 'checkbox', checked: shadows, onChange: (event) => changeShadows(event.target.checked) }),
-            t('sun.shadows'),
+            'div',
+            { className: 'mv-sun-checks' },
+            h(
+              'label',
+              { className: 'mv-sun-check' },
+              h('input', { type: 'checkbox', checked: shadows, onChange: (event) => changeShadows(event.target.checked) }),
+              t('sun.shadows'),
+            ),
+            h(
+              'label',
+              { className: 'mv-sun-check' },
+              h('input', { type: 'checkbox', checked: effects, onChange: (event) => changeEffects(event.target.checked) }),
+              translate(t, 'sun.effects') || 'Sky & sun FX',
+            ),
           ),
           notes,
         )

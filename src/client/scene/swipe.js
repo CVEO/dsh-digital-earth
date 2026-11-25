@@ -18,6 +18,16 @@ import {
   releaseClipCollection,
   setClipPlane,
 } from './clip-collections.js'
+import {
+  applySplitRatio,
+  createPairSplitState,
+  createSingleSplitState,
+  formatSplitState,
+  restoreSplitSession,
+  shouldStopSplitSession,
+  swapSplitSides,
+} from './compare-session.js'
+import { pauseTileBounds } from './tileset-diagnostics.js'
 
 export const clampSwipeRatio = (value) => {
   const num = Number(value)
@@ -204,7 +214,10 @@ export function createSwipeSession({ getCesium, getViewer, getLayers, getOverlay
           /* ignore */
         }
       }
+    } else if (current.kind === 'split' || current.kind === 'pair') {
+      restoreSplitSession(current, Cesium, viewer)
     }
+    current.resumeBounds?.()
     requestRender()
     return true
   }
@@ -263,6 +276,7 @@ export function createSwipeSession({ getCesium, getViewer, getLayers, getOverlay
       orientation: orient,
       tileset: layer.tileset,
       collection,
+      resumeBounds: pauseTileBounds(layer.tileset),
       removePreRender:
         typeof removePreRender === 'function'
           ? removePreRender
@@ -270,6 +284,82 @@ export function createSwipeSession({ getCesium, getViewer, getLayers, getOverlay
     }
     requestRender()
     return { ok: true, state: getState() }
+  }
+
+  function startSplit(layerId, { ratio = 0.5, side = 'left' } = {}) {
+    const Cesium = getCesium?.()
+    const viewer = getViewer?.()
+    const layers = getLayers?.() ?? []
+    const layer = layers.find((item) => item.id === layerId)
+    if (!viewer?.scene || !layer || layer.visible === false || !layer.tileset) {
+      return { ok: false, reason: 'unavailable' }
+    }
+    stop()
+    const r = clampSwipeRatio(ratio)
+    const created = createSingleSplitState({ Cesium, viewer, layer, ratio: r, side })
+    if (!created.ok) return created
+    active = created.active
+    active.resumeBounds = pauseTileBounds(layer.tileset)
+    requestRender()
+    return { ok: true, state: getState() }
+  }
+
+  function startPair(leftLayerId, rightLayerId, { ratio = 0.5 } = {}) {
+    const Cesium = getCesium?.()
+    const viewer = getViewer?.()
+    const layers = getLayers?.() ?? []
+    const leftLayer = layers.find((item) => item.id === leftLayerId)
+    const rightLayer = layers.find((item) => item.id === rightLayerId)
+    if (!viewer?.scene || !leftLayer || leftLayer.visible === false || !leftLayer.tileset) {
+      return { ok: false, reason: 'unavailable' }
+    }
+    if (!rightLayer || rightLayer.visible === false || !rightLayer.tileset) {
+      return { ok: false, reason: 'unavailable' }
+    }
+    if (leftLayer.id === rightLayer.id || leftLayer.tileset === rightLayer.tileset) {
+      return { ok: false, reason: 'same_layer' }
+    }
+    stop()
+    const r = clampSwipeRatio(ratio)
+    const created = createPairSplitState({ Cesium, viewer, leftLayer, rightLayer, ratio: r })
+    if (!created.ok) return created
+    active = created.active
+    const resumeLeftBounds = pauseTileBounds(leftLayer.tileset)
+    const resumeRightBounds = pauseTileBounds(rightLayer.tileset)
+    active.resumeBounds = () => {
+      resumeLeftBounds()
+      resumeRightBounds()
+    }
+    requestRender()
+    return { ok: true, state: getState() }
+  }
+
+  function swapSides() {
+    if (!active) return { ok: false, reason: 'unavailable' }
+    if (!swapSplitSides(active, getCesium?.())) {
+      return { ok: false, reason: 'unavailable' }
+    }
+    requestRender()
+    return { ok: true, state: getState() }
+  }
+
+  function setRightLayer(rightLayerId) {
+    if (!active || active.kind === 'raster') return { ok: false, reason: 'unavailable' }
+    const ratio = active.ratio
+    const leftId = active.kind === 'pair' ? active.leftId : active.id
+    if (!rightLayerId) {
+      if (active.kind === 'pair') return startSplit(leftId, { ratio, side: 'left' })
+      return { ok: true, state: getState() }
+    }
+    return startPair(leftId, rightLayerId, { ratio })
+  }
+
+  function setLeftLayer(leftLayerId) {
+    if (!active || active.kind === 'raster' || !leftLayerId) return { ok: false, reason: 'unavailable' }
+    const ratio = active.ratio
+    if (active.kind === 'pair') return startPair(leftLayerId, active.rightId, { ratio })
+    if (active.kind === 'split') return startSplit(leftLayerId, { ratio, side: active.side })
+    return start3d(leftLayerId, { ratio, orientation: active.orientation })
   }
 
   function startRaster(overlayId, { ratio = 0.5 } = {}) {
@@ -307,6 +397,8 @@ export function createSwipeSession({ getCesium, getViewer, getLayers, getOverlay
     active.ratio = clampSwipeRatio(nextRatio)
     if (active.kind === '3d') {
       update3dPlane()
+    } else if (active.kind === 'split' || active.kind === 'pair') {
+      applySplitRatio(active, getViewer?.(), active.ratio)
     } else if (active.kind === 'raster') {
       const viewer = getViewer?.()
       if (viewer?.scene) viewer.scene.splitPosition = active.ratio
@@ -317,8 +409,14 @@ export function createSwipeSession({ getCesium, getViewer, getLayers, getOverlay
 
   function setOrientation(nextOrientation) {
     if (!active) return null
-    if (active.kind === 'raster') return getState()
-    active.orientation = nextOrientation === 'horizontal' ? 'horizontal' : 'vertical'
+    if (active.kind === 'raster' || active.kind === 'pair') return getState()
+    const orient = nextOrientation === 'horizontal' ? 'horizontal' : 'vertical'
+    if (active.kind === 'split') {
+      if (orient === 'vertical' || active.layerKind === '3dgs') return getState()
+      const switched = start3d(active.id, { ratio: active.ratio, orientation: 'horizontal' })
+      return switched.ok ? switched.state : getState()
+    }
+    active.orientation = orient
     update3dPlane()
     requestRender()
     return getState()
@@ -336,6 +434,11 @@ export function createSwipeSession({ getCesium, getViewer, getLayers, getOverlay
         stop()
         return true
       }
+    } else if (active.kind === 'split' || active.kind === 'pair') {
+      if (shouldStopSplitSession(active, layers)) {
+        stop()
+        return true
+      }
     } else if (active.kind === 'raster') {
       const found = overlays.find((item) => item.id === active.id)
       if (!found || found.visible === false) {
@@ -348,6 +451,9 @@ export function createSwipeSession({ getCesium, getViewer, getLayers, getOverlay
 
   function getState() {
     if (!active) return null
+    if (active.kind === 'split' || active.kind === 'pair') {
+      return formatSplitState(active)
+    }
     return {
       kind: active.kind,
       id: active.id,
@@ -359,6 +465,11 @@ export function createSwipeSession({ getCesium, getViewer, getLayers, getOverlay
 
   return {
     start3d,
+    startSplit,
+    startPair,
+    swapSides,
+    setLeftLayer,
+    setRightLayer,
     startRaster,
     setRatio,
     setOrientation,

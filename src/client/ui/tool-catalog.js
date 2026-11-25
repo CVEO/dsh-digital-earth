@@ -17,6 +17,7 @@ export const TOOL_ENTRIES = [
   { id: 'annotation', labelKey: 'annotation.tool', hintKey: 'annotation.toolHint', icon: 'annotation' },
   { id: 'parse', labelKey: 'tools.parse', hintKey: 'tools.parseHint', icon: 'parse' },
   { id: 'analysis', labelKey: 'tools.analysis', hintKey: 'tools.analysisHint', icon: 'analysis' },
+  { id: 'compare', labelKey: 'tools.compare', hintKey: 'tools.compareHint', icon: 'compare' },
   { id: 'effects', labelKey: 'tools.effects', hintKey: 'tools.effectsHint', icon: 'effects' },
   { id: 'view', labelKey: 'tools.view', hintKey: 'tools.viewHint', icon: 'view' },
 ]

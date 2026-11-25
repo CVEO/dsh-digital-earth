@@ -13,6 +13,7 @@ import {
   RECENT_URLS_LIMIT,
   readRecentUrls,
   recentUrlLabel,
+  recordRecentTilesetUrl,
   rememberRecentUrl,
   sanitizeRecentUrl,
   writeRecentUrls,
@@ -106,7 +107,22 @@ test('writing stores the sanitised list and never throws on a dead store', () =>
   assert.equal(writeRecentUrls([{ url: 'https://example.com/a' }]), false)
 })
 
-test('the Data menu renders folders and addresses and closes before acting', () => {
+test('loaded remote sources persist and snapshot recovery preserves recent-use order', () => {
+  const storage = fakeStorage()
+  const city = { kind: 'remote', url: 'https://example.com/city/tileset.json?key=foo' }
+  const hills = { kind: 'remote', url: 'https://example.com/hills/tileset.json' }
+  const older = { kind: 'remote', url: 'https://example.com/older/tileset.json' }
+  recordRecentTilesetUrl([], city, { storage })
+  recordRecentTilesetUrl([], hills, { storage })
+  recordRecentTilesetUrl([], city, { restored: true, storage })
+  recordRecentTilesetUrl([], older, { restored: true, storage })
+  assert.deepEqual(readRecentUrls(storage).map(({ url }) => url), [hills.url, city.url, older.url])
+  recordRecentTilesetUrl([], city, { storage })
+  recordRecentTilesetUrl([], { kind: 'local', url: 'http://localhost/files/tileset.json' }, { storage })
+  assert.deepEqual(readRecentUrls(storage).map(({ url }) => url), [city.url, hills.url, older.url])
+})
+
+test('the Data menu shows address actions and history before recent folders and closes before acting', () => {
   const h = (type, props, ...children) => ({ type, props: props ?? {}, children: children.flat() })
   const MenuItem = 'MenuItem'
   const calls = []
@@ -127,7 +143,8 @@ test('the Data menu renders folders and addresses and closes before acting', () 
     onClearTools: () => calls.push('clearTools'),
   })
   const labels = items.filter((item) => item.type === 'span').map((item) => item.children[0])
-  assert.deepEqual(labels, ['menu.recentDirs', 'menu.recentUrls'])
+  assert.deepEqual(labels, ['menu.recentUrls', 'menu.recentDirs'])
+  assert.equal(items[1].children[0], 'btn.openUrl')
   const urlItem = items.find((item) => item.props.title === 'https://example.com/data/tileset.json')
   assert.ok(urlItem, 'the address row keeps the full URL as its tooltip')
   assert.equal(urlItem.children[0].children[0], 'example.com/data')
@@ -143,9 +160,7 @@ test('ViewerSurface remembers only remotely loaded addresses and the catalog has
   const surface = readRepoFile('src/client/viewer/ViewerSurface.js')
   assert.match(surface, /dataMenuItems\(/)
   assert.match(surface, /React\.useState\(\(\) => readRecentUrls\(\)\)/)
-  assert.match(surface, /if \(added && !local\) rememberLoadedUrl\(value\)/)
-  assert.match(surface, /rememberRecentUrl\(previous, value\)/)
-  assert.match(surface, /writeRecentUrls\(next\)/)
+  assert.match(surface, /layersRef\.current\.push\(layer\)[\s\S]*?recordRecentTilesetUrl\(previousUrls, source, \{ restored: options\.fly === false \}\)/)
   assert.match(surface, /function openRecentUrl\(url\)/)
   assert.match(surface, /void addTileset\(url, recentUrlLabel\(url\), \{ kind: 'remote', url \}\)/)
   const menuModule = readRepoFile('src/client/ui/data-menu.js')

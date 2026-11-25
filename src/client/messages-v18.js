@@ -11,6 +11,7 @@ import { SELECTION_MESSAGES } from './messages-selection.js'
 import { PARSE_MESSAGES } from './messages-parse.js'
 import { UI_MESSAGES } from './messages-ui.js'
 import { RASTER_TIME_MESSAGES } from './messages-raster-time.js'
+import { COMPARE_MESSAGES } from './messages-compare.js'
 
 export const V18_MESSAGES = {
   zh: {
@@ -142,6 +143,13 @@ export const V18_MESSAGES = {
     'sun.altitude': '太阳高度',
     'sun.azimuth': '太阳方位',
     'sun.shadows': '阴影',
+    'sun.effects': '天幕与太阳特效',
+    'sun.play': '播放',
+    'sun.pause': '暂停',
+    'sun.speed.15': '15分/秒',
+    'sun.speed.60': '1时/秒',
+    'sun.speed.180': '3时/秒',
+    'sun.fxHint': '启用物理动态天幕渐变、太阳光晕眩光与昼夜星空；平视或微仰视角可直观看到太阳运行。',
     'sun.hint': '开启后可拖动时间查看昼夜与阴影变化（默认按画面经度的地方时）。',
     'sun.localTime': '本地时间',
     'sun.timezone': '{zone} · UTC{offset}',
@@ -191,6 +199,7 @@ export const V18_MESSAGES = {
     ...SELECTION_MESSAGES.zh,
     ...PARSE_MESSAGES.zh,
     ...RASTER_TIME_MESSAGES.zh,
+    ...COMPARE_MESSAGES.zh,
   },
   en: {
     ...VECTOR_MESSAGES.en,
@@ -320,6 +329,13 @@ export const V18_MESSAGES = {
     'sun.altitude': 'Sun altitude',
     'sun.azimuth': 'Sun azimuth',
     'sun.shadows': 'Shadows',
+    'sun.effects': 'Sky & sun FX',
+    'sun.play': 'Play',
+    'sun.pause': 'Pause',
+    'sun.speed.15': '15m/s',
+    'sun.speed.60': '1h/s',
+    'sun.speed.180': '3h/s',
+    'sun.fxHint': 'Enables dynamic sky curtain, solar corona/flare, and twilight stars; tilt toward the horizon to watch the sun sweep.',
     'sun.hint': 'Enable it, then drag the time slider to watch day/night and shadow changes (scene mean solar time by default).',
     'sun.localTime': 'Local time',
     'sun.timezone': '{zone} · UTC{offset}',
@@ -370,5 +386,6 @@ export const V18_MESSAGES = {
     ...PARSE_MESSAGES.en,
     ...UI_MESSAGES.en,
     ...RASTER_TIME_MESSAGES.en,
+    ...COMPARE_MESSAGES.en,
   },
 }

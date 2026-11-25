@@ -66,7 +66,7 @@ export function createProfileEdit({ getCesium, getViewer, getRoot, pickSurface, 
     if (!viewer) return null
     let state = sessions.get(viewer)
     if (!state) {
-      state = { analysis: null, endpoints: null, layer: null, handles: [], handler: null, tick: null, samples: [], handlePositions: [], hover: null, dragging: null, listeners: null, readout: null }
+      state = { analysis: null, endpoints: null, layer: null, handles: [], readoutEl: null, readoutIndex: null, handler: null, tick: null, samples: [], handlePositions: [], hover: null, dragging: null, listeners: null, readout: null }
       sessions.set(viewer, state)
     }
     return state
@@ -81,6 +81,8 @@ export function createProfileEdit({ getCesium, getViewer, getRoot, pickSurface, 
   }
 
   function removeReadout(state) {
+    if (state.readoutEl) state.readoutEl.style.display = 'none'
+    state.readoutIndex = null
     const viewer = getViewer?.()
     if (!viewer || !state.readout) return
     try {
@@ -94,6 +96,8 @@ export function createProfileEdit({ getCesium, getViewer, getRoot, pickSurface, 
   function clearDom(state) {
     for (const handle of state.handles) handle.remove()
     state.handles = []
+    state.readoutEl?.remove?.()
+    state.readoutEl = null
     state.layer?.remove()
     state.layer = null
   }
@@ -187,7 +191,49 @@ export function createProfileEdit({ getCesium, getViewer, getRoot, pickSurface, 
       handle.style.display = ''
       handle.style.transform = `translate(${offset.x + screen.x - HANDLE_SIZE / 2}px, ${offset.y + screen.y - HANDLE_SIZE / 2}px)`
     }
-    if (state.hover !== null) paintReadout(state, state.hover)
+    if (state.hover !== null) {
+      if (state.readoutIndex !== state.hover) paintReadout(state, state.hover)
+      else positionReadoutDom(state, state.hover, offset)
+    }
+  }
+
+  function positionReadoutDom(state, index, cachedOffset = null) {
+    const el = state.readoutEl
+    if (!el) return
+    const scene = getViewer?.()?.scene
+    const cartesian = state.samples[index]
+    if (!scene || !cartesian || typeof scene.cartesianToCanvasCoordinates !== 'function') {
+      el.style.display = 'none'
+      return
+    }
+    const screen = scene.cartesianToCanvasCoordinates(cartesian)
+    if (!screen || !Number.isFinite(screen.x) || !Number.isFinite(screen.y)) {
+      el.style.display = 'none'
+      return
+    }
+    const offset = cachedOffset ?? canvasToRootOffset()
+    const canvasWidth = scene.canvas?.clientWidth || 0
+    const x = offset.x + (canvasWidth > 0 ? Math.max(76, Math.min(canvasWidth - 76, screen.x)) : screen.x)
+    const y = offset.y + screen.y
+    const flipBelow = screen.y < 52
+    el.dataset.placement = flipBelow ? 'bottom' : 'top'
+    el.style.display = 'inline-flex'
+    el.style.transform = flipBelow
+      ? `translate3d(${Math.round(x)}px, ${Math.round(y + 14)}px, 0) translate(-50%, 0)`
+      : `translate3d(${Math.round(x)}px, ${Math.round(y - 14)}px, 0) translate(-50%, -100%)`
+  }
+
+  function updateReadoutDom(state, distanceValue, heightValue) {
+    const el = state.readoutEl
+    if (!el) return
+    const distEl = el.querySelector?.('.mv-pr-dist .mv-pr-val')
+    const elevWrap = el.querySelector?.('.mv-pr-elev')
+    const elevEl = el.querySelector?.('.mv-pr-elev .mv-pr-val')
+    const elevUnit = el.querySelector?.('.mv-pr-elev .mv-pr-unit')
+    if (distEl) distEl.textContent = distanceValue
+    if (elevEl) elevEl.textContent = heightValue ?? '—'
+    if (elevUnit) elevUnit.style.display = heightValue !== null ? '' : 'none'
+    if (elevWrap) elevWrap.classList?.toggle?.('empty', heightValue === null)
   }
 
   function canvasPoint(event) {
@@ -272,8 +318,11 @@ export function createProfileEdit({ getCesium, getViewer, getRoot, pickSurface, 
         if (!scene || typeof scene.cartesianToCanvasCoordinates !== 'function') return
         const screens = state.samples.map((cartesian) => scene.cartesianToCanvasCoordinates(cartesian))
         const index = nearestProfileHit(screens, event?.endPosition)
-        if (index === state.hover) return
-        state.hover = index >= 0 ? index : null
+        const next = index >= 0 ? index : null
+        if (next === state.hover) return
+        state.hover = next
+        if (next === null) removeReadout(state)
+        else paintReadout(state, next)
         if (typeof onHover === 'function') onHover(state.hover)
         requestRender()
       }, moveType)
@@ -289,32 +338,46 @@ export function createProfileEdit({ getCesium, getViewer, getRoot, pickSurface, 
     const point = state.analysis?.result?.points?.[index]
     const cartesian = state.samples[index]
     if (!Cesium || !viewer || !point || !cartesian) return
-    removeReadout(state)
     const distanceNum = Number(point.distance_m)
-    const distance = `${(Number.isFinite(distanceNum) ? distanceNum : 0).toFixed(1)} m`
-    const text =
-      typeof point.height_m === 'number'
-        ? t('profile.hoverReadout', { distance, height: `${point.height_m.toFixed(1)} m` })
-        : t('profile.hoverEmpty', { distance })
-    try {
-      state.readout = viewer.entities.add({
-        id: `${READOUT_ID}-${index}`,
-        position: cartesian,
-        point: { pixelSize: 9, color: Cesium.Color.fromCssColorString('#38bdf8') ?? Cesium.Color.WHITE, disableDepthTestDistance: Number.POSITIVE_INFINITY },
-        label: {
-          text,
-          font: '12px sans-serif',
-          fillColor: Cesium.Color.WHITE,
-          showBackground: true,
-          backgroundColor: (Cesium.Color.fromCssColorString('#0f172a') ?? Cesium.Color.BLACK).withAlpha?.(0.82) ?? Cesium.Color.BLACK,
-          verticalOrigin: Cesium.VerticalOrigin?.BOTTOM ?? 0,
-          pixelOffset: new Cesium.Cartesian2(0, -14),
-          disableDepthTestDistance: Number.POSITIVE_INFINITY,
-        },
-      })
-    } catch {
-      state.readout = null
+    const distNumStr = (Number.isFinite(distanceNum) ? distanceNum : 0).toFixed(1)
+    const distance = `${distNumStr} m`
+    const hasHeight = typeof point.height_m === 'number' && Number.isFinite(point.height_m)
+    const heightNumStr = hasHeight ? point.height_m.toFixed(1) : null
+    const text = hasHeight
+      ? t('profile.hoverReadout', { distance, height: `${heightNumStr} m` })
+      : t('profile.hoverEmpty', { distance })
+    if (state.readoutIndex !== index) {
+      removeReadout(state)
+      state.readoutIndex = index
+      try {
+        state.readout = viewer.entities.add({
+          id: `${READOUT_ID}-${index}`,
+          position: cartesian,
+          point: {
+            pixelSize: 10,
+            color: Cesium.Color.fromCssColorString('#38bdf8') ?? Cesium.Color.WHITE,
+            outlineColor: Cesium.Color.WHITE,
+            outlineWidth: 2.5,
+            disableDepthTestDistance: Number.POSITIVE_INFINITY,
+          },
+          label: {
+            text,
+            show: !state.readoutEl,
+            font: '600 12px "Segoe UI", "PingFang SC", sans-serif',
+            fillColor: Cesium.Color.WHITE,
+            showBackground: true,
+            backgroundColor: (Cesium.Color.fromCssColorString('#0f172a') ?? Cesium.Color.BLACK).withAlpha?.(0.88) ?? Cesium.Color.BLACK,
+            verticalOrigin: Cesium.VerticalOrigin?.BOTTOM ?? 0,
+            pixelOffset: new Cesium.Cartesian2(0, -16),
+            disableDepthTestDistance: Number.POSITIVE_INFINITY,
+          },
+        })
+      } catch {
+        state.readout = null
+      }
     }
+    updateReadoutDom(state, distNumStr, heightNumStr)
+    positionReadoutDom(state, index)
   }
 
   /** Rebuild the affordances for the current analysis (or tear them down). */
@@ -354,6 +417,28 @@ export function createProfileEdit({ getCesium, getViewer, getRoot, pickSurface, 
         layer.appendChild(handle)
         return handle
       })
+      const pill = document.createElement('div')
+      pill.className = 'mv-profile-readout'
+      pill.style.display = 'none'
+      const makeSpan = (cls, text = '') => {
+        const el = document.createElement('span')
+        el.className = cls
+        if (text) el.textContent = text
+        return el
+      }
+      const distWrap = makeSpan('mv-pr-item mv-pr-dist')
+      distWrap.appendChild(makeSpan('mv-pr-val'))
+      distWrap.appendChild(makeSpan('mv-pr-unit', 'm'))
+      const elevWrap = makeSpan('mv-pr-item mv-pr-elev')
+      elevWrap.appendChild(makeSpan('mv-pr-k', '▲'))
+      elevWrap.appendChild(makeSpan('mv-pr-val'))
+      elevWrap.appendChild(makeSpan('mv-pr-unit', 'm'))
+      pill.appendChild(makeSpan('mv-pr-dot'))
+      pill.appendChild(distWrap)
+      pill.appendChild(makeSpan('mv-pr-sep'))
+      pill.appendChild(elevWrap)
+      root.appendChild(pill)
+      state.readoutEl = pill
       installPointer(state)
     }
     installHover(state)

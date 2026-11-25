@@ -53,7 +53,8 @@ export function createAnalysisEngine(deps) {
 
       const analysisAdd = (Cesium, viewer, options) => {
         const state = analysisRef.current
-        const descriptor = { group: 'analysis', kind: t('layers.analysis'), title: t(`analysis.title.${state.operation}`), summary: state.layerName ?? '' }
+        const staticStyle = state.operation === 'profile' || state.operation === 'skyline'
+        const descriptor = { group: 'analysis', kind: t('layers.analysis'), title: t(`analysis.title.${state.operation}`), summary: state.layerName ?? '', ...(staticStyle ? { staticStyle: true } : {}) }
         const values = { ...options, id: `${ANALYSIS_ENTITY_PREFIX}${options.id}` }
         const entity = deps.addEntity ? deps.addEntity(values, descriptor) : viewer.entities.add(values)
         state.entities.push(entity)
@@ -88,20 +89,17 @@ export function createAnalysisEngine(deps) {
         analysisRef.current.restore = null
       }
 
+      const batchEntities = (viewer, fn) => {
+        viewer?.entities?.suspendEvents?.()
+        try { fn() } finally { viewer?.entities?.resumeEvents?.() }
+      }
+
       /** Remove every analysis entity and restore the pre-analysis scene state. */
       function clearAnalysis() {
         const viewer = viewerRef.current
         const state = analysisRef.current
         const cleared = state.operation ? [state.operation] : []
-        if (viewer) {
-          for (const entity of state.entities) {
-            try {
-              viewer.entities.remove(entity)
-            } catch {
-              /* already detached */
-            }
-          }
-        }
+        if (viewer) batchEntities(viewer, () => { for (const entity of state.entities) { try { viewer.entities.remove(entity) } catch {} } })
         state.entities = []
         restoreAnalysisScene()
         state.operation = null
@@ -183,47 +181,34 @@ export function createAnalysisEngine(deps) {
           const carto = geodesic.interpolateUsingFraction(fraction, new Cesium.Cartographic())
           return Cesium.Cartesian3.fromRadians(carto.longitude, carto.latitude, height + PROFILE_SURFACE_OFFSET_M)
         }
-        for (let index = 1; index < points.length; index += 1) {
-          const left = points[index - 1]
-          const right = points[index]
-          if (left.height_m === null || right.height_m === null) continue
-          const ratio = relief > 0 ? ((left.height_m + right.height_m) / 2 - minimum) / relief : 0
-          const color = analysisColorAt(Cesium, ratio)
-          analysisAdd(Cesium, viewer, {
-            id: `profile-line-${index}`,
-            polyline: {
-              positions: [
-                positionAt(entries[index - 1].fraction, left.height_m),
-                positionAt(entries[index].fraction, right.height_m),
-              ],
-              width: 4.5,
-              arcType: Cesium.ArcType.NONE,
-              material: color,
-              depthFailMaterial: color.withAlpha(0.35),
-            },
-          })
-        }
-        const endpointHeight = (point) => (point.height_m === null ? 0 : point.height_m)
-        const endpointText = (point) => (point.height_m === null ? t('hud.empty') : formatHeight(point.height_m))
-        const marker = (id, fraction, point, color) => {
-          analysisAdd(Cesium, viewer, {
-            id,
-            position: positionAt(fraction, endpointHeight(point)),
-            point: {
-              pixelSize: 10,
-              color,
-              disableDepthTestDistance: Number.POSITIVE_INFINITY,
-            },
-            label: analysisLabel(
-              Cesium,
-              id === 'profile-start'
-                ? t('analysis.start', { value: endpointText(point) })
-                : t('analysis.end', { value: endpointText(point) }),
-            ),
-          })
-        }
-        marker('profile-start', 0, points[0], analysisColorAt(Cesium, 0))
-        marker('profile-end', 1, points[points.length - 1], analysisColorAt(Cesium, 1))
+        batchEntities(viewer, () => {
+          for (let index = 1; index < points.length; index += 1) {
+            const left = points[index - 1]
+            const right = points[index]
+            if (left.height_m === null || right.height_m === null) continue
+            const ratio = relief > 0 ? ((left.height_m + right.height_m) / 2 - minimum) / relief : 0
+            const color = analysisColorAt(Cesium, ratio)
+            analysisAdd(Cesium, viewer, {
+              id: `profile-line-${index}`,
+              polyline: {
+                positions: [positionAt(entries[index - 1].fraction, left.height_m), positionAt(entries[index].fraction, right.height_m)],
+                width: 4.5, arcType: Cesium.ArcType.NONE, material: color, depthFailMaterial: color.withAlpha(0.35),
+              },
+            })
+          }
+          const endpointHeight = (point) => (point.height_m === null ? 0 : point.height_m)
+          const endpointText = (point) => (point.height_m === null ? t('hud.empty') : formatHeight(point.height_m))
+          const marker = (id, fraction, point, color) => {
+            analysisAdd(Cesium, viewer, {
+              id,
+              position: positionAt(fraction, endpointHeight(point)),
+              point: { pixelSize: 10, color, disableDepthTestDistance: Number.POSITIVE_INFINITY },
+              label: analysisLabel(Cesium, id === 'profile-start' ? t('analysis.start', { value: endpointText(point) }) : t('analysis.end', { value: endpointText(point) })),
+            })
+          }
+          marker('profile-start', 0, points[0], analysisColorAt(Cesium, 0))
+          marker('profile-end', 1, points[points.length - 1], analysisColorAt(Cesium, 1))
+        })
         const result = {
           operation: 'profile',
           layer: layer ? layer.name : null,
@@ -319,44 +304,29 @@ export function createAnalysisEngine(deps) {
           return Cesium.Cartesian3.fromRadians(carto.longitude, carto.latitude, height + 2)
         }
         const fractionAt = (point) => (length > 0 ? point.distance_m / length : 0)
-        for (let index = 1; index < points.length; index += 1) {
-          const ratio = points.length > 1 ? index / (points.length - 1) : 0
+        batchEntities(viewer, () => {
+          for (let index = 1; index < points.length; index += 1) {
+            const ratio = points.length > 1 ? index / (points.length - 1) : 0
+            analysisAdd(Cesium, viewer, {
+              id: `skyline-line-${index}`,
+              polyline: {
+                positions: [positionAt(fractionAt(points[index - 1]), points[index - 1].height_m), positionAt(fractionAt(points[index]), points[index].height_m)],
+                width: 3, arcType: Cesium.ArcType.NONE, material: analysisColorAt(Cesium, ratio), depthFailMaterial: analysisColorAt(Cesium, ratio).withAlpha(0.35),
+              },
+            })
+          }
           analysisAdd(Cesium, viewer, {
-            id: `skyline-line-${index}`,
-            polyline: {
-              positions: [
-                positionAt(fractionAt(points[index - 1]), points[index - 1].height_m),
-                positionAt(fractionAt(points[index]), points[index].height_m),
-              ],
-              width: 3,
-              arcType: Cesium.ArcType.NONE,
-              material: analysisColorAt(Cesium, ratio),
-              depthFailMaterial: analysisColorAt(Cesium, ratio).withAlpha(0.35),
-            },
+            id: 'skyline-max',
+            position: positionAt(fractionAt(maxPoint), maxPoint.height_m),
+            point: { pixelSize: 10, color: Cesium.Color.fromCssColorString('#ddbb83'), disableDepthTestDistance: Number.POSITIVE_INFINITY },
+            label: analysisLabel(Cesium, t('analysis.skylineMax', { value: formatHeight(maxPoint.height_m), angle: `${maxPoint.angle_deg.toFixed(2)}°` })),
           })
-        }
-        analysisAdd(Cesium, viewer, {
-          id: 'skyline-max',
-          position: positionAt(fractionAt(maxPoint), maxPoint.height_m),
-          point: {
-            pixelSize: 10,
-            color: Cesium.Color.fromCssColorString('#ddbb83'),
-            disableDepthTestDistance: Number.POSITIVE_INFINITY,
-          },
-          label: analysisLabel(
-            Cesium,
-            t('analysis.skylineMax', { value: formatHeight(maxPoint.height_m), angle: `${maxPoint.angle_deg.toFixed(2)}°` }),
-          ),
-        })
-        analysisAdd(Cesium, viewer, {
-          id: 'skyline-eye',
-          position: positionAt(0, eyeHeight),
-          point: {
-            pixelSize: 8,
-            color: Cesium.Color.fromCssColorString('#79b6e8'),
-            disableDepthTestDistance: Number.POSITIVE_INFINITY,
-          },
-          label: analysisLabel(Cesium, t('analysis.skylineEyeValue', { value: formatHeight(eyeHeight) })),
+          analysisAdd(Cesium, viewer, {
+            id: 'skyline-eye',
+            position: positionAt(0, eyeHeight),
+            point: { pixelSize: 8, color: Cesium.Color.fromCssColorString('#79b6e8'), disableDepthTestDistance: Number.POSITIVE_INFINITY },
+            label: analysisLabel(Cesium, t('analysis.skylineEyeValue', { value: formatHeight(eyeHeight) })),
+          })
         })
         const result = {
           operation: 'skyline',

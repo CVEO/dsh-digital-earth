@@ -93,3 +93,14 @@ export function writeRecentUrls(list, storage) {
     return false
   }
 }
+
+export function recordRecentTilesetUrl(list, source, { restored = false, storage } = {}) {
+  const url = source?.kind === 'remote' ? sanitizeRecentUrl(source.url) : null
+  if (url === null) return list
+  const previous = sanitizeRecentUrls([...readRecentUrls(storage), ...list])
+  const next = restored
+    ? sanitizeRecentUrls([...previous, { url, at: '' }])
+    : rememberRecentUrl(previous, url)
+  writeRecentUrls(next, storage)
+  return next
+}

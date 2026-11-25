@@ -318,6 +318,9 @@ test('sources catalog 精简至 3 项内置底图并兼容清理旧版空白 Esr
   const fresh = normalizeConfig({})
   assert.deepEqual(fresh.imagery.map((s) => s.id), ['esri-world-imagery', 'esri-world-topo', 'esri-world-street'])
   assert.equal(fresh.settings.imagery, 'esri-world-imagery')
+  assert.equal(fresh.imagery[0].url, 'https://wi.maptiles.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}')
+  assert.equal(fresh.imagery[0].tilingScheme, 'geographic')
+  assert.equal(fresh.imagery[0].maximumLevel, 19)
 
   // 旧版 7 项默认列表在升级后会自动移除未改 URL 的 4 项空白/山影底图。
   const upgraded = normalizeConfig({
@@ -334,6 +337,21 @@ test('sources catalog 精简至 3 项内置底图并兼容清理旧版空白 Esr
     settings: { imagery: 'esri-world-imagery' },
   })
   assert.deepEqual(upgraded.imagery.map((s) => s.id), ['esri-world-imagery', 'esri-world-topo', 'esri-world-street', 'custom-wmts'])
+  assert.equal(upgraded.imagery[0].url, fresh.imagery[0].url)
+  assert.equal(upgraded.imagery[0].tilingScheme, 'geographic')
+  assert.equal(upgraded.settings.imagery, 'esri-world-imagery')
+
+  // 已落盘但漏配 tilingScheme 的 wi.maptiles.arcgis.com 配置也会自动补全 geographic（EPSG:4326）。
+  const missingScheme = normalizeConfig({
+    imagery: [
+      { id: 'esri-world-imagery', name: 'Esri World Imagery', type: 'xyz', url: fresh.imagery[0].url, maximumLevel: 19 },
+    ],
+  })
+  assert.equal(missingScheme.imagery[0].tilingScheme, 'geographic')
+
+  const customUrl = 'https://example.com/{z}/{y}/{x}.jpg'
+  const custom = normalizeConfig({ imagery: [{ ...fresh.imagery[0], url: customUrl }] })
+  assert.equal(custom.imagery[0].url, customUrl)
 
   // 若旧会话当前正激活着某个已淘汰预设，或用户自定义了 URL，必须保留不破坏兼容性。
   const activeLegacy = normalizeConfig({

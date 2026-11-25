@@ -29,19 +29,10 @@ export function dataMenuItems({
     if (typeof closeMenu === 'function') closeMenu()
     action()
   }
-  const items = [h(MenuItem, { key: 'local', onClick: run(onOpenLocal) }, t('btn.openLocal'))]
-  if (Array.isArray(recentDirs) && recentDirs.length > 0) {
-    items.push(h('span', { key: 'recent-dirs-label', className: 'mv-menu-label' }, t('menu.recentDirs')))
-    for (const entry of recentDirs) {
-      items.push(
-        h(
-          MenuItem,
-          { key: `dir:${entry.dir}`, title: entry.dir, onClick: run(() => onOpenRecentDirectory(entry.dir)) },
-          h('span', { className: 'ellipsis' }, entry.name),
-        ),
-      )
-    }
-  }
+  const items = [
+    h(MenuItem, { key: 'local', onClick: run(onOpenLocal) }, t('btn.openLocal')),
+    h(MenuItem, { key: 'url', onClick: run(onToggleUrlBar) }, t('btn.openUrl')),
+  ]
   if (Array.isArray(recentUrls) && recentUrls.length > 0) {
     items.push(h('span', { key: 'recent-urls-label', className: 'mv-menu-label' }, t('menu.recentUrls')))
     for (const entry of recentUrls) {
@@ -54,10 +45,21 @@ export function dataMenuItems({
       )
     }
   }
+  if (Array.isArray(recentDirs) && recentDirs.length > 0) {
+    items.push(h('span', { key: 'recent-dirs-label', className: 'mv-menu-label' }, t('menu.recentDirs')))
+    for (const entry of recentDirs) {
+      items.push(
+        h(
+          MenuItem,
+          { key: `dir:${entry.dir}`, title: entry.dir, onClick: run(() => onOpenRecentDirectory(entry.dir)) },
+          h('span', { className: 'ellipsis' }, entry.name),
+        ),
+      )
+    }
+  }
   if (agentOverlayCount > 0) {
     items.push(h(MenuItem, { key: 'clearAgent', onClick: run(onClearAgent) }, t('menu.clearAgent')))
   }
-  items.push(h(MenuItem, { key: 'url', onClick: run(onToggleUrlBar) }, t('btn.openUrl')))
   items.push(h(MenuItem, { key: 'report', onClick: run(onReport) }, t('menu.report')))
   items.push(h('i', { key: 'sep', className: 'mv-sep', style: MENU_SEP }))
   items.push(h(MenuItem, { key: 'clear', onClick: run(onClearTools) }, t('tool.clear')))

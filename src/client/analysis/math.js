@@ -108,10 +108,12 @@ const sampleProfileEntries = async ({
     height: initialBatch.values[index] ? initialBatch.values[index].height : null,
   }))
   if (entries.some((entry) => entry.height !== null)) {
-    for (let round = 0; round < rounds; round += 1) {
+    const effectiveRounds = heightMode === 'terrain' ? Math.min(rounds, 1) : rounds
+    const refineOpts = heightMode === 'terrain' ? { minJumpM: 4, minStepM: 5 } : undefined
+    for (let round = 0; round < effectiveRounds; round += 1) {
       const remaining = maxPoints - entries.length
       if (remaining <= 0) break
-      const extraFractions = collectProfileRefinementFractions(entries, length, remaining)
+      const extraFractions = collectProfileRefinementFractions(entries, length, remaining, refineOpts)
       if (extraFractions.length === 0) break
       const extraProbes = extraFractions.map((fraction) =>
         geodesic.interpolateUsingFraction(fraction, new Cesium.Cartographic()),

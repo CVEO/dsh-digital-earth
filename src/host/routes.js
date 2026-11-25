@@ -296,12 +296,17 @@ export function streamRemoteBody(source, req, res, options = {}) {
 }
 
 /**
- * Install every HTTP route. The host web server has no auth or origin policy of
- * its own, so each route asks the DSH Connection service to reject foreign or
- * unauthenticated requests, and fails closed whenever that answer is doubtful.
+ * Install every HTTP route.
+ *
+ * DSH 0.2.2-rc.2+ enforces `auth: 'required'` inside WebServer via
+ * `webserver/authorize` and passes the admitted `peer` as the third handler
+ * argument; `connection.admit(request)` exposes the same Host/Origin +
+ * credential decision for direct invocations and DSH 0.2.1+. Older hosts/mocks
+ * that only provide `connection.requestRejection(req)` remain supported, and
+ * anything doubtful fails closed.
  */
 export function registerRoutes(ctx, { allowedDirs, bridge, directories, getService }) {
-  const rejection = (req) => {
+  const rejection = (req, peer) => {
     const headers = req.headers ?? {}
     const site = headers['sec-fetch-site']
     if (site === 'cross-site') return 403
@@ -313,12 +318,44 @@ export function registerRoutes(ctx, { allowedDirs, bridge, directories, getServi
         return 403
       }
     }
+    // DSH 0.2.2-rc.2+: WebServer already ran `webserver/authorize` for
+    // `auth: 'required'` and handed us the admitted Peer.
+    if (peer && typeof peer === 'object') {
+      return peer.signal?.aborted ? 401 : undefined
+    }
     let connection
     try {
       connection = ctx.get('connection') ?? ctx.connection
     } catch {
       connection = null
     }
+    // DSH 0.2.1+: `connection.admit(request)` applies the host's source policy
+    // (including Desktop proxy requests that strip Sec-Fetch-Site/Origin) and
+    // credential verification, returning `{ peer }` or `{ rejection }`.
+    if (connection && typeof connection.admit === 'function') {
+      try {
+        const admission = connection.admit({
+          headers,
+          method: req.method,
+          url: req.url,
+          socket: req.socket,
+          signal: req.signal,
+        })
+        if (admission && typeof admission === 'object') {
+          if ('rejection' in admission) {
+            const code = admission.rejection
+            return code === undefined || code === null || code === false ? undefined : typeof code === 'number' ? code : 403
+          }
+          if ('peer' in admission && admission.peer && typeof admission.peer === 'object') {
+            return admission.peer.signal?.aborted ? 401 : undefined
+          }
+        }
+        return 403
+      } catch {
+        return 403
+      }
+    }
+    // Legacy hosts or test doubles exposing only `requestRejection(req)`.
     if (connection && typeof connection.requestRejection === 'function') {
       try {
         const code = connection.requestRejection(req)
@@ -327,7 +364,7 @@ export function registerRoutes(ctx, { allowedDirs, bridge, directories, getServi
         return 403
       }
     }
-    // Older hosts without that fence: only this page's own requests may pass.
+    // Older hosts without a connection fence: only this page's own requests may pass.
     return site === 'same-origin' || site === 'none' ? undefined : 403
   }
 
@@ -335,9 +372,10 @@ export function registerRoutes(ctx, { allowedDirs, bridge, directories, getServi
     ctx.webServer.register({
       kind,
       path,
-      handler(req, res) {
-        const code = rejection(req)
-        if (code) return sendText(res, code, 'forbidden')
+      auth: 'required',
+      handler(req, res, peer) {
+        const code = rejection(req, peer)
+        if (code) return sendText(res, code, code === 401 ? 'unauthorized' : code === 503 ? 'authentication unavailable' : 'forbidden')
         return handler(req, res)
       },
     })

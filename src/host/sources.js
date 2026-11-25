@@ -18,6 +18,9 @@ const QUALITY_MODES = new Set(['balanced', 'high'])
 
 /** Maximum number of L3 raster overlays the catalog accepts (each is a GPU layer). */
 const MAX_RASTER_OVERLAYS = 8
+const WORLD_IMAGERY_ID = 'esri-world-imagery'
+const WORLD_IMAGERY_URL = 'https://wi.maptiles.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+const LEGACY_WORLD_IMAGERY_URL = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
 
 /**
  * Built-in catalogs, used for a first run and for the "restore defaults"
@@ -27,10 +30,13 @@ const MAX_RASTER_OVERLAYS = 8
 const DEFAULT_SOURCES = {
   imagery: [
     {
-      id: 'esri-world-imagery',
+      id: WORLD_IMAGERY_ID,
       name: 'Esri World Imagery',
       type: 'xyz',
-      url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+      url: WORLD_IMAGERY_URL,
+      // wi.maptiles.arcgis.com serves WGS84 (EPSG:4326, 2x1 level-0 grid), not
+      // Web Mercator; omitting this causes Cesium to request ocean tiles.
+      tilingScheme: 'geographic',
       maximumLevel: 19,
       credit: 'Esri, Maxar, Earthstar Geographics, and the GIS User Community',
     },
@@ -64,7 +70,7 @@ const DEFAULT_SOURCES = {
   rasterOverlays: [],
   settings: {
     theme: 'auto',
-    imagery: 'esri-world-imagery',
+    imagery: WORLD_IMAGERY_ID,
     terrain: null,
     screenshotHud: false,
     showLayers: true,
@@ -200,6 +206,18 @@ function pruneRetiredStockImagery(list, activeId) {
   })
 }
 
+function migrateStockImagery(source) {
+  if (source.id !== WORLD_IMAGERY_ID || source.type !== 'xyz') return source
+  const normalized = normalizeImageryUrl(source.url)
+  if (
+    normalized === normalizeImageryUrl(LEGACY_WORLD_IMAGERY_URL) ||
+    normalized === normalizeImageryUrl(WORLD_IMAGERY_URL)
+  ) {
+    return { ...source, url: WORLD_IMAGERY_URL, tilingScheme: 'geographic' }
+  }
+  return source
+}
+
 /** Turn arbitrary request JSON into the catalog persisted on disk. */
 export function normalizeConfig(raw) {
   const input = raw !== null && typeof raw === 'object' ? raw : {}
@@ -218,7 +236,7 @@ export function normalizeConfig(raw) {
   const hudDetailed = input.settings?.hudDetailed === true
   const imagery = withBuiltins(
     pruneRetiredStockImagery(
-      normalizeSourceList('imagery', input.imagery, DEFAULT_SOURCES.imagery),
+      normalizeSourceList('imagery', input.imagery, DEFAULT_SOURCES.imagery).map(migrateStockImagery),
       input.settings?.imagery,
     ),
     DEFAULT_SOURCES.imagery,

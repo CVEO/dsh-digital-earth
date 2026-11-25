@@ -1,10 +1,12 @@
 /**
- * ui/swipe-bar.js — interactive split-screen swipe overlay & React hook (Requirement B).
+ * ui/swipe-bar.js — interactive split-screen swipe overlay & React hook.
  *
  * Renders a non-blocking split line (`.mv-swipe` has `pointer-events: none`;
  * only the handle and floating pill capture pointer events) so the user can
- * rotate, pan, and zoom the globe freely while comparing "with layer" vs.
- * "without layer".
+ * rotate, pan, and zoom the globe freely while comparing:
+ *   - single-layer split ("with layer" vs. "without layer") for Mesh, 3DGS, or 2D raster;
+ *   - dual-layer split (Left layer A vs. Right layer B) for 3DGS <-> Mesh,
+ *     3DGS <-> 3DGS, or Mesh <-> Mesh via native Cesium `SplitDirection`.
  */
 import React from 'react'
 import { clampSwipeRatio, createSwipeSession } from '../scene/swipe.js'
@@ -20,6 +22,18 @@ export function engineLayersOf(deps) {
   const full = deps?.getLayers?.()
   if (Array.isArray(full)) return full
   return Array.isArray(deps?.layers) ? deps.layers : []
+}
+
+function toastForReason(api, reason) {
+  const msgKey =
+    reason === 'unsupported_3dgs'
+      ? 'swipe.unsupported3dgs'
+      : reason === 'conflict'
+        ? 'swipe.conflict'
+        : reason === 'same_layer'
+          ? 'compare.sameLayer'
+          : 'swipe.unavailable'
+  api.showToast?.(api.t?.(msgKey) ?? msgKey)
 }
 
 export function useSwipe({ t, showToast, layers, overlays, getCesium, getViewer, getOverlayLayers, getLayers }) {
@@ -44,61 +58,77 @@ export function useSwipe({ t, showToast, layers, overlays, getCesium, getViewer,
     setState(null)
   }, [])
 
-  const toggle3d = React.useCallback((layerId) => {
-    const current = sessionRef.current?.getState()
-    if (current && current.kind === '3d' && current.id === layerId) {
-      stop()
-      return false
+  const runAction = React.useCallback((fn, { silent = false } = {}) => {
+    let res
+    try {
+      res = fn(sessionRef.current)
+    } catch {
+      res = { ok: false, reason: 'unavailable' }
     }
-    const res = (() => {
-      try {
-        return sessionRef.current.start3d(layerId)
-      } catch {
-        // Never let an engine exception look like "the button does nothing".
-        return { ok: false, reason: 'unavailable' }
-      }
-    })()
-    if (!res.ok) {
-      const api = depsRef.current
-      const msgKey =
-        res.reason === 'unsupported_3dgs'
-          ? 'swipe.unsupported3dgs'
-          : res.reason === 'conflict'
-            ? 'swipe.conflict'
-            : 'swipe.unavailable'
-      api.showToast?.(api.t?.(msgKey) ?? msgKey)
-      return false
+    if (!res?.ok) {
+      if (!silent) toastForReason(depsRef.current, res?.reason)
+      return res ?? { ok: false, reason: 'unavailable' }
     }
     setState(res.state)
-    return true
-  }, [stop])
+    return res
+  }, [])
 
-  const toggleRaster = React.useCallback((overlayId) => {
-    const current = sessionRef.current?.getState()
-    if (current && current.kind === 'raster' && current.id === overlayId) {
-      stop()
-      return false
-    }
-    const res = (() => {
-      try {
-        return sessionRef.current.startRaster(overlayId)
-      } catch {
-        return { ok: false, reason: 'unavailable' }
+  const startSplit = React.useCallback(
+    (layerId, options) => runAction((session) => session.startSplit(layerId, options)),
+    [runAction],
+  )
+
+  const startPair = React.useCallback(
+    (leftLayerId, rightLayerId, options) => runAction((session) => session.startPair(leftLayerId, rightLayerId, options)),
+    [runAction],
+  )
+
+  const swapSides = React.useCallback(() => runAction((session) => session.swapSides(), { silent: true }), [runAction])
+
+  const setLeftLayer = React.useCallback(
+    (leftLayerId) => runAction((session) => session.setLeftLayer(leftLayerId)),
+    [runAction],
+  )
+
+  const setRightLayer = React.useCallback(
+    (rightLayerId) => runAction((session) => session.setRightLayer(rightLayerId)),
+    [runAction],
+  )
+
+  const setRatio = React.useCallback((nextRatio) => {
+    const next = sessionRef.current?.setRatio(clampSwipeRatio(nextRatio))
+    if (next) setState(next)
+    return next
+  }, [])
+
+  const toggle3d = React.useCallback(
+    (layerId) => {
+      const current = sessionRef.current?.getState()
+      if (current && (current.kind === '3d' || current.kind === 'split') && current.id === layerId) {
+        stop()
+        return false
       }
-    })()
-    if (!res.ok) {
-      const api = depsRef.current
-      api.showToast?.(api.t?.('swipe.unavailable') ?? 'swipe.unavailable')
-      return false
-    }
-    setState(res.state)
-    return true
-  }, [stop])
+      const res = startSplit(layerId)
+      return Boolean(res?.ok)
+    },
+    [stop, startSplit],
+  )
+
+  const toggleRaster = React.useCallback(
+    (overlayId) => {
+      const current = sessionRef.current?.getState()
+      if (current && current.kind === 'raster' && current.id === overlayId) {
+        stop()
+        return false
+      }
+      const res = runAction((session) => session.startRaster(overlayId))
+      return Boolean(res?.ok)
+    },
+    [stop, runAction],
+  )
 
   React.useEffect(() => {
     if (!state) return
-    // Reconcile with the runtime layers when the caller exposes them; the UI
-    // projection is enough for the fallback path either way.
     if (sessionRef.current?.reconcile({ layers: engineLayersOf(depsRef.current), overlays: overlays ?? [] })) {
       setState(null)
     }
@@ -129,8 +159,7 @@ export function useSwipe({ t, showToast, layers, overlays, getCesium, getViewer,
       current.orientation === 'horizontal'
         ? (clientY - box.top) / Math.max(1, box.height)
         : (clientX - box.left) / Math.max(1, box.width)
-    const next = sessionRef.current.setRatio(clampSwipeRatio(raw))
-    if (next) setState(next)
+    setRatio(raw)
   }
 
   const onHandlePointerDown = (event) => {
@@ -164,19 +193,51 @@ export function useSwipe({ t, showToast, layers, overlays, getCesium, getViewer,
     if (delta === 0) return
     event.preventDefault()
     event.stopPropagation()
-    const next = sessionRef.current.setRatio(current.ratio + delta)
-    if (next) setState(next)
+    setRatio(current.ratio + delta)
   }
 
   const toggleOrientation = () => {
     const current = sessionRef.current?.getState()
-    if (!current || current.kind === 'raster') return
+    if (!current || current.kind === 'raster' || current.kind === 'pair') return
+    if (current.kind === 'split' && current.layerKind === '3dgs') return
     const next = sessionRef.current.setOrientation(current.orientation === 'horizontal' ? 'vertical' : 'horizontal')
     if (next) setState(next)
   }
 
+  const visible3d = (Array.isArray(layers) ? layers : []).filter((item) => item.visible !== false)
+  const isPair = state?.kind === 'pair'
+  const isSplit = state?.kind === 'split'
+  const is3dLike = state && state.kind !== 'raster'
   const horiz = state?.orientation === 'horizontal'
   const pct = state ? `${(state.ratio * 100).toFixed(1)}%` : '50%'
+  const pctInt = state ? `${Math.round(state.ratio * 100)}%` : '50%'
+
+  const leftBadgeText = !state
+    ? ''
+    : isPair
+      ? t('swipe.leftLabel', { name: state.leftName })
+      : isSplit && state.side === 'right'
+        ? t('swipe.withoutLayer', { name: state.name })
+        : t('swipe.withLayer', { name: state.name })
+  const rightBadgeText = !state
+    ? ''
+    : isPair
+      ? t('swipe.rightLabel', { name: state.rightName })
+      : isSplit && state.side === 'right'
+        ? t('swipe.withLayer', { name: state.name })
+        : t('swipe.withoutLayer', { name: state.name })
+
+  const activeLeftId = isPair ? state.leftId : state?.id ?? ''
+  const rightCandidates = is3dLike ? visible3d.filter((item) => item.id !== activeLeftId) : []
+  const axisDisabled =
+    !state || state.kind === 'raster' || isPair || (isSplit && state.layerKind === '3dgs')
+  const axisTitle =
+    state?.kind === 'raster'
+      ? t('swipe.rasterVerticalOnly')
+      : isPair || (isSplit && state?.layerKind === '3dgs')
+        ? t('swipe.horizontalUnsupported3dgs')
+        : t('swipe.switchAxis')
+
   const element = state
     ? h(
         'div',
@@ -192,7 +253,7 @@ export function useSwipe({ t, showToast, layers, overlays, getCesium, getViewer,
             className: 'mv-swipe-line',
             style: horiz ? { top: pct } : { left: pct },
           },
-          h('span', { className: 'mv-swipe-badge with' }, t('swipe.withLayer', { name: state.name })),
+          h('span', { className: 'mv-swipe-badge with' }, leftBadgeText),
           h(
             'div',
             {
@@ -212,23 +273,57 @@ export function useSwipe({ t, showToast, layers, overlays, getCesium, getViewer,
             },
             horiz ? '═' : '║',
           ),
-          h('span', { className: 'mv-swipe-badge without' }, t('swipe.withoutLayer', { name: state.name })),
+          h('span', { className: 'mv-swipe-badge without' }, rightBadgeText),
         ),
         h(
           'div',
           { className: 'mv-swipe-bar mv-glass' },
-          h('span', { className: 'mv-swipe-title' }, `${t('swipe.title')} · ${state.name}`),
           h(
-            'button',
-            {
-              type: 'button',
-              className: 'mv-cta',
-              disabled: state.kind === 'raster',
-              title: state.kind === 'raster' ? t('swipe.rasterVerticalOnly') : t('swipe.switchAxis'),
-              onClick: toggleOrientation,
-            },
-            horiz ? t('swipe.vertical') : t('swipe.horizontal'),
+            'span',
+            { className: 'mv-swipe-title' },
+            isPair ? `${state.leftName} ↔ ${state.rightName}` : `${t('swipe.title')} · ${state.name}`,
           ),
+          h('span', { className: 'mv-swipe-pct' }, pctInt),
+          rightCandidates.length > 0
+            ? h(
+                'select',
+                {
+                  className: 'mv-swipe-select',
+                  value: isPair ? state.rightId : '',
+                  title: t('swipe.rightPicker'),
+                  'aria-label': t('swipe.rightPicker'),
+                  onChange: (event) => setRightLayer(event.target.value || null),
+                },
+                h('option', { value: '' }, t('swipe.rightNone')),
+                ...rightCandidates.map((item) => h('option', { key: item.id, value: item.id }, item.name)),
+              )
+            : null,
+          isPair || isSplit
+            ? h(
+                'button',
+                {
+                  type: 'button',
+                  className: 'mv-cta',
+                  title: t('swipe.swap'),
+                  'aria-label': t('swipe.swap'),
+                  onClick: swapSides,
+                },
+                '⇄',
+              )
+            : null,
+          !isPair
+            ? h(
+                'button',
+                {
+                  type: 'button',
+                  className: 'mv-cta',
+                  disabled: axisDisabled,
+                  title: axisTitle,
+                  onClick: toggleOrientation,
+                },
+                horiz ? t('swipe.vertical') : t('swipe.horizontal'),
+              )
+            : null,
           h(
             'button',
             {
@@ -242,5 +337,17 @@ export function useSwipe({ t, showToast, layers, overlays, getCesium, getViewer,
       )
     : null
 
-  return { state, toggle3d, toggleRaster, stop, element }
+  return {
+    state,
+    toggle3d,
+    toggleRaster,
+    startSplit,
+    startPair,
+    swapSides,
+    setLeftLayer,
+    setRightLayer,
+    setRatio,
+    stop,
+    element,
+  }
 }

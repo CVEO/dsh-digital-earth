@@ -3,11 +3,26 @@ import { heightRange } from './screen-geodesy.js'
 
 const cameraFlags = ['enableInputs', 'enableRotate', 'enableTranslate', 'enableZoom', 'enableTilt', 'enableLook']
 
+function isSceneStillLoading(scene, getLayers) {
+  const visibleLayers = (typeof getLayers === 'function' ? getLayers() : []).filter((layer) => layer?.visible !== false && layer?.tileset)
+  if (visibleLayers.length > 0) {
+    return visibleLayers.some((layer) => {
+      if (layer.tileset.tilesLoaded !== false) return false
+      const stats = layer.tileset.statistics
+      if (!stats) return true
+      return !(Number(stats.numberOfTilesWithContentReady ?? stats.numberOfTilesLoaded ?? 0) > 0 || Number(stats.numberOfTrianglesSelected ?? 0) > 0)
+    })
+  }
+  if (scene?.globe?.tilesLoaded !== false) return false
+  const renderedGlobeTiles = scene.globe?._surface?._tilesToRender?.length
+  return !(typeof renderedGlobeTiles === 'number' && renderedGlobeTiles > 0)
+}
+
 export function captureVisionFrame({ viewer, Cesium, anchor, getLayers = () => [], getViewer = () => viewer }) {
   if (!viewer?.scene || !anchor || viewer.isDestroyed?.()) throw visionError('not_ready')
   const canvas = viewer.canvas, scene = viewer.scene
   if (typeof document === 'undefined' || !canvas?.clientWidth || !canvas?.clientHeight || document.visibilityState === 'hidden') throw visionError('not_ready')
-  if (getLayers().some((layer) => layer.visible !== false && layer.tileset?.tilesLoaded === false) || scene.globe?.tilesLoaded === false) throw visionError('scene_loading')
+  if (isSceneStillLoading(scene, getLayers)) throw visionError('scene_loading')
   viewer.camera.cancelFlight?.()
   const position = Cesium.SceneTransforms.worldToWindowCoordinates(scene, anchor)
   if (!position || !Number.isFinite(position.x) || !Number.isFinite(position.y)) throw visionError('not_ready')
@@ -59,7 +74,7 @@ export function captureVisionFrame({ viewer, Cesium, anchor, getLayers = () => [
     for (const key of Object.keys(saved)) control[key] = false
     viewer.render()
     if (canvas.width < 32 || canvas.height < 32) throw visionError('not_ready')
-    if (getLayers().some((layer) => layer.visible !== false && layer.tileset?.tilesLoaded === false) || scene.globe?.tilesLoaded === false) throw visionError('scene_loading')
+    if (isSceneStillLoading(scene, getLayers)) throw visionError('scene_loading')
     const scaleX = canvas.width / cssWidth, scaleY = canvas.height / cssHeight
     const sourceWidth = Math.max(1, Math.round(crop.width * scaleX))
     const sourceHeight = Math.max(1, Math.round(crop.height * scaleY))
@@ -137,7 +152,7 @@ export function projectVisionPolygon(frame, result) {
   if (!viewer.scene.pickPositionSupported) throw visionError('depth_unavailable')
   viewer.render()
   if (!frame.isValid()) throw visionError('scene_changed')
-  const points = []
+  const rawPoints = []
   let misses = 0
   let fallback = 0
   for (let index = 0; index < polygon.length; index += 1) {
@@ -150,18 +165,45 @@ export function projectVisionPolygon(frame, result) {
       // pickPosition has no depth. Do not discard the whole outline: use the globe
       // underneath as a conservative fallback and keep the rest of the valid ring.
       let cartesian = viewer.scene.pickPosition(position)
+      let isFallback = false
       if (!cartesian) {
         cartesian = groundPick(viewer, position)
-        if (cartesian) fallback += 1
+        if (cartesian) {
+          fallback += 1
+          isFallback = true
+        }
       }
       const cartographic = cartesian && Cesium.Cartographic.fromCartesian(cartesian)
       if (!cartographic || ![cartographic.longitude, cartographic.latitude, cartographic.height].every(Number.isFinite)) {
         misses += 1
         continue
       }
-      points.push({ cartesian, lon: Cesium.Math.toDegrees(cartographic.longitude), lat: Cesium.Math.toDegrees(cartographic.latitude), height: cartographic.height })
+      rawPoints.push({
+        cartesian,
+        lon: Cesium.Math.toDegrees(cartographic.longitude),
+        lat: Cesium.Math.toDegrees(cartographic.latitude),
+        height: cartographic.height,
+        isFallback,
+      })
     }
   }
+  const depthHeights = rawPoints.filter((pt) => !pt.isFallback).map((pt) => pt.height).sort((a, b) => a - b)
+  let kept = rawPoints
+  if (depthHeights.length >= 3 && fallback > 0) {
+    // Drop bare-ellipsoid fallback spikes (e.g. 0m globe under a 400m 3D Tileset).
+    const medianDepthH = depthHeights[Math.floor(depthHeights.length / 2)]
+    const filtered = []
+    for (const pt of rawPoints) {
+      if (pt.isFallback && Math.abs(pt.height - medianDepthH) > 30) {
+        misses += 1
+        fallback -= 1
+        continue
+      }
+      filtered.push(pt)
+    }
+    if (filtered.length >= 3) kept = filtered
+  }
+  const points = kept.map(({ cartesian, lon, lat, height }) => ({ cartesian, lon, lat, height }))
   if (points.length < 3) throw visionError('depth_unavailable')
   if (!frame.isValid()) throw visionError('scene_changed')
   const totalSamples = polygon.length * 2

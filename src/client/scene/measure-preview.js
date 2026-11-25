@@ -16,6 +16,25 @@ const isPreviewActive = (mode, points) => {
   return mode === 'distance' || mode === 'area'
 }
 
+// One session per viewer: ViewerSurface re-creates this controller on every
+// React render (e.g. 1 Hz HUD ticks or adding a vertex), so sharing state by
+// viewer ensures `clear()` / `sync()` always remove previously added entities
+// instead of orphaning them on the globe.
+const sessions = new WeakMap()
+let nextPreviewEntityId = 1
+
+function createEmptyState() {
+  return {
+    entities: [],
+    installedKey: null,
+    cursor: null,
+    lastPos: null,
+    lastPickAt: 0,
+    pendingPos: null,
+    pickTimer: null,
+  }
+}
+
 export function createMeasurePreview({
   getCesium,
   getViewer,
@@ -28,14 +47,20 @@ export function createMeasurePreview({
   formatArea,
   t,
 }) {
-  const state = {
-    entities: [],
-    installedKey: null,
-    cursor: null,
-    lastPos: null,
+  const PICK_THROTTLE_MS = 32
+  const fallbackState = createEmptyState()
+  const session = () => {
+    const viewer = getViewer?.()
+    if (!viewer || typeof viewer !== 'object') return fallbackState
+    let existing = sessions.get(viewer)
+    if (!existing) {
+      existing = createEmptyState()
+      sessions.set(viewer, existing)
+    }
+    return existing
   }
 
-  function removeEntities() {
+  function removeEntities(state = session()) {
     const viewer = getViewer?.()
     if (viewer?.entities) {
       for (const entity of state.entities) {
@@ -43,6 +68,20 @@ export function createMeasurePreview({
           viewer.entities.remove(entity)
         } catch {
           /* already detached */
+        }
+      }
+      // Belt-and-suspenders sweep: ensure no orphaned `measure-preview-*`
+      // entity can ever linger on the globe.
+      const existing = viewer.entities.values
+      if (Array.isArray(existing) && existing.length > 0) {
+        for (const entity of [...existing]) {
+          if (typeof entity?.id === 'string' && entity.id.startsWith('measure-preview-')) {
+            try {
+              viewer.entities.remove(entity)
+            } catch {
+              /* already detached */
+            }
+          }
         }
       }
     }
@@ -70,7 +109,7 @@ export function createMeasurePreview({
       : color
   }
 
-  function previewLabelOptions(Cesium, readPosition, readText) {
+  function previewLabelOptions(Cesium, state, readPosition, readText) {
     const offset = typeof Cesium.Cartesian2 === 'function' ? new Cesium.Cartesian2(16, -18) : undefined
     const base = typeof Cesium.LabelStyle !== 'undefined' && typeof Cesium.Cartesian2 === 'function'
       ? vectorLabel(Cesium, '', { ...(offset ? { pixelOffset: offset } : {}) })
@@ -95,8 +134,8 @@ export function createMeasurePreview({
     return { horiz, delta, corner }
   }
 
-  function installEntities(Cesium, viewer, mode, points) {
-    removeEntities()
+  function installEntities(Cesium, viewer, mode, points, state) {
+    removeEntities(state)
     if (!viewer?.entities || !Cesium) return
     const key = `${mode}:${points.length}`
     state.installedKey = key
@@ -111,7 +150,7 @@ export function createMeasurePreview({
 
     const add = (options) => {
       try {
-        const entity = viewer.entities.add({ id: `measure-preview-${state.entities.length}-${Date.now()}`, ...options })
+        const entity = viewer.entities.add({ id: `measure-preview-${nextPreviewEntityId++}`, ...options })
         state.entities.push(entity)
         return entity
       } catch {
@@ -135,6 +174,7 @@ export function createMeasurePreview({
       add(
         previewLabelOptions(
           Cesium,
+          state,
           () => state.cursor ?? anchor,
           () => {
             if (!state.cursor) return ''
@@ -158,6 +198,7 @@ export function createMeasurePreview({
         add(
           previewLabelOptions(
             Cesium,
+            state,
             () => state.cursor ?? anchor,
             () => {
               if (!state.cursor) return ''
@@ -190,6 +231,7 @@ export function createMeasurePreview({
       add(
         previewLabelOptions(
           Cesium,
+          state,
           () => state.cursor ?? anchor,
           () => {
             if (!state.cursor) return ''
@@ -224,6 +266,7 @@ export function createMeasurePreview({
       add(
         previewLabelOptions(
           Cesium,
+          state,
           () => state.cursor ?? anchor,
           () => {
             if (!state.cursor) return ''
@@ -241,11 +284,22 @@ export function createMeasurePreview({
     }
   }
 
+  function cancelPendingPick(state = session()) {
+    if (state.pickTimer !== null) {
+      clearTimeout(state.pickTimer)
+      state.pickTimer = null
+    }
+    state.pendingPos = null
+  }
+
   function clear() {
+    const state = session()
+    cancelPendingPick(state)
     const hadAnything = state.entities.length > 0 || state.cursor !== null
-    removeEntities()
+    removeEntities(state)
     state.cursor = null
     state.lastPos = null
+    state.lastPickAt = 0
     if (hadAnything) requestRender()
   }
 
@@ -259,15 +313,50 @@ export function createMeasurePreview({
     const Cesium = getCesium?.()
     const viewer = getViewer?.()
     if (!Cesium || !viewer) return
+    const state = session()
     // Reset hover cursor immediately after a click commits a vertex so the
     // preview waits for the next mouse movement rather than drawing a zero edge.
+    cancelPendingPick(state)
     state.cursor = null
     state.lastPos = null
-    installEntities(Cesium, viewer, mode, points)
+    state.lastPickAt = 0
+    installEntities(Cesium, viewer, mode, points, state)
+    requestRender()
+  }
+
+  function applyMove(position) {
+    const state = session()
+    const mode = toolRef?.current
+    if (!isMeasureTool(mode)) {
+      if (state.entities.length > 0) clear()
+      return
+    }
+    const points = measureRef?.current?.points ?? []
+    if (!isPreviewActive(mode, points)) {
+      if (state.entities.length > 0) clear()
+      return
+    }
+    const Cesium = getCesium?.()
+    const viewer = getViewer?.()
+    if (!Cesium || !viewer) return
+    const key = `${mode}:${points.length}`
+    if (state.installedKey !== key) installEntities(Cesium, viewer, mode, points, state)
+
+    state.lastPickAt = Date.now()
+    const surface = pickSurface?.(position) ?? null
+    if (!surface) {
+      if (state.cursor !== null) {
+        state.cursor = null
+        requestRender()
+      }
+      return
+    }
+    state.cursor = surface
     requestRender()
   }
 
   function onMove(position) {
+    const state = session()
     const mode = toolRef?.current
     if (!isMeasureTool(mode)) {
       if (state.entities.length > 0) clear()
@@ -283,23 +372,22 @@ export function createMeasurePreview({
       return
     }
     state.lastPos = { x: position.x, y: position.y }
-
-    const Cesium = getCesium?.()
-    const viewer = getViewer?.()
-    if (!Cesium || !viewer) return
-    const key = `${mode}:${points.length}`
-    if (state.installedKey !== key) installEntities(Cesium, viewer, mode, points)
-
-    const surface = pickSurface?.(position) ?? null
-    if (!surface) {
-      if (state.cursor !== null) {
-        state.cursor = null
-        requestRender()
-      }
+    const throttleMs = typeof requestAnimationFrame === 'function' ? PICK_THROTTLE_MS : 0
+    const elapsed = Date.now() - state.lastPickAt
+    if (throttleMs === 0 || state.lastPickAt === 0 || elapsed >= throttleMs) {
+      cancelPendingPick(state)
+      applyMove(position)
       return
     }
-    state.cursor = surface
-    requestRender()
+    state.pendingPos = position
+    if (state.pickTimer === null) {
+      state.pickTimer = setTimeout(() => {
+        state.pickTimer = null
+        const next = state.pendingPos
+        state.pendingPos = null
+        if (next) applyMove(next)
+      }, throttleMs - elapsed)
+    }
   }
 
   return { clear, sync, onMove, dispose: clear }

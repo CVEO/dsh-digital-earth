@@ -191,6 +191,7 @@ export function createCaptureService({ getViewer, getRoot, getSettings, getMeta,
           const context = target.getContext('2d')
           context.drawImage(canvas, 0, 0, targetWidth, targetHeight)
           drawVectorLabels?.(context, targetWidth, targetHeight)
+          if (typeof options.drawOverlay === 'function') options.drawOverlay(context, targetWidth, targetHeight)
           if (includeHud) drawCaptureOverlay(context, targetWidth, targetHeight)
           dataUrl = format === 'png' ? target.toDataURL('image/png') : target.toDataURL('image/jpeg', quality)
           if (dataUrl.length <= MAX_CAPTURE_DATAURL) break

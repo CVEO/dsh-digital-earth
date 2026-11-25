@@ -10,6 +10,7 @@ import { VISION_CSS } from './vision-css.js'
 import { SELECTION_QUESTION_CSS } from './selection-question-css.js'
 import { PARSE_CSS } from './parse-css.js'
 import { RASTER_TIMELINE_CSS } from './raster-timeline-css.js'
+import { COMPARE_CSS } from './compare-css.js'
 
     const CSS = `
 .mv-root{position:relative;flex:1 1 0;min-height:0;overflow:hidden;background:var(--mv-bg);color:var(--mv-text);font:12px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;--mv-bg:var(--dsw-alias-bg-base,#fff);--mv-text:var(--dsw-alias-label-primary,#0f1115);--mv-dim:var(--dsw-alias-label-secondary,#5b6068);--mv-line:var(--dsw-alias-border-l2,#0000001a);--mv-accent:var(--dsw-alias-state-business-primary,#4176e6);--mv-profile-line:#1d4ed8;--mv-profile-design:#c2610a;--mv-lift:var(--dsw-alias-interactive-bg-hover,#2631480f);--mv-glass:color-mix(in srgb,var(--dsw-alias-bg-layer-1,#fff) 88%,transparent);--mv-glass-strong:var(--dsw-alias-bg-layer-1,#fff);--mv-input:var(--dsw-alias-interactive-bg-hover,#2631480f);--mv-shadow:0 8px 28px rgba(15,23,42,.18);--mv-attrib:rgba(255,255,255,.62);--mv-attrib-shadow:0 1px 2px rgba(0,0,0,.6);--mv-overlay:transparent;--mv-scrim:rgba(24,34,50,.28)}
@@ -32,11 +33,12 @@ import { RASTER_TIMELINE_CSS } from './raster-timeline-css.js'
 @media (max-width:420px){.mv-compass{width:50px;height:50px;right:8px;bottom:36px}}
 .mv-glass{background:var(--mv-glass);border:.5px solid var(--mv-line);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);box-shadow:var(--mv-shadow)}
 .mv-top{position:absolute;top:10px;left:10px;right:10px;display:flex;align-items:flex-start;justify-content:space-between;gap:10px;z-index:10;pointer-events:none}
+.mv-top.menu-open{z-index:26}
 .mv-brand{display:flex;align-items:center;gap:8px;padding:7px 12px;border-radius:11px;pointer-events:auto}
 .mv-brand b{font-size:13px;font-weight:600;letter-spacing:.01em}
 .mv-brand span{font-size:11px;color:var(--mv-dim)}
 .mv-brand b,.mv-brand span{white-space:nowrap}
-.mv-actions{display:flex;align-items:center;gap:2px;padding:4px;border-radius:11px;pointer-events:auto;flex-wrap:wrap;justify-content:flex-end}
+.mv-actions{position:relative;display:flex;align-items:center;gap:2px;padding:4px;border-radius:11px;pointer-events:auto;flex-wrap:wrap;justify-content:flex-end}
 .mv-btn{appearance:none;border:0;background:transparent;color:var(--mv-dim);font:inherit;font-size:12px;line-height:1;padding:7px 9px;border-radius:7px;cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;gap:6px}
 .mv-btn:hover{background:color-mix(in srgb,var(--mv-lift) 72%,transparent);color:var(--mv-text)}
 .mv-btn.on{background:color-mix(in srgb,var(--mv-accent) 26%,transparent);color:var(--mv-text)}
@@ -44,18 +46,22 @@ import { RASTER_TIMELINE_CSS } from './raster-timeline-css.js'
 .mv-btn:focus-visible{outline:2px solid var(--mv-accent);outline-offset:1px}
 .mv-sep{width:1px;height:17px;background:var(--mv-line);margin:0 3px}
 .mv-menu{position:relative;display:inline-flex}
-.mv-menu-panel{position:absolute;top:calc(100% + 6px);right:0;min-width:206px;padding:4px;border-radius:11px;z-index:26;display:flex;flex-direction:column;gap:1px}
+.mv-menu-panel{position:absolute;top:calc(100% + 6px);right:0;min-width:206px;padding:4px;border-radius:11px;z-index:26;display:flex;flex-direction:column;gap:1px;background:color-mix(in srgb,var(--mv-glass-strong) 96%,transparent)}
+.mv-data-menu .mv-menu-panel{left:0;right:auto;box-sizing:border-box;width:min(260px,calc(100vw - 24px));min-width:0;max-height:min(360px,55vh);overflow:auto;overscroll-behavior:contain}
+.mv-data-menu .mv-menu-panel>*{flex-shrink:0}
 .mv-menu-item{appearance:none;border:0;background:transparent;color:var(--mv-text);font:inherit;font-size:12px;text-align:left;padding:8px 10px;border-radius:7px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px;white-space:nowrap}
 .mv-menu-item:hover{background:color-mix(in srgb,var(--mv-lift) 80%,transparent)}
 .mv-menu-item.on{color:var(--mv-accent)}
 .mv-menu-item .check{font-size:11px}
 .mv-menu-label{padding:4px 10px 2px;font-size:10.5px;line-height:1.4;letter-spacing:.04em;color:var(--mv-dim);white-space:nowrap}
 .mv-menu-item .ellipsis{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.mv-urlbar{position:absolute;top:58px;left:0;right:0;margin:0 auto;display:flex;gap:6px;padding:6px;border-radius:11px;z-index:12;width:min(640px,82%)}
+.mv-urlbar{position:absolute;top:58px;left:0;right:0;margin:0 auto;display:flex;align-items:center;gap:6px;padding:6px;border-radius:11px;z-index:12;width:min(640px,82%)}
 .mv-urlbar input{flex:1;min-width:0;background:var(--mv-input);border:.5px solid var(--mv-line);color:var(--mv-text);border-radius:7px;padding:7px 9px;font:inherit;font-size:12px;outline:none}
 .mv-urlbar input:focus{border-color:var(--mv-accent)}
-.mv-urlbar button{appearance:none;border:.5px solid var(--mv-line);background:var(--mv-lift);color:var(--mv-text);font:inherit;font-size:12px;padding:7px 13px;border-radius:7px;cursor:pointer}
+.mv-urlbar button{appearance:none;border:.5px solid var(--mv-line);background:var(--mv-lift);color:var(--mv-text);font:inherit;font-size:12px;padding:7px 13px;border-radius:7px;cursor:pointer;flex:none}
 .mv-urlbar button:hover{border-color:var(--mv-accent)}
+.mv-urlbar .mv-urlbar-close{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;padding:0;border:none;border-radius:7px;background:transparent;color:var(--mv-dim);font-size:13px;line-height:1}
+.mv-urlbar .mv-urlbar-close:hover{background:color-mix(in srgb,var(--mv-lift) 80%,transparent);color:var(--mv-text)}
 /* Right-hand floating column: the analysis card (Agent result) and the layer
    card share one stack so a new analysis never overlaps the layers list. */
 .mv-right{position:absolute;top:60px;right:10px;width:min(300px,calc(100% - 20px));max-height:calc(100% - 150px);display:flex;flex-direction:column;gap:10px;z-index:auto;pointer-events:none;overflow:visible}
@@ -96,7 +102,7 @@ import { RASTER_TIMELINE_CSS } from './raster-timeline-css.js'
 .mv-root.mv-docked .mv-analysis{max-height:min(72%,460px)}
 .mv-analysis>header{display:flex;align-items:center;gap:2px;padding:7px 7px 7px 11px;border-bottom:.5px solid var(--mv-line)}
 .mv-analysis>header .title{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;font-weight:600}
-.mv-analysis .body{padding:8px 11px 10px;overflow:auto;display:flex;flex-direction:column;gap:5px;min-height:0}
+.mv-analysis .body{flex:1 1 auto;padding:8px 11px 10px;overflow:auto;display:flex;flex-direction:column;gap:5px;min-height:0}
 .mv-analysis .layer{color:var(--mv-dim);font-size:10.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mv-analysis .stat{display:flex;align-items:baseline;justify-content:space-between;gap:10px;font-size:11.5px;line-height:1.5}
 .mv-analysis .stat span{flex:none;color:var(--mv-dim)}
@@ -104,6 +110,7 @@ import { RASTER_TIMELINE_CSS } from './raster-timeline-css.js'
 .mv-analysis .chart{width:100%;height:auto;display:block;margin-top:0;border:.5px solid var(--mv-line);border-radius:8px;background:color-mix(in srgb,var(--mv-bg) 45%,transparent)}
 .mv-analysis .chart text{fill:var(--mv-dim);font-size:8px}
 .mv-analysis .hint{margin:2px 0 0;color:var(--mv-dim);font-size:10px;line-height:1.5}
+.mv-analysis .body>.hint:last-child{margin-top:auto;padding-top:6px}
 .mv-analysis .warnings{margin:0;color:var(--mv-dim);font-size:10px;line-height:1.45;word-break:break-word}
 .mv-analysis .profile-tools{display:flex;flex-direction:column;gap:6px;border-top:.5px solid var(--mv-line);padding-top:7px;margin-top:3px}
 .mv-analysis .profile-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
@@ -135,6 +142,13 @@ import { RASTER_TIMELINE_CSS } from './raster-timeline-css.js'
 .mv-sun-clock{margin-left:auto;font-variant-numeric:tabular-nums}
 .mv-sun-range{width:100%}
 .mv-sun-readout{display:flex;gap:10px;font-size:10.5px;color:var(--mv-dim);font-variant-numeric:tabular-nums}
+.mv-sun-playback{display:flex;align-items:center;gap:6px}
+.mv-sun-play{padding:3px 9px;font-size:10.5px;line-height:1.4;border-radius:6px;border:.5px solid var(--mv-line);background:var(--mv-input);color:var(--mv-text);cursor:pointer;white-space:nowrap}
+.mv-sun-play.on{background:color-mix(in srgb,var(--mv-accent) 22%,transparent);border-color:color-mix(in srgb,var(--mv-accent) 55%,transparent)}
+.mv-sun-speeds{display:flex;align-items:center;gap:3px;margin-left:auto}
+.mv-sun-speed{padding:2px 6px;font-size:10px;line-height:1.35;border-radius:5px;border:.5px solid var(--mv-line);background:transparent;color:var(--mv-dim);cursor:pointer}
+.mv-sun-speed.on{background:color-mix(in srgb,var(--mv-accent) 18%,transparent);color:var(--mv-text);border-color:color-mix(in srgb,var(--mv-accent) 50%,transparent)}
+.mv-sun-checks{display:flex;align-items:center;flex-wrap:wrap;gap:10px}
 .mv-sun-check{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;color:var(--mv-dim);cursor:pointer}
 .mv-sun-note{margin:0;font-size:9.5px;line-height:1.45;color:var(--mv-dim)}
 .mv-sun-zone{font-size:10px;color:var(--mv-dim);font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -144,7 +158,7 @@ import { RASTER_TIMELINE_CSS } from './raster-timeline-css.js'
 .mv-shader{position:absolute;top:60px;left:10px;width:min(340px,calc(100% - 20px));max-height:calc(100% - 150px);z-index:14;display:flex;flex-direction:column;overflow:hidden;border-radius:14px;--shader-mint:#3ddc97;background:color-mix(in srgb,var(--mv-glass-strong) 94%,#0a0f15 6%);backdrop-filter:blur(14px) saturate(1.08);-webkit-backdrop-filter:blur(14px) saturate(1.08);border:.5px solid color-mix(in srgb,var(--mv-line) 65%,transparent);box-shadow:0 24px 64px rgba(2,8,20,.35)}.mv-shader>header{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:.5px solid var(--mv-line);background:linear-gradient(180deg,color-mix(in srgb,var(--shader-mint) 7%,transparent),transparent)}
 .mv-shader>header .title{flex:none;font-size:13px;font-weight:650;letter-spacing:.01em}
 .mv-shader>header .subtitle{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;color:var(--mv-dim)}
-.mv-shader .body{padding:12px 13px 14px;overflow:auto;display:flex;flex-direction:column;gap:11px;min-height:0}
+.mv-shader .body{flex:1 1 auto;padding:12px 13px 14px;overflow:auto;display:flex;flex-direction:column;gap:11px;min-height:0}
 .mv-shader .field{display:flex;flex-direction:column;gap:5px;min-width:0}
 .mv-shader .field label{font-size:10.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:color-mix(in srgb,var(--mv-dim) 88%,var(--mv-text))}
 .mv-shader .field select,.mv-shader .field input{background:var(--mv-input);border:.5px solid var(--mv-line);color:var(--mv-text);border-radius:8px;padding:7px 9px;font:inherit;font-size:12.5px;outline:none;min-width:0}
@@ -498,15 +512,45 @@ import { RASTER_TIMELINE_CSS } from './raster-timeline-css.js'
 .mv-tour{position:absolute;left:0;right:0;margin:0 auto;bottom:18px;z-index:12;width:min(560px,calc(100% - 20px));border-radius:12px;padding:9px 12px 10px;display:flex;flex-direction:column;gap:6px;animation:mv-fade .2s cubic-bezier(.16,1,.3,1)}
 .mv-tour-head{display:flex;align-items:center;gap:8px}
 .mv-tour-head b{font-size:11px;font-weight:600;letter-spacing:.03em;color:var(--mv-dim);text-transform:uppercase}
+.mv-tour-stop-name{font-size:11.5px;font-weight:600;color:var(--mv-text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
 .mv-tour-progress{margin-left:auto;font-size:10.5px;color:var(--mv-dim);font-variant-numeric:tabular-nums}
-.mv-tour-caption{margin:0;font-size:13px;line-height:1.5;color:var(--mv-text)}
+.mv-tour-body{display:flex;align-items:center;gap:10px;min-width:0}
+.mv-tour-thumb{width:64px;height:40px;border-radius:7px;object-fit:cover;flex:none;border:.5px solid var(--mv-line)}
+.mv-tour-caption{margin:0;font-size:13px;line-height:1.5;color:var(--mv-text);flex:1;min-width:0}
 .mv-tour-actions{display:flex;align-items:center;gap:6px}
 .mv-tour-actions .mv-cta{flex:1;padding:6px 10px;font-size:11.5px}
 .mv-tour-hint{margin:0;font-size:10px;color:var(--mv-dim)}
 @keyframes mv-fade{from{opacity:0}to{opacity:1}}
 .mv-group-actions{display:flex;gap:6px;flex:none}
-.mv-bookmark{display:flex;flex-direction:column;gap:0}
-.mv-caption{background:var(--mv-input);border:.5px solid var(--mv-line);color:var(--mv-text);border-radius:6px;padding:4px 7px;font:inherit;font-size:11px;margin:0 8px 4px;outline:none;min-width:0}
+.mv-bm-bar{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:4px 8px;border-radius:8px;background:color-mix(in srgb,var(--mv-lift) 48%,transparent);border:.5px solid var(--mv-line);font-size:10.5px;color:var(--mv-dim)}
+.mv-bm-bar-text{font-variant-numeric:tabular-nums}
+.mv-bm-bar-btn{appearance:none;border:.5px solid var(--mv-line);background:var(--mv-input);color:var(--mv-text);border-radius:6px;padding:2px 7px;font:inherit;font-size:10px;cursor:pointer}
+.mv-bm-bar-btn:hover{border-color:var(--mv-accent);color:var(--mv-accent)}
+.mv-bm-list{display:flex;flex-direction:column;gap:8px;min-width:0}
+.mv-bookmark{display:flex;flex-direction:column;gap:6px;padding:7px;border-radius:10px;border:.5px solid var(--mv-line);background:color-mix(in srgb,var(--mv-lift) 38%,transparent);transition:border-color 140ms ease,background-color 140ms ease}
+.mv-bookmark:hover{border-color:color-mix(in srgb,var(--mv-accent) 32%,var(--mv-line))}
+.mv-bookmark.active{border-color:color-mix(in srgb,var(--mv-accent) 55%,var(--mv-line));background:color-mix(in srgb,var(--mv-accent) 9%,transparent)}
+.mv-bm-main{display:flex;align-items:stretch;gap:8px;min-width:0}
+.mv-bm-thumb{position:relative;appearance:none;padding:0;width:82px;height:54px;border-radius:7px;overflow:hidden;border:.5px solid var(--mv-line);background:color-mix(in srgb,var(--mv-bg) 75%,var(--mv-accent) 10%);cursor:pointer;flex:none;display:flex;align-items:center;justify-content:center}
+.mv-bm-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.mv-bm-thumb:hover{border-color:var(--mv-accent)}
+.mv-bm-thumb-ph{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;color:var(--mv-dim);font-variant-numeric:tabular-nums;line-height:1.2}
+.mv-bm-thumb-ph strong{font-size:11px;font-weight:600;color:var(--mv-text)}
+.mv-bm-thumb-ph small{font-size:9.5px;opacity:.8}
+.mv-bm-index{position:absolute;top:3px;left:3px;min-width:17px;height:17px;padding:0 4px;border-radius:5px;background:rgba(15,23,42,.78);color:#fff;font-size:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;font-variant-numeric:tabular-nums;box-shadow:0 1px 3px rgba(0,0,0,.35)}
+.mv-bm-info{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:space-between;gap:2px}
+.mv-bm-title-row{display:flex;align-items:center;gap:4px;min-width:0}
+.mv-bm-title-row .mv-bookmark-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;font-weight:600;padding:1px 0}
+.mv-bm-title-row .mv-bookmark-name:hover{color:var(--mv-accent)}
+.mv-bm-rename{flex:1;min-width:0;background:var(--mv-input);border:.5px solid var(--mv-accent);color:var(--mv-text);border-radius:5px;padding:1px 6px;font:inherit;font-size:12px;font-weight:600;outline:none}
+.mv-bm-ops{display:flex;align-items:center;gap:2px;flex:none}
+.mv-bm-op{appearance:none;width:20px;height:20px;padding:0;border:0;border-radius:5px;background:transparent;color:var(--mv-dim);font-size:11px;line-height:1;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
+.mv-bm-op:hover:not(:disabled){background:color-mix(in srgb,var(--mv-accent) 14%,transparent);color:var(--mv-text)}
+.mv-bm-op.danger:hover:not(:disabled){background:color-mix(in srgb,#ef4444 16%,transparent);color:#ef4444}
+.mv-bm-op:disabled{opacity:.28;cursor:default}
+.mv-bm-meta{font-size:10.5px;color:var(--mv-dim);font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mv-bm-coords{font-size:10px;color:color-mix(in srgb,var(--mv-dim) 78%,transparent);font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mv-caption{background:var(--mv-input);border:.5px solid var(--mv-line);color:var(--mv-text);border-radius:6px;padding:4px 7px;font:inherit;font-size:11px;margin:0;outline:none;min-width:0;width:100%;box-sizing:border-box}
 .mv-caption:focus{border-color:var(--mv-accent)}
 .mv-caption::placeholder{color:color-mix(in srgb,var(--mv-dim) 70%,transparent)}
 .mv-tool-group{display:block;padding:8px 0 4px;border-top:.5px solid var(--mv-line);min-width:0}
@@ -525,7 +569,8 @@ import { RASTER_TIMELINE_CSS } from './raster-timeline-css.js'
 .mv-tools .mv-group-actions{display:flex;gap:6px}
 .mv-tools .mv-sun{margin:0}
 /* Toolbox v1.6: 2-column bento tile index; clicking a tile opens a pop-out ToolWindow. */
-.mv-tool-index{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px;padding:8px 10px 10px;overflow:auto;min-height:0;scrollbar-width:thin}
+.mv-tool-index-wrap{display:flex;flex-direction:column;min-height:0;flex:1 1 auto}
+.mv-tool-index{flex:1 1 auto;align-content:start;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px;padding:8px 10px 10px;overflow:auto;min-height:0;scrollbar-width:thin}
 @container (max-width: 240px){.mv-tool-index{grid-template-columns:minmax(0,1fr)}}
 .mv-tool-entry{position:relative;appearance:none;display:flex;align-items:center;gap:7px;width:100%;min-width:0;border:.5px solid var(--mv-line);border-radius:10px;background:color-mix(in srgb,var(--mv-lift) 46%,transparent);color:var(--mv-text);font:inherit;font-size:11.5px;font-weight:500;padding:7px 8px;cursor:pointer;text-align:left;transition:background-color 140ms ease,border-color 140ms ease}
 .mv-tool-entry:hover{background:color-mix(in srgb,var(--mv-lift) 85%,transparent);border-color:color-mix(in srgb,var(--mv-accent) 28%,var(--mv-line))}
@@ -541,7 +586,8 @@ import { RASTER_TIMELINE_CSS } from './raster-timeline-css.js'
 .mv-toolwin-title{display:inline-flex;align-items:center;gap:7px;min-width:0}
 .mv-toolwin-badge{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:6px;background:color-mix(in srgb,var(--mv-accent) 14%,transparent);color:var(--mv-accent);flex:none}
 .mv-toolwin-title>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.mv-toolwin-body{display:flex;flex-direction:column;gap:6px;padding:8px 12px 10px;overflow:auto;min-height:0;overscroll-behavior:contain;scrollbar-width:thin}
+.mv-toolwin-body{flex:1 1 auto;display:flex;flex-direction:column;gap:6px;padding:8px 12px 10px;overflow:auto;min-height:0;overscroll-behavior:contain;scrollbar-width:thin}
+.mv-toolwin-body>p.mv-none:last-child{margin-top:auto;padding-top:8px}
 .mv-toolwin-body>.mv-tool-grid{margin:0}
 .mv-toolwin-body .mv-cta{border:.5px solid var(--mv-line);border-radius:8px;font-size:11px;line-height:1.4}
 .mv-toolwin-body .mv-cta[aria-pressed="true"]{border-color:var(--mv-accent);background:color-mix(in srgb,var(--mv-accent) 13%,var(--mv-glass))}
@@ -556,7 +602,7 @@ import { RASTER_TIMELINE_CSS } from './raster-timeline-css.js'
 .mv-drag-handle:hover,.mv-drag-handle:focus-visible{color:var(--mv-accent);background:color-mix(in srgb,var(--mv-accent) 12%,transparent);outline:none}
 .mv-drag-handle:focus-visible{outline:2px solid var(--mv-accent);outline-offset:1px}
 .mv-sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
-.mv-tools-hint{font-size:11px;line-height:1.45;color:var(--mv-dim);margin:4px 0 0;padding-top:6px;border-top:.5px solid var(--mv-line)}
+.mv-tools-hint{flex:none;font-size:10.5px;line-height:1.5;color:var(--mv-dim);margin:auto 0 0;padding:7px 12px 10px;border-top:.5px solid var(--mv-line);background:color-mix(in srgb,var(--mv-bg) 35%,transparent);text-wrap:pretty}
 .mv-tools-count{flex:none;font-size:10px;font-weight:500;padding:1px 6px;border-radius:999px;background:color-mix(in srgb,var(--mv-accent) 14%,transparent);color:var(--mv-accent)}
 .mv-profile-opts{display:flex;flex-direction:column;gap:4px;padding:6px 8px;border:.5px solid var(--mv-line);border-radius:8px;background:color-mix(in srgb,var(--mv-bg) 35%,transparent)}
 .mv-profile-opt{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:10.5px;color:var(--mv-dim)}
@@ -567,7 +613,7 @@ import { RASTER_TIMELINE_CSS } from './raster-timeline-css.js'
 .mv-root.mv-docked .mv-toolwin{max-height:none}
 .mv-bookmark-name{appearance:none;background:transparent;border:0;color:inherit;font:inherit;text-align:left;cursor:pointer;padding:4px 0}
 .mv-root :is(button,input,select,textarea):focus-visible{outline:2px solid var(--mv-accent);outline-offset:2px}
-.mv-data-panel{display:flex;flex-direction:column;min-height:0;overflow:auto;overscroll-behavior:contain}
+.mv-data-panel{flex:1 1 auto;display:flex;flex-direction:column;min-height:0;overflow:auto;overscroll-behavior:contain}
 .mv-select>*{flex-shrink:0}
 .mv-select .layer,.mv-select .prop,.mv-select .fact{font-size:12px}
 .mv-select .sampling,.mv-select .footnote,.mv-select .props-title,.mv-select .fact em{font-size:11px;line-height:1.5;color:var(--mv-dim)}
@@ -593,6 +639,7 @@ ${VISION_CSS}
 ${SELECTION_QUESTION_CSS}
 ${PARSE_CSS}
 ${RASTER_TIMELINE_CSS}
+${COMPARE_CSS}
 @container (max-width:480px){
   .mv-root.mv-docked .mv-right{left:12px;right:12px;width:auto;max-height:calc(100% - 132px)}
   .mv-root.mv-docked .mv-shader{box-sizing:border-box;left:12px;right:12px;width:auto;max-height:calc(100% - 132px)}

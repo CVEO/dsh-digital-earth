@@ -265,7 +265,7 @@ test('需求 B: createSwipeSession 支持 3D Tiles 与 2D 栅格卷帘、相机�
   assert.equal(rasterImageryLayer.splitDirection, 0, '退出后 splitDirection 恢复为 NONE(0)')
   assert.equal(viewer.scene.splitPosition, 0.5, '退出后 splitPosition 恢复原值')
 
-  // 4) UI 层行：3DGS 图层的卷帘按钮置灰并带有原因说明，中英文案成对
+  // 4) UI 层行：可见 3DGS 图层已解锁原生分屏 ◧ 按钮，隐藏时禁用，中英文案成对
   const row3dgs = LayerRow({
     t: (k) => MESSAGES.zh[k] ?? k,
     layer: splatLayer,
@@ -281,9 +281,9 @@ test('需求 B: createSwipeSession 支持 3D Tiles 与 2D 栅格卷帘、相机�
   const buttons = (row3dgs.children ?? []).filter((child) => child?.type === 'button')
   const swipeBtn = buttons.find((btn) => (btn.children ?? []).includes('◧'))
   assert.ok(swipeBtn, '图层行应渲染 ◧ 卷帘对比按钮')
-  assert.equal(swipeBtn.props.disabled, true, '3DGS 图层的卷帘按钮必须置灰禁用')
-  assert.match(swipeBtn.props.title, /3DGS 图层不支持裁剪卷帘对比/)
+  assert.equal(swipeBtn.props.disabled, false, '可见 3DGS 图层应允许原生 SplitDirection 分屏对比')
   assert.equal(typeof MESSAGES.en['swipe.unsupported3dgs'], 'string')
+  assert.equal(typeof MESSAGES.en['swipe.toggle'], 'string')
 })
 
 // ---------------------------------------------------------------------------

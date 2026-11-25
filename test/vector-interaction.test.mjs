@@ -181,3 +181,23 @@ test('Esc：画布未获焦点时也能取消选择，输入对话时不干扰',
     assert.equal(state.selection, null)
   } finally { state.interaction.dispose() }
 })
+
+test('矢量交互：staticStyle 剖面线悬停时不重写 polyline 宽度与材质，避免 Cesium 几何重建闪烁', async () => {
+  const state = harness()
+  try {
+    const desc = { group: 'analysis', title: '高程纵断面', kind: '分析', staticStyle: true }
+    const seg = state.interaction.add(
+      { polyline: { positions: [new Engine.Cartesian3(100, 200, 0), new Engine.Cartesian3(300, 200, 0)], material: Engine.Color.CYAN } },
+      desc,
+    )
+    const initialWidth = seg.polyline.width
+    const initialMaterial = seg.polyline.material
+    state.pick(seg)
+    move(state.viewer.canvas)
+    await settle()
+    assert.equal(seg.polyline.width, initialWidth)
+    assert.equal(seg.polyline.material, initialMaterial)
+  } finally {
+    state.interaction.dispose()
+  }
+})

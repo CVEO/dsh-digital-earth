@@ -68,7 +68,8 @@ import { clone } from './format.js'
               id: 'esri-world-imagery',
               name: 'Esri World Imagery',
               type: 'xyz',
-              url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+              url: 'https://wi.maptiles.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+              tilingScheme: 'geographic',
               maximumLevel: 19,
               credit: 'Esri, Maxar, Earthstar Geographics, and the GIS User Community',
             },
@@ -158,8 +159,11 @@ import { clone } from './format.js'
       return new Cesium.UrlTemplateImageryProvider({ url: template, ...options })
     }
 
-    /** Map a stored terrain source onto a Cesium terrain provider. */
-    async function terrainProvider(Cesium, source) {
+    const prefetchedTerrain = new Map()
+    const terrainPrefetchKey = (source) =>
+      source ? `${source.type ?? ''}|${source.url ?? ''}|${source.requestVertexNormals ? 1 : 0}|${source.requestWaterMask ? 1 : 0}` : ''
+
+    function createTerrainProviderPromise(Cesium, source) {
       const options = {}
       if (source.credit) options.credit = source.credit
       if (source.requestVertexNormals) options.requestVertexNormals = true
@@ -167,6 +171,29 @@ import { clone } from './format.js'
       if (source.type === 'cesium') return Cesium.CesiumTerrainProvider.fromUrl(source.url, options)
       return Cesium.ArcGISTiledElevationTerrainProvider.fromUrl(source.url, options)
     }
+
+    /** Kick off terrain metadata prefetch during boot so first-frame tiles do not wipe mid-load. */
+    function prefetchTerrainProvider(Cesium, source) {
+      if (!Cesium || !source) return
+      const key = terrainPrefetchKey(source)
+      if (!key || prefetchedTerrain.has(key)) return
+      const promise = Promise.resolve().then(() => createTerrainProviderPromise(Cesium, source))
+      promise.catch(() => {
+        if (prefetchedTerrain.get(key) === promise) prefetchedTerrain.delete(key)
+      })
+      prefetchedTerrain.set(key, promise)
+    }
+
+    /** Map a stored terrain source onto a Cesium terrain provider. */
+    async function terrainProvider(Cesium, source) {
+      const key = terrainPrefetchKey(source)
+      if (key && prefetchedTerrain.has(key)) {
+        const pending = prefetchedTerrain.get(key)
+        prefetchedTerrain.delete(key)
+        return pending
+      }
+      return createTerrainProviderPromise(Cesium, source)
+    }
     //#endregion data access
 
-export { loadMeta, loadCesium, loadCesiumStyle, loadSources, persistSources, scanLocalDirectory, ACCESS_TIMEOUT_MS, imageryProvider, terrainProvider }
+export { loadMeta, loadCesium, loadCesiumStyle, loadSources, persistSources, scanLocalDirectory, ACCESS_TIMEOUT_MS, imageryProvider, terrainProvider, prefetchTerrainProvider }

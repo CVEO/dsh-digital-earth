@@ -11,6 +11,7 @@ import { SunTimeline } from './sun-timeline.js'
 import { ToolsBookmarks } from './tools-bookmarks.js'
 import { SelectionTool } from './selection-tool.js'
 import { ParseBody } from './parse-review.js'
+import { ComparePanel } from './compare-panel.js'
 import { ANNOTATION_STYLES } from '../scene/annotation-model.js'
 import { VECTOR_COLORS } from '../scene/vector-style.js'
 
@@ -203,8 +204,8 @@ export function EffectsBody({ t, shaderActive, onOpenShader, onResetAllShaders }
   )
 }
 
-export function ViewBody({ t, getCurrentView, onFlyView, onStartTour }) {
-  return h(ToolsBookmarks, { t, getCurrentView, onFlyView, onStartTour })
+export function ViewBody({ t, getCurrentView, getViewer, onFlyView, onStartTour, showToast }) {
+  return h(ToolsBookmarks, { t, getCurrentView, getViewer, onFlyView, onStartTour, showToast })
 }
 
 export function AnnotationBody({ t, onStartAnnotation }) {
@@ -261,6 +262,7 @@ export function ToolBody({ entryId, ...rest }) {
   if (entryId === 'annotation') return h(AnnotationBody, rest)
   if (entryId === 'parse') return h(ParseBody, rest)
   if (entryId === 'analysis') return h(AnalysisBody, rest)
+  if (entryId === 'compare') return h(ComparePanel, rest)
   if (entryId === 'effects') return h(EffectsBody, rest)
   if (entryId === 'view') return h(ViewBody, rest)
   return null

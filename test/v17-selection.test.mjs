@@ -279,3 +279,45 @@ test('默认指认：单击场景对象直接出卡，卡片显示批量表属�
   const status = readRepoFile('src/client/scene/status.js')
   assert.match(status, /measureTool: toolRef\.current === 'identify' \? null : toolRef\.current/)
 })
+
+test('指认邻域采样不触发异步 pickFromRayMostDetailed 阻塞，24 点一次快速完成', async () => {
+  const lon = 113.1386
+  const lat = 31.0208
+  const anchor = Cesium.Cartesian3.fromDegrees(lon, lat, 50)
+  const tileset = Object.create(Cesium.Cesium3DTileset.prototype)
+  let mostDetailedCalls = 0
+  let fastPickCalls = 0
+  const viewer = {
+    scene: {
+      pickPositionSupported: true,
+      sampleHeightSupported: true,
+      pickPosition: () => anchor,
+      pick: () => ({ primitive: tileset }),
+      primitives: { length: 1, get: () => tileset },
+      globe: {
+        show: true,
+        ellipsoid: Cesium.Ellipsoid.WGS84,
+        terrainProvider: new Cesium.EllipsoidTerrainProvider(),
+      },
+      pickFromRayMostDetailed() {
+        mostDetailedCalls += 1
+        return new Promise(() => {}) // would hang forever if called
+      },
+      pickFromRay(ray) {
+        fastPickCalls += 1
+        const carto = Cesium.Cartographic.fromCartesian(ray.origin)
+        return {
+          object: { primitive: tileset },
+          position: Cesium.Cartesian3.fromRadians(carto.longitude, carto.latitude, 32),
+        }
+      },
+    },
+  }
+  const layer = { id: 'l-1', name: 'Oblique Mesh', visible: true, tileset }
+  const controller = createSelectionController({ getViewer: () => viewer, getCesium: () => Cesium, getLayers: () => [layer] })
+  const result = await controller.identifyAt(new Cesium.Cartesian2(200, 200))
+  assert.equal(mostDetailedCalls, 0)
+  assert.equal(fastPickCalls, 24)
+  assert.equal(result.card.sampling.count, 24)
+  assert.equal(result.card.sampling.min, 32)
+})

@@ -66,6 +66,23 @@ async function readRecentDirectories() {
   }
 }
 
+const ACCESS_CHECK_TIMEOUT_MS = 300
+
+async function pathAccessible(target) {
+  let timer = null
+  try {
+    return await Promise.race([
+      fs.access(target).then(() => true, () => false),
+      new Promise((resolve) => {
+        timer = setTimeout(() => resolve(false), ACCESS_CHECK_TIMEOUT_MS)
+        timer.unref?.()
+      }),
+    ])
+  } finally {
+    if (timer !== null) clearTimeout(timer)
+  }
+}
+
 /**
  * GET: folders remembered from earlier sessions. This response is data for the
  * page only — it is never merged into a tool result, so the token-bearing route
@@ -73,20 +90,15 @@ async function readRecentDirectories() {
  */
 export async function directoriesHandler(getDirectories, req, res) {
   const entries = typeof getDirectories === 'function' ? getDirectories() : []
-  const directories = []
-  for (const entry of Array.isArray(entries) ? entries : []) {
-    if (directories.length >= MAX_RECENT_DIRECTORIES) break
-    // A moved or unmounted folder stays listed with exists:false so the user
-    // can see why loading from it would fail.
-    let exists = false
-    try {
-      await fs.access(entry.path)
-      exists = true
-    } catch {
-      // Missing on purpose; the flag above is the answer.
-    }
-    directories.push({ path: entry.path, name: basename(entry.path), at: entry.at, exists })
-  }
+  const slice = (Array.isArray(entries) ? entries : []).slice(0, MAX_RECENT_DIRECTORIES)
+  const directories = await Promise.all(
+    slice.map(async (entry) => ({
+      path: entry.path,
+      name: basename(entry.path),
+      at: entry.at,
+      exists: await pathAccessible(entry.path),
+    })),
+  )
   sendJson(res, 200, { directories })
 }
 

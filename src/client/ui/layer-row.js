@@ -16,7 +16,6 @@ export function LayerRow({ t, layer, shader, swipeActive, onFlyLayer, onToggleLa
   const stop = (event) => event.stopPropagation()
   const summary = shader ? shaderEntrySummary(t, shader) : ''
   const openShader = () => onEditShader(layer, shader)
-  const is3dgs = layer.kind === '3dgs'
   return h(
     'div',
     {
@@ -89,9 +88,9 @@ export function LayerRow({ t, layer, shader, swipeActive, onFlyLayer, onToggleLa
           {
             type: 'button',
             className: `mv-icon-btn${swipeActive ? ' on' : ''}`,
-            disabled: is3dgs || !layer.visible,
-            title: is3dgs ? t('swipe.unsupported3dgs') : t('swipe.toggle'),
-            'aria-label': is3dgs ? t('swipe.unsupported3dgs') : t('swipe.toggle'),
+            disabled: !layer.visible,
+            title: t('swipe.toggle'),
+            'aria-label': t('swipe.toggle'),
             'aria-pressed': Boolean(swipeActive),
             onClick: (event) => {
               stop(event)

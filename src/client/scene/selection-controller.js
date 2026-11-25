@@ -116,26 +116,29 @@ export function createSelectionController({ getViewer, getCesium, getLayers, get
       name: classified.name ?? null,
       properties: classified.properties ?? [],
     }
-    // Ring sampling: 8 bearings × 3 radii. The shared HeightService decides
-    // tiles-vs-terrain per probe and never returns a fake zero.
+    // Ring sampling: 8 bearings × 3 radii. Use already-loaded GPU geometry
+    // (`detailed: false`) in one batch so single-click identify resolves in
+    // milliseconds instead of serialising 24 async most-detailed tile streams.
     const heightService = createHeightService({ Cesium, viewer, layer })
-    const samples = []
-    for (const offset of selectionOffsets({ lon, lat })) {
-      if (signal?.aborted) throw new Error('cancelled')
-      const probe = new Cesium.Cartographic(Cesium.Math.toRadians(offset.lon), Cesium.Math.toRadians(offset.lat))
-      let sample = null
-      try {
-        sample = await heightService.sample(probe, { mode: 'surface' })
-      } catch {
-        sample = null
-      }
-      samples.push({
+    const offsets = selectionOffsets({ lon, lat })
+    if (signal?.aborted) throw new Error('cancelled')
+    const probes = offsets.map((offset) => new Cesium.Cartographic(Cesium.Math.toRadians(offset.lon), Cesium.Math.toRadians(offset.lat)))
+    let sampledValues = []
+    try {
+      const sampled = await heightService.sampleMany(probes, { mode: 'surface', detailed: false, signal })
+      sampledValues = Array.isArray(sampled?.values) ? sampled.values : []
+    } catch {
+      sampledValues = []
+    }
+    const samples = offsets.map((offset, index) => {
+      const sample = sampledValues[index] ?? null
+      return {
         distance_m: offset.distance_m,
         bearing_deg: offset.bearing_deg,
         height_m: sample && typeof sample.height === 'number' ? sample.height : null,
         source: sample?.source ?? 'none',
-      })
-    }
+      }
+    })
     if (signal?.aborted || getViewer() !== viewer || (layer && !(getLayers?.() ?? []).includes(layer))) throw new Error('cancelled')
     const card = buildSelectionCard({
       point: { lon, lat, surface_height_m: carto.height },

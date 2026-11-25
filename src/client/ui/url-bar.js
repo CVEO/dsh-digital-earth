@@ -6,12 +6,17 @@
  */
 import React from 'react'
 
-const h = React.createElement
+import { focusFloatingWindow, useFloatingZIndex } from './floating.js'
 
-export function UrlBar({ value, placeholder, submitLabel, onChange, onSubmit, onClose }) {
+const h = React.createElement
+const WINDOW_KEY = 'urlbar'
+
+export function UrlBar({ value, placeholder, submitLabel, closeLabel = 'Close', onChange, onSubmit, onClose }) {
+  const zIndex = useFloatingZIndex(WINDOW_KEY)
+  const focus = () => focusFloatingWindow(WINDOW_KEY)
   return h(
     'div',
-    { className: 'mv-urlbar mv-glass' },
+    { className: 'mv-urlbar mv-glass', style: { zIndex }, onPointerDownCapture: focus, onFocusCapture: focus },
     h('input', {
       autoFocus: true,
       value,
@@ -23,5 +28,16 @@ export function UrlBar({ value, placeholder, submitLabel, onChange, onSubmit, on
       },
     }),
     h('button', { type: 'button', onClick: onSubmit }, submitLabel),
+    h(
+      'button',
+      {
+        type: 'button',
+        className: 'mv-urlbar-close',
+        title: closeLabel,
+        'aria-label': closeLabel,
+        onClick: onClose,
+      },
+      '✕',
+    ),
   )
 }

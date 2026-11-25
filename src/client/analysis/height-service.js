@@ -29,7 +29,7 @@ export const DEFAULT_SAMPLE_BUDGET = 800
 
 /** Parallel Cesium GPU pick batch size so profiles stay responsive without stalling frames. */
 const TILES_BATCH_SIZE = 32
-const PROBE_TIMEOUT_MS = 8000
+const PROBE_TIMEOUT_MS = 3000
 
 export const HEIGHT_SOURCES = ['tiles', 'terrain', 'none']
 
@@ -37,17 +37,30 @@ function isThenable(value) {
   return value !== null && typeof value === 'object' && typeof value.then === 'function'
 }
 
-function withTimeout(promise, ms = PROBE_TIMEOUT_MS) {
+function withTimeout(promise, ms = PROBE_TIMEOUT_MS, signal = null) {
   if (!isThenable(promise)) return Promise.resolve(promise)
+  if (signal?.aborted) return Promise.reject(new Error('cancelled'))
   return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error('height probe timed out')), ms)
+    const onAbort = () => {
+      clearTimeout(timer)
+      reject(new Error('cancelled'))
+    }
+    const cleanup = () => {
+      clearTimeout(timer)
+      signal?.removeEventListener?.('abort', onAbort)
+    }
+    const timer = setTimeout(() => {
+      cleanup()
+      reject(new Error('height probe timed out'))
+    }, ms)
+    signal?.addEventListener?.('abort', onAbort, { once: true })
     Promise.resolve(promise).then(
       (value) => {
-        clearTimeout(timer)
+        cleanup()
         resolve(value)
       },
       (error) => {
-        clearTimeout(timer)
+        cleanup()
         reject(error)
       },
     )
@@ -110,9 +123,11 @@ export function createHeightService({ Cesium, viewer, layer = null } = {}) {
 
   const targetTileset = () => {
     if (!layer || layer.visible === false || !layer.tileset) return null
+    if (layer.kind === '3dgs' || layer.tileset.isGaussianSplat === true) return null
     const tileset = layer.tileset
     return typeof tileset.getHeight === 'function' ||
-      (viewer?.scene?.sampleHeightSupported !== false && typeof viewer?.scene?.pickFromRayMostDetailed === 'function')
+      (viewer?.scene?.sampleHeightSupported !== false &&
+        (typeof viewer?.scene?.pickFromRayMostDetailed === 'function' || typeof viewer?.scene?.pickFromRay === 'function'))
       ? tileset
       : null
   }
@@ -155,15 +170,49 @@ export function createHeightService({ Cesium, viewer, layer = null } = {}) {
     return typeof height === 'number' && Number.isFinite(height) ? height : null
   }
 
-  async function fromTilesMostDetailed(carto, tileset, exclude) {
+  function fromTilesLoadedRay(ray, tileset, exclude) {
     const scene = viewer?.scene
-    if (!scene || scene.sampleHeightSupported === false || typeof scene.pickFromRayMostDetailed !== 'function') {
-      return null
+    if (!scene || scene.sampleHeightSupported === false || typeof scene.pickFromRay !== 'function') return null
+    try {
+      const hit = scene.pickFromRay(ray, exclude)
+      if (hit && isTilesetHit(hit.object, tileset)) {
+        const height = heightFromCartesian(hit.position)
+        if (height !== null) return height
+      }
+      // If terrain globe occluded a lower 3D Tiles surface, re-pick once offscreen with globe hidden.
+      const globe = scene.globe
+      if (hit && globe?.show) {
+        const prevShow = globe.show
+        globe.show = false
+        try {
+          const underHit = scene.pickFromRay(ray, exclude)
+          if (underHit && isTilesetHit(underHit.object, tileset)) {
+            const height = heightFromCartesian(underHit.position)
+            if (height !== null) return height
+          }
+        } finally {
+          globe.show = prevShow
+        }
+      }
+    } catch {
+      /* fall back to tileset.getHeight below */
     }
+    return null
+  }
+
+  async function fromTilesMostDetailed(carto, tileset, exclude, { detailed = true, signal = null } = {}) {
+    const scene = viewer?.scene
+    if (!scene || scene.sampleHeightSupported === false) return null
     const ray = skyRayForCarto(carto)
     if (!ray) return null
+    // On a live rendered Cesium3DTileset, synchronous GPU ray-pick hits the
+    // visible mesh directly (~0.5 ms) instead of queuing hundreds of async
+    // most-detailed tile streams + postRender waits.
+    const preferLoadedGpu = !detailed || (tileset?.isCesium3DTileset === true && typeof scene.pickFromRay === 'function')
+    if (preferLoadedGpu) return fromTilesLoadedRay(ray, tileset, exclude)
+    if (typeof scene.pickFromRayMostDetailed !== 'function') return fromTilesLoadedRay(ray, tileset, exclude)
     try {
-      const hit = await withTimeout(scene.pickFromRayMostDetailed(ray, exclude))
+      const hit = await withTimeout(scene.pickFromRayMostDetailed(ray, exclude), PROBE_TIMEOUT_MS, signal)
       if (hit && isTilesetHit(hit.object, tileset)) {
         const height = heightFromCartesian(hit.position)
         if (height !== null) return height
@@ -184,16 +233,18 @@ export function createHeightService({ Cesium, viewer, layer = null } = {}) {
         }
       }
     } catch {
+      const loaded = fromTilesLoadedRay(ray, tileset, exclude)
+      if (loaded !== null) return loaded
       /* fall back to tileset.getHeight below */
     }
     return null
   }
 
-  async function fromTiles(carto, exclude = null) {
+  async function fromTiles(carto, exclude = null, options = {}) {
     const tileset = targetTileset()
     if (!tileset) return null
     const excluded = exclude ?? collectExcludedPrimitives(viewer?.scene, tileset)
-    const detailed = await fromTilesMostDetailed(carto, tileset, excluded)
+    const detailed = await fromTilesMostDetailed(carto, tileset, excluded, options)
     if (detailed !== null) return detailed
     if (typeof tileset.getHeight !== 'function') return null
     try {
@@ -217,7 +268,7 @@ export function createHeightService({ Cesium, viewer, layer = null } = {}) {
     return null
   }
 
-  async function probeBatch(pending, heightMode) {
+  async function probeBatch(pending, heightMode, { detailed = true, signal = null } = {}) {
     const resolved = new Map()
     if (pending.length === 0) return resolved
     if (heightMode === 'terrain') {
@@ -226,19 +277,19 @@ export function createHeightService({ Cesium, viewer, layer = null } = {}) {
         return resolved
       }
       const provider = terrainProvider()
-      let detailed = null
-      if (typeof Cesium?.sampleTerrainMostDetailed === 'function' && typeof Cesium?.Cartographic === 'function') {
+      let sampled = null
+      if (detailed && typeof Cesium?.sampleTerrainMostDetailed === 'function' && typeof Cesium?.Cartographic === 'function') {
         try {
           const copies = pending.map((item) => new Cesium.Cartographic(item.carto.longitude, item.carto.latitude, 0))
-          await withTimeout(Cesium.sampleTerrainMostDetailed(provider, copies))
-          detailed = copies
+          await withTimeout(Cesium.sampleTerrainMostDetailed(provider, copies), PROBE_TIMEOUT_MS, signal)
+          sampled = copies
         } catch {
-          detailed = null
+          sampled = null
         }
       }
       for (let index = 0; index < pending.length; index += 1) {
         const item = pending[index]
-        const sampledHeight = detailed?.[index]?.height
+        const sampledHeight = sampled?.[index]?.height
         const height =
           typeof sampledHeight === 'number' && Number.isFinite(sampledHeight)
             ? sampledHeight
@@ -254,14 +305,27 @@ export function createHeightService({ Cesium, viewer, layer = null } = {}) {
       return resolved
     }
     const exclude = collectExcludedPrimitives(viewer?.scene, tileset)
-    for (let offset = 0; offset < pending.length; offset += TILES_BATCH_SIZE) {
-      const chunk = pending.slice(offset, offset + TILES_BATCH_SIZE)
-      await Promise.all(
-        chunk.map(async (item) => {
-          const height = await fromTiles(item.carto, exclude)
+    const fastGpu = (!detailed || tileset?.isCesium3DTileset === true) && typeof viewer?.scene?.pickFromRay === 'function'
+    const batchSize = fastGpu ? 64 : TILES_BATCH_SIZE
+    for (let offset = 0; offset < pending.length; offset += batchSize) {
+      if (signal?.aborted) break
+      const chunk = pending.slice(offset, offset + batchSize)
+      if (fastGpu) {
+        for (const item of chunk) {
+          const height = await fromTiles(item.carto, exclude, { detailed: false, signal })
           resolved.set(item.key, height !== null ? { height, source: 'tiles' } : null)
-        }),
-      )
+        }
+        if (offset + batchSize < pending.length && typeof requestAnimationFrame === 'function') {
+          await new Promise((done) => setTimeout(done, 0))
+        }
+      } else {
+        await Promise.all(
+          chunk.map(async (item) => {
+            const height = await fromTiles(item.carto, exclude, { detailed, signal })
+            resolved.set(item.key, height !== null ? { height, source: 'tiles' } : null)
+          }),
+        )
+      }
     }
     return resolved
   }
@@ -283,7 +347,7 @@ export function createHeightService({ Cesium, viewer, layer = null } = {}) {
    *   - `tiles`   3D Tiles surface only (most-detailed ray pick + `tileset.getHeight` fallback);
    *   - `terrain` terrain provider only (`sampleTerrainMostDetailed` + `globe.getHeight` fallback).
    */
-  async function sample(carto, { mode = 'tiles' } = {}) {
+  async function sample(carto, { mode = 'tiles', detailed = true, signal = null } = {}) {
     if (!carto) return null
     const heightMode = mode === 'terrain' ? 'terrain' : 'tiles'
     const key = cacheKey(carto, heightMode)
@@ -295,7 +359,7 @@ export function createHeightService({ Cesium, viewer, layer = null } = {}) {
       if (terrain !== null) result = { height: terrain, source: 'terrain' }
       else warnings.add('terrain_height_unavailable')
     } else {
-      const tiles = await fromTiles(carto)
+      const tiles = await fromTiles(carto, null, { detailed, signal })
       if (tiles !== null) {
         result = { height: tiles, source: 'tiles' }
         warnings.add('surface_height_from_tiles')
@@ -312,7 +376,7 @@ export function createHeightService({ Cesium, viewer, layer = null } = {}) {
    * Sample many positions in parallel GPU pick batches (`tiles`) or via
    * `sampleTerrainMostDetailed` (`terrain`) with deduplication and a hard budget.
    */
-  async function sampleMany(cartos, { mode = 'tiles', budget = DEFAULT_SAMPLE_BUDGET } = {}) {
+  async function sampleMany(cartos, { mode = 'tiles', budget = DEFAULT_SAMPLE_BUDGET, detailed = true, signal = null } = {}) {
     const list = Array.isArray(cartos) ? cartos : []
     const heightMode = mode === 'terrain' ? 'terrain' : 'tiles'
     const limit = Math.min(list.length, budget)
@@ -338,7 +402,7 @@ export function createHeightService({ Cesium, viewer, layer = null } = {}) {
       }
     }
 
-    const resolved = await probeBatch(pending, heightMode)
+    const resolved = await probeBatch(pending, heightMode, { detailed, signal })
     const values = new Array(limit)
     for (let index = 0; index < limit; index += 1) {
       const slot = slots[index]

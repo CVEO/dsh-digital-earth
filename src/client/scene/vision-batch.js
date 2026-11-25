@@ -26,13 +26,30 @@ export const PARSE_DEDUPE_IOU = 0.5
 export const PARSE_CLASSES = ['building', 'vegetation', 'water', 'road', 'vehicle', 'other']
 export const PARSE_FLOOR_HEIGHT_M = 3.0
 const AOI_SELECTION_KINDS = new Set(['rectangle', 'lasso', 'area', 'vision'])
+const CAMERA_LOCK_FLAGS = ['enableInputs', 'enableRotate', 'enableTranslate', 'enableZoom', 'enableTilt', 'enableLook']
+const EXTRUDABLE_CLASSES = new Set(['building'])
 const EXTERIOR_RING_RADII_M = [6, 14]
 const BATCH_NAME_KEYS = new Set(['name', 'label', 'building_name', 'bldg_name', 'title', '名称', '建筑名称'])
 const BATCH_HEIGHT_KEYS = new Set(['height', 'height_m', 'building_height', 'bldg_height', 'h', '建筑高度', '高度'])
 const BATCH_FLOOR_KEYS = new Set(['floors', 'floor', 'levels', 'num_floors', 'stories', 'storeys', '楼层', '层数', '地上层数'])
 
-function sceneLoading(getLayers) {
-  return getLayers().some((layer) => layer?.visible !== false && layer?.tileset?.tilesLoaded === false)
+function hasReadyTilesetContent(tileset) {
+  if (!tileset) return false
+  if (tileset.tilesLoaded === true) return true
+  const stats = tileset.statistics
+  if (!stats) return false
+  return Number(stats.numberOfTilesWithContentReady ?? stats.numberOfTilesLoaded ?? 0) > 0 ||
+    Number(stats.numberOfTrianglesSelected ?? 0) > 0
+}
+
+function sceneLoading(scene, getLayers) {
+  const visibleLayers = (typeof getLayers === 'function' ? getLayers() : []).filter((layer) => layer?.visible !== false && layer?.tileset)
+  if (visibleLayers.length > 0) {
+    return visibleLayers.some((layer) => layer.tileset.tilesLoaded === false && !hasReadyTilesetContent(layer.tileset))
+  }
+  if (scene?.globe?.tilesLoaded !== false) return false
+  const renderedGlobeTiles = scene.globe?._surface?._tilesToRender?.length
+  return !(typeof renderedGlobeTiles === 'number' && renderedGlobeTiles > 0)
 }
 
 /** True when a viewer selection describes a ground polygon usable as an AOI crop. */
@@ -107,12 +124,90 @@ export function computeSelectionScreenCrop(viewer, Cesium, selection, { padPx = 
   }
 }
 
-/** Viewport or AOI screenshot (keeps crop bounds so vision-frame projects back accurately). */
+function captureViewSignature(viewer) {
+  const canvas = viewer?.canvas
+  const scene = viewer?.scene
+  const camera = viewer?.camera
+  const frustum = camera?.frustum
+  return [
+    canvas?.width,
+    canvas?.height,
+    canvas?.clientWidth,
+    canvas?.clientHeight,
+    scene?.mode,
+    ...['fov', 'aspectRatio', 'near', 'far', 'width', 'left', 'right', 'top', 'bottom', 'xOffset', 'yOffset'].map(
+      (key) => frustum?.[key],
+    ),
+    ...Array.from(camera?.viewMatrix ?? []),
+  ]
+}
+
+function sameViewSignature(initial, current) {
+  if (initial.length !== current.length) return false
+  for (let i = 0; i < initial.length; i += 1) {
+    const a = initial[i]
+    const b = current[i]
+    if (Object.is(a, b)) continue
+    if (typeof a === 'number' && typeof b === 'number' && Math.abs(a - b) <= 1e-5) continue
+    return false
+  }
+  return true
+}
+
+function selectionLonLatRing(selection, Cesium) {
+  if (Array.isArray(selection?.ring) && selection.ring.length >= 3) return selection.ring
+  if (!Array.isArray(selection?.positions) || selection.positions.length < 3) return null
+  if (typeof Cesium?.Cartographic?.fromCartesian !== 'function' || typeof Cesium?.Math?.toDegrees !== 'function') return null
+  const ring = []
+  for (const cartesian of selection.positions) {
+    try {
+      const carto = Cesium.Cartographic.fromCartesian(cartesian)
+      if (!carto || !Number.isFinite(carto.longitude) || !Number.isFinite(carto.latitude)) continue
+      ring.push([Cesium.Math.toDegrees(carto.longitude), Cesium.Math.toDegrees(carto.latitude)])
+    } catch { /* skip unconvertible vertex */ }
+  }
+  return ring.length >= 3 ? ring : null
+}
+
+function openRing(ring) {
+  if (!Array.isArray(ring) || ring.length < 3) return []
+  const last = ring[ring.length - 1]
+  if (ring.length > 3 && last && ring[0] && last[0] === ring[0][0] && last[1] === ring[0][1]) {
+    return ring.slice(0, -1)
+  }
+  return ring
+}
+
+/** True when a projected feature's centroid or at least 40% of its vertices fall inside the AOI ring. */
+export function isFeatureInsideAoi(ring, aoiRing) {
+  const openAoi = openRing(aoiRing)
+  const open = openRing(ring)
+  if (openAoi.length < 3) return true
+  if (open.length < 3) return false
+  let cx = 0
+  let cy = 0
+  let insideCount = 0
+  for (const pt of open) {
+    if (!Array.isArray(pt) || !Number.isFinite(pt[0]) || !Number.isFinite(pt[1])) continue
+    cx += pt[0]
+    cy += pt[1]
+    if (containsVisionPoint(openAoi, pt)) insideCount += 1
+  }
+  cx /= open.length
+  cy /= open.length
+  return containsVisionPoint(openAoi, [cx, cy]) || insideCount / open.length >= 0.4
+}
+
+function isExtrudableClass(kind) {
+  return !kind || EXTRUDABLE_CLASSES.has(kind)
+}
+
+/** Viewport or AOI screenshot (locks camera & guards view invariance so projections never drift). */
 export function captureSceneFrame({ viewer, Cesium, getLayers = () => [], selection = null, scope = 'view' }) {
   if (!viewer?.scene || viewer.isDestroyed?.()) throw visionError('not_ready')
   const canvas = viewer.canvas, scene = viewer.scene
   if (typeof document === 'undefined' || !canvas?.clientWidth || !canvas?.clientHeight || document.visibilityState === 'hidden') throw visionError('not_ready')
-  if (sceneLoading(getLayers) || scene.globe?.tilesLoaded === false) throw visionError('scene_loading')
+  if (sceneLoading(scene, getLayers)) throw visionError('scene_loading')
   const cssWidth = canvas.clientWidth, cssHeight = canvas.clientHeight
   const effectiveScope = scope === 'aoi' ? 'aoi' : 'view'
   let crop = { left: 0, top: 0, width: cssWidth, height: cssHeight }
@@ -121,45 +216,80 @@ export function captureSceneFrame({ viewer, Cesium, getLayers = () => [], select
     const aoiBounds = computeSelectionScreenCrop(viewer, Cesium, selection)
     if (!aoiBounds.ok) throw visionError(aoiBounds.reason === 'no_selection' ? 'no_selection' : 'aoi_offscreen')
     crop = aoiBounds.crop
-    aoi = { kind: aoiBounds.kind, area_m2: aoiBounds.area_m2, crop }
+    aoi = { kind: aoiBounds.kind, area_m2: aoiBounds.area_m2, crop, ring: selectionLonLatRing(selection, Cesium) }
   }
-  viewer.camera.cancelFlight?.()
-  viewer.render()
-  const scaleX = canvas.width / cssWidth, scaleY = canvas.height / cssHeight
-  const srcX = Math.max(0, Math.round(crop.left * scaleX))
-  const srcY = Math.max(0, Math.round(crop.top * scaleY))
-  const sourceWidth = Math.max(1, Math.min(canvas.width - srcX, Math.round(crop.width * scaleX)))
-  const sourceHeight = Math.max(1, Math.min(canvas.height - srcY, Math.round(crop.height * scaleY)))
-  const scale = Math.min(1, 1024 / Math.max(sourceWidth, sourceHeight))
-  const image = document.createElement('canvas')
-  image.width = Math.max(32, Math.round(sourceWidth * scale))
-  image.height = Math.max(32, Math.round(sourceHeight * scale))
-  const context = image.getContext('2d')
-  if (!context) throw visionError('not_ready')
-  context.drawImage(canvas, srcX, srcY, sourceWidth, sourceHeight, 0, 0, image.width, image.height)
-  const dataUrl = image.toDataURL('image/jpeg', 0.82)
-  if (dataUrl.length > 2_000_000) throw visionError('too_large')
-  return {
-    id: globalThis.crypto?.randomUUID?.() ?? `frame-${Date.now()}`,
-    dataUrl, width: image.width, height: image.height,
-    crop,
-    scope: effectiveScope,
-    aoi,
-    cssWidth, cssHeight, viewer, Cesium, point: [0.5, 0.5],
-    isValid: () => !viewer.isDestroyed?.(),
-    release: () => {},
+  const control = scene.screenSpaceCameraController
+  const savedCamera = control
+    ? Object.fromEntries(CAMERA_LOCK_FLAGS.filter((key) => typeof control[key] === 'boolean').map((key) => [key, control[key]]))
+    : {}
+  let released = false
+  const release = () => {
+    if (released) return
+    released = true
+    if (!viewer.isDestroyed?.() && control) {
+      for (const [key, value] of Object.entries(savedCamera)) {
+        try { control[key] = value } catch { /* best effort */ }
+      }
+      try { scene.requestRender?.() } catch { /* best effort */ }
+    }
+  }
+  try {
+    for (const key of Object.keys(savedCamera)) control[key] = false
+    viewer.camera.cancelFlight?.()
+    viewer.render()
+    const scaleX = canvas.width / cssWidth, scaleY = canvas.height / cssHeight
+    const srcX = Math.max(0, Math.round(crop.left * scaleX))
+    const srcY = Math.max(0, Math.round(crop.top * scaleY))
+    const sourceWidth = Math.max(1, Math.min(canvas.width - srcX, Math.round(crop.width * scaleX)))
+    const sourceHeight = Math.max(1, Math.min(canvas.height - srcY, Math.round(crop.height * scaleY)))
+    const exactCrop = scaleX > 0 && scaleY > 0
+      ? { left: srcX / scaleX, top: srcY / scaleY, width: sourceWidth / scaleX, height: sourceHeight / scaleY }
+      : crop
+    if (aoi) aoi.crop = exactCrop
+    const scale = Math.min(1, 1024 / Math.max(sourceWidth, sourceHeight))
+    const image = document.createElement('canvas')
+    image.width = Math.max(32, Math.round(sourceWidth * scale))
+    image.height = Math.max(32, Math.round(sourceHeight * scale))
+    const context = image.getContext('2d')
+    if (!context) throw visionError('not_ready')
+    context.drawImage(canvas, srcX, srcY, sourceWidth, sourceHeight, 0, 0, image.width, image.height)
+    const dataUrl = image.toDataURL('image/jpeg', 0.82)
+    if (dataUrl.length > 2_000_000) throw visionError('too_large')
+    const initialSignature = captureViewSignature(viewer)
+    return {
+      id: globalThis.crypto?.randomUUID?.() ?? `frame-${Date.now()}`,
+      dataUrl, width: image.width, height: image.height,
+      crop: exactCrop,
+      scope: effectiveScope,
+      aoi,
+      cssWidth, cssHeight, viewer, Cesium, point: [0.5, 0.5],
+      isValid: () => {
+        if (released || viewer.isDestroyed?.()) return false
+        try {
+          return sameViewSignature(initialSignature, captureViewSignature(viewer))
+        } catch {
+          return false
+        }
+      },
+      release,
+    }
+  } catch (error) {
+    release()
+    throw error
   }
 }
 
 /** POST the frame to the page-only batch route and return the validated object list. */
-export async function requestSceneParse(url, { frame, signal, fetchImpl = globalThis.fetch } = {}) {
+export async function requestSceneParse(url, { frame, classes = null, signal, fetchImpl = globalThis.fetch } = {}) {
   if (typeof url !== 'string' || !url) throw visionError('unavailable')
   if (typeof fetchImpl !== 'function') throw visionError('unavailable')
+  const body = { frameId: frame.id, image: frame.dataUrl, scope: frame.scope === 'aoi' ? 'aoi' : 'view' }
+  if (Array.isArray(classes) && classes.length > 0) body.classes = classes
   const response = await fetchImpl(url, {
     method: 'POST',
     credentials: 'same-origin',
     headers: { 'content-type': 'application/json', 'x-dsh-panel': 'vision-batch' },
-    body: JSON.stringify({ frameId: frame.id, image: frame.dataUrl, scope: frame.scope === 'aoi' ? 'aoi' : 'view' }),
+    body: JSON.stringify(body),
     signal,
   })
   const payload = await response.json().catch(() => null)
@@ -361,8 +491,10 @@ export function extractFeatureMetadataAtAnchor(frame, center) {
  * that cannot reach the ground are reported, not silently dropped.
  */
 export function projectBatchObjects(frame, objects, { t } = {}) {
+  if (typeof frame?.isValid === 'function' && !frame.isValid()) throw visionError('scene_changed')
   const features = []
   let skipped = 0
+  const aoiRing = frame?.scope === 'aoi' && Array.isArray(frame?.aoi?.ring) ? frame.aoi.ring : null
   for (const object of Array.isArray(objects) ? objects : []) {
     if (!Array.isArray(object.polygon) || object.polygon.length < 3) { skipped += 1; continue }
     const center = batchPolygonAnchor(object.polygon)
@@ -372,12 +504,14 @@ export function projectBatchObjects(frame, objects, { t } = {}) {
     let projected
     try {
       projected = projectVisionPolygon(subframe, { polygon: object.polygon })
-    } catch {
+    } catch (error) {
+      if (error?.code === 'scene_changed') throw error
       skipped += 1
       continue
     }
     const ring = projected.ring
     if (!Array.isArray(ring) || ring.length < 4) { skipped += 1; continue }
+    if (aoiRing && !isFeatureInsideAoi(ring, aoiRing)) { skipped += 1; continue }
     const kind = PARSE_CLASSES.includes(object.class) ? object.class : 'other'
     const index = features.length + 1
     const metrics = estimateCandidateMetrics(projected, sampleAnchorHeight(frame, center))
@@ -504,7 +638,7 @@ export async function refineBatchMetricsWithHeightService(frame, features, { get
     return { features: list, refined: 0, height_source: 'scene_depth' }
   }
   const primaryMode = canSampleTiles ? 'tiles' : 'terrain'
-  const run = await heightService.sampleMany(cartos, { mode: primaryMode })
+  const run = await heightService.sampleMany(cartos, { mode: primaryMode, detailed: false })
   const buckets = list.map(() => ({ interior: [], exterior: [] }))
   for (let i = 0; i < (run.values?.length ?? 0); i += 1) {
     const sample = run.values[i]
@@ -671,7 +805,7 @@ export function applyExtrusionToFeatures(features, extrude = false) {
     const base = typeof props.ground_height_m === 'number' && Number.isFinite(props.ground_height_m) ? props.ground_height_m : null
     const roof = typeof props.roof_height_m === 'number' && Number.isFinite(props.roof_height_m) ? props.roof_height_m : null
     const rel = typeof props.height_m === 'number' && Number.isFinite(props.height_m) ? props.height_m : null
-    if (extrude && ((roof !== null && base !== null && roof > base) || (rel !== null && rel > 0))) {
+    if (extrude && isExtrudableClass(props.class) && ((roof !== null && base !== null && roof > base) || (rel !== null && rel > 0))) {
       props.extruded = true
       props.extruded_height_m = roof !== null && base !== null && roof > base ? roof : (base ?? 0) + rel
     } else {
@@ -682,7 +816,7 @@ export function applyExtrusionToFeatures(features, extrude = false) {
   })
 }
 
-/** Preview outlines (plus optional 3D extruded preview volumes); never enters snapshots. */
+/** Preview outlines (plus optional 3D extruded building volumes); never enters snapshots. */
 export function drawBatchPreview(Cesium, viewer, features, { extrude = false } = {}) {
   const entities = []
   for (const feature of Array.isArray(features) ? features : []) {
@@ -693,7 +827,7 @@ export function drawBatchPreview(Cesium, viewer, features, { extrude = false } =
     const base = typeof props.ground_height_m === 'number' && Number.isFinite(props.ground_height_m) ? props.ground_height_m : 0
     const rel = typeof props.height_m === 'number' && Number.isFinite(props.height_m) ? props.height_m : 0
     const roof = typeof props.roof_height_m === 'number' && Number.isFinite(props.roof_height_m) ? props.roof_height_m : base + rel
-    const is3d = extrude && roof > base && typeof Cesium?.PolygonHierarchy === 'function'
+    const is3d = extrude && isExtrudableClass(props.class) && roof > base && typeof Cesium?.PolygonHierarchy === 'function'
     const outlineHeight = is3d ? roof : 0
     const positions = ring.map(([lon, lat]) => Cesium.Cartesian3.fromDegrees(lon, lat, outlineHeight))
     try {
@@ -702,6 +836,7 @@ export function drawBatchPreview(Cesium, viewer, features, { extrude = false } =
           positions,
           width: 2,
           clampToGround: !is3d,
+          ...(is3d ? {} : { classificationType: Cesium.ClassificationType?.BOTH }),
           material: Cesium.Color.fromCssColorString(hex).withAlpha(0.95),
         },
       }))
@@ -715,6 +850,15 @@ export function drawBatchPreview(Cesium, viewer, features, { extrude = false } =
             material: Cesium.Color.fromCssColorString(hex).withAlpha(0.28),
             outline: true,
             outlineColor: Cesium.Color.fromCssColorString(outlineHex).withAlpha(0.9),
+          },
+        }))
+      } else if (typeof Cesium?.PolygonHierarchy === 'function') {
+        const hierarchy = new Cesium.PolygonHierarchy(ring.slice(0, -1).map(([lon, lat]) => Cesium.Cartesian3.fromDegrees(lon, lat)))
+        entities.push(viewer.entities.add({
+          polygon: {
+            hierarchy,
+            material: Cesium.Color.fromCssColorString(hex).withAlpha(0.2),
+            classificationType: Cesium.ClassificationType?.BOTH,
           },
         }))
       }

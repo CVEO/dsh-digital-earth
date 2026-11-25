@@ -34,6 +34,7 @@ export function buildTour(bookmarks) {
       id: typeof item.id === 'string' ? item.id : `stop-${stops.length + 1}`,
       name: typeof item.name === 'string' && item.name.trim() !== '' ? item.name.trim().slice(0, 60) : '',
       caption: typeof item.caption === 'string' ? item.caption.trim().slice(0, 120) : '',
+      thumb: typeof item.thumb === 'string' && item.thumb.startsWith('data:image/') ? item.thumb : '',
       view,
     })
   }
