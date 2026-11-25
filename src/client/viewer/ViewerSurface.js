@@ -37,6 +37,7 @@ import { createCommandBridge } from '../scene/command-bridge.js'
 import { createSceneReport } from '../scene/report.js'
 import { createSceneStatus } from '../scene/status.js'
 import { createHostSceneStore } from '../scene/host-scene-store.js'
+import { applyInitialSceneToViewer, initialSceneCoordinator, normalizeInitialScene } from '../scene/initial-scene.js'
 import { applyQuality, normalizeQuality, qualityProfile } from '../scene/quality.js'
 import { createShaderEngine } from '../scene/shader-engine.js'
 import { useEnvironmentDark } from '../theme.js'
@@ -80,7 +81,7 @@ const h = React.createElement
      * `main` panel (no session) and once inside the session-scoped right
      * sidebar tab, where `sessionId` enables the Agent bridge.
      */
-    function ViewerSurface({ t: injectedT, sessionId = null, docked = false }) {
+    function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initialScene = null }) {
       const fallbackT = useTranslation()
       const t = typeof injectedT === 'function' ? injectedT : fallbackT
       const net = createNetwork({ t })
@@ -128,6 +129,10 @@ const h = React.createElement
       const healthSeqRef = React.useRef(0)
       const sessionRef = React.useRef(sessionId)
       sessionRef.current = sessionId
+      const initialScenePropRef = React.useRef(initialScene)
+      initialScenePropRef.current = initialScene
+      const baseCatalogRef = React.useRef(null)
+      const appliedInitSigRef = React.useRef('')
 
       const [phase, setPhase] = React.useState('loading')
       const [error, setError] = React.useState('')
@@ -1174,6 +1179,87 @@ const h = React.createElement
       }
       //#endregion scene snapshot
 
+      function clearLiveSceneForInit() {
+        const viewer = viewerRef.current
+        for (const id of [...shaderEntriesRef.current.keys()]) detachShaderForLayer(id, false)
+        releaseShaderTick()
+        shaderEntriesRef.current.clear()
+        setShaderActive([])
+        for (const layer of layersRef.current) {
+          try { viewer?.scene?.primitives?.remove(layer.tileset) } catch { /* already detached */ }
+        }
+        layersRef.current = []
+        setLayers([])
+        clearMeasure()
+        clearAgentOverlaysInState(agentOverlayRef.current, viewerRef.current, 'all')
+        syncAgentOverlayCount()
+        clearAnalysis()
+        vectorRef.current?.clearSelection?.()
+      }
+
+      function isCleanRasterScene() {
+        return (
+          layersRef.current.length === 0 &&
+          agentOverlayRef.current.draw.length === 0 &&
+          agentOverlayRef.current.measure.length === 0 &&
+          analysisRef.current.operation === null &&
+          analysisCommandRef.current === null &&
+          shaderEntriesRef.current.size === 0 &&
+          measureRef.current.entities.length === 0
+        )
+      }
+
+      function resolveInitialSceneForMount(rawProp, currentSessionId) {
+        const pending = initialSceneCoordinator.consumePending(currentSessionId)
+        if (pending?.active) return pending
+        if (rawProp !== null && rawProp !== undefined) {
+          const normalized = normalizeInitialScene(rawProp, currentSessionId)
+          if (normalized.active) return normalized
+        }
+        return null
+      }
+
+      async function applyInitialScene(normalized, catalogOverride = null) {
+        const catalog = catalogOverride ?? baseCatalogRef.current ?? { config: sourcesRef.current, defaults }
+        const Cesium = cesiumRef.current
+        const viewer = viewerRef.current
+        if (!Cesium || !viewer || !normalized?.active) return { applied: false }
+        return applyInitialSceneToViewer(
+          {
+            Cesium,
+            viewer,
+            baseConfig: catalog.config,
+            defaultsConfig: catalog.defaults,
+            setRestoring: (flag) => {
+              restoringRef.current = flag
+              if (!flag) sceneDirtyRef.current = false
+            },
+            clearLiveScene: clearLiveSceneForInit,
+            setInMemorySources: (nextConfig) => {
+              sourcesRef.current = nextConfig
+              setSources(nextConfig)
+            },
+            applyImagery,
+            syncOverlays: async (list) => {
+              try {
+                await net.withNetworkTimeout(overlayLayersRef.current?.sync(list) ?? Promise.resolve(), 10000)
+              } catch { /* timed-out overlay keeps syncing without blocking panel ready */ }
+            },
+            clearTerrain: () => {
+              try {
+                viewer.terrainProvider = new Cesium.EllipsoidTerrainProvider()
+                setTerrainError('')
+              } catch { /* ignore */ }
+            },
+            markApplied: (signature) => {
+              appliedInitSigRef.current = signature
+              sceneDirtyRef.current = false
+            },
+          },
+          normalized,
+        )
+      }
+
       function layerLabel(tileset) {
         const found = layersRef.current.find((entry) => entry.tileset === tileset)
         return found ? found.name : t('model.unnamed')
@@ -1795,6 +1881,7 @@ const h = React.createElement
             await loadCesiumStyle()
             if (cancelled || !globeRef.current) return
             cesiumRef.current = Cesium
+            baseCatalogRef.current = { config: catalog.config, defaults: catalog.defaults }
             sourcesRef.current = catalog.config
             setSources(catalog.config)
             setDefaults(catalog.defaults)
@@ -1832,12 +1919,16 @@ const h = React.createElement
             // Apply the persisted render tier before the first frame: resolution
             // scale and terrain LOD are the two biggest per-frame costs.
             applyQuality(viewer, catalog.config.settings?.quality)
+            const bootScene = resolveInitialSceneForMount(initialScenePropRef.current, sessionRef.current)
+            const bootRasterOverride = bootScene !== null && (bootScene.hasLayers || bootScene.replaceScene)
             viewer.camera.setView({ destination: Cesium.Cartesian3.fromDegrees(104, 31, 14000000) })
-            await applyImagery(catalog.config.settings.imagery, false)
-            // Terrain metadata can fail or hang (network/proxy); it must not hold the
-            // loading overlay. Start it in the background; the switch itself shows a
-            // toast and falls back to the ellipsoid on failure.
-            if (catalog.config.settings.terrain) void applyTerrain(catalog.config.settings.terrain, false).catch(() => {})
+            if (!bootRasterOverride) {
+              await applyImagery(catalog.config.settings.imagery, false)
+              // Terrain metadata can fail or hang (network/proxy); it must not hold the
+              // loading overlay. Start it in the background; the switch itself shows a
+              // toast and falls back to the ellipsoid on failure.
+              if (catalog.config.settings.terrain) void applyTerrain(catalog.config.settings.terrain, false).catch(() => {})
+            }
             applyGlobeDepthTest()
             // L3 raster overlays: created after the basemap so the stack order is
             // basemap (index 0) -> overlays (appended above). A failed overlay is a
@@ -1850,11 +1941,16 @@ const h = React.createElement
               onError: (error, source) =>
                 showToast(t('toast.overlayFailed', { name: source?.name ?? '', message: message(error) })),
             })
-            try {
-              await net.withNetworkTimeout(overlayLayersRef.current.sync(catalog.config.rasterOverlays ?? []), 10000)
-            } catch {
-              // A hung overlay provider keeps syncing in the background; the panel
-              // becomes ready and the failed overlay reports itself through onError.
+            if (!bootRasterOverride) {
+              try {
+                await net.withNetworkTimeout(overlayLayersRef.current.sync(catalog.config.rasterOverlays ?? []), 10000)
+              } catch {
+                // A hung overlay provider keeps syncing in the background; the panel
+                // becomes ready and the failed overlay reports itself through onError.
+              }
+            }
+            if (bootScene !== null) {
+              await applyInitialScene(bootScene, baseCatalogRef.current)
             }
             const handler = installCanvasInput({
               Cesium,
@@ -1877,12 +1973,13 @@ const h = React.createElement
             // commands wait for this so they cannot race the restored camera. The
             // host store is tried first (it survives origin changes), then the
             // localStorage cache.
-            const savedScene = typeof sessionId === 'string' && sessionId !== '' ? await loadSceneSnapshot(sessionId) : null
+            const savedScene = typeof sessionId === 'string' && sessionId !== '' && !(bootScene?.skipSnapshot) ? await loadSceneSnapshot(sessionId) : null
+            if (savedScene !== null && bootScene?.view) savedScene.view = null
             // Mark the restore decision before phase becomes ready so the late-restore
             // effect does not start a second one. The restore itself runs in the
             // background: a stale or hanging layer load must never keep the loading
             // overlay up (each layer load is timeout-guarded inside restore).
-            sceneRestoredRef.current = typeof sessionId === 'string' && sessionId !== ''
+            sceneRestoredRef.current = (typeof sessionId === 'string' && sessionId !== '') || Boolean(bootScene?.skipSnapshot)
             settleReadyWaiters()
             setPhase('ready')
             if (savedScene !== null && !cancelled) {
@@ -1939,6 +2036,31 @@ const h = React.createElement
         // eslint-disable-next-line react-hooks/exhaustive-deps
       }, [])
 
+      // Register this mounted viewer so explicit open-with-scene calls can
+      // focus/reuse it idempotently or replace live 3D state in place.
+      React.useEffect(() => {
+        if (phase !== 'ready') return undefined
+        return initialSceneCoordinator.registerViewer({
+          getSessionId: () => sessionRef.current,
+          isIdempotentMatch: (signature) =>
+            signature !== '' && appliedInitSigRef.current === signature && isCleanRasterScene(),
+          apply: (normalized) => applyInitialScene(normalized),
+        })
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+      }, [phase])
+
+      // Apply updated serializable initialScene props when the tab stays mounted.
+      React.useEffect(() => {
+        if (phase !== 'ready' || initialScene === null || initialScene === undefined) return undefined
+        const normalized = normalizeInitialScene(initialScene, sessionRef.current)
+        if (!normalized.active) return undefined
+        if (appliedInitSigRef.current === normalized.signature && isCleanRasterScene()) return undefined
+        sceneRestoredRef.current = sceneRestoredRef.current || normalized.skipSnapshot
+        void applyInitialScene(normalized).catch(() => {})
+        return undefined
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+      }, [phase, initialScene])
+
       // A tab body can mount before its session id is known; restore once the
       // viewer is ready and the id arrives (the normal path restores inside the
       // init effect and leaves this no-op).
@@ -1948,8 +2070,16 @@ const h = React.createElement
         sceneRestoredRef.current = true
         let cancelled = false
         void (async () => {
+          const lateScene = initialSceneCoordinator.consumePending(sessionId)
+          if (lateScene?.active) {
+            await applyInitialScene(lateScene)
+            if (lateScene.skipSnapshot) return
+          }
           const snapshot = await loadSceneSnapshot(sessionId)
-          if (!cancelled && snapshot !== null) await restoreSceneSnapshot(snapshot)
+          if (!cancelled && snapshot !== null) {
+            if (lateScene?.view) snapshot.view = null
+            await restoreSceneSnapshot(snapshot)
+          }
         })().catch(() => {})
         return () => {
           cancelled = true

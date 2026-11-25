@@ -7,9 +7,10 @@ import React from 'react'
 
 import { MESSAGES } from './messages.js'
 import { setAppCtx } from './runtime.js'
+import { extractInitialSceneParam, normalizeInitialScene } from './scene/initial-scene.js'
 import { ViewerIcon } from './ui/icons.js'
 import { EarthTabBody, ViewerPanel } from './ui/layout.js'
-import { EarthToolRow, HeaderButton, ensureToolCss, openEarthPanel } from './ui/tool-row.js'
+import { EarthToolRow, HeaderButton, ensureToolCss, openEarthPanel, openEarthPanelWithScene } from './ui/tool-row.js'
 
 const h = React.createElement
 
@@ -27,6 +28,21 @@ const h = React.createElement
         const translate = ctx.locale.bind(NS)
         // The chat rows live outside the panel, so their styles must be global.
         ensureToolCss()
+        // Expose a safe client handle so sibling plugins or host scripts can open
+        // the panel with an explicit initial scene; cleaned up on hot reload.
+        if (typeof window !== 'undefined') {
+          const handle = Object.freeze({
+            openPanel: openEarthPanel,
+            openWithScene: openEarthPanelWithScene,
+            normalizeInitialScene,
+          })
+          ctx.effect(() => {
+            window.__dshDigitalEarth__ = handle
+            return () => {
+              if (window.__dshDigitalEarth__ === handle) delete window.__dshDigitalEarth__
+            }
+          }, 'dsh-digital-earth: client open handle')
+        }
         ctx.slots.inject('sidebar.panellist', () =>
           ctx.slots.register(
             {
@@ -91,8 +107,11 @@ const h = React.createElement
                 // One Digital Earth pane per session: clicking the start-page card
                 // again should focus the existing tab, never stack duplicates.
                 single: true,
-                component: ({ scope: tabScope }) =>
-                  h(EarthTabBody, { t: translate, sessionId: tabScope?.sessionId ?? null }),
+                component: (tabProps = {}) => {
+                  const tabScope = tabProps?.scope
+                  const initialScene = extractInitialSceneParam(tabProps, tabScope)
+                  return h(EarthTabBody, { t: translate, sessionId: tabScope?.sessionId ?? null, initialScene })
+                },
               }),
             'dsh-digital-earth: better-sidebar tab',
           )

@@ -9,6 +9,7 @@ import { loadMeta } from '../api.js'
 import { useTranslation } from '../i18n.js'
 import { readAutoOpen, toolArg } from '../preferences.js'
 import { service } from '../runtime.js'
+import { initialSceneCoordinator, isSceneOpenOptions } from '../scene/initial-scene.js'
 import { TOOL_CSS } from './css.js'
 import { ViewerIcon } from './icons.js'
 
@@ -62,20 +63,67 @@ const h = React.createElement
       document.head.appendChild(tag)
     }
 
-    /** Open the session-scoped earth tab, falling back to the immersive panel. */
-    const openEarthPanel = () => {
+    /** Focus or open the session-scoped earth tab (single-instance), falling back to the immersive panel. */
+    const focusEarthPanelTab = (normalized = null) => {
       // Prefer the chat-adjacent tab so the conversation stays visible; the
       // immersive main panel is only a fallback for hosts without a session.
       try {
         const rightbar = service('sidebarRight')
         if (rightbar && typeof rightbar.openTab === 'function') {
           rightbar.openTab('digital-earth')
-          return
+          return true
         }
       } catch {
-        // No on-screen session: fall through to the immersive panel.
+        // No on-screen session: fall through to betterSidebar or immersive panel.
       }
-      service('layout')?.selectPanel?.('digital-earth')
+      try {
+        const better = service('betterSidebar')
+        if (better && typeof better.openTab === 'function') {
+          const openArgs = normalized?.active
+            ? {
+                params: {
+                  initialScene: {
+                    ...(normalized.view ? { view: normalized.view } : {}),
+                    ...(normalized.layers ? { layers: normalized.layers } : {}),
+                    replaceScene: normalized.replaceScene,
+                  },
+                },
+              }
+            : undefined
+          better.openTab('dsh-digital-earth', openArgs)
+          return true
+        }
+      } catch {
+        // Fall through to the immersive panel.
+      }
+      const layout = service('layout')
+      if (layout && typeof layout.selectPanel === 'function') {
+        layout.selectPanel('digital-earth')
+        return true
+      }
+      return false
+    }
+
+    /**
+     * Explicit entry to open the panel initialized to a caller-supplied scene
+     * (oblique view and/or whitelisted raster layers). Returns a structured
+     * receipt with any ignored entries and idempotent reuse status.
+     */
+    const openEarthPanelWithScene = (options = {}) =>
+      initialSceneCoordinator.dispatch(options, focusEarthPanelTab)
+
+    /**
+     * Open the session-scoped earth tab, falling back to the immersive panel.
+     * Calling with no scene options (including HeaderButton passing sessionId
+     * or EarthToolRow passing a click event) preserves 1.5.2 snapshot restore.
+     */
+    const openEarthPanel = (options) => {
+      if (isSceneOpenOptions(options)) {
+        return openEarthPanelWithScene(options)
+      }
+      initialSceneCoordinator.clearPending(typeof options === 'string' && options !== '' ? options : null)
+      focusEarthPanelTab(null)
+      return undefined
     }
 
     /**
@@ -221,4 +269,4 @@ const h = React.createElement
     }
     //#endregion agent tool rows
 
-export { HeaderButton, ensureToolCss, openEarthPanel, resultFirstLine, SCENE_ACTION_KEYS, TOOL_SUMMARY_KEYS, AUTO_OPENED_CALLS, EarthToolRow }
+export { HeaderButton, ensureToolCss, openEarthPanel, openEarthPanelWithScene, resultFirstLine, SCENE_ACTION_KEYS, TOOL_SUMMARY_KEYS, AUTO_OPENED_CALLS, EarthToolRow }

@@ -7,6 +7,8 @@
  * `{ inject, apply }`.
  */
 import plugin, { apply, inject } from './plugin.js'
+import { normalizeInitialScene } from './scene/initial-scene.js'
+import { openEarthPanel, openEarthPanelWithScene } from './ui/tool-row.js'
 
-export { apply, inject }
+export { apply, inject, openEarthPanel, openEarthPanelWithScene, normalizeInitialScene }
 export default plugin
