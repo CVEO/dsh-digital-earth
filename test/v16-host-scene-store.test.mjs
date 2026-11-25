@@ -62,7 +62,7 @@ test('read：无 sceneUrl 直接返回 null；成功时走 normalize；异常时
   )
 })
 
-test('save：首次写、10 秒内节流、force 强制写、超大 body 不写', async () => {
+test('save：首次写附带 ?session=、10 秒内节流、force 强制写、超大 body 不写', async () => {
   await withFetch(
     async () => ({ ok: true }),
     async (calls) => {
@@ -72,10 +72,26 @@ test('save：首次写、10 秒内节流、force 强制写、超大 body 不写'
       assert.equal(calls.length, 1, '第二次应在节流窗口内被跳过')
       store.saveHostSceneSnapshot('s1', { a: 3 }, true)
       assert.equal(calls.length, 2, 'force 必须绕过节流')
+      assert.equal(calls[0].url, 'https://host/scene?session=s1', 'PUT 请求必须附带 ?session= 查询参数')
+      assert.equal(calls[1].url, 'https://host/scene?session=s1')
       assert.equal(calls[0].options.method, 'PUT')
       assert.equal(calls[0].options.keepalive, true)
       store.saveHostSceneSnapshot('s1', { huge: 'x'.repeat(600 * 1024) }, true)
       assert.equal(calls.length, 2, '超过 512 KB 的 body 不应发送')
+      store.saveHostSceneSnapshot('', { a: 4 }, true)
+      assert.equal(calls.length, 2, '空 session 不应发送 PUT')
+    },
+  )
+
+  await withFetch(
+    async () => ({ ok: true }),
+    async (calls) => {
+      const store = makeStore({
+        getMeta: () => ({ sceneUrl: 'https://host/scene?v=1', token: 'tok' }),
+      })
+      store.saveHostSceneSnapshot('sess/a?b=c', { a: 1 }, true)
+      assert.equal(calls.length, 1)
+      assert.equal(calls[0].url, 'https://host/scene?v=1&session=sess%2Fa%3Fb%3Dc')
     },
   )
 })

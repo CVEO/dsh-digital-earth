@@ -248,6 +248,118 @@ test('P0 非法 JSON（400 invalid json）与非对象 snapshot（400 invalid sn
   await assert.rejects(readFile(host.sceneSnapshotFile(session), 'utf8'), '被拒绝的 PUT 不应落盘')
 })
 
+test('P0 PUT 缺少 query session 时的显式行为：合法 body.session 回退落盘，缺省或非法返回 400，超限返回 413', async () => {
+  const bareUrl = '/api/3dviewer/scene/p0-route-token'
+  const fallbackSession = sessionId('body-fallback')
+  const snapshot = { v: 2, view: { lon: 114.3, lat: 30.5, height: 800, heading: 0, pitch: -45 } }
+
+  // 1) 无 query session、但 body.session 合法：回退读取 body.session 并允许 GET 读回。
+  const { res: putOk } = await callSceneHandler({
+    method: 'PUT',
+    url: bareUrl,
+    chunks: [JSON.stringify({ session: fallbackSession, snapshot })],
+  })
+  assert.equal(putOk.status, 200)
+  const ack = json(putOk)
+  assert.equal(ack.ok, true)
+  const { res: getOk } = await callSceneHandler({ url: sceneUrl(fallbackSession) })
+  assert.equal(getOk.status, 200)
+  assert.deepEqual(json(getOk).snapshot, snapshot)
+
+  // 2) query 与 body 都缺少 session -> 400 missing or invalid session
+  const missingBoth = (await callSceneHandler({
+    method: 'PUT',
+    url: bareUrl,
+    chunks: [JSON.stringify({ snapshot })],
+  })).res
+  assert.equal(missingBoth.status, 400)
+  assert.equal(missingBoth.body, 'missing or invalid session')
+
+  // 3) query 缺失且 body.session 非法 -> 400 missing or invalid session
+  const badBodySession = (await callSceneHandler({
+    method: 'PUT',
+    url: bareUrl,
+    chunks: [JSON.stringify({ session: 'bad session', snapshot })],
+  })).res
+  assert.equal(badBodySession.status, 400)
+  assert.equal(badBodySession.body, 'missing or invalid session')
+
+  // 4) query 显式传入非法 session 时，不得被 body.session 覆盖绕过。
+  const badQuerySession = (await callSceneHandler({
+    method: 'PUT',
+    url: sceneUrl(' '),
+    chunks: [JSON.stringify({ session: sessionId('never-saved'), snapshot })],
+  })).res
+  assert.equal(badQuerySession.status, 400)
+  assert.equal(badQuerySession.body, 'missing or invalid session')
+  await assert.rejects(readFile(host.sceneSnapshotFile(sessionId('never-saved')), 'utf8'))
+
+  // 5) query 缺失且 body 超过 MAX_SCENE_BODY -> 413 payload too large 并销毁请求流。
+  const { req: bigReq, res: bigRes } = await callSceneHandler({
+    method: 'PUT',
+    url: bareUrl,
+    chunks: ['x'.repeat(512 * 1024 + 1)],
+  })
+  assert.equal(bigRes.status, 413)
+  assert.equal(bigRes.body, 'payload too large')
+  assert.equal(bigReq.destroyed, true)
+})
+
+test('P0 客户端 createHostSceneStore 与宿主 sceneSnapshotHandler 真实 PUT→GET 往返', async () => {
+  const { createHostSceneStore } = await import('../src/client/scene/host-scene-store.js')
+  const session = sessionId('client-host-e2e')
+  const snapshot = {
+    v: 2,
+    view: { lon: 114.35, lat: 30.53, height: 600, heading: 12, pitch: -40 },
+    layers: [],
+    annotations: { draw: [], measure: [] },
+  }
+  const seen = []
+  const originalFetch = globalThis.fetch
+  const pending = []
+  globalThis.fetch = (url, options = {}) => {
+    const promise = (async () => {
+      const { res } = await callSceneHandler({
+        method: options.method ?? 'GET',
+        url: String(url),
+        chunks: options.body !== undefined ? [String(options.body)] : [],
+      })
+      seen.push({ method: options.method ?? 'GET', url: String(url), status: res.status, body: res.body })
+      return {
+        ok: res.status >= 200 && res.status < 300,
+        status: res.status,
+        json: async () => JSON.parse(res.body),
+      }
+    })()
+    pending.push(promise)
+    return promise
+  }
+  try {
+    const store = createHostSceneStore({
+      getMeta: () => ({ sceneUrl: '/api/3dviewer/scene/p0-route-token', token: 'p0-route-token' }),
+      loadMeta: async () => ({ sceneUrl: '/api/3dviewer/scene/p0-route-token', token: 'p0-route-token' }),
+      normalizeSceneSnapshot: (raw) => (raw ? { ...raw } : null),
+      readSceneSnapshot: () => null,
+      writeSceneSnapshot: () => null,
+    })
+
+    store.saveHostSceneSnapshot(session, snapshot, true)
+    await Promise.all(pending)
+    assert.equal(seen.length, 1)
+    assert.equal(seen[0].method, 'PUT')
+    assert.equal(seen[0].url, `/api/3dviewer/scene/p0-route-token?session=${encodeURIComponent(session)}`)
+    assert.equal(seen[0].status, 200, '客户端 PUT 必须命中 200，不得再静默 400')
+
+    const restored = await store.readHostSceneSnapshot(session)
+    assert.equal(seen.length, 2)
+    assert.equal(seen[1].status, 200)
+    assert.deepEqual(restored.view, snapshot.view)
+    assert.equal(typeof restored.savedAt, 'string')
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+})
+
 // ---------------------------------------------------------------------------
 // 2) renderEarthCommandStatus：一屏摘要 + 空输入容忍
 // ---------------------------------------------------------------------------

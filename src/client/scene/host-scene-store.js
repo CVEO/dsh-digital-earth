@@ -63,6 +63,7 @@ export function createHostSceneStore({
   function saveHostSceneSnapshot(session, body, force = false) {
     const meta = metaRef.current
     if (!meta?.sceneUrl) return
+    if (typeof session !== 'string' || session === '') return
     const now = Date.now()
     if (!force && now - lastHostSceneSaveRef.current < saveIntervalMs) {
       pendingPayload = { session, body }
@@ -92,8 +93,10 @@ export function createHostSceneStore({
     }
     // Mirror the host body limit so an oversized scene stays local-only.
     if (text.length > maxBodyLength) return
+    const separator = meta.sceneUrl.includes('?') ? '&' : '?'
+    const url = `${meta.sceneUrl}${separator}session=${encodeURIComponent(session)}`
     try {
-      void fetch(meta.sceneUrl, {
+      void fetch(url, {
         method: 'PUT',
         credentials: 'same-origin',
         headers: { 'content-type': 'application/json' },
