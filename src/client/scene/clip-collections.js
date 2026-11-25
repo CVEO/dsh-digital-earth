@@ -81,6 +81,28 @@ export function setClipPlane(collection, plane) {
 }
 
 /**
+ * Pre-flight check used before an analysis replaces a previous clip result.
+ *
+ * Returns `null` when the analysis owner may (re)take the collection, or one of
+ * `'swipe'` / `'foreign'` so the caller can fail *before* clearing its old
+ * result. A foreign collection (another plugin assigned its own) is never
+ * touched, and a swipe comparison keeps its ownership.
+ */
+export function clipConflictOf(tileset) {
+  const entry = liveEntry(tileset)
+  if (entry && entry.owner !== null && entry.owner !== CLIP_OWNER_ANALYSIS) return 'swipe'
+  const registered = entry?.collection ?? null
+  let assigned = null
+  try {
+    assigned = tileset?.clippingPlanes ?? null
+  } catch {
+    assigned = null
+  }
+  if (assigned !== null && assigned !== registered) return 'foreign'
+  return null
+}
+
+/**
  * Take ownership of the tileset's clipping collection, creating it on first use.
  *
  * Returns `{ ok: true, collection, reused }`, or `{ ok: false, reason, owner }`

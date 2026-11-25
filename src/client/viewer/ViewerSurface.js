@@ -6,7 +6,7 @@
  */
 import React from 'react'
 import { createAnalysisEngine } from '../analysis/engine.js'
-import { buildAgentOverlayDetails, buildAgentOverlayExtrusions, buildAgentOverlayList, clearAgentOverlays as clearAgentOverlaysInState, flyToAgentOverlay, flyToBbox, flyToOverlayFeature, manualMeasurementRow, overlayRowsWithEntities, removeAgentOverlay, removeAgentOverlayRows } from '../scene/agent-overlays.js'
+import { buildAgentOverlayDetails, buildAgentOverlayExtrusions, buildAgentOverlayList, clearAgentOverlays as clearAgentOverlaysInState, flyToAgentOverlay, flyToBbox, flyToOverlayFeature, manualMeasurementRow, overlayOriginOf, overlayRowsWithEntities, overlayStats, removeAgentOverlay, removeAgentOverlayRows } from '../scene/agent-overlays.js'
 import { ACCESS_TIMEOUT_MS, imageryProvider, loadCesium, loadCesiumStyle, loadMeta, loadSources, persistSources, scanLocalDirectory, terrainProvider } from '../api.js'
 import { sampleCursor } from '../cursor.js'
 import { arrayBufferToBase64, b64url, clone, escapeHtml, formatArea, formatDistance, formatHeight, formatValue, geodesicLength, message, planarArea, redactUrl } from '../format.js'
@@ -47,10 +47,12 @@ import { HealthDialog, PathAccessDialog, ScanDialog, SourcesDialog } from '../ui
 import { UrlBar } from '../ui/url-bar.js'
 import { Compass } from '../ui/compass.js'
 import { StatusHud } from '../ui/hud.js'
-import { AskAgentIcon, FullscreenIcon, HudIcon, ResetIcon, ScreenshotIcon, ShaderIcon, ViewerIcon } from '../ui/icons.js'
+import { ViewerIcon } from '../ui/icons.js'
 import { ToolbarQuick } from '../ui/toolbar-quick.js'
-import { ToolbarMenus } from '../ui/toolbar-menus.js'
+import { ToolbarSettings } from '../ui/toolbar-settings.js'
+import { outputMenuItems } from '../ui/toolbar-output.js'
 import { RightStack } from '../ui/right-stack.js'
+import { useEscapeLayer } from '../ui/escape-stack.js'
 import { useToolWorkspace } from '../ui/tool-workspace.js'
 import { LoadingGlobe } from '../ui/loading-globe.js'
 import { SelectionOverlay } from '../ui/selection-overlay.js'
@@ -62,6 +64,7 @@ import { useWorkbenchWiring } from '../ui/use-workbench.js'
 import { createLocalDirectoryWiring, formatScanFailure } from '../ui/workbench-wiring.js'
 import { MenuItem } from '../ui/menu-item.js'
 import { dataMenuItems } from '../ui/data-menu.js'
+import { useConfirm } from '../ui/confirm-dialog.js'
 import { readRecentUrls, recentUrlLabel, rememberRecentUrl, writeRecentUrls } from '../ui/recent-urls.js'
 import { hasVectorFile, isVectorDrag, readVectorFiles } from '../scene/vector-file.js'
 import { vectorErrorText } from '../scene/vector-errors.js'
@@ -74,6 +77,16 @@ import { createVectorExport } from '../scene/vector-export-service.js'
 import { createNetwork } from '../scene/network.js'
 import { createProfileEdit } from '../scene/profile-edit.js'
 const h = React.createElement
+
+// Canvas tool mode → the tool window that owns it. Used to end a tool when its
+// window closes (audit A7). Modes not listed here (identify) stay active.
+const TOOL_WINDOW_OF_MODE = {
+  distance: 'measure',
+  area: 'measure',
+  height: 'measure',
+  profile: 'analysis',
+  annotate: 'annotation',
+}
 
     /**
      * The globe surface itself. It is mounted twice: once as the immersive
@@ -159,8 +172,23 @@ const h = React.createElement
       const [profileHover, setProfileHover] = React.useState(null)
       const [shaderOpen, setShaderOpen] = React.useState(false)
       const [showTools, setShowTools] = React.useState(true)
+      const [activePanelTab, setActivePanelTab] = React.useState('layers')
+      // v1.6.2 Batch D: 图层/工具 toolbar entries focus a dock tab instead of
+      // toggling an independently stacked card. The dock decides whether this
+      // request activates a tab or closes the already-active panel.
+      const [dockRequest, setDockRequest] = React.useState(null)
+      const requestDock = (kind) => setDockRequest((prev) => ({ kind, seq: (prev?.seq ?? 0) + 1 }))
       const [toolRequest, setToolRequest] = React.useState(null)
       const workspace = useToolWorkspace(toolRequest)
+      // A7: closing a tool window must end the canvas tool it owns. Without this
+      // the profile/annotation tool kept intercepting clicks with only Esc as an
+      // escape hatch (and the measure strip looked like the tool was gone).
+      React.useEffect(() => {
+        const owner = TOOL_WINDOW_OF_MODE[tool]
+        if (!owner) return
+        if (workspace.windows.some((item) => item.id === owner)) return
+        setToolMode(null)
+      }, [tool, workspace.windows])
       const [, setOverlayRev] = React.useState(0)
       const [shaderActive, setShaderActive] = React.useState([])
       const [shaderForm, setShaderForm] = React.useState({
@@ -186,6 +214,9 @@ const h = React.createElement
       const [bridgeOn, setBridgeOn] = React.useState(false)
       const [bridgeReload, setBridgeReload] = React.useState(false)
       const [bridgeEpoch, setBridgeEpoch] = React.useState(0)
+      // Destructive panel actions ask through this promise-based dialog: focus
+      // trap, safe default and an explicit scope line (P0 audit A1/A4).
+      const { confirm, dialog: confirmDialog } = useConfirm()
 
       const themeMode = sources?.settings?.theme ?? 'auto'
       const resolvedDark = themeMode === 'auto' ? environmentDark : themeMode === 'dark'
@@ -844,9 +875,10 @@ const h = React.createElement
 
       // Local vector import (file picker or drop on the globe): draw through the
       // same overlay renderer as earth_draw, then refresh counts/snapshot state.
+      // The 'import' origin keeps these features out of every Agent clear sweep.
       const importVectorData = (parsed, name) => {
         try {
-          runVectorImport(agentOverlayRef.current, viewerRef.current, () => drawAgentOverlay(cesiumRef.current, viewerRef.current, parsed.geojson, 'accent', `GeoJSON: ${name}`))
+          runVectorImport(agentOverlayRef.current, viewerRef.current, () => drawAgentOverlay(cesiumRef.current, viewerRef.current, parsed.geojson, 'accent', `GeoJSON: ${name}`, 'import'))
           syncAgentOverlayCount()
           markSceneDirty()
           saveSceneSnapshot(true)
@@ -858,11 +890,15 @@ const h = React.createElement
       }
 
       // Clear/remove helpers live in src/client/scene/agent-overlays.js.
-      const clearAgentOverlays = (kind = 'all') => {
-        clearAgentOverlaysInState(agentOverlayRef.current, viewerRef.current, kind)
+      // `options.origin` scopes a sweep to Agent/user/import data; the panel's own
+      // destructive entries pass an explicit origin so an Agent request can never
+      // wipe what the user imported or drew.
+      const clearAgentOverlays = (kind = 'all', options = {}) => {
+        const outcome = clearAgentOverlaysInState(agentOverlayRef.current, viewerRef.current, kind, options)
         syncAgentOverlayCount()
         markSceneDirty()
         saveSceneSnapshot(true)
+        return outcome
       }
 
       // F2: rename / note / delete / export one drawn feature.
@@ -870,7 +906,8 @@ const h = React.createElement
         stateRef: agentOverlayRef,
         viewerRef,
         getSelection: () => vectorSelection,
-        draw: (geojson, style, caption) => drawAgentOverlay(cesiumRef.current, viewerRef.current, geojson, style, caption),
+        // Replays keep the command's own origin; a brand-new annotation is user data.
+        draw: (geojson, style, caption, origin) => drawAgentOverlay(cesiumRef.current, viewerRef.current, geojson, style, caption, origin ?? 'user'),
         showToast,
         t,
         onChanged: (event) => {
@@ -927,8 +964,8 @@ const h = React.createElement
         markSceneDirty: () => markSceneDirty(),
         syncOverlayCount: () => syncAgentOverlayCount(),
       })
-      const drawAgentOverlay = (Cesium, viewer, geojson, style, caption) =>
-        vectorRenderer.drawAgentOverlay(Cesium, viewer, geojson, style, caption)
+      const drawAgentOverlay = (Cesium, viewer, geojson, style, caption, origin) =>
+        vectorRenderer.drawAgentOverlay(Cesium, viewer, geojson, style, caption, origin)
       const measureAgentOverlay = (Cesium, viewer, args) =>
         vectorRenderer.measureAgentOverlay(Cesium, viewer, args)
 
@@ -1138,7 +1175,9 @@ const h = React.createElement
           }
           for (const command of snapshot.annotations.draw) {
             try {
-              drawAgentOverlay(Cesium, viewer, command.geojson, command.style, command.caption)
+              // Restored commands keep the origin they were saved with, so the
+              // Agent/user/import split still holds after a reload.
+              drawAgentOverlay(Cesium, viewer, command.geojson, command.style, command.caption, overlayOriginOf(command))
             } catch {
               // A stale annotation is not worth failing the restore.
             }
@@ -1225,12 +1264,6 @@ const h = React.createElement
         })
       }
 
-      /** Hide the panel chrome while a clean snapshot is rendered. */
-      const setChromeHidden = (hidden) => {
-        const root = rootRef.current
-        if (root) root.classList.toggle('mv-capturing', hidden)
-      }
-
       // Capture-HUD text painter lives in src/client/scene/capture-hud.js; the
       // refs are injected so this file stays inside its line budget.
       const drawCaptureOverlay = createCaptureHud({
@@ -1243,18 +1276,6 @@ const h = React.createElement
         t,
       })
 
-      /** Wait for the next painted frame, but never hang on a hidden tab. */
-      const nextFrames = (count) =>
-        new Promise((resolve) => {
-          let left = count
-          const step = () => {
-            left -= 1
-            if (left <= 0) resolve()
-            else requestAnimationFrame(step)
-          }
-          requestAnimationFrame(step)
-        })
-
       // Capture (screenshot / Agent snapshot) lives in src/client/scene/capture.js.
       const capture = createCaptureService({
         getViewer: () => viewerRef.current,
@@ -1266,8 +1287,6 @@ const h = React.createElement
         getLayers: () => layersRef.current,
         t,
         showToast,
-        setChromeHidden,
-        nextFrames,
         revealPanel,
         drawCaptureOverlay,
         drawVectorLabels: (context, width, height) => vectorRef.current?.drawLabels(context, width, height),
@@ -1303,7 +1322,7 @@ const h = React.createElement
       })
       // Dedicated scene-details card (whole scene or one layer) instead of
       // inlining camera telemetry into the long, narrow layer list.
-      const sceneDetails = useSceneDetails({ t, stats, config: sources, layers, analysis, shaderActive })
+      const sceneDetails = useSceneDetails({ t, stats, config: sources, layers, analysis, shaderActive, embedded: true })
 
       /**
        * "Ask Agent": capture the current scene as context and inject it into the
@@ -2087,28 +2106,19 @@ const h = React.createElement
         }
       }, [phase])
 
-      React.useEffect(() => {
-        if (!scan) return undefined
-        const onKey = (event) => {
-          if (event.key === 'Escape') setScan(null)
-        }
-        document.addEventListener('keydown', onKey)
-        return () => document.removeEventListener('keydown', onKey)
-      }, [scan])
+      useEscapeLayer(() => {
+        setScan(null)
+        return true
+      }, Boolean(scan))
 
       // A measure tool must never be a dead end: Esc leaves it (the on-screen
       // chip also offers an explicit 结束 button). Scoped to the three measure
       // modes so Esc keeps its "close the card, stay in identify mode" meaning.
       const measureMode = tool === 'distance' || tool === 'area' || tool === 'height' || tool === 'profile'
-      React.useEffect(() => {
-        if (!measureMode) return undefined
-        const onKey = (event) => {
-          if (event.key === 'Escape') finishMeasure()
-        }
-        document.addEventListener('keydown', onKey)
-        return () => document.removeEventListener('keydown', onKey)
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-      }, [measureMode])
+      useEscapeLayer(() => {
+        finishMeasure()
+        return true
+      }, measureMode)
 
       React.useEffect(() => {
         if (phase !== 'ready') return undefined
@@ -2146,19 +2156,6 @@ const h = React.createElement
           'button',
           { type: 'button', className: `mv-btn${active ? ' on' : ''}${extra ? ` ${extra}` : ''}`, onClick, title },
           label,
-        )
-      const iconButton = (icon, title, onClick, active) =>
-        h(
-          'button',
-          {
-            type: 'button',
-            className: `mv-btn icon${active ? ' on' : ''}`,
-            title,
-            'aria-label': title,
-            'aria-pressed': active === undefined ? undefined : active,
-            onClick,
-          },
-          icon,
         )
       const menu = (id, label, items, active) =>
         h(
@@ -2212,12 +2209,32 @@ const h = React.createElement
         getOverlayLayers: () => overlayLayersRef.current,
       })
 
+      // Panel System 2.0: "对象" owns the detail surfaces that used to float over
+      // the canvas (drawn-vector editor, scene details). The rail decides when the
+      // tab appears; the viewer only says which object is current.
+      const objectPanel = vectorSelection
+        ? {
+            key: `vector:${vectorSelection.id ?? vectorSelection.feature?.id ?? vectorSelection.title ?? 'selection'}`,
+            node: h(VectorCard, {
+              embedded: true,
+              selection: vectorSelection,
+              onClose: () => vectorRef.current?.clearSelection(),
+              onChange: annotations.update,
+              onDelete: annotations.remove,
+              onExport: annotations.export,
+              onSendToChat: (feature, fallbackName) => vectorExport.sendFeature?.(feature, fallbackName),
+              t,
+            }),
+          }
+        : sceneDetails.isOpen
+          ? { key: 'scene-details', node: sceneDetails.element }
+          : null
+
       return h(
         'div',
         {
           ref: rootRef,
           className: `mv-root${docked ? ' mv-docked' : ''}`,
-          'data-mv-theme': themeMode === 'auto' ? undefined : themeMode,
           'data-mv-scheme': resolvedDark ? 'dark' : 'light',
           onDragOver: (event) => {
             if (!isVectorDrag(event.dataTransfer)) return
@@ -2274,61 +2291,56 @@ const h = React.createElement
                 onOpenLocal: pickLocal,
                 onOpenRecentDirectory: openRecentDirectory,
                 onOpenRecentUrl: openRecentUrl,
+                // Scoped to agent-created overlays only: the label now matches what
+                // the action really deletes (audit A2).
                 onClearAgent: () => {
-                  clearAgentOverlays('all')
-                  showToast(t('agent.clearedOverlays'))
+                  const stats = overlayStats(agentOverlayRef.current)
+                  clearAgentOverlays('all', { origin: 'agent' })
+                  showToast(t('agent.clearedOverlays', { n: stats.agentDraw + stats.agentMeasure }))
                 },
                 onToggleUrlBar: () => setUrlBar((value) => !value),
-                onReport: openSceneReport,
-                onClearTools: () => {
-                  setToolMode(null)
-                  setMeasureInfo(null)
-                },
               }),
             ),
             h('i', { key: 's1', className: 'mv-sep' }),
+            // Batch B1: four domain toggles (工具 / 图层 / 分析 / 视图). Their labels
+            // collapse to icons in a narrow dock; selection lives in the Tools card.
             h(ToolbarQuick, {
               t,
-              showSelect: workspace.isOpen('select') || tool === 'select',
-              onToggleSelect: () => workspace.selectTool('select'),
-              showLayers,
-              showTools,
-              openToolCount: workspace.windows.length,
-              onToggleLayers: () => updateSettings({ showLayers: !showLayers }),
-              onToggleTools: () => setShowTools((value) => !value),
-              button,
+              showLayers: activePanelTab === 'layers',
+              showTools: activePanelTab === 'tools',
+              showResult: activePanelTab === 'result',
+              onToggleLayers: () => {
+                if (!showLayers) updateSettings({ showLayers: true })
+                requestDock('layers')
+              },
+              onToggleTools: () => {
+                if (!showTools) setShowTools(true)
+                requestDock('tools')
+              },
+              onOpenResult: () => requestDock('result'),
             }),
-            iconButton(
-              h(HudIcon),
-              showHud ? t('btn.hudHide') : t('btn.hudShow'),
-              () => updateSettings({ showHud: !showHud }),
-              showHud,
+            menu(
+              'output',
+              t('btn.output'),
+              outputMenuItems({
+                h,
+                MenuItem,
+                t,
+                showHud,
+                fullscreen,
+                sessionId,
+                docked,
+                closeMenu: () => setOpenMenu(null),
+                onScreenshot: screenshot,
+                onReport: openSceneReport,
+                onToggleHud: () => updateSettings({ showHud: !showHud }),
+                onResetView: resetView,
+                onToggleFullscreen: toggleDomFullscreen,
+                onAskAgent: askAgent,
+                onOpenBeside: openBeside,
+              }),
             ),
-            iconButton(
-              h(ShaderIcon),
-              shaderOpen ? t('btn.shaderHide') : t('btn.shaderShow'),
-              () => setShaderOpen((value) => !value),
-              shaderOpen,
-            ),
-            // v1.7 P0: 指认 — click an object to read it (panel-only, no tool).
-            // Identify is now the default pointer behaviour, so no dedicated
-            // toolbar toggle is needed; measure/profile temporarily override it.
-            // Action buttons are icon-only with a tooltip/aria-label: in the docked
-            // narrow panel the text labels were what wrapped the toolbar onto a
-            // second row. The four dropdown menus keep their text labels because a
-            // bare icon does not tell the user what the menu contains.
-            iconButton(h(ScreenshotIcon), t('btn.screenshot'), screenshot),
-            sessionId ? iconButton(h(AskAgentIcon), t('btn.askAgent'), askAgent) : null,
-            iconButton(h(ResetIcon), t('btn.reset'), resetView),
-            // Only the main panel offers "open beside chat"; the docked tab is
-            // already beside the conversation.
-            docked ? null : button(t('btn.beside'), openBeside),
-            // Single fullscreen entry point for both mounts (DOM Fullscreen API).
-            // Expanding the sidebar is DSH's own feature, so the duplicate
-            // "maximize sidebar" action is gone.
-            iconButton(h(FullscreenIcon), fullscreen ? t('btn.fullscreenExit') : t('btn.fullscreenTitle'), toggleDomFullscreen, fullscreen),
-            h('i', { key: 's3', className: 'mv-sep' }),
-            h(ToolbarMenus, { t, themeMode, resolvedDark, openMenu, setOpenMenu, setTheme, setSettingsOpen }),
+            h(ToolbarSettings, { t, setSettingsOpen }),
           ),
         ),
         urlBar
@@ -2391,9 +2403,12 @@ const h = React.createElement
         }),
         tour.element,
         swipe.element,
-        sceneDetails.element,
         h(RightStack, {
           t,
+          busy: Boolean(measureMode || tool === 'annotation'),
+          dockRequest,
+          objectPanel,
+          onActiveTab: setActivePanelTab,
           openWindows: workspace.windows,
           onSelectTool: workspace.selectTool,
           onCloseToolWindow: workspace.closeTool,
@@ -2440,7 +2455,34 @@ const h = React.createElement
             onOpenUrl: workbench.openUrl,
             recentDirs,
             onOpenRecent: workbench.openRecent,
-            onClearVector: () => clearAgentOverlays('all'),
+            // Vector-group ✕: one explicit confirmation that names the counts and
+            // the fact that local imports / hand-drawn features are included.
+            // Returns a third choice only when both kinds exist (audit A1).
+            onClearVector: () => {
+              const stats = overlayStats(agentOverlayRef.current)
+              const total = stats.draw + stats.measure
+              if (total === 0) return
+              void confirm({
+                title: t('confirm.clearVectorTitle'),
+                message: t('confirm.clearVectorMessage', { drawn: stats.draw, measured: stats.measure }),
+                detail:
+                  stats.importDraw + stats.userDraw > 0
+                    ? t('confirm.clearVectorIncludesUser', { user: stats.importDraw + stats.userDraw })
+                    : t('confirm.clearVectorUndo'),
+                confirmLabel: t('confirm.clearAll'),
+                cancelLabel: t('btn.cancel'),
+                secondaryLabel: stats.draw > 0 && stats.measure > 0 ? t('confirm.clearMeasureOnly') : '',
+                danger: true,
+              }).then((choice) => {
+                if (choice === true) {
+                  clearAgentOverlays('all')
+                  showToast(t('toast.vectorCleared'))
+                } else if (choice === 'secondary') {
+                  clearAgentOverlays('measure')
+                  showToast(t('toast.measureCleared'))
+                }
+              })
+            },
             agentOverlays: buildAgentOverlayList(agentOverlayRef.current),
             overlayDetails: buildAgentOverlayDetails(agentOverlayRef.current),
             overlayExtrusions: buildAgentOverlayExtrusions(agentOverlayRef.current),
@@ -2584,17 +2626,12 @@ const h = React.createElement
               ),
             )
           : null,
-        h(VectorCard, {
-          key: 'vector-selection',
-          selection: vectorSelection,
-          onClose: () => vectorRef.current?.clearSelection(),
-          onChange: annotations.update,
-          onDelete: annotations.remove,
-          onExport: annotations.export,
-          onSendToChat: (feature, fallbackName) => vectorExport.sendFeature?.(feature, fallbackName),
-          t,
-        }),
-        toast ? h('div', { key: 'toast', className: 'mv-toast' }, toast) : null,
+        // aria-live: screen readers announce scene feedback without stealing focus.
+        toast
+          ? h('div', { key: 'toast', className: 'mv-toast', role: 'status', 'aria-live': 'polite' }, toast)
+          : null,
+        // Shared destructive-action confirmation (focus trap, Esc = cancel).
+        confirmDialog,
         scan
           ? h(ScanDialog, {
               key: 'scan',
@@ -2640,6 +2677,8 @@ const h = React.createElement
               onPickLocal: pickLocalTiles,
               onSave: saveSources,
               onClose: () => setSettingsOpen(false),
+              askConfirm: confirm,
+              notify: showToast,
             })
           : null,
         accessRequest

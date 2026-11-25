@@ -134,7 +134,7 @@ test('B4 版本：package.json 为合法 semver，未新增依赖/未改 scripts
   assert.equal(pkg.scripts?.test, 'node --test')
   assert.equal(
     pkg.scripts?.check,
-    'node --check index.js && node --check client.js && npm run build:client -- --check && node scripts/check-size.mjs && node --test',
+    'node --check index.js && node --check client.js && npm run build:client -- --check && node scripts/check-size.mjs && node scripts/check-i18n.mjs && node scripts/check-tokens.mjs && node scripts/check-a11y.mjs && node scripts/check-panels.mjs && node --test',
   )
   // 发布白名单不包含测试与 QA 资料。
   assert.ok(!(pkg.files ?? []).some((name) => name.startsWith('test/')), 'files 不应包含 test/')
@@ -148,7 +148,7 @@ test('B4 README 中文：版本徽章/安装示例、六工具与新增功能行
   assert.doesNotMatch(readmeZh, /1\.3\.0/)
   for (const name of TOOL_NAMES) assert.ok(readmeZh.includes(`\`${name}\``), `README.md 缺少工具 ${name}`)
   assert.equal((readmeZh.match(/^\| `earth_[a-z]+` \|/gm) ?? []).length, 6, 'README.md 工具表应为 6 行')
-  for (const phrase of ['内置六个工具', '空间分析', '视觉特效', '可折叠面板', '干净截图', '本机绝对路径', '约 5–6 Hz']) {
+  for (const phrase of ['内置六个工具', '空间分析', '视觉特效', '页签坞', '干净截图', '本机绝对路径', '约 5–6 Hz']) {
     assert.ok(readmeZh.includes(phrase), `README.md 缺少功能说明：${phrase}`)
   }
   assert.match(readmeZh, /白名单预设/)
@@ -161,7 +161,7 @@ test('B4 README 英文：版本徽章/安装示例、六工具与对应功能行
   for (const name of TOOL_NAMES) assert.ok(readmeEn.includes(`\`${name}\``), `README.en.md 缺少工具 ${name}`)
   assert.equal((readmeEn.match(/^\| `earth_[a-z]+` \|/gm) ?? []).length, 6, 'README.en.md 工具表应为 6 行')
   for (const phrase of [
-    'Six built-in tools', 'Spatial analysis', 'Visual effects', 'Collapsible panels',
+    'Six built-in tools', 'Spatial analysis', 'Visual effects', 'one tab dock',
     'Clean snapshots', 'absolute local path', '5–6 Hz',
   ]) {
     assert.ok(readmeEn.includes(phrase), `README.en.md 缺少功能说明：${phrase}`)

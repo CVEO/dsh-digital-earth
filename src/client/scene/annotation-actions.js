@@ -15,9 +15,11 @@ export function createAnnotationActions({ stateRef, viewerRef, getSelection, dra
   const selectionOf = () => (typeof getSelection === 'function' ? getSelection() : null)
 
   // Replay a draw command after a feature changed. drawAgentOverlay appends the
-  // new command, so the last entry in drawCommands is the live one.
-  const replay = (geojson, style, caption) => {
-    draw(geojson, style, caption)
+  // new command, so the last entry in drawCommands is the live one. The command's
+  // own origin is forwarded so editing an Agent overlay does not turn it into
+  // user data (and vice versa for a replay of user annotations).
+  const replay = (geojson, style, caption, origin) => {
+    draw(geojson, style, caption, origin)
     const commands = stateRef.current.drawCommands
     return commands[commands.length - 1] ?? null
   }

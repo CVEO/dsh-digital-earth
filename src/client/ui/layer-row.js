@@ -1,42 +1,61 @@
 /**
  * ui/layer-row.js — one 3D Tiles / 3DGS content row.
  *
- * Presentational only: visibility, fly-to, data health, remove, and the effect
- * badge/edit affordance. Extracted from layers-panel so the layer card stays a
- * thin shell and the tools card never needs to duplicate row markup.
+ * Batch B1 (图层行溢出菜单): a row keeps only its primary actions inline —
+ * visibility, the appearance (✦) entry and a "more" (⋯) button. Fly-to, data
+ * health, scene details, swipe comparison and remove live in the overflow menu,
+ * so a row with every capability no longer shows five 15px buttons.
+ *
+ * Menus are controlled by the parent (Layers3D owns the open row id): the row
+ * stays a pure props-in/JSX-out component.
  */
 import React from 'react'
 
 import { EyeIcon } from './icons.js'
+import { MenuItem } from './menu-item.js'
 import { shaderEntrySummary } from './workbench-wiring.js'
 
 const h = React.createElement
 
-export function LayerRow({ t, layer, shader, swipeActive, onFlyLayer, onToggleLayer, onInspectLayer, onRemoveLayer, onEditShader, onShowSceneDetails, onSwipeLayer }) {
+export function LayerRow({
+  t,
+  layer,
+  shader,
+  swipeActive,
+  menuOpen = false,
+  onMenuToggle,
+  onFlyLayer,
+  onToggleLayer,
+  onInspectLayer,
+  onRemoveLayer,
+  onEditShader,
+  onShowSceneDetails,
+  onSwipeLayer,
+}) {
   const stop = (event) => event.stopPropagation()
   const summary = shader ? shaderEntrySummary(t, shader) : ''
   const openShader = () => onEditShader(layer, shader)
   const is3dgs = layer.kind === '3dgs'
+  const action = (key, label, handler, options = {}) =>
+    h(
+      MenuItem,
+      {
+        key,
+        disabled: Boolean(options.disabled),
+        title: options.title,
+        active: Boolean(options.active),
+        onClick: options.disabled
+          ? undefined
+          : () => {
+              onMenuToggle?.(null)
+              handler()
+            },
+      },
+      label,
+    )
   return h(
     'div',
-    {
-      className: `mv-layer${layer.visible ? '' : ' off'}${shader ? ' has-shader' : ''}`,
-      title: shader ? `${layer.name} — ${summary}` : layer.name,
-      ...(shader
-        ? {
-            role: 'button',
-            tabIndex: 0,
-            onClick: openShader,
-            onKeyDown: (event) => {
-              if (event.target !== event.currentTarget) return
-              if (event.key === 'Enter' || event.key === ' ') {
-                event.preventDefault()
-                openShader()
-              }
-            },
-          }
-        : {}),
-    },
+    { className: `mv-layer${layer.visible ? '' : ' off'}${shader ? ' has-shader' : ''}${menuOpen ? ' menu-open' : ''}`, title: summary ? `${layer.name} — ${summary}` : layer.name },
     layer.georefIssue
       ? h('span', { className: 'mv-warn', title: t('layers.georefWarning'), 'aria-label': t('layers.georefWarning') }, '⚠')
       : null,
@@ -52,22 +71,26 @@ export function LayerRow({ t, layer, shader, swipeActive, onFlyLayer, onToggleLa
       },
       layer.name,
     ),
-    shader
-      ? h(
-          'button',
-          {
-            type: 'button',
-            className: 'mv-icon-btn mv-shader-edit',
-            title: `${t('shader.editEntry')} · ${summary}`,
-            'aria-label': t('shader.editEntry'),
-            onClick: (event) => {
-              stop(event)
-              openShader()
-            },
-          },
-          '✦',
-        )
-      : null,
+    // Appearance entry: a layer's effects belong to the layer itself (audit
+    // §3.3), so ✦ is the single visual-effects door — also when none is active.
+    // 3DGS splats have no sampleable surface for the presets, so the entry is
+    // disabled with the reason instead of opening a workbench that would fail.
+    h(
+      'button',
+      {
+        type: 'button',
+        className: `mv-icon-btn mv-shader-edit${shader ? ' on' : ''}`,
+        title: is3dgs ? t('layers.appearance3dgs') : summary ? `${t('shader.editEntry')} · ${summary}` : t('layers.appearance'),
+        'aria-label': is3dgs ? t('layers.appearance3dgs') : summary ? t('shader.editEntry') : t('layers.appearance'),
+        disabled: is3dgs,
+        onClick: (event) => {
+          stop(event)
+          if (is3dgs) return
+          openShader()
+        },
+      },
+      '✦',
+    ),
     h(
       'button',
       {
@@ -82,27 +105,39 @@ export function LayerRow({ t, layer, shader, swipeActive, onFlyLayer, onToggleLa
       },
       h(EyeIcon, { size: 15, off: !layer.visible }),
     ),
-    h('button', { type: 'button', className: 'mv-icon-btn', title: t('sceneDetails.openLayerHint'), 'aria-label': t('sceneDetails.openLayerHint'), onClick: (event) => { stop(event); onShowSceneDetails?.(layer.id) } }, 'ⓘ'),
-    onSwipeLayer
+    h(
+      'button',
+      {
+        type: 'button',
+        className: `mv-icon-btn mv-row-more${menuOpen ? ' on' : ''}`,
+        title: t('layers.more'),
+        'aria-label': t('layers.more'),
+        'aria-haspopup': 'menu',
+        'aria-expanded': menuOpen,
+        onClick: (event) => {
+          stop(event)
+          onMenuToggle?.(menuOpen ? null : layer.id)
+        },
+      },
+      '⋯',
+    ),
+    menuOpen
       ? h(
-          'button',
-          {
-            type: 'button',
-            className: `mv-icon-btn${swipeActive ? ' on' : ''}`,
-            disabled: is3dgs || !layer.visible,
-            title: is3dgs ? t('swipe.unsupported3dgs') : t('swipe.toggle'),
-            'aria-label': is3dgs ? t('swipe.unsupported3dgs') : t('swipe.toggle'),
-            'aria-pressed': Boolean(swipeActive),
-            onClick: (event) => {
-              stop(event)
-              onSwipeLayer(layer.id)
-            },
-          },
-          '◧',
+          'div',
+          { className: 'mv-row-menu mv-glass', role: 'menu', 'aria-label': t('layers.more') },
+          action('fly', t('btn.flyTo'), () => onFlyLayer(layer.id)),
+          action('health', t('btn.health'), () => onInspectLayer(layer.id)),
+          action('details', t('sceneDetails.openLayerHint'), () => onShowSceneDetails?.(layer.id)),
+          onSwipeLayer
+            ? action('swipe', t('swipe.toggle'), () => onSwipeLayer(layer.id), {
+                disabled: is3dgs || !layer.visible,
+                active: Boolean(swipeActive),
+                title: is3dgs ? t('swipe.unsupported3dgs') : undefined,
+              })
+            : null,
+          h('i', { key: 'sep', className: 'mv-sep' }),
+          action('remove', t('btn.delete'), () => onRemoveLayer(layer.id)),
         )
       : null,
-    h('button', { type: 'button', className: 'mv-icon-btn', title: t('btn.flyTo'), 'aria-label': t('btn.flyTo'), onClick: (event) => { stop(event); onFlyLayer(layer.id) } }, '⌖'),
-    h('button', { type: 'button', className: 'mv-icon-btn', title: t('btn.health'), 'aria-label': t('btn.health'), onClick: (event) => { stop(event); onInspectLayer(layer.id) } }, '⌕'),
-    h('button', { type: 'button', className: 'mv-icon-btn', title: t('btn.delete'), 'aria-label': t('btn.delete'), onClick: (event) => { stop(event); onRemoveLayer(layer.id) } }, '✕'),
   )
 }

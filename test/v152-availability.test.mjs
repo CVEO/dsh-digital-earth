@@ -48,9 +48,9 @@ test('authorisation dialogs and hidden captures ask the panel to come forward', 
   assert.match(captureSource, /const panelIsHidden = \(\) =>/)
   assert.match(captureSource, /typeof revealPanel === 'function'/)
   assert.match(captureSource, /revealPanel\(\)/)
-  // A hidden tab skips the nextFrames wait but still performs the explicit render.
-  assert.match(captureSource, /if \(!hidden\) \{/)
-  assert.doesNotMatch(captureSource, /if \(hidden\) throw new Error\(t\('agent\.hiddenPanel'\)\)\n\s+const width/)
+  // v1.6.2 契约 A：位图只来自 canvas，不再等待补间帧或切换 DOM chrome。
+  assert.doesNotMatch(captureSource, /nextFrames|setChromeHidden|mv-capturing/)
+  assert.match(captureSource, /viewer\.render\(\)/)
 })
 
 // ---------------------------------------------------------------------------

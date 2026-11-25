@@ -8,10 +8,16 @@ import React from 'react'
 
 const h = React.createElement
 
-    function MenuItem({ onClick, children, active, title }) {
+    function MenuItem({ onClick, children, active, title, disabled = false }) {
       return h(
         'button',
-        { type: 'button', className: `mv-menu-item${active ? ' on' : ''}`, onClick, title },
+        {
+          type: 'button',
+          className: `mv-menu-item${active ? ' on' : ''}${disabled ? ' is-disabled' : ''}`,
+          onClick: disabled ? undefined : onClick,
+          title,
+          disabled,
+        },
         children,
         active ? h('span', { className: 'check', 'aria-hidden': true }, '✓') : null,
       )

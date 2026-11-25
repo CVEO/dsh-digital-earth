@@ -182,7 +182,10 @@ test('F0 裁剪集合：setClipPlane 就地改 single plane，非法输入返回
 test('F0 engine：剖切与恢复都走共享登记表，源码中不再给 clippingPlanes 赋值', () => {
   const engine = readRepoFile('src/client/analysis/engine.js')
   assert.match(engine, /acquireClipCollection\(Cesium, tileset, \{/)
-  assert.match(engine, /releaseClipCollection\(target\.tileset, CLIP_OWNER_ANALYSIS\)/)
+  assert.match(engine, /clipConflictOf\(tileset\)/)
+  // v1.6.1: the release happens in the restore replay (analysis/restore.js), so a
+  // failed analysis can be rejected before the old result is cleared.
+  assert.match(readRepoFile('src/client/analysis/restore.js'), /releaseClipCollection\(target\.tileset, CLIP_OWNER_ANALYSIS\)/)
   assert.match(engine, /\[clip_conflict\]/)
   assert.doesNotMatch(engine, /clippingPlanes\s*=/, 'engine 不得直接给 tileset.clippingPlanes 赋值')
   assert.doesNotMatch(engine, /clippingPlanes = previous/, '旧的回滚赋 undefined 分支必须消失')

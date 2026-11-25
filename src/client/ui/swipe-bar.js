@@ -184,7 +184,6 @@ export function useSwipe({ t, showToast, layers, overlays, getCesium, getViewer,
           key: 'swipe',
           ref: containerRef,
           className: `mv-swipe ${horiz ? 'horiz' : 'vert'}`,
-          'data-capture-hide': '1',
         },
         h(
           'div',

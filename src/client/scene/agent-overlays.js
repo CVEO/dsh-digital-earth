@@ -12,8 +12,56 @@
  */
 import { annotationExtrusionOf } from './annotation-model.js'
 
-/** Remove the entities of one kind (or everything) and reset the matching counters. */
-export function clearAgentOverlays(state, viewer, kind = 'all') {
+/**
+ * Who created an overlay command. The distinction is a safety contract, not a
+ * cosmetic tag: "clear" actions that belong to the Agent must never delete what
+ * the user imported, drew or parsed. Older snapshots have no origin and were all
+ * Agent commands at the time they were written, so they default to 'agent'.
+ */
+export const OVERLAY_ORIGINS = ['agent', 'user', 'import']
+
+/** `origin` of one draw/measure command ('agent' when absent or unknown). */
+export function overlayOriginOf(command) {
+  const origin = command?.origin
+  return OVERLAY_ORIGINS.includes(origin) ? origin : 'agent'
+}
+
+/** Entity/feature counts per origin, used by scoped clear actions and their confirmations. */
+export function overlayStats(state) {
+  const stats = {
+    draw: 0,
+    measure: 0,
+    agentDraw: 0,
+    agentMeasure: 0,
+    userDraw: 0,
+    userMeasure: 0,
+    importDraw: 0,
+  }
+  for (const command of Array.isArray(state?.drawCommands) ? state.drawCommands : []) {
+    const count = Number.isFinite(command?.drawn) ? command.drawn : geojsonFeatureCount(command?.geojson)
+    const origin = overlayOriginOf(command)
+    stats.draw += count
+    if (origin === 'agent') stats.agentDraw += count
+    else if (origin === 'import') stats.importDraw += count
+    else stats.userDraw += count
+  }
+  for (const command of Array.isArray(state?.measureCommands) ? state.measureCommands : []) {
+    const count = Array.isArray(command?.points) ? command.points.length : 0
+    stats.measure += count
+    if (overlayOriginOf(command) === 'agent') stats.agentMeasure += count
+    else stats.userMeasure += count
+  }
+  return stats
+}
+
+/**
+ * Remove the entities of one kind (or everything) and reset the matching counters.
+ *
+ * `options.origin` narrows the sweep to one origin (string or array): the Agent
+ * clears only 'agent' overlays, while user-facing "clear" entries sweep every
+ * origin after an explicit confirmation. Returns how many commands were removed.
+ */
+export function clearAgentOverlays(state, viewer, kind = 'all', options = {}) {
   const drop = (entities) => {
     if (!viewer) return
     for (const entity of entities) {
@@ -24,18 +72,43 @@ export function clearAgentOverlays(state, viewer, kind = 'all') {
       }
     }
   }
+  const rawOrigin = options?.origin
+  const origins = rawOrigin === undefined || rawOrigin === null
+    ? null
+    : Array.isArray(rawOrigin)
+      ? rawOrigin
+      : [rawOrigin]
+  if (origins !== null) {
+    // Filtered sweep: reuse the single-row helper so counters and entity lists
+    // stay consistent with per-row removal.
+    let removed = 0
+    const kinds = kind === 'all' ? ['draw', 'measure'] : [kind]
+    for (const each of kinds) {
+      if (each !== 'draw' && each !== 'measure') continue
+      const commands = each === 'draw' ? state.drawCommands : state.measureCommands
+      for (let index = commands.length - 1; index >= 0; index -= 1) {
+        if (!origins.includes(overlayOriginOf(commands[index]))) continue
+        if (removeAgentOverlay(state, viewer, each, index)) removed += 1
+      }
+    }
+    return { removed }
+  }
+  let removed = 0
   if (kind === 'all' || kind === 'draw') {
+    removed += state.drawCommands.length
     drop(state.draw)
     state.draw = []
     state.drawnFeatures = 0
     state.drawCommands = []
   }
   if (kind === 'all' || kind === 'measure') {
+    removed += state.measureCommands.length
     drop(state.measure)
     state.measure = []
     state.measuredCount = 0
     state.measureCommands = []
   }
+  return { removed }
 }
 
 const commandIds = new WeakMap()
@@ -148,6 +221,7 @@ export function buildAgentOverlayList(state) {
       id: `draw-${index}`,
       kind: 'draw',
       index,
+      origin: overlayOriginOf(command),
       label: typeof command?.caption === 'string' && command.caption !== '' ? command.caption : `标注 ${index + 1}`,
       detail: `${count || command?.drawn || 0} 要素`,
     })
@@ -158,6 +232,7 @@ export function buildAgentOverlayList(state) {
       id: `measure-${index}`,
       kind: 'measure',
       index,
+      origin: overlayOriginOf(command),
       label: `量测 ${index + 1}`,
       detail: `${command?.mode ?? 'measure'}${measureDetail(command) === '' ? '' : ` · ${measureDetail(command)}`}`,
     })

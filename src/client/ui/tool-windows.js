@@ -90,9 +90,17 @@ export function SelectBody({
   )
 }
 
-export function AnalysisBody({ t, analysis, onStartProfile, onClearAnalysis, getCesium, getViewer, getLayers }) {
+export function AnalysisBody({ t, analysis, onStartProfile, onClearAnalysis, getCesium, getViewer, getLayers, showToast }) {
   const [source, setSource] = React.useState('tiles')
   const [samples, setSamples] = React.useState('auto')
+  // A6: the sun timeline and a sunlight analysis own the same scene state
+  // (lighting/shadow/clock), so only a previous sunlight result is replaced —
+  // and it is announced. Profile/flood/clip/skyline results survive untouched.
+  const handleSunEnable = () => {
+    if (analysis?.operation !== 'sunlight') return
+    onClearAnalysis()
+    if (typeof showToast === 'function') showToast(t('toast.sunReplacesAnalysis'))
+  }
   return h(
     React.Fragment,
     null,
@@ -156,7 +164,7 @@ export function AnalysisBody({ t, analysis, onStartProfile, onClearAnalysis, get
       : null,
     h('p', { className: 'mv-none' }, t('tools.analysisHint')),
     h('div', { className: 'mv-group-title' }, t('tools.sun')),
-    h(SunTimeline, { t, getCesium, getViewer, getLayers, onBeforeEnable: onClearAnalysis, active: true }),
+    h(SunTimeline, { t, getCesium, getViewer, getLayers, onBeforeEnable: handleSunEnable, active: true }),
   )
 }
 

@@ -149,7 +149,21 @@ export function LayersMap({
       'div',
       { key: 'vector-row', className: 'mv-layer' },
       h('span', { className: 'name' }, `${t('layers.vectorDrawn')} ${drawn} · ${t('layers.vectorMeasured')} ${measured}`),
-      h('button', { type: 'button', className: 'mv-icon-btn', title: t('tool.clear'), 'aria-label': t('tool.clear'), onClick: onClearVector }, '✕'),
+      // The old label promised "clear measurements" while the handler swept every
+      // overlay including local imports. The hint now says what happens and the
+      // action asks for confirmation with the real counts (audit A1).
+      h(
+        'button',
+        {
+          type: 'button',
+          className: 'mv-icon-btn',
+          title: t('layers.clearVectorHint'),
+          'aria-label': t('layers.clearVectorHint'),
+          disabled: drawn + measured === 0,
+          onClick: drawn + measured === 0 ? undefined : onClearVector,
+        },
+        '✕',
+      ),
     ),
     ...(Array.isArray(agentOverlays) ? agentOverlays : []).map((row) => {
       const features = row.kind === 'draw' && Array.isArray(overlayDetails?.[row.index]) ? overlayDetails[row.index] : []

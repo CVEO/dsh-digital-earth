@@ -7,9 +7,12 @@
 
 import { V17_MESSAGES } from './messages-v17.js'
 import { V18_MESSAGES } from './messages-v18.js'
+import { ACTION_MESSAGES } from './messages-actions.js'
+import { HUD_MESSAGES } from './messages-hud.js'
 import { ANNOTATION_MESSAGES } from './messages-annotations.js'
 import { EXPORT_MESSAGES } from './messages-export.js'
 import { PROFILE_MESSAGES } from './messages-profile.js'
+import { DOCK_MESSAGES } from './messages-dock.js'
 
     const MESSAGES = {
       zh: {
@@ -23,7 +26,7 @@ import { PROFILE_MESSAGES } from './messages-profile.js'
         'panel.empty.local': '打开本地目录',
         'panel.empty.url': '加载在线地址',
         'panel.empty.dismiss': '关闭提示',
-        'btn.data': '数据',
+        'btn.data': '添加数据',
         'btn.openLocal': '打开本地目录…',
         'btn.openUrl': '加载地址或坐标…',
         'btn.layers': '图层',
@@ -56,26 +59,13 @@ import { PROFILE_MESSAGES } from './messages-profile.js'
         'menu.none': '无底图',
         'menu.terrainOff': '关闭地形',
         'menu.recentDirs': '最近打开',
-        'menu.clearAgent': '清除 Agent 标注',
+        'menu.clearAgent': '清除 Agent 绘制内容',
         'menu.report': '导出场景报告',
         'tool.distance': '测距',
         'tool.area': '测面',
         'tool.height': '测高',
         'tool.pick': '拾取属性',
         'tool.clear': '清除量测结果',
-        'hud.pointer': '光标',
-        'hud.center': '视线中心',
-        'hud.camera': '相机高度',
-        'hud.cameraPos': '相机位置',
-        'hud.heading': '朝向',
-        'hud.tiles': '瓦片',
-        'hud.pending': '待加载',
-        'hud.triangles': '三角面',
-        'hud.layers': '图层',
-        'hud.cache': '缓存',
-        'hud.elevation': '高程 {value}',
-        'hud.empty': '—',
-        'hud.fpsTitle': '按 Cesium 渲染帧统计的平滑帧率（窗口刷新率不等于渲染帧；静止 2 秒显示 —）',
         'settings.terrainDepthTest': '地形遮挡三维图层（深度测试）',
         'settings.terrainDepthTestHint': '关闭（默认）：地下管网、埋在地形下的模型都能看见；开启：地形会挡住埋在下面的内容，天际线更干净。',
         'settings.quality': '渲染质量',
@@ -205,6 +195,8 @@ import { PROFILE_MESSAGES } from './messages-profile.js'
         'settings.tiling.webMercator': 'Web 墨卡托',
         'settings.tiling.geographic': '经纬度',
         'settings.required': '请填写名称与地址',
+        'settings.confirmRestoreTitle': '恢复默认数据源',
+        'settings.confirmDeleteTitle': '删除数据源',
         'settings.deleteConfirm': '确定删除数据源「{name}」？',
         'settings.restoreConfirm': '恢复默认数据源？当前配置将被覆盖。',
         'theme.auto': '跟随系统',
@@ -311,7 +303,7 @@ import { PROFILE_MESSAGES } from './messages-profile.js'
         'agent.badGeojson': '标注数据无效：{message}',
         'agent.badMeasure': '量测参数无效：{message}',
         'agent.measureEmpty': '没有可用的量测结果。',
-        'agent.clearedOverlays': '已清除 Agent 标注',
+        'agent.clearedOverlays': '已清除 Agent 绘制内容（{n} 项）',
         'access.title': '授权访问本地数据',
         'access.body': 'Agent 想从这个本地路径加载数据。允许后，面板会先把该文件所在目录登记为可读取的本地数据源（仅本页面会话内有效），然后继续操作。',
         'access.dir': '目录',
@@ -397,7 +389,7 @@ import { PROFILE_MESSAGES } from './messages-profile.js'
         'shader.preset.contour': '等高线（实验）',
         'shader.preset.scan': '高度扫描',
         'shader.preset.water': '水面波纹',
-        'shader.preset.water-depth': '淹没分析',
+        'shader.preset.water-depth': '水深配色',
         'shader.targetChip': '作用于 {name}',
         'shader.targetNone': '暂无可作用图层',
         'shader.layerAutoNamed': '自动选择（{name}）',
@@ -440,6 +432,10 @@ import { PROFILE_MESSAGES } from './messages-profile.js'
         'toast.fullscreenUnsupported': '当前浏览器不支持全屏 API。',
         'toast.fullscreenFailed': '全屏失败：{message}',
         'unit.hectare': '公顷',
+        ...HUD_MESSAGES.zh,
+        ...DOCK_MESSAGES.zh,
+        // Batch A: destructive-action copy (scoped clears and confirmations).
+        ...ACTION_MESSAGES.zh,
         // v1.7 P0 vocabulary (identify card / evidence export / tour bar).
         ...V17_MESSAGES.zh,
         ...V18_MESSAGES.zh,
@@ -458,7 +454,7 @@ import { PROFILE_MESSAGES } from './messages-profile.js'
         'panel.empty.local': 'Open local folder',
         'panel.empty.url': 'Load from URL',
         'panel.empty.dismiss': 'Dismiss',
-        'btn.data': 'Data',
+        'btn.data': 'Add data',
         'btn.openLocal': 'Open local folder…',
         'btn.openUrl': 'Load address or coordinates…',
         'btn.layers': 'Layers',
@@ -491,26 +487,13 @@ import { PROFILE_MESSAGES } from './messages-profile.js'
         'menu.none': 'No basemap',
         'menu.terrainOff': 'Terrain off',
         'menu.recentDirs': 'Recently opened',
-        'menu.clearAgent': 'Clear Agent annotations',
+        'menu.clearAgent': 'Clear Agent overlays',
         'menu.report': 'Export scene report',
         'tool.distance': 'Distance',
         'tool.area': 'Area',
         'tool.height': 'Height',
         'tool.pick': 'Pick properties',
         'tool.clear': 'Clear measurements',
-        'hud.pointer': 'Cursor',
-        'hud.center': 'View centre',
-        'hud.camera': 'Camera',
-        'hud.cameraPos': 'Camera position',
-        'hud.heading': 'Heading',
-        'hud.tiles': 'Tiles',
-        'hud.pending': 'Pending',
-        'hud.triangles': 'Triangles',
-        'hud.layers': 'Layers',
-        'hud.cache': 'Cache',
-        'hud.elevation': 'Elev {value}',
-        'hud.empty': '—',
-        'hud.fpsTitle': 'Smoothed frame rate counted from Cesium render passes (window refresh rate is not render throughput; — after 2 s without a render)',
         'settings.terrainDepthTest': 'Terrain occludes 3D layers (depth test)',
         'settings.terrainDepthTestHint': 'Off (default): underground pipes and models buried under the terrain stay visible. On: terrain hides what is below it and the skyline reads cleaner.',
         'settings.quality': 'Render quality',
@@ -640,6 +623,8 @@ import { PROFILE_MESSAGES } from './messages-profile.js'
         'settings.tiling.webMercator': 'Web Mercator',
         'settings.tiling.geographic': 'Geographic',
         'settings.required': 'Name and URL are required',
+        'settings.confirmRestoreTitle': 'Restore default sources',
+        'settings.confirmDeleteTitle': 'Delete data source',
         'settings.deleteConfirm': 'Delete source "{name}"?',
         'settings.restoreConfirm': 'Restore default sources? The current configuration is replaced.',
         'theme.auto': 'Follow system',
@@ -748,7 +733,7 @@ import { PROFILE_MESSAGES } from './messages-profile.js'
         'agent.badGeojson': 'Invalid annotation data: {message}',
         'agent.badMeasure': 'Invalid measurement arguments: {message}',
         'agent.measureEmpty': 'No measurement result was produced.',
-        'agent.clearedOverlays': 'Agent annotations cleared',
+        'agent.clearedOverlays': 'Cleared Agent overlays ({n} items)',
         'access.title': 'Allow local data access',
         'access.body':
           'The Agent wants to load data from this local path. If you allow it, the panel first registers the containing folder as a readable local data source (for this page session only), then continues the operation.',
@@ -836,7 +821,7 @@ import { PROFILE_MESSAGES } from './messages-profile.js'
         'shader.preset.contour': 'Contours (experimental)',
         'shader.preset.scan': 'Height scan',
         'shader.preset.water': 'Water ripples',
-        'shader.preset.water-depth': 'Flood analysis',
+        'shader.preset.water-depth': 'Depth ramp',
         'shader.targetChip': 'on {name}',
         'shader.targetNone': 'No usable layer',
         'shader.layerAutoNamed': 'Auto select ({name})',
@@ -879,6 +864,10 @@ import { PROFILE_MESSAGES } from './messages-profile.js'
         'toast.fullscreenUnsupported': 'This browser does not expose the fullscreen API.',
         'toast.fullscreenFailed': 'Fullscreen failed: {message}',
         'unit.hectare': 'ha',
+        ...HUD_MESSAGES.en,
+        ...DOCK_MESSAGES.en,
+        // Batch A: destructive-action copy (scoped clears and confirmations).
+        ...ACTION_MESSAGES.en,
         // v1.7 P0 vocabulary (identify card / evidence export / tour bar).
         ...V17_MESSAGES.en,
         ...V18_MESSAGES.en,
@@ -890,7 +879,7 @@ import { PROFILE_MESSAGES } from './messages-profile.js'
 
     /** About-tab fallbacks used before the Host meta payload arrives. */
     const FALLBACK_ABOUT = {
-      version: '1.6.0',
+      version: '1.6.3',
       homepage: 'https://github.com/CVEO/dsh-digital-earth',
       teamUrl: 'https://www.whu-cveo.com/',
     }

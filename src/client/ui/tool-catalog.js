@@ -23,6 +23,25 @@ export const TOOL_ENTRIES = [
 
 export const TOOL_IDS = TOOL_ENTRIES.map((entry) => entry.id)
 
+/**
+ * Index headings (Batch B1). Visual grouping only: the groups follow the frozen
+ * TOOL_IDS order (measure, select, annotation, parse, analysis, effects, view),
+ * so opening a tool from a heading never reorders the reducer's definition.
+ */
+export const TOOL_GROUPS = [
+  { titleKey: 'tools.group.measure', ids: ['measure', 'select', 'annotation', 'parse'] },
+  { titleKey: 'tools.group.analysis', ids: ['analysis'] },
+  { titleKey: 'tools.group.view', ids: ['effects', 'view'] },
+]
+
+/** TOOL_ENTRIES split into their headings, still in TOOL_IDS order. */
+export function toolGroups() {
+  return TOOL_GROUPS.map((group) => ({
+    titleKey: group.titleKey,
+    entries: group.ids.map((id) => toolEntry(id)).filter(Boolean),
+  })).filter((group) => group.entries.length > 0)
+}
+
 export function toolEntry(id) {
   return TOOL_ENTRIES.find((entry) => entry.id === id) ?? null
 }

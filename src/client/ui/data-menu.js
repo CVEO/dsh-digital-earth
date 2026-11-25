@@ -1,9 +1,10 @@
 /**
- * ui/data-menu.js — items of the toolbar "Data" menu.
+ * ui/data-menu.js — items of the toolbar "数据 ▾" menu.
  *
- * Extracted from ViewerSurface: that file is at its size budget, and the recent
- * online-address list (ui/recent-urls.js) joins the existing recent-folder list
- * here. Every action closes the menu first, exactly like the inline block did.
+ * Batch B1 (数据菜单瘦身): data is the only domain of this menu, so it now lists
+ * only ways to bring data in (local folder, recents, address) plus the scoped
+ * "clear what the Agent drew here". Scene report moved to 画面与输出, and clearing
+ * measurements moved to the Measure window, where the measurement state lives.
  */
 import { recentUrlLabel } from './recent-urls.js'
 
@@ -22,8 +23,6 @@ export function dataMenuItems({
   onOpenRecentUrl,
   onClearAgent,
   onToggleUrlBar,
-  onReport,
-  onClearTools,
 }) {
   const run = (action) => () => {
     if (typeof closeMenu === 'function') closeMenu()
@@ -54,12 +53,11 @@ export function dataMenuItems({
       )
     }
   }
+  items.push(h(MenuItem, { key: 'url', onClick: run(onToggleUrlBar) }, t('btn.openUrl')))
   if (agentOverlayCount > 0) {
+    items.push(h('i', { key: 'sep', className: 'mv-sep', style: MENU_SEP }))
+    // Scoped to agent-created overlays only: the label matches what it deletes.
     items.push(h(MenuItem, { key: 'clearAgent', onClick: run(onClearAgent) }, t('menu.clearAgent')))
   }
-  items.push(h(MenuItem, { key: 'url', onClick: run(onToggleUrlBar) }, t('btn.openUrl')))
-  items.push(h(MenuItem, { key: 'report', onClick: run(onReport) }, t('menu.report')))
-  items.push(h('i', { key: 'sep', className: 'mv-sep', style: MENU_SEP }))
-  items.push(h(MenuItem, { key: 'clear', onClick: run(onClearTools) }, t('tool.clear')))
   return items
 }

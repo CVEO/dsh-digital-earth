@@ -480,8 +480,17 @@ test('client analyze 桥分支：先于就绪守卫，失败强制带 next:，cl
     const tail = sourcePolicySource.slice(match.index, match.index + 600)
     assert.match(tail, /next:/, `缺少 next: 的分析错误：${tail.slice(0, 120)}`)
   }
-  assert.match(command, /\/\/ Single active analysis: the new result replaces the previous one\./)
-  assert.match(command, /clearAnalysis\(\)/)
+  // A8: the dispatcher must not clear up-front — each analyze* body clears only
+  // after its own validation/sampling passed, so a failed run keeps the old result.
+  assert.match(command, /A8: each analyze\* body clears the old result after its own validation and/)
+  const beforeSampler = command.slice(0, command.indexOf('const sampler = createHeightService'))
+  const clearBranch = beforeSampler.slice(
+    beforeSampler.indexOf("if (operation === 'clear')"),
+    beforeSampler.indexOf("return { operation: 'clear', layer: null, cleared }"),
+  )
+  assert.match(clearBranch, /const cleared = clearAnalysis\(\)/)
+  // 除 clear 分支外，采样之前不得出现任何 clearAnalysis()。
+  assert.doesNotMatch(beforeSampler.replace(clearBranch, ''), /clearAnalysis\(\)/)
   assert.match(command, /const sampler = createHeightService\(\{ Cesium, viewer, layer \}\)/)
   assert.match(command, /if \(operation === 'profile'\) result = await analyzeProfile\(Cesium, viewer, layer, args, sampler\)/)
   assert.match(command, /else if \(operation === 'flood'\) result = await analyzeFlood\(Cesium, viewer, layer, args, sampler\)/)
@@ -614,11 +623,14 @@ test('client sunlight 引擎：光照/阴影/时钟/3D Tiles ShadowMode，并保
   assert.match(sunlight, /setAnalysis\(\{ operation: 'sunlight'/)
 
   const restore = block(client, 'const restoreAnalysisScene = () => {', '\n      }')
-  assert.match(restore, /viewer\.scene\.globe\.enableLighting = restore\.enableLighting/)
-  assert.match(restore, /viewer\.scene\.shadowMap\.enabled = restore\.shadowMapEnabled/)
-  assert.match(restore, /viewer\.clock\.currentTime = restore\.currentTime/)
-  assert.match(restore, /layer\.tileset\.shadows = saved\.shadows/)
+  assert.match(restore, /applyAnalysisRestore\(viewer, layersRef\.current, restore\)/)
   assert.match(restore, /analysisRef\.current\.restore = null/)
+  // v1.6.1: the replay itself lives in analysis/restore.js (engine line budget).
+  const restoreModule = readRepoFile('src/client/analysis/restore.js')
+  assert.match(restoreModule, /viewer\.scene\.globe\.enableLighting = restore\.enableLighting/)
+  assert.match(restoreModule, /viewer\.scene\.shadowMap\.enabled = restore\.shadowMapEnabled/)
+  assert.match(restoreModule, /viewer\.clock\.currentTime = restore\.currentTime/)
+  assert.match(restoreModule, /layer\.tileset\.shadows = saved\.shadows/)
 
   // 太阳角度基于 Cesium 星历，并对 1.147 的法向量 API 做了正确适配。
   const sun = block(client, 'const analysisSunAngles =', 'const analysisObserver')
@@ -699,14 +711,19 @@ test('client 分析卡与布局：右上方浮动卡、SVG 剖面、折叠/关�
   // F5：图表悬停换算成样本序号，地面读数由同一个序号驱动。
   assert.match(chart, /nearestProfileIndex\(points,/)
   assert.match(chart, /onPointerMove,/)
-  assert.match(card, /className: `mv-card mv-analysis \$\{floating\.className\}`/)
+  assert.match(card, /className: `mv-card mv-analysis \$\{floating\.className\}\$\{embedded \? ' in-dock' : ''\}`/)
   assert.match(card, /role: 'region'/)
   assert.match(card, /analysis\.title\.\$\{operation\}/)
   assert.match(card, /t\('analysis\.close'\)/)
   assert.match(card, /'aria-expanded': open/)
   assert.match(card, /t\('analysis\.collapse'\)/)
   assert.match(card, /t\('analysis\.expand'\)/)
-  assert.match(card, /function AnalysisCard\(\{ state, t, onClose, hoverIndex = null, onHover, onStartProfile \}\)/)
+  assert.match(
+    card,
+    /function AnalysisCard\(\{ state, t, onClose, hoverIndex = null, onHover, onStartProfile, embedded = false, forceFloat = false, onFloatingChange \}\)/,
+  )
+  // v1.6.2 Batch D：嵌入右栏页签时不再自带浮窗外壳/标题栏（CSS 隐藏），
+  // 但仍保留浮动逃生口所需的 props。
 
   // 右栈与 300px 宽度上限（右栈样式块跨过图层卡样式，到分析卡提示行为止）。
   const layout = block(client, '.mv-right{', '.mv-analysis .hint{')
@@ -722,16 +739,17 @@ test('client 分析卡与布局：右上方浮动卡、SVG 剖面、折叠/关�
   assert.match(narrow, /\.mv-root\.mv-docked \.mv-right \.mv-analysis\{max-width:100%\}/)
   assert.match(narrow, /\.mv-root\.mv-docked \.mv-right \.mv-layers\{position:static;top:auto;right:auto;width:100%;max-height:none\}/)
 
-  // 截图干净模式隐藏分析卡（与 HUD/工具栏一致）。
-  assert.match(client, /\.mv-root\.mv-capturing[^{]*\.mv-analysis/)
-  assert.match(client, /\.mv-root\.mv-capturing[^{]*\.mv-right/)
+  // v1.6.2 截图契约 A：位图只来自 canvas，不再有 mv-capturing 隐藏列表。
+  assert.doesNotMatch(client, /mv-capturing/)
 
   // 面板把分析卡挂在右栈，关闭按钮走 clearAnalysis；右栈已抽成 ui/right-stack.js。
   const stack = readRepoFile('src/client/ui/right-stack.js')
-  assert.match(stack, /className: 'mv-right'/)
+  const rail = readRepoFile('src/client/ui/panel-rail.js')
+  assert.match(stack, /import \{ PanelRail \} from '\.\/panel-rail\.js'/)
+  assert.match(rail, /className: `mv-right mv-dock mv-glass/)
   assert.match(
     stack,
-    /h\(AnalysisCard,\s*\{[\s\S]*?key:\s*'analysis',\s*state:\s*analysis,\s*t,\s*onClose:\s*onCloseAnalysis,\s*hoverIndex:\s*analysisHover,\s*onHover:\s*onAnalysisHover/,
+    /h\(AnalysisCard,\s*\{[\s\S]*?key:\s*'result',\s*state:\s*analysis,\s*t,\s*onClose:\s*onCloseAnalysis,\s*hoverIndex:\s*analysisHover,\s*onHover:\s*onAnalysisHover/,
   )
 })
 

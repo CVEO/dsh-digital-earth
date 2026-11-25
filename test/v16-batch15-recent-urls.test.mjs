@@ -123,8 +123,8 @@ test('the Data menu renders folders and addresses and closes before acting', () 
     onOpenRecentUrl: (url) => calls.push(`url:${url}`),
     onClearAgent: () => calls.push('clearAgent'),
     onToggleUrlBar: () => calls.push('urlbar'),
-    onReport: () => calls.push('report'),
-    onClearTools: () => calls.push('clearTools'),
+
+
   })
   const labels = items.filter((item) => item.type === 'span').map((item) => item.children[0])
   assert.deepEqual(labels, ['menu.recentDirs', 'menu.recentUrls'])
@@ -133,9 +133,12 @@ test('the Data menu renders folders and addresses and closes before acting', () 
   assert.equal(urlItem.children[0].children[0], 'example.com/data')
   urlItem.props.onClick()
   assert.deepEqual(calls, ['close', 'url:https://example.com/data/tileset.json'])
-  const report = items.find((item) => item.props.title === undefined && item.children[0] === 'menu.report')
-  report.props.onClick()
-  assert.deepEqual(calls.slice(-2), ['close', 'report'])
+  // B1 数据菜单瘦身：场景报告移到「画面与输出」，数据菜单只管数据。
+  assert.ok(!items.some((item) => item.children?.[0] === 'menu.report'))
+  assert.ok(!items.some((item) => item.children?.[0] === 'tool.clear'))
+  const clear = items.find((item) => item.children?.[0] === 'menu.clearAgent')
+  clear.props.onClick()
+  assert.deepEqual(calls.slice(-2), ['close', 'clearAgent'])
   assert.ok(items.some((item) => item.type === 'i'), 'the separator survives the extraction')
 })
 

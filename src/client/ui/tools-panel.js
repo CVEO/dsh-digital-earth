@@ -10,7 +10,7 @@ import React from 'react'
 import { ResizeHandle, usePanelResize } from './resizable.js'
 import { mergeRefs, useFloatingWindow } from './floating.js'
 import { TOOLS_MINIMIZED_KEY, readPanelFlag, writePanelFlag } from './panel-prefs.js'
-import { TOOL_ENTRIES, toolEntry } from './tool-catalog.js'
+import { TOOL_ENTRIES, toolEntry, toolGroups } from './tool-catalog.js'
 import { ToolEntryIcon } from './icons.js'
 
 const h = React.createElement
@@ -20,6 +20,9 @@ export function ToolsPanel({
   openWindows = [],
   onSelectTool,
   onCollapse,
+  embedded = false,
+  forceFloat = false,
+  onFloatingChange,
 }) {
   const resize = usePanelResize({
     storageKey: 'tools',
@@ -35,9 +38,15 @@ export function ToolsPanel({
     storageKey: 'tools',
     title: t('tools.title'),
     t,
+    forceFloat,
+    restoreSaved: false,
     hasExplicitWidth: Boolean(resize.size.width),
   })
-  const [indexMinimized, setIndexMinimized] = React.useState(() => readPanelFlag(TOOLS_MINIMIZED_KEY, false))
+  React.useEffect(() => {
+    onFloatingChange?.(floating.moved)
+  }, [floating.moved, onFloatingChange])
+  const [indexMinimizedState, setIndexMinimized] = React.useState(() => readPanelFlag(TOOLS_MINIMIZED_KEY, false))
+  const indexMinimized = embedded ? false : indexMinimizedState
 
   const activeEntries = (Array.isArray(openWindows) ? openWindows : [])
     .map((win) => toolEntry(typeof win === 'string' ? win : win?.id))
@@ -70,18 +79,20 @@ export function ToolsPanel({
     )
   }
 
-  const panelStyle = indexMinimized
-    ? floating.moved
-      ? floating.style
-      : { zIndex: floating.zIndex }
-    : floating.moved
-      ? { ...floating.style, ...resize.style }
-      : { ...floating.style, height: resize.style?.height, maxHeight: resize.style?.maxHeight }
+  const panelStyle = embedded
+    ? undefined
+    : indexMinimized
+      ? floating.moved
+        ? floating.style
+        : { zIndex: floating.zIndex }
+      : floating.moved
+        ? { ...floating.style, ...resize.style }
+        : { ...floating.style, height: resize.style?.height, maxHeight: resize.style?.maxHeight }
 
   return h(
     'div',
     {
-      className: `mv-tools mv-glass ${floating.className}${indexMinimized ? ' minimized' : ''}`,
+      className: `mv-tools mv-glass ${floating.className}${indexMinimized ? ' minimized' : ''}${embedded ? ' in-dock' : ''}`,
       ref: mergeRefs(floating.ref, resize.ref),
       style: panelStyle,
       ...floating.panelProps,
@@ -137,7 +148,14 @@ export function ToolsPanel({
       : h(
           'div',
           { className: 'mv-tool-index-wrap' },
-          h('div', { className: 'mv-tool-index', role: 'group', 'aria-label': t('tools.index') }, ...TOOL_ENTRIES.map(row)),
+          h(
+            'div',
+            { className: 'mv-tool-index', role: 'navigation', 'aria-label': t('tools.index') },
+            ...toolGroups().flatMap((group) => [
+              h('div', { key: `group:${group.titleKey}`, className: 'mv-tool-group-title' }, t(group.titleKey)),
+              ...group.entries.map(row),
+            ]),
+          ),
           h('p', { className: 'mv-tools-hint' }, t('tools.independentHint')),
         ),
     indexMinimized
@@ -149,6 +167,8 @@ export function ToolsPanel({
           value: resize.size.height,
           onPointerDown: resize.beginHeight,
           onKeyDown: resize.keyHeight,
+          min: resize.minHeight,
+          max: resize.maxHeight,
         }),
     indexMinimized || !floating.moved
       ? null
@@ -159,6 +179,8 @@ export function ToolsPanel({
           value: resize.size.width,
           onPointerDown: resize.beginCorner,
           onKeyDown: resize.keyWidth,
+          min: resize.minWidth,
+          max: resize.maxWidth,
         }),
   )
 }

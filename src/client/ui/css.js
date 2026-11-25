@@ -11,11 +11,17 @@ import { SELECTION_QUESTION_CSS } from './selection-question-css.js'
 import { PARSE_CSS } from './parse-css.js'
 
     const CSS = `
-.mv-root{position:relative;flex:1 1 0;min-height:0;overflow:hidden;background:var(--mv-bg);color:var(--mv-text);font:12px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;--mv-bg:var(--dsw-alias-bg-base,#fff);--mv-text:var(--dsw-alias-label-primary,#0f1115);--mv-dim:var(--dsw-alias-label-secondary,#5b6068);--mv-line:var(--dsw-alias-border-l2,#0000001a);--mv-accent:var(--dsw-alias-state-business-primary,#4176e6);--mv-profile-line:#1d4ed8;--mv-profile-design:#c2610a;--mv-lift:var(--dsw-alias-interactive-bg-hover,#2631480f);--mv-glass:color-mix(in srgb,var(--dsw-alias-bg-layer-1,#fff) 88%,transparent);--mv-glass-strong:var(--dsw-alias-bg-layer-1,#fff);--mv-input:var(--dsw-alias-interactive-bg-hover,#2631480f);--mv-shadow:0 8px 28px rgba(15,23,42,.18);--mv-attrib:rgba(255,255,255,.62);--mv-attrib-shadow:0 1px 2px rgba(0,0,0,.6);--mv-overlay:transparent;--mv-scrim:rgba(24,34,50,.28)}
+.mv-root{position:relative;flex:1 1 0;min-height:0;overflow:hidden;background:var(--mv-bg);color:var(--mv-text);font:12px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;--mv-z-rail:9;--mv-z-popover:40;--mv-z-toast:60;--mv-z-modal:100;--mv-bg:var(--dsw-alias-bg-base,#fff);--mv-text:var(--dsw-alias-label-primary,#0f1115);--mv-dim:var(--dsw-alias-label-secondary,#5b6068);--mv-line:var(--dsw-alias-border-l2,#0000001a);--mv-accent:var(--dsw-alias-state-business-primary,#4176e6);--mv-profile-line:#1d4ed8;--mv-profile-design:#c2610a;--mv-lift:var(--dsw-alias-interactive-bg-hover,#2631480f);--mv-glass:color-mix(in srgb,var(--dsw-alias-bg-layer-1,#fff) 88%,transparent);--mv-glass-strong:var(--dsw-alias-bg-layer-1,#fff);--mv-input:var(--dsw-alias-interactive-bg-hover,#2631480f);--mv-shadow:0 8px 28px rgba(15,23,42,.18);--mv-danger:var(--dsw-alias-state-error-primary,#d33b3b);--mv-fg:var(--mv-text);--mv-surface-hi:var(--dsw-alias-bg-layer-2,#0f172a);--mv-line-strong:var(--dsw-alias-border-l1,#7dd3fc);--mv-attrib:rgba(255,255,255,.62);--mv-attrib-shadow:0 1px 2px rgba(0,0,0,.6);--mv-overlay:transparent;--mv-scrim:rgba(24,34,50,.28)}
 .mv-root[data-mv-scheme="dark"]{--mv-attrib:rgba(255,255,255,.62);--mv-attrib-shadow:0 1px 2px rgba(0,0,0,.6);--mv-overlay:transparent;--mv-scrim:rgba(3,7,13,.62);color-scheme:dark}
-.mv-root[data-mv-scheme="light"]{color-scheme:light}
-.mv-root[data-mv-theme="dark"]{--mv-bg:#151517;--mv-text:#ebeef2;--mv-dim:#adb2b8;--mv-line:#ffffff1f;--mv-accent:#7aaaff;--mv-profile-line:#8ab4ff;--mv-profile-design:#f0a04b;--mv-lift:#ffffff14;--mv-glass:rgba(21,21,23,.82);--mv-glass-strong:#232324;--mv-input:#ffffff14;--mv-shadow:0 8px 28px rgba(0,0,0,.34);color-scheme:dark}
-.mv-root[data-mv-theme="light"]{--mv-bg:#fff;--mv-text:#0f1115;--mv-dim:#5b6068;--mv-line:#0000001a;--mv-accent:#4176e6;--mv-profile-line:#1d4ed8;--mv-profile-design:#c2610a;--mv-lift:#2631480f;--mv-glass:rgba(255,255,255,.86);--mv-glass-strong:#fff;--mv-input:#2631480f;--mv-shadow:0 8px 28px rgba(15,23,42,.16);color-scheme:light}
+.mv-root[data-mv-scheme="light"]{color-scheme:light;--mv-scrim:rgba(24,34,50,.28)}
+/* Confirmation dialog: narrow, explains the scope, safe default focused. */
+.mv-dialog.mv-confirm{width:min(430px,94%)}
+.mv-confirm .body{padding:14px}
+.mv-confirm .mv-confirm-message{margin:0;font-size:12.5px;line-height:1.6}
+.mv-confirm .mv-note{margin:0;font-size:11.5px;line-height:1.55}
+.mv-confirm .footer .right{flex-wrap:wrap;justify-content:flex-end}
+.mv-cta.danger{background:color-mix(in srgb,var(--mv-danger) 16%,transparent);border-color:color-mix(in srgb,var(--mv-danger) 46%,transparent)}
+.mv-cta.danger:hover{border-color:var(--mv-danger);background:color-mix(in srgb,var(--mv-danger) 26%,transparent)}
 /* DOM fullscreen: the panel root owns the whole screen, so the flex sizing of
    the slot no longer applies and the floating chrome uses the viewport. */
 .mv-root:fullscreen{position:fixed;inset:0;width:100vw;height:100vh;max-width:none;max-height:none;border-radius:0}
@@ -40,12 +46,16 @@ import { PARSE_CSS } from './parse-css.js'
 .mv-btn:hover{background:color-mix(in srgb,var(--mv-lift) 72%,transparent);color:var(--mv-text)}
 .mv-btn.on{background:color-mix(in srgb,var(--mv-accent) 26%,transparent);color:var(--mv-text)}
 .mv-btn.icon{padding:7px 8px;flex:none}
+.mv-btn-icon{display:inline-flex;align-items:center;justify-content:center;flex:none}
+.mv-btn-label{display:inline-block}
 .mv-btn:focus-visible{outline:2px solid var(--mv-accent);outline-offset:1px}
 .mv-sep{width:1px;height:17px;background:var(--mv-line);margin:0 3px}
 .mv-menu{position:relative;display:inline-flex}
 .mv-menu-panel{position:absolute;top:calc(100% + 6px);right:0;min-width:206px;padding:4px;border-radius:11px;z-index:26;display:flex;flex-direction:column;gap:1px}
 .mv-menu-item{appearance:none;border:0;background:transparent;color:var(--mv-text);font:inherit;font-size:12px;text-align:left;padding:8px 10px;border-radius:7px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px;white-space:nowrap}
 .mv-menu-item:hover{background:color-mix(in srgb,var(--mv-lift) 80%,transparent)}
+.mv-menu-item:disabled{opacity:.42;cursor:default}
+.mv-menu-item:disabled:hover{background:transparent}
 .mv-menu-item.on{color:var(--mv-accent)}
 .mv-menu-item .check{font-size:11px}
 .mv-menu-label{padding:4px 10px 2px;font-size:10.5px;line-height:1.4;letter-spacing:.04em;color:var(--mv-dim);white-space:nowrap}
@@ -58,7 +68,56 @@ import { PARSE_CSS } from './parse-css.js'
 /* Right-hand floating column: the analysis card (Agent result) and the layer
    card share one stack so a new analysis never overlaps the layers list. */
 .mv-right{position:absolute;top:60px;right:10px;width:min(300px,calc(100% - 20px));max-height:calc(100% - 150px);display:flex;flex-direction:column;gap:10px;z-index:auto;pointer-events:none;overflow:visible}
-.mv-right>*{pointer-events:auto;box-sizing:border-box;max-width:100%;z-index:9;min-height:0;flex:0 1 auto}
+.mv-right>*{pointer-events:auto;box-sizing:border-box;max-width:100%;z-index:var(--mv-z-rail);min-height:0;flex:0 1 auto}
+/* v1.6.2 Batch D: single-active right dock.  One tab strip, one visible panel;
+   every other panel stays mounted but hidden so drafts/scroll survive a switch. */
+.mv-dock{padding:0;gap:0;overflow:visible}
+.mv-dock.is-collapsed{padding:0;border:0;background:none;backdrop-filter:none;box-shadow:none;display:flex;flex-direction:row;justify-content:flex-end}
+/* v1.6.3: collapsed dock keeps panels mounted (drafts/scroll survive) but hides
+   the whole body; the pill is the only visible surface. */
+.mv-dock.is-collapsed .mv-dock-body{display:none}
+.mv-dock.is-collapsed .mv-dock-tabs{border:0;padding:0;background:none}
+.mv-dock-pill{display:inline-flex;align-items:center;gap:7px;padding:7px 10px;border-radius:999px;border:.5px solid var(--mv-line);background:var(--mv-glass);color:var(--mv-text);font-size:12px;cursor:pointer;box-shadow:var(--mv-shadow);backdrop-filter:blur(12px)}
+.mv-dock-pill:hover{background:var(--mv-glass-strong)}
+.mv-dock-pill-icon{display:inline-flex;color:var(--mv-accent)}
+.mv-dock-badge{min-width:16px;height:16px;padding:0 4px;border-radius:999px;background:color-mix(in srgb,var(--mv-accent) 18%,transparent);color:var(--mv-accent);font-size:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center}
+.mv-dock-pill-arrow{color:var(--mv-dim);font-size:10px}
+.mv-dock-tabs{display:flex;align-items:center;gap:4px;padding:5px 6px 4px;border-bottom:.5px solid var(--mv-line);flex-shrink:0;min-width:0}
+.mv-dock-tablist{display:flex;align-items:center;gap:2px;min-width:0;overflow-x:auto;scrollbar-width:none;flex:1 1 auto}
+.mv-dock-tablist::-webkit-scrollbar{display:none}
+.mv-dock-tabitem{display:inline-flex;align-items:center;min-width:0;flex:0 1 auto;position:relative;border-radius:8px}
+.mv-dock-tabitem.on{background:color-mix(in srgb,var(--mv-accent) 12%,transparent)}
+.mv-dock-tab{display:inline-flex;align-items:center;gap:5px;border:0;background:none;color:var(--mv-dim);font:inherit;font-size:12px;padding:5px 7px;border-radius:8px;cursor:pointer;min-width:0;max-width:132px}
+.mv-dock-tab:hover{color:var(--mv-text)}
+.mv-dock-tab.on{color:var(--mv-text);font-weight:600}
+.mv-dock-tab.on::after{content:"";position:absolute;left:8px;right:8px;bottom:-5px;height:2px;border-radius:2px;background:var(--mv-accent)}
+.mv-dock-tab-icon{display:inline-flex;flex:none;opacity:.85}
+.mv-dock-tab-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mv-dock-dot{width:6px;height:6px;border-radius:999px;background:var(--mv-accent);flex:none;box-shadow:0 0 0 2px color-mix(in srgb,var(--mv-accent) 25%,transparent)}
+.mv-dock-actions{display:inline-flex;align-items:center;gap:2px;flex:none;margin-left:2px}
+.mv-dock-actions .mv-icon-btn{width:24px;height:24px;font-size:12px}
+.mv-dock-body{display:flex;flex-direction:column;flex:1 1 auto;min-height:0;min-width:0;padding:0}
+.mv-dock-panel{display:flex;flex-direction:column;flex:1 1 auto;min-height:0;min-width:0;overflow:hidden}
+.mv-dock-panel[hidden]{display:none}
+.mv-dock-panel .in-dock{height:100%;max-height:none!important;width:100%;flex:1 1 auto;min-height:0;border-radius:0;border:0;box-shadow:none;background:transparent!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;position:relative}
+.mv-dock-panel .in-dock>header{display:none!important}
+.mv-dock-panel .in-dock>.mv-resize-handle{display:none!important}
+.mv-dock-panel .in-dock.mv-analysis>.body{flex:1 1 auto;min-height:0}
+.mv-dock-panel .in-dock.mv-layers .mv-data-panel{flex:1 1 auto;min-height:0}
+.mv-dock-panel .in-dock.mv-tools .mv-tool-index-wrap{display:flex;flex-direction:column;flex:1 1 auto;min-height:0;overflow:auto;overscroll-behavior:contain}
+.mv-dock-panel .in-dock.mv-tools .mv-tool-index{overflow:visible}
+.mv-dock-panel .in-dock.mv-toolwin>.mv-toolwin-body{flex:1 1 auto;min-height:0;overflow:auto;padding-bottom:12px}
+.mv-panel-detail{display:flex;flex-direction:column;flex:1 1 auto;min-height:0;min-width:0}
+.mv-panel-back{appearance:none;align-self:flex-start;display:inline-flex;align-items:center;gap:4px;margin:6px 8px 2px;padding:5px 8px;border:.5px solid var(--mv-line);border-radius:7px;background:var(--mv-lift);color:var(--mv-dim);font:inherit;font-size:11.5px;cursor:pointer}
+.mv-panel-back:hover{color:var(--mv-text);border-color:var(--mv-accent)}
+.mv-panel-empty{display:flex;flex-direction:column;gap:6px;padding:18px 16px;color:var(--mv-dim)}
+.mv-panel-empty h3{margin:0;font-size:13px;color:var(--mv-text)}
+.mv-panel-empty p{margin:0;font-size:12px;line-height:1.55}
+.mv-panel-object{display:flex;flex-direction:column;flex:1 1 auto;min-height:0;min-width:0;overflow:auto}
+.mv-dock-card-head{display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:.5px solid var(--mv-line);flex:none}
+.mv-dock-card-head>div{flex:1;min-width:0}
+.mv-dock-card-head h3{margin:0;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mv-dock-card-head .eyebrow{font-size:10px;color:var(--mv-dim);letter-spacing:.04em;text-transform:uppercase}
 .mv-card{background:var(--mv-glass);border:.5px solid var(--mv-line);box-shadow:var(--mv-shadow);border-radius:13px}
 /* Workbench resize grips: thin transparent edges, visible only on hover/focus. */
 .mv-resize-handle{position:absolute;z-index:40;touch-action:none;background:transparent;pointer-events:auto}
@@ -113,7 +172,7 @@ import { PARSE_CSS } from './parse-css.js'
 .mv-analysis .profile-note{margin:0;color:var(--mv-dim);font-size:9.5px;line-height:1.45}
 .mv-analysis .profile-chart-thumb{appearance:none;display:flex;flex-direction:column;gap:2px;width:100%;padding:0;border:0;background:transparent;text-align:right;cursor:zoom-in;flex:none}
 .mv-analysis .profile-chart-hint{font-size:9.5px;color:var(--mv-dim)}
-.mv-chart-modal{position:fixed;inset:0;z-index:80;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(10,18,30,.55)}
+.mv-chart-modal{position:absolute;inset:0;z-index:80;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(10,18,30,.55)}
 .mv-chart-dialog{width:min(980px,94vw);max-height:90vh;display:flex;flex-direction:column;border-radius:14px;overflow:hidden;background:var(--mv-glass-strong);border:.5px solid var(--mv-line);box-shadow:var(--mv-shadow)}
 .mv-chart-dialog>header{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 14px;border-bottom:.5px solid var(--mv-line);font-size:13px;font-weight:600}
 .mv-chart-body{padding:12px;overflow:auto;background:#fff}
@@ -198,10 +257,16 @@ import { PARSE_CSS } from './parse-css.js'
 .mv-layer .mv-warn{flex:none;color:#f0b84b;font-size:12px;line-height:1;cursor:help;padding:0 2px}
 .mv-layer .name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;cursor:pointer}
 .mv-layer.off .name{color:var(--mv-dim);text-decoration:line-through}
-.mv-layer.has-shader{cursor:pointer;border-left:2px solid color-mix(in srgb,#3ddc97 70%,transparent);box-sizing:border-box}
+.mv-layer.has-shader{border-left:2px solid color-mix(in srgb,#3ddc97 70%,transparent);box-sizing:border-box}
 .mv-layer.has-shader:hover{background:color-mix(in srgb,#3ddc97 8%,transparent)}
-.mv-layer.has-shader .name{cursor:default}
+.mv-layer{position:relative}
 .mv-layer .mv-shader-edit{color:#3ddc97}
+.mv-layer .mv-shader-edit.on{color:#3ddc97}
+.mv-layer .mv-shader-edit:disabled{opacity:.34;cursor:default;color:var(--mv-dim)}
+.mv-layer .mv-shader-edit:disabled:hover{background:transparent;color:var(--mv-dim)}
+.mv-row-more.on{background:color-mix(in srgb,var(--mv-accent) 26%,transparent);color:var(--mv-text)}
+.mv-row-menu{position:absolute;top:calc(100% + 3px);right:6px;z-index:31;min-width:170px;padding:4px;border-radius:10px;display:flex;flex-direction:column;gap:1px}
+.mv-row-menu .mv-sep{width:auto;height:.5px;margin:4px 6px;background:var(--mv-line)}
 .mv-layer .mv-shader-edit:hover{background:color-mix(in srgb,#3ddc97 18%,transparent);color:#7ff0c4}
 .mv-icon-btn{appearance:none;border:0;background:transparent;color:var(--mv-dim);width:26px;height:26px;border-radius:7px;cursor:pointer;font:inherit;font-size:14px;line-height:1;display:inline-flex;align-items:center;justify-content:center;flex:none}
 .mv-layer{gap:3px;padding:5px 7px}
@@ -271,7 +336,7 @@ import { PARSE_CSS } from './parse-css.js'
 .mv-measure{position:absolute;left:0;right:0;margin:0 auto;width:max-content;bottom:16px;z-index:11;padding:7px 14px;border-radius:999px;font-size:12px;font-weight:500;line-height:1.35;color:var(--mv-text);white-space:nowrap;pointer-events:none;display:flex;align-items:center;gap:10px;font-variant-numeric:tabular-nums;background:color-mix(in srgb,var(--mv-glass-strong) 94%,transparent);border:.5px solid color-mix(in srgb,var(--mv-line) 80%,transparent);box-shadow:0 6px 18px rgba(0,0,0,.22);backdrop-filter:none;-webkit-backdrop-filter:none}
 .mv-measure-end{pointer-events:auto;appearance:none;border:.5px solid var(--mv-line);background:var(--mv-lift);color:var(--mv-text);font:inherit;font-size:11px;padding:3px 10px;border-radius:999px;cursor:pointer}
 .mv-measure-end:hover{border-color:var(--mv-accent);background:color-mix(in srgb,var(--mv-accent) 20%,transparent)}
-.mv-toast{position:absolute;left:0;right:0;margin:0 auto;width:max-content;bottom:64px;z-index:40;background:var(--mv-glass-strong);border:.5px solid var(--mv-line);color:var(--mv-text);padding:8px 14px;border-radius:9px;font-size:12px;max-width:72%;word-break:break-all;box-shadow:var(--mv-shadow)}
+.mv-toast{position:absolute;left:0;right:0;margin:0 auto;width:max-content;bottom:64px;z-index:var(--mv-z-toast);background:var(--mv-glass-strong);border:.5px solid var(--mv-line);color:var(--mv-text);padding:8px 14px;border-radius:9px;font-size:12px;max-width:72%;word-break:break-all;box-shadow:var(--mv-shadow)}
 .mv-overlay{position:absolute;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;padding:24px;background:var(--mv-overlay);pointer-events:none}
 .mv-overlay.dim{background:var(--mv-scrim)}
 .mv-empty{position:relative;display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center;max-width:470px;pointer-events:auto;padding:24px 28px;border-radius:16px;background:var(--mv-glass-strong);border:.5px solid var(--mv-line);box-shadow:0 24px 64px var(--mv-shadow)}
@@ -354,6 +419,10 @@ import { PARSE_CSS } from './parse-css.js'
   .mv-root.mv-docked .mv-brand span{display:none}
   .mv-root.mv-docked .mv-brand{padding:6px 8px}
 }
+@container (max-width: 620px){
+  .mv-root.mv-docked .mv-actions .mv-btn-label{display:none}
+  .mv-root.mv-docked .mv-actions .mv-btn{ padding:7px 8px}
+}
 @container (max-width: 540px){
   .mv-root.mv-docked .mv-brand{display:none}
   .mv-root.mv-docked .mv-actions{justify-content:flex-end}
@@ -373,7 +442,6 @@ import { PARSE_CSS } from './parse-css.js'
   .mv-root.mv-docked .mv-shader{top:92px;left:12px;width:min(320px,calc(100% - 24px));max-height:calc(100% - 236px)}
 }
 /* Snapshot mode: the picture is meant to be clean, so every overlay is hidden. */
-.mv-root.mv-capturing .mv-top,.mv-root.mv-capturing .mv-urlbar,.mv-root.mv-capturing .mv-right,.mv-root.mv-capturing .mv-shader,.mv-root.mv-capturing .mv-layers,.mv-root.mv-capturing .mv-analysis,.mv-root.mv-capturing .mv-floating,.mv-root.mv-capturing .mv-toolwin,.mv-root.mv-capturing .mv-hud,.mv-root.mv-capturing .mv-attr,.mv-root.mv-capturing .mv-credits,.mv-root.mv-capturing .mv-pick,.mv-root.mv-capturing .mv-measure,.mv-root.mv-capturing .mv-toast,.mv-root.mv-capturing .mv-select,.mv-root.mv-capturing .mv-sel-anchor,.mv-root.mv-capturing .mv-sel-hint,.mv-root.mv-capturing .mv-tour,.mv-root.mv-capturing .mv-scene-details,.mv-root.mv-capturing .mv-overlay,.mv-root.mv-capturing .mv-compass,.mv-root.mv-capturing .mv-modal{visibility:hidden!important}
 .mv-about{display:flex;flex-direction:column;gap:12px;padding:2px 0;font-size:12px}
 .mv-about .intro{margin:0;color:var(--mv-dim);line-height:1.75}
 .mv-about .row{display:flex;gap:12px;align-items:baseline}
@@ -435,8 +503,7 @@ import { PARSE_CSS } from './parse-css.js'
 /* v1.7 P0 — the scene as an instrument: a restrained vignette instead of more
    chrome, a selection card with corner brackets, and the tour story bar. */
 .mv-root::after{content:"";position:absolute;inset:0;z-index:3;pointer-events:none;background:radial-gradient(115% 115% at 50% 46%,rgba(3,7,13,0) 56%,rgba(3,7,13,.26) 100%)}
-.mv-root[data-mv-theme="light"]::after{background:radial-gradient(115% 115% at 50% 46%,rgba(24,34,50,0) 58%,rgba(24,34,50,.10) 100%)}
-.mv-root.mv-capturing::after{display:none}
+.mv-root[data-mv-scheme="light"]::after{background:radial-gradient(115% 115% at 50% 46%,rgba(24,34,50,0) 58%,rgba(24,34,50,.10) 100%)}
 .mv-sel-anchor{position:absolute;left:0;top:0;width:0;height:0;z-index:8;pointer-events:none}
 .mv-sel-anchor .c{position:absolute;width:11px;height:11px;border:1.5px solid #7dd3fc;filter:drop-shadow(0 1px 3px rgba(0,0,0,.45))}
 .mv-sel-anchor .c.tl{left:-26px;top:-26px;border-right:0;border-bottom:0}
@@ -525,6 +592,8 @@ import { PARSE_CSS } from './parse-css.js'
 .mv-tools .mv-sun{margin:0}
 /* Toolbox v1.6: 2-column bento tile index; clicking a tile opens a pop-out ToolWindow. */
 .mv-tool-index{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px;padding:8px 10px 10px;overflow:auto;min-height:0;scrollbar-width:thin}
+.mv-tool-group-title{grid-column:1/-1;padding:6px 2px 1px;color:var(--mv-dim);font-size:10.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;border-top:.5px solid var(--mv-line);margin-top:2px}
+.mv-tool-group-title:first-child{border-top:0;margin-top:0;padding-top:0}
 @container (max-width: 240px){.mv-tool-index{grid-template-columns:minmax(0,1fr)}}
 .mv-tool-entry{position:relative;appearance:none;display:flex;align-items:center;gap:7px;width:100%;min-width:0;border:.5px solid var(--mv-line);border-radius:10px;background:color-mix(in srgb,var(--mv-lift) 46%,transparent);color:var(--mv-text);font:inherit;font-size:11.5px;font-weight:500;padding:7px 8px;cursor:pointer;text-align:left;transition:background-color 140ms ease,border-color 140ms ease}
 .mv-tool-entry:hover{background:color-mix(in srgb,var(--mv-lift) 85%,transparent);border-color:color-mix(in srgb,var(--mv-accent) 28%,var(--mv-line))}
@@ -595,9 +664,8 @@ ${PARSE_CSS}
   .mv-root.mv-docked .mv-right{left:12px;right:12px;width:auto;max-height:calc(100% - 132px)}
   .mv-root.mv-docked .mv-shader{box-sizing:border-box;left:12px;right:12px;width:auto;max-height:calc(100% - 132px)}
   .mv-root.mv-docked .mv-tools{max-height:none}
-  .mv-root .mv-select,.mv-root .mv-vector-card{left:12px;right:12px;width:auto;margin:0;bottom:16px;max-height:calc(100% - 132px)}
+  .mv-root .mv-select{left:12px;right:12px;width:auto;margin:0;bottom:16px;max-height:calc(100% - 132px)}
   .mv-root:has(.mv-shader) .mv-right,.mv-root:has(.mv-select) .mv-right,.mv-root:has(.mv-select) .mv-shader{visibility:hidden;pointer-events:none}
-  .mv-root:has(.mv-vector-card) :is(.mv-right,.mv-shader,.mv-select),.mv-root:has(.mv-scene-details) :is(.mv-right,.mv-shader,.mv-select,.mv-vector-card){visibility:hidden;pointer-events:none}
   .mv-root .mv-select .actions .mv-cta{flex:1 1 100px;min-height:36px}
 }
 @media(pointer:coarse){

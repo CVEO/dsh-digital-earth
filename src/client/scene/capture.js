@@ -2,6 +2,12 @@
  * scene/capture.js — scene snapshots (canvas → data URL) for screenshots and the
  * Agent capture bridge.
  *
+ * Capture contract (v1.6.2, audit D6 option A): the bitmap is produced from the
+ * Cesium canvas alone. DOM chrome never reaches the picture, so the service does
+ * not toggle a "capturing" class, hide overlays, or wait painted frames first.
+ * The only DOM drawing is the optional HUD/vector-label overlay painted onto the
+ * 2D copy, controlled by include_hud.
+ *
  * Extracted from ViewerSurface in v1.6 Phase 2. The chrome (toolbars / HUD) is
  * hidden before grabbing the frame, the buffer is always rendered at full
  * resolution (the balanced tier trades sharpness for motion; a capture wants the
@@ -114,7 +120,7 @@ function captureMetadata({ viewer, Cesium, meta, config, layers }) {
   }
 }
 
-export function createCaptureService({ getViewer, getRoot, getSettings, getMeta, getSession, getCesium, getLayers, t, showToast, setChromeHidden, nextFrames, revealPanel, drawCaptureOverlay, drawVectorLabels }) {
+export function createCaptureService({ getViewer, getRoot, getSettings, getMeta, getSession, getCesium, getLayers, t, showToast, revealPanel, drawCaptureOverlay, drawVectorLabels }) {
   const MAX_CAPTURE_DATAURL = 7_500_000
 
   /** The panel is "hidden" when its tab is not laid out or the whole window is hidden. */
@@ -144,67 +150,49 @@ export function createCaptureService({ getViewer, getRoot, getSettings, getMeta,
         // Revealing is best-effort; the off-screen path below still runs.
       }
       await new Promise((resolve) => setTimeout(resolve, 180))
-      hidden = panelIsHidden()
     }
     const width = Math.round(Math.min(Math.max(Number(options.width) || 1280, 480), 2560))
     const format = options.format === 'png' ? 'png' : 'jpeg'
     const settings = getSettings()?.settings ?? {}
     const includeHud = typeof options.include_hud === 'boolean' ? options.include_hud : settings.screenshotHud === true
-    const chromeHidden = !includeHud && !hidden
-    if (chromeHidden) setChromeHidden(true)
+    // Captures always use the full-quality buffer: the balanced tier trades
+    // sharpness for motion, and the user asked for a picture, not a frame budget.
+    // The tier's scale is restored afterwards.
+    const previousResolutionScale = viewer.resolutionScale
+    viewer.resolutionScale = 1
     try {
-      // A hidden tab has no next animation frame to wait for. Cesium can still
-      // render into its existing canvas on demand, so skip the two-frame wait and
-      // let the explicit render below produce the picture.
-      if (!hidden) {
-        // Let CSS hide the chrome before the next frame is drawn, with a bound
-        // so a backgrounded tab fails clearly instead of timing out later.
-        await Promise.race([
-          nextFrames(2),
-          new Promise((_, reject) => setTimeout(() => reject(new Error(t('agent.hiddenPanel'))), 1500)),
-        ])
+      viewer.resize()
+      viewer.render()
+      const canvas = viewer.canvas
+      const sourceWidth = canvas?.width ?? 0
+      const sourceHeight = canvas?.height ?? 0
+      if (sourceWidth < 32 || sourceHeight < 32) throw new Error(t('agent.hiddenPanel'))
+      let scale = 1
+      let quality = 0.9
+      let targetWidth = 0
+      let targetHeight = 0
+      let dataUrl = ''
+      for (let attempt = 0; attempt < 4; attempt += 1) {
+        const drawWidth = Math.max(320, Math.round(width * scale))
+        targetWidth = Math.min(drawWidth, sourceWidth)
+        targetHeight = Math.max(1, Math.round((targetWidth * sourceHeight) / sourceWidth))
+        const target = document.createElement('canvas')
+        target.width = targetWidth
+        target.height = targetHeight
+        const context = target.getContext('2d')
+        context.drawImage(canvas, 0, 0, targetWidth, targetHeight)
+        drawVectorLabels?.(context, targetWidth, targetHeight)
+        if (includeHud) drawCaptureOverlay(context, targetWidth, targetHeight)
+        dataUrl = format === 'png' ? target.toDataURL('image/png') : target.toDataURL('image/jpeg', quality)
+        if (dataUrl.length <= MAX_CAPTURE_DATAURL) break
+        if (format === 'jpeg') quality = Math.max(0.5, quality - 0.15)
+        else scale *= 0.75
       }
-      // Captures always use the full-quality buffer: the balanced tier trades
-      // sharpness for motion, and the user asked for a picture, not a frame
-      // budget. The tier's scale is restored afterwards.
-      const previousResolutionScale = viewer.resolutionScale
-      viewer.resolutionScale = 1
-      try {
-        viewer.resize()
-        viewer.render()
-        const canvas = viewer.canvas
-        const sourceWidth = canvas?.width ?? 0
-        const sourceHeight = canvas?.height ?? 0
-        if (sourceWidth < 32 || sourceHeight < 32) throw new Error(t('agent.hiddenPanel'))
-        let scale = 1
-        let quality = 0.9
-        let targetWidth = 0
-        let targetHeight = 0
-        let dataUrl = ''
-        for (let attempt = 0; attempt < 4; attempt += 1) {
-          const drawWidth = Math.max(320, Math.round(width * scale))
-          targetWidth = Math.min(drawWidth, sourceWidth)
-          targetHeight = Math.max(1, Math.round((targetWidth * sourceHeight) / sourceWidth))
-          const target = document.createElement('canvas')
-          target.width = targetWidth
-          target.height = targetHeight
-          const context = target.getContext('2d')
-          context.drawImage(canvas, 0, 0, targetWidth, targetHeight)
-          drawVectorLabels?.(context, targetWidth, targetHeight)
-          if (includeHud) drawCaptureOverlay(context, targetWidth, targetHeight)
-          dataUrl = format === 'png' ? target.toDataURL('image/png') : target.toDataURL('image/jpeg', quality)
-          if (dataUrl.length <= MAX_CAPTURE_DATAURL) break
-          if (format === 'jpeg') quality = Math.max(0.5, quality - 0.15)
-          else scale *= 0.75
-        }
-        if (dataUrl.length > MAX_CAPTURE_DATAURL) throw new Error(t('agent.captureTooLarge'))
-        return { dataUrl, width: targetWidth, height: targetHeight, includeHud, format }
-      } finally {
-        viewer.resolutionScale = previousResolutionScale
-        viewer.resize()
-      }
+      if (dataUrl.length > MAX_CAPTURE_DATAURL) throw new Error(t('agent.captureTooLarge'))
+      return { dataUrl, width: targetWidth, height: targetHeight, includeHud, format }
     } finally {
-      if (chromeHidden) setChromeHidden(false)
+      viewer.resolutionScale = previousResolutionScale
+      viewer.resize()
     }
   }
 

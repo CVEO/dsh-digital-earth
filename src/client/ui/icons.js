@@ -232,4 +232,29 @@ const h = React.createElement
         off ? h('path', { d: 'M4 20 20 4', stroke: 'currentColor', strokeWidth: 1.7, strokeLinecap: 'round' }) : null,
       )
 
-export { ViewerIcon, ThemeIcon, FullscreenIcon, HudIcon, CollapseIcon, LayerActionIcon, ShaderIcon, ScreenshotIcon, IdentifyIcon, ResetIcon, AskAgentIcon, EyeIcon, ToolEntryIcon }
+    /** Toolbox glyph: four squares read as "a set of tools" at 16px. */
+    function ToolsIcon({ size = 16 }) {
+      const stroke = { stroke: 'currentColor', strokeWidth: 1.7, strokeLinecap: 'round', strokeLinejoin: 'round', fill: 'none' }
+      return h(
+        'svg',
+        { viewBox: '0 0 24 24', width: size, height: size, 'aria-hidden': true, style: { display: 'block' } },
+        h('rect', { key: 'a', x: 4, y: 4, width: 7, height: 7, rx: 1.6, ...stroke }),
+        h('rect', { key: 'b', x: 13, y: 4, width: 7, height: 7, rx: 1.6, ...stroke }),
+        h('rect', { key: 'c', x: 4, y: 13, width: 7, height: 7, rx: 1.6, ...stroke }),
+        h('rect', { key: 'd', x: 13, y: 13, width: 7, height: 7, rx: 1.6, ...stroke }),
+      )
+    }
+
+    /** Stacked layers glyph: the layer card / data domain entry. */
+    function LayersIcon({ size = 16 }) {
+      const stroke = { stroke: 'currentColor', strokeWidth: 1.7, strokeLinecap: 'round', strokeLinejoin: 'round', fill: 'none' }
+      return h(
+        'svg',
+        { viewBox: '0 0 24 24', width: size, height: size, 'aria-hidden': true, style: { display: 'block' } },
+        h('path', { key: 'top', d: 'M12 3.5 3.5 8l8.5 4.5L20.5 8z', ...stroke }),
+        h('path', { key: 'mid', d: 'M3.5 12.5 12 17l8.5-4.5', ...stroke }),
+        h('path', { key: 'bottom', d: 'M3.5 16.5 12 21l8.5-4.5', ...stroke }),
+      )
+    }
+
+export { ViewerIcon, ThemeIcon, FullscreenIcon, HudIcon, CollapseIcon, LayerActionIcon, ShaderIcon, ScreenshotIcon, IdentifyIcon, ResetIcon, AskAgentIcon, EyeIcon, ToolEntryIcon, ToolsIcon, LayersIcon }

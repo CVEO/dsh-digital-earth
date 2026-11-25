@@ -8,30 +8,29 @@
  */
 import React from 'react'
 
+import { useEscapeLayer } from './escape-stack.js'
+
 import { formatBytes, formatCount } from '../format.js'
 import { useFloatingWindow } from './floating.js'
 
 const h = React.createElement
 
-export function useSceneDetails({ t, stats, config, layers, analysis, shaderActive }) {
+export function useSceneDetails({ t, stats, config, layers, analysis, shaderActive, embedded = false }) {
   const [focus, setFocus] = React.useState(null) // null | { layerId: string|null }
   const open = React.useCallback((layerId) => setFocus({ layerId: typeof layerId === 'string' ? layerId : null }), [])
   const close = React.useCallback(() => setFocus(null), [])
 
-  React.useEffect(() => {
-    if (!focus) return undefined
-    const onKey = (event) => {
-      if (event.key === 'Escape') setFocus(null)
-    }
-    document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
-  }, [focus])
+  useEscapeLayer(() => {
+    setFocus(null)
+    return true
+  }, Boolean(focus))
 
   const focusedLayer = focus?.layerId ? ((layers ?? []).find((layer) => layer.id === focus.layerId) ?? null) : null
   const floating = useFloatingWindow({
     storageKey: 'scene-details',
     title: focusedLayer ? t('sceneDetails.layerTitle') : t('sceneDetails.title'),
     t,
+    restoreSaved: false,
   })
   const sourceName = (list, id) => (Array.isArray(list) ? list.find((source) => source.id === id)?.name : null) ?? t('sceneDetails.none')
   const row = (label, value) => h('div', { className: 'mv-sd-row' }, h('span', null, label), h('b', null, value))
@@ -43,22 +42,22 @@ export function useSceneDetails({ t, stats, config, layers, analysis, shaderActi
     ? h(
         'div',
         {
-          className: `mv-scene-details mv-glass ${floating.className}`,
-          ref: floating.ref,
-          style: floating.style,
+          className: `mv-scene-details${embedded ? ' in-dock' : ''} mv-glass ${embedded ? '' : floating.className}`,
+          ref: embedded ? undefined : floating.ref,
+          style: embedded ? undefined : floating.style,
           role: 'dialog',
           'aria-label': focusedLayer ? t('sceneDetails.layerTitle') : t('sceneDetails.title'),
-          ...floating.panelProps,
+          ...(embedded ? {} : floating.panelProps),
         },
         h(
           'header',
-          floating.headerProps,
-          floating.dragHandle,
+          embedded ? { className: 'mv-dock-card-head' } : floating.headerProps,
+          embedded ? null : floating.dragHandle,
           h('b', { className: 'title' }, focusedLayer ? t('sceneDetails.layerTitle') : t('sceneDetails.title')),
-          floating.resetButton,
+          embedded ? null : floating.resetButton,
           h('button', { type: 'button', className: 'mv-icon-btn', title: t('btn.close'), 'aria-label': t('btn.close'), onClick: close }, '✕'),
         ),
-        floating.liveRegion,
+        embedded ? null : floating.liveRegion,
         h(
           'div',
           { className: 'mv-sd-section' },
@@ -104,5 +103,5 @@ export function useSceneDetails({ t, stats, config, layers, analysis, shaderActi
       )
     : null
 
-  return { open, close, element }
+  return { open, close, isOpen: Boolean(focus), element }
 }

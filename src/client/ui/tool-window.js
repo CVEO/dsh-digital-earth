@@ -20,8 +20,11 @@ export function ToolWindow({
   minimized = false,
   expanded = false,
   autoFloat = false,
+  forceFloat = false,
+  embedded = false,
   floatIndex = 0,
   dockEmpty = false,
+  onFloatingChange,
   onToggleMinimize,
   onToggleExpand,
   onClose,
@@ -43,10 +46,15 @@ export function ToolWindow({
     title: label,
     t,
     autoFloat,
+    forceFloat,
     floatIndex,
     dockEmpty,
+    restoreSaved: false,
     hasExplicitWidth: Boolean(resize.size.width),
   })
+  React.useEffect(() => {
+    onFloatingChange?.(floating.moved)
+  }, [floating.moved, onFloatingChange])
   if (!entry) return null
   const toggleLabel = minimized ? t('tools.windowExpand') : t('tools.windowMinimize')
   const zoomLabel = expanded ? t('tools.windowRestore') : t('tools.windowZoom')
@@ -54,18 +62,20 @@ export function ToolWindow({
   const baseStyle = floating.moved
     ? { ...floating.style, ...resize.style }
     : { ...floating.style, ...dockedResize }
-  const bodyStyle = minimized
-    ? floating.moved
-      ? floating.style
-      : undefined
-    : expanded
-      ? { ...baseStyle, height: 'min(480px, 60vh)', maxHeight: 'none', flex: '0 0 auto' }
-      : baseStyle
+  const bodyStyle = embedded
+    ? undefined
+    : minimized
+      ? floating.moved
+        ? floating.style
+        : undefined
+      : expanded
+        ? { ...baseStyle, height: 'min(480px, 60vh)', maxHeight: 'none', flex: '0 0 auto' }
+        : baseStyle
 
   return h(
     'section',
     {
-      className: `mv-toolwin mv-glass ${floating.className}${minimized ? ' minimized' : ''}${expanded && !minimized ? ' expanded' : ''}`,
+      className: `mv-toolwin mv-glass ${floating.className}${minimized ? ' minimized' : ''}${expanded && !minimized ? ' expanded' : ''}${embedded ? ' in-dock' : ''}`,
       ref: mergeRefs(floating.ref, resize.ref),
       style: bodyStyle,
       'aria-label': label,
@@ -125,7 +135,7 @@ export function ToolWindow({
       ),
     ),
     floating.liveRegion,
-    minimized ? null : h('div', { className: 'mv-toolwin-body' }, children),
+    minimized && !embedded ? null : h('div', { className: 'mv-toolwin-body' }, children),
     minimized || expanded
       ? null
       : h(ResizeHandle, {
@@ -135,6 +145,8 @@ export function ToolWindow({
           value: resize.size.height,
           onPointerDown: resize.beginHeight,
           onKeyDown: resize.keyHeight,
+          min: resize.minHeight,
+          max: resize.maxHeight,
         }),
     minimized || expanded || !floating.moved
       ? null
@@ -145,6 +157,8 @@ export function ToolWindow({
           value: resize.size.width,
           onPointerDown: resize.beginCorner,
           onKeyDown: resize.keyWidth,
+          min: resize.minWidth,
+          max: resize.maxWidth,
         }),
   )
 }

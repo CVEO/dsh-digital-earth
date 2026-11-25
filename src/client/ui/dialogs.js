@@ -9,6 +9,8 @@ import { clone } from '../format.js'
 import { FALLBACK_ABOUT } from '../messages.js'
 import { readAutoOpen, writeAutoOpen } from '../preferences.js'
 
+import { useDialogA11y } from './use-dialog-a11y.js'
+
 const h = React.createElement
 
     //#region sources dialog ---------------------------------------------------
@@ -172,8 +174,9 @@ const h = React.createElement
       )
     }
 
-    function SourcesDialog({ config, defaults, environmentDark, themeMode, onPickLocal, onSave, onClose, messages, meta, bridgeOn, bridgeReload }) {
+    function SourcesDialog({ config, defaults, environmentDark, themeMode, onPickLocal, onSave, onClose, messages, meta, bridgeOn, bridgeReload, askConfirm, notify }) {
       const t = messages
+      const dialogRef = useDialogA11y({ open: true, onEscape: onClose })
       const [draft, setDraft] = React.useState(() => clone(config))
       const [tab, setTab] = React.useState('imagery')
       const [editing, setEditing] = React.useState(null)
@@ -186,15 +189,6 @@ const h = React.createElement
       const [autoOpen, setAutoOpen] = React.useState(readAutoOpen)
       const activeId = (kind) => (kind === 'imagery' ? draft.settings.imagery : draft.settings.terrain)
 
-      React.useEffect(() => {
-        const onKey = (event) => {
-          if (event.key !== 'Escape') return
-          event.stopPropagation()
-          onClose()
-        }
-        document.addEventListener('keydown', onKey, true)
-        return () => document.removeEventListener('keydown', onKey, true)
-      }, [onClose])
 
       const setSources = (kind, list) => setDraft((current) => ({ ...current, [kind]: list }))
       const selectSource = (kind, id) =>
@@ -223,14 +217,21 @@ const h = React.createElement
       const save = () => {
         for (const kind of ['imagery', 'terrain']) {
           if (draft[kind].some((source) => source.name.trim() === '' || source.url.trim() === '')) {
-            window.alert(t('settings.required'))
+            // Toast, not a blocking alert: the host window keeps focus.
+            notify?.(t('settings.required'))
             return
           }
         }
         onSave(draft)
       }
-      const restore = () => {
-        if (!window.confirm(t('settings.restoreConfirm'))) return
+      const restore = async () => {
+        const accepted = await askConfirm?.({
+          title: t('settings.confirmRestoreTitle'),
+          message: t('settings.restoreConfirm'),
+          confirmLabel: t('btn.restore'),
+          cancelLabel: t('btn.cancel'),
+        })
+        if (!accepted) return
         setDraft(clone(defaults))
         setEditing(null)
       }
@@ -287,8 +288,15 @@ const h = React.createElement
                     type: 'button',
                     className: 'mv-icon-btn',
                     title: t('btn.delete'),
-                    onClick: () => {
-                      if (window.confirm(t('settings.deleteConfirm', { name: source.name }))) removeSource(kind, source.id)
+                    onClick: async () => {
+                      const accepted = await askConfirm?.({
+                        title: t('settings.confirmDeleteTitle'),
+                        message: t('settings.deleteConfirm', { name: source.name }),
+                        confirmLabel: t('btn.delete'),
+                        cancelLabel: t('btn.cancel'),
+                        danger: true,
+                      })
+                      if (accepted) removeSource(kind, source.id)
                     },
                   },
                   '✕',
@@ -511,7 +519,7 @@ const h = React.createElement
         { className: 'mv-modal', onPointerDown: (event) => event.target === event.currentTarget && onClose() },
         h(
           'div',
-          { className: 'mv-dialog', role: 'dialog', 'aria-modal': true },
+          { ref: dialogRef, className: 'mv-dialog', role: 'dialog', 'aria-modal': true },
           h(
             'header',
             null,
@@ -585,6 +593,7 @@ const h = React.createElement
      * whatever the Host returns.
      */
     function HealthDialog({ state, messages: t, onClose, onCopy }) {
+      const dialogRef = useDialogA11y({ open: true, onEscape: onClose })
       const report = state?.report ?? null
       const issues = Array.isArray(report?.issues) ? report.issues : []
       const extensions = Array.isArray(report?.counts?.extensionsUsed) ? report.counts.extensionsUsed : []
@@ -675,7 +684,7 @@ const h = React.createElement
         { className: 'mv-modal', onPointerDown: (event) => event.target === event.currentTarget && onClose() },
         h(
           'div',
-          { className: 'mv-dialog mv-health', role: 'dialog', 'aria-modal': true },
+          { ref: dialogRef, className: 'mv-dialog mv-health', role: 'dialog', 'aria-modal': true },
           h(
             'header',
             null,
@@ -698,18 +707,10 @@ const h = React.createElement
      */
     function PathAccessDialog({ request, busy, t, onAllow, onDeny }) {
       const denyRef = React.useRef(null)
+      const dialogRef = useDialogA11y({ open: true, onEscape: onDeny })
       React.useEffect(() => {
         denyRef.current?.focus?.()
       }, [])
-      React.useEffect(() => {
-        const onKey = (event) => {
-          if (event.key !== 'Escape') return
-          event.preventDefault()
-          onDeny()
-        }
-        document.addEventListener('keydown', onKey)
-        return () => document.removeEventListener('keydown', onKey)
-      }, [onDeny])
       const action =
         request.request === 'load'
           ? t('access.request.load')
@@ -725,7 +726,7 @@ const h = React.createElement
         { className: 'mv-modal', onPointerDown: (event) => event.target === event.currentTarget && !busy && onDeny() },
         h(
           'div',
-          { className: 'mv-dialog mv-access', role: 'dialog', 'aria-modal': true, 'aria-labelledby': 'mv-access-title' },
+          { ref: dialogRef, className: 'mv-dialog mv-access', role: 'dialog', 'aria-modal': true, 'aria-labelledby': 'mv-access-title' },
           h(
             'header',
             null,
@@ -766,6 +767,7 @@ const h = React.createElement
     //#endregion local path authorisation
 
     function ScanDialog({ scan, t, onSelect, onClose }) {
+      const dialogRef = useDialogA11y({ open: Boolean(scan), onEscape: onClose })
       if (!scan) return null
       const items = Array.isArray(scan.items) ? scan.items : []
       return h(
@@ -773,7 +775,7 @@ const h = React.createElement
         { className: 'mv-modal', onPointerDown: (event) => event.target === event.currentTarget && onClose() },
         h(
           'div',
-          { className: 'mv-dialog', role: 'dialog', 'aria-modal': true },
+          { ref: dialogRef, className: 'mv-dialog', role: 'dialog', 'aria-modal': true },
           h(
             'header',
             null,

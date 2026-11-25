@@ -47,6 +47,21 @@ function viewportBounds(maxWidth, maxHeight) {
 }
 
 /**
+ * Bounds relative to the panel container when one can be measured. The panel can
+ * be docked at a few hundred pixels while the browser window stays wide; clamping
+ * to the viewport alone let a remembered width overflow the dock.
+ */
+function containerBounds(element, maxWidth, maxHeight) {
+  const parent = element?.parentElement
+  const width = Number(parent?.clientWidth) || Number(globalThis.innerWidth) || 1280
+  const height = Number(parent?.clientHeight) || Number(globalThis.innerHeight) || 800
+  return {
+    maxWidth: Math.max(200, Math.min(maxWidth, width - 24)),
+    maxHeight: Math.max(120, Math.min(maxHeight, height - 24)),
+  }
+}
+
+/**
  * @param {object} options
  * @param {string} options.storageKey  localStorage slot ('right-stack', 'tools', ...)
  * @param {'left'|'right'} [options.widthDirection] left: dragging left grows
@@ -75,6 +90,26 @@ export function usePanelResize({
   }, [initialHeight, initialWidth, maxHeight, maxWidth, minHeight, minWidth, stored])
   const [size, setSize] = React.useState(initial)
   const ref = React.useRef(null)
+  React.useEffect(() => {
+    const clampToContainer = () => {
+      const bounds = containerBounds(ref.current, maxWidth, maxHeight)
+      setSize((current) => {
+        const width = Number.isFinite(current.width) ? clampSize(current.width, minWidth, bounds.maxWidth) : current.width
+        const height = Number.isFinite(current.height) ? clampSize(current.height, minHeight, bounds.maxHeight) : current.height
+        if (width === current.width && height === current.height) return current
+        const next = { ...current, width, height }
+        sizeRef.current = next
+        return next
+      })
+    }
+    clampToContainer()
+    const parent = ref.current?.parentElement
+    const Observer = globalThis.ResizeObserver
+    if (!parent || typeof Observer !== 'function') return undefined
+    const observer = new Observer(clampToContainer)
+    observer.observe(parent)
+    return () => observer.disconnect()
+  }, [maxHeight, maxWidth, minHeight, minWidth])
   const sizeRef = React.useRef(size)
   sizeRef.current = size
 
@@ -99,7 +134,7 @@ export function usePanelResize({
       document.body.style.cursor = axis === 'width' ? 'ew-resize' : axis === 'height' ? 'ns-resize' : 'nwse-resize'
       document.body.style.userSelect = 'none'
       const move = (moveEvent) => {
-        const bounds = viewportBounds(maxWidth, maxHeight)
+        const bounds = containerBounds(element, maxWidth, maxHeight)
         const dx = (moveEvent.clientX ?? startX) - startX
         const dy = (moveEvent.clientY ?? startY) - startY
         setSize((current) => {
@@ -133,7 +168,7 @@ export function usePanelResize({
     (axis) => (event) => {
       const delta = event.shiftKey ? STEP * 3 : STEP
       const current = sizeRef.current
-      const bounds = viewportBounds(maxWidth, maxHeight)
+      const bounds = containerBounds(ref.current, maxWidth, maxHeight)
       const next = { ...current }
       let handled = true
       if (axis === 'width') {
@@ -166,6 +201,10 @@ export function usePanelResize({
     ref,
     size,
     style,
+    minWidth,
+    maxWidth,
+    minHeight,
+    maxHeight,
     beginWidth: start('width'),
     beginHeight: start('height'),
     beginCorner: start('corner'),
@@ -174,7 +213,7 @@ export function usePanelResize({
   }
 }
 
-export function ResizeHandle({ axis = 'width', edge = 'left', label, value, onPointerDown, onKeyDown }) {
+export function ResizeHandle({ axis = 'width', edge = 'left', label, value, min, max, onPointerDown, onKeyDown }) {
   return h('div', {
     className: `mv-resize-handle mv-resize-${axis} mv-resize-${edge}`,
     role: 'separator',
@@ -182,6 +221,8 @@ export function ResizeHandle({ axis = 'width', edge = 'left', label, value, onPo
     'aria-label': label,
     'aria-orientation': axis === 'width' ? 'vertical' : 'horizontal',
     'aria-valuenow': Number.isFinite(value) ? Math.round(value) : undefined,
+    'aria-valuemin': Number.isFinite(min) ? Math.round(min) : undefined,
+    'aria-valuemax': Number.isFinite(max) ? Math.round(max) : undefined,
     title: label,
     onPointerDown,
     onKeyDown,

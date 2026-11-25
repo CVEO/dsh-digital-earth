@@ -495,7 +495,8 @@ test('L2 whole-layer 2D/3D toggle: commandExtrusionSummary, toggleLayerExtrusion
 
   // 5-key lock preserved!
   const list = buildAgentOverlayList(state)
-  assert.deepEqual(Object.keys(list[0]).sort(), ['detail', 'id', 'index', 'kind', 'label'])
+  // Batch A: the origin tag is part of the row contract now.
+  assert.deepEqual(Object.keys(list[0]).sort(), ['detail', 'id', 'index', 'kind', 'label', 'origin'])
   const extrusions = buildAgentOverlayExtrusions(state)
   assert.deepEqual(extrusions[0], { canExtrude: true, extruded: true, heightCount: 1, extrudedCount: 1 })
   assert.deepEqual(extrusions[1], { canExtrude: false, extruded: false, heightCount: 0, extrudedCount: 0 })

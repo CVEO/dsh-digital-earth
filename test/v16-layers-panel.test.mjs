@@ -90,7 +90,12 @@ test('接线：叠加层增删改查都先写回 catalog，再 sync 实时图层
 test('接线：面板拿到矢量统计与清除动作，且 3D Tiles 行仍保留定位/显隐/体检/移除', () => {
   const client = clientSource()
   assert.match(client, /annotations: \{\s*drawn_features: agentOverlayRef\.current\.drawnFeatures/)
-  assert.match(client, /onClearVector: \(\) => clearAgentOverlays\('all'\)/)
+  // A1: 清空改为带计数与范围的确认框，并支持“仅清量测”。
+  assert.match(client, /onClearVector: \(\) => \{/)
+  assert.match(client, /t\('confirm\.clearVectorTitle'\)/)
+  assert.match(client, /t\('confirm\.clearVectorIncludesUser', \{ user:/)
+  assert.match(client, /clearAgentOverlays\('all'\)/)
+  assert.match(client, /clearAgentOverlays\('measure'\)/)
   for (const handler of ['onFlyLayer', 'onToggleLayer', 'onInspectLayer', 'onRemoveLayer']) {
     assert.match(client, new RegExp(`${handler}: `), `三维内容层缺少 ${handler}`)
   }

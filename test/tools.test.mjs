@@ -218,11 +218,11 @@ test('客户端：六个地球工具都注册了 tool.call.toolview 工具行', 
 test('客户端：runCommand 处理 draw / measure，并保留叠加层清理入口', () => {
   assert.match(client, /if \(action === 'draw'\) \{/)
   assert.match(client, /if \(action === 'measure'\) \{/)
-  assert.match(client, /function drawAgentOverlay\(Cesium, viewer, geojson, style, caption\)/)
+  assert.match(client, /function drawAgentOverlay\(Cesium, viewer, geojson, style, caption, origin = 'agent'\)/)
   assert.match(client, /function measureAgentOverlay\(Cesium, viewer, args\)/)
   // v1.6 Phase 2：清理逻辑在 scene/agent-overlays.js，ViewerSurface 只保留包装。
-  assert.match(client, /export function clearAgentOverlays\(state, viewer, kind = 'all'\)/)
-  assert.match(client, /const clearAgentOverlays = \(kind = 'all'\) => \{/)
+  assert.match(client, /export function clearAgentOverlays\(state, viewer, kind = 'all', options = \{\}\)/)
+  assert.match(client, /const clearAgentOverlays = \(kind = 'all', options = \{\}\) => \{/)
   // 清空必须真的从 viewer 上移除实体，否则再画会叠加出旧标注。
   assert.match(client, /viewer\.entities\.remove\(entity\)/)
   // 三种量测都要产出宿主渲染器认识的结果字段。

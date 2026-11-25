@@ -30,7 +30,7 @@ const DRAW_PARAMETERS = {
     },
     clear: {
       type: 'boolean',
-      description: 'true first removes every overlay the Agent drew earlier in this panel (annotations and measurements); it may be used alone.',
+      description: 'true first removes the annotations the Agent drew earlier in this panel; user-imported, hand-drawn and parsed overlays are not touched. It may be used alone.',
     },
   },
   additionalProperties: false,
@@ -263,7 +263,7 @@ export function normalizeDrawRequest(raw) {
 
 function renderDrawResult(value) {
   const lines = []
-  if (value.cleared === true) lines.push('Cleared the overlays the Agent drew earlier on the digital earth.')
+  if (value.cleared === true) lines.push('Cleared the Agent-drawn annotations on the digital earth.')
   const drawn = Number.isInteger(value.drawn) ? value.drawn : 0
   if (drawn > 0) {
     const byType = isPlainObject(value.by_type) ? value.by_type : {}

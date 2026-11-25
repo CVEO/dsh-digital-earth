@@ -135,5 +135,7 @@ test('全屏：只保留一个入口，不再有“最大化侧栏”', () => {
   const client = clientSource()
   assert.doesNotMatch(client, /togglePaneFullscreen/)
   assert.doesNotMatch(client, /btn\.maximize/)
-  assert.match(client, /iconButton\(h\(FullscreenIcon\), fullscreen \? t\('btn\.fullscreenExit'\) : t\('btn\.fullscreenTitle'\), toggleDomFullscreen, fullscreen\)/)
+  assert.ok(readRepoFile('src/client/ui/toolbar-output.js').includes('onToggleFullscreen'))
+  assert.ok(readRepoFile('src/client/ui/toolbar-output.js').includes("t('btn.fullscreenExit') : t('btn.fullscreenTitle')"))
+
 })

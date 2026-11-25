@@ -10,7 +10,7 @@ Built by the CVEO Research Group, Wuhan University — a 3D component for 3D cit
 
 [中文](README.md) · [English](README.en.md) · [Changelog](CHANGELOG.md) · [License](LICENSE)
 
-![version](https://img.shields.io/badge/version-1.6.0-4f8cff)
+![version](https://img.shields.io/badge/version-1.6.3-4f8cff)
 ![license](https://img.shields.io/badge/license-MIT-2ea44f)
 ![DSH](https://img.shields.io/badge/DSH-plugin-0ea5e9)
 [![npm downloads](https://img.shields.io/npm/dm/@cveo/dsh-digital-earth?label=npm%20downloads&color=cb383f)](https://www.npmjs.com/package/@cveo/dsh-digital-earth)
@@ -44,7 +44,7 @@ dsh plugin --profile desktop add @cveo/dsh-digital-earth
 dsh plugin --profile web add @cveo/dsh-digital-earth
 
 # Install from a local tarball (Desktop example; change desktop to web for Web UI)
-dsh plugin --profile desktop add ./cveo-dsh-digital-earth-1.6.0.tgz
+dsh plugin --profile desktop add ./cveo-dsh-digital-earth-1.6.3.tgz
 ```
 
 1. Quit and reopen the DSH Desktop app completely, or restart the `dsh web` service (the client bundle registers at startup; a page refresh is not enough).
@@ -74,10 +74,10 @@ No tool names or coordinates are required. After loading the sample data, say an
 
 ## Core capabilities
 
-- **Scene browsing**: stack multiple 3D Tiles / 3DGS layers with visibility, fly-to and attribute identification; the layer card manages data only — the 3D tab holds terrain and 3D Tiles/3DGS, the Map tab holds imagery, raster and vector overlays; measure, profile, sun, analysis, visual effects and view bookmarks live in a separate Tools card. Collapsible panels and a compass that resets north keep the globe readable.
+- **Scene browsing**: stack multiple 3D Tiles / 3DGS layers with visibility, fly-to and attribute identification; the layer card manages data only — the 3D tab holds terrain and 3D Tiles/3DGS, the Map tab holds imagery, raster and vector overlays; measure, profile, sun, analysis, visual effects and view bookmarks live in the Tools tab. The right side is one tab dock: `Layers / Tools / Result / Object`, showing one panel at a time while the others stay mounted so a switch never loses a draft. Tools use an index ↔ detail master-detail flow with `← Tools` to go back. The top command bar is fixed at `Add data ▾ / Layers / Tools / Result / Output ▾ / ⚙`; a domain button switches tab, pressing it again collapses the dock to a pill, and Escape collapses it when focus is inside. A compass that resets north keeps the globe readable.
 - **Measurement and identification**: distance, area and height, plus drag-box ground selection that reports area/perimeter/boundary height and exports GeoJSON; the coordinate HUD samples at 5–6 Hz and the identify card reports surface height and an estimated geometric height.
 - **Spatial analysis**: 3D profile, flood, sunlight, clip and skyline — one active analysis at a time, drawn in the scene with the height source (3D Tiles surface or terrain) stated in the result.
-- **Deliverables**: Clean snapshots (Manual and Agent snapshots keep only the 3D view by default), HTML / Markdown scene reports, evidence packs and per-session scene restore; the snapshot folder keeps the last 50 files, suitable for reports, presentations and archives. Snapshots also report camera longitude/latitude, height, heading, pitch, time and visible layers, and write a JSON sidecar next to the image.
+- **Deliverables**: Clean snapshots (Manual and Agent snapshots keep only the 3D view by default), HTML / Markdown scene reports, evidence packs and per-session scene restore; the snapshot folder keeps the last 50 files, suitable for reports, presentations and archives. Snapshots are canvas-only bitmaps by contract (v1.6.2): DOM overlays and toolbars never enter the image. They also report camera longitude/latitude, height, heading, pitch, time and visible layers, and write a JSON sidecar next to the image.
 - **Agent integration**: Six built-in tools (`earth_scene`, `earth_capture`, `earth_draw`, `earth_measure`, `earth_analyze`, `earth_shader`) let the conversation read and write the scene; visual effects are white-listed presets (no custom GLSL), applied per layer with an original-look comparison.
 - **Data access**: recursive local folder scan, an absolute local path and `http(s)` URLs; a local path is authorised once and never read outside the granted folders. The Map tab can also import a local GeoJSON or Shapefile (`.shp`, optionally with its `.dbf` table; up to 500 features / 20k coordinates), or you can drop the file straight onto the globe, as a vector overlay sharing the Agent overlay rendering and clear path.
 
@@ -106,7 +106,7 @@ All screenshots below are from real panel sessions. Sample data: the public Cler
 
 **Measure and annotate**: measure distance, area and height on the globe, or let the Agent draw points, lines and polygons from GeoJSON; results stay in the panel and can be captured at any time. **Clicking a scene object identifies it by default**: the card shows batch-table attributes (up to 8 when present), hit layer, coordinates, surface/geometric height and confidence — no tool mode to arm first. The card can also create a 15 m approximate AOI around the point (labelled as approximate, never as a building footprint).
 
-**Tools card**: the toolbar opens a separate card for measurement, profile, sunlight, visual effects and view bookmarks. Finishing a point, lasso, box or object selection expands a question composer. Enter a question or choose a suggested question, then select “Send to current conversation”. Selection details and an optional saved view accompany the question; the reply appears in chat, queued if the Agent is busy. Valid surface regions also offer approximate area/perimeter, GeoJSON export and existing analyses. Object marquee selects existing annotations for batch deletion or export. AI-assisted selection uses the separate direct-vision workflow below. The original toolbar “Ask Agent” remains a context-only action followed by typing a question in chat.
+**Tools card**: the toolbar opens a separate card for measurement, profile, sunlight, visual effects and view bookmarks. Finishing a point, lasso, box or object selection expands a question composer. Enter a question or choose a suggested question, then select “Send to current conversation”. Selection details and an optional saved view accompany the question; the reply appears in chat, queued if the Agent is busy. Valid surface regions also offer approximate area/perimeter, GeoJSON export and existing analyses. Object marquee selects existing annotations for batch deletion or export. AI-assisted selection uses the separate direct-vision workflow below. “Ask Agent” in the View & output menu remains a context-only action followed by typing a question in chat.
 
 **Ask after selecting**: open Tools → Box select, drag a region and release. The question card saves that view with the selected area outlined in cyan; moving the camera afterward does not change it. Images are limited to 1024 pixels on the longest side and sent only when you press Send. The host admits them as native image attachments to the current conversation model, so the Agent need not read a snapshot file. A model without image support produces an explicit error; switch models or send coordinates without the image when geometry is available. If the host lacks direct prompt support, copy the question and selection into chat. Context injection is never presented as an active answer. When delivery is uncertain, check chat first; retrying retains the same request identity.
 
@@ -134,7 +134,7 @@ Click a scene target and choose “Outline this target with AI” on its card. C
 
 The panel calls the global default DSH vision model once, outside the Agent tool loop, without installing SAM or another inference runtime. The model must declare image support, and the host must provide LLM, attachment and default-model services; missing capabilities produce explicit messages. Images are limited to a 1024-pixel longest edge, with an approximately 20-second server timeout and no automatic retries. Model-provider charges apply. Cancellation signals the model to stop; it does not undo incurred charges or saved attachments.
 
-The view stays fixed during recognition. Camera, layer, tile-detail or panel-size changes invalidate the result. Confirmation requires reliable 3D depth; if unavailable, explicitly switch to manual lasso. “Ask Agent” remains a separate action. After updating the local plugin, quit DSH completely and restart it to load the new host route.
+The view stays fixed during recognition. Camera, layer, tile-detail or panel-size changes invalidate the result. Confirmation requires reliable 3D depth; if unavailable, explicitly switch to manual lasso. “Ask Agent” in the View & output menu remains a separate action. After updating the local plugin, quit DSH completely and restart it to load the new host route.
 
 ## Agent tools
 

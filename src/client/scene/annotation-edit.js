@@ -51,7 +51,7 @@ export function rebuildDrawCommand(state, viewer, command, features, replay) {
   const nextGeojson = { ...command.geojson, features: list }
   // Replay after removal so entity groups and the command list stay in sync.
   removeAgentOverlay(state, viewer, 'draw', index)
-  const next = typeof replay === 'function' ? replay(nextGeojson, command.style, command.caption) : null
+  const next = typeof replay === 'function' ? replay(nextGeojson, command.style, command.caption, command.origin) : null
   if (!next) return { ok: false, error: 'replay_failed' }
   return { ok: true, command: next }
 }

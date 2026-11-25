@@ -11,6 +11,8 @@
  */
 import React from 'react'
 
+import { useEscapeLayer } from './escape-stack.js'
+
 import { TOUR_DWELL_MS, TOUR_MIN_STOPS, buildTour, stepIndex, stopCaption, tourDuration } from '../scene/tour.js'
 
 // Every other UI module keeps this one-letter alias; tour-bar.js was the only
@@ -79,14 +81,10 @@ export function useTour({ t, showToast, getCurrentView, onFlyView, onFinish }) {
   }, [state])
 
   // Esc ends the tour without saving the end-of-tour screenshot.
-  React.useEffect(() => {
-    if (!state) return undefined
-    const onKey = (event) => {
-      if (event.key === 'Escape') setState(null)
-    }
-    document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
-  }, [state])
+  useEscapeLayer(() => {
+    setState(null)
+    return true
+  }, Boolean(state))
 
   const current = state ? state.stops[state.index] : null
   const element = state

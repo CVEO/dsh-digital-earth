@@ -41,8 +41,9 @@ function loadDialogs() {
   source = source.replace(/^import[^\n]*\n/gm, '')
   source = source.replace(/export \{([^}]*)\}/, 'return { $1 }')
   // eslint-disable-next-line no-new-func
-  const factory = new Function('React', 'clone', 'FALLBACK_ABOUT', 'readAutoOpen', 'writeAutoOpen', source)
-  return factory(fakeReact(), clone, FALLBACK_ABOUT, () => false, () => {})
+  const factory = new Function('React', 'clone', 'FALLBACK_ABOUT', 'readAutoOpen', 'writeAutoOpen', 'useDialogA11y', source)
+  // The shared hook returns a ref; the smoke test only needs a stable shape.
+  return factory(fakeReact(), clone, FALLBACK_ABOUT, () => false, () => {}, () => ({ current: null }))
 }
 
 const CONFIG = {

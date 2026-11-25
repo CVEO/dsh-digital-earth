@@ -45,8 +45,12 @@ export function createVectorRenderer({ getState, getVector, t, markSceneDirty, s
    * Draw a host-validated GeoJSON FeatureCollection. Every annotation is
    * ground-draped so it stays visible on terrain and imagery; optional
    * GeoJSON heights are therefore ignored here (measurements keep them).
+   *
+   * `origin` records who owns the command ('agent' by default, 'user' for the
+   * annotation tool and 'import' for local files) so clearing one origin never
+   * deletes another's data.
    */
-  function drawAgentOverlay(Cesium, viewer, geojson, style, caption) {
+  function drawAgentOverlay(Cesium, viewer, geojson, style, caption, origin = 'agent') {
     const state = getState()
     const vector = getVector()
     const firstEntity = state.draw.length
@@ -268,6 +272,7 @@ export function createVectorRenderer({ getState, getVector, t, markSceneDirty, s
         geojson: storedGeojson,
         style,
         drawn,
+        origin: origin === 'user' || origin === 'import' ? origin : 'agent',
         ...(typeof caption === 'string' && caption !== '' ? { caption } : {}),
       }
       state.entityGroups.set(command, state.draw.slice(firstEntity))
@@ -412,6 +417,8 @@ export function createVectorRenderer({ getState, getVector, t, markSceneDirty, s
     if (draw) {
       state.measuredCount += points.length
       const command = { mode, points, draw: true, result }
+      // Batch A: user-drawn measurements are tagged so an Agent clear keeps them.
+      if (args.origin === 'user') command.origin = 'user'
       state.entityGroups.set(command, state.measure.slice(firstEntity))
       state.measureCommands.push(command)
       markSceneDirty()

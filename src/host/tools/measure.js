@@ -32,7 +32,7 @@ const MEASURE_PARAMETERS = {
     },
     clear: {
       type: 'boolean',
-      description: 'true first removes every overlay the Agent drew earlier in this panel (annotations and measurements).',
+      description: 'true first removes the measurements the Agent drew earlier in this panel; annotations and the user\'s own measurements are not touched.',
     },
   },
   required: ['mode', 'points'],
@@ -42,7 +42,7 @@ const MEASURE_PARAMETERS = {
 const MEASURE_DESCRIPTION = [
   'Measure on the digital earth panel and return the numeric result: geodesic distance along points, area of a polygon, or the height difference between two points.',
   'Coordinates are WGS84 degrees. distance and area are measured on the ellipsoid surface; height mode uses each point\'s height when provided, otherwise the terrain/globe surface height the panel reports. Measure only where the user asked or where the scene shows a real feature.',
-  'By default the measurement is also drawn on the globe (points, line/polygon and a label) so the user can see it; pass draw=false for a numeric-only answer, and clear=true to remove earlier Agent overlays first.',
+  'By default the measurement is also drawn on the globe (points, line/polygon and a label) so the user can see it; pass draw=false for a numeric-only answer, and clear=true to remove earlier Agent measurements first.',
   'Returns compact JSON with meters/degrees plus a rendered summary; call earth_capture to show it.',
 ].join('\n')
 

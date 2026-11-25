@@ -54,6 +54,19 @@ export function readSavedPos(storageKey) {
   return result
 }
 
+/**
+ * v1.6.3: dock panels must not resurrect legacy float coordinates. The dock now
+ * owns placement, so the stale `mv.panel.pos.v1` entries are cleared once and
+ * never read by a dock panel again (`restoreSaved` stays false there).
+ */
+export function clearAllSavedPositions() {
+  try {
+    globalThis.localStorage?.removeItem(POSITION_STORAGE_KEY)
+  } catch {
+    /* ignore private-mode storage errors */
+  }
+}
+
 export function writeSavedPos(storageKey, pos) {
   if (!storageKey) return
   try {
@@ -102,21 +115,29 @@ export function nudgeWindowPos(pos, key, shiftKey = false) {
  * Layers/Tools, cascade it cleanly beside the right stack instead of crushing
  * existing docked cards. Returns null on narrow panes or when dock is empty.
  */
-export function defaultToolFloatPos(slotIndex, panelRect, rootRect, dockRect) {
+export function defaultToolFloatPos(slotIndex, panelRect, rootRect, dockRect, { force = false } = {}) {
   const rootW = Number(rootRect?.width) || 0
   const dockH = Number(dockRect?.height) || 0
-  if (rootW < 780 || dockH <= 20) return null
-  const panelW = Math.max(260, Number(panelRect?.width) || 300)
+  if (!rootW) return null
+  // Automatic floating only when the pane is wide enough to keep the dock
+  // readable beside it; an explicit "float" request may float in a narrow pane
+  // too, it just starts over the map instead of beside the dock.
+  if (!force && (rootW < 780 || dockH <= 20)) return null
+  const panelW = force
+    ? Math.round(Math.max(240, Math.min(300, rootW - 24)))
+    : Math.max(260, Number(panelRect?.width) || 300)
   const rightColLeft = (Number(dockRect?.left) || 0) - (Number(rootRect?.left) || 0)
   const idx = Math.max(0, Number(slotIndex) || 0)
   const cascadeX = (idx % 3) * 18
   const cascadeY = (idx % 5) * 28
+  const besideDock = rightColLeft - panelW - 12 - cascadeX
+  const x = besideDock >= 12 ? besideDock : 12 + cascadeX
   const clamped = clampWindowPos(
-    { x: rightColLeft - panelW - 12 - cascadeX, y: 60 + cascadeY },
+    { x, y: (force ? 72 : 60) + cascadeY },
     { width: panelW, height: Number(panelRect?.height) || 280 },
     rootRect,
   )
-  return { ...clamped, width: Math.round(panelW) }
+  return { ...clamped, width: panelW }
 }
 
 export function mergeRefs(...refs) {
@@ -178,14 +199,16 @@ export function useFloatingWindow({
   title = '',
   t,
   autoFloat = false,
+  forceFloat = false,
   floatIndex = 0,
   dockEmpty = false,
   hasExplicitWidth = false,
+  restoreSaved = true,
 }) {
   const panelRef = React.useRef(null)
   const dragCleanupRef = React.useRef(null)
   const autoTriedRef = React.useRef(false)
-  const [savedPos, setSavedPos] = React.useState(() => (storageKey ? readSavedPos(storageKey) : null))
+  const [savedPos, setSavedPos] = React.useState(() => (restoreSaved && storageKey ? readSavedPos(storageKey) : null))
   const [autoPos, setAutoPos] = React.useState(null)
   const [dragPos, setDragPos] = React.useState(null)
   const [dragging, setDragging] = React.useState(false)
@@ -213,15 +236,25 @@ export function useFloatingWindow({
     const rootW = Math.round(m.rootRect.width)
     const rootH = Math.round(m.rootRect.height)
     setDelta((prev) => (prev.dx === dx && prev.dy === dy && prev.rootW === rootW && prev.rootH === rootH ? prev : { dx, dy, rootW, rootH }))
-    if (savedPos === null && autoFloat && !autoTriedRef.current) {
+    // Re-clamp a remembered window position on mount too: a viewport that got
+    // smaller must not leave a floating panel half off-screen until the next resize.
+    if (savedPos) {
+      const clamped = clampWindowPos(savedPos, m.elRect, m.rootRect)
+      if (clamped.x !== savedPos.x || clamped.y !== savedPos.y) {
+        const next = { ...savedPos, ...clamped }
+        setSavedPos(next)
+        writeSavedPos(storageKey, next)
+      }
+    }
+    if (savedPos === null && (autoFloat || forceFloat) && !autoTriedRef.current) {
       autoTriedRef.current = true
-      if (!dockEmpty) {
-        const nextAuto = defaultToolFloatPos(floatIndex, m.elRect, m.rootRect, m.opRect)
+      if (forceFloat || !dockEmpty) {
+        const nextAuto = defaultToolFloatPos(floatIndex, m.elRect, m.rootRect, m.opRect, { force: forceFloat })
         if (nextAuto) setAutoPos(nextAuto)
       }
     }
     return { ...m, dx, dy, rootW, rootH }
-  }, [savedPos, autoFloat, floatIndex, dockEmpty])
+  }, [savedPos, autoFloat, forceFloat, floatIndex, dockEmpty])
 
   React.useEffect(() => {
     const info = syncLayout()

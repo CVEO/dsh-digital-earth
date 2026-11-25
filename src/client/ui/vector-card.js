@@ -23,7 +23,7 @@ const h = React.createElement
  * attributes / delete / export / send to chat) when the descriptor carries the
  * command + feature it came from.
  */
-export function VectorCard({ selection, onClose, onChange, onDelete, onExport, onSendToChat, t }) {
+export function VectorCard({ selection, onClose, onChange, onDelete, onExport, onSendToChat, t, embedded = false }) {
   const feature = selection?.feature ?? null
   const command = selection?.command ?? null
   const editable = Boolean(selection && feature && command)
@@ -59,6 +59,7 @@ export function VectorCard({ selection, onClose, onChange, onDelete, onExport, o
     storageKey: 'vector-card',
     title: selection?.title || t('vector.selection'),
     t,
+    restoreSaved: false,
   })
 
   React.useEffect(() => {
@@ -208,23 +209,23 @@ export function VectorCard({ selection, onClose, onChange, onDelete, onExport, o
   return h(
     'section',
     {
-      className: `mv-vector-card ${floating.className}`,
-      ref: floating.ref,
-      style: floating.style,
+      className: `mv-vector-card${embedded ? ' in-dock' : ''} ${embedded ? '' : floating.className}`,
+      ref: embedded ? undefined : floating.ref,
+      style: embedded ? undefined : floating.style,
       'aria-label': t('vector.selection'),
-      ...floating.panelProps,
+      ...(embedded ? {} : floating.panelProps),
     },
     h(
       'header',
-      floating.headerProps,
-      floating.dragHandle,
+      embedded ? { className: 'mv-dock-card-head' } : floating.headerProps,
+      embedded ? null : floating.dragHandle,
       h(
         'div',
         null,
         h('span', { className: 'eyebrow' }, selection.kind),
         h('h3', null, selection.title),
       ),
-      floating.resetButton,
+      embedded ? null : floating.resetButton,
       h(
         'button',
         {
@@ -237,7 +238,7 @@ export function VectorCard({ selection, onClose, onChange, onDelete, onExport, o
         '✕',
       ),
     ),
-    floating.liveRegion,
+    embedded ? null : floating.liveRegion,
     selection.summary ? h('p', { className: 'summary' }, selection.summary) : null,
     editable
       ? h(
