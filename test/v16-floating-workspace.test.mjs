@@ -350,27 +350,15 @@ test('useFloatingWindow supports 2D pointer drag, Shift+Arrow nudging, and dock 
   })
 })
 
-test('tool-workspace & RightStack keep Selection mounted independently when Tools closes and support multi-window tools', () => {
+test('tool-workspace & RightStack：选择工具单活主从，关闭工具箱不关闭工具体', () => {
   withEnv(() => {
-    let wins = []
-    wins = openWorkspaceTool(wins, 'select', { toggleIfOpen: false })
+    // Pure helpers remain for programmatic flows (identify → selection).
+    let wins = openWorkspaceTool([], 'select', { toggleIfOpen: false })
     wins = openWorkspaceTool(wins, 'measure', { toggleIfOpen: false })
     assert.deepEqual(
       wins.map((w) => w.id),
       ['select', 'measure'],
     )
-    wins = toggleMinimizeWorkspaceTool(wins, 'select')
-    assert.equal(wins.find((w) => w.id === 'select').minimized, true)
-    // Re-opening a minimized window restores it instead of closing it
-    wins = openWorkspaceTool(wins, 'select', { toggleIfOpen: true })
-    assert.equal(wins.find((w) => w.id === 'select').minimized, false)
-    // Toggling expand switches expanded on and restores minimized
-    wins = toggleMinimizeWorkspaceTool(wins, 'measure')
-    wins = toggleExpandWorkspaceTool(wins, 'measure')
-    assert.equal(wins.find((w) => w.id === 'measure').expanded, true)
-    assert.equal(wins.find((w) => w.id === 'measure').minimized, false)
-    wins = openWorkspaceTool(wins, 'unknown-tool')
-    assert.equal(wins.length, 2)
     wins = closeWorkspaceTool(wins, 'measure')
     assert.deepEqual(wins.map((w) => w.id), ['select'])
 
@@ -384,8 +372,6 @@ test('tool-workspace & RightStack keep Selection mounted independently when Tool
         openWindows: wsApi.windows,
         onSelectTool: wsApi.selectTool,
         onCloseToolWindow: wsApi.closeTool,
-        onToggleMinimizeTool: wsApi.toggleMinimize,
-        onToggleExpandTool: wsApi.toggleExpand,
         toolsPanel: {
           tool: null,
           analysis: null,
@@ -398,58 +384,59 @@ test('tool-workspace & RightStack keep Selection mounted independently when Tool
     }
     const r = renderHooks(() => React.createElement(WorkspaceHost))
     try {
-      wsApi.openTool('select')
-      wsApi.openTool('measure')
-      r.rerender()
       const openTitles = () =>
         findAll(r.getTree(), (n) => hasClass(n, 'mv-toolwin')).map((win) =>
           textOf(findAll(win, (n) => hasClass(n, 'mv-toolwin-title'))[0]),
         )
-      assert.deepEqual(openTitles(), ['tools.select', 'tools.measure'])
-      assert.equal(findAll(r.getTree(), (n) => hasClass(n, 'mv-tool-index')).length, 1)
+      wsApi.selectTool('select')
+      r.rerender()
+      assert.deepEqual(openTitles(), ['tools.select'])
+      assert.equal(findAll(r.getTree(), (n) => hasClass(n, 'mv-tool-index')).length, 0, '主从细节取代索引')
 
-      // Closing ToolsPanel removes only the launcher card; open tool windows stay alive
+      // Selecting another tool replaces the active detail instead of stacking.
+      wsApi.selectTool('measure')
+      r.rerender()
+      assert.deepEqual(openTitles(), ['tools.measure'])
+
+      // Closing ToolsPanel removes only the launcher; the active detail stays.
       showTools = false
       r.rerender()
       assert.equal(findAll(r.getTree(), (n) => hasClass(n, 'mv-tool-index')).length, 0)
-      assert.deepEqual(openTitles(), ['tools.select', 'tools.measure'])
+      assert.deepEqual(openTitles(), ['tools.measure'])
     } finally {
       r.cleanup()
     }
   })
 })
-
-test('ToolbarQuick exposes 1-click Selection toggle and displays openToolCount when Tools is hidden', () => {
-  let selectClicks = 0
+test('ToolbarQuick renders 图层/工具/结果 and reports pressed state', () => {
   let toolsClicks = 0
+  let layersClicks = 0
+  let resultClicks = 0
   const tree = ToolbarQuick({
-    t: tIdentity,
-    showSelect: false,
-    onToggleSelect: () => {
-      selectClicks++
-    },
+    t: (key) => key,
     showLayers: false,
-    showTools: false,
-    openToolCount: 2,
-    onToggleLayers: () => {},
-    onToggleTools: () => {
-      toolsClicks++
-    },
-    button: (label, onClick, active, style, title) =>
-      React.createElement('button', { onClick, 'aria-pressed': Boolean(active), style, title }, label),
+    showTools: true,
+    showResult: true,
+    onToggleLayers: () => { layersClicks++ },
+    onToggleTools: () => { toolsClicks++ },
+    onOpenResult: () => { resultClicks++ },
   })
-  const buttons = findAll(tree, (n) => n.type === 'button')
-  const selectBtn = buttons.find((b) => textOf(b).includes('btn.select'))
+  const buttons = findAll(tree, (node) => node.type === 'button')
+  assert.equal(buttons.length, 3, '工具栏只保留图层/工具/结果三个域入口')
   const toolsBtn = buttons.find((b) => textOf(b).includes('btn.tools'))
-  assert.ok(selectBtn)
-  assert.equal(selectBtn.props['aria-pressed'], false)
-  assert.equal(selectBtn.props.title, 'btn.selectShow')
-  assert.ok(toolsBtn)
-  assert.ok(textOf(toolsBtn).includes('2'))
-  selectBtn.props.onClick()
+  const layersBtn = buttons.find((b) => textOf(b).includes('btn.layers'))
+  const resultBtn = buttons.find((b) => textOf(b).includes('panel.tab.result'))
+  assert.ok(toolsBtn && layersBtn && resultBtn)
+  assert.equal(toolsBtn.props['aria-pressed'], true)
+  assert.equal(resultBtn.props['aria-pressed'], true)
+  assert.equal(layersBtn.props['aria-pressed'], false)
+  assert.equal(buttons.some((b) => textOf(b).includes('btn.select')), false, '选择不再占用工具栏')
   toolsBtn.props.onClick()
-  assert.equal(selectClicks, 1)
+  layersBtn.props.onClick()
+  resultBtn.props.onClick()
   assert.equal(toolsClicks, 1)
+  assert.equal(layersClicks, 1)
+  assert.equal(resultClicks, 1)
 })
 
 test('LayersMap renders prominent L4 imagery fold affordance beside title + active summary bar', () => {

@@ -52,7 +52,15 @@ export function useToolWorkspace(openRequest) {
   }, [openRequest?.id, openRequest?.seq])
 
   const selectTool = React.useCallback((id) => {
-    setWindows((prev) => openWorkspaceTool(prev, id, { toggleIfOpen: true }))
+    // Panel System 2.0: the rail shows a single tool at a time. Selecting the
+    // active tool closes it; selecting another replaces it. `openTool` remains
+    // additive for programmatic flows (e.g. identify → selection).
+    setWindows((prev) => {
+      const active = prev.length === 1 && prev[0].id === id
+      if (active) return []
+      if (!toolEntry(id)) return prev
+      return [{ id, minimized: false, expanded: false }]
+    })
     focusFloatingWindow(`toolwin.${id}`)
   }, [])
 

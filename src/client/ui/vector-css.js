@@ -100,7 +100,6 @@ export const VECTOR_CSS = `
 .mv-root[data-mv-scheme="dark"] .mv-profile-readout[data-placement="bottom"]::after{border-bottom-color:rgba(15,23,42,.90);filter:drop-shadow(0 -1px 0 rgba(56,189,248,.38))}
 .mv-root[data-mv-scheme="dark"] .mv-profile-readout .mv-pr-dot{background:#38bdf8;box-shadow:0 0 0 3px rgba(56,189,248,.24)}
 .mv-root[data-mv-scheme="dark"] .mv-profile-readout .mv-pr-elev .mv-pr-k,.mv-root[data-mv-scheme="dark"] .mv-profile-readout .mv-pr-elev .mv-pr-val{color:#38bdf8}
-.mv-capturing .mv-vertex-layer,.mv-capturing .mv-profile-readout,.mv-capturing .mv-vector-card{visibility:hidden}
 .mv-pick{font-size:13px;line-height:1.6}
 .mv-pick td{padding:5px 8px;font-size:12px}
 .mv-analysis .stat{font-size:12.5px;line-height:1.65}

@@ -24,7 +24,7 @@ import {
   resolveLocalTileset,
   SYSTEM_PROMPT_SECTION,
 } from '../index.js'
-import { clientSource, hostSource } from './helpers/source.mjs'
+import { clientSource, hostSource, readRepoFile } from './helpers/source.mjs'
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)))
 const readText = (name) => readFile(join(root, name), 'utf8').then((text) => text.replace(/\r\n/g, '\n'))
@@ -348,8 +348,10 @@ test('client showLayers/showHud：默认可见、工具栏切换、收起、设�
   assert.match(client, /showTools,/)
   assert.match(client, /onCollapse: \(\) => updateSettings\(\{ showLayers: false \}\)/)
   assert.match(client, /t\('layers\.collapse'\)/)
-  // 工具栏两个图标按钮写回设置。
-  assert.match(client, /updateSettings\(\{ showLayers: !showLayers \}\)/)
+  // 工具栏两个图标按钮写回设置；v1.6.2 起图层/工具入口改为聚焦右栏页签，
+  // 由右栏决定是切页签还是收起已激活的面板。
+  assert.match(client, /requestDock\('layers'\)/)
+  assert.match(client, /if \(!showLayers\) updateSettings\(\{ showLayers: true \}\)/)
   assert.match(client, /updateSettings\(\{ showHud: !showHud \}\)/)
   assert.match(client, /showHud \? t\('btn\.hudHide'\) : t\('btn\.hudShow'\)/)
   // 隐藏 HUD 时不渲染组件（timer 随卸载清理）。
@@ -404,15 +406,15 @@ test('client HUD 采样：拖动不采样、停手一次 depth read、周期不 
 test('client 显示：停靠 / 真全屏（DOM Fullscreen API），不再重复“最大化侧栏”', () => {
   assert.match(client, /const FullscreenIcon = \(\{ size = 15 \}\) =>/)
   assert.match(client, /M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5/)
-  assert.match(client, /const iconButton = \(icon, title, onClick, active\)/)
-  assert.match(client, /className: `mv-btn icon\$\{active \? ' on' : ''\}`/)
-  assert.match(client, /'aria-label': title/)
-  assert.match(client, /'aria-pressed': active === undefined \? undefined : active/)
+  assert.ok(readRepoFile('src/client/ui/toolbar-output.js').includes('onToggleFullscreen'))
+  assert.ok(readRepoFile('src/client/ui/toolbar-output.js').includes("t('btn.fullscreenExit') : t('btn.fullscreenTitle')"))
+
   // v1.6：全屏只有一个入口；dock 不再有“最大化侧栏”（DSH 自带侧栏布局）。
   assert.doesNotMatch(client, /togglePaneFullscreen/)
   assert.doesNotMatch(client, /btn\.maximize/)
-  assert.match(client, /docked \? null : button\(t\('btn\.beside'\), openBeside\)/)
-  assert.match(client, /iconButton\(h\(FullscreenIcon\), fullscreen \? t\('btn\.fullscreenExit'\) : t\('btn\.fullscreenTitle'\), toggleDomFullscreen, fullscreen\)/)
+  assert.ok(readRepoFile('src/client/ui/toolbar-output.js').includes("if (!docked && typeof onOpenBeside === 'function')"))
+  assert.ok(client.includes('onOpenBeside: openBeside,'))
+
   // 真全屏：面板根节点调用 DOM Fullscreen API，并在 fullscreenchange 里同步状态。
   assert.match(client, /const toggleDomFullscreen = \(\) => \{/)
   assert.match(client, /root\.requestFullscreen\(\{ navigationUI: 'hide' \}\)/)

@@ -16,11 +16,8 @@ import { resolveAnalysisTarget } from './source-policy.js'
 import { ANALYSIS_ENTITY_PREFIX, ANALYSIS_MIN_SAMPLES, PROFILE_MAX_SAMPLES, PROFILE_SURFACE_OFFSET_M, analysisClipPlane, analysisColorAt, analysisInteger, analysisLocalizeClipPlane, analysisLonLat, analysisObserver, analysisRegion, analysisRound, analysisSunAngles, autoProfileSamples, sampleProfileEntries } from './math.js'
 import { formatHeight } from '../format.js'
 import { vectorLabel } from '../scene/vector-style.js'
-import {
-  acquireClipCollection,
-  CLIP_OWNER_ANALYSIS,
-  releaseClipCollection,
-} from '../scene/clip-collections.js'
+import { acquireClipCollection, clipConflictOf, CLIP_OWNER_ANALYSIS } from '../scene/clip-collections.js'
+import { applyAnalysisRestore } from './restore.js'
 
 /**
  * @param {object} deps
@@ -65,27 +62,10 @@ export function createAnalysisEngine(deps) {
 
       /** Restore whatever the sunlight or clip operation changed in the scene. */
       const restoreAnalysisScene = () => {
-        const viewer = viewerRef.current
         const restore = analysisRef.current.restore
+        const viewer = viewerRef.current
         if (!viewer || !restore) return
-        try {
-          if (typeof restore.enableLighting === 'boolean') viewer.scene.globe.enableLighting = restore.enableLighting
-          if (typeof restore.shadowMapEnabled === 'boolean') viewer.scene.shadowMap.enabled = restore.shadowMapEnabled
-          if (typeof restore.shouldAnimate === 'boolean') viewer.clock.shouldAnimate = restore.shouldAnimate
-          if (restore.currentTime) viewer.clock.currentTime = restore.currentTime
-          for (const saved of restore.tilesets ?? []) {
-            const layer = layersRef.current.find((item) => item.id === saved.id)
-            if (layer && layer.tileset) layer.tileset.shadows = saved.shadows
-          }
-          // clip: disable the shared collection instead of unassigning it — the Cesium
-          // setter destroys the clipping texture a tile draw command may still use.
-          if (restore.clipping) {
-            const target = restore.clipping.layer
-            if (target && target.tileset) releaseClipCollection(target.tileset, CLIP_OWNER_ANALYSIS)
-          }
-        } catch {
-          /* the viewer may be mid-teardown; state restoration is best-effort */
-        }
+        applyAnalysisRestore(viewer, layersRef.current, restore)
         analysisRef.current.restore = null
       }
 
@@ -176,6 +156,7 @@ export function createAnalysisEngine(deps) {
           gain_m: analysisRound(gain, 1),
           loss_m: analysisRound(loss, 1),
         }
+        clearAnalysis()
         beginAnalysis('profile', layer)
         const positionAt = (fraction, height) => {
           const carto = geodesic.interpolateUsingFraction(fraction, new Cesium.Cartographic())
@@ -298,6 +279,7 @@ export function createAnalysisEngine(deps) {
         }
         let maxPoint = points[0]
         for (const point of points) if (point.angle_deg > maxPoint.angle_deg) maxPoint = point
+        clearAnalysis()
         beginAnalysis('skyline', layer)
         const positionAt = (fraction, height) => {
           const carto = geodesic.interpolateUsingFraction(fraction, new Cesium.Cartographic())
@@ -425,6 +407,7 @@ export function createAnalysisEngine(deps) {
               : 'analysis: [no_height_data] 地形没有返回可采样的高程。next: 在「地图」Tab 打开地形后重试，或改用 source="surface" 做近似。',
           )
         }
+        clearAnalysis()
         beginAnalysis('flood', layer)
         const waterColor = Cesium.Color.fromCssColorString('#2f7fe0').withAlpha(0.38)
         const borderColor = Cesium.Color.fromCssColorString('#9fc7ff')
@@ -496,6 +479,9 @@ export function createAnalysisEngine(deps) {
         const observer = analysisObserver(Cesium, viewer, layer)
         const sun = analysisSunAngles(Cesium, date, observer)
         if (!sun) throw new Error('analysis: 无法计算太阳位置（Cesium 星历不可用）。next: 检查浏览器控制台后重试，或先执行 clear。')
+        // A8: all throwable checks passed; replace the previous result now. The
+        // restore snapshot must describe the pre-analysis scene, so clear first.
+        clearAnalysis()
         const scene = viewer.scene
         const restore = {
           enableLighting: scene.globe.enableLighting,
@@ -583,6 +569,21 @@ export function createAnalysisEngine(deps) {
         if (typeof Cesium.ClippingPlaneCollection !== 'function' || typeof Cesium.ClippingPlane !== 'function') {
           throw new Error('analysis: 当前 Cesium 不支持剖切（ClippingPlane）。next: 升级 Cesium 后重试。')
         }
+        // A8: fail before clearing so a registry conflict keeps the old result;
+        // clear() still precedes acquire because it releases the analysis-owned
+        // collection that acquire would otherwise reuse.
+        const conflict = clipConflictOf(tileset)
+        if (conflict === 'swipe') {
+          throw new Error(
+            'analysis: [clip_conflict] 该图层正在被卷帘对比裁剪，两次裁剪无法叠加。next: 先退出卷帘对比，再执行剖切。',
+          )
+        }
+        if (conflict === 'foreign') {
+          throw new Error(
+            'analysis: [clip_conflict] 该图层的裁剪由其他工具控制，本面板无法叠加剖切。next: 先退出该裁剪工具，再执行剖切。',
+          )
+        }
+        clearAnalysis()
         // Shared registry: one collection per tileset, never replaced while another owner holds it.
         const acquired = acquireClipCollection(Cesium, tileset, {
           owner: CLIP_OWNER_ANALYSIS,
@@ -633,8 +634,8 @@ export function createAnalysisEngine(deps) {
         const target = resolveAnalysisTarget({ operation, args, layers: layersRef.current, findLayer })
         args = target.args
         let layer = target.layer
-        // Single active analysis: the new result replaces the previous one.
-        clearAnalysis()
+        // A8: each analyze* body clears the old result after its own validation and
+        // sampling, so a failed run keeps the previous result on screen.
         // One sampler per run: it caches probes and reports which source the
         // heights came from, so the tool result can warn instead of hiding it.
         const sampler = createHeightService({ Cesium, viewer, layer })

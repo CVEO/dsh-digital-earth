@@ -273,7 +273,9 @@ export function createCommandBridge(deps) {
           return pickResult(position)
         }
         if (action === 'draw') {
-          if (args.clear === true) clearAgentOverlays('all')
+          // Agent clear is scoped: it only removes what earlier earth_draw calls
+          // created. User-imported, hand-drawn and parsed overlays survive.
+          if (args.clear === true) clearAgentOverlays('draw', { origin: 'agent' })
           const outcome = args.geojson !== undefined
             ? drawAgentOverlay(Cesium, viewer, args.geojson, args.style, args.label)
             : { drawn: 0, by_type: { points: 0, lines: 0, polygons: 0 }, bbox: null }
@@ -289,7 +291,9 @@ export function createCommandBridge(deps) {
           return value
         }
         if (action === 'measure') {
-          if (args.clear === true) clearAgentOverlays('all')
+          // Same scoping as draw: only earlier Agent measurements are removed,
+          // never the user's own measuring results or annotations.
+          if (args.clear === true) clearAgentOverlays('measure', { origin: 'agent' })
           const value = measureAgentOverlay(Cesium, viewer, args)
           value.cleared = args.clear === true
           value.overlays = agentOverlayRef.current.draw.length + agentOverlayRef.current.measure.length

@@ -87,7 +87,8 @@ test('工具箱只做入口：目录表 + 一行一入口，具体控件在工�
   assert.doesNotMatch(catalog, /disabled: true/, '工具目录不应列出不可用的入口')
 
   const tools = toolsPanel()
-  assert.match(tools, /TOOL_ENTRIES\.map/)
+  assert.ok(tools.includes('toolGroups()'))
+
   assert.match(tools, /mv-tool-entry/)
   assert.match(tools, /useFloatingWindow/)
   // The index owns no tool controls: they moved to ui/tool-windows.js and render in RightStack.
@@ -106,7 +107,11 @@ test('工具箱只做入口：目录表 + 一行一入口，具体控件在工�
   assert.match(window, /usePanelResize/)
   assert.match(window, /useFloatingWindow/)
   assert.match(window, /storageKey: 'tool-window'/)
-  assert.match(window, /minimized \? null : h\('div', \{ className: 'mv-toolwin-body' \}/)
+  // v1.6.2 Batch D：停靠态忽略最小化（页签本身就是唯一可见面板），
+  // 浮动窗口仍可最小化到标题栏。
+  assert.match(window, /minimized && !embedded \? null : h\('div', \{ className: 'mv-toolwin-body' \}/)
+  assert.match(window, /embedded = false/)
+  assert.match(window, /forceFloat = false/)
 
   const stack = rightStack()
   assert.match(stack, /h\(\s*ToolWindow,/)
@@ -126,7 +131,9 @@ test('右栈组合三张卡，ViewerSurface 不再内联图层/分析卡标记',
   assert.match(stack, /import \{ AnalysisCard \}/)
   assert.match(stack, /import \{ LayersPanel \}/)
   assert.match(stack, /import \{ ToolsPanel \}/)
-  assert.match(stack, /className: 'mv-right'/)
+  const rail = readRepoFile('src/client/ui/panel-rail.js')
+  assert.match(rail, /className: `mv-right mv-dock mv-glass/)
+  assert.match(rail, /ResizeHandle/)
 
   const surface = viewer()
   assert.match(surface, /import \{ RightStack \}/)
@@ -138,7 +145,8 @@ test('右栈组合三张卡，ViewerSurface 不再内联图层/分析卡标记',
 test('工具卡入口与 i18n：工具栏单一「工具」入口，中英文案齐全', () => {
   const client = clientSource()
   assert.match(client, /h\(ToolbarQuick, \{/)
-  assert.match(client, /onToggleTools: \(\) => setShowTools/)
+  // v1.6.2：工具入口聚焦「工具」页签；右栏决定切页签/收起。
+  assert.match(client, /onToggleTools: \(\) => \{\s*if \(!showTools\) setShowTools\(true\)\s*requestDock\('tools'\)/)
   assert.match(client, /showTools,/)
   assert.match(client, /const \[showTools, setShowTools\] = React\.useState\(true\)/)
   // Measure lives in the toolbox; the toolbar is a plain 「工具」 toggle (no
@@ -155,21 +163,26 @@ test('工具卡入口与 i18n：工具栏单一「工具」入口，中英文案
   }
 })
 
-test('工具栏外观/设置菜单独立：ViewerSurface 不再内联主题下拉', () => {
-  const menus = readRepoFile('src/client/ui/toolbar-menus.js')
-  assert.match(menus, /ThemeIcon/)
-  assert.match(menus, /theme\.auto/)
-  assert.match(menus, /btn\.settings/)
+test('工具栏只保留设置入口：主题并入设置对话框外观页', () => {
+  const settings = readRepoFile('src/client/ui/toolbar-settings.js')
+  assert.ok(settings.includes("t('btn.settings')"))
+  assert.ok(settings.includes('setSettingsOpen'))
   const surface = readRepoFile('src/client/viewer/ViewerSurface.js')
-  assert.match(surface, /ToolbarMenus/)
-  assert.doesNotMatch(surface, /ThemeIcon/)
+  assert.ok(surface.includes('ToolbarSettings'))
+  assert.ok(!surface.includes('ThemeIcon'))
+  assert.ok(!surface.includes('ToolbarMenus'))
+  // 主题选择器仍在设置对话框的外观页：单一入口不丢能力。
+  const dialogs = readRepoFile('src/client/ui/dialogs.js')
+  assert.ok(dialogs.includes("['auto', 'theme.auto']"))
 })
 
 test('AI 看图单一入口：只在顶部工具栏，工具箱里不再重复一个按钮', () => {
   const tools = toolsPanel()
   assert.doesNotMatch(tools, /askAgentLook|onAskAgent/, '工具箱不应再出现第二个问 AI 入口')
   const surface = readRepoFile('src/client/viewer/ViewerSurface.js')
-  assert.match(surface, /sessionId \? iconButton\(h\(AskAgentIcon\), t\('btn\.askAgent'\), askAgent\) : null/)
+  assert.ok(surface.includes('onAskAgent: askAgent,'), '问 Agent 移到「画面与输出」菜单')
+  assert.ok(readRepoFile('src/client/ui/toolbar-output.js').includes("t('btn.askAgent')"))
+
   const ask = readRepoFile('src/client/scene/ask-agent.js')
   assert.match(ask, /read_image on that snapshot/)
   assert.match(ask, /Only draw with earth_draw when geographic anchors or verified geometry/)
@@ -183,8 +196,8 @@ test('AI 看图单一入口：只在顶部工具栏，工具箱里不再重复�
 
 test('工作台可缩放：右栏宽度 + 工具箱/窗口/图层/分析高度 + 着色器角手柄', () => {
   const read = (path) => readRepoFile(path)
-  assert.match(read('src/client/ui/right-stack.js'), /usePanelResize/)
-  assert.match(read('src/client/ui/right-stack.js'), /ResizeHandle/)
+  assert.match(read('src/client/ui/panel-rail.js'), /usePanelResize/)
+  assert.match(read('src/client/ui/panel-rail.js'), /ResizeHandle/)
   for (const file of ['src/client/ui/tools-panel.js', 'src/client/ui/tool-window.js', 'src/client/ui/layers-panel.js', 'src/client/ui/cards.js']) {
     assert.match(read(file), /usePanelResize/)
     assert.match(read(file), /ResizeHandle/)

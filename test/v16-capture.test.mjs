@@ -2,7 +2,7 @@
  * v1.6 Phase 2 — the capture service (screenshot / Agent snapshot).
  *
  * Extracted from ViewerSurface. Behaviour that matters and can be checked without
- * a real Cesium canvas: chrome hiding around the capture, full-resolution buffer
+ * a real Cesium canvas: canvas-only bitmaps (v1.6.2 contract A), full-resolution buffer
  * with the tier restored afterwards, data-URL budget, and the capture POST/toast.
  */
 import { test } from 'node:test'
@@ -61,7 +61,8 @@ function makeService(overrides = {}) {
     t,
     showToast: (text) => toasts.push(text),
     setChromeHidden: (value) => hidden.push(value),
-    nextFrames: async () => {},
+    // Never resolves on purpose: a capture must not wait for painted frames.
+    nextFrames: () => new Promise(() => {}),
     drawCaptureOverlay: overrides.drawCaptureOverlay ?? (() => {}),
     drawVectorLabels: overrides.drawVectorLabels,
   })
@@ -77,12 +78,11 @@ function makeService(overrides = {}) {
   }
 }
 
-test('renderSnapshot：隐藏 chrome、强制满分辨率、结束后恢复质量档', async () => {
+test('renderSnapshot：位图=canvas 专属、强制满分辨率、结束后恢复质量档', async () => {
   const { service, viewer, hidden, restore } = makeService()
   try {
     const shot = await service.renderSnapshot({ width: 1000 })
-    assert.equal(hidden[0], true, '默认截图不含 HUD：先隐藏 chrome')
-    assert.equal(hidden[hidden.length - 1], false, '结束后必须恢复 chrome')
+    assert.deepEqual(hidden, [], 'v1.6.2 契约 A：位图只来自 canvas，不切换 DOM chrome')
     assert.equal(viewer.rendered, 1)
     assert.equal(shot.width, 1000)
     assert.equal(shot.height, 563)

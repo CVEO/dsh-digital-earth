@@ -553,11 +553,12 @@ test('P2 runCommand report 分支 POST meta.reportUrl 并返回 operation:report
   assert.doesNotMatch(runReportSource, /\btoken\b/i)
 })
 
-test('P2 数据菜单 menu.report 调用 runCommand("report",{format:"html"}) 并提示成功/失败', () => {
-  // v1.6：数据菜单抽到 ui/data-menu.js，报告动作留在 ViewerSurface 的 openSceneReport。
-  const menuSource = readRepoFile('src/client/ui/data-menu.js')
+test('P2 画面与输出菜单 menu.report 调用 runCommand("report",{format:"html"}) 并提示成功/失败', () => {
+  // v1.6.1 B1：场景报告从数据菜单移到「画面与输出」菜单。
+  const menuSource = readRepoFile('src/client/ui/toolbar-output.js')
   assert.ok(menuSource.includes("t('menu.report')"))
   assert.ok(menuSource.includes('onReport'))
+  assert.ok(readRepoFile('src/client/ui/data-menu.js').includes("t('btn.openLocal')"))
   const reportSource = sourceSlice(
     readRepoFile('src/client/viewer/ViewerSurface.js'),
     'async function openSceneReport',

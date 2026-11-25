@@ -73,22 +73,23 @@ test('wiring：层行点击可加载效果；resetLayerFor 仍可单层重置', 
   assert.equal(toasts.length, 1)
 })
 
-test('图层行：有效果的层带 ✦ 标记、悬停摘要、点击整行载入工作台；无独立效果列表', () => {
-  // Row markup moved to ui/layer-row.js; ui/layers-3d.js resolves the effect.
+test('图层行：✦ 是唯一外观入口（有/无效果都可打开），整行不再响应点击', () => {
   const panel = readRepoFile('src/client/ui/layer-row.js')
   const layers3d = readRepoFile('src/client/ui/layers-3d.js')
-  // 效果信息挂在 3D Tiles 图层行上，而不是单独分组。
-  assert.match(layers3d, /const shaderFor = \(layer\) =>/)
-  assert.match(layers3d, /entry\.layerId === layer\.id/)
-  assert.match(panel, /className: `mv-layer\$\{layer\.visible \? '' : ' off'\}\$\{shader \? ' has-shader' : ''\}`/)
-  assert.match(panel, /title: shader \? `\$\{layer\.name\} — \$\{summary\}` : layer\.name/)
-  assert.match(panel, /const openShader = \(\) => onEditShader\(layer, shader\)/)
-  assert.match(panel, /className: 'mv-icon-btn mv-shader-edit'/)
-  assert.match(panel, /'✦'/)
-  assert.match(panel, /stop\(event\)\n\s+onFlyLayer\(layer\.id\)/)
+  assert.ok(layers3d.includes('const shaderFor = (layer) =>'))
+  assert.ok(layers3d.includes('entry.layerId === layer.id'))
+  assert.ok(panel.includes("' off'"))
+  assert.ok(panel.includes('has-shader'))
+  assert.ok(panel.includes('const openShader = () => onEditShader(layer, shader)'))
+  assert.ok(panel.includes('mv-icon-btn mv-shader-edit'))
+  assert.ok(panel.includes("'✦'"))
+  // 迁移阶段 0：整行点击开特效已删除，仅 ✦ 打开外观工作台。
+  assert.ok(!panel.includes('onClick: openShader'))
+  assert.ok(panel.includes('disabled: is3dgs'))
+  assert.ok(panel.includes('onFlyLayer(layer.id)'))
   const layersCard = readRepoFile('src/client/ui/layers-panel.js')
-  assert.doesNotMatch(layersCard, /layers\.shader'/, '图层卡不应有独立的“着色器效果”分组')
-  assert.doesNotMatch(panel, /mv-shader-layer/, '不应再有独立的效果行样式')
+  assert.ok(!layersCard.includes("layers.shader'"), '图层卡不应有独立的“着色器效果”分组')
+  assert.ok(!panel.includes('mv-shader-layer'), '不应再有独立的效果行样式')
 })
 
 test('ViewerSurface：把层行点击映射为加载效果并打开工作台', () => {

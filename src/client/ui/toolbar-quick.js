@@ -1,41 +1,39 @@
 /**
- * ui/toolbar-quick.js — the toolbar's data/tool cluster.
+ * ui/toolbar-quick.js — the three domain tabs of the right rail.
  *
- * Measure lives inside the Tools card, so the toolbar has no 量测 dropdown: one
- * plain 「工具」 button opens the right-hand Tools workbench, 「图层」 toggles the
- * data layer card. No arrow/menu — the card itself is the tool surface.
+ * Panel System 2.0: the toolbar is 添加数据 ▾ / 图层 / 工具 / 结果 / 输出 ▾ / ⚙.
+ * These entries map one-to-one onto rail destinations; a second click on the
+ * active destination collapses the rail (the rule lives in `panel-state.js`).
+ * 分析 / 视图 buttons are gone: analysis runs from the tool master list and
+ * view actions live in the tool list / output menu.
  */
 import React from 'react'
 
+import { ToolEntryIcon, ToolsIcon, LayersIcon } from './icons.js'
+
 const h = React.createElement
 
-export function ToolbarQuick({
-  t,
-  showSelect = false,
-  onToggleSelect,
-  showLayers,
-  showTools,
-  openToolCount = 0,
-  onToggleLayers,
-  onToggleTools,
-  button,
-}) {
-  const toolsLabel = openToolCount > 0 && !showTools ? `${t('btn.tools')} (${openToolCount})` : t('btn.tools')
+export function ToolbarQuick({ t, showLayers, showTools, showResult, onToggleLayers, onToggleTools, onOpenResult }) {
+  const entry = (key, icon, label, onClick, active, title = label) =>
+    h(
+      'button',
+      {
+        key,
+        type: 'button',
+        className: `mv-btn${active ? ' on' : ''}`,
+        title,
+        'aria-label': label,
+        'aria-pressed': Boolean(active),
+        onClick,
+      },
+      h('span', { className: 'mv-btn-icon', 'aria-hidden': true }, icon),
+      h('span', { className: 'mv-btn-label' }, label),
+    )
   return h(
     React.Fragment,
     null,
-    typeof onToggleSelect === 'function'
-      ? button(t('btn.select'), onToggleSelect, showSelect, undefined, showSelect ? t('btn.selectHide') : t('btn.selectShow'))
-      : null,
-    button(toolsLabel, onToggleTools, showTools, undefined, showTools ? t('btn.toolsHide') : t('btn.toolsShow')),
-    button(
-      t('btn.layers'),
-      onToggleLayers,
-      // The layer card is the only place to pick terrain/basemap now, so it must
-      // be reachable even with zero 3D Tiles loaded.
-      showLayers,
-      undefined,
-      showLayers ? t('btn.layersHide') : t('btn.layersShow'),
-    ),
+    entry('layers', h(LayersIcon), t('btn.layers'), onToggleLayers, showLayers, showLayers ? t('btn.layersHide') : t('btn.layersShow')),
+    entry('tools', h(ToolsIcon), t('btn.tools'), onToggleTools, showTools, showTools ? t('btn.toolsHide') : t('btn.toolsShow')),
+    entry('result', h(ToolEntryIcon, { kind: 'analysis' }), t('panel.tab.result'), onOpenResult, showResult),
   )
 }

@@ -26,7 +26,7 @@ export const PARSE_CSS = `
 .mv-parse-run-row>.mv-cta.primary{flex:1}
 .mv-parse-diag{display:flex;flex-direction:column;gap:6px;padding:8px 9px;border-radius:8px;border:.5px solid color-mix(in srgb,#f0b84b 42%,var(--mv-line));background:color-mix(in srgb,#f0b84b 10%,transparent);font-size:11px;line-height:1.45;color:var(--mv-text)}
 .mv-parse-diag-thumb{display:flex;flex-direction:column;gap:3px}
-.mv-parse-diag-thumb img{display:block;width:100%;max-height:110px;object-fit:contain;border-radius:6px;border:.5px solid var(--mv-line);background:#090d16}
+.mv-parse-diag-thumb img{display:block;width:100%;max-height:110px;object-fit:contain;border-radius:6px;border:.5px solid var(--mv-line);background:#0a1018}
 .mv-parse-diag-thumb span{font-size:10px;color:var(--mv-dim);font-variant-numeric:tabular-nums}
 .mv-parse-foot{margin:auto 0 0;padding-top:6px;font-size:10.5px;line-height:1.45;color:var(--mv-dim)}
 .mv-parse-head{display:flex;align-items:baseline;justify-content:space-between;gap:8px;font-size:11px;color:var(--mv-dim);flex-wrap:wrap}

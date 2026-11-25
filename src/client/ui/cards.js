@@ -23,7 +23,7 @@ const h = React.createElement
       typeof value === 'number' && Number.isFinite(value) ? value.toFixed(digits) : '—'
 
     /** Floating result card for the single active analysis. */
-    function AnalysisCard({ state, t, onClose, hoverIndex = null, onHover, onStartProfile }) {
+    function AnalysisCard({ state, t, onClose, hoverIndex = null, onHover, onStartProfile, embedded = false, forceFloat = false, onFloatingChange }) {
       const [open, setOpen] = React.useState(true)
       const [chartOpen, setChartOpen] = React.useState(false)
       const resize = usePanelResize({
@@ -42,13 +42,20 @@ const h = React.createElement
         storageKey: 'analysis',
         title: titleText,
         t,
+        forceFloat,
+        restoreSaved: false,
         hasExplicitWidth: Boolean(resize.size.width),
       })
+      React.useEffect(() => {
+        onFloatingChange?.(floating.moved)
+      }, [floating.moved, onFloatingChange])
       if (!state || !state.result) return null
       const result = state.result
-      const cardStyle = floating.moved
-        ? { ...floating.style, ...resize.style }
-        : { ...floating.style, height: resize.style?.height, maxHeight: resize.style?.maxHeight }
+      const cardStyle = embedded
+        ? undefined
+        : floating.moved
+          ? { ...floating.style, ...resize.style }
+          : { ...floating.style, height: resize.style?.height, maxHeight: resize.style?.maxHeight }
       const profile = operation === 'profile' ? profileMetrics(result.points, { includeDesign: false }) : null
       const showProfile = Boolean(profile && profile.valid_count >= 2)
       // v1.5.2: the chart is the first thing in the body (the stats below used to
@@ -173,7 +180,7 @@ const h = React.createElement
       return h(
         'div',
         {
-          className: `mv-card mv-analysis ${floating.className}`,
+          className: `mv-card mv-analysis ${floating.className}${embedded ? ' in-dock' : ''}`,
           ref: mergeRefs(floating.ref, resize.ref),
           style: cardStyle,
           role: 'region',
@@ -205,7 +212,7 @@ const h = React.createElement
           ),
         ),
         floating.liveRegion,
-        open
+        open || embedded
           ? h(
               'div',
               { className: 'body' },
@@ -289,6 +296,8 @@ const h = React.createElement
           value: resize.size.height,
           onPointerDown: resize.beginHeight,
           onKeyDown: resize.keyHeight,
+          min: resize.minHeight,
+          max: resize.maxHeight,
         }),
         floating.moved
           ? h(ResizeHandle, {
@@ -298,6 +307,8 @@ const h = React.createElement
               value: resize.size.width,
               onPointerDown: resize.beginCorner,
               onKeyDown: resize.keyWidth,
+              min: resize.minWidth,
+              max: resize.maxWidth,
             })
           : null,
       )
@@ -347,6 +358,7 @@ const h = React.createElement
         storageKey: 'shader',
         title: t('shader.title'),
         t,
+        restoreSaved: false,
         hasExplicitWidth: Boolean(resize.size.width),
       })
       const visibleLayers = layers.filter((layer) => layer.visible)
@@ -716,6 +728,9 @@ const h = React.createElement
           orderList,
           selectedPresets.includes('height-false-color') ? h(ElevationLegend, { range: elevation.range, minimum: rangeMinimum, maximum: rangeMaximum, t, busy: elevation.busy, onFit: fitRange }) : null,
           selectedPresets.includes('water') ? h('p', { className: 'hint' }, t(selectedPresets.includes('water-depth') ? 'shader.waterMasked' : 'shader.waterPurpose')) : null,
+          // A5: water-depth used to share the "淹没分析" name with earth_analyze
+          // flood; state explicitly that this preset is not an analysis result.
+          selectedPresets.includes('water-depth') ? h('p', { className: 'hint depth-note' }, t('shader.waterDepthNote')) : null,
           params,
           h(
             'label',
@@ -833,6 +848,8 @@ const h = React.createElement
           value: resize.size.width,
           onPointerDown: resize.beginCorner,
           onKeyDown: resize.keyWidth,
+          min: resize.minWidth,
+          max: resize.maxWidth,
         }),
       )
     }

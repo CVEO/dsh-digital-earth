@@ -52,7 +52,7 @@ function seedGroups(s) {
 test('列表：标注与量测各一行，带名称/要素数/量测值', () => {
   const rows = buildAgentOverlayList(seedGroups(state()))
   assert.equal(rows.length, 4)
-  assert.deepEqual(rows[0], { id: 'draw-0', kind: 'draw', index: 0, label: '风险点', detail: '1 要素' })
+  assert.deepEqual(rows[0], { id: 'draw-0', kind: 'draw', index: 0, label: '风险点', detail: '1 要素', origin: 'agent' })
   assert.deepEqual(rows[1].label, '标注 2')
   assert.equal(rows[1].detail, '2 要素')
   assert.equal(rows[2].label, '量测 1')

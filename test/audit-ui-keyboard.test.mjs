@@ -5,14 +5,16 @@ register('./helpers/react-stub-loader.mjs', import.meta.url)
 const { LayerRow } = await import('../src/client/ui/layer-row.js')
 const { LayersPanel } = await import('../src/client/ui/layers-panel.js')
 
-test('图层行：子按钮的 Enter/Space 不触发父行特效编辑', () => {
-  let edits = 0, prevented = 0
+test('图层行：整行不再响应点击/回车；只有 ✦ 外观按钮打开工作台', () => {
+  let edits = 0
   const row = LayerRow({ t: (key) => key, layer: { id: 'a', name: 'A', visible: true }, shader: { preset: 'scan' }, onEditShader: () => edits++ })
-  const target = {}, button = {}
-  for (const key of ['Enter', ' ']) row.props.onKeyDown({ key, target: button, currentTarget: target, preventDefault: () => prevented++ })
-  assert.equal(edits, 0)
-  assert.equal(prevented, 0)
-  row.props.onKeyDown({ key: 'Enter', target, currentTarget: target, preventDefault: () => prevented++ })
+  // 迁移阶段 0：删除整行点击开特效，避免误触；✦ 才是外观入口。
+  assert.equal(row.props.onClick, undefined, '整行点击不再打开特效工作台')
+  assert.equal(row.props.onKeyDown, undefined)
+  const buttons = (row.children ?? []).filter((child) => child?.type === 'button')
+  const editBtn = buttons.find((btn) => (btn.children ?? []).includes('✦'))
+  assert.ok(editBtn, '层行必须保留 ✦ 外观入口')
+  editBtn.props.onClick({ stopPropagation() {} })
   assert.equal(edits, 1)
 })
 

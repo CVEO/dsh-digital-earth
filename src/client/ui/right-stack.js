@@ -1,10 +1,11 @@
 /**
- * ui/right-stack.js — the right-hand floating column.
+ * ui/right-stack.js — adapter between the viewer state and the panel rail.
  *
- * Keeps ViewerSurface from owning the growing prop plumbing of the analysis,
- * layer and tools cards. The three cards share one column so an analysis result
- * never overlaps the layer list; layers and tools are separate cards by design
- * (data vs. functions), each independently closable.
+ * v1.7 Panel System 2.0: this file no longer owns tab/float rules. It maps the
+ * viewer's data (layers, tool workspace, analysis result, object selection) onto
+ * the four destinations of `panel-state.js` and renders them through the single
+ * `panel-rail.js`. The old stacking/floating code is gone; a panel can only be
+ * docked, one at a time, in the right rail.
  */
 import React from 'react'
 
@@ -14,9 +15,24 @@ import { ToolsPanel } from './tools-panel.js'
 import { ToolWindow } from './tool-window.js'
 import { ToolBody } from './tool-windows.js'
 import { toolEntry } from './tool-catalog.js'
-import { ResizeHandle, usePanelResize } from './resizable.js'
+import { PanelRail } from './panel-rail.js'
+import {
+  panelReducer,
+  readPanelState,
+  visiblePanelTabs,
+  writePanelState,
+} from './panel-state.js'
 
 const h = React.createElement
+
+function ResultEmpty({ t }) {
+  return h(
+    'div',
+    { className: 'mv-panel-empty' },
+    h('h3', null, t('panel.result.emptyTitle')),
+    h('p', null, t('panel.result.emptyBody')),
+  )
+}
 
 export function RightStack({
   t,
@@ -31,70 +47,168 @@ export function RightStack({
   openWindows = [],
   onSelectTool,
   onCloseToolWindow,
-  onToggleMinimizeTool,
-  onToggleExpandTool,
+  busy = false,
+  dockRequest = null,
+  objectPanel = null,
+  onActiveTab,
 }) {
-  const resize = usePanelResize({ storageKey: 'right-stack', initialWidth: 300, minWidth: 240, maxWidth: 720 })
-  const visibleWindows = Array.isArray(openWindows) ? openWindows.filter((win) => Boolean(toolEntry(win?.id))) : []
-  if (!analysis && !showLayers && !showTools && visibleWindows.length === 0) return null
-  const dockEmpty = !analysis && !showLayers && !showTools
-  return h(
-    'div',
-    { className: 'mv-right', ref: resize.ref, style: resize.style },
-    h(ResizeHandle, {
-      axis: 'width',
-      edge: 'left',
-      label: t('resize.width'),
-      value: resize.size.width,
-      onPointerDown: resize.beginWidth,
-      onKeyDown: resize.keyWidth,
-    }),
-    analysis
-      ? h(AnalysisCard, {
-          key: 'analysis',
-          state: analysis,
-          t,
-          onClose: onCloseAnalysis,
-          hoverIndex: analysisHover,
-          onHover: onAnalysisHover,
-          onStartProfile: toolsPanel?.onStartProfile,
-        })
-      : null,
-    ...visibleWindows.map((win, idx) => {
-      const entry = toolEntry(win.id)
-      return h(
-        ToolWindow,
-        {
-          key: `win-${win.id}`,
-          t,
-          entry,
-          minimized: Boolean(win.minimized),
-          expanded: Boolean(win.expanded),
-          autoFloat: true,
-          floatIndex: idx,
-          dockEmpty,
-          onToggleMinimize: () => onToggleMinimizeTool?.(win.id),
-          onToggleExpand: () => onToggleExpandTool?.(win.id),
-          onClose: () => onCloseToolWindow?.(win.id),
-        },
-        h(ToolBody, {
-          t,
-          ...(toolsPanel ?? {}),
-          entryId: win.id,
-          openRequest: toolsPanel?.openRequest?.id === win.id ? toolsPanel.openRequest : null,
-        }),
-      )
-    }),
-    showLayers ? h(LayersPanel, { key: 'layers', t, ...layersPanel }) : null,
-    showTools
-      ? h(ToolsPanel, {
-          key: 'tools',
-          t,
-          ...(toolsPanel ?? {}),
-          openWindows: visibleWindows,
-          onSelectTool,
-          onCloseTool: onCloseToolWindow,
-        })
-      : null,
+  const windows = Array.isArray(openWindows) ? openWindows : []
+  const windowIds = windows.map((win) => (typeof win === 'string' ? win : win?.id)).filter(Boolean)
+  const activeToolId = windowIds.length ? windowIds[windowIds.length - 1] : null
+  const hasResult = Boolean(analysis?.result)
+  const hasObject = Boolean(objectPanel?.key)
+  const available = visiblePanelTabs({ hasResult, hasObject }).filter((id) => {
+    if (id === 'layers') return Boolean(showLayers)
+    if (id === 'tools') return Boolean(showTools || activeToolId)
+    return true
+  })
+  const availableSignature = available.join('|')
+
+  const [state, setState] = React.useState(() =>
+    panelReducer(readPanelState(), { type: 'prune', available }),
   )
+  const dispatch = React.useCallback((action) => setState((current) => panelReducer(current, action)), [])
+
+  // Keep the active tab valid when a panel closes/disappears.
+  React.useEffect(() => {
+    dispatch({ type: 'prune', available })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [availableSignature])
+
+  React.useEffect(() => {
+    writePanelState(state)
+  }, [state])
+
+  React.useEffect(() => {
+    onActiveTab?.(state.collapsed ? null : state.activeTab)
+  }, [state.activeTab, state.collapsed, onActiveTab])
+
+  // Automatic result focus follows the confirmed policy: only an idle, expanded
+  // rail switches; otherwise the result tab gets an unread dot.
+  const prevResultRef = React.useRef(analysis?.result)
+  const lockedByTool = Boolean(activeToolId) && state.activeTab === 'tools'
+  React.useEffect(() => {
+    const result = analysis?.result
+    if (result && result !== prevResultRef.current) dispatch({ type: 'resultArrived', busy: busy || lockedByTool })
+    prevResultRef.current = result
+  }, [analysis?.result, busy, lockedByTool])
+
+  const prevObjectRef = React.useRef(objectPanel?.key)
+  React.useEffect(() => {
+    const key = objectPanel?.key
+    if (key && key !== prevObjectRef.current) dispatch({ type: 'objectArrived', busy: busy || lockedByTool })
+    else if (!key) dispatch({ type: 'objectCleared' })
+    prevObjectRef.current = key
+  }, [objectPanel?.key, busy, lockedByTool])
+
+  // Toolbar domain buttons: focus the destination, or toggle the rail closed when
+  // it is already the active destination. No panel is closed by a toolbar click.
+  const pendingRequestRef = React.useRef(null)
+  React.useEffect(() => {
+    if (!dockRequest?.kind) return
+    pendingRequestRef.current = ['layers', 'tools', 'result', 'object'].includes(dockRequest.kind) ? dockRequest.kind : null
+  }, [dockRequest?.seq, dockRequest?.kind])
+  React.useEffect(() => {
+    const tabId = pendingRequestRef.current
+    if (!tabId) return
+    if (!available.includes(tabId)) return
+    pendingRequestRef.current = null
+    dispatch({ type: 'toggle', tabId })
+  }, [dockRequest?.seq, availableSignature])
+
+  const [showToolIndex, setShowToolIndex] = React.useState(false)
+
+  if (!available.length) return null
+
+  const panels = []
+  if (showLayers) {
+    panels.push({
+      id: 'layers',
+      node: h(LayersPanel, { key: 'layers', t, ...(layersPanel ?? {}), embedded: true }),
+    })
+  }
+  if (showTools || activeToolId) {
+    const entry = activeToolId ? toolEntry(activeToolId) : null
+    const detail = activeToolId && entry && !showToolIndex
+    panels.push({
+      id: 'tools',
+      node: detail
+        ? h(
+            'div',
+            { key: 'tools', className: 'mv-panel-detail' },
+            h(
+              'button',
+              {
+                type: 'button',
+                className: 'mv-panel-back',
+                onClick: () => setShowToolIndex(true),
+              },
+              `← ${t('tools.title')}`,
+            ),
+            h(
+              ToolWindow,
+              {
+                t,
+                entry,
+                embedded: true,
+                onClose: () => {
+                  setShowToolIndex(true)
+                  onCloseToolWindow?.(activeToolId)
+                },
+              },
+              h(ToolBody, {
+                t,
+                ...(toolsPanel ?? {}),
+                entryId: activeToolId,
+                openRequest: toolsPanel?.openRequest?.id === activeToolId ? toolsPanel.openRequest : null,
+              }),
+            ),
+          )
+        : h(ToolsPanel, {
+            key: 'tools',
+            t,
+            ...(toolsPanel ?? {}),
+            embedded: true,
+            onSelectTool: (toolId) => {
+              setShowToolIndex(false)
+              onSelectTool?.(toolId)
+            },
+            onCloseTool: onCloseToolWindow,
+          }),
+    })
+  }
+  if (hasResult) {
+    panels.push({
+      id: 'result',
+      node: h(AnalysisCard, {
+        key: 'result',
+        state: analysis,
+        t,
+        onClose: onCloseAnalysis,
+        hoverIndex: analysisHover,
+        onHover: onAnalysisHover,
+        onStartProfile: toolsPanel?.onStartProfile,
+        embedded: true,
+      }),
+    })
+  } else {
+    panels.push({ id: 'result', node: h(ResultEmpty, { key: 'result', t }) })
+  }
+  if (hasObject) {
+    panels.push({ id: 'object', node: h('div', { key: 'object', className: 'mv-panel-object' }, objectPanel.node) })
+  }
+
+  return h(PanelRail, {
+    t,
+    tabs: available.map((id) => ({ id })),
+    activeTab: state.activeTab,
+    collapsed: state.collapsed,
+    unread: state.unread,
+    width: state.width,
+    panels,
+    onActivate: (tabId) => dispatch({ type: 'activate', tabId }),
+    onCollapse: () => dispatch({ type: 'collapse' }),
+    onExpand: () => dispatch({ type: 'expand' }),
+    onWidth: (width) => dispatch({ type: 'setWidth', width }),
+  })
 }

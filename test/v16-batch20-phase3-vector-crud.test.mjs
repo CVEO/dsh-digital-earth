@@ -589,7 +589,8 @@ test('agent-overlays & annotation-actions：明细列表提取、单要素飞往
 
   // Locked 5-key shape check
   const summaryRows = buildAgentOverlayList(state)
-  assert.deepEqual(Object.keys(summaryRows[0]).sort(), ['detail', 'id', 'index', 'kind', 'label'])
+  // Batch A: rows carry the overlay origin so destructive actions can explain scope.
+  assert.deepEqual(Object.keys(summaryRows[0]).sort(), ['detail', 'id', 'index', 'kind', 'label', 'origin'])
 
   const details = buildAgentOverlayDetails(state)
   assert.equal(details[0].length, 2)
@@ -832,7 +833,9 @@ test('RightStack + useToolWorkspace：支持外部 openRequest 直接打开标�
     assert.equal(findNodes(r.getTree(), (n) => n.props?.entryId === 'annotation').length, 0)
     req = { id: 'annotation', seq: 1 }
     r.rerender()
-    assert.equal(findNodes(r.getTree(), (n) => n.props?.entryId === 'annotation').length, 1)
+    const railTree = r.getTree()
+    const toolNode = (railTree.props.panels ?? []).find((panel) => panel.id === 'tools')?.node
+    assert.equal(findNodes(toolNode, (n) => n.props?.entryId === 'annotation').length, 1)
   } finally {
     r.cleanup()
   }

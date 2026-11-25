@@ -641,10 +641,12 @@ test('client 工作台：可见图层/五预设可叠加/按预设并集参数/�
 })
 
 test('client 工作台 UI：工具栏按钮、可读卡片、两列等宽缩略图、窄宽可滚动、截图隐藏', () => {
-  assert.match(client, /function ShaderIcon\(/)
-  assert.match(client, /h\(ShaderIcon\)/)
-  assert.match(client, /shaderOpen \? t\('btn\.shaderHide'\) : t\('btn\.shaderShow'\)/)
-  assert.match(client, /\(\) => setShaderOpen\(\(value\) => !value\)/)
+  assert.ok(client.includes('function ShaderIcon('))
+  // v1.6.1 B1: visual effects are a layer attribute (row ✦), not a toolbar toggle.
+  assert.ok(!client.includes('h(ShaderIcon)'), '工具栏不再有特效图标按钮')
+  assert.ok(!readRepoFile('src/client/viewer/ViewerSurface.js').includes('btn.shaderHide'), '特效开关文案从工具栏移除')
+  assert.ok(readRepoFile('src/client/ui/layer-row.js').includes('mv-icon-btn mv-shader-edit'))
+
 
   const rule = block(client, '.mv-shader{', '}')
   assert.match(rule, /position:absolute/)
@@ -662,7 +664,7 @@ test('client 工作台 UI：工具栏按钮、可读卡片、两列等宽缩略�
   assert.match(client, /\.mv-shader \.order-badge\{/)
   const docked = block(client, '.mv-root.mv-docked .mv-shader{', '}')
   assert.match(docked, /width:min\(320px,calc\(100% - 40px\)\)/)
-  assert.match(client, /\.mv-root\.mv-capturing[^{]*\.mv-shader/)
+  assert.doesNotMatch(client, /mv-capturing/, '位图来自 canvas，工作台不靠截图隐藏')
   // 工作台挂载由 shaderOpen 控制，关闭走 onClose。
   assert.match(client, /shaderOpen\n\s+\? h\(ShaderWorkbench, \{/)
   assert.match(client, /onClose: \(\) => \{\n\s+void workbench\.compare\(false\)/)

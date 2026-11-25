@@ -4,7 +4,6 @@
  */
 
 export const COMPARE_CSS = `
-.mv-root.mv-capturing .mv-swipe{visibility:hidden!important}
 .mv-swipe-select{max-width:140px;background:var(--mv-input);border:.5px solid var(--mv-line);color:var(--mv-text);border-radius:7px;padding:4px 7px;font:inherit;font-size:11px;outline:none}
 .mv-swipe-select:focus{border-color:var(--mv-accent)}
 .mv-swipe-pct{font-size:11px;color:var(--mv-dim);font-variant-numeric:tabular-nums;padding:0 2px}

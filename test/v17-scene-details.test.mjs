@@ -11,11 +11,13 @@ import assert from 'node:assert/strict'
 import { MESSAGES } from '../src/client/messages.js'
 import { clientSource, readRepoFile } from './helpers/source.mjs'
 
-test('场景详情是独立浮层：可从整场景或单个图层打开', () => {
+test('场景详情是对象页签内容：可从整场景或单个图层打开', () => {
   const details = readRepoFile('src/client/ui/scene-details.js')
   assert.match(details, /export function useSceneDetails/)
   assert.match(details, /focus\.layerId/)
-  assert.match(details, /className: `mv-scene-details mv-glass \$\{floating\.className\}`/)
+  assert.match(details, /mv-scene-details/)
+  assert.match(details, /embedded \? ' in-dock' : ''/)
+  assert.match(details, /isOpen: Boolean\(focus\)/)
   assert.match(details, /sceneDetails\.scene/)
   assert.match(details, /sceneDetails\.analysis/)
   assert.match(details, /sceneDetails\.shader/)
@@ -31,7 +33,8 @@ test('场景详情是独立浮层：可从整场景或单个图层打开', () =>
 
   const client = clientSource()
   assert.match(client, /useSceneDetails\(\{/)
-  assert.match(client, /sceneDetails\.element/)
+  assert.match(client, /sceneDetails\.isOpen/)
+  assert.match(client, /node: sceneDetails\.element/)
   assert.match(client, /onShowSceneDetails: sceneDetails\.open/)
 })
 
@@ -57,6 +60,5 @@ test('i18n 与样式：场景详情中英齐全，截图时隐藏', () => {
   }
   const css = readRepoFile('src/client/ui/css.js')
   assert.match(css, /\.mv-scene-details\{/)
-  const capturing = css.match(/\.mv-root\.mv-capturing [^{]+\{visibility:hidden!important\}/)?.[0] ?? ''
-  assert.ok(capturing.includes('.mv-scene-details'))
+  assert.doesNotMatch(css, /mv-capturing/, '截图契约 A：位图来自 canvas，不靠隐藏 DOM')
 })

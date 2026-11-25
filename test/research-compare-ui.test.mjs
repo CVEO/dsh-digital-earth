@@ -135,13 +135,15 @@ test('tool-catalog & icons & ToolBody: 注册独立 compare 浮窗入口与图�
   assert.equal(routed.type, ComparePanel)
 })
 
-test('LayerRow: 可见 3DGS 图层启用 ◧ 快捷分屏按钮，隐藏时禁用', () => {
+test('LayerRow: 可见 3DGS 图层在溢出菜单中启用原生分屏，隐藏时禁用', () => {
   const t = (k) => MESSAGES.zh[k] ?? k
   const visibleRow = LayerRow({
     t,
     layer: { id: 'gs', name: '校园 3DGS', kind: '3dgs', visible: true },
     shader: null,
     swipeActive: true,
+    menuOpen: true,
+    onMenuToggle() {},
     onFlyLayer() {},
     onToggleLayer() {},
     onInspectLayer() {},
@@ -149,16 +151,18 @@ test('LayerRow: 可见 3DGS 图层启用 ◧ 快捷分屏按钮，隐藏时禁�
     onEditShader() {},
     onSwipeLayer() {},
   })
-  const visBtn = findAll(visibleRow, (n) => n.type === 'button' && textOf(n).includes('◧'))[0]
+  const visBtn = findAll(visibleRow, (n) => (n.children ?? []).includes(MESSAGES.zh['swipe.toggle']))[0]
   assert.ok(visBtn)
   assert.equal(visBtn.props.disabled, false)
-  assert.equal(visBtn.props['aria-pressed'], true)
+  assert.equal(visBtn.props.active, true)
 
   const hiddenRow = LayerRow({
     t,
     layer: { id: 'gs', name: '校园 3DGS', kind: '3dgs', visible: false },
     shader: null,
     swipeActive: false,
+    menuOpen: true,
+    onMenuToggle() {},
     onFlyLayer() {},
     onToggleLayer() {},
     onInspectLayer() {},
@@ -166,7 +170,8 @@ test('LayerRow: 可见 3DGS 图层启用 ◧ 快捷分屏按钮，隐藏时禁�
     onEditShader() {},
     onSwipeLayer() {},
   })
-  const hidBtn = findAll(hiddenRow, (n) => n.type === 'button' && textOf(n).includes('◧'))[0]
+  const hidBtn = findAll(hiddenRow, (n) => (n.children ?? []).includes(MESSAGES.zh['swipe.toggle']))[0]
+  assert.ok(hidBtn)
   assert.equal(hidBtn.props.disabled, true)
 })
 

@@ -239,8 +239,10 @@ test('LayersMap separates vector import CTA into subaction bar and wraps imagery
   })
 })
 
-test('RightStack + ToolsPanel supports index minimize + active pill and ToolWindow zoom/minimize/restore', () => {
+test('RightStack + ToolsPanel opens a tool window as a docked tab and keeps index minimize/active pill', () => {
   withStorage(() => {
+    // v1.6.3 removes free floating: a tool window is always a dock tab, never a
+    // window that can be zoomed/minimized outside the dock.
     const Host = (props) => {
       const ws = useToolWorkspace()
       return React.createElement(RightStack, {
@@ -278,7 +280,7 @@ test('RightStack + ToolsPanel supports index minimize + active pill and ToolWind
     }))
 
     let root = renderer.tree()
-    // 1. Open 'effects' tool window from index grid.
+    // 1. Open 'effects' tool window from the index grid -> docked tab + body.
     const entries = findAll(root, (n) => hasClass(n, 'mv-tool-entry'))
     const effectsBtn = entries.find((n) => textOf(n).includes('tools.effects'))
     assert.ok(effectsBtn)
@@ -287,46 +289,20 @@ test('RightStack + ToolsPanel supports index minimize + active pill and ToolWind
     root = renderer.tree()
     const win = findAll(root, (n) => hasClass(n, 'mv-toolwin'))[0]
     assert.ok(win)
+    assert.ok(hasClass(win, 'in-dock'), '工具窗使用停靠外壳')
+    assert.equal(hasClass(win, 'moved'), false, '工具窗不能自动浮出')
     assert.ok(findAll(win, (n) => hasClass(n, 'mv-toolwin-badge')).length === 1)
     assert.ok(findAll(win, (n) => hasClass(n, 'mv-tool-effects-list')).length === 1)
     assert.ok(textOf(win).includes('Campus Tiles'))
     assert.ok(textOf(win).includes('edge + ao'))
 
-    // 2. Toggle zoom (expand) on ToolWindow header -> switches to tools.windowRestore & 480px height.
-    const zoomBtn = findAll(win, (n) => n.type === 'button' && n.props.title === 'tools.windowZoom')[0]
-    assert.ok(zoomBtn)
-    assert.equal(zoomBtn.props['aria-pressed'], false)
-    zoomBtn.props.onClick()
-
-    root = renderer.tree()
-    const zoomedWin = findAll(root, (n) => hasClass(n, 'mv-toolwin'))[0]
-    assert.equal(zoomedWin.props.style.height, 'min(480px, 60vh)')
-    assert.ok(findAll(zoomedWin, (n) => n.type === 'button' && n.props.title === 'tools.windowRestore')[0])
-
-    // 3. Minimize ToolWindow -> body hides, re-clicking index entry restores it instead of closing.
-    const minWinBtn = findAll(zoomedWin, (n) => n.type === 'button' && n.props.title === 'tools.windowMinimize')[0]
-    minWinBtn.props.onClick()
-
-    root = renderer.tree()
-    assert.equal(findAll(root, (n) => hasClass(n, 'mv-toolwin-body')).length, 0)
-    const effectsBtnMin = findAll(root, (n) => hasClass(n, 'mv-tool-entry')).find((n) =>
-      textOf(n).includes('tools.effects'),
-    )
-    effectsBtnMin.props.onClick()
-
-    root = renderer.tree()
-    assert.equal(findAll(root, (n) => hasClass(n, 'mv-toolwin-body')).length, 1)
-
-    // 4. Minimize toolbox index -> hides index grid, persists flag, displays active pill.
-    const indexMinBtn = findAll(root, (n) => n.type === 'button' && n.props.title === 'tools.indexMinimize')[0]
-    assert.equal(indexMinBtn.props['aria-expanded'], true)
-    indexMinBtn.props.onClick()
-
-    root = renderer.tree()
-    assert.equal(readPanelFlag(TOOLS_MINIMIZED_KEY, false), true)
-    assert.equal(findAll(root, (n) => hasClass(n, 'mv-tool-index')).length, 0)
-    const pills = findAll(root, (n) => hasClass(n, 'mv-tools-active-pill'))
-    assert.ok(pills.some((p) => textOf(p) === 'tools.effects'))
+    // 2. Panel System 2.0: the detail replaces the tool index inside the same
+    // "工具" tab (master-detail), so there is no extra per-window tab and no
+    // toggle-state pill. A back button returns to the index.
+    const labels = findAll(root, (n) => hasClass(n, 'mv-dock-tab')).map((node) => textOf(node))
+    assert.deepEqual(labels, ['panel.tab.tools', 'panel.tab.result'])
+    assert.equal(findAll(root, (n) => hasClass(n, 'mv-panel-back')).length, 1)
+    assert.equal(findAll(root, (n) => hasClass(n, 'mv-dock-tab-close')).length, 0)
   })
 })
 

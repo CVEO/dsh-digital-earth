@@ -61,6 +61,9 @@ export function LayersPanel({
   vectorExport,
   rasterFrames,
   onSelectRasterFrame,
+  embedded = false,
+  forceFloat = false,
+  onFloatingChange,
 }) {
   // The 3D data tab is primary: the 3D Tiles the user loaded is why the panel is
   // open, while the map holds the supporting 2D sources.
@@ -79,8 +82,13 @@ export function LayersPanel({
     storageKey: 'layers',
     title: t('layers.title'),
     t,
+    forceFloat,
+    restoreSaved: false,
     hasExplicitWidth: Boolean(resize.size.width),
   })
+  React.useEffect(() => {
+    onFloatingChange?.(floating.moved)
+  }, [floating.moved, onFloatingChange])
   const tabsId = React.useMemo(() => `mv-data-${++nextTabsId}`, [])
   const tabsRef = React.useRef(null)
   const onTabKey = (event) => {
@@ -92,14 +100,16 @@ export function LayersPanel({
   }
   const sourceName = (list, id) => list?.find((item) => item.id === id)?.name ?? null
   const terrainActive = sourceName(config?.terrain, settings?.terrain)
-  const panelStyle = floating.moved
-    ? { ...floating.style, ...resize.style }
-    : { ...floating.style, height: resize.style?.height, maxHeight: resize.style?.maxHeight }
+  const panelStyle = embedded
+    ? undefined
+    : floating.moved
+      ? { ...floating.style, ...resize.style }
+      : { ...floating.style, height: resize.style?.height, maxHeight: resize.style?.maxHeight }
 
   return h(
     'div',
     {
-      className: `mv-layers mv-glass ${floating.className}`,
+      className: `mv-layers mv-glass ${floating.className}${embedded ? ' in-dock' : ''}`,
       ref: mergeRefs(floating.ref, resize.ref),
       style: panelStyle,
       ...floating.panelProps,
@@ -197,6 +207,8 @@ export function LayersPanel({
       value: resize.size.height,
       onPointerDown: resize.beginHeight,
       onKeyDown: resize.keyHeight,
+      min: resize.minHeight,
+      max: resize.maxHeight,
     }),
     floating.moved
       ? h(ResizeHandle, {
@@ -206,6 +218,8 @@ export function LayersPanel({
           value: resize.size.width,
           onPointerDown: resize.beginCorner,
           onKeyDown: resize.keyWidth,
+          min: resize.minWidth,
+          max: resize.maxWidth,
         })
       : null,
   )

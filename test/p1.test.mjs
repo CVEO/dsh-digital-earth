@@ -17,7 +17,8 @@ import { readFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { injectHandler } from '../index.js'
-import { clientSource as readClientSource, hostSource } from './helpers/source.mjs'
+import { clientSource as readClientSource, hostSource, readRepoFile } from './helpers/source.mjs'
+
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)))
 const MAX_INJECT_BODY = 16 * 1024
@@ -525,10 +526,11 @@ test('P1 askAgent 汇总相机/图层/叠加层、profile/flood/sunlight 分析�
 })
 
 test('P1 工具栏仅在存在会话时渲染 Ask Agent 按钮（图标 + tooltip），且依赖的采集/状态/分析函数都在', () => {
-  assert.ok(
-    clientSource.includes("sessionId ? iconButton(h(AskAgentIcon), t('btn.askAgent'), askAgent) : null"),
-    'Ask Agent 按钮应仅为会话页签渲染，并使用图标按钮',
-  )
+  // B1: the toolbar keeps 7 entries; Ask Agent is a 画面与输出 menu item that is
+  // only offered when a conversation session exists.
+  assert.ok(clientSource.includes('onAskAgent: askAgent,'), 'ViewerSurface 把 askAgent 接进画面与输出菜单')
+  assert.match(readRepoFile('src/client/ui/toolbar-output.js'), /if \(sessionId\)/)
+  assert.match(readRepoFile('src/client/ui/toolbar-output.js'), /t\('btn\.askAgent'\)/)
   // askAgent 依赖的三个基础设施仍然存在。
   assert.ok(clientSource.includes('async function captureScene(options = {}, session = null)'))
   assert.ok(clientSource.includes('async function collectSceneStatus()'))

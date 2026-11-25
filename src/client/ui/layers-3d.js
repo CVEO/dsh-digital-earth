@@ -36,6 +36,9 @@ export function Layers3D({
   onOpenRecent,
 }) {
   const [addOpen, setAddOpen] = React.useState(false)
+  // Batch B1: only one row's overflow menu is open at a time; Layers3D owns the
+  // state so LayerRow stays a pure component.
+  const [rowMenu, setRowMenu] = React.useState(null)
   const addBtnRef = React.useRef(null)
   const addMenuRef = React.useRef(null)
   React.useEffect(() => {
@@ -56,6 +59,24 @@ export function Layers3D({
       document.removeEventListener('pointerdown', onPointerDown, true)
     }
   }, [addOpen])
+  React.useEffect(() => {
+    if (rowMenu === null || typeof document === 'undefined') return undefined
+    const onKey = (event) => {
+      if (event.key !== 'Escape') return
+      event.stopPropagation()
+      setRowMenu(null)
+    }
+    const onPointerDown = (event) => {
+      if (event.target?.closest?.('.mv-row-menu, .mv-row-more')) return
+      setRowMenu(null)
+    }
+    document.addEventListener('keydown', onKey, true)
+    document.addEventListener('pointerdown', onPointerDown, true)
+    return () => {
+      document.removeEventListener('keydown', onKey, true)
+      document.removeEventListener('pointerdown', onPointerDown, true)
+    }
+  }, [rowMenu])
   const recents = Array.isArray(recentDirs) ? recentDirs : []
   const radioRow = (key, label, active, onClick) =>
     h(
@@ -177,6 +198,8 @@ export function Layers3D({
             swipeActive:
               ((swipeState?.kind === '3d' || swipeState?.kind === 'split') && swipeState?.id === layer.id) ||
               (swipeState?.kind === 'pair' && (swipeState?.leftId === layer.id || swipeState?.rightId === layer.id)),
+            menuOpen: rowMenu === layer.id,
+            onMenuToggle: setRowMenu,
             onFlyLayer,
             onToggleLayer,
             onInspectLayer,

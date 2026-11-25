@@ -17,7 +17,7 @@ export const SELECTION_QUESTION_CSS = `
 .mv-question-actions .mv-cta{flex:1 1 100px;white-space:normal}
 .mv-selection-question .mv-question-status,.mv-selection-question .mv-question-error{margin:10px 0 0;font-size:12px;line-height:1.6;overflow-wrap:anywhere;color:var(--mv-dim)}
 .mv-selection-question .mv-question-error{color:var(--dsw-alias-state-error-primary,#c43b3b)}
-.mv-root:is([data-mv-scheme="dark"],[data-mv-theme="dark"]) .mv-question-error{color:var(--dsw-alias-state-error-primary,#ffa69c)}
+.mv-root[data-mv-scheme="dark"] .mv-question-error{color:var(--dsw-alias-state-error-primary,#ffa69c)}
 .mv-selection-question button:disabled{opacity:.5;cursor:default}
 @media(pointer:coarse){.mv-question-prompts button,.mv-question-image{min-height:44px}.mv-question-label textarea{font-size:16px}}
 `
