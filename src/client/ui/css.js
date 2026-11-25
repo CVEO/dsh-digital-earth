@@ -61,8 +61,6 @@ import { COMPARE_CSS } from './compare-css.js'
 .mv-menu-item:hover{background:color-mix(in srgb,var(--mv-lift) 80%,transparent)}
 .mv-menu-item:disabled{opacity:.42;cursor:default}
 .mv-menu-item:disabled:hover{background:transparent}
-.mv-menu-item.on{color:var(--mv-accent)}
-.mv-menu-item .check{font-size:11px}
 .mv-menu-label{padding:4px 10px 2px;font-size:10.5px;line-height:1.4;letter-spacing:.04em;color:var(--mv-dim);white-space:nowrap}
 .mv-menu-item .ellipsis{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mv-urlbar{position:absolute;top:58px;left:0;right:0;margin:0 auto;display:flex;align-items:center;gap:6px;padding:6px;border-radius:11px;z-index:12;width:min(640px,82%)}
@@ -94,18 +92,21 @@ import { COMPARE_CSS } from './compare-css.js'
 .mv-dock-tablist::-webkit-scrollbar{display:none}
 .mv-dock-tabitem{display:inline-flex;align-items:center;min-width:0;flex:0 1 auto;position:relative;border-radius:8px}
 .mv-dock-tabitem.on{background:color-mix(in srgb,var(--mv-accent) 12%,transparent)}
-.mv-dock-tab{display:inline-flex;align-items:center;gap:5px;border:0;background:none;color:var(--mv-dim);font:inherit;font-size:12px;padding:5px 7px;border-radius:8px;cursor:pointer;min-width:0;max-width:132px}
+.mv-dock-tab{display:inline-flex;align-items:center;justify-content:center;border:0;background:none;color:var(--mv-dim);font:inherit;font-size:12px;padding:6px 9px;border-radius:8px;cursor:pointer;min-width:30px;max-width:132px}
 .mv-dock-tab:hover{color:var(--mv-text)}
 .mv-dock-tab.on{color:var(--mv-text);font-weight:600}
 .mv-dock-tab.on::after{content:"";position:absolute;left:8px;right:8px;bottom:-5px;height:2px;border-radius:2px;background:var(--mv-accent)}
 .mv-dock-tab-icon{display:inline-flex;flex:none;opacity:.85}
-.mv-dock-tab-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mv-dock-dot{width:6px;height:6px;border-radius:999px;background:var(--mv-accent);flex:none;box-shadow:0 0 0 2px color-mix(in srgb,var(--mv-accent) 25%,transparent)}
 .mv-dock-actions{display:inline-flex;align-items:center;gap:2px;flex:none;margin-left:2px}
 .mv-dock-actions .mv-icon-btn{width:24px;height:24px;font-size:12px}
 .mv-dock-body{display:flex;flex-direction:column;flex:1 1 auto;min-height:0;min-width:0;padding:0}
 .mv-dock-panel{display:flex;flex-direction:column;flex:1 1 auto;min-height:0;min-width:0;overflow:hidden}
 .mv-dock-panel[hidden]{display:none}
+.mv-report-preview{display:flex;flex-direction:column;flex:1 1 auto;min-height:0;min-width:0;background:var(--mv-glass)}
+.mv-report-preview-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px;border-bottom:.5px solid var(--mv-line);flex:none}
+.mv-report-preview-title{font-size:12px;font-weight:600;color:var(--mv-text);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mv-report-preview-frame{flex:1 1 auto;min-height:0;width:100%;border:0;background:#fff}
 .mv-dock-panel .in-dock{height:100%;max-height:none!important;width:100%;flex:1 1 auto;min-height:0;border-radius:0;border:0;box-shadow:none;background:transparent!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;position:relative}
 .mv-dock-panel .in-dock>header{display:none!important}
 .mv-dock-panel .in-dock>.mv-resize-handle{display:none!important}

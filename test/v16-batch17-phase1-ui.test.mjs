@@ -243,6 +243,7 @@ test('RightStack + ToolsPanel opens a tool window as a docked tab and keeps inde
   withStorage(() => {
     // v1.6.3 removes free floating: a tool window is always a dock tab, never a
     // window that can be zoomed/minimized outside the dock.
+    let shaderOpened = 0
     const Host = (props) => {
       const ws = useToolWorkspace()
       return React.createElement(RightStack, {
@@ -265,7 +266,7 @@ test('RightStack + ToolsPanel opens a tool window as a docked tab and keeps inde
       onClearMeasure: () => {},
       onStartProfile: () => {},
       onClearAnalysis: () => {},
-      onOpenShader: () => {},
+      onOpenShader: () => { shaderOpened++ },
       onFlyView: () => {},
       onStartTour: () => {},
       getCurrentView: () => null,
@@ -280,28 +281,22 @@ test('RightStack + ToolsPanel opens a tool window as a docked tab and keeps inde
     }))
 
     let root = renderer.tree()
-    // 1. Open 'effects' tool window from the index grid -> docked tab + body.
+    // 1. v1.6.4: "Visual effects" opens the workbench directly; it must not stop
+    // at a master-detail page whose only action is another "open" button.
     const entries = findAll(root, (n) => hasClass(n, 'mv-tool-entry'))
     const effectsBtn = entries.find((n) => textOf(n).includes('tools.effects'))
     assert.ok(effectsBtn)
     effectsBtn.props.onClick()
 
     root = renderer.tree()
-    const win = findAll(root, (n) => hasClass(n, 'mv-toolwin'))[0]
-    assert.ok(win)
-    assert.ok(hasClass(win, 'in-dock'), '工具窗使用停靠外壳')
-    assert.equal(hasClass(win, 'moved'), false, '工具窗不能自动浮出')
-    assert.ok(findAll(win, (n) => hasClass(n, 'mv-toolwin-badge')).length === 1)
-    assert.ok(findAll(win, (n) => hasClass(n, 'mv-tool-effects-list')).length === 1)
-    assert.ok(textOf(win).includes('Campus Tiles'))
-    assert.ok(textOf(win).includes('edge + ao'))
+    assert.equal(shaderOpened, 1, '点击视觉特效直接打开工作台')
+    assert.equal(findAll(root, (n) => hasClass(n, 'mv-toolwin')).length, 0, '不再进入二次打开页')
 
-    // 2. Panel System 2.0: the detail replaces the tool index inside the same
-    // "工具" tab (master-detail), so there is no extra per-window tab and no
-    // toggle-state pill. A back button returns to the index.
-    const labels = findAll(root, (n) => hasClass(n, 'mv-dock-tab')).map((node) => textOf(node))
+    // 2. The rail keeps only icons now; the accessible name still carries the
+    // destination, so screen readers do not lose the label removed as duplicate.
+    const labels = findAll(root, (n) => hasClass(n, 'mv-dock-tab')).map((node) => node.props['aria-label'])
     assert.deepEqual(labels, ['panel.tab.tools', 'panel.tab.result'])
-    assert.equal(findAll(root, (n) => hasClass(n, 'mv-panel-back')).length, 1)
+    assert.equal(findAll(root, (n) => hasClass(n, 'mv-panel-back')).length, 0)
     assert.equal(findAll(root, (n) => hasClass(n, 'mv-dock-tab-close')).length, 0)
   })
 })

@@ -19,6 +19,8 @@ export function ToolsPanel({
   t,
   openWindows = [],
   onSelectTool,
+  onOpenEffect,
+  onOpenShader,
   onCollapse,
   embedded = false,
   forceFloat = false,
@@ -71,7 +73,16 @@ export function ToolsPanel({
         className: `mv-tool-entry${active ? ' on' : ''}`,
         'aria-pressed': active,
         title: t(item.hintKey),
-        onClick: () => onSelectTool?.(item.id),
+        onClick: () => {
+          if (item.id === 'effects') {
+            const openEffect = onOpenEffect ?? onOpenShader
+            if (typeof openEffect === 'function') {
+              openEffect()
+              return
+            }
+          }
+          onSelectTool?.(item.id)
+        },
       },
       h('span', { className: 'mv-tool-entry-icon' }, h(ToolEntryIcon, { kind: item.icon })),
       h('span', { className: 'mv-tool-entry-name' }, t(item.labelKey)),

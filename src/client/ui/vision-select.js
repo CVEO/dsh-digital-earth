@@ -4,20 +4,34 @@ import { visionRequest } from '../scene/vision-request.js'
 
 const h = React.createElement
 
+const VISION_TIMEOUT_MS = 65000
+
+/**
+ * AI-assisted target selection. Recognition never starts on mount: the dialog
+ * first explains the cost and waits for an explicit "start" click, then the
+ * running request can be stopped without closing the dialog. The previous
+ * auto-start made an accidental tool click spend a model call, and its 23 s
+ * client limit fired before the host's single-target budget could finish.
+ */
 export function VisionSelect({ controller, anchor, t, onClose, onCommit, onManual }) {
-  const [state, setState] = React.useState({ phase: 'loading', frame: null, result: null, error: '' })
+  const [state, setState] = React.useState({ phase: 'ready', frame: null, result: null, error: '' })
   const [attempt, setAttempt] = React.useState(0)
   const frameRef = React.useRef(null)
   const dialogRef = React.useRef(null)
+  const abortRef = React.useRef(null)
+  const stoppedRef = React.useRef(false)
   React.useEffect(() => {
     const previous = document.activeElement
     dialogRef.current?.focus()
     return () => { if (previous?.isConnected) previous.focus?.() }
   }, [])
   React.useEffect(() => {
+    if (attempt === 0) return undefined
     const abort = new AbortController()
+    abortRef.current = abort
+    stoppedRef.current = false
     let frame, interval, current = true, timedOut = false, stale = false
-    const timer = setTimeout(() => { timedOut = true; abort.abort() }, 23000)
+    const timer = setTimeout(() => { timedOut = true; abort.abort() }, VISION_TIMEOUT_MS)
     setState({ phase: 'loading', frame: null, result: null, error: '' })
     const run = async () => {
       try {
@@ -44,12 +58,41 @@ export function VisionSelect({ controller, anchor, t, onClose, onCommit, onManua
         frame?.release()
         clearInterval(interval)
         clearTimeout(timer)
-        if (current && !stale) setState((previous) => ({ ...previous, phase: 'error', error: timedOut ? 'timeout' : error?.code ?? 'model_failed' }))
+        if (current && !stale) {
+          setState((previous) => ({
+            ...previous,
+            phase: 'error',
+            error: stoppedRef.current ? 'cancelled' : timedOut ? 'timeout' : error?.code ?? 'model_failed',
+          }))
+        }
+      } finally {
+        if (abortRef.current === abort) abortRef.current = null
       }
     }
     void run()
-    return () => { current = false; abort.abort(); clearTimeout(timer); clearInterval(interval); frame?.release(); frameRef.current = null }
+    return () => {
+      current = false
+      abort.abort()
+      clearTimeout(timer)
+      clearInterval(interval)
+      frame?.release()
+      frameRef.current = null
+    }
   }, [controller, anchor, attempt])
+  const start = () => {
+    if (state.phase === 'loading') return
+    stoppedRef.current = false
+    setState({ phase: 'loading', frame: null, result: null, error: '' })
+    setAttempt((value) => value + 1)
+  }
+  const stop = () => {
+    stoppedRef.current = true
+    abortRef.current?.abort()
+    const frame = frameRef.current
+    frameRef.current = null
+    frame?.release()
+    setState((previous) => ({ ...previous, phase: 'error', frame: null, result: null, error: 'cancelled' }))
+  }
   const accept = () => {
     try {
       const ground = projectVisionPolygon(frameRef.current, state.result)
@@ -70,6 +113,13 @@ export function VisionSelect({ controller, anchor, t, onClose, onCommit, onManua
   }
   const errorKey = `vision.error.${state.error}`
   const errorText = state.error && (t(errorKey) === errorKey ? t('vision.error.model_failed') : t(errorKey))
+  const statusText = state.phase === 'ready'
+    ? t('vision.readyToStart')
+    : state.phase === 'loading'
+      ? t('vision.loading')
+      : state.result?.shape === 'box'
+        ? t('vision.boxReady')
+        : t('vision.ready')
   return h('div', { className: 'mv-vision-screen', onKeyDown },
     h('section', { className: 'mv-vision', role: 'dialog', 'aria-modal': true, 'aria-label': t('vision.title'), tabIndex: -1, ref: dialogRef },
       h('header', null, h('h3', null, t('vision.title')), h('button', { type: 'button', className: 'mv-icon-btn', 'aria-label': t('btn.close'), onClick: onClose }, '✕')),
@@ -80,11 +130,13 @@ export function VisionSelect({ controller, anchor, t, onClose, onCommit, onManua
           state.result ? h('polygon', { points: state.result.polygon.map(([lon, lat]) => `${lon * 1000},${lat * 1000}`).join(' '), vectorEffect: 'non-scaling-stroke' }) : null,
           h('circle', { cx: state.frame.point[0] * 1000, cy: state.frame.point[1] * 1000, r: 6, vectorEffect: 'non-scaling-stroke' }))) : null,
       h('p', { role: state.error ? 'alert' : 'status', 'aria-live': 'polite', className: state.error ? 'mv-vision-error' : 'mv-vision-status' },
-        errorText || t(state.phase === 'loading' ? 'vision.loading' : state.result?.shape === 'box' ? 'vision.boxReady' : 'vision.ready')),
+        errorText || statusText),
       state.result?.model ? h('p', { className: 'mv-vision-note' }, t('vision.model', { model: state.result.model })) : null,
       h('div', { className: 'mv-vision-actions' },
+        state.phase === 'ready' ? h('button', { type: 'button', className: 'mv-cta primary', onClick: start }, t('vision.start')) : null,
+        state.phase === 'loading' ? h('button', { type: 'button', className: 'mv-cta', onClick: stop }, t('vision.stop')) : null,
         state.phase === 'preview' ? h('button', { type: 'button', className: 'mv-cta primary', disabled: Boolean(state.error), onClick: accept }, t('vision.accept')) : null,
-        state.phase !== 'loading' ? h('button', { type: 'button', className: 'mv-cta', onClick: () => setAttempt((value) => value + 1) }, t('vision.retry')) : null,
+        state.phase === 'error' ? h('button', { type: 'button', className: 'mv-cta primary', onClick: start }, t('vision.retry')) : null,
         h('button', { type: 'button', className: 'mv-cta', onClick: () => { frameRef.current?.release(); onClose(); onManual() } }, t('vision.manual')),
         h('button', { type: 'button', className: 'mv-cta', onClick: onClose }, t('vision.cancel')))))
 }

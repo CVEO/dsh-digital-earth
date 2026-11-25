@@ -81,6 +81,10 @@ test('视觉预览：结果出现不提交，确认才提交；关闭恢复焦�
   const env = await setup()
   try {
     env.render(); await tick()
+    assert.equal(env.ui.state().phase, 'ready')
+    assert.equal(env.calls.length, 0, '打开对话框不得自动请求模型')
+    button(env.render(), 'vision.start').props.onClick()
+    env.render(); await tick()
     assert.equal(env.ui.state().phase, 'preview')
     assert.equal(env.commits.length, 0)
     assert.equal(env.calls.length, 2)
@@ -92,13 +96,16 @@ test('视觉预览：结果出现不提交，确认才提交；关闭恢复焦�
   } finally { env.restore() }
 })
 
-test('视觉预览：取消中断请求，迟到响应不提交、不更新已卸载 UI', async () => {
+test('视觉预览：停止中断请求，迟到响应不提交、不更新已卸载 UI', async () => {
   const env = await setup({ hold: true })
   try {
     env.render(); await tick()
-    button(env.render(), 'vision.cancel').props.onClick()
+    button(env.render(), 'vision.start').props.onClick()
+    env.render(); await tick()
+    button(env.render(), 'vision.stop').props.onClick()
     assert.equal(env.calls[1].signal.aborted, true)
     assert.equal(env.released(), true)
+    assert.equal(env.ui.state().error, 'cancelled')
     env.resolve(); await tick()
     assert.equal(env.commits.length, 0)
     assert.equal(env.ui.lateUpdates(), 0)
@@ -109,6 +116,8 @@ test('视觉预览：取消中断请求，迟到响应不提交、不更新已�
 test('视觉预览：非视觉模型不取景；失败提供手动入口，不转交 Agent', async () => {
   const env = await setup({ failure: 'model_not_visual' })
   try {
+    env.render(); await tick()
+    button(env.render(), 'vision.start').props.onClick()
     env.render(); await tick()
     assert.equal(env.ui.state().error, 'model_not_visual')
     assert.equal(env.ui.state().frame, null)
@@ -123,6 +132,8 @@ test('视觉预览：非视觉模型不取景；失败提供手动入口，不�
 test('视觉预览：深度失败保留预览并禁用采用；场景变化使结果失效', async () => {
   const env = await setup()
   try {
+    env.render(); await tick()
+    button(env.render(), 'vision.start').props.onClick()
     env.render(); await tick()
     env.failProjection()
     button(env.render(), 'vision.accept').props.onClick()

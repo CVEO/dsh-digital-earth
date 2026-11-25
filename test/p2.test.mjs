@@ -553,7 +553,7 @@ test('P2 runCommand report 分支 POST meta.reportUrl 并返回 operation:report
   assert.doesNotMatch(runReportSource, /\btoken\b/i)
 })
 
-test('P2 画面与输出菜单 menu.report 调用 runCommand("report",{format:"html"}) 并提示成功/失败', () => {
+test('P2 画面与输出菜单 menu.report 调用 runCommand("report",{format:"html",preview:true}) 并在侧栏打开报告', () => {
   // v1.6.1 B1：场景报告从数据菜单移到「画面与输出」菜单。
   const menuSource = readRepoFile('src/client/ui/toolbar-output.js')
   assert.ok(menuSource.includes("t('menu.report')"))
@@ -564,7 +564,9 @@ test('P2 画面与输出菜单 menu.report 调用 runCommand("report",{format:"h
     'async function openSceneReport',
     'const imagerySeqRef',
   )
-  assert.ok(reportSource.includes("const value = await runCommand('report', { format: 'html' })"))
+  assert.ok(reportSource.includes("const value = await runCommand('report', { format: 'html', preview: true })"))
+  assert.ok(reportSource.includes("setReportPreview({"))
+  assert.ok(reportSource.includes("showToast(t('toast.reportOpened'))"))
   assert.ok(reportSource.includes("showToast(t('toast.reportSaved', { path: value.path }))"))
   assert.ok(reportSource.includes("showToast(t('toast.reportFailed', { message: message(error) }))"))
 })

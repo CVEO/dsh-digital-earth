@@ -246,8 +246,8 @@ test('A3 宿主工具文案：clear 只清 Agent 自己画的内容', () => {
 
 test('A4 数据菜单项在无可清内容时禁用（MenuItem 支持 disabled）', () => {
   const client = clientSource()
-  assert.match(client, /function MenuItem\(\{ onClick, children, active, title, disabled = false \}\)/)
-  assert.match(client, /className: `mv-menu-item\$\{active \? ' on' : ''\}\$\{disabled \? ' is-disabled' : ''\}`/)
+  assert.match(client, /function MenuItem\(\{ onClick, children, title, disabled = false \}\)/)
+  assert.match(client, /className: `mv-menu-item\$\{disabled \? ' is-disabled' : ''\}`/)
   assert.match(client, /onClick: disabled \? undefined : onClick/)
   assert.ok(!readRepoFile('src/client/ui/data-menu.js').includes('canClearMeasure'))
   assert.ok(readRepoFile('src/client/ui/tool-windows.js').includes("t('tool.clear')"))

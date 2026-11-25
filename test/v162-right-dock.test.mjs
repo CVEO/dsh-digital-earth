@@ -273,6 +273,8 @@ function DockHost(props) {
     busy: Boolean(props.busy),
     dockRequest: props.dockRequest ?? null,
     objectPanel: props.objectPanel ?? null,
+    reportPreview: props.reportPreview ?? null,
+    onCloseReport: props.onCloseReport ?? (() => {}),
   })
 }
 
@@ -284,7 +286,7 @@ function renderDock(initial = {}) {
 
 function tabLabels(root) {
   return findAll(root, (node) => node?.props?.role === 'tab').map((node) => ({
-    label: textOf(node),
+    label: node.props['aria-label'] ?? textOf(node),
     selected: node.props['aria-selected'],
     tabIndex: node.props.tabIndex,
   }))
@@ -307,7 +309,7 @@ test('P1 四个目的地：图层/工具/结果常驻，只渲染一个可见 ta
     const { renderer } = renderDock({ analysis: FLOOD, showLayers: true })
     const root = renderer.tree()
     assert.deepEqual(
-      byClass(root, 'mv-dock-tab').map((node) => textOf(node)),
+      byClass(root, 'mv-dock-tab').map((node) => node.props['aria-label']),
       ['panel.tab.layers', 'panel.tab.tools', 'panel.tab.result'],
     )
     assert.equal(activeTabNodes(root).length, 1)
@@ -323,7 +325,7 @@ test('P1 页签切换：点结果后工具面板 hidden 但不卸载，切回可
     const { renderer } = renderDock({ analysis: FLOOD, showLayers: true })
     let root = renderer.tree()
     const resultTab = findAll(root, (node) => node?.props?.role === 'tab').find((node) =>
-      textOf(node).includes('panel.tab.result'),
+      node.props['aria-label'] === 'panel.tab.result',
     )
     resultTab.props.onClick()
     root = renderer.tree()
@@ -333,7 +335,7 @@ test('P1 页签切换：点结果后工具面板 hidden 但不卸载，切回可
     assert.equal(toolsPanel.props.hidden, true)
 
     const toolsTab = findAll(root, (node) => node?.props?.role === 'tab').find((node) =>
-      textOf(node).includes('panel.tab.tools'),
+      node.props['aria-label'] === 'panel.tab.tools',
     )
     toolsTab.props.onClick()
     root = renderer.tree()
@@ -346,9 +348,33 @@ test('P1 结果空态：没有分析结果时结果页签给出启动提示', ()
     const { renderer } = renderDock({ showLayers: true })
     let root = renderer.tree()
     const resultTab = findAll(root, (node) => node?.props?.role === 'tab').find((node) =>
-      textOf(node).includes('panel.tab.result'),
+      node.props['aria-label'] === 'panel.tab.result',
     )
     resultTab.props.onClick()
+    root = renderer.tree()
+    assert.match(textOf(visiblePanels(root)[0]), /panel\.result\.emptyTitle/)
+  })
+})
+
+test('P1 场景报告：在结果页签内嵌 iframe 打开，可关闭回到空态', () => {
+  withStorage(() => {
+    let closed = 0
+    const { renderer, props } = renderDock({
+      showLayers: true,
+      reportPreview: { key: 1, html: '<!doctype html><title>R</title><p>report-body</p>', title: 'Scene report', path: '/tmp/report.html' },
+      onCloseReport: () => { closed++ },
+    })
+    let root = renderer.tree()
+    assert.ok(activeTabNodes(root)[0].props.id.endsWith('result'))
+    const frame = findAll(root, (node) => node?.props?.className === 'mv-report-preview-frame')[0]
+    assert.ok(frame, '报告应以内嵌 iframe 呈现')
+    assert.match(frame.props.srcDoc, /report-body/)
+    assert.equal(frame.props.sandbox, '', '报告文档不允许脚本')
+    byClass(root, 'mv-icon-btn').find((node) => node.props['aria-label'] === 'report.close').props.onClick()
+    assert.equal(closed, 1)
+
+    props.reportPreview = null
+    renderer.rerender()
     root = renderer.tree()
     assert.match(textOf(visiblePanels(root)[0]), /panel\.result\.emptyTitle/)
   })
@@ -358,9 +384,9 @@ test('P1 工具主从：点工具索引进入工具体，← 工具返回索引'
   withStorage(() => {
     const { renderer } = renderDock({ showLayers: true })
     let root = renderer.tree()
-    const effectsEntry = byClass(root, 'mv-tool-entry').find((node) => textOf(node).includes('tools.effects'))
-    assert.ok(effectsEntry)
-    effectsEntry.props.onClick()
+    const measureEntry = byClass(root, 'mv-tool-entry').find((node) => textOf(node).includes('tools.measure'))
+    assert.ok(measureEntry)
+    measureEntry.props.onClick()
 
     root = renderer.tree()
     assert.equal(byClass(root, 'mv-toolwin').length, 1, '只显示一个工具体')
@@ -447,7 +473,7 @@ test('P2 对象页签：按需出现，到达时空闲自动切换，关闭后�
     props.objectPanel = objectPanel
     renderer.rerender()
     root = renderer.tree()
-    const labels = byClass(root, 'mv-dock-tab').map((node) => textOf(node))
+    const labels = byClass(root, 'mv-dock-tab').map((node) => node.props['aria-label'])
     assert.ok(labels.includes('panel.tab.object'))
     assert.ok(activeTabNodes(root)[0].props.id.endsWith('object'))
     assert.equal(byClass(root, 'mv-test-object').length, 1)

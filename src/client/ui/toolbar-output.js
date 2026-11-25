@@ -37,7 +37,7 @@ export function outputMenuItems({
     h('i', { key: 'sep1', className: 'mv-sep', style: MENU_SEP }),
     h(
       MenuItem,
-      { key: 'hud', active: showHud, onClick: run(onToggleHud) },
+      { key: 'hud', onClick: run(onToggleHud) },
       showHud ? t('btn.hudHide') : t('btn.hudShow'),
     ),
     h(MenuItem, { key: 'reset', onClick: run(onResetView) }, t('btn.reset')),

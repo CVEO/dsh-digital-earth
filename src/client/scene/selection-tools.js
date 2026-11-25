@@ -18,7 +18,6 @@ import {
   polygonPerimeterMeters,
   rectScreenRing,
   ringToPolygon,
-  sampleLassoPath,
 } from './screen-geodesy.js'
 import { createPointerIntent, watchPointerCancellation } from './pointer-intent.js'
 import { rowsInScreenBox } from './screen-intersection.js'
@@ -122,7 +121,7 @@ function createSelectionSession(viewer) {
   const state = {
     mode: null,
     dragStart: null,
-    lassoPath: [],
+    polygonPath: [],
     lastMoveAt: 0,
     lastScreenRing: [],
     previewPositions: [],
@@ -402,12 +401,12 @@ function createSelectionSession(viewer) {
     commitSelection(Cesium, ground, 'rectangle', screenRing)
   }
 
-  function finishLasso() {
+  function finishPolygon() {
     const Cesium = tool.deps?.getCesium?.()
-    const path = sampleLassoPath(state.lassoPath)
+    const path = state.polygonPath.slice()
     clearObjectBox()
     state.mode = null
-    state.lassoPath = []
+    state.polygonPath = []
     destroyHandler()
     restoreCamera()
     removeEntity(state.previewEntity)
@@ -419,7 +418,7 @@ function createSelectionSession(viewer) {
       return
     }
     const ground = groundRingFromScreen(viewer, Cesium, path)
-    commitSelection(Cesium, ground, 'lasso', path)
+    commitSelection(Cesium, ground, 'polygon', path)
   }
 
   function finishObjects() {
@@ -452,7 +451,7 @@ function createSelectionSession(viewer) {
     }
     state.mode = null
     state.dragStart = null
-    state.lassoPath = []
+    state.polygonPath = []
     state.previewPositions = []
     state.lastScreenRing = []
     destroyHandler()
@@ -472,9 +471,9 @@ function createSelectionSession(viewer) {
     cancel()
     tool.deps?.onActivate?.()
     clearSelection()
-    state.mode = mode === 'point' || mode === 'lasso' || mode === 'objects' ? mode : 'rect'
+    state.mode = mode === 'point' || mode === 'polygon' || mode === 'objects' ? mode : 'rect'
     state.dragStart = null
-    state.lassoPath = []
+    state.polygonPath = []
     state.lastMoveAt = 0
     state.lastScreenRing = []
     state.previewPositions = []
@@ -496,31 +495,27 @@ function createSelectionSession(viewer) {
           destroyHandler()
           commitPoint(Cesium, ground, event.position)
         }, Cesium.ScreenSpaceEventType.LEFT_CLICK)
-      } else if (state.mode === 'lasso') {
+      } else if (state.mode === 'polygon') {
+        const addVertex = (position) => {
+          if (!position) return
+          const last = state.polygonPath[state.polygonPath.length - 1]
+          if (last && Math.hypot(position.x - last.x, position.y - last.y) < 3) return
+          state.polygonPath.push({ x: position.x, y: position.y })
+        }
         handler.setInputAction((event) => {
-          if (!event?.position) return
-          state.lassoPath = [{ x: event.position.x, y: event.position.y }]
-          disableCamera()
-        }, Cesium.ScreenSpaceEventType.LEFT_DOWN)
+          if (!state.mode || !event?.position) return
+          addVertex(event.position)
+          screenOverlay.update(state.polygonPath)
+        }, Cesium.ScreenSpaceEventType.LEFT_CLICK)
         handler.setInputAction((event) => {
-          if (!state.mode || state.lassoPath.length === 0 || !event?.endPosition) return
-          const point = event.endPosition
-          const last = state.lassoPath[state.lassoPath.length - 1]
-          if (Math.hypot(point.x - last.x, point.y - last.y) < 4) return
-          state.lassoPath.push({ x: point.x, y: point.y })
-          const previewPath = sampleLassoPath(state.lassoPath, { minSpacing: 4, maxPoints: 80 })
-          screenOverlay.update(previewPath)
+          if (!state.mode || state.polygonPath.length === 0 || !event?.endPosition) return
+          screenOverlay.update([...state.polygonPath, { x: event.endPosition.x, y: event.endPosition.y }])
         }, Cesium.ScreenSpaceEventType.MOUSE_MOVE)
         handler.setInputAction((event) => {
           if (!state.mode) return
-          if (event?.position) {
-            const last = state.lassoPath[state.lassoPath.length - 1]
-            if (!last || Math.hypot(event.position.x - last.x, event.position.y - last.y) >= 1) {
-              state.lassoPath.push({ x: event.position.x, y: event.position.y })
-            }
-          }
-          finishLasso()
-        }, Cesium.ScreenSpaceEventType.LEFT_UP)
+          addVertex(event?.position)
+          finishPolygon()
+        }, Cesium.ScreenSpaceEventType.LEFT_DOUBLE_CLICK)
       } else if (state.mode === 'objects') {
         handler.setInputAction((event) => {
           if (!event?.position) return
@@ -572,6 +567,10 @@ function createSelectionSession(viewer) {
       if (typeof document !== 'undefined') {
         state.keyHandler = (event) => {
           if (event.key === 'Escape') cancel()
+          else if (event.key === 'Enter' && state.mode === 'polygon') {
+            event.preventDefault()
+            finishPolygon()
+          }
         }
         document.addEventListener('keydown', state.keyHandler)
       }
@@ -590,7 +589,7 @@ function createSelectionSession(viewer) {
     clearEntities()
     clearObjectBox()
     state.selection = null
-    state.lassoPath = []
+    state.polygonPath = []
     state.previewPositions = []
     state.lastScreenRing = []
   }

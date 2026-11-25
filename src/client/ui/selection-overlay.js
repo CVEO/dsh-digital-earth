@@ -318,7 +318,7 @@ export function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t
       : null,
     card && visionOpen
       ? h(VisionSelect, { controller, anchor: anchorRef.current, t, onClose: () => setVisionOpen(false), onCommit: onVisionCommit,
-          onManual: () => { onVisionManual?.(); getSelectionTool(controller.getViewer(), { getCesium: controller.getCesium, t, showToast })?.start('lasso') } })
+          onManual: () => { onVisionManual?.(); getSelectionTool(controller.getViewer(), { getCesium: controller.getCesium, t, showToast })?.start('polygon') } })
       : null,
     card && !visionOpen
       ? h(

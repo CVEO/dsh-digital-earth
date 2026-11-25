@@ -276,6 +276,7 @@ import { DOCK_MESSAGES } from './messages-dock.js'
         'health.rootError': '根几何误差',
         'health.boundingVolume': '包围体',
         'health.reportPath': '报告路径',
+        'report.close': '关闭报告',
         'health.copy': '复制路径',
         'health.copied': '报告路径已复制',
         'health.copyFailed': '复制失败，请手动选择报告路径',
@@ -427,6 +428,7 @@ import { DOCK_MESSAGES } from './messages-dock.js'
         'toast.askAgentFailed': '发送场景失败：{message}',
         'toast.askAgentNoSession': '请先打开一个会话，再使用「问 Agent」。',
         'toast.reportSaved': '场景报告已保存：{path}',
+        'toast.reportOpened': '场景报告已在右侧打开。',
         'toast.reportFailed': '导出报告失败：{message}',
         'toast.noSession': '请先打开一个会话，再在对话旁查看数字地球。',
         'toast.fullscreenUnsupported': '当前浏览器不支持全屏 API。',
@@ -705,6 +707,7 @@ import { DOCK_MESSAGES } from './messages-dock.js'
         'health.rootError': 'Root geometric error',
         'health.boundingVolume': 'Bounding volume',
         'health.reportPath': 'Report path',
+        'report.close': 'Close report',
         'health.copy': 'Copy path',
         'health.copied': 'Report path copied',
         'health.copyFailed': 'Copy failed; select the report path manually',
@@ -859,6 +862,7 @@ import { DOCK_MESSAGES } from './messages-dock.js'
         'toast.askAgentFailed': 'Could not send the scene: {message}',
         'toast.askAgentNoSession': 'Open a conversation first to use Ask Agent.',
         'toast.reportSaved': 'Scene report saved: {path}',
+        'toast.reportOpened': 'Scene report opened in the right panel.',
         'toast.reportFailed': 'Could not export the report: {message}',
         'toast.noSession': 'Open a conversation first to view the globe beside it.',
         'toast.fullscreenUnsupported': 'This browser does not expose the fullscreen API.',
@@ -879,7 +883,7 @@ import { DOCK_MESSAGES } from './messages-dock.js'
 
     /** About-tab fallbacks used before the Host meta payload arrives. */
     const FALLBACK_ABOUT = {
-      version: '1.6.0',
+      version: '1.6.4',
       homepage: 'https://github.com/CVEO/dsh-digital-earth',
       teamUrl: 'https://www.whu-cveo.com/',
     }

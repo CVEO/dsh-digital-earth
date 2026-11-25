@@ -10,7 +10,7 @@ Built by the CVEO Research Group, Wuhan University — a 3D component for 3D cit
 
 [中文](README.md) · [English](README.en.md) · [Changelog](CHANGELOG.md) · [License](LICENSE)
 
-![version](https://img.shields.io/badge/version-1.6.0-4f8cff)
+![version](https://img.shields.io/badge/version-1.6.4-4f8cff)
 ![license](https://img.shields.io/badge/license-MIT-2ea44f)
 ![DSH](https://img.shields.io/badge/DSH-plugin-0ea5e9)
 [![npm downloads](https://img.shields.io/npm/dm/@cveo/dsh-digital-earth?label=npm%20downloads&color=cb383f)](https://www.npmjs.com/package/@cveo/dsh-digital-earth)
@@ -44,7 +44,7 @@ dsh plugin --profile desktop add @cveo/dsh-digital-earth
 dsh plugin --profile web add @cveo/dsh-digital-earth
 
 # Install from a local tarball (Desktop example; change desktop to web for Web UI)
-dsh plugin --profile desktop add ./cveo-dsh-digital-earth-1.6.0.tgz
+dsh plugin --profile desktop add ./cveo-dsh-digital-earth-1.6.4.tgz
 ```
 
 1. Quit and reopen the DSH Desktop app completely, or restart the `dsh web` service (the client bundle registers at startup; a page refresh is not enough).

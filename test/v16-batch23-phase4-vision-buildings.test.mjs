@@ -227,7 +227,7 @@ test('AOI capture + requestSceneParse + host vision validation pass scope aoi cl
   }
   try {
     const selection = {
-      kind: 'lasso',
+      kind: 'polygon',
       area_m2: 900,
       positions: [
         Cesium.Cartesian3.fromDegrees(114.31, 30.51, 0), // (100, 100)
@@ -580,8 +580,8 @@ test('Phase 4 zh/en i18n keys exist symmetrically in MESSAGES', () => {
     'parse.scopeAoiNone',
     'parse.drawRect',
     'parse.drawRectActive',
-    'parse.drawLasso',
-    'parse.drawLassoActive',
+    'parse.drawPolygon',
+    'parse.drawPolygonActive',
     'parse.drawHint',
     'parse.aoiReadyLabel',
     'parse.aoiClear',
@@ -648,12 +648,12 @@ test('ParseBody Plan C: self-contained AOI draw buttons, target class filter pay
     // Clean initial state: no bogus "no usable objects" message before first run.
     assert.equal(textOf(renderer.tree()).includes('parse.empty'), false)
 
-    // Clicking AOI tab exposes built-in rect/lasso draw buttons directly inside ParseBody.
+    // Clicking AOI tab exposes built-in rect/polygon draw buttons directly inside ParseBody.
     const scopeBtns = findAll(renderer.tree(), (n) => hasClass(n, 'mv-parse-scope-btn'))
     assert.equal(scopeBtns[1].props.disabled, false)
     scopeBtns[1].props.onClick()
     const aoiText = textOf(renderer.tree())
-    assert.ok(aoiText.includes('parse.drawRect') && aoiText.includes('parse.drawLasso'))
+    assert.ok(aoiText.includes('parse.drawRect') && aoiText.includes('parse.drawPolygon'))
 
     // Switch back to current view, pick only 'building' target class, and verify classes payload.
     findAll(renderer.tree(), (n) => hasClass(n, 'mv-parse-scope-btn'))[0].props.onClick()
@@ -710,7 +710,7 @@ test('Alignment guards: camera lock + viewMatrix invariance + AOI containment + 
     // 2. AOI containment filter drops objects falling outside selection.ring
     const aoiViewer = makeFakeViewer()
     const selection = {
-      kind: 'lasso',
+      kind: 'polygon',
       area_m2: 1000,
       ring: [[114.31, 30.51], [114.32, 30.51], [114.32, 30.52], [114.31, 30.52], [114.31, 30.51]],
       positions: [
