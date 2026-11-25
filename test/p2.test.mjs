@@ -372,8 +372,9 @@ test('P2 SCENE_ACTIONS 注册 report 动作与 format/title/include_capture 参�
     'pick',
     'inspect',
     'report',
+    'frame',
   ])
-  assert.equal(actions.length, 12, '契约测试按 12 个 action 对齐')
+  assert.equal(actions.length, 13, '契约测试按 13 个 action 对齐')
 
   const sceneParameters = sourceSlice(sceneSource, 'const SCENE_PARAMETERS = {', 'const SCENE_DESCRIPTION')
   assert.ok(sceneParameters.includes("enum: ['html', 'markdown'],"))

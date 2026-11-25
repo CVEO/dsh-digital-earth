@@ -349,12 +349,12 @@ test('系统提示词：≤1600、六工具名齐全、shader 一句，且无 Da
   assert.doesNotMatch(prompt, /必须先|强制先/)
 })
 
-test('回归：earth_scene 12 action（含 report），earth_analyze 契约与注册未被 B3 改动', () => {
+test('回归：earth_scene 13 action（含 report/frame），earth_analyze 契约与注册未被 B3 改动', () => {
   const scene = block(sceneSource, 'const SCENE_ACTIONS = {', '\n}')
   const names = [...scene.matchAll(/^  ([a-z]+): \[/gm)].map((match) => match[1])
-  assert.equal(names.length, 12)
+  assert.equal(names.length, 13)
   assert.deepEqual(names, [
-    'status', 'list', 'load', 'remove', 'visible', 'basemap', 'terrain', 'fly', 'reset', 'pick', 'inspect', 'report',
+    'status', 'list', 'load', 'remove', 'visible', 'basemap', 'terrain', 'fly', 'reset', 'pick', 'inspect', 'report', 'frame',
   ])
   assert.doesNotMatch(scene, /authorize|skyline|shader/)
 

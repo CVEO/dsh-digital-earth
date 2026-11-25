@@ -15,6 +15,8 @@ import { folderName } from '../preferences.js'
 import { service } from '../runtime.js'
 import { normalizeSceneSnapshot, readSceneSnapshot, writeSceneSnapshot } from '../scene-store.js'
 import { createOverlayLayers } from '../scene/overlay-layers.js'
+import { createRasterFrameController } from '../scene/raster-frame-controller.js'
+import { resolveFrameSource, temporalSignature } from '../scene/raster-time.js'
 import { createLayerKindProbe } from '../scene/layer-kind.js'
 import { flyToBookmark } from '../scene/bookmarks.js'
 import { flyToCartographic, frameAllLayers } from '../scene/frame.js'
@@ -187,6 +189,8 @@ const h = React.createElement
       // of toasting on every automatic restore attempt.
       const [terrainError, setTerrainError] = React.useState('')
       const [imageryBusy, setImageryBusy] = React.useState(false)
+      const [rasterFrames, setRasterFrames] = React.useState({})
+      const rasterFramesRef = React.useRef({})
       const [meta, setMeta] = React.useState(null)
       const [bridgeOn, setBridgeOn] = React.useState(false)
       const [bridgeReload, setBridgeReload] = React.useState(false)
@@ -523,12 +527,14 @@ const h = React.createElement
       const terrainSeqRef = React.useRef(0)
       const imageryErrorUnsubRef = React.useRef(null)
 
-      async function applyImagery(id, notify) {
+      async function applyImagery(id, notify, frameIndex) {
         const Cesium = cesiumRef.current
         const viewer = viewerRef.current
         if (!Cesium || !viewer) return { ok: false, error: t('agent.notReady') }
         const config = sourcesRef.current
-        const source = config?.imagery.find((item) => item.id === id) ?? null
+        const rawSource = config?.imagery.find((item) => item.id === id) ?? null
+        const activeFrame = frameIndex !== undefined ? frameIndex : (rasterFramesRef.current[id] ?? 0)
+        const source = rawSource ? resolveFrameSource(rawSource, activeFrame) : null
         const seq = (imagerySeqRef.current += 1)
         setImageryBusy(true)
         try {
@@ -565,6 +571,7 @@ const h = React.createElement
           } else if (notify) {
             showToast(t('toast.basemapNone'))
           }
+          viewer.scene.requestRender?.()
           return { ok: true, source }
         } catch (error) {
           if (seq !== imagerySeqRef.current) return { ok: false, stale: true }
@@ -690,7 +697,11 @@ const h = React.createElement
         void run()
       }
 
-      const sameSourceSpec = (a, b) => a?.type === b?.type && a?.url === b?.url && (a?.layers ?? '') === (b?.layers ?? '')
+      const sameSourceSpec = (a, b) =>
+        a?.type === b?.type &&
+        a?.url === b?.url &&
+        (a?.layers ?? '') === (b?.layers ?? '') &&
+        temporalSignature(a) === temporalSignature(b)
 
       const saveSources = (draft) => {
         const current = sourcesRef.current
@@ -1056,6 +1067,9 @@ const h = React.createElement
             preset: entry.preset,
             params: { ...entry.params },
           })),
+          ...(Object.keys(rasterFrameController.snapshotFrames()).length > 0
+            ? { rasterFrames: rasterFrameController.snapshotFrames() }
+            : {}),
         }
       }
 
@@ -1074,6 +1088,20 @@ const h = React.createElement
           // Persistence must never take the panel down.
         }
       }
+
+      const rasterFrameController = createRasterFrameController({
+        getSources: () => sourcesRef.current,
+        getOverlayLayers: () => overlayLayersRef.current,
+        applyImagery,
+        getFrameMap: () => rasterFramesRef.current,
+        setFrameMap: (next) => {
+          rasterFramesRef.current = next
+          setRasterFrames(next)
+        },
+        markSceneDirty,
+        saveSceneSnapshot,
+        t,
+      })
 
       /**
        * A saved layer may point at a folder the host no longer serves, or a remote
@@ -1167,6 +1195,13 @@ const h = React.createElement
               await analyzeCommand(snapshot.analysis)
             } catch {
               // The saved analysis may no longer have usable height data.
+            }
+          }
+          if (snapshot.rasterFrames) {
+            try {
+              await rasterFrameController.restoreFrames(snapshot.rasterFrames)
+            } catch {
+              // Stale raster frame selections are best-effort.
             }
           }
           // F02: a compacted save tells the user what was omitted instead of silently losing data.
@@ -1675,6 +1710,7 @@ const h = React.createElement
         getSources: () => sourcesRef.current,
         getLayers: () => layersRef.current,
         getOverlayLayers: () => overlayLayersRef.current,
+        getRasterFrames: () => rasterFramesRef.current,
         getAgentOverlays: () => agentOverlayRef.current,
         getToolMode: () => toolRef.current,
         getFps: () => fps,
@@ -1730,6 +1766,7 @@ const h = React.createElement
         drawAgentOverlay,
         measureAgentOverlay,
         buildSceneReport,
+        setRasterFrame: rasterFrameController.commandFrame,
       })
       const runCommand = (action, args = {}, session = null) => commandBridge.runCommand(action, args, session)
       commandRef.current = runCommand
@@ -2564,6 +2601,10 @@ const h = React.createElement
             onOverlayOpacity: setOverlayOpacity,
             onOverlayVisible: setOverlayVisible,
             onOverlayMove: moveOverlay,
+            rasterFrames,
+            onSelectRasterFrame: (id, index) => {
+              void rasterFrameController.selectFrame(id, index)
+            },
             onImportVector: importVectorData,
             onPickLocalTiles: () => workbench.pickLocalTiles({ withMeta: true }),
             onOpenLocal: workbench.openLocal,

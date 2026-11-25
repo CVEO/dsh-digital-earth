@@ -128,6 +128,7 @@ export const MIN_MEASURE_POINTS = 2
 export const PANEL_ATTACH_GRACE_MS = 8000
 export const MAX_IMAGERY_SOURCES = 20
 export const MAX_TERRAIN_SOURCES = 10
+export const MAX_RASTER_FRAMES = 60
 export const IMAGERY_TYPES = new Set(['xyz', 'arcgis', 'wms'])
 export const TERRAIN_TYPES = new Set(['arcgis', 'cesium'])
 export const THEME_MODES = new Set(['auto', 'light', 'dark'])

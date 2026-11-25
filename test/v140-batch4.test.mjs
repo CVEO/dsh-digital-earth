@@ -402,7 +402,7 @@ test('B4 模型面回归：提示词 ≤1600 六工具名与完整 action 清单
   assert.ok(prompt.length >= 1400, `提示词过短：${prompt.length}`)
   for (const name of TOOL_NAMES) assert.ok(prompt.includes(name), `提示词缺少 ${name}`)
   assert.match(prompt, /Six tools drive it/)
-  assert.match(prompt, /earth_scene actions: status, list, load, remove, visible, basemap, terrain, fly, reset, pick, inspect, report\./)
+  assert.match(prompt, /earth_scene actions: status, list, load, remove, visible, basemap, terrain, fly, reset, pick, inspect, report, frame\./)
   assert.match(prompt, /earth_analyze runs one analysis at a time \(profile, flood, sunlight, clip or skyline\)/)
   assert.doesNotMatch(prompt, /authorize/i)
 

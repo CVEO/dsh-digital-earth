@@ -59,6 +59,8 @@ export function LayersPanel({
   onSwipeLayer,
   onOverlaySwipe,
   vectorExport,
+  rasterFrames,
+  onSelectRasterFrame,
 }) {
   // The 3D data tab is primary: the 3D Tiles the user loaded is why the panel is
   // open, while the map holds the supporting 2D sources.
@@ -185,6 +187,8 @@ export function LayersPanel({
           swipeState,
           onOverlaySwipe,
           vectorExport,
+          rasterFrames,
+          onSelectRasterFrame,
         })),
     h(ResizeHandle, {
       axis: 'height',

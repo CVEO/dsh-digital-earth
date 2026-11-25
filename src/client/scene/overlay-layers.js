@@ -16,6 +16,15 @@
  * capabilities), and two rapid settings saves must not interleave inserts/removes.
  */
 
+import {
+  clampFrameIndex,
+  describeRasterFrames,
+  parseTemporalDraft,
+  resolveFrameSource,
+  resolveSourceFrames,
+  temporalSignature,
+} from './raster-time.js'
+
 /** Overlay source types the inline "add overlay" form accepts. */
 export const OVERLAY_TYPES = ['wms', 'xyz', 'arcgis']
 
@@ -28,13 +37,28 @@ export function normalizeOverlayDraft(raw) {
   if (raw === null || typeof raw !== 'object') return null
   const type = typeof raw.type === 'string' && OVERLAY_TYPES.includes(raw.type) ? raw.type : null
   if (type === null) return null
-  const url = typeof raw.url === 'string' ? raw.url.trim() : ''
-  if (url === '') return null
   const layers = type === 'wms' ? (typeof raw.layers === 'string' ? raw.layers.trim() : '') : ''
   if (type === 'wms' && layers === '') return null
+  const timeMode = typeof raw.timeMode === 'string' ? raw.timeMode : 'none'
+  let url = typeof raw.url === 'string' ? raw.url.trim() : ''
+  let extra = {}
+  if (timeMode !== 'none') {
+    const parsed = parseTemporalDraft({
+      mode: timeMode,
+      type,
+      url,
+      timesText: raw.timesText,
+      framesText: raw.framesText,
+    })
+    if (!parsed.ok) return null
+    url = parsed.url ?? url
+    if (parsed.times) extra = { times: parsed.times }
+    if (parsed.frames) extra = { frames: parsed.frames }
+  }
+  if (url === '') return null
   const name = (typeof raw.name === 'string' ? raw.name.trim() : '') || '叠加图层'
   const opacity = Number.isFinite(Number(raw.opacity)) ? Math.min(1, Math.max(0, Number(raw.opacity))) : 1
-  return { name, type, url, ...(layers === '' ? {} : { layers }), opacity, visible: true }
+  return { name, type, url, ...(layers === '' ? {} : { layers }), ...extra, opacity, visible: true }
 }
 
 /**
@@ -53,8 +77,10 @@ export function createOverlayLayers({ Cesium, viewer, providerFactory, onError =
       : async () => {
           throw new Error('overlay provider factory is missing')
         }
-  /** id -> { id, source, layer } */
+  /** id -> { id, source, frames, frameIndex, layer } */
   const entries = new Map()
+  /** id -> latest frame-switch sequence number (coalesces rapid scrubbing) */
+  const frameSeqs = new Map()
   let chain = Promise.resolve()
 
   // The viewer can be destroyed while a queued mutation is still pending, so every
@@ -87,6 +113,7 @@ export function createOverlayLayers({ Cesium, viewer, providerFactory, onError =
   function removeNow(id) {
     const entry = entries.get(id)
     if (!entry) return false
+    frameSeqs.delete(id)
     destroyLayer(entry.layer)
     entries.delete(id)
     return true
@@ -94,7 +121,12 @@ export function createOverlayLayers({ Cesium, viewer, providerFactory, onError =
 
   /** True when the stored descriptor differs from what the layer was built from. */
   function needsRebuild(entry, source) {
-    return entry.source.type !== source.type || entry.source.url !== source.url || (entry.source.layers ?? '') !== (source.layers ?? '')
+    return (
+      entry.source.type !== source.type ||
+      entry.source.url !== source.url ||
+      (entry.source.layers ?? '') !== (source.layers ?? '') ||
+      temporalSignature(entry.source) !== temporalSignature(source)
+    )
   }
 
   function applyStyle(entry) {
@@ -103,13 +135,16 @@ export function createOverlayLayers({ Cesium, viewer, providerFactory, onError =
     entry.layer.show = entry.source.visible !== false
   }
 
-  async function addNow(source) {
+  async function addNow(source, initialFrameIndex = 0) {
     const layers = collection()
     if (!layers) return null
     if (entries.has(source.id)) removeNow(source.id)
+    const frames = resolveSourceFrames(source)
+    const frameIndex = clampFrameIndex(initialFrameIndex, frames)
+    const effectiveSource = resolveFrameSource(source, frameIndex)
     let provider
     try {
-      provider = await buildProvider(Cesium, source)
+      provider = await buildProvider(Cesium, effectiveSource)
     } catch (error) {
       onError(error, source)
       return null
@@ -118,6 +153,8 @@ export function createOverlayLayers({ Cesium, viewer, providerFactory, onError =
     const entry = {
       id: source.id,
       source: { ...source },
+      frames,
+      frameIndex,
       layer,
     }
     entries.set(source.id, entry)
@@ -127,8 +164,8 @@ export function createOverlayLayers({ Cesium, viewer, providerFactory, onError =
 
   return {
     /** Add (or replace) one overlay and return its entry, or null on failure. */
-    add(source) {
-      return enqueue(() => addNow(source))
+    add(source, initialFrameIndex = 0) {
+      return enqueue(() => addNow(source, initialFrameIndex))
     },
 
     /** Remove one overlay; returns true when it existed. */
@@ -164,12 +201,67 @@ export function createOverlayLayers({ Cesium, viewer, providerFactory, onError =
     },
 
     /**
+     * Switch a temporal overlay to another frame in place: preserves stack
+     * Z-order, alpha, visibility, and active swipe splitDirection, and never
+     * touches the camera or 3D scene. Rapid calls coalesce to the latest index.
+     */
+    setFrame(id, nextIndex) {
+      const seq = (frameSeqs.get(id) ?? 0) + 1
+      frameSeqs.set(id, seq)
+      return enqueue(async () => {
+        if (frameSeqs.get(id) !== seq) return { ok: false, stale: true }
+        const entry = entries.get(id)
+        if (!entry || entry.frames.length === 0) return { ok: false, reason: 'unavailable' }
+        const targetIndex = clampFrameIndex(nextIndex, entry.frames)
+        if (targetIndex === entry.frameIndex) {
+          return { ok: true, unchanged: true, frameIndex: targetIndex, frame: entry.frames[targetIndex] }
+        }
+        const effectiveSource = resolveFrameSource(entry.source, targetIndex)
+        let provider
+        try {
+          provider = await buildProvider(Cesium, effectiveSource)
+        } catch (error) {
+          if (frameSeqs.get(id) !== seq) return { ok: false, stale: true }
+          onError(error, entry.source)
+          return { ok: false, error: error instanceof Error ? error.message : String(error) }
+        }
+        if (frameSeqs.get(id) !== seq || entries.get(id) !== entry) {
+          return { ok: false, stale: true }
+        }
+        const layers = collection()
+        if (!layers) return { ok: false, reason: 'unavailable' }
+        const oldLayer = entry.layer
+        const oldIndex = typeof layers.indexOf === 'function' ? layers.indexOf(oldLayer) : -1
+        const nextLayer =
+          oldIndex >= 0 ? layers.addImageryProvider(provider, oldIndex) : layers.addImageryProvider(provider)
+        if (oldLayer && oldLayer.splitDirection !== undefined) {
+          nextLayer.splitDirection = oldLayer.splitDirection
+        }
+        entry.layer = nextLayer
+        entry.frameIndex = targetIndex
+        applyStyle(entry)
+        destroyLayer(oldLayer)
+        try {
+          viewer?.scene?.requestRender?.()
+        } catch {
+          /* viewer may be tearing down */
+        }
+        return { ok: true, frameIndex: targetIndex, frame: entry.frames[targetIndex] }
+      })
+    },
+
+    /** Current 0-based frame index for an overlay (0 for non-temporal or missing). */
+    getFrame(id) {
+      return entries.get(id)?.frameIndex ?? 0
+    },
+
+    /**
      * Reconcile the live stack with a catalog array: add new ids, drop removed
      * ones, rebuild changed sources and refresh opacity/visibility. This is the
      * one entry point the panel calls at mount and after a settings save, so the
      * stack can never drift from `sources.json`.
      */
-    sync(sources) {
+    sync(sources, frameMap = null) {
       return enqueue(async () => {
         const next = Array.isArray(sources) ? sources.filter((item) => item && typeof item.id === 'string') : []
         const wanted = new Set(next.map((item) => item.id))
@@ -181,14 +273,19 @@ export function createOverlayLayers({ Cesium, viewer, providerFactory, onError =
         }
         for (const source of next) {
           const existing = entries.get(source.id)
+          const mappedFrame =
+            frameMap && typeof frameMap === 'object' && Number.isInteger(frameMap[source.id])
+              ? frameMap[source.id]
+              : undefined
           if (!existing) {
-            if ((await addNow(source)) !== null) summary.added += 1
+            if ((await addNow(source, mappedFrame ?? 0)) !== null) summary.added += 1
             else summary.failed += 1
             continue
           }
           if (needsRebuild(existing, source)) {
+            const preservedIndex = mappedFrame ?? existing.frameIndex
             removeNow(source.id)
-            if ((await addNow(source)) !== null) summary.added += 1
+            if ((await addNow(source, preservedIndex)) !== null) summary.added += 1
             else summary.failed += 1
             continue
           }
@@ -227,14 +324,19 @@ export function createOverlayLayers({ Cesium, viewer, providerFactory, onError =
 
     /** Live stack in insert order (bottom-most overlay first). */
     list() {
-      return [...entries.values()].map((entry) => ({
-        id: entry.id,
-        name: entry.source.name,
-        type: entry.source.type,
-        url: entry.source.url,
-        opacity: entry.source.opacity,
-        visible: entry.source.visible !== false,
-      }))
+      return [...entries.values()].map((entry) => {
+        const temporal = describeRasterFrames(entry.source, entry.frameIndex)
+        const activeUrl = entry.frames.length > 0 ? entry.frames[entry.frameIndex]?.url ?? entry.source.url : entry.source.url
+        return {
+          id: entry.id,
+          name: entry.source.name,
+          type: entry.source.type,
+          url: activeUrl,
+          opacity: entry.source.opacity,
+          visible: entry.source.visible !== false,
+          ...(temporal ?? {}),
+        }
+      })
     },
 
     /** Number of live overlays. */
@@ -251,6 +353,7 @@ export function createOverlayLayers({ Cesium, viewer, providerFactory, onError =
     dispose() {
       return enqueue(() => {
         for (const id of [...entries.keys()]) removeNow(id)
+        frameSeqs.clear()
         chain = Promise.resolve()
       })
     },

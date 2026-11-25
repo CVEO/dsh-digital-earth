@@ -6,6 +6,7 @@
 import { promises as fs } from 'node:fs'
 import { IMAGERY_TYPES, MAX_IMAGERY_SOURCES, MAX_SOURCES_BODY, MAX_TERRAIN_SOURCES, SOURCES_FILE, TERRAIN_TYPES, THEME_MODES } from './constants.js'
 import { cleanId, cleanLevel, cleanText, cleanUrl } from './sanitize.js'
+import { normalizeTemporalImagery } from './raster-time.js'
 import { sendJson, sendText } from './http.js'
 import { writeJsonAtomic } from './fs-util.js'
 
@@ -86,8 +87,16 @@ function normalizeSource(kind, raw, index) {
   if (raw === null || typeof raw !== 'object') return null
   const type = cleanText(raw.type, 16).toLowerCase()
   if (!(kind === 'imagery' ? IMAGERY_TYPES : TERRAIN_TYPES).has(type)) return null
-  const url = cleanUrl(raw.url)
-  if (url === '') return null
+  let url = ''
+  let temporal = null
+  if (kind === 'imagery') {
+    temporal = normalizeTemporalImagery(raw, type)
+    if (!temporal.ok) return null
+    url = temporal.url
+  } else {
+    url = cleanUrl(raw.url)
+    if (url === '') return null
+  }
   const source = {
     id: cleanId(raw.id, `${kind}-${index + 1}`),
     name: cleanText(raw.name, 60) || `${kind} ${index + 1}`,
@@ -107,6 +116,8 @@ function normalizeSource(kind, raw, index) {
     if (subdomains.length > 0) source.subdomains = subdomains
     const layers = cleanText(raw.layers, 200)
     if (layers !== '') source.layers = layers
+    if (temporal.frames) source.frames = temporal.frames
+    if (temporal.times) source.times = temporal.times
   } else {
     if (raw.requestVertexNormals === true) source.requestVertexNormals = true
     if (raw.requestWaterMask === true) source.requestWaterMask = true
@@ -139,7 +150,8 @@ function normalizeRasterOverlays(raw) {
   if (!Array.isArray(raw)) return []
   const seen = new Set()
   const overlays = []
-  for (const [index, item] of raw.slice(0, MAX_RASTER_OVERLAYS).entries()) {
+  for (const [index, item] of raw.slice(0, MAX_RASTER_OVERLAYS * 4).entries()) {
+    if (overlays.length >= MAX_RASTER_OVERLAYS) break
     const source = normalizeSource('imagery', item, index)
     if (source === null) continue
     while (seen.has(source.id)) source.id = `${source.id}-${overlays.length + 1}`

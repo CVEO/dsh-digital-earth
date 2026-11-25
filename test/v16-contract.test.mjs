@@ -104,7 +104,7 @@ test('工具契约：仍是六个工具，scene 12 个 action，analyze 4 个，
   const sceneBlock = host.match(/const SCENE_ACTIONS = \{([\s\S]*?)\n\}/)
   assert.ok(sceneBlock, '找不到 SCENE_ACTIONS')
   const sceneActions = [...sceneBlock[1].matchAll(/^\s{2}([a-z]+):/gm)].map((match) => match[1])
-  assert.deepEqual(sceneActions, ['status', 'list', 'load', 'remove', 'visible', 'basemap', 'terrain', 'fly', 'reset', 'pick', 'inspect', 'report'])
+  assert.deepEqual(sceneActions, ['status', 'list', 'load', 'remove', 'visible', 'basemap', 'terrain', 'fly', 'reset', 'pick', 'inspect', 'report', 'frame'])
 
   assert.deepEqual([...ANALYZE_ACTIONS], ['profile', 'flood', 'sunlight', 'clip', 'skyline', 'clear'])
   assert.deepEqual([...SHADER_PRESETS], ['height-false-color', 'contour', 'scan', 'water', 'water-depth'])

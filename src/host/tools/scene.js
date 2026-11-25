@@ -4,7 +4,7 @@
  * v1.5 host split: implementation moved verbatim from the index.js monolith.
  */
 import { PANEL_CLOSED_MESSAGE, SESSION_FALLBACK_NOTE, asResultObject, resolveSessionTarget, sceneError, scrubToken } from '../session.js'
-import { LOAD_TIMEOUT_MS, REPORT_FORMATS, REPORT_TIMEOUT_MS, SCENE_TIMEOUT_MS } from '../constants.js'
+import { LOAD_TIMEOUT_MS, MAX_RASTER_FRAMES, REPORT_FORMATS, REPORT_TIMEOUT_MS, SCENE_TIMEOUT_MS } from '../constants.js'
 import { inspectSceneAction, renderInspectResult } from './scene-inspect.js'
 import { isHttpUrl, isPlainObject } from '../sanitize.js'
 
@@ -25,6 +25,7 @@ const SCENE_ACTIONS = {
   pick: [],
   inspect: ['layer', 'path', 'url', 'deep'],
   report: ['format', 'title', 'include_capture'],
+  frame: ['layer', 'frame', 'time'],
 }
 const SCENE_ACTION_NAMES = Object.keys(SCENE_ACTIONS)
 
@@ -46,7 +47,7 @@ const SCENE_PARAMETERS = {
     },
     layer: {
       type: 'string',
-      description: 'remove/visible: layer id from status.layers, or its exact name. inspect: analyze this loaded layer after the panel resolves its source; the panel must be open.',
+      description: 'remove/visible: layer id from status.layers, or its exact name. inspect: analyze this loaded layer after the panel resolves its source; the panel must be open. frame: raster overlay or imagery basemap id or exact name (optional when only one multi-frame raster layer exists).',
     },
     deep: {
       type: 'boolean',
@@ -83,6 +84,14 @@ const SCENE_PARAMETERS = {
       type: 'boolean',
       description: 'report: also capture the current view and embed/link it in the report. Default true.',
     },
+    frame: {
+      type: 'integer',
+      description: 'frame: 0-based frame index to switch a multi-frame raster layer to (alternative to time).',
+    },
+    time: {
+      type: 'string',
+      description: 'frame: target time string or exact frame label from status (alternative to frame).',
+    },
   },
   required: ['action'],
   additionalProperties: false,
@@ -104,6 +113,7 @@ const SCENE_DESCRIPTION = [
   '- pick: identify whatever is at the center of the view.',
   '- inspect: static data health check of a tileset without changing the scene. Pass layer (panel resolves its source, merges runtime counters), or path/url; deep checks content files. Returns a compact summary plus a host report path.',
   '- report: write a scene report (HTML self-contained or Markdown) with camera, layers, basemap/terrain, Agent overlays and measurements, the active analysis and shader presets, plus an embedded/linked screenshot; returns the absolute host path. Call present with that path for the user.',
+  '- frame: switch a multi-period raster overlay or imagery basemap to another frame by 0-based frame index or time/label without resetting the camera or 3D layers.',
   '',
   'The panel JSON result is the authoritative scene state.',
 ].join('\n')
@@ -129,7 +139,7 @@ function nullableSceneString(raw, key, action) {
 }
 
 /** Validate the model-facing arguments and build the command the browser executes. */
-function normalizeSceneRequest(raw) {
+export function normalizeSceneRequest(raw) {
   if (raw === null || typeof raw !== 'object' || Array.isArray(raw)) {
     throw sceneError('the arguments must be an object with an "action" field.')
   }
@@ -239,6 +249,26 @@ function normalizeSceneRequest(raw) {
       if (raw.include_capture !== undefined) {
         if (typeof raw.include_capture !== 'boolean') throw sceneError('report "include_capture" must be true or false.')
         args.include_capture = raw.include_capture
+      }
+      break
+    }
+    case 'frame': {
+      if (raw.layer !== undefined) args.layer = requireSceneString(raw, 'layer', action)
+      const hasFrame = raw.frame !== undefined
+      const hasTime = raw.time !== undefined
+      if (hasFrame && hasTime) throw sceneError('frame takes either "frame" or "time", not both.')
+      if (!hasFrame && !hasTime) {
+        throw sceneError('frame needs "frame" (0-based integer index) or "time" (time string or frame label).')
+      }
+      if (hasFrame) {
+        if (!Number.isInteger(raw.frame) || raw.frame < 0 || raw.frame >= MAX_RASTER_FRAMES) {
+          throw sceneError(`frame "frame" must be an integer between 0 and ${MAX_RASTER_FRAMES - 1}.`)
+        }
+        args.frame = raw.frame
+      } else {
+        const time = requireSceneString(raw, 'time', action)
+        if (time.length > 80) throw sceneError('frame "time" must be at most 80 characters.')
+        args.time = time
       }
       break
     }
