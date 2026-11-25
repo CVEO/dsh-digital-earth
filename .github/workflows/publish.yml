@@ -140,7 +140,13 @@ jobs:
 
       - name: Publish to npm
         if: steps.probe.outputs.published == 'false'
-        run: npm publish
+        # setup-node 传了 registry-url 后会注入占位的 NODE_AUTH_TOKEN=XXXXX-… 与临时 .npmrc，
+        # 会让 npm 误走经典 token 鉴权并跳过 OIDC（导致 scoped 包报 E404）。
+        # 清掉二者后，npm >= 11.5.1 才会真正执行 Trusted Publishing（OIDC）换取短期发布令牌。
+        run: |
+          unset NODE_AUTH_TOKEN NPM_CONFIG_USERCONFIG
+          npm --version
+          npm publish --provenance --access public
 
       - name: Skip notice
         if: steps.probe.outputs.published == 'true'
