@@ -40,6 +40,7 @@ export function createCommandBridge(deps) {
   const drawAgentOverlay = deps.drawAgentOverlay
   const measureAgentOverlay = deps.measureAgentOverlay
   const buildSceneReport = deps.buildSceneReport
+  const setRasterFrame = deps.setRasterFrame
 
       async function runCommand(action, args = {}, session = null) {
         const Cesium = cesiumRef.current
@@ -137,7 +138,23 @@ export function createCommandBridge(deps) {
         }
         if (action === 'list') {
           const status = await collectSceneStatus()
-          return { layers: status.layers, sources: status.sources, imagery: status.imagery, terrain: status.terrain }
+          return {
+            layers: status.layers,
+            sources: status.sources,
+            imagery: status.imagery,
+            terrain: status.terrain,
+            ...(Array.isArray(status.raster_overlays) && status.raster_overlays.length > 0
+              ? { raster_overlays: status.raster_overlays }
+              : {}),
+          }
+        }
+        if (action === 'frame') {
+          if (typeof setRasterFrame !== 'function') throw new Error(t('agent.notReady'))
+          return await setRasterFrame({
+            layer: typeof args.layer === 'string' ? args.layer.trim() : '',
+            frame: args.frame,
+            time: typeof args.time === 'string' ? args.time.trim() : '',
+          })
         }
         if (action === 'load') {
           const rawPath = typeof args.path === 'string' ? args.path.trim() : ''

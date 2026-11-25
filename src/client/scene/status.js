@@ -5,6 +5,8 @@
  * their names/semantics, new keys (render quality, raster_overlays) explain the
  * scene state the Agent reads. Refs arrive as getters, so no stale viewer is held.
  */
+import { describeRasterFrames, resolveSourceFrames } from './raster-time.js'
+
 export function createSceneStatus(deps) {
   const cesiumRef = { get current() { return deps.getCesium() } }
   const viewerRef = { get current() { return deps.getViewer() } }
@@ -13,6 +15,7 @@ export function createSceneStatus(deps) {
   const overlayLayersRef = { get current() { return deps.getOverlayLayers() } }
   const agentOverlayRef = { get current() { return deps.getAgentOverlays() } }
   const toolRef = { get current() { return deps.getToolMode() } }
+  const getRasterFrames = deps.getRasterFrames
   const t = deps.t
   const redactUrl = deps.redactUrl
   const normalizeQuality = deps.normalizeQuality
@@ -28,6 +31,8 @@ export function createSceneStatus(deps) {
         const imagery = config.imagery.find((item) => item.id === config.settings.imagery) ?? null
         const terrain = config.terrain.find((item) => item.id === config.settings.terrain) ?? null
         const round = (value) => Math.round(value * 1e6) / 1e6
+        const rasterFrames = getRasterFrames?.() ?? {}
+        const imageryTemporal = imagery ? describeRasterFrames(imagery, rasterFrames[imagery.id] ?? 0) : null
         return {
           ready: true,
           view: {
@@ -52,10 +57,13 @@ export function createSceneStatus(deps) {
               triangles: statistics.numberOfTrianglesSelected ?? 0,
             }
           }),
-          imagery: imagery ? { id: imagery.id, name: imagery.name } : null,
+          imagery: imagery ? { id: imagery.id, name: imagery.name, ...(imageryTemporal ?? {}) } : null,
           terrain: terrain ? { id: terrain.id, name: terrain.name } : null,
           sources: {
-            imagery: config.imagery.map((item) => ({ id: item.id, name: item.name })),
+            imagery: config.imagery.map((item) => {
+              const frames = resolveSourceFrames(item)
+              return frames.length > 0 ? { id: item.id, name: item.name, frame_count: frames.length } : { id: item.id, name: item.name }
+            }),
             terrain: config.terrain.map((item) => ({ id: item.id, name: item.name })),
           },
           viewport: { width: viewer.canvas.width, height: viewer.canvas.height },

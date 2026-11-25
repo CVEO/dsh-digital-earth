@@ -10,6 +10,7 @@ import { VISION_MESSAGES } from './messages-vision.js'
 import { SELECTION_MESSAGES } from './messages-selection.js'
 import { PARSE_MESSAGES } from './messages-parse.js'
 import { UI_MESSAGES } from './messages-ui.js'
+import { RASTER_TIME_MESSAGES } from './messages-raster-time.js'
 
 export const V18_MESSAGES = {
   zh: {
@@ -189,6 +190,7 @@ export const V18_MESSAGES = {
     'layers.layerFlattened2d': '图层已切换为 2D 地表轮廓',
     ...SELECTION_MESSAGES.zh,
     ...PARSE_MESSAGES.zh,
+    ...RASTER_TIME_MESSAGES.zh,
   },
   en: {
     ...VECTOR_MESSAGES.en,
@@ -367,5 +369,6 @@ export const V18_MESSAGES = {
     ...SELECTION_MESSAGES.en,
     ...PARSE_MESSAGES.en,
     ...UI_MESSAGES.en,
+    ...RASTER_TIME_MESSAGES.en,
   },
 }

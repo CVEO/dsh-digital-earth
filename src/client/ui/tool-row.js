@@ -107,6 +107,7 @@ const h = React.createElement
       pick: 'tool.action.pick',
       inspect: 'tool.action.inspect',
       report: 'tool.action.report',
+      frame: 'tool.action.frame',
     }
 
     /** Fixed summary keys for the tools that carry no `action` argument. */

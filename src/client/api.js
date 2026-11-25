@@ -139,10 +139,12 @@ import { clone } from './format.js'
       if (source.credit) options.credit = source.credit
       if (source.type === 'arcgis') return Cesium.ArcGisMapServerImageryProvider.fromUrl(source.url, options)
       if (source.type === 'wms') {
+        const parameters = { service: 'WMS', version: '1.1.1', transparent: true, format: 'image/png' }
+        if (typeof source.wmsTime === 'string' && source.wmsTime !== '') parameters.TIME = source.wmsTime
         return new Cesium.WebMapServiceImageryProvider({
           url: source.url,
           layers: source.layers ?? '',
-          parameters: { service: 'WMS', version: '1.1.1', transparent: true, format: 'image/png' },
+          parameters,
           ...options,
         })
       }

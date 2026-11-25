@@ -10,11 +10,13 @@
 import React from 'react'
 
 import { normalizeOverlayDraft } from '../scene/overlay-layers.js'
+import { hasRasterTimeline, parseTemporalDraft } from '../scene/raster-time.js'
 import { readVectorFiles } from '../scene/vector-file.js'
 import { vectorErrorText } from '../scene/vector-errors.js'
 import { VECTOR_COLORS } from '../scene/vector-style.js'
 import { EyeIcon } from './icons.js'
 import { IMAGERY_OPEN_KEY, readPanelFlag, writePanelFlag } from './panel-prefs.js'
+import { RasterTimeline } from './raster-timeline.js'
 
 const h = React.createElement
 
@@ -57,9 +59,20 @@ export function LayersMap({
   swipeState,
   onOverlaySwipe,
   vectorExport,
+  rasterFrames,
+  onSelectRasterFrame,
 }) {
   const [adding, setAdding] = React.useState(false)
-  const [draft, setDraft] = React.useState({ type: 'wms', name: '', url: '', layers: '', opacity: 0.7 })
+  const [draft, setDraft] = React.useState({
+    type: 'wms',
+    name: '',
+    url: '',
+    layers: '',
+    opacity: 0.7,
+    timeMode: 'none',
+    timesText: '',
+    framesText: '',
+  })
   const [error, setError] = React.useState('')
   const [vectorError, setVectorError] = React.useState('')
   const [imageryOpen, setImageryOpen] = React.useState(() => readPanelFlag(IMAGERY_OPEN_KEY, false))
@@ -67,6 +80,10 @@ export function LayersMap({
   const fileRef = React.useRef(null)
   const toggleOverlay = (id) => setExpandedOverlays((prev) => ({ ...prev, [id]: !prev[id] }))
   const overlays = Array.isArray(config?.rasterOverlays) ? config.rasterOverlays : []
+  const activeImagerySource =
+    settings?.imagery != null && Array.isArray(config?.imagery)
+      ? config.imagery.find((source) => source.id === settings.imagery) ?? null
+      : null
   const drawn = annotations?.drawn_features ?? 0
   const measured = annotations?.measured_points ?? 0
   const field = (label, input) => h('div', { className: 'mv-field' }, h('label', null, label), input)
@@ -86,16 +103,44 @@ export function LayersMap({
     })
   }
 
+  const draftErrorText = () => {
+    if (draft.timeMode !== 'none') {
+      const parsed = parseTemporalDraft({
+        mode: draft.timeMode,
+        type: draft.type,
+        url: draft.url,
+        timesText: draft.timesText,
+        framesText: draft.framesText,
+      })
+      if (!parsed.ok) {
+        if (parsed.code === 'too_many_frames') return t('rasterTime.errTooMany')
+        if (parsed.code === 'invalid_time') return t('rasterTime.errBadTime', { value: parsed.value ?? '' })
+        if (parsed.code === 'missing_time_placeholder') return t('rasterTime.errMissingPlaceholder')
+        if (parsed.code === 'invalid_frame_line' || parsed.code === 'empty_frames') return t('rasterTime.errBadFrameLine')
+      }
+    }
+    return t('layers.overlayInvalid')
+  }
+
   const submitDraft = () => {
     const next = normalizeOverlayDraft(draft)
     if (next === null) {
-      setError(t('layers.overlayInvalid'))
+      setError(draftErrorText())
       return
     }
     onOverlayAdd(next)
     setAdding(false)
     setError('')
-    setDraft({ type: 'wms', name: '', url: '', layers: '', opacity: 0.7 })
+    setDraft({
+      type: 'wms',
+      name: '',
+      url: '',
+      layers: '',
+      opacity: 0.7,
+      timeMode: 'none',
+      timesText: '',
+      framesText: '',
+    })
   }
 
   return h(
@@ -363,6 +408,47 @@ export function LayersMap({
               onChange: (event) => setDraft((current) => ({ ...current, opacity: Number(event.target.value) / 100 })),
             }),
           ),
+          field(
+            t('rasterTime.modeLabel'),
+            h(
+              'select',
+              {
+                value: draft.timeMode,
+                onChange: (event) => {
+                  setDraft((current) => ({ ...current, timeMode: event.target.value }))
+                  setError('')
+                },
+              },
+              h('option', { value: 'none' }, t('rasterTime.modeNone')),
+              h('option', { value: 'times' }, t('rasterTime.modeTimes')),
+              h('option', { value: 'frames' }, t('rasterTime.modeFrames')),
+            ),
+          ),
+          draft.timeMode === 'times'
+            ? h(
+                React.Fragment,
+                null,
+                field(
+                  t('rasterTime.timesLabel'),
+                  h('textarea', {
+                    value: draft.timesText,
+                    placeholder: t('rasterTime.timesPlaceholder'),
+                    onChange: (event) => setDraft((current) => ({ ...current, timesText: event.target.value })),
+                  }),
+                ),
+                h('p', { className: 'mv-note' }, t('rasterTime.timesHint')),
+              )
+            : null,
+          draft.timeMode === 'frames'
+            ? field(
+                t('rasterTime.framesLabel'),
+                h('textarea', {
+                  value: draft.framesText,
+                  placeholder: t('rasterTime.framesPlaceholder'),
+                  onChange: (event) => setDraft((current) => ({ ...current, framesText: event.target.value })),
+                }),
+              )
+            : null,
           error ? h('p', { className: 'mv-note' }, error) : null,
           h('button', { type: 'button', className: 'mv-cta primary', onClick: submitDraft }, t('layers.overlayAdd')),
         )
@@ -372,47 +458,60 @@ export function LayersMap({
       : overlays.map((overlay, index) =>
           h(
             'div',
-            { key: overlay.id, className: `mv-layer mv-overlay-row${overlay.visible === false ? ' off' : ''}` },
-            h('span', { className: 'name', title: overlay.url }, overlay.name),
-            h('input', {
-              className: 'mv-opacity',
-              type: 'range',
-              min: 0,
-              max: 100,
-              title: t('layers.overlayOpacity'),
-              'aria-label': t('layers.overlayOpacity'),
-              value: Math.round((overlay.opacity ?? 1) * 100),
-              onChange: (event) => onOverlayOpacity(overlay.id, Number(event.target.value) / 100),
-            }),
+            { key: overlay.id, className: 'mv-overlay-item' },
             h(
-              'button',
-              {
-                type: 'button',
-                className: `mv-icon-btn${overlay.visible === false ? ' on' : ''}`,
-                title: overlay.visible === false ? t('btn.visible') : t('btn.hidden'),
-                'aria-label': overlay.visible === false ? t('btn.visible') : t('btn.hidden'),
-                onClick: () => onOverlayVisible(overlay.id, overlay.visible === false),
-              },
-              h(EyeIcon, { size: 15, off: overlay.visible === false }),
+              'div',
+              { className: `mv-layer mv-overlay-row${overlay.visible === false ? ' off' : ''}` },
+              h('span', { className: 'name', title: overlay.url }, overlay.name),
+              h('input', {
+                className: 'mv-opacity',
+                type: 'range',
+                min: 0,
+                max: 100,
+                title: t('layers.overlayOpacity'),
+                'aria-label': t('layers.overlayOpacity'),
+                value: Math.round((overlay.opacity ?? 1) * 100),
+                onChange: (event) => onOverlayOpacity(overlay.id, Number(event.target.value) / 100),
+              }),
+              h(
+                'button',
+                {
+                  type: 'button',
+                  className: `mv-icon-btn${overlay.visible === false ? ' on' : ''}`,
+                  title: overlay.visible === false ? t('btn.visible') : t('btn.hidden'),
+                  'aria-label': overlay.visible === false ? t('btn.visible') : t('btn.hidden'),
+                  onClick: () => onOverlayVisible(overlay.id, overlay.visible === false),
+                },
+                h(EyeIcon, { size: 15, off: overlay.visible === false }),
+              ),
+              onOverlaySwipe
+                ? h(
+                    'button',
+                    {
+                      type: 'button',
+                      className: `mv-icon-btn${swipeState?.kind === 'raster' && swipeState?.id === overlay.id ? ' on' : ''}`,
+                      disabled: overlay.visible === false,
+                      title: t('swipe.toggle'),
+                      'aria-label': t('swipe.toggle'),
+                      'aria-pressed': Boolean(swipeState?.kind === 'raster' && swipeState?.id === overlay.id),
+                      onClick: () => onOverlaySwipe(overlay.id),
+                    },
+                    '◧',
+                  )
+                : null,
+              h('button', { type: 'button', className: 'mv-icon-btn', title: t('layers.overlayDown'), 'aria-label': t('layers.overlayDown'), disabled: index === 0, onClick: () => onOverlayMove(overlay.id, -1) }, '↑'),
+              h('button', { type: 'button', className: 'mv-icon-btn', title: t('layers.overlayUp'), 'aria-label': t('layers.overlayUp'), disabled: index === overlays.length - 1, onClick: () => onOverlayMove(overlay.id, 1) }, '↓'),
+              h('button', { type: 'button', className: 'mv-icon-btn', title: t('layers.overlayRemove'), 'aria-label': t('layers.overlayRemove'), onClick: () => onOverlayRemove(overlay.id) }, '✕'),
             ),
-            onOverlaySwipe
-              ? h(
-                  'button',
-                  {
-                    type: 'button',
-                    className: `mv-icon-btn${swipeState?.kind === 'raster' && swipeState?.id === overlay.id ? ' on' : ''}`,
-                    disabled: overlay.visible === false,
-                    title: t('swipe.toggle'),
-                    'aria-label': t('swipe.toggle'),
-                    'aria-pressed': Boolean(swipeState?.kind === 'raster' && swipeState?.id === overlay.id),
-                    onClick: () => onOverlaySwipe(overlay.id),
-                  },
-                  '◧',
-                )
+            hasRasterTimeline(overlay)
+              ? h(RasterTimeline, {
+                  t,
+                  source: overlay,
+                  frameIndex: rasterFrames?.[overlay.id] ?? 0,
+                  disabled: overlay.visible === false,
+                  onSelectFrame: onSelectRasterFrame,
+                })
               : null,
-            h('button', { type: 'button', className: 'mv-icon-btn', title: t('layers.overlayDown'), 'aria-label': t('layers.overlayDown'), disabled: index === 0, onClick: () => onOverlayMove(overlay.id, -1) }, '↑'),
-            h('button', { type: 'button', className: 'mv-icon-btn', title: t('layers.overlayUp'), 'aria-label': t('layers.overlayUp'), disabled: index === overlays.length - 1, onClick: () => onOverlayMove(overlay.id, 1) }, '↓'),
-            h('button', { type: 'button', className: 'mv-icon-btn', title: t('layers.overlayRemove'), 'aria-label': t('layers.overlayRemove'), onClick: () => onOverlayRemove(overlay.id) }, '✕'),
           ),
         ),
     // ---- L4 imagery basemap (folded box: one source is normally in use) --------
@@ -456,6 +555,15 @@ export function LayersMap({
           ),
         ),
       ),
+      activeImagerySource && hasRasterTimeline(activeImagerySource)
+        ? h(RasterTimeline, {
+            key: `basemap-rtime-${activeImagerySource.id}`,
+            t,
+            source: activeImagerySource,
+            frameIndex: rasterFrames?.[activeImagerySource.id] ?? 0,
+            onSelectFrame: onSelectRasterFrame,
+          })
+        : null,
       imageryOpen
         ? h(
             'div',

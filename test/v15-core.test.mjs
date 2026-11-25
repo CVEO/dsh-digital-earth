@@ -132,6 +132,7 @@ test('v2 工具面冻结：六个工具，earth_scene 十二个 action，分析�
     'pick',
     'inspect',
     'report',
+    'frame',
   ])
   const analyzeActions = host.match(/ANALYZE_ACTIONS = \[([^\]]*)\]/)
   assert.ok(analyzeActions, '找不到 ANALYZE_ACTIONS')

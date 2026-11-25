@@ -189,9 +189,10 @@ export function createSwipeSession({ getCesium, getViewer, getLayers, getOverlay
         /* tileset may already be destroyed */
       }
     } else if (current.kind === 'raster') {
-      if (current.imageryLayer) {
+      const targetLayer = getOverlayLayers?.()?.getLayer?.(current.id) ?? current.imageryLayer
+      if (targetLayer) {
         try {
-          current.imageryLayer.splitDirection = current.previousSplitDirection ?? (Cesium?.SplitDirection?.NONE ?? 0)
+          targetLayer.splitDirection = current.previousSplitDirection ?? (Cesium?.SplitDirection?.NONE ?? 0)
         } catch {
           /* ignore */
         }

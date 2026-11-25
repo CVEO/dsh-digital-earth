@@ -403,7 +403,7 @@ test('系统提示词：≤1600 字符、六工具名、analyze 一句，且不�
   assert.match(prompt, /Six tools drive it/)
   // The action lists must match the shipped contract: report is a real earth_scene
   // action and skyline/clip are real earth_analyze actions (D-16).
-  assert.match(prompt, /earth_scene actions: status, list, load, remove, visible, basemap, terrain, fly, reset, pick, inspect, report\./)
+  assert.match(prompt, /earth_scene actions: status, list, load, remove, visible, basemap, terrain, fly, reset, pick, inspect, report, frame\./)
   assert.match(prompt, /earth_analyze runs one analysis at a time \(profile, flood, sunlight, clip or skyline\); clear removes it; it needs loaded height data and reports its height source plus warnings./)
   // B1 语义保留。
   assert.match(prompt, /pass the absolute path directly to earth_scene load\/inspect/)
@@ -419,12 +419,12 @@ test('系统提示词：≤1600 字符、六工具名、analyze 一句，且不�
   assert.doesNotMatch(prompt, /必须先|强制先/)
 })
 
-test('earth_scene 契约：12 个 action（含 report），模型面不出现 authorize/skyline', () => {
+test('earth_scene 契约：13 个 action（含 report/frame），模型面不出现 authorize/skyline', () => {
   const scene = block(sceneSource, 'const SCENE_ACTIONS = {', '\n}')
   const names = [...scene.matchAll(/^  ([a-z]+): \[/gm)].map((match) => match[1])
-  assert.equal(names.length, 12)
+  assert.equal(names.length, 13)
   assert.deepEqual(names, [
-    'status', 'list', 'load', 'remove', 'visible', 'basemap', 'terrain', 'fly', 'reset', 'pick', 'inspect', 'report',
+    'status', 'list', 'load', 'remove', 'visible', 'basemap', 'terrain', 'fly', 'reset', 'pick', 'inspect', 'report', 'frame',
   ])
   assert.doesNotMatch(scene, /authorize|skyline/)
   assert.match(host, /const SCENE_ACTION_NAMES = Object\.keys\(SCENE_ACTIONS\)/)

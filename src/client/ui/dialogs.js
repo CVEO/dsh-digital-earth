@@ -11,6 +11,13 @@ import { readAutoOpen, writeAutoOpen } from '../preferences.js'
 
 const h = React.createElement
 
+const sourceFrameCount = (source) =>
+  Array.isArray(source?.frames) && source.frames.length > 0
+    ? source.frames.length
+    : Array.isArray(source?.times) && source.times.length > 0
+      ? source.times.length
+      : 0
+
     //#region sources dialog ---------------------------------------------------
 
     const SOURCE_TYPES = {
@@ -222,7 +229,12 @@ const h = React.createElement
         )
       const save = () => {
         for (const kind of ['imagery', 'terrain']) {
-          if (draft[kind].some((source) => source.name.trim() === '' || source.url.trim() === '')) {
+          if (
+            draft[kind].some((source) => {
+              const hasFrames = kind === 'imagery' && sourceFrameCount(source) > 0
+              return source.name.trim() === '' || (!hasFrames && source.url.trim() === '')
+            })
+          ) {
             window.alert(t('settings.required'))
             return
           }
@@ -271,6 +283,9 @@ const h = React.createElement
                   h('span', null, source.url),
                 ),
                 h('span', { className: 'badge' }, t(SOURCE_TYPE_KEY[source.type] ?? source.type)),
+                kind === 'imagery' && sourceFrameCount(source) >= 2
+                  ? h('span', { className: 'badge' }, t('rasterTime.frameCount', { n: sourceFrameCount(source) }))
+                  : null,
                 h(
                   'button',
                   {

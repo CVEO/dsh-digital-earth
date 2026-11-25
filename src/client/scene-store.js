@@ -83,6 +83,34 @@
       return total > 0 ? compacted : null
     }
 
+    /**
+     * Normalize persisted temporal frame selections (`{ [sourceId]: { frame, time? } }`).
+     * Accepts either a plain non-negative integer or `{ frame, time? }`, and drops
+     * invalid keys/values so older or hand-edited snapshots stay readable.
+     */
+    const normalizeSnapshotRasterFrames = (raw) => {
+      if (raw === null || typeof raw !== 'object' || Array.isArray(raw)) return {}
+      const out = {}
+      let count = 0
+      for (const [id, entry] of Object.entries(raw)) {
+        if (count >= 32) break
+        if (typeof id !== 'string' || id.trim() === '' || id.length > 80) continue
+        if (Number.isInteger(entry) && entry >= 0 && entry < 60) {
+          out[id] = { frame: entry }
+          count += 1
+          continue
+        }
+        if (entry !== null && typeof entry === 'object' && !Array.isArray(entry)) {
+          const frame = entry.frame
+          if (!Number.isInteger(frame) || frame < 0 || frame >= 60) continue
+          const time = typeof entry.time === 'string' && entry.time.trim() !== '' ? entry.time.trim().slice(0, 40) : ''
+          out[id] = time !== '' ? { frame, time } : { frame }
+          count += 1
+        }
+      }
+      return out
+    }
+
     /** Normalize one stored snapshot body (localStorage or the host route). */
     function normalizeSceneSnapshot(snapshot) {
       if (snapshot === null || typeof snapshot !== 'object' || snapshot.v !== SCENE_STORE_VERSION) return null
@@ -105,9 +133,11 @@
           }))
         : []
       const compaction = normalizeSnapshotCompaction(snapshot.compacted)
+      const rasterFrames = normalizeSnapshotRasterFrames(snapshot.rasterFrames)
       return {
         ...(typeof snapshot.savedAt === 'string' && snapshot.savedAt !== '' ? { savedAt: snapshot.savedAt } : {}),
         ...(compaction !== null ? { compacted: compaction } : {}),
+        ...(Object.keys(rasterFrames).length > 0 ? { rasterFrames } : {}),
         view: isSnapshotView(snapshot.view) ? snapshot.view : null,
         layers,
         annotations: { draw, measure },
