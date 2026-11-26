@@ -16,6 +16,7 @@ import { ToolWindow } from './tool-window.js'
 import { ToolBody } from './tool-windows.js'
 import { toolEntry } from './tool-catalog.js'
 import { PanelRail } from './panel-rail.js'
+import { ReportPreview } from './report-preview.js'
 import {
   panelReducer,
   readPanelState,
@@ -38,6 +39,8 @@ export function RightStack({
   t,
   analysis,
   onCloseAnalysis,
+  reportPreview = null,
+  onCloseReport,
   analysisHover,
   onAnalysisHover,
   layersPanel,
@@ -100,6 +103,13 @@ export function RightStack({
     else if (!key) dispatch({ type: 'objectCleared' })
     prevObjectRef.current = key
   }, [objectPanel?.key, busy, lockedByTool])
+
+  const prevReportRef = React.useRef(null)
+  React.useEffect(() => {
+    const key = reportPreview?.key
+    if (key && key !== prevReportRef.current) dispatch({ type: 'activate', tabId: 'result' })
+    prevReportRef.current = key
+  }, [reportPreview?.key, dispatch])
 
   // Toolbar domain buttons: focus the destination, or toggle the rail closed when
   // it is already the active destination. No panel is closed by a toolbar click.
@@ -177,7 +187,12 @@ export function RightStack({
           }),
     })
   }
-  if (hasResult) {
+  if (reportPreview?.html) {
+    panels.push({
+      id: 'result',
+      node: h(ReportPreview, { key: 'report-preview', t, report: reportPreview, onClose: onCloseReport }),
+    })
+  } else if (hasResult) {
     panels.push({
       id: 'result',
       node: h(AnalysisCard, {

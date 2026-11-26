@@ -389,7 +389,7 @@ test('点选接线：工具卡点选/天际线入口，工具栏「工具」直�
   assert.doesNotMatch(client, /menu\(\s*'measure'/)
 })
 
-test('套索：自由手绘路径抽稀+上限，松开后生成多边形选区', () => {
+test('多边形：逐点单击生成选区，样例抽稀函数仍可复用', () => {
   const dense = Array.from({ length: 40 }, (_, index) => ({ x: index * 5, y: Math.sin(index / 4) * 40 + 200 }))
   const thinned = sampleLassoPath(dense, { minSpacing: 8, maxPoints: 120 })
   assert.ok(thinned.length < dense.length, '路径必须抽稀')
@@ -402,21 +402,21 @@ test('套索：自由手绘路径抽稀+上限，松开后生成多边形选区'
   const Cesium = makeCesium()
   const viewer = makeViewer(Cesium)
   const { tool, events } = makeTool(viewer, Cesium)
-  tool.start('lasso')
-  fire(viewer, Cesium, Cesium.ScreenSpaceEventType.LEFT_DOWN, { position: { x: 100, y: 100 } })
-  for (const [x, y] of [[150, 100], [200, 150], [200, 250], [150, 300], [100, 300]]) {
-    fire(viewer, Cesium, Cesium.ScreenSpaceEventType.MOUSE_MOVE, { endPosition: { x, y } })
+  tool.start('polygon')
+  for (const [x, y] of [[100, 100], [200, 100], [200, 250], [150, 300]]) {
+    fire(viewer, Cesium, Cesium.ScreenSpaceEventType.LEFT_CLICK, { position: { x, y } })
   }
-  fire(viewer, Cesium, Cesium.ScreenSpaceEventType.LEFT_UP, { position: { x: 100, y: 300 } })
+  fire(viewer, Cesium, Cesium.ScreenSpaceEventType.MOUSE_MOVE, { endPosition: { x: 100, y: 300 } })
+  fire(viewer, Cesium, Cesium.ScreenSpaceEventType.LEFT_DOUBLE_CLICK, { position: { x: 100, y: 300 } })
   assert.equal(events.commits.length, 1)
   const selection = events.commits[0]
-  assert.equal(selection.kind, 'lasso')
+  assert.equal(selection.kind, 'polygon')
   assert.ok(selection.area_m2 > 0)
   assert.equal(isSelectionActive(viewer), false)
   assert.equal(viewer._controller.enableRotate, true)
   const geojson = tool.exportGeoJSON()
   assert.equal(geojson.features[0].geometry.type, 'Polygon')
-  assert.equal(geojson.features[0].properties.shape, 'lasso')
+  assert.equal(geojson.features[0].properties.shape, 'polygon')
   tool.clear()
 })
 

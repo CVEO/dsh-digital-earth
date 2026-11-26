@@ -221,8 +221,8 @@ export function SelectionTool({ t, getCesium, getViewer, showToast, runAnalysis,
       ),
       h(
         'button',
-        { type: 'button', className: `mv-cta${activeMode === 'lasso' ? ' primary' : ''}`, 'aria-pressed': activeMode === 'lasso', onClick: () => start('lasso') },
-        t(activeMode === 'lasso' ? 'selection.lassoActive' : 'selection.lasso'),
+        { type: 'button', className: `mv-cta${activeMode === 'polygon' ? ' primary' : ''}`, 'aria-pressed': activeMode === 'polygon', onClick: () => start('polygon') },
+        t(activeMode === 'polygon' ? 'selection.polygonActive' : 'selection.polygon'),
       ),
       h(
         'button',
@@ -241,8 +241,8 @@ export function SelectionTool({ t, getCesium, getViewer, showToast, runAnalysis,
       t(
         activeMode === 'point'
           ? 'selection.pointHint'
-          : activeMode === 'lasso'
-            ? 'selection.lassoHint'
+          : activeMode === 'polygon'
+            ? 'selection.polygonHint'
             : activeMode === 'objects'
               ? 'selection.objectsHint'
               : activeMode === 'rect'

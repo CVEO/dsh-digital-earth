@@ -183,7 +183,8 @@ const h = React.createElement
       } else if (kind === 'select') {
         shapes = [
           h('path', { key: 'frame', d: 'M4 8V4h4M20 8V4h-4M4 16v4h4M20 16v4h-4', ...stroke }),
-          h('path', { key: 'lasso', d: 'M8 12a4 4 0 1 0 8 0 4 4 0 1 0-8 0', ...stroke }),
+          h('path', { key: 'polygon', d: 'M7 5.5l7-1.5 4 6-4 7-7-2-2-6z', ...stroke }),
+          h('circle', { key: 'vertex', cx: '7', cy: '5.5', r: '1.2', fill: 'currentColor', stroke: 'none' }),
         ]
       } else if (kind === 'parse') {
         shapes = [

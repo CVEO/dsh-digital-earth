@@ -227,7 +227,7 @@ export async function callVisionBatch(model, input, signal) {
   return parseVisionBatchOutput([...blocks.values()].join(''))
 }
 
-export function createVisionBatchHandler(ctx, { timeoutMs = 30000, getService } = {}) {
+export function createVisionBatchHandler(ctx, { timeoutMs = 90000, getService } = {}) {
   let pending = 0
   return async function visionBatchHandler(req, res) {
     if (!['GET', 'POST'].includes(req.method)) return sendText(res, 405, 'method not allowed')
@@ -280,7 +280,7 @@ export function createVisionBatchHandler(ctx, { timeoutMs = 30000, getService } 
   }
 }
 
-export function createVisionHandler(ctx, { timeoutMs = 20000, getService } = {}) {
+export function createVisionHandler(ctx, { timeoutMs = 60000, getService } = {}) {
   let pending = 0
   return async function visionHandler(req, res) {
     if (!['GET', 'POST'].includes(req.method)) return sendText(res, 405, 'method not allowed')

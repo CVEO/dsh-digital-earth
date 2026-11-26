@@ -184,6 +184,7 @@ const TOOL_WINDOW_OF_MODE = {
       const [shaderOpen, setShaderOpen] = React.useState(false)
       const [showTools, setShowTools] = React.useState(true)
       const [activePanelTab, setActivePanelTab] = React.useState('layers')
+      const [reportPreview, setReportPreview] = React.useState(null)
       // v1.6.2 Batch D: 图层/工具 toolbar entries focus a dock tab instead of
       // toggling an independently stacked card. The dock decides whether this
       // request activates a tab or closes the already-active panel.
@@ -547,7 +548,13 @@ const TOOL_WINDOW_OF_MODE = {
       /** Data-menu entry: the same scene report the toolbar menu used to inline. */
       async function openSceneReport() {
         try {
-          const value = await runCommand('report', { format: 'html' })
+          const value = await runCommand('report', { format: 'html', preview: true })
+          if (typeof value.html === 'string' && value.html !== '') {
+            setReportPreview({ key: Date.now(), html: value.html, title: value.title ?? '', path: value.path ?? '' })
+            setActivePanelTab('result')
+            showToast(t('toast.reportOpened'))
+            return
+          }
           showToast(t('toast.reportSaved', { path: value.path }))
         } catch (error) {
           showToast(t('toast.reportFailed', { message: message(error) }))
@@ -2551,6 +2558,8 @@ const TOOL_WINDOW_OF_MODE = {
           onToggleMinimizeTool: workspace.toggleMinimize,
           onToggleExpandTool: workspace.toggleExpand,
           analysis,
+          reportPreview,
+          onCloseReport: () => setReportPreview(null),
           analysisHover: profileHover,
           onAnalysisHover: (index) => {
             setProfileHover(index)
@@ -2665,6 +2674,7 @@ const TOOL_WINDOW_OF_MODE = {
             onStartAnnotation: annotationTool.start,
             onAdoptParse: annotations.adoptCollection,
             onClearAnalysis: () => clearAnalysis(),
+            onOpenEffect: () => setShaderOpen(true),
             onOpenShader: () => setShaderOpen(true),
             onResetAllShaders: workbench.resetAll,
             getCesium: () => cesiumRef.current,

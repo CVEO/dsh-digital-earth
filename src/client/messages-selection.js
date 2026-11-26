@@ -58,7 +58,7 @@ export const SELECTION_MESSAGES = {
     'selection.groundSource.none': '基线未知',
     'selection.featureId': '要素 #{id}',
     'selection.neighborBand': '邻域高程 {min}–{max} m（高差 {spread} m）',
-    'selection.hint': '选择点、矩形或套索范围；完成后可对该范围提问、执行量测，或导出有效选区。',
+    'selection.hint': '选择点、矩形或多边形范围；完成后可对该范围提问、执行量测，或导出有效选区。',
     'selection.dragHint': '拖框圈定画面范围，松开后直接提问。坐标来自可见表面采样；精确轮廓请使用已有矢量数据。',
   },
   en: {
@@ -120,7 +120,7 @@ export const SELECTION_MESSAGES = {
     'selection.groundSource.none': 'No baseline',
     'selection.featureId': 'Feature #{id}',
     'selection.neighborBand': 'Neighbourhood {min}–{max} m (spread {spread} m)',
-    'selection.hint': 'Select a point, rectangle or lasso region; then ask about it, measure it, or export the valid selection.',
+    'selection.hint': 'Select a point, rectangle or polygon region; then ask about it, measure it, or export the valid selection.',
     'selection.dragHint': 'Drag a screen region and release to ask about it. Coordinates sample visible surfaces; use existing vector data for exact outlines.',
   },
 }

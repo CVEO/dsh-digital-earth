@@ -216,7 +216,7 @@ export function circleAroundPoint(center, radiusM, steps = 16) {
 }
 
 /**
- * Thin a freehand lasso path: keep points at least `minSpacing` screen pixels
+ * Thin a freehand path: keep points at least `minSpacing` screen pixels
  * apart (plus the last point) and cap the count so picking stays bounded.
  */
 export function sampleLassoPath(points, { minSpacing = 4, maxPoints = 120 } = {}) {

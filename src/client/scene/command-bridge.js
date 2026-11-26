@@ -319,6 +319,7 @@ export function createCommandBridge(deps) {
             title: report.title,
             sections: report.sections,
             failed: report.failed,
+            ...(args.preview === true && report.format === 'html' ? { html: report.content } : {}),
           }
         }
         throw new Error(t('agent.badAction', { action: String(action) }))

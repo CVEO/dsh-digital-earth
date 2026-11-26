@@ -1,7 +1,7 @@
 /**
  * ui/parse-review.js — F6 scene parsing panel body (Plan C self-contained).
  *
- * Self-contained workflow: draw a ground AOI (rect/lasso) or use the current
+ * Self-contained workflow: draw a ground AOI (rect/polygon) or use the current
  * view, pick target classes (building/road/vegetation/water/vehicle), run the
  * vision parser with actionable diagnostics (including sent-frame preview when
  * objects fail projection), then review, toggle 3D extrusion, and adopt.
@@ -372,7 +372,7 @@ export function ParseBody({ t, getCesium, getViewer, getLayers, showToast, onAdo
               'span',
               { className: 'mv-parse-aoi-bar-actions' },
               h('button', { type: 'button', className: 'mv-parse-mini-btn', disabled: bus, onClick: () => startDrawAoi('rect') }, t('parse.drawRect')),
-              h('button', { type: 'button', className: 'mv-parse-mini-btn', disabled: bus, onClick: () => startDrawAoi('lasso') }, t('parse.drawLasso')),
+              h('button', { type: 'button', className: 'mv-parse-mini-btn', disabled: bus, onClick: () => startDrawAoi('polygon') }, t('parse.drawPolygon')),
               h('button', { type: 'button', className: 'mv-parse-mini-btn', disabled: bus, onClick: clearAoi }, t('parse.aoiClear')),
             ),
           )
@@ -389,8 +389,8 @@ export function ParseBody({ t, getCesium, getViewer, getLayers, showToast, onAdo
               ),
               h(
                 'button',
-                { type: 'button', className: `mv-cta${drawMode === 'lasso' ? ' primary' : ''}`, 'aria-pressed': drawMode === 'lasso', disabled: bus, onClick: () => startDrawAoi('lasso') },
-                t(drawMode === 'lasso' ? 'parse.drawLassoActive' : 'parse.drawLasso'),
+                { type: 'button', className: `mv-cta${drawMode === 'polygon' ? ' primary' : ''}`, 'aria-pressed': drawMode === 'polygon', disabled: bus, onClick: () => startDrawAoi('polygon') },
+                t(drawMode === 'polygon' ? 'parse.drawPolygonActive' : 'parse.drawPolygon'),
               ),
             ),
             h('p', { className: 'mv-none', style: { margin: 0, padding: 0 } }, t(drawMode ? 'parse.drawHint' : 'parse.scopeAoiNone')),

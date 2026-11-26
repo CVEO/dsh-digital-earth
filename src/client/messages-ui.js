@@ -5,7 +5,7 @@
 export const UI_MESSAGES = {
   zh: {
     'btn.select': '选择',
-    'btn.selectShow': '打开选择窗口（点选 / 框选 / 套索 / 对象）',
+    'btn.selectShow': '打开选择窗口（点选 / 矩形 / 多边形 / 对象）',
     'btn.selectHide': '关闭选择窗口',
     'window.dragHint': '按住拖动可自由移动窗口位置；焦点在此手柄时可用方向键微调',
     'window.resetDock': '恢复默认停靠位置',
@@ -22,7 +22,7 @@ export const UI_MESSAGES = {
   },
   en: {
     'btn.select': 'Select',
-    'btn.selectShow': 'Open selection window (point / box / lasso / objects)',
+    'btn.selectShow': 'Open selection window (point / rectangle / polygon / objects)',
     'btn.selectHide': 'Close selection window',
     'window.dragHint': 'Drag to move window freely (Arrow keys nudge when focused)',
     'window.resetDock': 'Dock back to default position',
