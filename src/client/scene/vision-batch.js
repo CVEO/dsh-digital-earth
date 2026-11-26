@@ -280,11 +280,12 @@ export function captureSceneFrame({ viewer, Cesium, getLayers = () => [], select
 }
 
 /** POST the frame to the page-only batch route and return the validated object list. */
-export async function requestSceneParse(url, { frame, classes = null, signal, fetchImpl = globalThis.fetch } = {}) {
+export async function requestSceneParse(url, { frame, classes = null, force = false, signal, fetchImpl = globalThis.fetch } = {}) {
   if (typeof url !== 'string' || !url) throw visionError('unavailable')
   if (typeof fetchImpl !== 'function') throw visionError('unavailable')
   const body = { frameId: frame.id, image: frame.dataUrl, scope: frame.scope === 'aoi' ? 'aoi' : 'view' }
   if (Array.isArray(classes) && classes.length > 0) body.classes = classes
+  if (force) body.force = true
   const response = await fetchImpl(url, {
     method: 'POST',
     credentials: 'same-origin',
@@ -293,7 +294,12 @@ export async function requestSceneParse(url, { frame, classes = null, signal, fe
     signal,
   })
   const payload = await response.json().catch(() => null)
-  if (!response.ok || !payload?.ok) throw visionError(payload?.code ?? 'model_failed', { next: payload?.next })
+  if (!response.ok || !payload?.ok) {
+    throw visionError(payload?.code ?? 'model_failed', {
+      next: payload?.next ?? null,
+      diagnostic: payload?.diagnostic ?? null,
+    })
+  }
   if (!Array.isArray(payload.objects)) throw visionError('invalid_result')
   return payload
 }

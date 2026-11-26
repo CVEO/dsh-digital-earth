@@ -7,14 +7,14 @@ import { resolve, sep } from 'node:path'
 import { promises as fs } from 'node:fs'
 import { Readable, pipeline } from 'node:stream'
 import { ABOUT } from './about.js'
-import { API, BRIDGE_ROUTE, CAPTURE_ROUTE, CESIUM_DIR, CESIUM_ROUTE, DIRECTORIES_ROUTE, EXPORT_ROUTE, EXPORT_VECTOR_CHAT_ROUTE, EXPORT_VECTOR_ROUTE, FILES_ROUTE, INJECT_ROUTE, INSPECT_ROUTE, MAX_REMOTE_QUERY, PANEL_HEADER, REMOTE_PROXY_MAX_BYTES, REMOTE_PROXY_TIMEOUT_MS, REMOTE_ROUTE, REPORT_ROUTE, SCENE_ROUTE, SOURCES_ROUTE, TILES_ROUTE, TOKEN } from './constants.js'
+import { API, BRIDGE_ROUTE, CAPTURE_ROUTE, CESIUM_DIR, CESIUM_ROUTE, DIRECTORIES_ROUTE, EXPORT_ROUTE, EXPORT_VECTOR_CHAT_ROUTE, EXPORT_VECTOR_ROUTE, FILES_ROUTE, INJECT_ROUTE, INSPECT_ROUTE, MAX_REMOTE_QUERY, PANEL_HEADER, REMOTE_PROXY_MAX_BYTES, REMOTE_PROXY_TIMEOUT_MS, REMOTE_ROUTE, REPORT_ROUTE, SCENE_ROUTE, SOURCES_ROUTE, TILES_ROUTE, TOKEN, VISION_CONFIG_ROUTE } from './constants.js'
 import { blockedHost, decodeSegment, fromB64, isFilesystemRoot, isSafeOpenedDirectory, isUncPath, realPathOr, segments, toB64 } from './paths.js'
 import { bridgeHandler } from './bridge.js'
 import { captureHandler, capturesHandler, reportHandler } from './storage.js'
 import { evidenceExportHandler, vectorChatHandler, vectorExportHandler } from './export.js'
 import { directoriesHandler } from './directories.js'
 import { injectHandler } from './inject.js'
-import { createVisionBatchHandler, createVisionHandler } from './vision.js'
+import { createVisionBatchHandler, createVisionConfigHandler, createVisionHandler } from './vision.js'
 import { createSelectionQuestionHandler } from './selection-question.js'
 import { inspectHandler } from './inspect/handler.js'
 import { requestPath, requestQuery, sendJson, sendText, serveFile, subPath } from './http.js'
@@ -67,6 +67,8 @@ function metaHandler(req, res) {
     visionUrl: `${API}/vision/${TOKEN}`,
     // F6: page-only batch parse of one screenshot into object outlines.
     visionBatchUrl: `${API}/vision-batch/${TOKEN}`,
+    // Page-only standalone vision backend configuration (decoupled from sources.json).
+    visionConfigUrl: `${VISION_CONFIG_ROUTE}/${TOKEN}`,
     questionUrl: `${API}/selection-question/${TOKEN}`,
     // Scene reports are written by the host under DSH_HOME/exports.
     reportUrl: `${REPORT_ROUTE}/${TOKEN}`,
@@ -396,7 +398,8 @@ export function registerRoutes(ctx, { allowedDirs, bridge, directories, getServi
       register('exact', `${SCENE_ROUTE}/${TOKEN}`, sceneSnapshotHandler),
       register('exact', `${INJECT_ROUTE}/${TOKEN}`, (req, res) => injectHandler(ctx, req, res)),
       register('exact', `${API}/vision/${TOKEN}`, createVisionHandler(ctx, { getService })),
-  register('exact', `${API}/vision-batch/${TOKEN}`, createVisionBatchHandler(ctx, { getService })),
+      register('exact', `${API}/vision-batch/${TOKEN}`, createVisionBatchHandler(ctx, { getService })),
+      register('exact', `${VISION_CONFIG_ROUTE}/${TOKEN}`, createVisionConfigHandler(ctx, { getService })),
       register('exact', `${API}/selection-question/${TOKEN}`, createSelectionQuestionHandler(ctx, { getService })),
       register('exact', `${REPORT_ROUTE}/${TOKEN}`, reportHandler),
       register('exact', `${EXPORT_ROUTE}/${TOKEN}`, evidenceExportHandler),

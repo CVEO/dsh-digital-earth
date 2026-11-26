@@ -42,24 +42,29 @@ export function captureVisionFrame({ viewer, Cesium, anchor, getLayers = () => [
   const control = scene.screenSpaceCameraController
   const saved = Object.fromEntries(cameraFlags.filter((key) => typeof control?.[key] === 'boolean').map((key) => [key, control[key]]))
   const cleanups = []
-  let dirty = false, released = false
-  const watch = (event) => {
-    if (typeof event?.addEventListener !== 'function') return
-    const mark = () => { dirty = true }
-    const remove = event.addEventListener(mark)
-    cleanups.push(typeof remove === 'function' ? remove : () => event.removeEventListener?.(mark))
+  let released = false
+  const sameValue = (a, b) => {
+    if (Object.is(a, b)) return true
+    if (typeof a === 'number' && typeof b === 'number' && Number.isFinite(a) && Number.isFinite(b)) {
+      return Math.abs(a - b) <= 1e-5
+    }
+    return false
   }
   const signature = () => {
-    const imagery = scene.imageryLayers ?? viewer.imageryLayers
-    const images = []
-    for (let index = 0; index < (imagery?.length ?? 0); index++) {
-      const image = imagery.get(index)
-      images.push([image, image.show, image.alpha, image.brightness, image.contrast, image.imageryProvider])
-    }
-    return [getViewer(), canvas.width, canvas.height, canvas.clientWidth, canvas.clientHeight, scene.mode, scene.morphTime, viewer.terrainProvider, scene.primitives?.length,
+    return [
+      getViewer(),
+      canvas.width,
+      canvas.height,
+      canvas.clientWidth,
+      canvas.clientHeight,
+      scene.mode,
+      scene.morphTime,
+      viewer.terrainProvider,
       ...['fov', 'aspectRatio', 'near', 'far', 'width', 'left', 'right', 'top', 'bottom', 'xOffset', 'yOffset'].map((key) => viewer.camera.frustum?.[key]),
-      ...Array.from(viewer.camera.viewMatrix ?? []), ...getLayers().flatMap((layer) => [layer.id, layer.visible, layer.tileset, layer.tileset?.show, layer.tileset?.style, layer.tileset?.customShader, ...Array.from(layer.tileset?.modelMatrix ?? [])]),
-      ...images.flat(), ...Object.values(scene.globe?.show === undefined ? {} : { show: scene.globe.show, depth: scene.globe.depthTestAgainstTerrain })]
+      ...Array.from(viewer.camera.viewMatrix ?? []),
+      ...getLayers().flatMap((layer) => [layer.id, layer.visible, layer.tileset, layer.tileset?.show, ...Array.from(layer.tileset?.modelMatrix ?? [])]),
+      ...Object.values(scene.globe?.show === undefined ? {} : { show: scene.globe.show, depth: scene.globe.depthTestAgainstTerrain }),
+    ]
   }
   const release = () => {
     if (released) return
@@ -106,10 +111,9 @@ export function captureVisionFrame({ viewer, Cesium, anchor, getLayers = () => [
     const dataUrl = image.toDataURL('image/jpeg', 0.85)
     if (dataUrl.length > 2_000_000) throw visionError('too_large')
     const initial = signature()
-    for (const layer of getLayers()) { watch(layer.tileset?.tileLoad); watch(layer.tileset?.tileUnload) }
-    watch(viewer.entities?.collectionChanged)
-    const imagery = scene.imageryLayers ?? viewer.imageryLayers
-    watch(imagery?.layerAdded); watch(imagery?.layerRemoved); watch(imagery?.layerMoved)
+    // Background 3D Tiles LOD streaming (tileLoad / tileUnload) and unrelated
+    // entity updates do NOT move the target in 3D space; watching them caused
+    // false `scene_changed` aborts while waiting for the vision model.
     const selected = scene.pick(new Cesium.Cartesian2(position.x, position.y))
     const target = selected?.primitive ?? selected?.tileset ?? null
     return {
@@ -117,10 +121,10 @@ export function captureVisionFrame({ viewer, Cesium, anchor, getLayers = () => [
       dataUrl, point, width: image.width, height: image.height, crop,
       cssWidth: canvas.clientWidth, cssHeight: canvas.clientHeight, viewer, Cesium, target,
       isValid() {
-        if (released || dirty || viewer.isDestroyed?.()) return false
+        if (released || viewer.isDestroyed?.()) return false
         try {
           const current = signature()
-          return current.length === initial.length && current.every((value, index) => Object.is(value, initial[index]))
+          return current.length === initial.length && current.every((value, index) => sameValue(value, initial[index]))
         } catch { return false }
       },
       release,

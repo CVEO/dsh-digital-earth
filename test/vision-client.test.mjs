@@ -80,27 +80,26 @@ test('取景：CSS 坐标与缓冲区尺寸分离，释放恢复全部相机开�
     assert.deepEqual(frame.crop, { left: 154, top: 104, width: 192, height: 192 }, 'crop 应围绕目标做放大')
     assert.equal(frame.cssWidth, 500)
     assert.ok(Object.values(env.control).every((value) => value === false))
-    assert.equal(env.target.tileLoad.size(), 1)
     assert.equal(frame.isValid(), true)
+    // Background 3D Tiles LOD streaming and unrelated entity changes must NOT falsely invalidate the frame.
+    env.target.tileLoad.fire()
+    env.target.tileUnload.fire()
+    env.viewer.entities.collectionChanged.fire()
+    env.viewer.camera.viewMatrix[0] = 1 + 1e-7
+    assert.equal(frame.isValid(), true, '后台瓦片流式加载/卸载、无关实体和浮点微抖动不得误判为场景变化')
     frame.release(); frame.release()
     assert.equal(frame.isValid(), false)
     assert.deepEqual(env.control, env.flags)
-    assert.equal(env.target.tileLoad.size(), 0)
-    assert.equal(env.target.tileUnload.size(), 0)
-    assert.equal(env.viewer.entities.collectionChanged.size(), 0)
   } finally { env.restore() }
 })
 
-test('取景：相机/焦距/尺寸/图层/瓦片/实体变化均使旧结果失效', () => {
+test('取景：相机/焦距/尺寸/图层/模型矩阵变化使旧结果失效，后台瓦片抖动不误杀', () => {
   const mutations = [
     (env) => { env.viewer.camera.viewMatrix[0] = 2 },
     (env) => { env.viewer.camera.frustum.fov = 0.8 },
     (env) => { env.viewer.canvas.clientWidth = 600 },
     (env) => { env.layers[0].visible = false },
     (env) => { env.target.modelMatrix[0] = 2 },
-    (env) => { env.target.tileLoad.fire() },
-    (env) => { env.target.tileUnload.fire() },
-    (env) => { env.viewer.entities.collectionChanged.fire() },
     (env) => { env.destroy() },
   ]
   for (const mutate of mutations) {

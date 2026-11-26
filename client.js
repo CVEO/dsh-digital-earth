@@ -271,70 +271,120 @@ var VISION_MESSAGES = {
   zh: {
     "vision.title": "AI 辅助目标圈选",
     "vision.action": "AI 提取目标轮廓",
-    "vision.actionHint": "将当前视图提交至 DSH 默认视觉模型，单次识别可能产生模型费用；结果需确认后采用。",
+    "vision.actionHint": "将当前视图提交至视觉模型，单次识别可能产生模型费用；结果需确认后采用。",
     "vision.pickHint": "请先单击场景目标，再在识别卡中选择「AI 提取目标轮廓」。",
-    "vision.notice": "使用 DSH 默认视觉模型进行一次识别。当前视图截图将发送给模型并保存为附件，可能产生费用；结果仅为可见表面近似轮廓，不代表建筑占地或三维网格。点击「开始识别」前不会发送或计费。",
+    "vision.notice": "使用当前配置的视觉模型进行一次识别（支持默认模型、独立指定模型或 OpenAI 兼容端点）。当前视图截图将发送给模型，可能产生费用；结果仅为可见表面近似轮廓，点击「开始识别」前不会发送或计费。",
     "vision.readyToStart": "确认后点击「开始识别」；识别期间可随时停止。",
     "vision.loading": "正在检查模型并识别目标…可随时停止。",
+    "vision.loadingBadge": "AI 识别中…",
     "vision.start": "开始识别",
     "vision.stop": "停止识别",
-    "vision.ready": "请核对近似轮廓；采用前将检查三维表面是否可靠。",
-    "vision.boxReady": "模型返回粗框，请核对范围；这不是精细分割结果。",
+    "vision.forceTry": "仍尝试直接识别",
+    "vision.ready": "请核对近似轮廓（可拖动顶点微调）；采用前将检查三维表面是否可靠。",
+    "vision.boxReady": "模型返回粗框，可拖动四角微调范围；这不是精细分割结果。",
+    "vision.repairedNote": "轮廓已自动完成坐标归一或顶点数抽稀，请核对边缘。",
     "vision.imageAlt": "本次识别的固定场景截图与目标轮廓预览",
     "vision.model": "使用模型：{model}",
+    "vision.diagSummary": "查看诊断详情",
+    "vision.diagStage": "阶段：{stage}",
+    "vision.diagBackend": "后端：{backend}",
+    "vision.diagModel": "模型：{model}",
+    "vision.diagDetail": "详情：{detail}",
+    "vision.configToggle": "视觉模型配置",
+    "vision.configMode": "调用方式",
+    "vision.configModeDefault": "跟随 DSH 默认模型（兼容未声明读图模型）",
+    "vision.configModeDsh": "单独指定 DSH 模型",
+    "vision.configModeOpenai": "外接 OpenAI 兼容接口（超算 / MiMo / vLLM 等）",
+    "vision.configProvider": "Provider",
+    "vision.configModel": "模型名",
+    "vision.configBaseUrl": "接口 Base URL",
+    "vision.configApiKey": "API Key（留空保持原密钥）",
+    "vision.configCoordSpace": "坐标规范",
+    "vision.configCoordAuto": "自动识别（0..1 / 0..1000 / 像素）",
+    "vision.configCoordUnit": "0..1 归一化",
+    "vision.configCoordThousand": "0..1000（MiMo / Qwen / Gemini）",
+    "vision.configCoordPixel": "像素坐标",
+    "vision.configSave": "保存配置",
+    "vision.configSaved": "视觉配置已保存，可点击识别重试。",
+    "vision.configSaveFailed": "视觉配置保存失败。",
     "vision.accept": "采用近似选区",
     "vision.retry": "重新取景识别",
     "vision.manual": "改用手动多边形",
     "vision.cancel": "取消",
-    "vision.error.unavailable": "当前宿主缺少视觉服务。请更新或启用相关服务，或手动圈选。",
-    "vision.error.model_not_visual": "DSH 默认模型不支持读图，请切换支持图片的模型后重试，或手动圈选。",
-    "vision.error.model_unknown": "无法确认默认模型支持图片，请切换已声明支持读图的模型，或手动圈选。",
+    "vision.error.unavailable": "当前宿主缺少视觉服务。请更新或启用相关服务、在配置中填外接接口，或手动圈选。",
+    "vision.error.model_not_visual": "当前模型未声明支持图片或不支持读图。可尝试直接识别、在「视觉模型配置」中指定多模态模型，或手动圈选。",
+    "vision.error.model_unknown": "未找到可用的视觉模型配置，请先选择或配置视觉模型，或手动圈选。",
     "vision.error.busy": "视觉服务正在处理其他请求，请稍后重试。",
     "vision.error.timeout": "本次视觉请求已超时，请重试或手动圈选；不会自动重试。",
     "vision.error.cancelled": "本次识别已取消，可重新取景或手动圈选。",
     "vision.error.no_target": "模型未找到清晰的点击目标，请抵近观察后重试，或手动圈选。",
-    "vision.error.invalid_result": "模型返回的轮廓无法通过校验，请重新取景或手动圈选。",
-    "vision.error.model_failed": "视觉调用未完成，请检查模型连接后重试，或手动圈选。",
+    "vision.error.invalid_result": "模型返回的轮廓无法通过校验，请展开诊断查看详情，或重新取景/手动圈选。",
+    "vision.error.model_failed": "视觉调用未完成，请展开诊断检查模型连接或参数后重试，或手动圈选。",
     "vision.error.invalid_request": "本次取景无效，请关闭预览，调整视角后重试。",
     "vision.error.too_large": "截图超出识别大小限制，请缩小面板后重新取景。",
     "vision.error.not_ready": "目标不在当前可取景范围内，请点击可见目标后重试。",
     "vision.error.scene_loading": "场景细节尚未加载完成，请等待画面稳定后重试。",
-    "vision.error.scene_changed": "视角、图层或场景细节已变化，旧结果不可套用，请重新取景。",
+    "vision.error.scene_changed": "画面窗口、视角或图层发生了变化，旧取景结果已失效，请点击「重新取景识别」。",
     "vision.error.depth_unavailable": "边界缺少可靠的同一模型表面，无法安全生成三维选区；请手动重画。",
     "vision.selectionApproximate": "AI 可见表面近似范围，不代表建筑占地；面积与分析仅作参考。"
   },
   en: {
     "vision.title": "AI-assisted target selection",
     "vision.action": "Extract target outline with AI",
-    "vision.actionHint": "Submit the current view to the default DSH vision model. One recognition may incur model charges; review the result before applying.",
+    "vision.actionHint": "Submit the current view to the configured vision model. One recognition may incur charges; review before applying.",
     "vision.pickHint": "Click a scene target first, then choose “Extract target outline with AI” on its card.",
-    "vision.notice": "One recognition call using the default DSH vision model. The current-view screenshot is sent to the model and saved as an attachment; charges may apply. The result is an approximate visible-surface outline, not a building footprint or mesh. Nothing is sent or charged until you click Start.",
+    "vision.notice": "Runs one recognition call with the configured vision backend (DSH default, dedicated DSH model, or OpenAI-compatible endpoint). Nothing is sent or charged until you click Start.",
     "vision.readyToStart": "Review the notice, then click Start. You can stop recognition at any time.",
     "vision.loading": "Checking the model and locating the target… you can stop at any time.",
+    "vision.loadingBadge": "Analyzing…",
     "vision.start": "Start recognition",
     "vision.stop": "Stop recognition",
-    "vision.ready": "Check the approximate outline. Its 3D surface will be validated before use.",
-    "vision.boxReady": "The model returned a coarse box. Check the extent; this is not precise segmentation.",
+    "vision.forceTry": "Try anyway",
+    "vision.ready": "Check the approximate outline (drag vertices to refine). Its 3D surface will be validated before use.",
+    "vision.boxReady": "The model returned a coarse box; drag corners to refine. This is not precise segmentation.",
+    "vision.repairedNote": "Coordinates were auto-normalized or simplified; please inspect the edges.",
     "vision.imageAlt": "Fixed scene image with the selected target and outline preview",
     "vision.model": "Model: {model}",
+    "vision.diagSummary": "Diagnostics",
+    "vision.diagStage": "Stage: {stage}",
+    "vision.diagBackend": "Backend: {backend}",
+    "vision.diagModel": "Model: {model}",
+    "vision.diagDetail": "Detail: {detail}",
+    "vision.configToggle": "Vision model settings",
+    "vision.configMode": "Backend mode",
+    "vision.configModeDefault": "Follow DSH default model (optimistic for undeclared VLMs)",
+    "vision.configModeDsh": "Dedicated DSH model",
+    "vision.configModeOpenai": "OpenAI-compatible HTTP endpoint (Supercomputer / MiMo / vLLM)",
+    "vision.configProvider": "Provider",
+    "vision.configModel": "Model name",
+    "vision.configBaseUrl": "Base URL",
+    "vision.configApiKey": "API Key (leave blank to keep existing)",
+    "vision.configCoordSpace": "Coordinate space",
+    "vision.configCoordAuto": "Auto (0..1 / 0..1000 / pixels)",
+    "vision.configCoordUnit": "0..1 normalized",
+    "vision.configCoordThousand": "0..1000 (MiMo / Qwen / Gemini)",
+    "vision.configCoordPixel": "Image pixels",
+    "vision.configSave": "Save settings",
+    "vision.configSaved": "Vision settings saved.",
+    "vision.configSaveFailed": "Failed to save vision settings.",
     "vision.accept": "Use approximate selection",
     "vision.retry": "Capture and identify again",
     "vision.manual": "Use manual polygon",
     "vision.cancel": "Cancel",
-    "vision.error.unavailable": "Vision services are unavailable in this host. Enable or update them, or select manually.",
-    "vision.error.model_not_visual": "The default DSH model does not accept images. Switch to a vision model and retry, or select manually.",
-    "vision.error.model_unknown": "Image support for the default model is unknown. Choose a model with declared vision support, or select manually.",
+    "vision.error.unavailable": "Vision services are unavailable in this host. Configure an external endpoint, enable services, or select manually.",
+    "vision.error.model_not_visual": "The model does not declare or support image input. You can try anyway, configure a vision model, or select manually.",
+    "vision.error.model_unknown": "No vision model is configured. Select or configure a vision model, or select manually.",
     "vision.error.busy": "Other vision requests are running. Try again shortly.",
     "vision.error.timeout": "The vision request timed out. Retry or select manually; no automatic retry runs.",
     "vision.error.cancelled": "Selection cancelled. Capture again or select manually.",
     "vision.error.no_target": "No clear target was found at the click. Move closer and retry, or select manually.",
-    "vision.error.invalid_result": "The model outline failed validation. Capture again or select manually.",
-    "vision.error.model_failed": "The vision call did not complete. Check the model connection and retry, or select manually.",
+    "vision.error.invalid_result": "The model outline failed validation. Expand diagnostics for details, retry, or select manually.",
+    "vision.error.model_failed": "The vision call did not complete. Expand diagnostics to inspect connection or parameters, retry, or select manually.",
     "vision.error.invalid_request": "The captured view is invalid. Close the preview, adjust the view and retry.",
     "vision.error.too_large": "The image exceeds the vision size limit. Resize the panel and capture again.",
     "vision.error.not_ready": "The target cannot be captured in this view. Click a visible target and retry.",
     "vision.error.scene_loading": "Scene details are still loading. Wait for the view to settle and retry.",
-    "vision.error.scene_changed": "The view, layers or scene details changed. Capture again instead of applying an outdated result.",
+    "vision.error.scene_changed": "The viewport, camera, or layers changed since capture. Click Capture and identify again.",
     "vision.error.depth_unavailable": "The boundary lacks reliable depth on the same model. A 3D selection cannot be created safely; redraw manually.",
     "vision.selectionApproximate": "AI approximation of visible surfaces, not a building footprint. Area and analysis are indicative only."
   }
@@ -14203,16 +14253,29 @@ var VISION_CSS = `
 .mv-vision-screen{position:absolute;inset:0;z-index:40;display:flex;align-items:center;justify-content:center;padding:12px;background:var(--mv-scrim);box-sizing:border-box;pointer-events:auto}
 .mv-vision{box-sizing:border-box;display:flex;flex-direction:column;gap:10px;width:min(560px,100%);max-height:100%;overflow:auto;overscroll-behavior:contain;padding:16px;border-radius:14px;background:var(--mv-glass-strong);border:1px solid var(--mv-line);box-shadow:var(--mv-shadow);color:var(--mv-text);outline:none;animation:mv-fade .16s ease-out}
 .mv-vision>*{flex-shrink:0;min-width:0}
-.mv-vision header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.mv-vision header{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.mv-vision-head-actions{display:flex;align-items:center;gap:6px}
 .mv-vision h3{margin:0;font-size:15px;line-height:1.4}
 .mv-vision p{margin:0;overflow-wrap:anywhere}
 .mv-vision-note{font-size:12px;line-height:1.6;color:var(--mv-dim)}
-.mv-vision-image{position:relative;width:100%;overflow:hidden;border-radius:8px;background:#0b111a}
+.mv-vision-image{position:relative;width:100%;overflow:hidden;border-radius:8px;background:#0b111a;touch-action:none}
 .mv-vision-image img,.mv-vision-image svg{position:absolute;inset:0;width:100%;height:100%;display:block}
 .mv-vision-image polygon{fill:#39b7ff30;stroke:#70d8ff;stroke-width:3;stroke-linejoin:round;filter:drop-shadow(0 1px 2px #000)}
 .mv-vision-image circle{fill:#fff;stroke:#092638;stroke-width:2}
+.mv-vision-image circle.mv-vision-handle{fill:#70d8ff;stroke:#092638;stroke-width:2;cursor:grab}
+.mv-vision-image circle.mv-vision-handle:active{cursor:grabbing;fill:#fff}
+.mv-vision-busy-badge{position:absolute;left:10px;bottom:10px;display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;background:var(--mv-glass-strong);color:var(--mv-text);border:1px solid var(--mv-line);font-size:11px;line-height:1.4;backdrop-filter:blur(6px);pointer-events:none}
+.mv-vision-busy-dot{width:7px;height:7px;border-radius:50%;background:#70d8ff;animation:mv-pulse 1.1s ease-in-out infinite}
+@keyframes mv-pulse{0%,100%{opacity:.35;transform:scale(.85)}50%{opacity:1;transform:scale(1.15)}}
 .mv-vision-status{font-size:13px;line-height:1.5}
 .mv-vision-error{font-size:13px;line-height:1.5;color:light-dark(#a52f37,#ffadb4)}
+.mv-vision-diag{font-size:11px;line-height:1.5;color:var(--mv-dim);padding:6px 10px;border-radius:8px;border:1px solid var(--mv-line);background:color-mix(in srgb,var(--mv-glass) 70%,transparent)}
+.mv-vision-diag summary{cursor:pointer;font-weight:500;color:var(--mv-text)}
+.mv-vision-diag pre{margin:6px 0 0;white-space:pre-wrap;word-break:break-word;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.mv-vision-cfg{display:flex;flex-direction:column;gap:8px;padding:10px;border-radius:10px;border:1px solid var(--mv-line);background:color-mix(in srgb,var(--mv-glass) 75%,transparent)}
+.mv-vision-cfg label{display:flex;flex-direction:column;gap:4px;font-size:11px;color:var(--mv-dim)}
+.mv-vision-cfg input,.mv-vision-cfg select{box-sizing:border-box;width:100%;padding:6px 8px;border-radius:7px;border:1px solid var(--mv-line);background:var(--mv-bg,transparent);color:var(--mv-text);font-size:12px}
+.mv-vision-cfg-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .mv-vision-actions{display:flex;flex-wrap:wrap;gap:8px}
 .mv-vision-actions .mv-cta{flex:1 1 120px;min-height:38px;font-size:12px}
 .mv-root:has(.mv-vision-screen) :is(.mv-top,.mv-right,.mv-shader,.mv-tour,.mv-scene-details,.mv-floating,.mv-toolwin){visibility:hidden;pointer-events:none}
@@ -19905,7 +19968,7 @@ function SelectionTool({ t: t2, getCesium, getViewer, showToast, runAnalysis, ge
 var import_react28 = __toESM(require("react"), 1);
 
 // src/client/scene/vision-geometry.js
-var visionError = (code) => Object.assign(new Error(code), { code });
+var visionError = (code, extra = null) => Object.assign(new Error(code), { code }, extra && typeof extra === "object" ? extra : {});
 var cross = (start, end, point) => (end[0] - start[0]) * (point[1] - start[1]) - (end[1] - start[1]) * (point[0] - start[0]);
 function onSegment(start, end, point) {
   return Math.abs(cross(start, end, point)) < 1e-10 && point[0] >= Math.min(start[0], end[0]) - 1e-10 && point[0] <= Math.max(start[0], end[0]) + 1e-10 && point[1] >= Math.min(start[1], end[1]) - 1e-10 && point[1] <= Math.max(start[1], end[1]) + 1e-10;
@@ -19933,24 +19996,126 @@ function distanceToPolygon(polygon, point) {
   }
   return minimum;
 }
-function normalizeVertices(polygon, options) {
-  let vertices = polygon.map((vertex) => {
+function clamp01(value) {
+  return value < 0 ? 0 : value > 1 ? 1 : value;
+}
+function parseRawVertices(polygon) {
+  return polygon.map((vertex) => {
     const raw = Array.isArray(vertex) ? vertex : vertex && typeof vertex === "object" ? [vertex.x, vertex.y] : null;
-    if (!raw || raw.length !== 2) throw visionError("invalid_result");
+    if (!raw || raw.length !== 2) throw visionError("invalid_result", { stage: "geometry", detail: "Vertex must be [x, y]." });
     const x = Number(raw[0]), y = Number(raw[1]);
-    if (!Number.isFinite(x) || !Number.isFinite(y)) throw visionError("invalid_result");
+    if (!Number.isFinite(x) || !Number.isFinite(y)) throw visionError("invalid_result", { stage: "geometry", detail: "Vertex coordinates must be finite numbers." });
     return [x, y];
   });
+}
+function scaleVertices(rawVertices, divisor) {
+  let clamped = false;
+  const out = rawVertices.map(([x, y]) => {
+    const nx = x / divisor[0];
+    const ny = y / divisor[1];
+    if (nx < -0.03 || nx > 1.03 || ny < -0.03 || ny > 1.03) return null;
+    if (nx < 0 || nx > 1 || ny < 0 || ny > 1) clamped = true;
+    return [clamp01(nx), clamp01(ny)];
+  });
+  if (out.some((item) => item === null)) return null;
+  return { vertices: out, clamped };
+}
+function resolveCoordinateCandidates(rawVertices, options = {}) {
   const width = Number(options?.width), height = Number(options?.height);
-  const maximum = Math.max(0, ...vertices.flatMap((vertex) => vertex));
-  if (maximum > 1) {
-    const isPixel = Number.isFinite(width) && Number.isFinite(height) && width > 1 && height > 1 && maximum <= Math.max(width, height) * 1.02 && vertices.every(([x, y]) => x >= 0 && x <= width * 1.02 && y >= 0 && y <= height * 1.02) && (maximum > 100 || Math.max(width, height) <= 100);
-    const divisor = isPixel ? [width, height] : maximum <= 100 ? [100, 100] : null;
-    if (!divisor) throw visionError("invalid_result");
-    vertices = vertices.map(([x, y]) => [x / divisor[0], y / divisor[1]]);
+  const hasSize = Number.isFinite(width) && Number.isFinite(height) && width > 1 && height > 1;
+  const hint = typeof options?.coordSpace === "string" ? options.coordSpace.toLowerCase() : "auto";
+  if (hint === "unit") return [{ space: "unit", divisor: [1, 1] }];
+  if (hint === "percent") return [{ space: "percent", divisor: [100, 100] }];
+  if (hint === "thousand") return [{ space: "thousand", divisor: [1e3, 1e3] }];
+  if (hint === "pixel" && hasSize) return [{ space: "pixel", divisor: [width, height] }];
+  const flat = rawVertices.flatMap((vertex) => vertex);
+  const maximum = Math.max(0, ...flat);
+  const minimum = Math.min(0, ...flat);
+  if (maximum <= 1.03 && minimum >= -0.03) {
+    return [{ space: "unit", divisor: [1, 1] }];
   }
-  if (!vertices.every(([x, y]) => x >= 0 && x <= 1 && y >= 0 && y <= 1)) throw visionError("invalid_result");
-  return vertices;
+  const candidates = [];
+  const maxDim = hasSize ? Math.max(width, height) : 0;
+  const fitsPixel = hasSize && rawVertices.every(([x, y]) => x >= -width * 0.03 && x <= width * 1.03 && y >= -height * 0.03 && y <= height * 1.03) && (maximum > 100 || maxDim <= 100);
+  if (fitsPixel) candidates.push({ space: "pixel", divisor: [width, height] });
+  if (maximum > 100 && maximum <= 1030 && minimum >= -30) {
+    const sameAsPixel = fitsPixel && width === 1e3 && height === 1e3;
+    if (!sameAsPixel) candidates.push({ space: "thousand", divisor: [1e3, 1e3] });
+  }
+  if (maximum <= 103 && minimum >= -3) {
+    candidates.push({ space: "percent", divisor: [100, 100] });
+  }
+  return candidates;
+}
+function normalizeVerticesWithSpace(polygon, options = {}, point = null) {
+  const rawVertices = parseRawVertices(polygon);
+  const candidates = resolveCoordinateCandidates(rawVertices, options);
+  if (candidates.length === 0) {
+    throw visionError("invalid_result", { stage: "geometry", detail: "Coordinates outside supported 0..1 / 0..100 / 0..1000 / pixel ranges." });
+  }
+  const evaluated = [];
+  for (const candidate of candidates) {
+    const scaled = scaleVertices(rawVertices, candidate.divisor);
+    if (!scaled) continue;
+    let score = 0;
+    if (point) {
+      const inside2 = containsVisionPoint(scaled.vertices, point);
+      const dist = inside2 ? 0 : distanceToPolygon(scaled.vertices, point);
+      score = inside2 ? 1e3 - dist : Math.max(0, 100 - dist * 500);
+      if (inside2) {
+        let cx = 0, cy = 0;
+        for (const [vx, vy] of scaled.vertices) {
+          cx += vx;
+          cy += vy;
+        }
+        cx /= scaled.vertices.length;
+        cy /= scaled.vertices.length;
+        score -= Math.hypot(cx - point[0], cy - point[1]) * 10;
+      }
+    }
+    evaluated.push({ ...candidate, ...scaled, score });
+  }
+  if (evaluated.length === 0) {
+    throw visionError("invalid_result", { stage: "geometry", detail: "Coordinates out of valid bounds." });
+  }
+  if (point && evaluated.length > 1) {
+    evaluated.sort((a, b) => b.score - a.score);
+  }
+  return evaluated[0];
+}
+function douglasPeucker(points, epsilon) {
+  if (points.length <= 2) return points;
+  let maxDist = -1;
+  let split = 0;
+  const start = points[0];
+  const end = points[points.length - 1];
+  for (let i = 1; i < points.length - 1; i += 1) {
+    const dist = pointSegmentDistance(points[i], start, end);
+    if (dist > maxDist) {
+      maxDist = dist;
+      split = i;
+    }
+  }
+  if (maxDist > epsilon) {
+    const left = douglasPeucker(points.slice(0, split + 1), epsilon);
+    const right = douglasPeucker(points.slice(split), epsilon);
+    return left.slice(0, -1).concat(right);
+  }
+  return [start, end];
+}
+function simplifyRingToLimit(ring, maxVertices = 32) {
+  if (ring.length <= maxVertices) return { ring, simplified: false };
+  const closed = [...ring, ring[0]];
+  for (const eps of [1e-3, 2e-3, 4e-3, 8e-3, 0.015, 0.025, 0.04, 0.06]) {
+    const reduced = douglasPeucker(closed, eps);
+    const open = reduced.length > 1 ? reduced.slice(0, -1) : reduced;
+    if (open.length >= 3 && open.length <= maxVertices) {
+      return { ring: open, simplified: true };
+    }
+  }
+  const stride = Math.ceil(ring.length / maxVertices);
+  const sampled = ring.filter((_, index) => index % stride === 0).slice(0, maxVertices);
+  return { ring: sampled, simplified: true };
 }
 function simplifyPolygon(polygon) {
   const unique = [];
@@ -19967,20 +20132,48 @@ function simplifyPolygon(polygon) {
   }
   return cleaned.length >= 3 ? cleaned : unique;
 }
-function validateVisionPolygon(value, point, options = {}) {
+function extractRawShape(value) {
   let polygon = value?.polygon ?? value?.points ?? value?.vertices ?? (Array.isArray(value) ? value : value?.coordinates);
-  const shape = Array.isArray(polygon) ? "polygon" : "box";
+  let shape = Array.isArray(polygon) ? "polygon" : "box";
   const bbox = Array.isArray(value?.bbox) ? value.bbox : Array.isArray(value?.box) ? value.box : value?.bbox && typeof value.bbox === "object" ? [value.bbox.left, value.bbox.top, value.bbox.right, value.bbox.bottom] : null;
   if (!polygon && Array.isArray(bbox) && bbox.length === 4) {
     const [left, top, right, bottom] = bbox.map(Number);
-    if (!(right > left && bottom > top)) throw visionError("invalid_result");
+    if (!(right > left && bottom > top)) throw visionError("invalid_result", { stage: "geometry", detail: "Invalid bbox ordering." });
     polygon = [[left, top], [right, top], [right, bottom], [left, bottom]];
   }
-  if (!Array.isArray(polygon)) throw visionError(value?.polygon === null ? "no_target" : "invalid_result");
-  polygon = normalizeVertices(polygon, options);
+  if (!polygon && Array.isArray(value?.box_2d) && value.box_2d.length === 4) {
+    const [ymin, xmin, ymax, xmax] = value.box_2d.map(Number);
+    if (!(xmax > xmin && ymax > ymin)) throw visionError("invalid_result", { stage: "geometry", detail: "Invalid box_2d ordering." });
+    polygon = [[xmin, ymin], [xmax, ymin], [xmax, ymax], [xmin, ymax]];
+    shape = "box";
+  }
+  return { polygon, shape };
+}
+function validateVisionPolygon(value, point, options = {}) {
+  const { polygon: rawPolygon, shape } = extractRawShape(value);
+  if (!Array.isArray(rawPolygon)) {
+    throw visionError(value?.polygon === null ? "no_target" : "invalid_result", {
+      stage: "geometry",
+      detail: value?.polygon === null ? "Model reported no target at click." : "Output did not contain polygon or bbox."
+    });
+  }
+  const mergedOptions = {
+    ...options,
+    ...typeof value?.coord_space === "string" && !options?.coordSpace ? { coordSpace: value.coord_space } : {}
+  };
+  const norm = normalizeVerticesWithSpace(rawPolygon, mergedOptions, point);
+  let polygon = norm.vertices;
+  let repaired = norm.clamped;
   if (polygon.length > 1 && polygon[0].every((number, index) => number === polygon.at(-1)[index])) polygon.pop();
   polygon = simplifyPolygon(polygon);
-  if (polygon.length < 3 || polygon.length > 32 || new Set(polygon.map((vertex) => vertex.join(","))).size !== polygon.length) throw visionError("invalid_result");
+  if (polygon.length > 32) {
+    const reduced = simplifyRingToLimit(polygon, 32);
+    polygon = reduced.ring;
+    repaired = repaired || reduced.simplified;
+  }
+  if (polygon.length < 3 || polygon.length > 32 || new Set(polygon.map((vertex) => vertex.join(","))).size !== polygon.length) {
+    throw visionError("invalid_result", { stage: "geometry", detail: `Polygon vertex count or uniqueness invalid (${polygon.length}).` });
+  }
   let area = 0;
   for (let index = 0; index < polygon.length; index += 1) {
     const start = polygon[index], end = polygon[(index + 1) % polygon.length];
@@ -19988,12 +20181,18 @@ function validateVisionPolygon(value, point, options = {}) {
     for (let other = index + 1; other < polygon.length; other += 1) {
       if (other === index + 1 || index === 0 && other === polygon.length - 1) continue;
       const from = polygon[other], to = polygon[(other + 1) % polygon.length];
-      if (cross(start, end, from) * cross(start, end, to) < 0 && cross(from, to, start) * cross(from, to, end) < 0 || onSegment(start, end, from) || onSegment(start, end, to) || onSegment(from, to, start) || onSegment(from, to, end)) throw visionError("invalid_result");
+      if (cross(start, end, from) * cross(start, end, to) < 0 && cross(from, to, start) * cross(from, to, end) < 0 || onSegment(start, end, from) || onSegment(start, end, to) || onSegment(from, to, start) || onSegment(from, to, end)) {
+        throw visionError("invalid_result", { stage: "geometry", detail: "Polygon is self-intersecting." });
+      }
     }
   }
-  if (Math.abs(area) / 2 < 1e-5 || Math.abs(area) / 2 > 0.85) throw visionError("invalid_result");
-  if (point && !containsVisionPoint(polygon, point) && distanceToPolygon(polygon, point) > 0.08) throw visionError("invalid_result");
-  return { polygon, shape, approximate: true };
+  if (Math.abs(area) / 2 < 1e-5 || Math.abs(area) / 2 > 0.85) {
+    throw visionError("invalid_result", { stage: "geometry", detail: "Polygon area outside valid bounds." });
+  }
+  if (point && !containsVisionPoint(polygon, point) && distanceToPolygon(polygon, point) > 0.1) {
+    throw visionError("invalid_result", { stage: "geometry", detail: "Click point lies too far outside predicted outline." });
+  }
+  return { polygon, shape, approximate: true, coordSpace: norm.space, ...repaired ? { repaired: true } : {} };
 }
 
 // src/client/scene/vision-frame.js
@@ -20033,22 +20232,15 @@ function captureVisionFrame({ viewer, Cesium, anchor, getLayers = () => [], getV
   const control = scene.screenSpaceCameraController;
   const saved = Object.fromEntries(cameraFlags.filter((key) => typeof control?.[key] === "boolean").map((key) => [key, control[key]]));
   const cleanups = [];
-  let dirty = false, released = false;
-  const watch = (event) => {
-    if (typeof event?.addEventListener !== "function") return;
-    const mark = () => {
-      dirty = true;
-    };
-    const remove = event.addEventListener(mark);
-    cleanups.push(typeof remove === "function" ? remove : () => event.removeEventListener?.(mark));
+  let released = false;
+  const sameValue = (a, b) => {
+    if (Object.is(a, b)) return true;
+    if (typeof a === "number" && typeof b === "number" && Number.isFinite(a) && Number.isFinite(b)) {
+      return Math.abs(a - b) <= 1e-5;
+    }
+    return false;
   };
   const signature = () => {
-    const imagery = scene.imageryLayers ?? viewer.imageryLayers;
-    const images = [];
-    for (let index = 0; index < (imagery?.length ?? 0); index++) {
-      const image = imagery.get(index);
-      images.push([image, image.show, image.alpha, image.brightness, image.contrast, image.imageryProvider]);
-    }
     return [
       getViewer(),
       canvas.width,
@@ -20058,11 +20250,9 @@ function captureVisionFrame({ viewer, Cesium, anchor, getLayers = () => [], getV
       scene.mode,
       scene.morphTime,
       viewer.terrainProvider,
-      scene.primitives?.length,
       ...["fov", "aspectRatio", "near", "far", "width", "left", "right", "top", "bottom", "xOffset", "yOffset"].map((key) => viewer.camera.frustum?.[key]),
       ...Array.from(viewer.camera.viewMatrix ?? []),
-      ...getLayers().flatMap((layer) => [layer.id, layer.visible, layer.tileset, layer.tileset?.show, layer.tileset?.style, layer.tileset?.customShader, ...Array.from(layer.tileset?.modelMatrix ?? [])]),
-      ...images.flat(),
+      ...getLayers().flatMap((layer) => [layer.id, layer.visible, layer.tileset, layer.tileset?.show, ...Array.from(layer.tileset?.modelMatrix ?? [])]),
       ...Object.values(scene.globe?.show === void 0 ? {} : { show: scene.globe.show, depth: scene.globe.depthTestAgainstTerrain })
     ];
   };
@@ -20128,15 +20318,6 @@ function captureVisionFrame({ viewer, Cesium, anchor, getLayers = () => [], getV
     const dataUrl = image.toDataURL("image/jpeg", 0.85);
     if (dataUrl.length > 2e6) throw visionError("too_large");
     const initial = signature();
-    for (const layer of getLayers()) {
-      watch(layer.tileset?.tileLoad);
-      watch(layer.tileset?.tileUnload);
-    }
-    watch(viewer.entities?.collectionChanged);
-    const imagery = scene.imageryLayers ?? viewer.imageryLayers;
-    watch(imagery?.layerAdded);
-    watch(imagery?.layerRemoved);
-    watch(imagery?.layerMoved);
     const selected = scene.pick(new Cesium.Cartesian2(position.x, position.y));
     const target = selected?.primitive ?? selected?.tileset ?? null;
     return {
@@ -20152,10 +20333,10 @@ function captureVisionFrame({ viewer, Cesium, anchor, getLayers = () => [], getV
       Cesium,
       target,
       isValid() {
-        if (released || dirty || viewer.isDestroyed?.()) return false;
+        if (released || viewer.isDestroyed?.()) return false;
         try {
           const current = signature();
-          return current.length === initial.length && current.every((value, index) => Object.is(value, initial[index]));
+          return current.length === initial.length && current.every((value, index) => sameValue(value, initial[index]));
         } catch {
           return false;
         }
@@ -20507,11 +20688,12 @@ function captureSceneFrame({ viewer, Cesium, getLayers = () => [], selection = n
     throw error;
   }
 }
-async function requestSceneParse(url, { frame, classes = null, signal, fetchImpl = globalThis.fetch } = {}) {
+async function requestSceneParse(url, { frame, classes = null, force = false, signal, fetchImpl = globalThis.fetch } = {}) {
   if (typeof url !== "string" || !url) throw visionError("unavailable");
   if (typeof fetchImpl !== "function") throw visionError("unavailable");
   const body = { frameId: frame.id, image: frame.dataUrl, scope: frame.scope === "aoi" ? "aoi" : "view" };
   if (Array.isArray(classes) && classes.length > 0) body.classes = classes;
+  if (force) body.force = true;
   const response = await fetchImpl(url, {
     method: "POST",
     credentials: "same-origin",
@@ -20520,7 +20702,12 @@ async function requestSceneParse(url, { frame, classes = null, signal, fetchImpl
     signal
   });
   const payload = await response.json().catch(() => null);
-  if (!response.ok || !payload?.ok) throw visionError(payload?.code ?? "model_failed", { next: payload?.next });
+  if (!response.ok || !payload?.ok) {
+    throw visionError(payload?.code ?? "model_failed", {
+      next: payload?.next ?? null,
+      diagnostic: payload?.diagnostic ?? null
+    });
+  }
   if (!Array.isArray(payload.objects)) throw visionError("invalid_result");
   return payload;
 }
@@ -21192,8 +21379,9 @@ function ParseBody({ t: t2, getCesium, getViewer, getLayers, showToast, onAdoptP
   const cancelParse = () => {
     abortRef.current?.abort?.();
   };
-  const parse = async () => {
+  const parse = async (force = false) => {
     if (bus) return;
+    const forceFlag = force === true;
     if (scope === "aoi" && !aoiReady) {
       showToast?.(t2("parse.scopeAoiNone"));
       return;
@@ -21223,7 +21411,7 @@ function ParseBody({ t: t2, getCesium, getViewer, getLayers, showToast, onAdoptP
       const meta = await loadMeta();
       if (!aliveRef.current || controller?.signal?.aborted) throw Object.assign(new Error("cancelled"), { code: "cancelled" });
       if (!meta?.visionBatchUrl) throw Object.assign(new Error("unavailable"), { code: "unavailable" });
-      const payload = await requestSceneParse(meta.visionBatchUrl, { frame, classes: targetList, signal: controller?.signal });
+      const payload = await requestSceneParse(meta.visionBatchUrl, { frame, classes: targetList, force: forceFlag, signal: controller?.signal });
       if (!aliveRef.current) return;
       const filteredObjects = targetList ? payload.objects.filter((item) => targetList.includes(item?.class)) : payload.objects;
       setStage("project");
@@ -21260,8 +21448,12 @@ function ParseBody({ t: t2, getCesium, getViewer, getLayers, showToast, onAdoptP
     } catch (failure) {
       if (!aliveRef.current) return;
       const code = controller?.signal?.aborted || failure?.name === "AbortError" ? "cancelled" : failure?.code ?? "model_failed";
-      if (frame?.dataUrl && code !== "cancelled") {
-        setDiag({ rawCount: 0, thumbUrl: frame.dataUrl, width: frame.width, height: frame.height });
+      if (code !== "cancelled") {
+        setDiag({
+          rawCount: 0,
+          ...frame?.dataUrl ? { thumbUrl: frame.dataUrl, width: frame.width, height: frame.height } : {},
+          ...failure?.diagnostic ? { diagnostic: failure.diagnostic } : {}
+        });
       }
       setError(code);
     } finally {
@@ -21424,7 +21616,7 @@ function ParseBody({ t: t2, getCesium, getViewer, getLayers, showToast, onAdoptP
       { className: "mv-parse-run-row" },
       h25(
         "button",
-        { type: "button", className: "mv-cta primary", disabled: runDisabled, onClick: parse },
+        { type: "button", className: "mv-cta primary", disabled: runDisabled, onClick: () => parse(false) },
         bus ? t2("parse.running", { stage: stageText }) : t2("parse.run")
       ),
       bus ? h25("button", { type: "button", className: "mv-cta", onClick: cancelParse }, t2("parse.cancel")) : candidates.length > 0 ? h25("button", { type: "button", className: "mv-cta", onClick: resetPreview }, t2("parse.clear")) : null
@@ -21437,6 +21629,13 @@ function ParseBody({ t: t2, getCesium, getViewer, getLayers, showToast, onAdoptP
         null,
         error === "all_skipped" && diag?.rawCount > 0 ? t2("parse.diagAllSkipped", { n: diag.rawCount }) : t2("parse.failed", { reason: errorText(t2, error) })
       ),
+      diag?.diagnostic?.detail ? h25(
+        "details",
+        { className: "mv-vision-diag" },
+        h25("summary", null, t2("vision.diagSummary")),
+        h25("pre", null, [diag.diagnostic.stage, diag.diagnostic.model, diag.diagnostic.detail].filter(Boolean).join(" · "))
+      ) : null,
+      diag?.diagnostic?.canForce === true && (error === "model_not_visual" || error === "model_unknown") ? h25("button", { type: "button", className: "mv-cta", disabled: runDisabled, onClick: () => parse(true) }, t2("vision.forceTry")) : null,
       diag?.thumbUrl ? h25(
         "div",
         { className: "mv-parse-diag-thumb" },
@@ -23754,17 +23953,30 @@ var import_react38 = __toESM(require("react"), 1);
 var import_react37 = __toESM(require("react"), 1);
 
 // src/client/scene/vision-request.js
-async function visionRequest(url, { frame, signal, fetchImpl = fetch } = {}) {
+async function visionRequest(url, { frame, signal, force = false, fetchImpl = fetch } = {}) {
   if (typeof url !== "string" || !url) throw visionError("unavailable");
-  const response = await fetchImpl(url, {
+  const targetUrl = !frame && force ? `${url}${url.includes("?") ? "&" : "?"}force=1` : url;
+  const response = await fetchImpl(targetUrl, {
     method: frame ? "POST" : "GET",
     credentials: "same-origin",
     signal,
     headers: frame ? { "content-type": "application/json", "x-dsh-panel": "vision" } : {},
-    ...frame ? { body: JSON.stringify({ frameId: frame.id, image: frame.dataUrl, point: frame.point }) } : {}
+    ...frame ? {
+      body: JSON.stringify({
+        frameId: frame.id,
+        image: frame.dataUrl,
+        point: frame.point,
+        ...force ? { force: true } : {}
+      })
+    } : {}
   });
   const result = await response.json().catch(() => null);
-  if (!response.ok || result?.ok !== true) throw visionError(typeof result?.code === "string" ? result.code : "model_failed");
+  if (!response.ok || result?.ok !== true) {
+    throw visionError(typeof result?.code === "string" ? result.code : "model_failed", {
+      diagnostic: result?.diagnostic ?? null,
+      next: result?.next ?? null
+    });
+  }
   if (!frame) return result;
   if (result.frameId !== frame.id || !frame.isValid()) throw visionError("scene_changed");
   const validated = validateVisionPolygon(result, frame.point);
@@ -23772,17 +23984,38 @@ async function visionRequest(url, { frame, signal, fetchImpl = fetch } = {}) {
     const [first, second, third, fourth] = validated.polygon;
     if (first[1] === second[1] && second[0] === third[0] && third[1] === fourth[1] && fourth[0] === first[0]) validated.shape = "box";
   }
-  return { ...validated, model: result.model };
+  return {
+    ...validated,
+    model: result.model,
+    ...result.provider ? { provider: result.provider } : {},
+    ...result.backend ? { backend: result.backend } : {},
+    ...result.capability ? { capability: result.capability } : {},
+    ...result.repaired || validated.repaired ? { repaired: true } : {}
+  };
 }
 
 // src/client/ui/vision-select.js
 var h31 = import_react37.default.createElement;
 var VISION_TIMEOUT_MS = 65e3;
+var clamp012 = (v) => v < 0 ? 0 : v > 1 ? 1 : v;
+var emptyDraft = () => ({
+  mode: "dsh-default",
+  allowUnverifiedModalities: true,
+  dshModel: { provider: "", model: "" },
+  openaiCompat: { baseUrl: "", apiKey: "", model: "", coordSpace: "auto", maxTokens: 4096, hasApiKey: false, apiKeyHint: "" }
+});
 function VisionSelect({ controller, anchor, t: t2, onClose, onCommit, onManual }) {
-  const [state, setState] = import_react37.default.useState({ phase: "ready", frame: null, result: null, error: "" });
+  const [state, setState] = import_react37.default.useState({ phase: "ready", frame: null, result: null, error: "", diagnostic: null });
   const [attempt, setAttempt] = import_react37.default.useState(0);
+  const [forceRun, setForceRun] = import_react37.default.useState(false);
+  const [configOpen, setConfigOpen] = import_react37.default.useState(false);
+  const [configBusy, setConfigBusy] = import_react37.default.useState(false);
+  const [configMsg, setConfigMsg] = import_react37.default.useState("");
+  const [draft, setDraft] = import_react37.default.useState(emptyDraft);
   const frameRef = import_react37.default.useRef(null);
   const dialogRef = import_react37.default.useRef(null);
+  const svgRef = import_react37.default.useRef(null);
+  const dragIndexRef = import_react37.default.useRef(-1);
   const abortRef = import_react37.default.useRef(null);
   const stoppedRef = import_react37.default.useRef(false);
   import_react37.default.useEffect(() => {
@@ -23802,15 +24035,15 @@ function VisionSelect({ controller, anchor, t: t2, onClose, onCommit, onManual }
       timedOut = true;
       abort.abort();
     }, VISION_TIMEOUT_MS);
-    setState({ phase: "loading", frame: null, result: null, error: "" });
+    setState({ phase: "loading", frame: null, result: null, error: "", diagnostic: null });
     const run = async () => {
       try {
         const url = controller?.getMeta?.()?.visionUrl;
-        await visionRequest(url, { signal: abort.signal });
+        await visionRequest(url, { signal: abort.signal, ...forceRun ? { force: true } : {} });
         if (!current || abort.signal.aborted) return;
         frame = captureVisionFrame({ viewer: controller.getViewer(), Cesium: controller.getCesium(), anchor, getLayers: controller.getLayers, getViewer: controller.getViewer });
         frameRef.current = frame;
-        setState({ phase: "loading", frame, result: null, error: "" });
+        setState({ phase: "loading", frame, result: null, error: "", diagnostic: null });
         interval = setInterval(() => {
           if (frame.isValid()) return;
           stale = true;
@@ -23818,12 +24051,12 @@ function VisionSelect({ controller, anchor, t: t2, onClose, onCommit, onManual }
           clearInterval(interval);
           clearTimeout(timer);
           frame.release();
-          if (current) setState((previous) => ({ ...previous, phase: "error", error: "scene_changed" }));
+          if (current) setState((previous) => ({ ...previous, phase: "error", error: "scene_changed", diagnostic: null }));
         }, 150);
-        const result = await visionRequest(url, { frame, signal: abort.signal });
+        const result = await visionRequest(url, { frame, signal: abort.signal, ...forceRun ? { force: true } : {} });
         if (!current || stale || abort.signal.aborted) return;
         clearTimeout(timer);
-        setState({ phase: "preview", frame, result, error: "" });
+        setState({ phase: "preview", frame, result, error: "", diagnostic: null });
       } catch (error) {
         frame?.release();
         clearInterval(interval);
@@ -23832,7 +24065,8 @@ function VisionSelect({ controller, anchor, t: t2, onClose, onCommit, onManual }
           setState((previous) => ({
             ...previous,
             phase: "error",
-            error: stoppedRef.current ? "cancelled" : timedOut ? "timeout" : error?.code ?? "model_failed"
+            error: stoppedRef.current ? "cancelled" : timedOut ? "timeout" : error?.code ?? "model_failed",
+            diagnostic: stoppedRef.current || timedOut ? null : error?.diagnostic ?? null
           }));
         }
       } finally {
@@ -23848,11 +24082,12 @@ function VisionSelect({ controller, anchor, t: t2, onClose, onCommit, onManual }
       frame?.release();
       frameRef.current = null;
     };
-  }, [controller, anchor, attempt]);
-  const start = () => {
+  }, [controller, anchor, attempt, forceRun]);
+  const start = (force = false) => {
     if (state.phase === "loading") return;
     stoppedRef.current = false;
-    setState({ phase: "loading", frame: null, result: null, error: "" });
+    setForceRun(Boolean(force));
+    setState({ phase: "loading", frame: null, result: null, error: "", diagnostic: null });
     setAttempt((value) => value + 1);
   };
   const stop = () => {
@@ -23861,7 +24096,81 @@ function VisionSelect({ controller, anchor, t: t2, onClose, onCommit, onManual }
     const frame = frameRef.current;
     frameRef.current = null;
     frame?.release();
-    setState((previous) => ({ ...previous, phase: "error", frame: null, result: null, error: "cancelled" }));
+    setState((previous) => ({ ...previous, phase: "error", frame: null, result: null, error: "cancelled", diagnostic: null }));
+  };
+  const toggleConfig = async () => {
+    const nextOpen = !configOpen;
+    setConfigOpen(nextOpen);
+    setConfigMsg("");
+    if (!nextOpen) return;
+    const cfgUrl = controller?.getMeta?.()?.visionConfigUrl;
+    if (!cfgUrl || typeof globalThis.fetch !== "function") return;
+    setConfigBusy(true);
+    try {
+      const resp = await globalThis.fetch(cfgUrl, { credentials: "same-origin" });
+      const data = await resp.json().catch(() => null);
+      if (resp.ok && data?.config) {
+        setDraft({
+          ...emptyDraft(),
+          ...data.config,
+          dshModel: { ...emptyDraft().dshModel, ...data.config.dshModel ?? {} },
+          openaiCompat: { ...emptyDraft().openaiCompat, ...data.config.openaiCompat ?? {}, apiKey: "" }
+        });
+      }
+    } catch {
+    } finally {
+      setConfigBusy(false);
+    }
+  };
+  const saveConfig = async () => {
+    const cfgUrl = controller?.getMeta?.()?.visionConfigUrl;
+    if (!cfgUrl || typeof globalThis.fetch !== "function") return;
+    setConfigBusy(true);
+    setConfigMsg("");
+    try {
+      const resp = await globalThis.fetch(cfgUrl, {
+        method: "PUT",
+        credentials: "same-origin",
+        headers: { "content-type": "application/json", "x-dsh-panel": "vision-config" },
+        body: JSON.stringify(draft)
+      });
+      const data = await resp.json().catch(() => null);
+      if (!resp.ok || !data?.ok) throw new Error("save failed");
+      setDraft((prev) => ({
+        ...prev,
+        ...data.config,
+        openaiCompat: { ...prev.openaiCompat, ...data.config?.openaiCompat ?? {}, apiKey: "" }
+      }));
+      setConfigMsg(t2("vision.configSaved"));
+    } catch {
+      setConfigMsg(t2("vision.configSaveFailed"));
+    } finally {
+      setConfigBusy(false);
+    }
+  };
+  const updateVertexAtPointer = (event) => {
+    const index = dragIndexRef.current;
+    const svg = svgRef.current;
+    if (index < 0 || !svg) return;
+    const rect = svg.getBoundingClientRect?.();
+    if (!rect || !(rect.width > 0) || !(rect.height > 0)) return;
+    const nx = Math.round(clamp012((event.clientX - rect.left) / rect.width) * 1e4) / 1e4;
+    const ny = Math.round(clamp012((event.clientY - rect.top) / rect.height) * 1e4) / 1e4;
+    setState((previous) => {
+      const poly = previous.result?.polygon;
+      if (!Array.isArray(poly) || index >= poly.length) return previous;
+      const nextPoly = poly.map((pt, i) => i === index ? [nx, ny] : pt);
+      return { ...previous, error: "", result: { ...previous.result, polygon: nextPoly } };
+    });
+  };
+  const startVertexDrag = (index, event) => {
+    event.preventDefault?.();
+    event.stopPropagation?.();
+    dragIndexRef.current = index;
+    event.currentTarget?.setPointerCapture?.(event.pointerId);
+  };
+  const endVertexDrag = () => {
+    dragIndexRef.current = -1;
   };
   const accept = () => {
     try {
@@ -23881,7 +24190,7 @@ function VisionSelect({ controller, anchor, t: t2, onClose, onCommit, onManual }
       return;
     }
     if (event.key !== "Tab") return;
-    const controls = [...dialogRef.current.querySelectorAll("button:not(:disabled)")];
+    const controls = [...dialogRef.current.querySelectorAll("button:not(:disabled),input:not(:disabled),select:not(:disabled)")];
     const first = controls[0], last = controls.at(-1);
     if (event.shiftKey && (document.activeElement === first || document.activeElement === dialogRef.current)) {
       event.preventDefault();
@@ -23894,23 +24203,142 @@ function VisionSelect({ controller, anchor, t: t2, onClose, onCommit, onManual }
   const errorKey = `vision.error.${state.error}`;
   const errorText2 = state.error && (t2(errorKey) === errorKey ? t2("vision.error.model_failed") : t2(errorKey));
   const statusText = state.phase === "ready" ? t2("vision.readyToStart") : state.phase === "loading" ? t2("vision.loading") : state.result?.shape === "box" ? t2("vision.boxReady") : t2("vision.ready");
+  const hasConfigUrl = Boolean(controller?.getMeta?.()?.visionConfigUrl);
+  const canForce = state.phase === "error" && state.diagnostic?.canForce === true && (state.error === "model_not_visual" || state.error === "model_unknown");
+  const diagLines = state.diagnostic ? [
+    state.diagnostic.stage ? t2("vision.diagStage", { stage: state.diagnostic.stage }) : "",
+    state.diagnostic.backend ? t2("vision.diagBackend", { backend: state.diagnostic.backend }) : "",
+    state.diagnostic.model ? t2("vision.diagModel", { model: state.diagnostic.provider ? `${state.diagnostic.provider} / ${state.diagnostic.model}` : state.diagnostic.model }) : "",
+    state.diagnostic.detail ? t2("vision.diagDetail", { detail: state.diagnostic.detail }) : ""
+  ].filter(Boolean) : [];
   return h31(
     "div",
     { className: "mv-vision-screen", onKeyDown: onKeyDown2 },
     h31(
       "section",
       { className: "mv-vision", role: "dialog", "aria-modal": true, "aria-label": t2("vision.title"), tabIndex: -1, ref: dialogRef },
-      h31("header", null, h31("h3", null, t2("vision.title")), h31("button", { type: "button", className: "mv-icon-btn", "aria-label": t2("btn.close"), onClick: onClose }, "✕")),
+      h31(
+        "header",
+        null,
+        h31("h3", null, t2("vision.title")),
+        h31(
+          "div",
+          { className: "mv-vision-head-actions" },
+          hasConfigUrl ? h31("button", { type: "button", className: "mv-cta", onClick: toggleConfig }, t2("vision.configToggle")) : null,
+          h31("button", { type: "button", className: "mv-icon-btn", "aria-label": t2("btn.close"), onClick: onClose }, "✕")
+        )
+      ),
+      configOpen ? h31(
+        "div",
+        { className: "mv-vision-cfg" },
+        h31(
+          "label",
+          null,
+          t2("vision.configMode"),
+          h31(
+            "select",
+            { value: draft.mode, onChange: (e) => setDraft((prev) => ({ ...prev, mode: e.target.value })) },
+            h31("option", { value: "dsh-default" }, t2("vision.configModeDefault")),
+            h31("option", { value: "dsh-model" }, t2("vision.configModeDsh")),
+            h31("option", { value: "openai-compat" }, t2("vision.configModeOpenai"))
+          )
+        ),
+        draft.mode === "dsh-model" ? h31(
+          "div",
+          { className: "mv-vision-cfg-row" },
+          h31(
+            "label",
+            null,
+            t2("vision.configProvider"),
+            h31("input", { type: "text", value: draft.dshModel.provider, placeholder: "deepseek / custom", onChange: (e) => setDraft((p) => ({ ...p, dshModel: { ...p.dshModel, provider: e.target.value } })) })
+          ),
+          h31(
+            "label",
+            null,
+            t2("vision.configModel"),
+            h31("input", { type: "text", value: draft.dshModel.model, placeholder: "model-id", onChange: (e) => setDraft((p) => ({ ...p, dshModel: { ...p.dshModel, model: e.target.value } })) })
+          )
+        ) : null,
+        draft.mode === "openai-compat" ? h31(
+          import_react37.default.Fragment,
+          null,
+          h31(
+            "label",
+            null,
+            t2("vision.configBaseUrl"),
+            h31("input", { type: "url", value: draft.openaiCompat.baseUrl, placeholder: "https://api.example.com/v1", onChange: (e) => setDraft((p) => ({ ...p, openaiCompat: { ...p.openaiCompat, baseUrl: e.target.value } })) })
+          ),
+          h31(
+            "div",
+            { className: "mv-vision-cfg-row" },
+            h31(
+              "label",
+              null,
+              t2("vision.configModel"),
+              h31("input", { type: "text", value: draft.openaiCompat.model, placeholder: "mimo-v2-flash / deepseek-vl", onChange: (e) => setDraft((p) => ({ ...p, openaiCompat: { ...p.openaiCompat, model: e.target.value } })) })
+            ),
+            h31(
+              "label",
+              null,
+              t2("vision.configCoordSpace"),
+              h31(
+                "select",
+                { value: draft.openaiCompat.coordSpace, onChange: (e) => setDraft((p) => ({ ...p, openaiCompat: { ...p.openaiCompat, coordSpace: e.target.value } })) },
+                h31("option", { value: "auto" }, t2("vision.configCoordAuto")),
+                h31("option", { value: "unit" }, t2("vision.configCoordUnit")),
+                h31("option", { value: "thousand" }, t2("vision.configCoordThousand")),
+                h31("option", { value: "pixel" }, t2("vision.configCoordPixel"))
+              )
+            )
+          ),
+          h31(
+            "label",
+            null,
+            t2("vision.configApiKey"),
+            h31("input", { type: "password", value: draft.openaiCompat.apiKey, placeholder: draft.openaiCompat.hasApiKey ? draft.openaiCompat.apiKeyHint : "sk-...", onChange: (e) => setDraft((p) => ({ ...p, openaiCompat: { ...p.openaiCompat, apiKey: e.target.value } })) })
+          )
+        ) : null,
+        h31(
+          "div",
+          { className: "mv-vision-actions" },
+          h31("button", { type: "button", className: "mv-cta primary", disabled: configBusy, onClick: saveConfig }, t2("vision.configSave"))
+        ),
+        configMsg ? h31("p", { className: "mv-vision-note" }, configMsg) : null
+      ) : null,
       h31("p", { className: "mv-vision-note" }, t2("vision.notice")),
       state.frame ? h31(
         "div",
         { className: "mv-vision-image", style: { aspectRatio: `${state.frame.width}/${state.frame.height}` } },
         h31("img", { src: state.frame.dataUrl, alt: t2("vision.imageAlt"), draggable: false }),
+        state.phase === "loading" ? h31(
+          "span",
+          { className: "mv-vision-busy-badge", "aria-hidden": true },
+          h31("span", { className: "mv-vision-busy-dot" }),
+          t2("vision.loadingBadge")
+        ) : null,
         h31(
           "svg",
-          { viewBox: "0 0 1000 1000", preserveAspectRatio: "none", "aria-hidden": true },
+          {
+            ref: svgRef,
+            viewBox: "0 0 1000 1000",
+            preserveAspectRatio: "none",
+            onPointerMove: updateVertexAtPointer,
+            onPointerUp: endVertexDrag,
+            onPointerCancel: endVertexDrag
+          },
           state.result ? h31("polygon", { points: state.result.polygon.map(([lon, lat]) => `${lon * 1e3},${lat * 1e3}`).join(" "), vectorEffect: "non-scaling-stroke" }) : null,
-          h31("circle", { cx: state.frame.point[0] * 1e3, cy: state.frame.point[1] * 1e3, r: 6, vectorEffect: "non-scaling-stroke" })
+          h31("circle", { cx: state.frame.point[0] * 1e3, cy: state.frame.point[1] * 1e3, r: 6, vectorEffect: "non-scaling-stroke" }),
+          ...state.phase === "preview" && Array.isArray(state.result?.polygon) ? state.result.polygon.map(
+            ([vx, vy], idx) => h31("circle", {
+              key: `v-${idx}`,
+              className: "mv-vision-handle",
+              cx: vx * 1e3,
+              cy: vy * 1e3,
+              r: 10,
+              vectorEffect: "non-scaling-stroke",
+              onPointerDown: (event) => startVertexDrag(idx, event)
+            })
+          ) : []
         )
       ) : null,
       h31(
@@ -23918,14 +24346,22 @@ function VisionSelect({ controller, anchor, t: t2, onClose, onCommit, onManual }
         { role: state.error ? "alert" : "status", "aria-live": "polite", className: state.error ? "mv-vision-error" : "mv-vision-status" },
         errorText2 || statusText
       ),
+      state.result?.repaired ? h31("p", { className: "mv-vision-note" }, t2("vision.repairedNote")) : null,
       state.result?.model ? h31("p", { className: "mv-vision-note" }, t2("vision.model", { model: state.result.model })) : null,
+      diagLines.length > 0 ? h31(
+        "details",
+        { className: "mv-vision-diag" },
+        h31("summary", null, t2("vision.diagSummary")),
+        h31("pre", null, diagLines.join("\n"))
+      ) : null,
       h31(
         "div",
         { className: "mv-vision-actions" },
-        state.phase === "ready" ? h31("button", { type: "button", className: "mv-cta primary", onClick: start }, t2("vision.start")) : null,
+        state.phase === "ready" ? h31("button", { type: "button", className: "mv-cta primary", onClick: () => start(false) }, t2("vision.start")) : null,
         state.phase === "loading" ? h31("button", { type: "button", className: "mv-cta", onClick: stop }, t2("vision.stop")) : null,
         state.phase === "preview" ? h31("button", { type: "button", className: "mv-cta primary", disabled: Boolean(state.error), onClick: accept }, t2("vision.accept")) : null,
-        state.phase === "error" ? h31("button", { type: "button", className: "mv-cta primary", onClick: start }, t2("vision.retry")) : null,
+        canForce ? h31("button", { type: "button", className: "mv-cta primary", onClick: () => start(true) }, t2("vision.forceTry")) : null,
+        state.phase === "error" ? h31("button", { type: "button", className: "mv-cta primary", onClick: () => start(false) }, t2("vision.retry")) : null,
         h31("button", { type: "button", className: "mv-cta", onClick: () => {
           frameRef.current?.release();
           onClose();

@@ -193,8 +193,9 @@ export function ParseBody({ t, getCesium, getViewer, getLayers, showToast, onAdo
     abortRef.current?.abort?.()
   }
 
-  const parse = async () => {
+  const parse = async (force = false) => {
     if (bus) return
+    const forceFlag = force === true
     if (scope === 'aoi' && !aoiReady) {
       showToast?.(t('parse.scopeAoiNone'))
       return
@@ -221,7 +222,7 @@ export function ParseBody({ t, getCesium, getViewer, getLayers, showToast, onAdo
       const meta = await loadMeta()
       if (!aliveRef.current || controller?.signal?.aborted) throw Object.assign(new Error('cancelled'), { code: 'cancelled' })
       if (!meta?.visionBatchUrl) throw Object.assign(new Error('unavailable'), { code: 'unavailable' })
-      const payload = await requestSceneParse(meta.visionBatchUrl, { frame, classes: targetList, signal: controller?.signal })
+      const payload = await requestSceneParse(meta.visionBatchUrl, { frame, classes: targetList, force: forceFlag, signal: controller?.signal })
       if (!aliveRef.current) return
       const filteredObjects = targetList
         ? payload.objects.filter((item) => targetList.includes(item?.class))
@@ -260,8 +261,12 @@ export function ParseBody({ t, getCesium, getViewer, getLayers, showToast, onAdo
     } catch (failure) {
       if (!aliveRef.current) return
       const code = controller?.signal?.aborted || failure?.name === 'AbortError' ? 'cancelled' : (failure?.code ?? 'model_failed')
-      if (frame?.dataUrl && code !== 'cancelled') {
-        setDiag({ rawCount: 0, thumbUrl: frame.dataUrl, width: frame.width, height: frame.height })
+      if (code !== 'cancelled') {
+        setDiag({
+          rawCount: 0,
+          ...(frame?.dataUrl ? { thumbUrl: frame.dataUrl, width: frame.width, height: frame.height } : {}),
+          ...(failure?.diagnostic ? { diagnostic: failure.diagnostic } : {}),
+        })
       }
       setError(code)
     } finally {
@@ -436,7 +441,7 @@ export function ParseBody({ t, getCesium, getViewer, getLayers, showToast, onAdo
       { className: 'mv-parse-run-row' },
       h(
         'button',
-        { type: 'button', className: 'mv-cta primary', disabled: runDisabled, onClick: parse },
+        { type: 'button', className: 'mv-cta primary', disabled: runDisabled, onClick: () => parse(false) },
         bus ? t('parse.running', { stage: stageText }) : t('parse.run'),
       ),
       bus
@@ -456,6 +461,15 @@ export function ParseBody({ t, getCesium, getViewer, getLayers, showToast, onAdo
               ? t('parse.diagAllSkipped', { n: diag.rawCount })
               : t('parse.failed', { reason: errorText(t, error) }),
           ),
+          diag?.diagnostic?.detail
+            ? h('details', { className: 'mv-vision-diag' },
+                h('summary', null, t('vision.diagSummary')),
+                h('pre', null, [diag.diagnostic.stage, diag.diagnostic.model, diag.diagnostic.detail].filter(Boolean).join(' · ')),
+              )
+            : null,
+          diag?.diagnostic?.canForce === true && (error === 'model_not_visual' || error === 'model_unknown')
+            ? h('button', { type: 'button', className: 'mv-cta', disabled: runDisabled, onClick: () => parse(true) }, t('vision.forceTry'))
+            : null,
           diag?.thumbUrl
             ? h(
                 'div',
