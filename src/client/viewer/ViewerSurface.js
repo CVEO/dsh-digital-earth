@@ -2512,66 +2512,6 @@ const TOOL_WINDOW_OF_MODE = {
           },
           onOpenSettings: () => setSettingsOpen(true),
         }),
-        urlBar
-          ? h(UrlBar, {
-              key: 'urlbar',
-              value: urlInput,
-              placeholder: t('urlbar.placeholder'),
-              submitLabel: t('urlbar.submit'), closeLabel: t('btn.close'),
-              onChange: setUrlInput,
-              onSubmit: submitUrl,
-              onClose: () => setUrlBar(false),
-            })
-          : null,
-        shaderOpen
-          ? h(ShaderWorkbench, {
-              key: 'shader',
-              t,
-              layers,
-              form: shaderForm,
-              active: shaderActive,
-              onClose: () => {
-                void workbench.compare(false)
-                setShaderOpen(false)
-              },
-              onLayer: (layerId) => workbench.field('layerId', layerId),
-              onPreset: workbench.toggle,
-              onField: workbench.field,
-              onApply: workbench.apply,
-              onPreview: workbench.preview,
-              target: workbench.target(), getScene: () => ({ Cesium: cesiumRef.current, viewer: viewerRef.current }),
-              onPresetMove: workbench.move,
-              onCompare: workbench.compare,
-              onResetLayer: workbench.resetLayer,
-              onResetAll: workbench.resetAll,
-              onApplyAll: workbench.applyAll,
-              onLoadEntry: workbench.loadEntry,
-              onSyncEntry: workbench.syncEntryToAll,
-              onResetEntry: workbench.resetLayerFor,
-            })
-          : null,
-        // v1.7 P0: 指认 card + corner brackets (panel-only) and the tour bar.
-        h(SelectionOverlay, {
-          key: 'selection',
-          active: tool === 'identify',
-          apiRef: selectionApiRef,
-          controller: selectionController,
-          renderSnapshot,
-          t,
-          showToast,
-          onMeasure: measureFromSelection,
-          onVisionCommit: (ground) => { getSelectionTool(viewerRef.current, { getCesium: () => cesiumRef.current, t, showToast })?.commitVision(ground); workspace.openTool('select') },
-          onVisionManual: () => workspace.openTool('select'),
-          onSelectArea: (card) => {
-            const viewerNow = viewerRef.current
-            if (!viewerNow || !card?.point) return
-            const selectionTool = getSelectionTool(viewerNow, { getCesium: () => cesiumRef.current, t, showToast })
-            selectionTool?.selectAreaAround?.({ lon: card.point.lon, lat: card.point.lat, radiusM: 15, height: card.point.surface_height_m ?? 0 })
-            workspace.openTool('select')
-          },
-        }),
-        tour.element,
-        swipe.element,
         h(RightStack, {
           t,
           busy: Boolean(measureMode || tool === 'annotation'),
@@ -2706,6 +2646,66 @@ const TOOL_WINDOW_OF_MODE = {
           },
         }),
         ),
+        urlBar
+          ? h(UrlBar, {
+              key: 'urlbar',
+              value: urlInput,
+              placeholder: t('urlbar.placeholder'),
+              submitLabel: t('urlbar.submit'), closeLabel: t('btn.close'),
+              onChange: setUrlInput,
+              onSubmit: submitUrl,
+              onClose: () => setUrlBar(false),
+            })
+          : null,
+        shaderOpen
+          ? h(ShaderWorkbench, {
+              key: 'shader',
+              t,
+              layers,
+              form: shaderForm,
+              active: shaderActive,
+              onClose: () => {
+                void workbench.compare(false)
+                setShaderOpen(false)
+              },
+              onLayer: (layerId) => workbench.field('layerId', layerId),
+              onPreset: workbench.toggle,
+              onField: workbench.field,
+              onApply: workbench.apply,
+              onPreview: workbench.preview,
+              target: workbench.target(), getScene: () => ({ Cesium: cesiumRef.current, viewer: viewerRef.current }),
+              onPresetMove: workbench.move,
+              onCompare: workbench.compare,
+              onResetLayer: workbench.resetLayer,
+              onResetAll: workbench.resetAll,
+              onApplyAll: workbench.applyAll,
+              onLoadEntry: workbench.loadEntry,
+              onSyncEntry: workbench.syncEntryToAll,
+              onResetEntry: workbench.resetLayerFor,
+            })
+          : null,
+        // v1.7 P0: 指认 card + corner brackets (panel-only) and the tour bar.
+        h(SelectionOverlay, {
+          key: 'selection',
+          active: tool === 'identify',
+          apiRef: selectionApiRef,
+          controller: selectionController,
+          renderSnapshot,
+          t,
+          showToast,
+          onMeasure: measureFromSelection,
+          onVisionCommit: (ground) => { getSelectionTool(viewerRef.current, { getCesium: () => cesiumRef.current, t, showToast })?.commitVision(ground); workspace.openTool('select') },
+          onVisionManual: () => workspace.openTool('select'),
+          onSelectArea: (card) => {
+            const viewerNow = viewerRef.current
+            if (!viewerNow || !card?.point) return
+            const selectionTool = getSelectionTool(viewerNow, { getCesium: () => cesiumRef.current, t, showToast })
+            selectionTool?.selectAreaAround?.({ lon: card.point.lon, lat: card.point.lat, radiusM: 15, height: card.point.surface_height_m ?? 0 })
+            workspace.openTool('select')
+          },
+        }),
+        tour.element,
+        swipe.element,
         h(ChromeA11y, { key: 'chrome-a11y', t, status, hidden: chromeHidden, onShow: toggleChrome }),
         phase === 'ready' && layers.length === 0 && !emptyDismissed && !restoringScene
           ? h(

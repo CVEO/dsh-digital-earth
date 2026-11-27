@@ -38,6 +38,17 @@ test('one shell contains TopBar + RightStack; hide handle and live status stay o
   assert.match(surface, /mv-chrome-hidden/)
 })
 
+test('scene overlays stay outside the chrome shell (identify card uses scene pixels)', () => {
+  const surface = read('src/client/viewer/ViewerSurface.js')
+  const shell = surface.indexOf("h(ChromeShell")
+  const topbar = surface.indexOf("h(TopBar", shell)
+  const dock = surface.indexOf("h(RightStack", topbar)
+  const shellClose = surface.indexOf('\n        ),\n        urlBar', dock)
+  const selection = surface.indexOf("h(SelectionOverlay", dock)
+  assert.ok(shell >= 0 && topbar > shell && dock > topbar && shellClose > dock, 'shell must contain TopBar then RightStack')
+  assert.ok(selection > shellClose, 'SelectionOverlay must be a scene sibling, not a child of the right console')
+})
+
 test('toolbar loses the brand card and exposes the hide action + shortcut hint', () => {
   const topbar = read('src/client/ui/topbar.js')
   assert.doesNotMatch(topbar, /mv-brand|ViewerIcon/)
