@@ -63,9 +63,36 @@ export async function serveFile(req, res, root, relPath, cacheControl) {
     return sendText(res, 404, 'not found')
   }
   if (!stat.isFile()) return sendText(res, 404, 'not found')
+  const type = MIME[extname(target).toLowerCase()] ?? 'application/octet-stream'
+  // Byte ranges are what makes a local GeoTIFF/COG readable from the page and
+  // what lets browsers seek a local video without downloading it whole.
+  const range = parseRange(req.headers?.range, stat.size)
+  if (range === 'invalid') {
+    res.writeHead(416, { 'content-range': `bytes */${stat.size}`, 'accept-ranges': 'bytes' })
+    res.end()
+    return
+  }
+  if (range !== null) {
+    res.writeHead(206, {
+      'content-type': type,
+      'content-length': String(range.end - range.start + 1),
+      'content-range': `bytes ${range.start}-${range.end}/${stat.size}`,
+      'accept-ranges': 'bytes',
+      'cache-control': cacheControl,
+    })
+    if (req.method === 'HEAD') {
+      res.end()
+      return
+    }
+    createReadStream(target, { start: range.start, end: range.end })
+      .on('error', () => res.destroy())
+      .pipe(res)
+    return
+  }
   res.writeHead(200, {
-    'content-type': MIME[extname(target).toLowerCase()] ?? 'application/octet-stream',
+    'content-type': type,
     'content-length': String(stat.size),
+    'accept-ranges': 'bytes',
     'cache-control': cacheControl,
   })
   if (req.method === 'HEAD') {
@@ -75,4 +102,36 @@ export async function serveFile(req, res, root, relPath, cacheControl) {
   createReadStream(target)
     .on('error', () => res.destroy())
     .pipe(res)
+}
+
+/**
+ * Parse a `Range: bytes=…` header against a file size.
+ *
+ * Only a single range is supported (multi-range responses are pointless for
+ * imagery/tiles and every browser copes with `206` for one range). Returns
+ * `null` for "serve the whole file", `'invalid'` for an unsatisfiable range.
+ */
+export function parseRange(header, size) {
+  if (typeof header !== 'string' || header === '') return null
+  const match = /^bytes=(\d*)-(\d*)$/.exec(header.trim())
+  if (!match) return null
+  const [, rawStart, rawEnd] = match
+  if (rawStart === '' && rawEnd === '') return 'invalid'
+  let start
+  let end
+  if (rawStart === '') {
+    // Suffix range: the last N bytes.
+    const length = Number(rawEnd)
+    if (!Number.isFinite(length) || length <= 0) return 'invalid'
+    start = Math.max(0, size - length)
+    end = size - 1
+  } else {
+    start = Number(rawStart)
+    end = rawEnd === '' ? size - 1 : Number(rawEnd)
+    if (!Number.isFinite(start) || !Number.isFinite(end)) return 'invalid'
+    if (start >= size || end < start) return 'invalid'
+    end = Math.min(end, size - 1)
+  }
+  if (size === 0) return 'invalid'
+  return { start, end }
 }

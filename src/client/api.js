@@ -55,12 +55,33 @@ import { clone } from './format.js'
       return cesiumStylePromise
     }
 
+    /**
+     * Local GeoTIFF overlays are stored with the origin that created them. The
+     * token segment is refreshed by the host, but a DSH restart can also change
+     * the port, so point the same tile path at the origin serving this page.
+     */
+    const rebaseGeotiffOverlays = (config) => {
+      const overlays = Array.isArray(config?.rasterOverlays) ? config.rasterOverlays : []
+      // String surgery, not `new URL().href`: URL encodes `{z}/{x}/{y}` and
+      // Cesium would stop recognising the tile template.
+      const localGeotiff = /^https?:\/\/(?:localhost|127\.0\.0\.1|\[::1\])(?::\d+)?(\/api\/3dviewer\/geotiff\/.+)$/
+      for (const overlay of overlays) {
+        if (typeof overlay?.url !== 'string') continue
+        const match = localGeotiff.exec(overlay.url)
+        if (match !== null) overlay.url = `${location.protocol}//${location.host}${match[1]}`
+      }
+      return config
+    }
+
     /** Read the persisted source catalog (falls back to the built-in catalog). */
     const loadSources = async (meta) => {
       try {
         const response = await fetch(meta.sourcesUrl, { credentials: 'same-origin' })
         if (!response.ok) throw new Error(`HTTP ${response.status}`)
-        return await response.json()
+        const payload = await response.json()
+        // The host answers `{ config, defaults }`; the overlays live in config.
+        rebaseGeotiffOverlays(payload?.config ?? payload)
+        return payload
       } catch {
         const config = {
           imagery: [

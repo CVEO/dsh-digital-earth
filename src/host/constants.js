@@ -16,6 +16,7 @@ export const API = '/api/3dviewer'
 // `pathname === prefix || pathname.startsWith(prefix + '/')`.
 export const CESIUM_ROUTE = `${API}/cesium`
 export const TILES_ROUTE = `${API}/tiles`
+export const GEO_ROUTE = `${API}/geotiff`
 export const REMOTE_ROUTE = `${API}/remote`
 export const SOURCES_ROUTE = `${API}/sources`
 export const BRIDGE_ROUTE = `${API}/bridge`
@@ -72,6 +73,9 @@ export const MAX_RECENT_DIRECTORIES = 20
 export const CAPTURES_DIR = resolve(STATE_DIR, 'captures')
 export const EXPORTS_DIR = resolve(STATE_DIR, 'exports')
 export const SCENES_DIR = resolve(STATE_DIR, 'scenes')
+// Published GeoTIFF pyramids live next to the catalog, not inside the user's
+// data folder: deleting the source must not blank a layer that still works.
+export const GEOTIFF_CACHE_DIR = resolve(STATE_DIR, 'geotiff-cache')
 export const PACKAGE_FILE = join(ROOT_DIR, 'package.json')
 export const MAX_SOURCES_BODY = 128 * 1024
 export const MAX_BRIDGE_BODY = 256 * 1024
@@ -160,6 +164,10 @@ export const MIME = {
   '.i3dm': 'application/octet-stream',
   '.cmpt': 'application/octet-stream',
   '.spz': 'application/octet-stream',
+  '.tif': 'image/tiff',
+  '.tiff': 'image/tiff',
+  '.geojson': 'application/geo+json',
+  '.ndjson': 'application/x-ndjson',
 }
 
 // Browser-side height sampling and shadow setup can be slow; the frozen B2

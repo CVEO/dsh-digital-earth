@@ -7,7 +7,7 @@ import { resolve, sep } from 'node:path'
 import { promises as fs } from 'node:fs'
 import { Readable, pipeline } from 'node:stream'
 import { ABOUT } from './about.js'
-import { API, BRIDGE_ROUTE, CAPTURE_ROUTE, CESIUM_DIR, CESIUM_ROUTE, DIRECTORIES_ROUTE, EXPORT_ROUTE, EXPORT_VECTOR_CHAT_ROUTE, EXPORT_VECTOR_ROUTE, FILES_ROUTE, INJECT_ROUTE, INSPECT_ROUTE, MAX_REMOTE_QUERY, PANEL_HEADER, REMOTE_PROXY_MAX_BYTES, REMOTE_PROXY_TIMEOUT_MS, REMOTE_ROUTE, REPORT_ROUTE, SCENE_ROUTE, SOURCES_ROUTE, TILES_ROUTE, TOKEN, VISION_CONFIG_ROUTE } from './constants.js'
+import { API, BRIDGE_ROUTE, CAPTURE_ROUTE, CESIUM_DIR, CESIUM_ROUTE, DIRECTORIES_ROUTE, EXPORT_ROUTE, EXPORT_VECTOR_CHAT_ROUTE, EXPORT_VECTOR_ROUTE, FILES_ROUTE, INJECT_ROUTE, INSPECT_ROUTE, MAX_REMOTE_QUERY, PANEL_HEADER, REMOTE_PROXY_MAX_BYTES, REMOTE_PROXY_TIMEOUT_MS, REMOTE_ROUTE, REPORT_ROUTE, SCENE_ROUTE, SOURCES_ROUTE, TILES_ROUTE, GEO_ROUTE, TOKEN, VISION_CONFIG_ROUTE } from './constants.js'
 import { blockedHost, decodeSegment, fromB64, isFilesystemRoot, isSafeOpenedDirectory, isUncPath, realPathOr, segments, toB64 } from './paths.js'
 import { bridgeHandler } from './bridge.js'
 import { captureHandler, capturesHandler, reportHandler } from './storage.js'
@@ -20,6 +20,7 @@ import { inspectHandler } from './inspect/handler.js'
 import { requestPath, requestQuery, sendJson, sendText, serveFile, subPath } from './http.js'
 import { saveSourcesHandler, sourcesHandler } from './sources.js'
 import { sceneSnapshotHandler } from './snapshots.js'
+import { createGeotiffRoutes } from './geotiff/http.js'
 import { MAX_SCAN_DEPTH, MAX_SCAN_ITEMS } from './constants.js'
 import { scanTilesets } from './fs-util.js'
 
@@ -51,6 +52,8 @@ function metaHandler(req, res) {
     token: TOKEN,
     cesiumBase: `${API}/cesium/`,
     tilesBase: `${API}/tiles/${TOKEN}/`,
+    // Local GeoTIFF publish/probe endpoints (page-only; the token is in the path).
+    geotiffBase: `${GEO_ROUTE}/${TOKEN}`,
     scanUrl: `${API}/scan`,
     remoteBase: `${API}/remote/${TOKEN}/`,
     sourcesUrl: `${SOURCES_ROUTE}/${TOKEN}`,
@@ -308,6 +311,10 @@ export function streamRemoteBody(source, req, res, options = {}) {
  * anything doubtful fails closed.
  */
 export function registerRoutes(ctx, { allowedDirs, bridge, directories, getService }) {
+  const geotiff = createGeotiffRoutes({
+    allowedDirs,
+    onFolderOpened: (dir, real) => directories?.rememberScannedDirectory?.(dir, real),
+  })
   const rejection = (req, peer) => {
     const headers = req.headers ?? {}
     const site = headers['sec-fetch-site']
@@ -387,6 +394,11 @@ export function registerRoutes(ctx, { allowedDirs, bridge, directories, getServi
       register('exact', `${API}/meta`, metaHandler),
       register('prefix', CESIUM_ROUTE, cesiumHandler),
       register('prefix', TILES_ROUTE, (req, res) => tilesHandler(req, res, allowedDirs)),
+      register('prefix', `${GEO_ROUTE}/${TOKEN}`, async (req, res) => {
+        const rest = subPath(requestPath(req), `${GEO_ROUTE}/${TOKEN}`) ?? ''
+        const matched = await geotiff.handler(req, res, rest)
+        if (!matched) sendText(res, 404, 'not found')
+      }),
       register('prefix', REMOTE_ROUTE, remoteHandler),
       register('exact', `${API}/scan`, (req, res) => scanHandler(req, res, allowedDirs, directories.rememberScannedDirectory)),
       register('exact', `${SOURCES_ROUTE}/${TOKEN}`, (req, res) =>
