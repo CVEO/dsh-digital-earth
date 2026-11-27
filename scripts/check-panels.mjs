@@ -30,9 +30,16 @@ if (!state.includes("'resultArrived'") || !state.includes("'objectArrived'")) {
 }
 
 const rail = read('src/client/ui/panel-rail.js')
-for (const marker of ["role: 'tablist'", "role: 'tab'", "role: 'tabpanel'", "'aria-selected'", "'aria-controls'", "'aria-labelledby'"]) {
+// One navigation level: the topbar quick group switches destinations; the dock
+// keeps a title bar and one visible tabpanel, never a second tab strip.
+for (const marker of ["role: 'tabpanel'", "'aria-label': tabLabel(t, panel.id)", 'mv-dock-head-title']) {
   if (!rail.includes(marker)) fail(`panel-rail: missing ${marker}`)
 }
+if (rail.includes("role: 'tablist'") || rail.includes("role: 'tab'")) {
+  fail('panel-rail: duplicate tab navigation; topbar quick group must be the only switcher')
+}
+const topbar = read('src/client/ui/topbar.js')
+if (!topbar.includes('ToolbarQuick')) fail('topbar: quick destination group is missing')
 if (!rail.includes("hidden: collapsed || panel.id !== activeTab")) fail('panel-rail: inactive panels must stay mounted and hidden')
 if (/mv-dock-tab-close/.test(rail)) fail('panel-rail: per-tab close button must not exist')
 if ((rail.match(/title: t\('dock\.collapse'\)/g) ?? []).length !== 1) fail('panel-rail: exactly one collapse entry')
