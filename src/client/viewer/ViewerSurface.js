@@ -2400,7 +2400,7 @@ const TOOL_WINDOW_OF_MODE = {
       // They live above the rail so every entry point funnels through one surface.
       const [addLayerRequest, setAddLayerRequest] = React.useState(null)
       const [layerProps, setLayerProps] = React.useState(null)
-      const openAddLayer = (kind, preset = null) => setAddLayerRequest({ kind: kind ?? null, ...(preset ?? {}), token: Date.now() })
+      const openAddLayer = (kind) => setAddLayerRequest({ kind: kind ?? null, token: Date.now() })
       const openLayerShader = (layer, entry) => {
         workbench.loadEntry(entry ?? { layer: layer.name, layerId: layer.id, preset: 'height-false-color' })
         setShaderOpen(true)
@@ -2467,7 +2467,6 @@ const TOOL_WINDOW_OF_MODE = {
             agentOverlayCount,
             onAddLayer: openAddLayer,
             onImportVector: () => openAddLayer('vector'),
-            onImportGeotiff: () => openAddLayer('raster', { rasterMode: 'geotiff' }),
             onOpenLocal: pickLocal,
             onOpenRecentDirectory: openRecentDirectory,
             onOpenRecentUrl: openRecentUrl,

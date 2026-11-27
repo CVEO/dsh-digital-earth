@@ -4,7 +4,7 @@
  * v1.5 host split: implementation moved verbatim from the index.js monolith.
  */
 import { promises as fs } from 'node:fs'
-import { API, IMAGERY_TYPES, MAX_IMAGERY_SOURCES, MAX_SOURCES_BODY, MAX_TERRAIN_SOURCES, SOURCES_FILE, TERRAIN_TYPES, THEME_MODES, TOKEN } from './constants.js'
+import { IMAGERY_TYPES, MAX_IMAGERY_SOURCES, MAX_SOURCES_BODY, MAX_TERRAIN_SOURCES, SOURCES_FILE, TERRAIN_TYPES, THEME_MODES } from './constants.js'
 import { cleanId, cleanLevel, cleanText, cleanUrl } from './sanitize.js'
 import { normalizeTemporalImagery } from './raster-time.js'
 import { sendJson, sendText } from './http.js'
@@ -17,7 +17,7 @@ import { writeJsonAtomic } from './fs-util.js'
 const QUALITY_MODES = new Set(['balanced', 'high'])
 
 /** Maximum number of L3 raster overlays the catalog accepts (each is a GPU layer). */
-const MAX_RASTER_OVERLAYS = 24
+const MAX_RASTER_OVERLAYS = 8
 const WORLD_IMAGERY_ID = 'esri-world-imagery'
 const WORLD_IMAGERY_URL = 'https://wi.maptiles.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
 const LEGACY_WORLD_IMAGERY_URL = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
@@ -89,19 +89,6 @@ const DEFAULT_SOURCES = {
 
 const cloneDefaults = () => JSON.parse(JSON.stringify(DEFAULT_SOURCES))
 
-/**
- * The GeoTIFF tile route embeds the per-process host token. A catalog written
- * before a DSH restart holds the old token, so replace just that segment with
- * the current one; fileKey/renderKey (the cache identity) stay untouched.
- */
-const GEO_TILES_URL = /^(https?:\/\/(?:localhost|127\.0\.0\.1|\[::1\])(?::\d+)?)\/api\/3dviewer\/geotiff\/[^/]+(\/tiles\/.+)$/
-function refreshGeotiffToken(url) {
-  // Loopback only. A catalog URL can point anywhere, and the token unlocks all
-  // local routes; rewriting it into an external origin would leak the credential.
-  const match = GEO_TILES_URL.exec(url)
-  return match === null ? url : `${match[1]}${API}/geotiff/${TOKEN}${match[2]}`
-}
-
 function normalizeSource(kind, raw, index) {
   if (raw === null || typeof raw !== 'object') return null
   const type = cleanText(raw.type, 16).toLowerCase()
@@ -111,7 +98,7 @@ function normalizeSource(kind, raw, index) {
   if (kind === 'imagery') {
     temporal = normalizeTemporalImagery(raw, type)
     if (!temporal.ok) return null
-    url = refreshGeotiffToken(temporal.url)
+    url = temporal.url
   } else {
     url = cleanUrl(raw.url)
     if (url === '') return null

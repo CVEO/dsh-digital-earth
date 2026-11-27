@@ -19,7 +19,6 @@ import { parseTemporalDraft } from '../scene/raster-time.js'
 import { readVectorFiles } from '../scene/vector-file.js'
 import { vectorErrorText } from '../scene/vector-errors.js'
 import { GlyphIcon } from './icons.js'
-import { GeotiffRoute } from './geotiff-panel.js'
 import { useDialogA11y } from './use-dialog-a11y.js'
 
 const h = React.createElement
@@ -59,30 +58,20 @@ export function AddLayerDialog({
   const open = Boolean(request)
   const [kind, setKind] = React.useState(request?.kind ?? null)
   const [draft, setDraft] = React.useState(EMPTY_DRAFT)
-  const [rasterMode, setRasterMode] = React.useState(request?.rasterMode === 'geotiff' ? 'geotiff' : 'online')
   const [error, setError] = React.useState('')
   const [vectorError, setVectorError] = React.useState('')
   const [busy, setBusy] = React.useState(false)
-  const [geoBusy, setGeoBusy] = React.useState(false)
   const fileRef = React.useRef(null)
-  // Esc, X, the backdrop and Back all go through one gate: a running publish
-  // must be canceled explicitly from the route, never abandoned by a stray Esc.
-  const locked = geoBusy
-  const requestClose = () => {
-    if (locked) return
-    onClose?.()
-  }
+  const requestClose = () => onClose?.()
   const dialogRef = useDialogA11y({ open, onEscape: requestClose })
 
   React.useEffect(() => {
     if (!open) return
     setKind(request?.kind ?? null)
     setDraft(EMPTY_DRAFT)
-    setRasterMode(request?.rasterMode === 'geotiff' ? 'geotiff' : 'online')
     setError('')
     setVectorError('')
-    setGeoBusy(false)
-  }, [open, request?.kind, request?.rasterMode, request?.token])
+  }, [open, request?.kind, request?.token])
 
   if (!open) return null
   const titleId = 'mv-add-layer-title'
@@ -115,7 +104,6 @@ export function AddLayerDialog({
     }
     onOverlayAdd?.(next)
     setDraft(EMPTY_DRAFT)
-    setRasterMode('online')
     setError('')
     onClose?.()
   }
@@ -156,8 +144,7 @@ export function AddLayerDialog({
             className: 'mv-icon-btn mv-dialog-back',
             title: t('layers.addBack'),
             'aria-label': t('layers.addBack'),
-            disabled: locked,
-            onClick: () => (locked ? undefined : setKind(null)),
+            onClick: () => setKind(null),
           },
           '‹',
         )
@@ -222,36 +209,6 @@ export function AddLayerDialog({
             ),
           )
         : null,
-    )
-
-  const rasterModeTabs = () =>
-    h(
-      'div',
-      { className: 'mv-geo-tabs', role: 'group', 'aria-label': t('layers.addKindRaster') },
-      h(
-        'button',
-        {
-          type: 'button',
-          'aria-pressed': rasterMode === 'online',
-          className: `mv-geo-tab${rasterMode === 'online' ? ' on' : ''}`,
-          disabled: locked,
-          title: locked ? t('geotiff.locked') : undefined,
-          onClick: () => (locked ? undefined : setRasterMode('online')),
-        },
-        t('geotiff.tabOnline'),
-      ),
-      h(
-        'button',
-        {
-          type: 'button',
-          'aria-pressed': rasterMode === 'geotiff',
-          className: `mv-geo-tab${rasterMode === 'geotiff' ? ' on' : ''}`,
-          disabled: locked,
-          title: locked ? t('geotiff.locked') : undefined,
-          onClick: () => (locked ? undefined : setRasterMode('geotiff')),
-        },
-        t('geotiff.tabLocal'),
-      ),
     )
 
   const bodyRasterOnline = () =>
@@ -352,22 +309,6 @@ export function AddLayerDialog({
       error ? h('p', { className: 'mv-note mv-danger' }, error) : null,
     )
 
-  const bodyRaster = () =>
-    h(
-      React.Fragment,
-      null,
-      rasterModeTabs(),
-      rasterMode === 'geotiff'
-        ? h(GeotiffRoute, {
-            t,
-            onPickFolder: onPickLocalTiles ? () => onPickLocalTiles({ pickDirOnly: true }) : null,
-            onOverlayAdd,
-            onClose,
-            onBusyChange: setGeoBusy,
-          })
-        : bodyRasterOnline(),
-    )
-
   const bodyVector = () =>
     h(
       React.Fragment,
@@ -399,7 +340,7 @@ export function AddLayerDialog({
     )
 
   const footer =
-    kind === 'raster' && rasterMode === 'online'
+    kind === 'raster'
       ? h(
           'div',
           { className: 'footer' },
@@ -434,9 +375,8 @@ export function AddLayerDialog({
           {
             type: 'button',
             className: 'mv-icon-btn',
-            title: locked ? t('geotiff.locked') : t('btn.close'),
+            title: t('btn.close'),
             'aria-label': t('btn.close'),
-            disabled: locked,
             onClick: requestClose,
           },
           '✕',
@@ -445,7 +385,7 @@ export function AddLayerDialog({
       h(
         'div',
         { className: 'body' },
-        kind === null ? kindChooser() : kind === '3d' ? body3d() : kind === 'raster' ? bodyRaster() : bodyVector(),
+        kind === null ? kindChooser() : kind === '3d' ? body3d() : kind === 'raster' ? bodyRasterOnline() : bodyVector(),
       ),
       footer,
     ),

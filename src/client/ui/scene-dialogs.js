@@ -51,10 +51,7 @@ export function SceneDialogs({
       onOpenUrl: workbench?.openUrl,
       recentDirs,
       onOpenRecent: workbench?.openRecent,
-      // The raster dialog uses the same picker for two routes: local XYZ
-      // (withMeta) and a folder scan for GeoTIFF publishing (pickDirOnly).
-      onPickLocalTiles: (options) =>
-        workbench?.pickLocalTiles?.(options?.pickDirOnly ? { pickDirOnly: true } : { withMeta: true }),
+      onPickLocalTiles: () => workbench?.pickLocalTiles?.({ withMeta: true }),
       onOverlayAdd,
       onImportVector,
     }),

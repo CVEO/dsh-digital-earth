@@ -198,26 +198,8 @@ test('catalog：非法/超量叠加层被丢弃而不是让整份配置失败', 
     type: 'xyz',
     url: `https://example.test/${index}/{z}/{x}/{y}.png`,
   }))
-  // v1.9: cap raised to 24 for local GeoTIFF overlays.
-  assert.equal(normalizeConfig({ rasterOverlays: many }).rasterOverlays.length, 12)
-
-  // v1.9: a published GeoTIFF is an ordinary xyz overlay, but its geographic
-  // tiling scheme and maximum level must survive a save/restore round-trip.
-  const geo = normalizeConfig({
-    rasterOverlays: [
-      {
-        name: 'ortho',
-        type: 'xyz',
-        url: 'http://127.0.0.1/api/3dviewer/geotiff/t/tiles/abcdef0123456789/01234567/{z}/{x}/{y}.png',
-        tilingScheme: 'geographic',
-        maximumLevel: 14,
-        opacity: 1,
-        visible: true,
-      },
-    ],
-  }).rasterOverlays[0]
-  assert.equal(geo.tilingScheme, 'geographic')
-  assert.equal(geo.maximumLevel, 14)
+  // v1.9: eight overlays fit; the ninth is dropped.
+  assert.equal(normalizeConfig({ rasterOverlays: many }).rasterOverlays.length, 8)
 })
 
 test('catalog：重复 id 自动改唯一，已有配置（无 rasterOverlays 字段）不受影响', () => {

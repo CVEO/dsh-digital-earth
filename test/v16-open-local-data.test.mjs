@@ -358,9 +358,7 @@ test('F06 与 UI 组件行为：SourceForm 渲染保留 source.name，ScanDialog
 
   // 4) 添加数据的三种入口收敛到 AddLayerDialog（本地文件夹 / 在线地址 / 本地栅格目录）。
   const dialog = readRepoFile('src/client/ui/add-layer-dialog.js')
-  // Esc is gated by the publish lock, so the dialog passes a guarded handler.
   assert.match(dialog, /onEscape: requestClose/)
-  assert.match(dialog, /if \(locked\) return/)
   assert.match(dialog, /onOpenLocal\?\.\(\)/)
   assert.match(dialog, /onOpenUrl\?\.\(\)/)
   assert.match(dialog, /t\('settings\.field\.localTiles'\)/)

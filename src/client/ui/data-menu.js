@@ -21,7 +21,6 @@ export function dataMenuItems({
   closeMenu,
   onAddLayer,
   onImportVector,
-  onImportGeotiff,
   onOpenLocal,
   onOpenRecentDirectory,
   onOpenRecentUrl,
@@ -37,11 +36,6 @@ export function dataMenuItems({
   if (typeof onAddLayer === 'function') {
     items.push(h('span', { key: 'add-label', className: 'mv-menu-section' }, t('menu.addGroup')))
     items.push(h(MenuItem, { key: 'add', icon: icon('add'), onClick: run(() => onAddLayer(null)) }, t('menu.addLayer')))
-  }
-  if (typeof onImportGeotiff === 'function') {
-    items.push(
-      h(MenuItem, { key: 'geotiff', icon: icon('raster'), onClick: run(() => onImportGeotiff()) }, t('menu.importGeotiff')),
-    )
   }
   if (typeof onImportVector === 'function') {
     items.push(

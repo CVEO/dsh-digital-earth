@@ -14,7 +14,6 @@ import { ANNOTATION_MESSAGES } from './messages-annotations.js'
 import { EXPORT_MESSAGES } from './messages-export.js'
 import { PROFILE_MESSAGES } from './messages-profile.js'
 import { DOCK_MESSAGES } from './messages-dock.js'
-import { GEOTIFF_MESSAGES } from './messages-geotiff.js'
 
     const MESSAGES = {
       zh: {
@@ -91,7 +90,7 @@ import { GEOTIFF_MESSAGES } from './messages-geotiff.js'
         'layers.overlayUp': '上移一层',
         'layers.overlayDown': '下移一层',
         'layers.overlayInvalid': '请填写类型、服务地址；WMS 还需要图层名。',
-        'layers.emptyRaster': '还没有栅格图层：点「添加图层」接入在线服务，或切到「本地 GeoTIFF」切片本机影像。',
+        'layers.emptyRaster': '还没有栅格图层：点「添加图层」接入 WMS / XYZ / ArcGIS 服务。',
         'layers.vectorDrawn': '标注要素',
         'layers.vectorMeasured': '量测点',
         'layers.vectorRemove': '移除该叠加',
@@ -442,7 +441,6 @@ import { GEOTIFF_MESSAGES } from './messages-geotiff.js'
         // v1.7 P0 vocabulary (identify card / evidence export / tour bar).
         ...V17_MESSAGES.zh,
         ...V18_MESSAGES.zh,
-        ...GEOTIFF_MESSAGES.zh,
         ...SCENE_MESSAGES.zh,
     ...ANNOTATION_MESSAGES.zh,
     ...EXPORT_MESSAGES.zh,
@@ -523,7 +521,7 @@ import { GEOTIFF_MESSAGES } from './messages-geotiff.js'
         'layers.overlayUp': 'Move up',
         'layers.overlayDown': 'Move down',
         'layers.overlayInvalid': 'Fill in the type and service URL; WMS also needs a layer name.',
-        'layers.emptyRaster': 'No overlays yet',
+        'layers.emptyRaster': 'No raster overlays yet: use Add layer for WMS / XYZ / ArcGIS.',
         'layers.vectorDrawn': 'drawn features',
         'layers.vectorMeasured': 'measured points',
         'layers.vectorRemove': 'Remove this overlay',
@@ -878,7 +876,6 @@ import { GEOTIFF_MESSAGES } from './messages-geotiff.js'
         // v1.7 P0 vocabulary (identify card / evidence export / tour bar).
         ...V17_MESSAGES.en,
         ...V18_MESSAGES.en,
-        ...GEOTIFF_MESSAGES.en,
         ...SCENE_MESSAGES.en,
     ...ANNOTATION_MESSAGES.en,
     ...EXPORT_MESSAGES.en,

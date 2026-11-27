@@ -50,7 +50,6 @@ dsh plugin --profile desktop add ./cveo-dsh-digital-earth-1.6.4.tgz
 1. Quit and reopen the DSH Desktop app completely, or restart the `dsh web` service (the client bundle registers at startup; a page refresh is not enough).
 2. Click the "Digital Earth" card on the start page, or the globe button in the chat header, to open the Digital Earth tab on the right.
 3. Data ▾ → open a local folder that contains a `tileset.json`, or paste an online URL / enter coordinates to fly there.
-4. To load a local GeoTIFF: Data ▾ → Import local GeoTIFF…, pick a `.tif/.tiff` (or drop it on the dialog), review the preview and choose **Publish and load**. For very large files use **Read from folder** so the bytes are not copied.
 
 After loading data, send the Agent a direct instruction:
 
@@ -80,7 +79,7 @@ No tool names or coordinates are required. After loading the sample data, say an
 - **Spatial analysis**: 3D profile, flood, sunlight, clip and skyline — one active analysis at a time, drawn in the scene with the height source (3D Tiles surface or terrain) stated in the result.
 - **Deliverables**: Clean snapshots (Manual and Agent snapshots keep only the 3D view by default), HTML / Markdown scene reports, evidence packs and per-session scene restore; the snapshot folder keeps the last 50 files, suitable for reports, presentations and archives. Snapshots are canvas-only bitmaps by contract (v1.6.2): DOM overlays and toolbars never enter the image. They also report camera longitude/latitude, height, heading, pitch, time and visible layers, and write a JSON sidecar next to the image.
 - **Agent integration**: Six built-in tools (`earth_scene`, `earth_capture`, `earth_draw`, `earth_measure`, `earth_analyze`, `earth_shader`) let the conversation read and write the scene; visual effects are white-listed presets (no custom GLSL), applied per layer with an original-look comparison.
-- **Data access**: recursive local folder scan, an absolute local path and `http(s)` URLs; a local path is authorised once and never read outside the granted folders. A local GeoTIFF goes through Data → Import local GeoTIFF…: a classic 8/16/32-bit TIFF is copied into the local cache, probed and previewed, then tiled into an XYZ raster overlay; the bytes never leave the machine (BigTIFF / JPEG2000 are not supported yet and the dialog suggests a GDAL export). Vector data can be imported as GeoJSON or Shapefile (`.shp`, optionally with its `.dbf` table; up to 500 features / 20k coordinates), or dropped straight onto the globe, sharing the Agent overlay rendering and clear path.
+- **Data access**: recursive local folder scan, an absolute local path and `http(s)` URLs; a local path is authorised once and never read outside the granted folders. Vector data can be imported as GeoJSON or Shapefile (`.shp`, optionally with its `.dbf` table; up to 500 features / 20k coordinates), or dropped straight onto the globe, sharing the Agent overlay rendering and clear path.
 
 ## Interface and interaction
 

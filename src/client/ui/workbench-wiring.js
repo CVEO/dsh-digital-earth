@@ -559,9 +559,6 @@ export function createLocalDirectoryWiring({
     try {
       const dir = await workspace.pickDirectory()
       if (!dir) return null
-      // GeoTIFF publish only needs the folder path; scanning tilesets here would
-      // load an unrelated tileset into the scene as a side effect.
-      if (options?.pickDirOnly) return { dir }
       await scanLocalDirectory(metaRef.current, dir)
       void refreshRecentDirs()
       const folder = dir.replace(/\\/g, '/').replace(/\/+$/, '')

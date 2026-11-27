@@ -12,7 +12,6 @@ import { PARSE_CSS } from './parse-css.js'
 import { RASTER_TIMELINE_CSS } from './raster-timeline-css.js'
 import { COMPARE_CSS } from './compare-css.js'
 import { LAYERS_CSS } from './layers-css.js'
-import { GEOTIFF_CSS } from './geotiff-css.js'
 
     const CSS = `
 .mv-root{position:relative;flex:1 1 0;min-height:0;overflow:hidden;background:var(--mv-bg);color:var(--mv-text);font:12px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;--mv-z-rail:9;--mv-z-popover:40;--mv-z-toast:60;--mv-z-modal:100;--mv-bg:var(--dsw-alias-bg-base,#fff);--mv-text:var(--dsw-alias-label-primary,#0f1115);--mv-dim:var(--dsw-alias-label-secondary,#5b6068);--mv-line:var(--dsw-alias-border-l2,#0000001a);--mv-accent:var(--dsw-alias-state-business-primary,#4176e6);--mv-profile-line:#1d4ed8;--mv-profile-design:#c2610a;--mv-lift:var(--dsw-alias-interactive-bg-hover,#2631480f);--mv-glass:color-mix(in srgb,var(--dsw-alias-bg-layer-1,#fff) 88%,transparent);--mv-glass-strong:var(--dsw-alias-bg-layer-1,#fff);--mv-input:var(--dsw-alias-interactive-bg-hover,#2631480f);--mv-shadow:0 8px 28px rgba(15,23,42,.18);--mv-danger:var(--dsw-alias-state-error-primary,#d33b3b);--mv-fg:var(--mv-text);--mv-surface-hi:var(--dsw-alias-bg-layer-2,#0f172a);--mv-line-strong:var(--dsw-alias-border-l1,#7dd3fc);--mv-attrib:rgba(255,255,255,.62);--mv-attrib-shadow:0 1px 2px rgba(0,0,0,.6);--mv-overlay:transparent;--mv-scrim:rgba(24,34,50,.28)}
@@ -781,7 +780,6 @@ ${PARSE_CSS}
 ${RASTER_TIMELINE_CSS}
 ${COMPARE_CSS}
 ${LAYERS_CSS}
-${GEOTIFF_CSS}
 @container (max-width:480px){
   .mv-root.mv-docked .mv-right{left:12px;right:12px;width:auto;max-height:calc(100% - 132px)}
   .mv-root.mv-docked .mv-shader{box-sizing:border-box;left:12px;right:12px;width:auto;max-height:calc(100% - 132px)}
