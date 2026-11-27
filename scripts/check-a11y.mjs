@@ -76,15 +76,19 @@ for (const file of menuOwners) {
   }
 }
 
-// 5) One navigation level: the topbar quick group switches destinations, so
-// the dock body must not repeat it as a tablist. It keeps exactly one visible
-// tabpanel, each panel named, and one labelled collapse action.
+// 5) One navigation level: the toolbar quick group switches destinations, so
+// the dock body must not repeat it as a tablist or offer a second collapse
+// action; hiding the whole console is the chrome control. It keeps exactly one
+// visible tabpanel, each panel named.
 const dockSource = files.find((file) => file.rel.endsWith('/ui/panel-rail.js'))?.text ?? ''
-for (const marker of ["role: 'tabpanel'", "'aria-label': tabLabel(t, panel.id)", 'mv-dock-head', 'dock.collapse']) {
+for (const marker of ["role: 'tabpanel'", "'aria-label': tabLabel(t, panel.id)", 'mv-dock-head']) {
   if (!dockSource.includes(marker)) problems.push(`right dock misses ${marker}`)
 }
 if (dockSource.includes("role: 'tablist'") || dockSource.includes("role: 'tab'")) {
   problems.push('right dock still renders a second tab navigation; the topbar quick group is the only switcher')
+}
+if (dockSource.includes("dock.collapse")) {
+  problems.push('right dock must not keep a panel-only collapse control')
 }
 if ((dockSource.match(/role: 'tabpanel'/g) ?? []).length !== 1) {
   problems.push('right dock must render one tabpanel template')

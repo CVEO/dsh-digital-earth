@@ -53,7 +53,6 @@ export function ChromeA11y({ t, status, hidden, onShow }) {
             onClick: show,
           },
           h(GlyphIcon, { name: 'view' }),
-          h('span', null, t('dock.showChrome')),
         )
       : null,
   )

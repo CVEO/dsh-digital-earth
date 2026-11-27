@@ -415,22 +415,11 @@ test('P1 忙碌时分析结果不抢焦点，只在结果页签挂未读点', ()
   })
 })
 
-test('P1 收起/展开：面板保持挂载，收起时全部 hidden', () => {
+test('P1 面板头不再提供单独收起：整体隐藏属于界面控制，不属于面板', () => {
   withStorage(() => {
     const { renderer } = renderDock({ analysis: FLOOD, showLayers: true })
-    let root = renderer.tree()
-    const before = panelNodes(root).length
-    const collapse = findAll(root, (node) => node?.props?.title === 'dock.collapse')[0]
-    collapse.props.onClick()
-
-    root = renderer.tree()
-    assert.equal(byClass(root, 'mv-dock-head').length, 0)
-    assert.ok(byClass(root, 'mv-dock-pill')[0])
-    assert.equal(panelNodes(root).length, before)
-    assert.ok(panelNodes(root).every((panel) => panel.props.hidden === true))
-
-    byClass(root, 'mv-dock-pill')[0].props.onClick()
-    root = renderer.tree()
+    const root = renderer.tree()
+    assert.equal(findAll(root, (node) => node?.props?.title === 'dock.collapse').length, 0)
     assert.equal(byClass(root, 'mv-dock-head').length, 1)
   })
 })

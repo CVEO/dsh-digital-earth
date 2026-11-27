@@ -75,27 +75,9 @@ export function PanelRail({
 
   const activeLabel = tabs.find((tab) => tab.id === activeTab)?.id
 
-  // One navigation level only: the topbar quick group is the switcher, so the
-  // dock body carries a title bar (with one collapse action), not a second row
-  // of tabs. The object panel still opens from row properties; its title tells
-  // the operator where they are.
+  // One navigation level only: the toolbar quick group is the switcher; the
+  // dock body carries just the active destination as a section title.
   const activeName = activeLabel ? tabLabel(t, activeLabel) : t('dock.title')
-  const actions = h(
-    'div',
-    { className: 'mv-dock-actions' },
-    h(
-      'button',
-      {
-        type: 'button',
-        className: 'mv-icon-btn',
-        title: t('dock.collapse'),
-        'aria-label': t('dock.collapse'),
-        'aria-expanded': true,
-        onClick: () => onCollapse?.(),
-      },
-      '▸',
-    ),
-  )
   const head = h(
     'div',
     { className: 'mv-dock-head' },
@@ -104,7 +86,6 @@ export function PanelRail({
     tabs.some((tab) => unread[tab.id])
       ? h('span', { className: 'mv-dock-dot', role: 'status', 'aria-label': t('dock.unread') })
       : null,
-    actions,
   )
 
   const unreadCount = tabs.filter((tab) => unread[tab.id]).length

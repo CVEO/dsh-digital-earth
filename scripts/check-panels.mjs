@@ -42,7 +42,7 @@ const topbar = read('src/client/ui/topbar.js')
 if (!topbar.includes('ToolbarQuick')) fail('topbar: quick destination group is missing')
 if (!rail.includes("hidden: collapsed || panel.id !== activeTab")) fail('panel-rail: inactive panels must stay mounted and hidden')
 if (/mv-dock-tab-close/.test(rail)) fail('panel-rail: per-tab close button must not exist')
-if ((rail.match(/title: t\('dock\.collapse'\)/g) ?? []).length !== 1) fail('panel-rail: exactly one collapse entry')
+if (/title: t\('dock\.collapse'\)/.test(rail)) fail('panel-rail: panel-only collapse must not compete with the chrome hide')
 if (!rail.includes('dock.unread')) fail('panel-rail: unread dot copy missing')
 
 const stack = read('src/client/ui/right-stack.js')

@@ -1733,7 +1733,6 @@ var DOCK_MESSAGES = {
   zh: {
     "dock.title": "工作面板",
     "dock.unread": "有新的内容",
-    "dock.collapse": "收起面板",
     "dock.expand": "展开面板",
     "dock.hideChrome": "隐藏界面",
     "dock.showChrome": "显示界面",
@@ -1747,7 +1746,6 @@ var DOCK_MESSAGES = {
   en: {
     "dock.title": "Work panels",
     "dock.unread": "New content",
-    "dock.collapse": "Collapse panel",
     "dock.expand": "Expand panel",
     "dock.hideChrome": "Hide interface",
     "dock.showChrome": "Show interface",
@@ -14839,7 +14837,7 @@ var CSS = `
 .mv-glass{background:var(--mv-glass);border:.5px solid var(--mv-line);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);box-shadow:var(--mv-shadow)}
 .mv-chrome{box-sizing:border-box;position:absolute;top:10px;right:10px;display:flex;flex-direction:column;align-items:stretch;width:max-content;max-width:calc(100% - 20px);max-height:calc(100% - 20px);z-index:12;pointer-events:none;background:var(--mv-glass);border:.5px solid var(--mv-line);border-radius:14px;box-shadow:var(--mv-shadow);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);transition:opacity .18s ease,transform .18s ease}
 .mv-chrome.is-hidden{opacity:0;transform:translateY(-8px);pointer-events:none}
-.mv-chrome-reveal{position:absolute;top:10px;right:10px;z-index:13;display:inline-flex;align-items:center;gap:6px;padding:7px 10px;border-radius:999px;background:var(--mv-glass);color:var(--mv-text);border:.5px solid var(--mv-line);font:inherit;font-size:11.5px;cursor:pointer;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:var(--mv-shadow)}
+.mv-chrome-reveal{position:absolute;top:10px;right:10px;z-index:13;display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;padding:0;border-radius:10px;background:var(--mv-glass);color:var(--mv-text);border:.5px solid var(--mv-line);font:inherit;font-size:11.5px;cursor:pointer;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:var(--mv-shadow)}
 .mv-chrome-reveal svg{color:var(--mv-accent)}
 .mv-top{box-sizing:border-box;position:relative;display:flex;justify-content:flex-end;align-items:center;flex:none;width:100%;min-width:0;min-height:42px;z-index:10;pointer-events:auto;border-bottom:.5px solid var(--mv-line)}
 .mv-top.menu-open{z-index:26}
@@ -24883,29 +24881,12 @@ function PanelRail({
   if (!tabs.length) return null;
   const activeLabel = tabs.find((tab) => tab.id === activeTab)?.id;
   const activeName = activeLabel ? tabLabel(t2, activeLabel) : t2("dock.title");
-  const actions = h33(
-    "div",
-    { className: "mv-dock-actions" },
-    h33(
-      "button",
-      {
-        type: "button",
-        className: "mv-icon-btn",
-        title: t2("dock.collapse"),
-        "aria-label": t2("dock.collapse"),
-        "aria-expanded": true,
-        onClick: () => onCollapse?.()
-      },
-      "▸"
-    )
-  );
   const head = h33(
     "div",
     { className: "mv-dock-head" },
     h33("span", { className: "mv-dock-head-icon", "aria-hidden": true }, tabIcon(activeLabel)),
     h33("span", { className: "mv-dock-head-title" }, activeName),
-    tabs.some((tab) => unread[tab.id]) ? h33("span", { className: "mv-dock-dot", role: "status", "aria-label": t2("dock.unread") }) : null,
-    actions
+    tabs.some((tab) => unread[tab.id]) ? h33("span", { className: "mv-dock-dot", role: "status", "aria-label": t2("dock.unread") }) : null
   );
   const unreadCount = tabs.filter((tab) => unread[tab.id]).length;
   const pill = h33(
@@ -25413,8 +25394,7 @@ function ChromeA11y({ t: t2, status, hidden, onShow }) {
         autoFocus: true,
         onClick: show
       },
-      h36(GlyphIcon, { name: "view" }),
-      h36("span", null, t2("dock.showChrome"))
+      h36(GlyphIcon, { name: "view" })
     ) : null
   );
 }
