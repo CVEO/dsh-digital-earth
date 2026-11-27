@@ -8,7 +8,6 @@ export const DOCK_MESSAGES = {
   zh: {
     'dock.title': '工作面板',
     'dock.unread': '有新的内容',
-    'dock.expand': '展开面板',
     'dock.hideChrome': '隐藏界面',
     'dock.showChrome': '显示界面',
     'panel.tab.layers': '场景',
@@ -21,7 +20,6 @@ export const DOCK_MESSAGES = {
   en: {
     'dock.title': 'Work panels',
     'dock.unread': 'New content',
-    'dock.expand': 'Expand panel',
     'dock.hideChrome': 'Hide interface',
     'dock.showChrome': 'Show interface',
     'panel.tab.layers': 'Scene',

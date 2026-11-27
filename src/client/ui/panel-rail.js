@@ -88,23 +88,6 @@ export function PanelRail({
       : null,
   )
 
-  const unreadCount = tabs.filter((tab) => unread[tab.id]).length
-  const pill = h(
-    'button',
-    {
-      type: 'button',
-      className: 'mv-dock-pill',
-      title: t('dock.expand'),
-      'aria-label': t('dock.expand'),
-      'aria-expanded': false,
-      onClick: () => onExpand?.(),
-    },
-    h('span', { className: 'mv-dock-pill-icon', 'aria-hidden': true }, tabIcon(activeLabel)),
-    h('span', { className: 'mv-dock-pill-label' }, activeLabel ? tabLabel(t, activeLabel) : t('dock.title')),
-    unreadCount > 0 ? h('span', { className: 'mv-dock-badge', 'aria-label': t('dock.unread') }, String(unreadCount)) : null,
-    h('span', { className: 'mv-dock-pill-arrow', 'aria-hidden': true }, '◂'),
-  )
-
   return h(
     'div',
     {
@@ -130,7 +113,7 @@ export function PanelRail({
           min: resize.minWidth,
           max: resize.maxWidth,
         }),
-    h('div', { className: 'mv-dock-tabs' }, ...(collapsed ? [pill] : [head])),
+    h('div', { className: 'mv-dock-tabs' }, head),
     h(
       'div',
       { className: 'mv-dock-body' },

@@ -1733,7 +1733,6 @@ var DOCK_MESSAGES = {
   zh: {
     "dock.title": "工作面板",
     "dock.unread": "有新的内容",
-    "dock.expand": "展开面板",
     "dock.hideChrome": "隐藏界面",
     "dock.showChrome": "显示界面",
     "panel.tab.layers": "场景",
@@ -1746,7 +1745,6 @@ var DOCK_MESSAGES = {
   en: {
     "dock.title": "Work panels",
     "dock.unread": "New content",
-    "dock.expand": "Expand panel",
     "dock.hideChrome": "Hide interface",
     "dock.showChrome": "Show interface",
     "panel.tab.layers": "Scene",
@@ -14894,21 +14892,13 @@ var CSS = `
    card share one stack so a new analysis never overlaps the layers list. */
 .mv-right{box-sizing:border-box;position:relative;display:flex;flex-direction:column;gap:0;min-height:0;max-height:none;flex:1 1 auto;align-self:stretch;width:min(300px,calc(100% - 20px));z-index:auto;pointer-events:auto;overflow:visible;background:transparent;border:0;border-radius:0}
 .mv-chrome .mv-right{max-width:100%}
-.mv-chrome .mv-right.is-collapsed{width:100%!important;border:0;background:transparent}
 .mv-right>*{pointer-events:auto;box-sizing:border-box;max-width:100%;z-index:var(--mv-z-rail);min-height:0;flex:0 1 auto}
 /* v1.6.2 Batch D: single-active right dock.  One tab strip, one visible panel;
    every other panel stays mounted but hidden so drafts/scroll survive a switch. */
 .mv-dock{padding:0;gap:0;overflow:visible}
-.mv-dock.is-collapsed{padding:0;border:0;background:none;backdrop-filter:none;box-shadow:none;display:flex;flex-direction:row;justify-content:flex-end}
-/* v1.6.3: collapsed dock keeps panels mounted (drafts/scroll survive) but hides
-   the whole body; the pill is the only visible surface. */
-.mv-dock.is-collapsed .mv-dock-body{display:none}
-.mv-dock.is-collapsed .mv-dock-tabs{border:0;padding:0;background:none}
-.mv-dock-pill{display:inline-flex;align-items:center;gap:7px;padding:7px 10px;border-radius:999px;border:.5px solid var(--mv-line);background:var(--mv-glass);color:var(--mv-text);font-size:12px;cursor:pointer;box-shadow:var(--mv-shadow);backdrop-filter:blur(12px)}
-.mv-dock-pill:hover{background:var(--mv-glass-strong)}
-.mv-dock-pill-icon{display:inline-flex;color:var(--mv-accent)}
-.mv-dock-badge{min-width:16px;height:16px;padding:0 4px;border-radius:999px;background:color-mix(in srgb,var(--mv-accent) 18%,transparent);color:var(--mv-accent);font-size:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center}
-.mv-dock-pill-arrow{color:var(--mv-dim);font-size:10px}
+/* A collapsed dock has no visible tray: the console header is the only thing
+   left, and clicking a destination reopens the panel. Panels stay mounted. */
+.mv-dock.is-collapsed{display:none}
 .mv-dock-tabs{display:flex;align-items:center;gap:4px;padding:5px 6px 4px;border-bottom:.5px solid var(--mv-line);flex-shrink:0;min-width:0}
 .mv-dock-head{display:flex;align-items:center;gap:7px;flex:1 1 auto;min-width:0;height:30px;padding:0 1px 0 4px}
 .mv-dock-head-icon{display:inline-flex;flex:none;color:var(--mv-accent);opacity:.9}
@@ -24888,22 +24878,6 @@ function PanelRail({
     h33("span", { className: "mv-dock-head-title" }, activeName),
     tabs.some((tab) => unread[tab.id]) ? h33("span", { className: "mv-dock-dot", role: "status", "aria-label": t2("dock.unread") }) : null
   );
-  const unreadCount = tabs.filter((tab) => unread[tab.id]).length;
-  const pill = h33(
-    "button",
-    {
-      type: "button",
-      className: "mv-dock-pill",
-      title: t2("dock.expand"),
-      "aria-label": t2("dock.expand"),
-      "aria-expanded": false,
-      onClick: () => onExpand?.()
-    },
-    h33("span", { className: "mv-dock-pill-icon", "aria-hidden": true }, tabIcon(activeLabel)),
-    h33("span", { className: "mv-dock-pill-label" }, activeLabel ? tabLabel(t2, activeLabel) : t2("dock.title")),
-    unreadCount > 0 ? h33("span", { className: "mv-dock-badge", "aria-label": t2("dock.unread") }, String(unreadCount)) : null,
-    h33("span", { className: "mv-dock-pill-arrow", "aria-hidden": true }, "◂")
-  );
   return h33(
     "div",
     {
@@ -24925,7 +24899,7 @@ function PanelRail({
       min: resize.minWidth,
       max: resize.maxWidth
     }),
-    h33("div", { className: "mv-dock-tabs" }, ...collapsed ? [pill] : [head]),
+    h33("div", { className: "mv-dock-tabs" }, head),
     h33(
       "div",
       { className: "mv-dock-body" },

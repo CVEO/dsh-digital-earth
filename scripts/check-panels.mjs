@@ -55,7 +55,8 @@ if (!stack.includes("type: 'resultArrived'") || !stack.includes("type: 'objectAr
 
 const css = read('src/client/ui/css.js')
 if (!css.includes('.mv-dock-panel[hidden]{display:none}')) fail('css: inactive panels must be display:none')
-if (!css.includes('.mv-dock.is-collapsed .mv-dock-body{display:none}')) fail('css: collapsed rail must hide body')
+if (!css.includes('.mv-dock.is-collapsed{display:none}')) fail('css: collapsed rail must leave no second row')
+if (/mv-dock-pill/.test(css)) fail('css: the old collapsed pill must stay deleted')
 if (!css.includes('--mv-z-rail')) fail('css: z-index tokens are missing')
 if (/\.mv-dock-tab-close/.test(css)) fail('css: dead tab-close rules must be removed')
 
