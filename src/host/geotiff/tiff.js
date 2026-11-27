@@ -256,7 +256,12 @@ export async function openTiff(source, { cacheLimit = 64 * 1024 * 1024 } = {}) {
   if (planarConfig === 2 && samplesPerPixel > 1) {
     throw new TiffError('planar', 'Planar (separate plane) TIFFs are not supported; export an interleaved TIFF')
   }
-  if (predictor === 3) throw new TiffError('predictor', 'Floating-point predictor TIFFs are not supported')
+  if (predictor === 3) {
+    throw new TiffError(
+      'predictor',
+      'Floating-point predictor TIFFs are not supported yet; export with gdal_translate -co PREDICTOR=1 (or COMPRESS=NONE)',
+    )
+  }
   if (!DECODABLE.has(compression)) {
     const label = compression === 'jpeg' ? 'JPEG' : compression.toUpperCase()
     throw new TiffError(
