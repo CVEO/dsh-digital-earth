@@ -39,13 +39,20 @@ import { LAYERS_CSS } from './layers-css.js'
 .mv-compass:focus-visible{outline:2px solid var(--mv-accent);outline-offset:2px}
 @media (max-width:420px){.mv-compass{width:50px;height:50px;right:8px;bottom:36px}}
 .mv-glass{background:var(--mv-glass);border:.5px solid var(--mv-line);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);box-shadow:var(--mv-shadow)}
-.mv-top{position:absolute;top:10px;left:10px;right:10px;display:flex;align-items:flex-start;justify-content:space-between;gap:10px;z-index:10;pointer-events:none}
+.mv-chrome{box-sizing:border-box;position:absolute;top:10px;right:10px;display:flex;flex-direction:column;align-items:stretch;width:max-content;max-width:calc(100% - 20px);max-height:calc(100% - 20px);z-index:12;pointer-events:none;background:var(--mv-glass);border:.5px solid var(--mv-line);border-radius:14px;box-shadow:var(--mv-shadow);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);transition:opacity .18s ease,transform .18s ease}
+.mv-chrome.is-hidden{opacity:0;transform:translateY(-8px);pointer-events:none}
+.mv-chrome-reveal{position:absolute;top:10px;right:10px;z-index:13;display:inline-flex;align-items:center;gap:6px;padding:7px 10px;border-radius:999px;background:var(--mv-glass);color:var(--mv-text);border:.5px solid var(--mv-line);font:inherit;font-size:11.5px;cursor:pointer;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:var(--mv-shadow)}
+.mv-chrome-reveal svg{color:var(--mv-accent)}
+.mv-top{box-sizing:border-box;position:relative;display:flex;justify-content:flex-end;align-items:center;flex:none;width:100%;min-width:0;min-height:42px;z-index:10;pointer-events:auto;border-bottom:.5px solid var(--mv-line)}
 .mv-top.menu-open{z-index:26}
-.mv-brand{display:flex;align-items:center;gap:8px;padding:7px 12px;border-radius:11px;pointer-events:auto}
-.mv-brand b{font-size:13px;font-weight:600;letter-spacing:.01em}
-.mv-brand span{font-size:11px;color:var(--mv-dim)}
-.mv-brand b,.mv-brand span{white-space:nowrap}
-.mv-actions{position:relative;display:flex;align-items:center;gap:2px;padding:4px;border-radius:11px;pointer-events:auto;flex-wrap:wrap;justify-content:flex-end}
+.mv-actions{position:relative;display:flex;align-items:center;gap:1px;padding:4px 6px;border-radius:0;pointer-events:auto;flex:1 1 auto;flex-wrap:nowrap;justify-content:flex-end;min-width:0}
+.mv-top .mv-btn,.mv-top .mv-btn.icon{width:26px;height:26px;padding:0;justify-content:center;gap:0;flex:none}
+.mv-top .mv-btn-icon{margin:0}
+.mv-top .mv-btn-label{display:none}
+.mv-top .mv-sep{margin:0 2px}
+.mv-top .mv-icon-btn{width:26px;height:26px}
+.mv-chrome-hide{margin-left:1px}
+.mv-actions{position:relative;display:flex;align-items:center;gap:2px;padding:4px 4px 4px 6px;border-radius:0;pointer-events:auto;flex:1 1 auto;flex-wrap:wrap;justify-content:flex-end;min-width:0;row-gap:2px}
 .mv-btn{appearance:none;border:0;background:transparent;color:var(--mv-dim);font:inherit;font-size:12px;line-height:1;padding:7px 9px;border-radius:7px;cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;gap:6px}
 .mv-btn:hover{background:color-mix(in srgb,var(--mv-lift) 72%,transparent);color:var(--mv-text)}
 .mv-btn.on{background:color-mix(in srgb,var(--mv-accent) 26%,transparent);color:var(--mv-text)}
@@ -89,7 +96,9 @@ import { LAYERS_CSS } from './layers-css.js'
 .mv-urlbar .mv-urlbar-close:hover{background:color-mix(in srgb,var(--mv-lift) 80%,transparent);color:var(--mv-text)}
 /* Right-hand floating column: the analysis card (Agent result) and the layer
    card share one stack so a new analysis never overlaps the layers list. */
-.mv-right{position:absolute;top:60px;right:10px;width:min(300px,calc(100% - 20px));max-height:calc(100% - 150px);display:flex;flex-direction:column;gap:10px;z-index:auto;pointer-events:none;overflow:visible}
+.mv-right{box-sizing:border-box;position:relative;display:flex;flex-direction:column;gap:0;min-height:0;max-height:none;flex:1 1 auto;align-self:stretch;width:min(300px,calc(100% - 20px));z-index:auto;pointer-events:auto;overflow:visible;background:transparent;border:0;border-radius:0}
+.mv-chrome .mv-right{max-width:100%}
+.mv-chrome .mv-right.is-collapsed{width:100%!important;border:0;background:transparent}
 .mv-right>*{pointer-events:auto;box-sizing:border-box;max-width:100%;z-index:var(--mv-z-rail);min-height:0;flex:0 1 auto}
 /* v1.6.2 Batch D: single-active right dock.  One tab strip, one visible panel;
    every other panel stays mounted but hidden so drafts/scroll survive a switch. */
@@ -483,44 +492,33 @@ import { LAYERS_CSS } from './layers-css.js'
    toolbar keeps a visible gap instead of hugging it; the layer card follows the
    same offset so the two never collide when the action row wraps. */
 .mv-root.mv-docked{container-type:inline-size;margin-top:9px}
-.mv-root.mv-docked .mv-top{top:20px;left:20px;right:20px;gap:8px}
-.mv-root.mv-docked .mv-brand{padding:6px 10px;flex:none;gap:6px}
-.mv-root.mv-docked .mv-actions{gap:0;padding:3px;flex:0 1 auto;max-width:100%;margin-left:auto;min-width:0;row-gap:2px}
-.mv-root.mv-docked .mv-right{top:96px;right:20px;width:min(300px,calc(100% - 40px));max-height:calc(100% - 250px)}
+.mv-root.mv-docked .mv-chrome{top:16px;right:16px;max-height:calc(100% - 32px)}
+.mv-root.mv-docked .mv-actions{gap:0;padding:3px 3px 3px 5px;max-width:100%;min-width:0;row-gap:2px}
 .mv-root.mv-docked .mv-shader{top:96px;left:20px;width:min(320px,calc(100% - 40px));max-height:calc(100% - 250px)}
 .mv-root.mv-docked .mv-dialog{width:min(680px,96%)}
-/* Narrow docked panes: the host tab already shows the panel title, so drop the
-   duplicated brand title, then the status text, then the whole brand, keeping
-   the action row on one line as long as possible. */
-@container (max-width: 900px){
-  .mv-root.mv-docked .mv-brand b{display:none}
-}
+/* Narrow docked panes: shrink labels, then separators, before the action row
+   is allowed to wrap; the dock follows the wrapped height through flex flow. */
 @container (max-width: 760px){
   .mv-root.mv-docked .mv-actions .mv-btn{padding:6px 8px}
   .mv-root.mv-docked .mv-actions .mv-sep{margin:0 1px}
   .mv-root.mv-docked .mv-actions .mv-btn.icon{padding:7px 6px}
 }
-@container (max-width: 640px){
-  .mv-root.mv-docked .mv-brand span{display:none}
-  .mv-root.mv-docked .mv-brand{padding:6px 8px}
-}
 @container (max-width: 620px){
   .mv-root.mv-docked .mv-actions .mv-btn-label{display:none}
-  .mv-root.mv-docked .mv-actions .mv-btn{ padding:7px 8px}
+  .mv-root.mv-docked .mv-actions .mv-btn{padding:7px 8px}
 }
 @container (max-width: 540px){
-  .mv-root.mv-docked .mv-brand{display:none}
   .mv-root.mv-docked .mv-actions{justify-content:flex-end}
 }
 /* 320px-wide docks: drop the separators and extra padding so the action row
    wraps cleanly instead of overflowing the pane. */
 @container (max-width: 420px){
-  .mv-root.mv-docked .mv-top{left:12px;right:12px;gap:6px}
+  .mv-root.mv-docked .mv-chrome{top:12px;right:12px;max-height:calc(100% - 24px)}
   .mv-root.mv-docked .mv-actions .mv-btn{padding:6px 7px}
   .mv-root.mv-docked .mv-actions .mv-sep{display:none}
   .mv-root.mv-docked .mv-actions .mv-btn.icon{padding:7px 6px}
   .mv-root.mv-docked .mv-layers{top:92px;right:12px;width:min(284px,calc(100% - 24px))}
-  .mv-root.mv-docked .mv-right{top:92px;right:12px;width:min(300px,calc(100% - 24px));max-height:calc(100% - 236px)}
+  .mv-root.mv-docked .mv-right{width:min(300px,calc(100% - 24px))}
   .mv-root.mv-docked .mv-right .mv-layers{position:static;top:auto;right:auto;width:100%;max-height:none}
   .mv-root.mv-docked .mv-right .mv-analysis{max-width:100%}
   .mv-root.mv-docked .mv-tools{max-height:min(48%,360px)}
@@ -781,7 +779,8 @@ ${RASTER_TIMELINE_CSS}
 ${COMPARE_CSS}
 ${LAYERS_CSS}
 @container (max-width:480px){
-  .mv-root.mv-docked .mv-right{left:12px;right:12px;width:auto;max-height:calc(100% - 132px)}
+  .mv-root.mv-docked .mv-chrome{left:12px;right:12px;width:auto;max-width:none;max-height:calc(100% - 24px)}
+  .mv-root.mv-docked .mv-right{width:100%!important;max-width:none;max-height:calc(100% - 132px)}
   .mv-root.mv-docked .mv-shader{box-sizing:border-box;left:12px;right:12px;width:auto;max-height:calc(100% - 132px)}
   .mv-root.mv-docked .mv-tools{max-height:none}
   .mv-root .mv-select{left:12px;right:12px;width:auto;margin:0;bottom:16px;max-height:calc(100% - 132px)}

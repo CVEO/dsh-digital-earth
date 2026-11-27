@@ -153,7 +153,7 @@ test('右栈组合三张卡，ViewerSurface 不再内联图层/分析卡标记',
   assert.match(stack, /import \{ LayersPanel \}/)
   assert.match(stack, /import \{ ToolsPanel \}/)
   const rail = readRepoFile('src/client/ui/panel-rail.js')
-  assert.match(rail, /className: `mv-right mv-dock mv-glass/)
+  assert.match(rail, /className: `mv-right mv-dock\$\{collapsed/)
   assert.match(rail, /ResizeHandle/)
 
   const surface = viewer()

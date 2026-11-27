@@ -728,14 +728,16 @@ test('client 分析卡与布局：右上方浮动卡、SVG 剖面、折叠/关�
   // 右栈与 300px 宽度上限（右栈样式块跨过图层卡样式，到分析卡提示行为止）。
   const layout = block(client, '.mv-right{', '.mv-analysis .hint{')
   assert.match(layout, /width:min\(300px,calc\(100% - 20px\)\)/)
-  assert.match(layout, /max-height:calc\(100% - 150px\)/)
+  assert.match(layout, /background:transparent/)
+  assert.match(layout, /border:0/)
   assert.match(layout, /\.mv-analysis\{[^}]*max-width:100%/)
   assert.match(layout, /max-height:min\(72%,460px\)/)
   assert.match(layout, /\.mv-analysis>header \.title\{[^}]*text-overflow:ellipsis/)
 
   // 窄宽（docked 420px 容器）不越界，且不与图层卡重叠。
   const narrow = block(client, '@container (max-width: 420px){', '\n}')
-  assert.match(narrow, /\.mv-root\.mv-docked \.mv-right\{top:92px;right:12px;width:min\(300px,calc\(100% - 24px\)\);max-height:calc\(100% - 236px\)\}/)
+  assert.match(narrow, /\.mv-root\.mv-docked \.mv-chrome\{top:12px;right:12px;max-height:calc\(100% - 24px\)\}/)
+  assert.match(narrow, /\.mv-root\.mv-docked \.mv-right\{width:min\(300px,calc\(100% - 24px\)\)\}/)
   assert.match(narrow, /\.mv-root\.mv-docked \.mv-right \.mv-analysis\{max-width:100%\}/)
   assert.match(narrow, /\.mv-root\.mv-docked \.mv-right \.mv-layers\{position:static;top:auto;right:auto;width:100%;max-height:none\}/)
 
@@ -746,7 +748,7 @@ test('client 分析卡与布局：右上方浮动卡、SVG 剖面、折叠/关�
   const stack = readRepoFile('src/client/ui/right-stack.js')
   const rail = readRepoFile('src/client/ui/panel-rail.js')
   assert.match(stack, /import \{ PanelRail \} from '\.\/panel-rail\.js'/)
-  assert.match(rail, /className: `mv-right mv-dock mv-glass/)
+  assert.match(rail, /className: `mv-right mv-dock\$\{collapsed/)
   assert.match(
     stack,
     /h\(AnalysisCard,\s*\{[\s\S]*?key:\s*'result',\s*state:\s*analysis,\s*t,\s*onClose:\s*onCloseAnalysis,\s*hoverIndex:\s*analysisHover,\s*onHover:\s*onAnalysisHover/,

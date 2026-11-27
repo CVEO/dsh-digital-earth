@@ -21,6 +21,7 @@ export function viewMenuItems({
   onToggleFullscreen,
   onOpenBookmarks,
   onShowSceneDetails,
+  onToggleChrome,
 }) {
   const run = (action) => () => {
     if (typeof closeMenu === 'function') closeMenu()
@@ -49,6 +50,16 @@ export function viewMenuItems({
   if (typeof onShowSceneDetails === 'function') {
     items.push(
       h(MenuItem, { key: 'details', icon: icon('output'), onClick: run(onShowSceneDetails) }, t('sceneDetails.title')),
+    )
+  }
+  if (typeof onToggleChrome === 'function') {
+    items.push(h('i', { key: 'chrome-sep', className: 'mv-sep', style: MENU_SEP }))
+    items.push(
+      h(
+        MenuItem,
+        { key: 'hideChrome', icon: icon('hide'), hint: 'H', onClick: run(onToggleChrome) },
+        t('dock.hideChrome'),
+      ),
     )
   }
   return items

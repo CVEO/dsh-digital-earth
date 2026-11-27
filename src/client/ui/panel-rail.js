@@ -50,7 +50,7 @@ export function PanelRail({
   onWidth,
   ariaLabel = null,
 }) {
-  const resize = usePanelResize({ storageKey: 'right-stack', initialWidth: width, minWidth: 240, maxWidth: 720 })
+  const resize = usePanelResize({ storageKey: 'right-stack', initialWidth: width, minWidth: 280, maxWidth: 720 })
   const railRef = React.useRef(null)
   const lastReportedWidth = React.useRef(null)
 
@@ -127,7 +127,7 @@ export function PanelRail({
   return h(
     'div',
     {
-      className: `mv-right mv-dock mv-glass${collapsed ? ' is-collapsed' : ''}`,
+      className: `mv-right mv-dock${collapsed ? ' is-collapsed' : ''}`,
       'data-dock': 'right',
       ref: collapsed
         ? railRef

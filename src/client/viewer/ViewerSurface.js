@@ -57,6 +57,7 @@ import { ViewerIcon } from '../ui/icons.js'
 import { TopBar } from '../ui/topbar.js'
 import { SceneDialogs } from '../ui/scene-dialogs.js'
 import { RightStack } from '../ui/right-stack.js'
+import { ChromeA11y, ChromeShell, useChromeVisibility } from '../ui/chrome-visibility.js'
 import { useEscapeLayer } from '../ui/escape-stack.js'
 import { useToolWorkspace } from '../ui/tool-workspace.js'
 import { LoadingGlobe } from '../ui/loading-globe.js'
@@ -1282,7 +1283,6 @@ const TOOL_WINDOW_OF_MODE = {
         }
       }
       //#endregion scene snapshot
-
       function clearLiveSceneForInit() {
         const viewer = viewerRef.current
         for (const id of [...shaderEntriesRef.current.keys()]) detachShaderForLayer(id, false)
@@ -1300,7 +1300,6 @@ const TOOL_WINDOW_OF_MODE = {
         clearAnalysis()
         vectorRef.current?.clearSelection?.()
       }
-
       function isCleanRasterScene() {
         return (
           layersRef.current.length === 0 &&
@@ -1312,7 +1311,6 @@ const TOOL_WINDOW_OF_MODE = {
           measureRef.current.entities.length === 0
         )
       }
-
       function resolveInitialSceneForMount(rawProp, currentSessionId) {
         const pending = initialSceneCoordinator.consumePending(currentSessionId)
         if (pending?.active) return pending
@@ -1322,7 +1320,6 @@ const TOOL_WINDOW_OF_MODE = {
         }
         return null
       }
-
       async function applyInitialScene(normalized, catalogOverride = null) {
         const catalog = catalogOverride ?? baseCatalogRef.current ?? { config: sourcesRef.current, defaults }
         const Cesium = cesiumRef.current
@@ -1363,12 +1360,10 @@ const TOOL_WINDOW_OF_MODE = {
           normalized,
         )
       }
-
       function layerLabel(tileset) {
         const found = layersRef.current.find((entry) => entry.tileset === tileset)
         return found ? found.name : t('model.unnamed')
       }
-
       /** Readable description of the object under a screen position. */
       // Canvas picking / measure click loop lives in src/client/scene/pointer-tools.js.
       const pointerTools = createPointerTools({        getCesium: () => cesiumRef.current,
@@ -1402,7 +1397,6 @@ const TOOL_WINDOW_OF_MODE = {
         t,
       })
       measurePreviewRef.current = measurePreview
-
       function resetView() {
         const Cesium = cesiumRef.current
         const viewer = viewerRef.current
@@ -1414,7 +1408,6 @@ const TOOL_WINDOW_OF_MODE = {
           duration: 2.4,
         })
       }
-
       // Capture-HUD text painter lives in src/client/scene/capture-hud.js; the
       // refs are injected so this file stays inside its line budget.
       const drawCaptureOverlay = createCaptureHud({
@@ -2400,6 +2393,7 @@ const TOOL_WINDOW_OF_MODE = {
       // They live above the rail so every entry point funnels through one surface.
       const [addLayerRequest, setAddLayerRequest] = React.useState(null)
       const [layerProps, setLayerProps] = React.useState(null)
+      const [chromeHidden, toggleChrome] = useChromeVisibility()
       const openAddLayer = (kind) => setAddLayerRequest({ kind: kind ?? null, token: Date.now() })
       const openLayerShader = (layer, entry) => {
         workbench.loadEntry(entry ?? { layer: layer.name, layerId: layer.id, preset: 'height-false-color' })
@@ -2424,7 +2418,7 @@ const TOOL_WINDOW_OF_MODE = {
         'div',
         {
           ref: rootRef,
-          className: `mv-root${docked ? ' mv-docked' : ''}`,
+          className: `mv-root${docked ? ' mv-docked' : ''}${chromeHidden ? ' mv-chrome-hidden' : ''}`,
           'data-mv-scheme': resolvedDark ? 'dark' : 'light',
           onDragOver: (event) => {
             if (!isVectorDrag(event.dataTransfer)) return
@@ -2454,10 +2448,11 @@ const TOOL_WINDOW_OF_MODE = {
           : null,
         h('div', { key: 'credits', ref: creditRef, className: 'mv-credits' }),
         h(Compass, { key: 'compass', getViewer: () => viewerRef.current, t }),
-        h(TopBar, {
-          key: 'top',
-          t,
-          status,
+        h(ChromeShell, { key: 'chrome', hidden: chromeHidden },
+          h(TopBar, {
+            key: 'top',
+            t,
+            onToggleChrome: toggleChrome,
           menuRef,
           openMenu,
           setOpenMenu,
@@ -2486,6 +2481,7 @@ const TOOL_WINDOW_OF_MODE = {
             onToggleHud: () => updateSettings({ showHud: !showHud }),
             onToggleFullscreen: toggleDomFullscreen,
             onShowSceneDetails: sceneDetails.open,
+            onToggleChrome: toggleChrome,
           },
           output: {
             sessionId,
@@ -2709,6 +2705,8 @@ const TOOL_WINDOW_OF_MODE = {
             onVisionSelect: () => { selectionApiRef.current?.requestVision?.(); setToolMode(null); setShowTools(false) },
           },
         }),
+        ),
+        h(ChromeA11y, { key: 'chrome-a11y', t, status, hidden: chromeHidden, onShow: toggleChrome }),
         phase === 'ready' && layers.length === 0 && !emptyDismissed && !restoringScene
           ? h(
               'div',

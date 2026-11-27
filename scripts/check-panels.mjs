@@ -73,6 +73,13 @@ for (const key of ['panel.tab.layers', 'panel.tab.tools', 'panel.tab.result', 'p
   if (!quick.includes(key) && !rail.includes(key)) fail(`label ${key} is not referenced by the rail or toolbar`)
 }
 
+const surface = read('src/client/viewer/ViewerSurface.js')
+if (!surface.includes('h(ChromeShell')) fail('viewer: toolbar and rail must share the ChromeShell')
+if (!surface.includes('h(ChromeA11y')) fail('viewer: hidden chrome needs a restore handle + live status')
+if (!surface.includes('useChromeVisibility()')) fail('viewer: chrome visibility must use the shared hook')
+if ((surface.match(/h\(TopBar,/g) ?? []).length !== 1) fail('viewer: exactly one TopBar')
+if ((surface.match(/h\(RightStack,/g) ?? []).length !== 1) fail('viewer: exactly one RightStack')
+
 // No source file may render a second right rail or resurrect the old stack.
 const walk = (dir) =>
   readdirSync(join(root, dir), { withFileTypes: true }).flatMap((entry) => {

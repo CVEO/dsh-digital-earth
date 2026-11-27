@@ -1,5 +1,5 @@
 /**
- * ui/topbar.js — the top strip of the panel: brand/status + the five entries.
+ * ui/topbar.js — the console's single header row: five entries, icon-only.
  *
  * One axis, left to right: **data in → work → look → take away → configure**
  *
@@ -16,7 +16,7 @@
  */
 import React from 'react'
 
-import { GlyphIcon, ViewerIcon } from './icons.js'
+import { GlyphIcon } from './icons.js'
 import { MenuItem } from './menu-item.js'
 import { dataMenuItems } from './data-menu.js'
 import { outputMenuItems } from './toolbar-output.js'
@@ -28,7 +28,6 @@ const h = React.createElement
 
 export function TopBar({
   t,
-  status,
   menuRef,
   openMenu,
   setOpenMenu,
@@ -37,6 +36,7 @@ export function TopBar({
   output,
   quick,
   onOpenSettings,
+  onToggleChrome,
 }) {
   const closeMenu = () => setOpenMenu(null)
   const menu = (id, label, items, icon) =>
@@ -50,6 +50,8 @@ export function TopBar({
           className: `mv-btn${openMenu === id ? ' on' : ''}`,
           'aria-haspopup': 'menu',
           'aria-expanded': openMenu === id,
+          'aria-label': label,
+          title: label,
           onClick: () => setOpenMenu(openMenu === id ? null : id),
         },
         icon ? h('span', { className: 'mv-btn-icon', 'aria-hidden': true }, icon) : null,
@@ -65,14 +67,7 @@ export function TopBar({
     { key: 'top', className: `mv-top${openMenu ? ' menu-open' : ''}` },
     h(
       'div',
-      { className: 'mv-brand mv-glass' },
-      h(ViewerIcon, { size: 18 }),
-      h('b', null, t('panel.title')),
-      status ? h('span', { className: 'mv-brand-status', role: 'status' }, status) : null,
-    ),
-    h(
-      'div',
-      { ref: menuRef, className: 'mv-actions mv-glass' },
+      { ref: menuRef, className: 'mv-actions' },
       menu(
         'data',
         t('btn.data'),
@@ -84,7 +79,21 @@ export function TopBar({
       h('i', { key: 's2', className: 'mv-sep' }),
       menu('view', t('btn.view'), viewMenuItems({ h, MenuItem, t, closeMenu, ...view }), h(GlyphIcon, { name: 'view' })),
       menu('output', t('btn.output'), outputMenuItems({ h, MenuItem, t, closeMenu, ...output }), h(GlyphIcon, { name: 'export' })),
+      h('i', { key: 's3', className: 'mv-sep' }),
       h(ToolbarSettings, { t, setSettingsOpen: onOpenSettings }),
+      h(
+        'button',
+        {
+          key: 'hide-chrome',
+          type: 'button',
+          className: 'mv-icon-btn mv-chrome-hide',
+          title: `${t('dock.hideChrome')} (H)`,
+          'aria-label': t('dock.hideChrome'),
+          'aria-keyshortcuts': 'H',
+          onClick: onToggleChrome,
+        },
+        h(GlyphIcon, { name: 'hide' }),
+      ),
     ),
   )
 }
