@@ -11,6 +11,8 @@ import { SELECTION_QUESTION_CSS } from './selection-question-css.js'
 import { PARSE_CSS } from './parse-css.js'
 import { RASTER_TIMELINE_CSS } from './raster-timeline-css.js'
 import { COMPARE_CSS } from './compare-css.js'
+import { LAYERS_CSS } from './layers-css.js'
+import { GEOTIFF_CSS } from './geotiff-css.js'
 
     const CSS = `
 .mv-root{position:relative;flex:1 1 0;min-height:0;overflow:hidden;background:var(--mv-bg);color:var(--mv-text);font:12px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;--mv-z-rail:9;--mv-z-popover:40;--mv-z-toast:60;--mv-z-modal:100;--mv-bg:var(--dsw-alias-bg-base,#fff);--mv-text:var(--dsw-alias-label-primary,#0f1115);--mv-dim:var(--dsw-alias-label-secondary,#5b6068);--mv-line:var(--dsw-alias-border-l2,#0000001a);--mv-accent:var(--dsw-alias-state-business-primary,#4176e6);--mv-profile-line:#1d4ed8;--mv-profile-design:#c2610a;--mv-lift:var(--dsw-alias-interactive-bg-hover,#2631480f);--mv-glass:color-mix(in srgb,var(--dsw-alias-bg-layer-1,#fff) 88%,transparent);--mv-glass-strong:var(--dsw-alias-bg-layer-1,#fff);--mv-input:var(--dsw-alias-interactive-bg-hover,#2631480f);--mv-shadow:0 8px 28px rgba(15,23,42,.18);--mv-danger:var(--dsw-alias-state-error-primary,#d33b3b);--mv-fg:var(--mv-text);--mv-surface-hi:var(--dsw-alias-bg-layer-2,#0f172a);--mv-line-strong:var(--dsw-alias-border-l1,#7dd3fc);--mv-attrib:rgba(255,255,255,.62);--mv-attrib-shadow:0 1px 2px rgba(0,0,0,.6);--mv-overlay:transparent;--mv-scrim:rgba(24,34,50,.28)}
@@ -57,11 +59,27 @@ import { COMPARE_CSS } from './compare-css.js'
 .mv-menu-panel{position:absolute;top:calc(100% + 6px);right:0;min-width:206px;padding:4px;border-radius:11px;z-index:26;display:flex;flex-direction:column;gap:1px;background:color-mix(in srgb,var(--mv-glass-strong) 96%,transparent)}
 .mv-data-menu .mv-menu-panel{left:0;right:auto;box-sizing:border-box;width:min(260px,calc(100vw - 24px));min-width:0;max-height:min(360px,55vh);overflow:auto;overscroll-behavior:contain}
 .mv-data-menu .mv-menu-panel>*{flex-shrink:0}
-.mv-menu-item{appearance:none;border:0;background:transparent;color:var(--mv-text);font:inherit;font-size:12px;text-align:left;padding:8px 10px;border-radius:7px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px;white-space:nowrap}
+.mv-menu-item{appearance:none;border:0;background:transparent;color:var(--mv-text);font:inherit;font-size:12.5px;line-height:1.55;text-align:left;padding:8px 10px;border-radius:7px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px;white-space:nowrap}
 .mv-menu-item:hover{background:color-mix(in srgb,var(--mv-lift) 80%,transparent)}
 .mv-menu-item:disabled{opacity:.42;cursor:default}
 .mv-menu-item:disabled:hover{background:transparent}
-.mv-menu-label{padding:4px 10px 2px;font-size:10.5px;line-height:1.4;letter-spacing:.04em;color:var(--mv-dim);white-space:nowrap}
+.mv-menu-section{padding:4px 10px 2px;font-size:10.5px;line-height:1.4;letter-spacing:.04em;color:var(--mv-dim);white-space:nowrap}
+/* v1.8 menu rows: displaced check, leading icon, trailing hint, danger tone.
+   One slot order for every menu in the panel (数据 / 视图 / 输出 / row ⋯). */
+.mv-menu-item>.mv-menu-check{flex:none;width:11px;font-size:11px;line-height:1;color:var(--mv-accent);text-align:center}
+.mv-menu-item>.mv-menu-icon{flex:none;display:inline-flex;align-items:center;color:var(--mv-dim)}
+.mv-menu-item:hover>.mv-menu-icon{color:var(--mv-text)}
+.mv-menu-item>.mv-menu-label{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--mv-text)}
+.mv-menu-item>.mv-menu-hint{margin-left:auto;font-size:11px;color:var(--mv-dim);font-variant-numeric:tabular-nums}
+.mv-menu-item.is-danger{color:var(--mv-danger)}
+.mv-menu-item.is-danger>.mv-menu-label{color:var(--mv-danger)}
+.mv-menu-item.is-danger>.mv-menu-icon{color:var(--mv-danger)}
+.mv-menu-item.is-danger:hover{background:color-mix(in srgb,var(--mv-danger) 12%,transparent)}
+.mv-actions .mv-btn-icon{display:inline-flex;align-items:center;color:var(--mv-dim);margin-right:2px}
+.mv-actions .mv-btn.on .mv-btn-icon{color:var(--mv-text)}
+.mv-quick{display:inline-flex;align-items:center;gap:2px;padding:2px;border-radius:9px;background:color-mix(in srgb,var(--mv-lift) 55%,transparent)}
+.mv-quick .mv-btn{border-radius:7px}
+
 .mv-menu-item .ellipsis{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mv-urlbar{position:absolute;top:58px;left:0;right:0;margin:0 auto;display:flex;align-items:center;gap:6px;padding:6px;border-radius:11px;z-index:12;width:min(640px,82%)}
 .mv-urlbar input{flex:1;min-width:0;background:var(--mv-input);border:.5px solid var(--mv-line);color:var(--mv-text);border-radius:7px;padding:7px 9px;font:inherit;font-size:12px;outline:none}
@@ -88,15 +106,9 @@ import { COMPARE_CSS } from './compare-css.js'
 .mv-dock-badge{min-width:16px;height:16px;padding:0 4px;border-radius:999px;background:color-mix(in srgb,var(--mv-accent) 18%,transparent);color:var(--mv-accent);font-size:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center}
 .mv-dock-pill-arrow{color:var(--mv-dim);font-size:10px}
 .mv-dock-tabs{display:flex;align-items:center;gap:4px;padding:5px 6px 4px;border-bottom:.5px solid var(--mv-line);flex-shrink:0;min-width:0}
-.mv-dock-tablist{display:flex;align-items:center;gap:2px;min-width:0;overflow-x:auto;scrollbar-width:none;flex:1 1 auto}
-.mv-dock-tablist::-webkit-scrollbar{display:none}
-.mv-dock-tabitem{display:inline-flex;align-items:center;min-width:0;flex:0 1 auto;position:relative;border-radius:8px}
-.mv-dock-tabitem.on{background:color-mix(in srgb,var(--mv-accent) 12%,transparent)}
-.mv-dock-tab{display:inline-flex;align-items:center;justify-content:center;border:0;background:none;color:var(--mv-dim);font:inherit;font-size:12px;padding:6px 9px;border-radius:8px;cursor:pointer;min-width:30px;max-width:132px}
-.mv-dock-tab:hover{color:var(--mv-text)}
-.mv-dock-tab.on{color:var(--mv-text);font-weight:600}
-.mv-dock-tab.on::after{content:"";position:absolute;left:8px;right:8px;bottom:-5px;height:2px;border-radius:2px;background:var(--mv-accent)}
-.mv-dock-tab-icon{display:inline-flex;flex:none;opacity:.85}
+.mv-dock-head{display:flex;align-items:center;gap:7px;flex:1 1 auto;min-width:0;height:30px;padding:0 1px 0 4px}
+.mv-dock-head-icon{display:inline-flex;flex:none;color:var(--mv-accent);opacity:.9}
+.mv-dock-head-title{flex:1 1 auto;min-width:0;font-size:12px;font-weight:600;color:var(--mv-text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mv-dock-dot{width:6px;height:6px;border-radius:999px;background:var(--mv-accent);flex:none;box-shadow:0 0 0 2px color-mix(in srgb,var(--mv-accent) 25%,transparent)}
 .mv-dock-actions{display:inline-flex;align-items:center;gap:2px;flex:none;margin-left:2px}
 .mv-dock-actions .mv-icon-btn{width:24px;height:24px;font-size:12px}
@@ -267,12 +279,12 @@ import { COMPARE_CSS } from './compare-css.js'
 .mv-shader .hint{margin:0;color:var(--mv-dim);font-size:10.5px;line-height:1.5}
 .mv-layers>header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;font-size:13px;font-weight:600;letter-spacing:0;color:var(--mv-text);border-bottom:.5px solid var(--mv-line)}
 .mv-layers>header .mv-icon-btn{width:26px;height:26px;font-size:13px}
-.mv-layer-list{overflow:auto;padding:4px 10px 12px;min-height:0;overscroll-behavior:contain;scrollbar-width:thin}
+.mv-layer-list{flex:1 1 auto;min-height:0;overflow:auto;padding:4px 10px 12px;overscroll-behavior:contain;scrollbar-width:thin}
 .mv-layer{display:flex;align-items:center;gap:2px;padding:5px 6px;border-radius:8px}
 .mv-layer:hover{background:color-mix(in srgb,var(--mv-lift) 64%,transparent)}
 .mv-layer .mv-warn{flex:none;color:#f0b84b;font-size:12px;line-height:1;cursor:help;padding:0 2px}
 .mv-layer .name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;cursor:pointer}
-.mv-layer.off .name{color:var(--mv-dim);text-decoration:line-through}
+.mv-layer.off .name{color:var(--mv-dim);text-decoration:none}
 .mv-layer.has-shader{border-left:2px solid color-mix(in srgb,#3ddc97 70%,transparent);box-sizing:border-box}
 .mv-layer.has-shader:hover{background:color-mix(in srgb,#3ddc97 8%,transparent)}
 .mv-layer{position:relative}
@@ -281,23 +293,98 @@ import { COMPARE_CSS } from './compare-css.js'
 .mv-layer .mv-shader-edit:disabled{opacity:.34;cursor:default;color:var(--mv-dim)}
 .mv-layer .mv-shader-edit:disabled:hover{background:transparent;color:var(--mv-dim)}
 .mv-row-more.on{background:color-mix(in srgb,var(--mv-accent) 26%,transparent);color:var(--mv-text)}
-.mv-row-menu{position:absolute;top:calc(100% + 3px);right:6px;z-index:31;min-width:170px;padding:4px;border-radius:10px;display:flex;flex-direction:column;gap:1px}
+.mv-row-menu{position:absolute;top:calc(100% + 4px);right:4px;z-index:31;min-width:192px;padding:5px;border-radius:10px;display:flex;flex-direction:column;gap:1px;box-shadow:var(--mv-shadow);max-height:min(420px,60vh);overflow:auto;overscroll-behavior:contain}
+.mv-row-menu{background:var(--mv-glass-strong)}
+.mv-row-menu.up{top:auto;bottom:calc(100% + 4px)}
 .mv-row-menu .mv-sep{width:auto;height:.5px;margin:4px 6px;background:var(--mv-line)}
 .mv-layer .mv-shader-edit:hover{background:color-mix(in srgb,#3ddc97 18%,transparent);color:#7ff0c4}
 .mv-icon-btn{appearance:none;border:0;background:transparent;color:var(--mv-dim);width:26px;height:26px;border-radius:7px;cursor:pointer;font:inherit;font-size:14px;line-height:1;display:inline-flex;align-items:center;justify-content:center;flex:none}
-.mv-layer{gap:3px;padding:5px 7px}
-.mv-layer .mv-icon-btn{font-size:15px}
+.mv-layer{gap:3px;padding:5px 7px;align-items:center}
+.mv-layer .mv-icon-btn{font-size:14px;color:color-mix(in srgb,var(--mv-text) 66%,transparent)}
+.mv-layer .mv-icon-btn:hover{color:var(--mv-text)}
 /* Layer panel v1.6: four groups (L1 terrain / L2 vector / L3 raster / L4 imagery)
    plus the 3D Tiles list. The imagery group folds because one source is normally in use. */
 .mv-group{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:13px 4px 5px;margin-top:3px;border-top:.5px solid var(--mv-line)}
 .mv-group-actions{display:inline-flex;align-items:center;gap:4px;flex:none}
-.mv-group-subactions{display:flex;align-items:center;gap:6px;padding:2px 4px 6px}
-.mv-group-subactions .mv-cta{flex:1;min-width:0;justify-content:center;font-size:11px;padding:5px 8px;border:.5px solid var(--mv-line);border-radius:8px;background:color-mix(in srgb,var(--mv-lift) 45%,transparent)}
-.mv-group-subactions .mv-cta:hover{background:color-mix(in srgb,var(--mv-lift) 82%,transparent);border-color:color-mix(in srgb,var(--mv-accent) 28%,var(--mv-line))}
 .mv-add3d-menu .mv-cta{text-align:left;width:100%}
 .mv-group:first-child{border-top:0;margin-top:0;padding-top:9px}
-.mv-group-title{min-width:0;font-size:11px;line-height:1.4;font-weight:600;letter-spacing:0;color:var(--mv-dim)}
+.mv-group-title{min-width:0;font-size:11.5px;line-height:1.4;font-weight:600;letter-spacing:0;color:var(--mv-text)}
 .mv-layers .mv-layer{min-height:30px;box-sizing:border-box;padding:5px 8px}
+/* v1.8 scene card: LayerGroup header + generic LayerRow shell.
+   Every group uses the same chevron/title/count/actions rhythm so the eye scans
+   one column of headers instead of six bespoke blocks. */
+.mv-lgroup{display:flex;flex-direction:column;gap:1px}
+.mv-lgroup>.mv-group{padding:11px 4px 5px;border-top:.5px solid color-mix(in srgb,var(--mv-line) 85%,transparent);margin-top:5px}
+.mv-lgroup:first-child>.mv-group{border-top:0;margin-top:0;padding-top:4px}
+.mv-lgroup-items,.mv-lgroup-body{display:flex;flex-direction:column;gap:1px}
+/* One list row can own a nested feature list (imported layer, annotation); the
+   wrapper keeps the row and its children in one column so the row's own flex
+   line never swallows the features. */
+.mv-lgroup-item{display:flex;flex-direction:column;gap:1px;min-width:0}
+.mv-lgroup-item>.mv-layer{width:100%;box-sizing:border-box}
+.mv-overlay-feature-act{width:22px;height:22px;font-size:12px;opacity:0}
+.mv-overlay-feature:hover .mv-overlay-feature-act,.mv-overlay-feature-act:focus-visible{opacity:1}
+@media(pointer:coarse){.mv-overlay-feature-act{opacity:1}}
+.mv-icon-btn:disabled{opacity:.4;cursor:default}
+.mv-btn:disabled{opacity:.45;cursor:default}
+.mv-group-toggle{appearance:none;border:0;background:transparent;color:inherit;font:inherit;display:inline-flex;align-items:center;gap:5px;min-width:0;padding:2px 5px 2px 3px;border-radius:6px;cursor:pointer}
+.mv-group-toggle:hover{background:color-mix(in srgb,var(--mv-lift) 70%,transparent)}
+.mv-group-toggle:focus-visible{outline:2px solid var(--mv-accent);outline-offset:1px}
+.mv-group-chevron{flex:none;display:inline-block;font-size:10px;line-height:1;color:var(--mv-dim);transition:transform .12s ease;transform:rotate(0)}
+.mv-group-chevron.open{transform:rotate(90deg)}
+.mv-group-count{flex:none;font-size:11px;color:var(--mv-dim);font-variant-numeric:tabular-nums}
+.mv-lgroup-hint{margin:0 0 3px 14px}
+.mv-layers .mv-group-actions .mv-cta{padding:2px 8px;font-size:10.5px;line-height:1.6}
+.mv-layers .mv-group-actions .mv-icon-btn{width:22px;height:22px;font-size:12px}
+.mv-layer .name{display:flex;flex-direction:column;align-items:flex-start;gap:1px;cursor:pointer}
+.mv-layer .mv-row-name{display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:top}
+.mv-layer .mv-row-meta{display:block;font-size:10px;line-height:1.35;color:var(--mv-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-variant-numeric:tabular-nums}
+.mv-layer.off .mv-row-name{text-decoration:line-through}
+.mv-layer.off .name{text-decoration:none}
+.mv-layer.selected{background:color-mix(in srgb,var(--mv-accent) 14%,transparent)}
+.mv-layer.menu-open{background:color-mix(in srgb,var(--mv-lift) 70%,transparent)}
+.mv-row-dot{flex:none;width:8px;height:8px;border-radius:50%;margin:0 3px 0 1px;box-shadow:0 0 0 1.5px color-mix(in srgb,#fff 70%,transparent)}
+.mv-overlay-toggle{width:20px;height:20px;font-size:11px;color:var(--mv-dim)}
+.mv-layer-dim-btn{width:24px;font-size:10px;font-weight:600;letter-spacing:.02em;color:var(--mv-dim)}
+.mv-layer-dim-btn.on{color:var(--mv-text);background:color-mix(in srgb,var(--mv-accent) 18%,transparent)}
+.mv-none.mv-imagery-hint{font-size:10.5px;line-height:1.5;padding-top:2px}
+.mv-terrain-error{display:flex;align-items:center;gap:6px;color:var(--mv-danger)}
+/* AddLayerDialog: "what kind of data is this?" first, then one form. */
+.mv-add-layer{width:min(520px,calc(100vw - 32px));max-height:min(78vh,720px);display:flex;flex-direction:column}
+.mv-add-layer>header{display:flex;align-items:center;gap:8px}
+.mv-add-layer>header>b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mv-add-layer>.body{overflow:auto;display:flex;flex-direction:column;gap:9px;padding-top:2px}
+.mv-add-kinds{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.mv-add-kind{appearance:none;display:flex;flex-direction:column;align-items:flex-start;gap:6px;padding:12px 11px;border-radius:11px;border:.5px solid var(--mv-line);background:color-mix(in srgb,var(--mv-lift) 40%,transparent);color:var(--mv-text);font:inherit;cursor:pointer;text-align:left}
+.mv-add-kind:hover{border-color:color-mix(in srgb,var(--mv-accent) 42%,var(--mv-line));background:color-mix(in srgb,var(--mv-lift) 78%,transparent)}
+.mv-add-kind:focus-visible{outline:2px solid var(--mv-accent);outline-offset:1px}
+.mv-add-kind-icon{color:var(--mv-accent)}
+.mv-add-kind b{font-size:12.5px;font-weight:600}
+.mv-add-kind-hint{font-size:10.5px;line-height:1.45;color:var(--mv-dim)}
+.mv-add-routes{display:flex;flex-direction:column;gap:6px}
+.mv-add-route{appearance:none;display:flex;align-items:center;gap:9px;padding:10px 11px;border-radius:10px;border:.5px solid var(--mv-line);background:color-mix(in srgb,var(--mv-lift) 40%,transparent);color:var(--mv-text);font:inherit;cursor:pointer;text-align:left}
+.mv-add-route:hover{border-color:color-mix(in srgb,var(--mv-accent) 42%,var(--mv-line))}
+.mv-add-route:disabled{opacity:.5;cursor:default}
+.mv-add-route>span{display:flex;flex-direction:column;gap:1px;min-width:0}
+.mv-add-route b{font-size:12px;font-weight:600}
+.mv-add-route em{font-style:normal;font-size:10.5px;color:var(--mv-dim)}
+.mv-add-recents{display:flex;flex-direction:column;gap:1px}
+.mv-add-recents .mv-menu-section{padding-left:2px}
+.mv-add-recent{appearance:none;display:flex;align-items:center;gap:7px;padding:6px 8px;border:0;border-radius:7px;background:transparent;color:var(--mv-text);font:inherit;font-size:11.5px;cursor:pointer;text-align:left;min-width:0}
+.mv-add-recent:hover{background:color-mix(in srgb,var(--mv-lift) 75%,transparent)}
+.mv-add-recent .ellipsis{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mv-dialog-back{font-size:16px}
+/* LayerProperties: identical 信息 / 外观 / 数据 tabs for every layer kind. */
+.mv-props{width:min(460px,calc(100vw - 32px));max-height:min(70vh,620px);display:flex;flex-direction:column}
+.mv-props>header{display:flex;align-items:center;gap:8px}
+.mv-props>header>b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mv-prop-body{display:flex;flex-direction:column;gap:7px;padding:12px 14px;overflow:auto;min-height:0}
+.mv-prop-row{display:flex;align-items:flex-start;gap:10px;font-size:11.5px;line-height:1.5}
+.mv-prop-label{flex:none;width:64px;color:var(--mv-dim)}
+.mv-prop-value{flex:1;min-width:0;overflow-wrap:anywhere}
+.mv-field-hint{display:block;font-style:normal;font-size:10.5px;line-height:1.45;color:var(--mv-dim)}
+.mv-note.mv-danger{color:var(--mv-danger)}
+
 .mv-layers .mv-layer .name{font-size:12px;line-height:1.45;font-weight:400}
 .mv-choice{appearance:none;width:100%;text-align:left;border:1px solid transparent;background:transparent;color:var(--mv-text);font:inherit;cursor:pointer}
 .mv-choice .tick{color:var(--mv-accent);font-size:12px;font-weight:600;flex:none}
@@ -306,27 +393,10 @@ import { COMPARE_CSS } from './compare-css.js'
 .mv-choice:focus-visible,.mv-layers .mv-cta:focus-visible,.mv-layers .mv-icon-btn:focus-visible{outline:2px solid var(--mv-accent);outline-offset:1px}
 .mv-group .mv-cta{flex:none;font-size:11px;padding:5px 8px}
 /* Collapsible card-within-card box for the long imagery basemap selector. */
-.mv-fold-box{margin-top:10px;border:1px solid color-mix(in srgb,var(--mv-accent) 26%,var(--mv-line));border-radius:10px;background:color-mix(in srgb,var(--mv-lift) 52%,transparent);overflow:hidden;transition:border-color .15s,background .15s}
-.mv-fold-box:hover{border-color:color-mix(in srgb,var(--mv-accent) 52%,var(--mv-line))}
-.mv-fold-box.open{background:color-mix(in srgb,var(--mv-lift) 68%,transparent);border-color:color-mix(in srgb,var(--mv-accent) 48%,var(--mv-line))}
-.mv-fold-box>.mv-group{margin-top:0;border-top:0;padding:9px 10px}
-.mv-fold-box.open>.mv-group{border-bottom:.5px solid var(--mv-line)}
-.mv-fold-body{display:flex;flex-direction:column;gap:2px;padding:6px 6px 8px}
 .mv-imagery-hint{margin:2px 2px 0;padding:4px 6px 2px;font-size:10.5px;line-height:1.45;opacity:.88}
 /* Foldable group header (unmistakable disclosure chevron + active basemap chip). */
-.mv-group-toggle{appearance:none;width:100%;display:flex;flex-direction:column;align-items:stretch;gap:6px;background:transparent;border:0;padding:0;margin:0;font:inherit;color:inherit;cursor:pointer;text-align:left}
-.mv-fold-top{display:flex;align-items:center;justify-content:space-between;gap:6px;width:100%}
-.mv-fold-heading{display:inline-flex;align-items:center;gap:5px;min-width:0}
-.mv-group-toggle .mv-group-title{flex:none;color:var(--mv-text);font-weight:600}
-.mv-fold-count{flex:none;font-size:10px;padding:1px 6px;border-radius:999px;background:color-mix(in srgb,var(--mv-line) 55%,transparent);color:var(--mv-dim);white-space:nowrap}
-.mv-fold-state{flex:none;font-size:10.5px;font-weight:500;padding:2px 7px;border-radius:999px;background:color-mix(in srgb,var(--mv-accent) 14%,transparent);color:var(--mv-accent);white-space:nowrap}
-.mv-fold-summary{display:flex;align-items:center;gap:6px;padding:5px 8px;border-radius:7px;background:color-mix(in srgb,var(--mv-bg) 58%,var(--mv-lift));border:.5px solid color-mix(in srgb,var(--mv-line) 75%,transparent);min-width:0}
-.mv-fold-dot{width:6px;height:6px;border-radius:50%;background:var(--mv-accent);flex:none}
-.mv-fold-label{font-size:10.5px;color:var(--mv-dim);flex:none}
-.mv-group-current{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11.5px;font-weight:500;color:var(--mv-text)}
 .mv-group-chevron{flex:none;color:var(--mv-accent);font-size:12px;line-height:1;transform:rotate(0deg);transition:transform 160ms cubic-bezier(0.16,1,0.3,1)}
 .mv-group-chevron.open{transform:rotate(90deg)}
-.mv-group-toggle:hover .mv-fold-state{background:color-mix(in srgb,var(--mv-accent) 22%,transparent)}
 .mv-group-toggle:focus-visible{outline:2px solid var(--mv-accent);outline-offset:2px;border-radius:6px}
 .mv-opacity{width:64px;flex:none;accent-color:var(--mv-accent)}
 .mv-overlay-row{gap:2px}
@@ -710,6 +780,8 @@ ${SELECTION_QUESTION_CSS}
 ${PARSE_CSS}
 ${RASTER_TIMELINE_CSS}
 ${COMPARE_CSS}
+${LAYERS_CSS}
+${GEOTIFF_CSS}
 @container (max-width:480px){
   .mv-root.mv-docked .mv-right{left:12px;right:12px;width:auto;max-height:calc(100% - 132px)}
   .mv-root.mv-docked .mv-shader{box-sizing:border-box;left:12px;right:12px;width:auto;max-height:calc(100% - 132px)}

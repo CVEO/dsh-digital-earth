@@ -7,8 +7,8 @@
  *
  * State shape (owned by ViewerSurface):
  *   { draw: Entity[], measure: Entity[], drawnFeatures, measuredCount,
- *     drawCommands: [{ geojson, style, caption?, entities, drawn }],
- *     measureCommands: [{ mode, points, draw, result, entities }] }
+ *     drawCommands: [{ geojson, style, caption?, origin?, hidden?, drawn }],
+ *     measureCommands: [{ mode, points, draw, result, origin?, hidden? }] }
  */
 import { annotationExtrusionOf } from './annotation-model.js'
 
@@ -224,6 +224,7 @@ export function buildAgentOverlayList(state) {
       origin: overlayOriginOf(command),
       label: typeof command?.caption === 'string' && command.caption !== '' ? command.caption : `标注 ${index + 1}`,
       detail: `${count || command?.drawn || 0} 要素`,
+      hidden: command?.hidden === true,
     })
   }
   for (let index = 0; index < state.measureCommands.length; index += 1) {
@@ -235,6 +236,7 @@ export function buildAgentOverlayList(state) {
       origin: overlayOriginOf(command),
       label: `量测 ${index + 1}`,
       detail: `${command?.mode ?? 'measure'}${measureDetail(command) === '' ? '' : ` · ${measureDetail(command)}`}`,
+      hidden: command?.hidden === true,
     })
   }
   return rows
@@ -294,6 +296,33 @@ export function removeAgentOverlayRows(state, viewer, rows) {
     }
   }
   return removed
+}
+
+/**
+ * Show/hide one overlay without deleting it.
+ *
+ * Visibility is a view command, not scene data: `command.hidden` is saved with
+ * the snapshot, and the entities follow it, so a restored scene looks the same
+ * as the one that was saved. Returns false when the row no longer exists.
+ */
+export function setAgentOverlayHidden(state, kind, index, hidden) {
+  const list = kind === 'draw' ? state?.drawCommands : kind === 'measure' ? state?.measureCommands : null
+  const command = Array.isArray(list) ? list[index] : null
+  if (!command) return false
+  if (hidden) command.hidden = true
+  else delete command.hidden
+  for (const entity of state.entityGroups?.get(command) ?? []) entity.show = hidden !== true
+  return true
+}
+
+/** Re-apply every saved `hidden` flag after a snapshot restore. */
+export function applyOverlayHidden(state) {
+  for (const list of [state?.drawCommands, state?.measureCommands]) {
+    for (const command of Array.isArray(list) ? list : []) {
+      if (command?.hidden !== true) continue
+      for (const entity of state.entityGroups?.get(command) ?? []) entity.show = false
+    }
+  }
 }
 
 /**

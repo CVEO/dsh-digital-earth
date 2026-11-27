@@ -353,7 +353,15 @@ test('client showLayers/showHud：默认可见、工具栏切换、收起、设�
   assert.match(client, /requestDock\('layers'\)/)
   assert.match(client, /if \(!showLayers\) updateSettings\(\{ showLayers: true \}\)/)
   assert.match(client, /updateSettings\(\{ showHud: !showHud \}\)/)
-  assert.match(client, /showHud \? t\('btn\.hudHide'\) : t\('btn\.hudShow'\)/)
+  // v1.8：HUD 是「视图」菜单里的复选项（checked 即当前值），不再是工具栏图标切换。
+  const viewMenu = readRepoFile('src/client/ui/toolbar-view.js')
+  assert.ok(viewMenu.includes('checked: showHud'), '视图菜单缺少 HUD 复选项')
+  assert.ok(viewMenu.includes('onToggleHud'), '视图菜单缺少 HUD 回调')
+  assert.ok(viewMenu.includes("t('btn.hud')"), '视图菜单缺少 HUD 文案')
+  assert.ok(
+    readRepoFile('src/client/viewer/ViewerSurface.js').includes('onToggleHud: () => updateSettings({ showHud: !showHud })'),
+    'HUD 复选项必须写回设置',
+  )
   // 隐藏 HUD 时不渲染组件（timer 随卸载清理）。
   assert.match(client, /stats && showHud/)
   // 设置对话框与 sources 持久化往返。
@@ -406,8 +414,10 @@ test('client HUD 采样：拖动不采样、停手一次 depth read、周期不 
 test('client 显示：停靠 / 真全屏（DOM Fullscreen API），不再重复“最大化侧栏”', () => {
   assert.match(client, /const FullscreenIcon = \(\{ size = 15 \}\) =>/)
   assert.match(client, /M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5/)
-  assert.ok(readRepoFile('src/client/ui/toolbar-output.js').includes('onToggleFullscreen'))
-  assert.ok(readRepoFile('src/client/ui/toolbar-output.js').includes("t('btn.fullscreenExit') : t('btn.fullscreenTitle')"))
+  // v1.8：全屏是「视图」菜单项（相机/画面辅助归视图，截图与报告归输出）。
+  assert.ok(readRepoFile('src/client/ui/toolbar-view.js').includes('onToggleFullscreen'))
+  assert.ok(readRepoFile('src/client/ui/toolbar-view.js').includes("t('btn.fullscreenExit') : t('btn.fullscreenTitle')"))
+  assert.ok(!readRepoFile('src/client/ui/toolbar-output.js').includes('onToggleFullscreen'), '全屏不应留在输出菜单')
 
   // v1.6：全屏只有一个入口；dock 不再有“最大化侧栏”（DSH 自带侧栏布局）。
   assert.doesNotMatch(client, /togglePaneFullscreen/)

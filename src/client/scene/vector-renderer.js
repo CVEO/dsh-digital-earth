@@ -254,9 +254,15 @@ export function createVectorRenderer({ getState, getVector, t, markSceneDirty, s
           break
       }
     }
-    const rawFeatures = Array.isArray(geojson?.features) ? geojson.features : []
+    const rawFeatures = Array.isArray(geojson?.features)
+      ? geojson.features
+      : geojson?.type === 'Feature'
+        ? [geojson]
+        : []
     const features = rawFeatures.map((item) => (item?.type === 'Feature' ? ensureAnnotationFeatureId(item) : item))
-    const storedGeojson = geojson && typeof geojson === 'object' ? { ...geojson, features } : geojson
+    // Keep one shape: per-feature actions index into `features`, so a bare
+    // Feature must be stored as a one-feature collection, not as-is.
+    const storedGeojson = rawFeatures.length > 0 ? { type: 'FeatureCollection', features } : geojson
     for (const feature of features) {
       if (feature?.geometry?.type === 'GeometryCollection') {
         for (const child of feature.geometry.geometries ?? []) {

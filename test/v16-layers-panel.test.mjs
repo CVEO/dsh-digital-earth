@@ -11,7 +11,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 
 import { normalizeOverlayDraft } from '../src/client/scene/overlay-layers.js'
-import { clientSource } from './helpers/source.mjs'
+import { clientSource, readRepoFile } from './helpers/source.mjs'
 
 // ---------------------------------------------------------------------------
 // Behaviour: the inline "add overlay" form rules
@@ -87,16 +87,38 @@ test('接线：叠加层增删改查都先写回 catalog，再 sync 实时图层
   assert.match(client, /overlayLayersRef\.current\?\.setVisible\(id, visible\)/)
 })
 
-test('接线：面板拿到矢量统计与清除动作，且 3D Tiles 行仍保留定位/显隐/体检/移除', () => {
+test('接线：面板拿到矢量统计与分组清除动作，3D 行保留定位/显隐/移除，体检走属性对话框', () => {
   const client = clientSource()
   assert.match(client, /annotations: \{\s*drawn_features: agentOverlayRef\.current\.drawnFeatures/)
-  // A1: 清空改为带计数与范围的确认框，并支持“仅清量测”。
-  assert.match(client, /onClearVector: \(\) => \{/)
-  assert.match(client, /t\('confirm\.clearVectorTitle'\)/)
-  assert.match(client, /t\('confirm\.clearVectorIncludesUser', \{ user:/)
-  assert.match(client, /clearAgentOverlays\('all'\)/)
-  assert.match(client, /clearAgentOverlays\('measure'\)/)
+  // v1.8: three scoped group ✕ actions replace the one "清空全部矢量" confirm;
+  // their policy (confirm + counts + toast) lives in scene/overlay-actions.js.
+  assert.match(client, /onClearAnnotations: overlayActions\.onClearAnnotations/)
+  assert.match(client, /onClearMeasurements: overlayActions\.onClearMeasurements/)
+  assert.match(client, /onClearImports: overlayActions\.onClearImports/)
+  assert.match(client, /createOverlayActions\(\{/)
+  const actions = readRepoFile('src/client/scene/overlay-actions.js')
+  assert.match(actions, /clear\('draw', \{ origin: 'agent' \}\)[\s\S]{0,160}?clear\('draw', \{ origin: 'user' \}\)/)
+  assert.match(actions, /run: \(\) => clear\('measure'\)/)
+  assert.match(actions, /clear\('draw', \{ origin: 'import' \}\)/)
+  for (const toast of ['toast.annotationsCleared', 'toast.measureCleared', 'toast.vectorCleared']) {
+    assert.match(actions, new RegExp(`t\\('${toast.replaceAll('.', '\\.')}'\\)`), `清除后应有反馈 ${toast}`)
+  }
+  // The all-vector confirmation (title/message/scope) no longer exists anywhere,
+  // so leftover references would render raw i18n keys instead of copy.
+  assert.doesNotMatch(client, /onClearVector/)
+  assert.doesNotMatch(client, /confirm\.clearVector/)
   for (const handler of ['onFlyLayer', 'onToggleLayer', 'onInspectLayer', 'onRemoveLayer']) {
     assert.match(client, new RegExp(`${handler}: `), `三维内容层缺少 ${handler}`)
   }
+  // The row keeps fly / visibility / remove; data health moved into the shared
+  // properties dialog, reached from the row's ⋯ menu.
+  assert.match(
+    readRepoFile('src/client/ui/layers-entities.js'),
+    /onOpenLayerProperties\?\.\(\{ kind: '3d', id: layer\.id \}\)/,
+    '3D 行溢出菜单应能打开属性对话框',
+  )
+  const properties = readRepoFile('src/client/ui/layer-properties.js')
+  assert.match(properties, /t\('layers\.propsHealth'\)/)
+  assert.match(properties, /onInspectLayer\?\.\(layer\.id\)/, '属性对话框承担数据体检入口')
+  assert.match(client, /onInspectLayer: inspectLayer,/, '属性对话框必须接到体检动作')
 })

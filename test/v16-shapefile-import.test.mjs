@@ -254,12 +254,13 @@ test('错误：magic/空文件/不支持类型/坐标越界总量', () => {
   assert.throws(() => parseShapefile(shpFile(31, [unsupportedRecord])), /不支持的 shape type/)
 })
 
-test('接线：地图 Tab 文件选择同时接受 .shp/.dbf，复用同一 overlay 渲染', async () => {
+test('接线：添加图层对话框的文件选择同时接受 .shp/.dbf，复用同一 overlay 渲染', async () => {
   const { readRepoFile } = await import('./helpers/source.mjs')
-  const map = readRepoFile('src/client/ui/layers-map.js')
-  assert.match(map, /readVectorFiles/)
-  assert.match(map, /\.geojson,\.json,\.shp,\.dbf/)
-  assert.match(map, /multiple: true/)
+  const dialog = readRepoFile('src/client/ui/add-layer-dialog.js')
+  assert.match(dialog, /readVectorFiles/)
+  assert.match(dialog, /accept: '\.geojson,\.json,\.shp,\.dbf/)
+  assert.match(dialog, /multiple: true/)
+  assert.match(dialog, /onImportVector\?\.\(parsed, name\)/)
   const file = readRepoFile('src/client/scene/vector-file.js')
   assert.match(file, /parseShapefile/)
   assert.match(file, /\.shp/)

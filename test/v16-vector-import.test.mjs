@@ -115,22 +115,37 @@ test('File 入口：readVectorFiles 选 GeoJSON/Shapefile，hasVectorFile 判断
   assert.equal(hasVectorFile([{ name: 'a.png' }]), false)
 })
 
-test('接线：地图 Tab 导入 GeoJSON，画布用现有 overlay 渲染，契约不变', () => {
-  const map = readRepoFile('src/client/ui/layers-map.js')
-  assert.match(map, /readVectorFiles/)
-  assert.match(map, /type: 'file'/)
-  assert.match(map, /accept: '\.geojson,\.json,\.shp,\.dbf/)
-  assert.match(map, /onImportVector\?\.\(parsed, name\)/)
-  assert.match(map, /t\('layers\.importVector'\)/)
-  assert.match(map, /t\('layers\.importFailed'/)
+test('接线：添加图层对话框导入 GeoJSON，画布用现有 overlay 渲染，契约不变', () => {
+  const dialog = readRepoFile('src/client/ui/add-layer-dialog.js')
+  assert.match(dialog, /readVectorFiles/)
+  assert.match(dialog, /type: 'file'/)
+  assert.match(dialog, /accept: '\.geojson,\.json,\.shp,\.dbf/)
+  assert.match(dialog, /multiple: true/)
+  // The parsed result (not raw File objects) crosses the component boundary.
+  assert.match(dialog, /onImportVector\?\.\(parsed, name\)/)
+  assert.match(dialog, /t\('layers\.importVector'\)/)
+  assert.match(dialog, /t\('layers\.importFailed'/)
 
+  // The card only opens the dialog; the dialog owns the file input.
   const panel = readRepoFile('src/client/ui/layers-panel.js')
-  assert.match(panel, /onImportVector/)
+  assert.match(panel, /onAddLayer/)
+  assert.match(readRepoFile('src/client/ui/layers-surface.js'), /onAddLayer\('vector'\)/)
+  assert.doesNotMatch(panel, /type: 'file'/)
+  const dialogs = readRepoFile('src/client/ui/scene-dialogs.js')
+  assert.match(dialogs, /onImportVector/)
+  assert.doesNotMatch(dialogs, /type: 'file'/)
 
   const viewer = readRepoFile('src/client/viewer/ViewerSurface.js')
-  assert.match(viewer, /onImportVector:/)
+  assert.match(viewer, /h\(SceneDialogs, \{/)
+  assert.match(viewer, /onImportVector: importVectorData,/)
   assert.match(viewer, /drawAgentOverlay\(cesiumRef\.current, viewerRef\.current, parsed\.geojson, 'accent'/)
   assert.match(viewer, /t\('layers\.imported'/)
+
+  // SceneDialogs is a pure presenter: it forwards the parsed vector import callback
+  // into AddLayerDialog and never parses files itself.
+  const sceneDialogs = readRepoFile('src/client/ui/scene-dialogs.js')
+  assert.match(sceneDialogs, /h\(AddLayerDialog, \{/)
+  assert.match(sceneDialogs, /onImportVector,/)
 
   const messages = readRepoFile('src/client/messages-v18.js')
   for (const key of ['layers.importVector', 'layers.imported', 'layers.importFailed', 'layers.importNeedFile']) {

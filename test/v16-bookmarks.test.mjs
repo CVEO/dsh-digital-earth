@@ -169,7 +169,11 @@ test('全屏：只保留一个入口，不再有“最大化侧栏”', () => {
   const client = clientSource()
   assert.doesNotMatch(client, /togglePaneFullscreen/)
   assert.doesNotMatch(client, /btn\.maximize/)
-  assert.ok(readRepoFile('src/client/ui/toolbar-output.js').includes('onToggleFullscreen'))
-  assert.ok(readRepoFile('src/client/ui/toolbar-output.js').includes("t('btn.fullscreenExit') : t('btn.fullscreenTitle')"))
-
+  // v1.8：全屏是“怎么看”的动作，随视图菜单搬进 ui/toolbar-view.js；TopBar 只负责渲染。
+  const viewMenu = readRepoFile('src/client/ui/toolbar-view.js')
+  assert.ok(viewMenu.includes('onToggleFullscreen'))
+  assert.ok(viewMenu.includes("fullscreen ? t('btn.fullscreenExit') : t('btn.fullscreenTitle')"))
+  assert.equal((viewMenu.match(/key: 'fullscreen'/g) ?? []).length, 1, '视图菜单只有一个全屏项')
+  assert.match(readRepoFile('src/client/ui/topbar.js'), /viewMenuItems\(/)
+  assert.match(readRepoFile('src/client/viewer/ViewerSurface.js'), /onToggleFullscreen: toggleDomFullscreen/)
 })

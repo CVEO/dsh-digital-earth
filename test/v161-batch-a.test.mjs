@@ -10,6 +10,7 @@
  */
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
+import { register } from 'node:module'
 
 import {
   buildAgentOverlayList,
@@ -19,6 +20,9 @@ import {
   OVERLAY_ORIGINS,
 } from '../src/client/scene/agent-overlays.js'
 import { clientSource, hostSource, readRepoFile } from './helpers/source.mjs'
+
+register('./helpers/react-stub-loader.mjs', import.meta.url)
+const { MenuItem } = await import('../src/client/ui/menu-item.js')
 
 const entity = (id) => ({ id })
 
@@ -149,20 +153,73 @@ test('A1 行数据带来源标签，确认框可以按来源解释范围', () =>
   assert.equal(measureRow.origin, 'agent')
 })
 
-test('A1 客户端接线：矢量和 Agent 清空都带范围确认，量测清空真的删实体', () => {
+test('A1 客户端接线：分组 ✕ 各自限范围，Agent 只清自己的标注，量测清空真的删实体', () => {
   const client = clientSource()
-  // 单一的确认对话框实现，面板通过 useConfirm() 使用。
+  // 单一确认对话框实现仍在（设置等其它破坏性动作通过 useConfirm() 使用）。
   assert.match(client, /export function ConfirmDialog\(/)
   assert.match(client, /export function useConfirm\(/)
   assert.match(client, /role: 'dialog'/)
   assert.match(client, /'aria-modal': 'true'/)
   assert.match(client, /event\.key === 'Escape'/)
   assert.match(client, /event\.key !== 'Tab'/)
-  // 面板：向量组 ✕ 走确认，并区分“全部清空 / 仅清量测”。
-  assert.match(client, /void confirm\(\{/)
-  assert.match(client, /t\('confirm\.clearVectorTitle'\)/)
-  assert.match(client, /t\('confirm\.clearMeasureOnly'\)/)
-  assert.match(client, /clearAgentOverlays\('measure'\)/)
+  // v1.8：图层卡不再有「全部清空 / 仅清量测」的三选一确认，改成分组作用域清空。
+  assert.doesNotMatch(client, /t\('confirm\.clearVectorTitle'\)/)
+  assert.doesNotMatch(client, /t\('confirm\.clearMeasureOnly'\)/)
+
+  // 三个分组各清各的：策略集中在 scene/overlay-actions.js，ViewerSurface 只接线。
+  assert.match(client, /onClearAnnotations: overlayActions\.onClearAnnotations/)
+  assert.match(client, /onClearMeasurements: overlayActions\.onClearMeasurements/)
+  assert.match(client, /onClearImports: overlayActions\.onClearImports/)
+  const actionsModule = readRepoFile('src/client/scene/overlay-actions.js')
+  const scopedClear = (name) => {
+    const start = actionsModule.indexOf(`${name}: () =>`)
+    assert.ok(start >= 0, `缺少 ${name} 策略`)
+    const stop = actionsModule.indexOf('\n      }),', start)
+    assert.ok(stop > start, `${name} 代码块切片失败`)
+    return actionsModule.slice(start, stop)
+  }
+
+  const annotations = scopedClear('onClearAnnotations')
+  assert.match(annotations, /clear\('draw', \{ origin: 'agent' \}\)/)
+  assert.match(annotations, /clear\('draw', \{ origin: 'user' \}\)/)
+  assert.doesNotMatch(annotations, /'measure'/, '清标注不得动量测')
+  assert.doesNotMatch(annotations, /origin: 'import'/, '清标注不得动导入图层')
+
+  const measurements = scopedClear('onClearMeasurements')
+  assert.match(measurements, /clear\('measure'\)/)
+  assert.doesNotMatch(measurements, /'draw'/, '清量测不得动标注')
+
+  const imports = scopedClear('onClearImports')
+  assert.match(imports, /clear\('draw', \{ origin: 'import' \}\)/)
+  assert.doesNotMatch(imports, /'measure'/, '清导入图层不得动量测')
+
+  // A confirm with no labels renders two empty buttons (review N1).
+  assert.match(actionsModule, /confirmLabel: t\('confirm\.clear'\)/)
+  assert.match(actionsModule, /confirmLabel: t\('confirm\.remove'\)/)
+  assert.equal((actionsModule.match(/cancelLabel: t\('btn\.cancel'\)/g) ?? []).length, 2)
+
+  for (const toast of ['toast.annotationsCleared', 'toast.measureCleared', 'toast.vectorCleared']) {
+    assert.match(actionsModule, new RegExp(`t\\('${toast.replaceAll('.', '\\.')}'\\)`), `清除后应有反馈 ${toast}`)
+  }
+
+  // 面板：每个分组头的 ✕ 接自己的回调，空组禁用；回调只下发给对应页签。
+  const entities = readRepoFile('src/client/ui/layers-entities.js')
+  assert.match(entities, /clearButton\(t\('layers\.clearAnnotations'\), annotations\.length, annotations\.length === 0, onClearAnnotations\)/)
+  assert.match(entities, /clearButton\(t\('layers\.clearMeasurements'\), measurements\.length, measurements\.length === 0, onClearMeasurements\)/)
+  const surface = readRepoFile('src/client/ui/layers-surface.js')
+  assert.match(surface, /clearButton\(t\('layers\.clearImports'\), imports\.length, onClearImports\)/)
+
+  const panel = readRepoFile('src/client/ui/layers-panel.js')
+  const surfaceAt = panel.indexOf('h(LayersSurface, {')
+  assert.ok(surfaceAt > 0)
+  const entityProps = panel.slice(panel.indexOf('h(LayersEntities, {'), surfaceAt)
+  const surfaceProps = panel.slice(surfaceAt)
+  assert.match(entityProps, /onClearAnnotations/)
+  assert.match(entityProps, /onClearMeasurements/)
+  assert.doesNotMatch(entityProps, /onClearImports/, '导入图层的清空只属于地表页签')
+  assert.match(surfaceProps, /onClearImports/)
+  assert.doesNotMatch(surfaceProps, /onClearAnnotations/, '标注清空只属于三维页签')
+
   // Agent 菜单项只清 agent 来源，并报告真实条数。
   assert.match(client, /onClearAgent: \(\) => \{/)
   assert.match(client, /clearAgentOverlays\('all', \{ origin: 'agent' \}\)/)
@@ -170,7 +227,6 @@ test('A1 客户端接线：矢量和 Agent 清空都带范围确认，量测清�
   // B1：数据菜单不再混排工具动作；量测清空在量测窗口内，统一清理手动量测/预览/纵断面草稿与 Agent 量测实体。
   assert.ok(client.includes('onClearMeasure: clearAllMeasurements,') || client.includes('onClearMeasure: clearMeasure,'))
   assert.ok(readRepoFile('src/client/ui/tool-windows.js').includes('onClick: onClearMeasure'))
-
 
   // 确认框渲染进面板树。
   assert.match(client, /confirmDialog,/)
@@ -244,12 +300,30 @@ test('A3 宿主工具文案：clear 只清 Agent 自己画的内容', () => {
   assert.match(host, /Cleared the Agent-drawn annotations on the digital earth\./)
 })
 
-test('A4 数据菜单项在无可清内容时禁用（MenuItem 支持 disabled）', () => {
-  const client = clientSource()
-  assert.match(client, /function MenuItem\(\{ onClick, children, title, disabled = false \}\)/)
-  assert.match(client, /className: `mv-menu-item\$\{disabled \? ' is-disabled' : ''\}`/)
-  assert.match(client, /onClick: disabled \? undefined : onClick/)
+test('A4 菜单项在不可用时禁用（MenuItem 支持 disabled/danger/checked/hint）', () => {
+  // 禁用的菜单项：视觉上 is-disabled，语义上 disabled，且没有 onClick。
+  const disabled = MenuItem({ onClick: () => assert.fail('禁用项不应执行'), disabled: true, children: '清空' })
+  assert.ok(disabled.props.className.includes('is-disabled'))
+  assert.equal(disabled.props.disabled, true)
+  assert.equal(disabled.props.onClick, undefined)
+  assert.equal(disabled.props.role, 'menuitem')
+
+  // 复选项：role=menuitemcheckbox + aria-checked（HUD / 全屏用这个）。
+  const check = MenuItem({ checked: true, children: '坐标 HUD' })
+  assert.equal(check.props.role, 'menuitemcheckbox')
+  assert.equal(check.props['aria-checked'], true)
+  assert.ok(check.props.className.includes('is-check'))
+  const unchecked = MenuItem({ checked: false, children: '全屏' })
+  assert.equal(unchecked.props['aria-checked'], false)
+
+  // 危险项与提示位（快捷键 / 计数）。
+  const danger = MenuItem({ danger: true, children: '删除' })
+  assert.ok(danger.props.className.includes('is-danger'))
+  const hinted = MenuItem({ children: '导出', hint: '⌘E' })
+  const hintSpan = hinted.children.flat(Infinity).find((node) => node?.props?.className === 'mv-menu-hint')
+  assert.equal(hintSpan?.children[0], '⌘E', 'hint 必须渲染在标签右侧')
+
+  // 数据菜单不再自带“可清数量”开关；量测清空在量测窗口内。
   assert.ok(!readRepoFile('src/client/ui/data-menu.js').includes('canClearMeasure'))
   assert.ok(readRepoFile('src/client/ui/tool-windows.js').includes("t('tool.clear')"))
-
 })

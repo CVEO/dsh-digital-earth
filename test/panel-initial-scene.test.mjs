@@ -245,9 +245,11 @@ test('规范化：扁平数组 layers 简写（支持 role 与去重）及超量
   ]
   const res = normalizeInitialScene({ layers: many })
   assert.equal(res.layers.imagery.id, 'base')
-  assert.equal(res.layers.rasterOverlays.length, 8)
-  assert.equal(new Set(res.layers.rasterOverlays.map((item) => item.id)).size, 8)
-  assert.equal(res.ignored.filter((item) => item.reason === 'max_overlays_exceeded').length, 2)
+  // v1.9: the raster-overlay cap is 24 (local GeoTIFF pyramids are overlays too),
+  // so 10 entries all fit and nothing is truncated here.
+  assert.equal(res.layers.rasterOverlays.length, 10)
+  assert.equal(new Set(res.layers.rasterOverlays.map((item) => item.id)).size, 10)
+  assert.equal(res.ignored.filter((item) => item.reason === 'max_overlays_exceeded').length, 0)
 })
 
 test('可序列化参数提取：支持 JSON 字符串、tabProps.params、useTabInfo()', () => {

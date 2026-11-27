@@ -9,7 +9,8 @@ export const COMPARE_MESSAGES = {
   zh: {
     'tools.compare': '场景对比',
     'tools.compareHint': '3DGS / 倾斜摄影双层分屏对比、网格线框与 LOD 检视、精确机位复现与对比组图导出。',
-    'swipe.toggle': '分屏对比（支持 3D Tiles 网格与 3DGS）',
+    'swipe.toggle': '分屏对比',
+    'swipe.toggleHint': '支持 3D Tiles 与 3DGS',
     'swipe.rightPicker': '右侧对比图层',
     'swipe.rightNone': '无（单层对比）',
     'swipe.swap': '互换左右图层',
@@ -68,7 +69,8 @@ export const COMPARE_MESSAGES = {
   en: {
     'tools.compare': 'Compare',
     'tools.compareHint': 'Side-by-side 3DGS / mesh split comparison, wireframe & LOD inspection, exact camera poses, and comparison figure export.',
-    'swipe.toggle': 'Split comparison (supports 3D Tiles meshes and 3DGS)',
+    'swipe.toggle': 'Split comparison',
+    'swipe.toggleHint': '3D Tiles or 3DGS',
     'swipe.rightPicker': 'Right comparison layer',
     'swipe.rightNone': 'None (single layer)',
     'swipe.swap': 'Swap left and right layers',

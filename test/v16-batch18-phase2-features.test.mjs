@@ -319,6 +319,19 @@ test('polygonVolume & vector-renderer support 3D extruded polygons and preserve 
   const styled2d = styleVectorOptions(fakeCesium, { polygon: { perPositionHeight: false, material: new FakeColor() } })
   assert.equal(styled2d.polygon.classificationType, 'BOTH')
   assert.equal(styled2d.polygon.outline, false)
+
+  // N4: a bare Feature must be stored as a one-feature collection; otherwise the
+  // card lists one row whose features[0] does not exist and fly/delete fail.
+  const bare = {
+    type: 'Feature',
+    properties: { name: 'Solo' },
+    geometry: { type: 'Point', coordinates: [114.3, 30.5] },
+  }
+  renderer.drawAgentOverlay(fakeCesium, {}, bare, 'accent', 'solo.geojson')
+  const stored = state.drawCommands.at(-1).geojson
+  assert.equal(stored.type, 'FeatureCollection')
+  assert.equal(stored.features.length, 1)
+  assert.equal(stored.features[0].geometry.type, 'Point')
 })
 
 test('scene-store save/reload round-trips 3D extruded building properties and Z coordinates cleanly', () => {

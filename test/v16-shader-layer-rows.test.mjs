@@ -73,28 +73,36 @@ test('wiring：层行点击可加载效果；resetLayerFor 仍可单层重置', 
   assert.equal(toasts.length, 1)
 })
 
-test('图层行：✦ 是唯一外观入口（有/无效果都可打开），整行不再响应点击', () => {
-  const panel = readRepoFile('src/client/ui/layer-row.js')
-  const layers3d = readRepoFile('src/client/ui/layers-3d.js')
-  assert.ok(layers3d.includes('const shaderFor = (layer) =>'))
-  assert.ok(layers3d.includes('entry.layerId === layer.id'))
-  assert.ok(panel.includes("' off'"))
-  assert.ok(panel.includes('has-shader'))
-  assert.ok(panel.includes('const openShader = () => onEditShader(layer, shader)'))
-  assert.ok(panel.includes('mv-icon-btn mv-shader-edit'))
-  assert.ok(panel.includes("'✦'"))
-  // 迁移阶段 0：整行点击开特效已删除，仅 ✦ 打开外观工作台。
-  assert.ok(!panel.includes('onClick: openShader'))
-  assert.ok(panel.includes('disabled: is3dgs'))
-  assert.ok(panel.includes('onFlyLayer(layer.id)'))
+test('图层行：外观图标是唯一入口（有/无效果都可打开），整行不再响应点击', () => {
+  // v1.8: the row shell (ui/layer-row.js) is a slot-based pure component; the
+  // appearance button and the .has-shader marker belong to the 三维内容 row in
+  // ui/layers-entities.js, which is what these assertions now pin.
+  const row = readRepoFile('src/client/ui/layer-row.js')
+  const entities = readRepoFile('src/client/ui/layers-entities.js')
+  assert.ok(entities.includes('const shaderFor = (layer) =>'))
+  assert.ok(entities.includes('entry.layerId === layer.id'))
+  assert.ok(row.includes("' off'"), 'LayerRow 仍由 off 派生 .off（隐藏态样式）')
+  assert.ok(entities.includes("'has-shader'"), '有特效的三维内容行仍带 .has-shader 标记')
+  // 外观图标是唯一入口：一次点击带着当前 entry 打开外观工作台，3DGS 行禁用。
+  assert.ok(entities.includes('mv-icon-btn mv-shader-edit'))
+  assert.ok(entities.includes("kind: 'shader'"))
+  assert.ok(entities.includes('onEditLayerShader(layer, shader)'))
+  assert.ok(entities.includes('disabled: is3dgs'))
+  // 整行不再响应点击：根节点没有 onClick，只有 name 触发飞行。
+  const rootProps = row.slice(row.indexOf('className: `mv-layer'), row.indexOf("warn ? h('span'"))
+  assert.ok(rootProps.length > 0, 'LayerRow 根节点仍是 .mv-layer 容器')
+  assert.ok(!rootProps.includes('onClick'), 'LayerRow 根节点不再绑定点击')
+  assert.ok(row.includes('onClick: onNameClick'), '只有图层名是飞行点')
+  assert.ok(entities.includes('onNameClick: () => onFlyLayer(layer.id)'))
   const layersCard = readRepoFile('src/client/ui/layers-panel.js')
   assert.ok(!layersCard.includes("layers.shader'"), '图层卡不应有独立的“着色器效果”分组')
-  assert.ok(!panel.includes('mv-shader-layer'), '不应再有独立的效果行样式')
+  assert.ok(!row.includes('mv-shader-layer'), '不应再有独立的效果行样式')
 })
 
 test('ViewerSurface：把层行点击映射为加载效果并打开工作台', () => {
   const viewer = readRepoFile('src/client/viewer/ViewerSurface.js')
-  assert.match(viewer, /shaderActive,\n\s+onEditLayerShader: \(layer, entry\) => \{/)
+  assert.match(viewer, /shaderActive,\s+onEditLayerShader: openLayerShader,/)
+  assert.match(viewer, /const openLayerShader = \(layer, entry\) => \{/)
   assert.match(viewer, /workbench\.loadEntry\(entry \?\? \{ layer: layer\.name, layerId: layer\.id, preset: 'height-false-color' \}\)/)
   assert.match(viewer, /setShaderOpen\(true\)/)
   const engine = readRepoFile('src/client/scene/shader-engine.js')

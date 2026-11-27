@@ -75,50 +75,11 @@ export function PanelRail({
 
   const activeLabel = tabs.find((tab) => tab.id === activeTab)?.id
 
-  const tabList = h(
-    'div',
-    { className: 'mv-dock-tablist', role: 'tablist', 'aria-label': ariaLabel ?? t('dock.tabs') },
-    ...tabs.map((tab) =>
-      h(
-        'span',
-        { key: tab.id, className: `mv-dock-tabitem${tab.id === activeTab ? ' on' : ''}` },
-        h(
-          'button',
-          {
-            type: 'button',
-            role: 'tab',
-            id: `mv-dock-tab-${tab.id}`,
-            'aria-selected': tab.id === activeTab,
-            'aria-controls': `mv-dock-panel-${tab.id}`,
-            'aria-label': tabLabel(t, tab.id),
-            tabIndex: tab.id === activeTab ? 0 : -1,
-            className: `mv-dock-tab${tab.id === activeTab ? ' on' : ''}`,
-            title: tabLabel(t, tab.id),
-            onClick: () => onActivate?.(tab.id),
-            onKeyDown: (event) => {
-              if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
-                event.preventDefault()
-                const index = tabs.findIndex((item) => item.id === tab.id)
-                const delta = event.key === 'ArrowRight' ? 1 : -1
-                const next = tabs[(index + delta + tabs.length) % tabs.length]
-                if (next) onActivate?.(next.id)
-              } else if (event.key === 'Home' || event.key === 'End') {
-                event.preventDefault()
-                const next = event.key === 'Home' ? tabs[0] : tabs[tabs.length - 1]
-                if (next) onActivate?.(next.id)
-              } else if (event.key === 'Enter' || event.key === ' ') {
-                event.preventDefault()
-                onActivate?.(tab.id)
-              }
-            },
-          },
-          h('span', { className: 'mv-dock-tab-icon', 'aria-hidden': true }, tabIcon(tab.id)),
-          unread[tab.id] ? h('span', { className: 'mv-dock-dot', 'aria-label': t('dock.unread') }) : null,
-        ),
-      ),
-    ),
-  )
-
+  // One navigation level only: the topbar quick group is the switcher, so the
+  // dock body carries a title bar (with one collapse action), not a second row
+  // of tabs. The object panel still opens from row properties; its title tells
+  // the operator where they are.
+  const activeName = activeLabel ? tabLabel(t, activeLabel) : t('dock.title')
   const actions = h(
     'div',
     { className: 'mv-dock-actions' },
@@ -134,6 +95,16 @@ export function PanelRail({
       },
       '▸',
     ),
+  )
+  const head = h(
+    'div',
+    { className: 'mv-dock-head' },
+    h('span', { className: 'mv-dock-head-icon', 'aria-hidden': true }, tabIcon(activeLabel)),
+    h('span', { className: 'mv-dock-head-title' }, activeName),
+    tabs.some((tab) => unread[tab.id])
+      ? h('span', { className: 'mv-dock-dot', role: 'status', 'aria-label': t('dock.unread') })
+      : null,
+    actions,
   )
 
   const unreadCount = tabs.filter((tab) => unread[tab.id]).length
@@ -178,7 +149,7 @@ export function PanelRail({
           min: resize.minWidth,
           max: resize.maxWidth,
         }),
-    h('div', { className: 'mv-dock-tabs' }, ...(collapsed ? [pill] : [tabList, actions])),
+    h('div', { className: 'mv-dock-tabs' }, ...(collapsed ? [pill] : [head])),
     h(
       'div',
       { className: 'mv-dock-body' },
@@ -189,7 +160,7 @@ export function PanelRail({
             key: panel.id,
             id: `mv-dock-panel-${panel.id}`,
             role: 'tabpanel',
-            'aria-labelledby': `mv-dock-tab-${panel.id}`,
+            'aria-label': tabLabel(t, panel.id),
             className: 'mv-dock-panel',
             hidden: collapsed || panel.id !== activeTab,
           },

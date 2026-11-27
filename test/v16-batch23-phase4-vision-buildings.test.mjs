@@ -23,7 +23,7 @@ const {
 const { createAnnotationActions } = await import('../src/client/scene/annotation-actions.js')
 const { polygonVolume } = await import('../src/client/scene/vector-renderer.js')
 const { ParseBody } = await import('../src/client/ui/parse-review.js')
-const { LayersMap } = await import('../src/client/ui/layers-map.js')
+const { LayersEntities } = await import('../src/client/ui/layers-entities.js')
 const { SelectionTool } = await import('../src/client/ui/selection-tool.js')
 const { getSelectionTool } = await import('../src/client/scene/selection-tools.js')
 
@@ -462,7 +462,7 @@ test('Categorical colors + sorting + ParseBody AOI workflow and dynamic filters'
   }
 })
 
-test('L2 whole-layer 2D/3D toggle: commandExtrusionSummary, toggleLayerExtrusion, LayersMap, and SelectionTool Parse AOI', () => {
+test('L2 whole-layer 2D/3D toggle: commandExtrusionSummary, toggleLayerExtrusion, LayersEntities, and SelectionTool Parse AOI', () => {
   const bldgLayer = {
     geojson: {
       type: 'FeatureCollection',
@@ -493,10 +493,11 @@ test('L2 whole-layer 2D/3D toggle: commandExtrusionSummary, toggleLayerExtrusion
   }
   const state = { draw: [], measure: [], drawCommands: [bldgLayer, flatLayer], measureCommands: [], drawnFeatures: 2, measuredCount: 0 }
 
-  // 5-key lock preserved!
+  // Row contract preserved (now also carries the saved visibility flag).
   const list = buildAgentOverlayList(state)
-  // Batch A: the origin tag is part of the row contract now.
-  assert.deepEqual(Object.keys(list[0]).sort(), ['detail', 'id', 'index', 'kind', 'label', 'origin'])
+  // Batch A: the origin tag and hidden flag are part of the row contract now.
+  assert.deepEqual(Object.keys(list[0]).sort(), ['detail', 'hidden', 'id', 'index', 'kind', 'label', 'origin'])
+  assert.equal(list[0].hidden, false)
   const extrusions = buildAgentOverlayExtrusions(state)
   assert.deepEqual(extrusions[0], { canExtrude: true, extruded: true, heightCount: 1, extrudedCount: 1 })
   assert.deepEqual(extrusions[1], { canExtrude: false, extruded: false, heightCount: 0, extrudedCount: 0 })
@@ -534,12 +535,13 @@ test('L2 whole-layer 2D/3D toggle: commandExtrusionSummary, toggleLayerExtrusion
   assert.deepEqual(polygonVolume(feat3d.properties, feat3d.geometry.coordinates), { mode: 'extruded', baseHeight: 10, extrudedHeight: 40 })
   assert.equal(toasts[toasts.length - 1], 'layers.layerExtruded3d')
 
-  // LayersMap button rendering + callback
+  // LayersEntities annotation row renders the 2D/3D button + callback
   const toggled = []
-  const mapRenderer = createRenderer(LayersMap, () => ({
+  const mapRenderer = createRenderer(LayersEntities, () => ({
     t,
     config: { imagery: [], rasterOverlays: [] },
     settings: {},
+    layers: [],
     agentOverlays: list,
     overlayDetails: buildAgentOverlayDetails(state),
     overlayExtrusions: { 0: { canExtrude: true, extruded: true }, 1: { canExtrude: false, extruded: false } },

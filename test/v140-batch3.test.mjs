@@ -645,7 +645,8 @@ test('client 工作台 UI：工具栏按钮、可读卡片、两列等宽缩略�
   // v1.6.1 B1: visual effects are a layer attribute (row ✦), not a toolbar toggle.
   assert.ok(!client.includes('h(ShaderIcon)'), '工具栏不再有特效图标按钮')
   assert.ok(!readRepoFile('src/client/viewer/ViewerSurface.js').includes('btn.shaderHide'), '特效开关文案从工具栏移除')
-  assert.ok(readRepoFile('src/client/ui/layer-row.js').includes('mv-icon-btn mv-shader-edit'))
+  // v1.8：三维内容行住在 layers-entities.js，✦ 仍是每行唯一的外观入口。
+  assert.ok(readRepoFile('src/client/ui/layers-entities.js').includes('mv-icon-btn mv-shader-edit'))
 
 
   const rule = block(client, '.mv-shader{', '}')

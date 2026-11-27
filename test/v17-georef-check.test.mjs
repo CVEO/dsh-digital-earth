@@ -39,10 +39,15 @@ test('接线：加载图层时检测并提示，图层行显示警告标记', ()
   // A broken layer must not trigger the auto-fly into the planet.
   assert.match(client, /if \(georefIssue !== null\) \{\s*\n\s*if \(options\.fly !== false\) showToast\(t\('toast\.notGeoreferenced'\)\)\s*\n\s*\} else if \(options\.fly !== false\) \{/)
 
-  const panel = readRepoFile('src/client/ui/layer-row.js')
-  assert.match(panel, /layer\.georefIssue/)
-  assert.match(panel, /className: 'mv-warn'/)
-  assert.match(panel, /t\('layers\.georefWarning'\)/)
+  // v1.8: the row shell is generic (`ui/layer-row.js`); the 3D-content row in
+  // `ui/layers-entities.js` decides `warn` from the layer's georef issue.
+  const rows = readRepoFile('src/client/ui/layers-entities.js')
+  assert.match(rows, /warn: Boolean\(layer\.georefIssue\)/)
+  assert.match(rows, /warnTitle: t\('layers\.georefWarning'\)/)
+
+  const row = readRepoFile('src/client/ui/layer-row.js')
+  assert.match(row, /className: 'mv-warn'/)
+  assert.match(row, /'aria-label': warnTitle/)
 
   const css = readRepoFile('src/client/ui/css.js')
   assert.match(css, /\.mv-layer \.mv-warn\{/)

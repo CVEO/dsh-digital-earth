@@ -7,11 +7,10 @@
 export const DOCK_MESSAGES = {
   zh: {
     'dock.title': '工作面板',
-    'dock.tabs': '工作面板页签',
     'dock.unread': '有新的内容',
     'dock.collapse': '收起面板',
     'dock.expand': '展开面板',
-    'panel.tab.layers': '图层',
+    'panel.tab.layers': '场景',
     'panel.tab.tools': '工具',
     'panel.tab.result': '结果',
     'panel.tab.object': '对象',
@@ -20,11 +19,10 @@ export const DOCK_MESSAGES = {
   },
   en: {
     'dock.title': 'Work panels',
-    'dock.tabs': 'Work panel tabs',
     'dock.unread': 'New content',
     'dock.collapse': 'Collapse panel',
     'dock.expand': 'Expand panel',
-    'panel.tab.layers': 'Layers',
+    'panel.tab.layers': 'Scene',
     'panel.tab.tools': 'Tools',
     'panel.tab.result': 'Result',
     'panel.tab.object': 'Object',

@@ -9,7 +9,7 @@
  */
 
 export const RASTER_LAYER_TYPES = new Set(['xyz', 'arcgis', 'wms'])
-export const MAX_INITIAL_RASTER_OVERLAYS = 8
+export const MAX_INITIAL_RASTER_OVERLAYS = 24
 export const DEFAULT_INITIAL_HEIGHT = 1500
 export const DEFAULT_OBLIQUE_PITCH = -45
 export const DEFAULT_INITIAL_HEADING = 0

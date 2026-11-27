@@ -6,7 +6,8 @@
  */
 import React from 'react'
 import { createAnalysisEngine } from '../analysis/engine.js'
-import { buildAgentOverlayDetails, buildAgentOverlayExtrusions, buildAgentOverlayList, clearAgentOverlays as clearAgentOverlaysInState, flyToAgentOverlay, flyToBbox, flyToOverlayFeature, manualMeasurementRow, overlayOriginOf, overlayRowsWithEntities, overlayStats, removeAgentOverlay, removeAgentOverlayRows } from '../scene/agent-overlays.js'
+import { createOverlayActions } from '../scene/overlay-actions.js'
+import { applyOverlayHidden, buildAgentOverlayDetails, buildAgentOverlayExtrusions, buildAgentOverlayList, clearAgentOverlays as clearAgentOverlaysInState, flyToAgentOverlay, flyToBbox, flyToOverlayFeature, manualMeasurementRow, overlayOriginOf, overlayRowsWithEntities, overlayStats, removeAgentOverlay, removeAgentOverlayRows, setAgentOverlayHidden } from '../scene/agent-overlays.js'
 import { ACCESS_TIMEOUT_MS, imageryProvider, loadCesium, loadCesiumStyle, loadMeta, loadSources, persistSources, prefetchTerrainProvider, scanLocalDirectory, terrainProvider } from '../api.js'
 import { sampleCursor } from '../cursor.js'
 import { arrayBufferToBase64, b64url, clone, escapeHtml, formatArea, formatDistance, formatHeight, formatValue, geodesicLength, message, planarArea, redactUrl } from '../format.js'
@@ -53,9 +54,8 @@ import { UrlBar } from '../ui/url-bar.js'
 import { Compass } from '../ui/compass.js'
 import { StatusHud } from '../ui/hud.js'
 import { ViewerIcon } from '../ui/icons.js'
-import { ToolbarQuick } from '../ui/toolbar-quick.js'
-import { ToolbarSettings } from '../ui/toolbar-settings.js'
-import { outputMenuItems } from '../ui/toolbar-output.js'
+import { TopBar } from '../ui/topbar.js'
+import { SceneDialogs } from '../ui/scene-dialogs.js'
 import { RightStack } from '../ui/right-stack.js'
 import { useEscapeLayer } from '../ui/escape-stack.js'
 import { useToolWorkspace } from '../ui/tool-workspace.js'
@@ -67,8 +67,6 @@ import { useSwipe } from '../ui/swipe-bar.js'
 import { useSceneDetails } from '../ui/scene-details.js'
 import { useWorkbenchWiring } from '../ui/use-workbench.js'
 import { createLocalDirectoryWiring, formatScanFailure } from '../ui/workbench-wiring.js'
-import { MenuItem } from '../ui/menu-item.js'
-import { dataMenuItems } from '../ui/data-menu.js'
 import { useConfirm } from '../ui/confirm-dialog.js'
 import { readRecentUrls, recentUrlLabel, recordRecentTilesetUrl, rememberRecentUrl, writeRecentUrls } from '../ui/recent-urls.js'
 import { hasVectorFile, isVectorDrag, readVectorFiles } from '../scene/vector-file.js'
@@ -1232,18 +1230,28 @@ const TOOL_WINDOW_OF_MODE = {
             try {
               // Restored commands keep the origin they were saved with, so the
               // Agent/user/import split still holds after a reload.
+              const before = agentOverlayRef.current.drawCommands.length
               drawAgentOverlay(Cesium, viewer, command.geojson, command.style, command.caption, overlayOriginOf(command))
+              // drawAgentOverlay builds a fresh command object; the saved hidden
+              // flag belongs to the restored one, so copy it across.
+              const restored = agentOverlayRef.current.drawCommands[before]
+              if (restored && command.hidden === true) restored.hidden = true
             } catch {
               // A stale annotation is not worth failing the restore.
             }
           }
           for (const command of snapshot.annotations.measure) {
             try {
+              const before = agentOverlayRef.current.measureCommands.length
               measureAgentOverlay(Cesium, viewer, command)
+              const restored = agentOverlayRef.current.measureCommands[before]
+              if (restored && command.hidden === true) restored.hidden = true
             } catch {
               // Same for a stale measurement.
             }
           }
+          // Hidden commands hide their entities once those exist again.
+          applyOverlayHidden(agentOverlayRef.current)
           for (const item of snapshot.shaders) {
             try {
               await shaderCommand({ action: 'apply', preset: item.preset, layer: item.layer, ...(item.params ?? {}) })
@@ -2308,7 +2316,8 @@ const TOOL_WINDOW_OF_MODE = {
           openMenu === id ? h('div', { className: 'mv-menu-panel mv-glass' }, items) : null,
         )
 
-      const status = busy || (phase === 'loading' ? t('panel.status.loading') : t('panel.status.ready'))
+      // No idle badge: a permanent "ready" says nothing. Only loading/busy work earns a label.
+      const status = busy || (phase === 'loading' ? t('panel.status.loading') : '')
       // v1.7 P0: the HUD keeps five readouts by default; the detailed mode
       // (Settings → Appearance, off by default) restores the old telemetry.
       const hudLabels = {
@@ -2373,6 +2382,44 @@ const TOOL_WINDOW_OF_MODE = {
           ? { key: 'scene-details', node: sceneDetails.element }
           : null
 
+      const overlayActions = createOverlayActions({
+        t,
+        confirm,
+        showToast,
+        getState: () => agentOverlayRef.current,
+        clear: clearAgentOverlays,
+        remove: (kind, index) => removeAgentOverlay(agentOverlayRef.current, viewerRef.current, kind, index),
+        onChanged: () => {
+          syncAgentOverlayCount()
+          markSceneDirty()
+          saveSceneSnapshot(true)
+        },
+      })
+
+      // v1.8 IA: data entry and per-layer properties are dialogs (WP2 / WP3).
+      // They live above the rail so every entry point funnels through one surface.
+      const [addLayerRequest, setAddLayerRequest] = React.useState(null)
+      const [layerProps, setLayerProps] = React.useState(null)
+      const openAddLayer = (kind, preset = null) => setAddLayerRequest({ kind: kind ?? null, ...(preset ?? {}), token: Date.now() })
+      const openLayerShader = (layer, entry) => {
+        workbench.loadEntry(entry ?? { layer: layer.name, layerId: layer.id, preset: 'height-false-color' })
+        setShaderOpen(true)
+      }
+      // The row passes its kind: draw and measure live in one list, so deriving
+      // the kind from the index alone would hide the wrong command.
+      const selectOverlayFeature = (overlayIndex, featureIndex) => {
+        const command = agentOverlayRef.current.drawCommands[overlayIndex]
+        const feature = command?.geojson?.features?.[featureIndex]
+        if (command && feature) vectorRef.current?.selectByFeature?.(command, feature)
+      }
+      const flyOverlay = (kind, index) =>
+        flyToAgentOverlay(agentOverlayRef.current, viewerRef.current, cesiumRef.current, kind, index)
+      const toggleOverlayVisible = (kind, index, visible) => {
+        setAgentOverlayHidden(agentOverlayRef.current, kind, index, !visible)
+        markSceneDirty()
+        saveSceneSnapshot(true)
+      }
+
       return h(
         'div',
         {
@@ -2407,85 +2454,69 @@ const TOOL_WINDOW_OF_MODE = {
           : null,
         h('div', { key: 'credits', ref: creditRef, className: 'mv-credits' }),
         h(Compass, { key: 'compass', getViewer: () => viewerRef.current, t }),
-        h(
-          'div',
-          { key: 'top', className: `mv-top${openMenu ? ' menu-open' : ''}` },
-          h(
-            'div',
-            { className: 'mv-brand mv-glass' },
-            h(ViewerIcon, { size: 18 }),
-            h('b', null, t('panel.title')),
-            h('span', null, status),
-          ),
-          h(
-            'div',
-            { ref: menuRef, className: 'mv-actions mv-glass' },
-            menu(
-              'data',
-              t('btn.data'),
-              dataMenuItems({
-                h,
-                MenuItem,
-                t,
-                recentDirs,
-                recentUrls,
-                agentOverlayCount,
-                closeMenu: () => setOpenMenu(null),
-                onOpenLocal: pickLocal,
-                onOpenRecentDirectory: openRecentDirectory,
-                onOpenRecentUrl: openRecentUrl,
-                // Scoped to agent-created overlays only: the label now matches what
-                // the action really deletes (audit A2).
-                onClearAgent: () => {
-                  const stats = overlayStats(agentOverlayRef.current)
-                  clearAgentOverlays('all', { origin: 'agent' })
-                  showToast(t('agent.clearedOverlays', { n: stats.agentDraw + stats.agentMeasure }))
-                },
-                onToggleUrlBar: () => setUrlBar((value) => !value),
-              }),
-            ),
-            h('i', { key: 's1', className: 'mv-sep' }),
-            // Batch B1: four domain toggles (工具 / 图层 / 分析 / 视图). Their labels
-            // collapse to icons in a narrow dock; selection lives in the Tools card.
-            h(ToolbarQuick, {
-              t,
-              showLayers: activePanelTab === 'layers',
-              showTools: activePanelTab === 'tools',
-              showResult: activePanelTab === 'result',
-              onToggleLayers: () => {
-                if (!showLayers) updateSettings({ showLayers: true })
-                requestDock('layers')
-              },
-              onToggleTools: () => {
-                if (!showTools) setShowTools(true)
-                requestDock('tools')
-              },
-              onOpenResult: () => requestDock('result'),
-            }),
-            menu(
-              'output',
-              t('btn.output'),
-              outputMenuItems({
-                h,
-                MenuItem,
-                t,
-                showHud,
-                fullscreen,
-                sessionId,
-                docked,
-                closeMenu: () => setOpenMenu(null),
-                onScreenshot: screenshot,
-                onReport: openSceneReport,
-                onToggleHud: () => updateSettings({ showHud: !showHud }),
-                onResetView: resetView,
-                onToggleFullscreen: toggleDomFullscreen,
-                onAskAgent: askAgent,
-                onOpenBeside: openBeside,
-              }),
-            ),
-            h(ToolbarSettings, { t, setSettingsOpen }),
-          ),
-        ),
+        h(TopBar, {
+          key: 'top',
+          t,
+          status,
+          menuRef,
+          openMenu,
+          setOpenMenu,
+          data: {
+            recentDirs,
+            recentUrls,
+            agentOverlayCount,
+            onAddLayer: openAddLayer,
+            onImportVector: () => openAddLayer('vector'),
+            onImportGeotiff: () => openAddLayer('raster', { rasterMode: 'geotiff' }),
+            onOpenLocal: pickLocal,
+            onOpenRecentDirectory: openRecentDirectory,
+            onOpenRecentUrl: openRecentUrl,
+            // Scoped to agent-created overlays only: the label matches what the
+            // action really deletes (audit A2).
+            onClearAgent: () => {
+              const stats = overlayStats(agentOverlayRef.current)
+              clearAgentOverlays('all', { origin: 'agent' })
+              showToast(t('agent.clearedOverlays', { n: stats.agentDraw + stats.agentMeasure }))
+            },
+            onToggleUrlBar: () => setUrlBar((value) => !value),
+          },
+          view: {
+            showHud,
+            fullscreen,
+            onResetView: resetView,
+            onToggleHud: () => updateSettings({ showHud: !showHud }),
+            onToggleFullscreen: toggleDomFullscreen,
+            onShowSceneDetails: sceneDetails.open,
+          },
+          output: {
+            sessionId,
+            docked,
+            canExportVector: agentOverlayCount > 0,
+            onScreenshot: screenshot,
+            onReport: openSceneReport,
+            onExportVector: () => vectorExport.download(),
+            onAskAgent: askAgent,
+            onOpenBeside: openBeside,
+          },
+          // Panel System 2.0 rail destinations, one segmented group.
+          quick: {
+            showLayers: activePanelTab === 'layers',
+            showTools: activePanelTab === 'tools',
+            showResult: activePanelTab === 'result',
+            // D8: nothing to show yet, so the destination stays inert.
+            resultDisabled: !analysis && !reportPreview,
+            onToggleLayers: () => {
+              if (!showLayers) updateSettings({ showLayers: true })
+              requestDock('layers')
+            },
+            onToggleTools: () => {
+              if (!showTools) setShowTools(true)
+              requestDock('tools')
+            },
+            onOpenResult: () => requestDock('result'),
+          },
+          onOpenSettings: () => setSettingsOpen(true),
+        }),
         urlBar
           ? h(UrlBar, {
               key: 'urlbar',
@@ -2572,7 +2603,6 @@ const TOOL_WINDOW_OF_MODE = {
             config: sources,
             settings: sources?.settings ?? {},
             layers,
-            annotations: { drawn_features: agentOverlayRef.current.drawnFeatures, measured_points: agentOverlayRef.current.measuredCount },
             vectorExport,
             onCollapse: () => updateSettings({ showLayers: false }),
             onSelectTerrain: changeTerrain,
@@ -2582,81 +2612,48 @@ const TOOL_WINDOW_OF_MODE = {
             onFlyLayer: flyToLayer,
             onFrameAll: () => frameAllLayers(viewerRef.current, cesiumRef.current, layersRef.current),
             onToggleLayer: toggleLayer,
-            onInspectLayer: inspectLayer,
             onRemoveLayer: removeLayer,
             shaderActive,
-            onEditLayerShader: (layer, entry) => {
-              workbench.loadEntry(entry ?? { layer: layer.name, layerId: layer.id, preset: 'height-false-color' })
-              setShaderOpen(true)
-            },
-            onOverlayAdd: addOverlay,
+            onEditLayerShader: openLayerShader,
+            onAddLayer: openAddLayer,
+            onOpenLayerProperties: (selection) => setLayerProps(selection),
             onOverlayRemove: removeOverlay,
-            onOverlayOpacity: setOverlayOpacity,
             onOverlayVisible: setOverlayVisible,
             onOverlayMove: moveOverlay,
             rasterFrames,
             onSelectRasterFrame: (id, index) => {
               void rasterFrameController.selectFrame(id, index)
             },
-            onImportVector: importVectorData,
-            onPickLocalTiles: () => workbench.pickLocalTiles({ withMeta: true }),
-            onOpenLocal: workbench.openLocal,
-            onOpenUrl: workbench.openUrl,
-            recentDirs,
-            onOpenRecent: workbench.openRecent,
-            // Vector-group ✕: one explicit confirmation that names the counts and
-            // the fact that local imports / hand-drawn features are included.
-            // Returns a third choice only when both kinds exist (audit A1).
-            onClearVector: () => {
-              const stats = overlayStats(agentOverlayRef.current)
-              const total = stats.draw + stats.measure
-              if (total === 0) return
-              void confirm({
-                title: t('confirm.clearVectorTitle'),
-                message: t('confirm.clearVectorMessage', { drawn: stats.draw, measured: stats.measure }),
-                detail:
-                  stats.importDraw + stats.userDraw > 0
-                    ? t('confirm.clearVectorIncludesUser', { user: stats.importDraw + stats.userDraw })
-                    : t('confirm.clearVectorUndo'),
-                confirmLabel: t('confirm.clearAll'),
-                cancelLabel: t('btn.cancel'),
-                secondaryLabel: stats.draw > 0 && stats.measure > 0 ? t('confirm.clearMeasureOnly') : '',
-                danger: true,
-              }).then((choice) => {
-                if (choice === true) {
-                  clearAgentOverlays('all')
-                  showToast(t('toast.vectorCleared'))
-                } else if (choice === 'secondary') {
-                  clearAgentOverlays('measure')
-                  showToast(t('toast.measureCleared'))
-                }
-              })
-            },
             agentOverlays: buildAgentOverlayList(agentOverlayRef.current),
             overlayDetails: buildAgentOverlayDetails(agentOverlayRef.current),
             overlayExtrusions: buildAgentOverlayExtrusions(agentOverlayRef.current),
             onToggleOverlayExtrude: (overlayIndex) => annotations.toggleLayerExtrusion(overlayIndex),
+            onToggleOverlayVisible: toggleOverlayVisible,
             onQuickAnnotate: () => {
               setToolRequest((prev) => ({ id: 'annotation', seq: (prev?.seq ?? 0) + 1 }))
             },
-            onSelectAgentFeature: (overlayIndex, featureIndex) => {
-              const command = agentOverlayRef.current.drawCommands[overlayIndex]
-              const feature = command?.geojson?.features?.[featureIndex]
-              if (command && feature) vectorRef.current?.selectByFeature?.(command, feature)
+            // The measure tool opens like the annotation tool: one request, then
+            // the rail shows the tools destination.
+            onOpenMeasure: () => {
+              setToolRequest((prev) => ({ id: 'measure', seq: (prev?.seq ?? 0) + 1 }))
+              requestDock('tools')
             },
+            onSelectAgentFeature: selectOverlayFeature,
             onFlyAgentFeature: (overlayIndex, featureIndex) => {
               const feature = agentOverlayRef.current.drawCommands[overlayIndex]?.geojson?.features?.[featureIndex]
               return flyToOverlayFeature(viewerRef.current, cesiumRef.current, feature)
             },
             onRemoveAgentFeature: (overlayIndex, featureIndex) => annotations.removeFeature(overlayIndex, featureIndex),
-            onFlyAgentOverlay: (kind, index) =>
-              flyToAgentOverlay(agentOverlayRef.current, viewerRef.current, cesiumRef.current, kind, index),
-            onRemoveAgentOverlay: (kind, index) => {
-              if (!removeAgentOverlay(agentOverlayRef.current, viewerRef.current, kind, index)) return
-              syncAgentOverlayCount()
-              markSceneDirty()
-              saveSceneSnapshot(true)
-            },
+            onFlyAgentOverlay: flyOverlay,
+            // Scoped clears and row removals share one policy module: every
+            // destructive overlay action asks first and reports afterwards.
+            onClearAnnotations: overlayActions.onClearAnnotations,
+            onClearMeasurements: overlayActions.onClearMeasurements,
+            onClearImports: overlayActions.onClearImports,
+            onRemoveAgentOverlay: overlayActions.onRemoveAgentOverlay,
+            onExportOverlay: (index) => vectorExport.downloadOverlay(index),
+            onSendOverlay: (index) => vectorExport.sendOverlay(index),
+            canSend: vectorExport.canSend(),
             onShowSceneDetails: sceneDetails.open,
             swipeState: swipe.state,
             onSwipeLayer: swipe.toggle3d,
@@ -2784,6 +2781,34 @@ const TOOL_WINDOW_OF_MODE = {
         toast
           ? h('div', { key: 'toast', className: 'mv-toast', role: 'status', 'aria-live': 'polite' }, toast)
           : null,
+        // v1.8: one surface for adding data, one for per-layer properties.
+        h(SceneDialogs, {
+          key: 'scene-dialogs',
+          t,
+          request: addLayerRequest,
+          selection: layerProps,
+          layers,
+          config: sources,
+          settings: sources?.settings ?? {},
+          agentOverlays: buildAgentOverlayList(agentOverlayRef.current),
+          overlayDetails: buildAgentOverlayDetails(agentOverlayRef.current),
+          shaderActive,
+          workbench,
+          recentDirs,
+          onCloseAdd: () => setAddLayerRequest(null),
+          onCloseProps: () => setLayerProps(null),
+          onOverlayAdd: addOverlay,
+          onImportVector: importVectorData,
+          onFlyLayer: flyToLayer,
+          onToggleLayer: toggleLayer,
+          onInspectLayer: inspectLayer,
+          onOverlayOpacity: setOverlayOpacity,
+          onOverlayVisible: setOverlayVisible,
+          onEditLayerShader: openLayerShader,
+          onSelectAgentFeature: selectOverlayFeature,
+          onExportOverlay: (index) => vectorExport.downloadOverlay(index),
+          onFlyAgentOverlay: flyOverlay,
+        }),
         // Shared destructive-action confirmation (focus trap, Esc = cancel).
         confirmDialog,
         scan

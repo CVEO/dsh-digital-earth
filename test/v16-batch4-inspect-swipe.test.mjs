@@ -20,6 +20,8 @@ import * as RealCesium from '../vendor/cesium/index.js'
 const { analyzeTileset } = await import('../src/host/inspect/analyze.js')
 const { computeSwipeClipPlane, createSwipeSession } = await import('../src/client/scene/swipe.js')
 const { LayerRow } = await import('../src/client/ui/layer-row.js')
+const { LayersEntities } = await import('../src/client/ui/layers-entities.js')
+const { MenuItem } = await import('../src/client/ui/menu-item.js')
 const { engineLayersOf } = await import('../src/client/ui/swipe-bar.js')
 const { MESSAGES } = await import('../src/client/messages.js')
 const { clientSource } = await import('./helpers/source.mjs')
@@ -41,6 +43,18 @@ function makeGlb(json) {
   chunkHeader.writeUInt32LE(jsonChunk.length, 0)
   chunkHeader.writeUInt32LE(0x4e4f534a, 4)
   return Buffer.concat([header, chunkHeader, jsonChunk])
+}
+
+// Collect every element node of a props-in/JSX-out component tree (arrays included).
+const findAll = (node, out = []) => {
+  if (!node || typeof node !== 'object') return out
+  if (Array.isArray(node)) {
+    for (const child of node) findAll(child, out)
+    return out
+  }
+  out.push(node)
+  if (node.children) findAll(node.children, out)
+  return out
 }
 
 // ---------------------------------------------------------------------------
@@ -265,34 +279,49 @@ test('需求 B: createSwipeSession 支持 3D Tiles 与 2D 栅格卷帘、相机�
   assert.equal(rasterImageryLayer.splitDirection, 0, '退出后 splitDirection 恢复为 NONE(0)')
   assert.equal(viewer.scene.splitPosition, 0.5, '退出后 splitPosition 恢复原值')
 
-  // 4) UI 层行：可见 3DGS 图层已解锁溢出菜单中的原生分屏项，中英文案成对
-  const row3dgs = LayerRow({
-    t: (k) => MESSAGES.zh[k] ?? k,
-    layer: splatLayer,
-    shader: null,
-    swipeActive: false,
-    menuOpen: true,
-    onMenuToggle() {},
-    onFlyLayer() {},
-    onToggleLayer() {},
-    onInspectLayer() {},
-    onRemoveLayer() {},
-    onEditShader() {},
-    onSwipeLayer() {},
-  })
-  const findAll = (node, out = []) => {
-    if (!node || typeof node !== 'object') return out
-    if (Array.isArray(node)) {
-      for (const child of node) findAll(child, out)
-      return out
-    }
-    out.push(node)
-    if (node.children) findAll(node.children, out)
-    return out
+  // 4) UI 层行：可见 3DGS 图层的溢出菜单包含原生分屏项且未被置灰
+  const t = (key) => MESSAGES.zh[key] ?? key
+  const contentRowOf = (layer) => {
+    const tree = LayersEntities({
+      t,
+      layers: [layer],
+      shaderActive: [],
+      agentOverlays: [],
+      overlayDetails: {},
+      overlayExtrusions: {},
+      onSwipeLayer() {},
+      onFlyLayer() {},
+      onToggleLayer() {},
+      onRemoveLayer() {},
+      onEditLayerShader() {},
+      onOpenLayerProperties() {},
+    })
+    const row = findAll(tree).find((node) => node?.props?.id === `layer-${layer.id}`)
+    assert.ok(row, `三维内容分组应给出 ${layer.id} 的行`)
+    return row.props
   }
-  const swipeBtn = findAll(row3dgs).find((btn) => (btn.children ?? []).includes(MESSAGES.zh['swipe.toggle']))
-  assert.ok(swipeBtn, '图层行溢出菜单应包含卷帘对比项')
+  const swipeEntryOf = (rowProps) => rowProps.menu.find((item) => item.label === MESSAGES.zh['swipe.toggle'])
+  const row3dgs = contentRowOf(splatLayer)
+  const swipeEntry = swipeEntryOf(row3dgs)
+  assert.ok(swipeEntry, '图层行溢出菜单应包含卷帘对比项')
+  assert.equal(swipeEntry.disabled, false, '可见 3DGS 图层应允许原生 SplitDirection 分屏对比')
+  assert.equal(swipeEntry.checked, false, '未开启时卷帘项应是未勾选状态')
+
+  // The shared MenuItem must render it as an accessible toggle entry.
+  const rendered = LayerRow({ ...row3dgs, menuOpen: true, onMenuToggle() {} })
+  const swipeNode = findAll(rendered).find(
+    (node) => node?.type === MenuItem && (node.children ?? []).includes(MESSAGES.zh['swipe.toggle']),
+  )
+  assert.ok(swipeNode, '溢出菜单应渲染卷帘菜单项')
+  const swipeBtn = MenuItem({ ...swipeNode.props, children: MESSAGES.zh['swipe.toggle'] })
+  assert.equal(swipeBtn.props.role, 'menuitemcheckbox', '可切换的卷帘项必须是 menuitemcheckbox')
+  assert.equal(swipeBtn.props['aria-checked'], false)
   assert.equal(swipeBtn.props.disabled, false, '可见 3DGS 图层应允许原生 SplitDirection 分屏对比')
+
+  // A hidden layer cannot start a split: the entry is disabled, not a dead action.
+  const swipeEntryHidden = swipeEntryOf(contentRowOf({ ...splatLayer, visible: false }))
+  assert.equal(swipeEntryHidden.disabled, true, '隐藏图层不能开启卷帘')
+
   assert.equal(typeof MESSAGES.en['swipe.unsupported3dgs'], 'string')
   assert.equal(typeof MESSAGES.en['swipe.toggle'], 'string')
 })

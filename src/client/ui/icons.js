@@ -104,6 +104,28 @@ const h = React.createElement
           h('circle', { key: 'lens', cx: 10.5, cy: 10.5, r: 6, ...stroke }),
           h('path', { key: 'handle', d: 'M15 15l5.5 5.5', ...stroke }),
         ]
+      } else if (kind === 'more') {
+        shapes = [
+          h('circle', { key: 'a', cx: 5.5, cy: 12, r: 1.5, fill: 'currentColor' }),
+          h('circle', { key: 'b', cx: 12, cy: 12, r: 1.5, fill: 'currentColor' }),
+          h('circle', { key: 'c', cx: 18.5, cy: 12, r: 1.5, fill: 'currentColor' }),
+        ]
+      } else if (kind === 'up' || kind === 'down') {
+        shapes = [
+          h('path', { key: 'arrow', d: kind === 'up' ? 'M12 19V6M6 12l6-6 6 6' : 'M12 5v13M6 12l6 6 6-6', ...stroke }),
+        ]
+      } else if (kind === 'delete') {
+        shapes = [
+          h('path', { key: 'lid', d: 'M4 7h16M9.5 7V5h5v2', ...stroke }),
+          h('path', { key: 'can', d: 'M6.5 7l.9 11.5h9.2L17.5 7', ...stroke }),
+          h('path', { key: 'lines', d: 'M10 11v4.5M14 11v4.5', ...stroke }),
+        ]
+      } else if (kind === 'shader') {
+        shapes = [
+          h('path', { key: 'sliders', d: 'M3 7h6.5M13.5 7H21M3 17h4M11 17h10', ...stroke }),
+          h('circle', { key: 'k1', cx: 11.5, cy: 7, r: 2.4, ...stroke }),
+          h('circle', { key: 'k2', cx: 8.5, cy: 17, r: 2.4, ...stroke }),
+        ]
       } else {
         shapes = [h('path', { key: 'x', d: 'M6 6l12 12M18 6L6 18', ...stroke })]
       }
@@ -213,6 +235,17 @@ const h = React.createElement
           h('circle', { key: 'k1', cx: 11.5, cy: 7, r: 2.4, ...stroke }),
           h('circle', { key: 'k2', cx: 8.5, cy: 17, r: 2.4, ...stroke }),
         ]
+      } else if (kind === 'view') {
+        shapes = [
+          h('path', { key: 'eye', d: 'M2.5 12s3.6-6.2 9.5-6.2S21.5 12 21.5 12s-3.6 6.2-9.5 6.2S2.5 12 2.5 12z', ...stroke }),
+          h('circle', { key: 'pupil', cx: 12, cy: 12, r: 2.9, ...stroke }),
+        ]
+      } else if (kind === 'effects') {
+        shapes = [
+          h('path', { key: 'sliders', d: 'M3 7h6.5M13.5 7H21M3 17h4M11 17h10', ...stroke }),
+          h('circle', { key: 'a', cx: 11.5, cy: 7, r: 2.4, ...stroke }),
+          h('circle', { key: 'b', cx: 8.5, cy: 17, r: 2.4, ...stroke }),
+        ]
       } else {
         shapes = [
           h('path', { key: 'globe', d: 'M12 3.5a8.5 8.5 0 1 0 0 17 8.5 8.5 0 0 0 0-17z', ...stroke }),
@@ -264,4 +297,38 @@ const h = React.createElement
       )
     }
 
-export { ViewerIcon, ThemeIcon, FullscreenIcon, HudIcon, CollapseIcon, LayerActionIcon, ShaderIcon, ScreenshotIcon, IdentifyIcon, ResetIcon, AskAgentIcon, EyeIcon, ToolEntryIcon, ToolsIcon, LayersIcon }
+    /**
+     * Small action glyphs for menu rows and group headers. One stroke family so a
+     * menu reads as a list of actions instead of nine undifferentiated words.
+     * `name`: add | folder | link | history | import | export | terrain | raster |
+     *         vector | pen | props | scene | view | output | chat | frame | ruler
+     */
+    function GlyphIcon({ name, size = 16 }) {
+      const stroke = { stroke: 'currentColor', strokeWidth: 1.7, strokeLinecap: 'round', strokeLinejoin: 'round', fill: 'none' }
+      const paths = {
+        add: ['M12 5v14', 'M5 12h14'],
+        folder: ['M3.5 6.8h5.6l1.5 2h9.9v9.4h-17z'],
+        link: ['M9.5 14.5 14.5 9.5', 'M8 12 6.4 13.6a3.1 3.1 0 0 0 4.4 4.4L12.4 16.4', 'M16 12l1.6-1.6a3.1 3.1 0 0 0-4.4-4.4L11.6 7.6'],
+        history: ['M12 4.5a7.5 7.5 0 1 1-7.4 8.8', 'M4.5 8.5 4.4 4.4l4.1.1', 'M12 8v4.5l3.2 1.9'],
+        import: ['M12 4.5v9', 'M8.6 10.4 12 13.8l3.4-3.4', 'M4.5 15.5v3h15v-3'],
+        export: ['M12 14.5v-9', 'M8.6 8.6 12 5.2l3.4 3.4', 'M4.5 15.5v3h15v-3'],
+        terrain: ['M3 18.5 9 8l3.6 6.1 2-3.1 4.4 7.5z'],
+        raster: ['M4 4.5h16v15H4z', 'M4 9.5h16M4 14.5h16M9.3 4.5v15M14.7 4.5v15'],
+        vector: ['M12 3.8 19.5 8v8L12 20.2 4.5 16V8z', 'M12 3.8v16.4M4.5 8l15 8M19.5 8l-15 8'],
+        pen: ['M4.5 19.5l3.2-.7L19 7.6a1.6 1.6 0 0 0-2.3-2.3L5.2 16.4z', 'M15.6 6.9l1.5 1.5'],
+        frame: ['M4 9V5.2h3.8M16.2 5.2H20V9M20 15v3.8h-3.8M7.8 18.8H4V15', 'M9.2 9.2h5.6v5.6H9.2z'],
+        ruler: ['M4.4 15.6 15.6 4.4l4 4L8.4 19.6z', 'M8.2 11.8l2 2M11 9l2 2M13.8 6.2l2 2'],
+        props: ['M4 8h6M14 8h6M4 16h3M11 16h9', 'M12 8a2 2 0 1 0 0-.1z', 'M9.5 16a2 2 0 1 0 0-.1z'],
+        scene: ['M12 3.6a8.4 8.4 0 1 0 0 16.8 8.4 8.4 0 0 0 0-16.8z', 'M12 3.6c2.5 2.3 3.9 5.1 3.9 8.4s-1.4 6.1-3.9 8.4c-2.5-2.3-3.9-5.1-3.9-8.4s1.4-6.1 3.9-8.4z', 'M3.9 12h16.2'],
+        view: ['M2.5 12s3.6-6.2 9.5-6.2S21.5 12 21.5 12s-3.6 6.2-9.5 6.2S2.5 12 2.5 12z', 'M12 9.2a2.8 2.8 0 1 0 0 5.6 2.8 2.8 0 0 0 0-5.6z'],
+        output: ['M4.5 6.5h15v13h-15z', 'M8 3.8v4M16 3.8v4', 'M8 12.5h8M8 15.8h5'],
+        chat: ['M4 5.5h16v10.5H9.5L5 20v-4H4z', 'M8.5 9.5h7M8.5 12.5h4.5'],
+      }[name] ?? ['M12 3.6a8.4 8.4 0 1 0 0 16.8 8.4 8.4 0 0 0 0-16.8z', 'M3.9 12h16.2']
+      return h(
+        'svg',
+        { viewBox: '0 0 24 24', width: size, height: size, 'aria-hidden': true, style: { display: 'block' } },
+        ...paths.map((d, index) => h('path', { key: index, d, ...stroke })),
+      )
+    }
+
+export { ViewerIcon, ThemeIcon, FullscreenIcon, HudIcon, CollapseIcon, LayerActionIcon, ShaderIcon, ScreenshotIcon, IdentifyIcon, ResetIcon, AskAgentIcon, EyeIcon, ToolEntryIcon, ToolsIcon, LayersIcon, GlyphIcon }

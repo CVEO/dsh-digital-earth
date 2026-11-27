@@ -284,16 +284,13 @@ function renderDock(initial = {}) {
   return { renderer, props }
 }
 
-function tabLabels(root) {
-  return findAll(root, (node) => node?.props?.role === 'tab').map((node) => ({
-    label: node.props['aria-label'] ?? textOf(node),
-    selected: node.props['aria-selected'],
-    tabIndex: node.props.tabIndex,
-  }))
+function activeTitle(root) {
+  return textOf(byClass(root, 'mv-dock-head-title')[0])
 }
 
-function activeTabNodes(root) {
-  return findAll(root, (node) => hasClass(node, 'mv-dock-tab') && hasClass(node, 'on'))
+function requestDock(renderer, props, kind, seq) {
+  props.dockRequest = { kind, seq }
+  renderer.rerender()
 }
 
 function panelNodes(root) {
@@ -308,49 +305,42 @@ test('P1 四个目的地：图层/工具/结果常驻，只渲染一个可见 ta
   withStorage(() => {
     const { renderer } = renderDock({ analysis: FLOOD, showLayers: true })
     const root = renderer.tree()
-    assert.deepEqual(
-      byClass(root, 'mv-dock-tab').map((node) => node.props['aria-label']),
-      ['panel.tab.layers', 'panel.tab.tools', 'panel.tab.result'],
-    )
-    assert.equal(activeTabNodes(root).length, 1)
+    // One navigation level: the dock title names the destination, and the
+    // topbar quick group is the only switcher (no second tab strip).
+    assert.equal(byClass(root, 'mv-dock-tablist').length, 0)
+    assert.equal(byClass(root, 'mv-dock-tab').length, 0)
+    assert.equal(activeTitle(root), 'panel.tab.layers')
     assert.equal(visiblePanels(root).length, 1)
     const panels = panelNodes(root)
-    assert.equal(panels.length, 3, '三个页签都有挂载，只有非活动的 hidden')
+    assert.equal(panels.length, 3, '三个目的地都有挂载，只有非活动的 hidden')
     assert.equal(panels.filter((node) => node.props.hidden).length, 2)
   })
 })
 
 test('P1 页签切换：点结果后工具面板 hidden 但不卸载，切回可继续', () => {
   withStorage(() => {
-    const { renderer } = renderDock({ analysis: FLOOD, showLayers: true })
+    const { renderer, props } = renderDock({ analysis: FLOOD, showLayers: true })
     let root = renderer.tree()
-    const resultTab = findAll(root, (node) => node?.props?.role === 'tab').find((node) =>
-      node.props['aria-label'] === 'panel.tab.result',
-    )
-    resultTab.props.onClick()
+    requestDock(renderer, props, 'result', 1)
     root = renderer.tree()
     assert.ok(visiblePanels(root)[0].props.id.endsWith('result'))
+    assert.equal(activeTitle(root), 'panel.tab.result')
     assert.match(textOf(visiblePanels(root)[0]), /analysis\.title\.flood/)
     const toolsPanel = findAll(root, (node) => node?.props?.id === 'mv-dock-panel-tools')[0]
     assert.equal(toolsPanel.props.hidden, true)
 
-    const toolsTab = findAll(root, (node) => node?.props?.role === 'tab').find((node) =>
-      node.props['aria-label'] === 'panel.tab.tools',
-    )
-    toolsTab.props.onClick()
+    requestDock(renderer, props, 'tools', 2)
     root = renderer.tree()
     assert.ok(visiblePanels(root)[0].props.id.endsWith('tools'))
+    assert.equal(activeTitle(root), 'panel.tab.tools')
   })
 })
 
 test('P1 结果空态：没有分析结果时结果页签给出启动提示', () => {
   withStorage(() => {
-    const { renderer } = renderDock({ showLayers: true })
+    const { renderer, props } = renderDock({ showLayers: true })
     let root = renderer.tree()
-    const resultTab = findAll(root, (node) => node?.props?.role === 'tab').find((node) =>
-      node.props['aria-label'] === 'panel.tab.result',
-    )
-    resultTab.props.onClick()
+    requestDock(renderer, props, 'result', 1)
     root = renderer.tree()
     assert.match(textOf(visiblePanels(root)[0]), /panel\.result\.emptyTitle/)
   })
@@ -365,7 +355,7 @@ test('P1 场景报告：在结果页签内嵌 iframe 打开，可关闭回到空
       onCloseReport: () => { closed++ },
     })
     let root = renderer.tree()
-    assert.ok(activeTabNodes(root)[0].props.id.endsWith('result'))
+    assert.equal(activeTitle(root), 'panel.tab.result')
     const frame = findAll(root, (node) => node?.props?.className === 'mv-report-preview-frame')[0]
     assert.ok(frame, '报告应以内嵌 iframe 呈现')
     assert.match(frame.props.srcDoc, /report-body/)
@@ -405,11 +395,11 @@ test('P1 分析结果到达：空闲时自动切到结果页签', () => {
   withStorage(() => {
     const { renderer, props } = renderDock({ showLayers: true })
     let root = renderer.tree()
-    assert.ok(activeTabNodes(root)[0].props.id.endsWith('tools') || activeTabNodes(root)[0].props.id.endsWith('layers'))
+    assert.ok(['panel.tab.tools', 'panel.tab.layers'].includes(activeTitle(root)))
     props.analysis = FLOOD
     renderer.rerender()
     root = renderer.tree()
-    assert.ok(activeTabNodes(root)[0].props.id.endsWith('result'))
+    assert.equal(activeTitle(root), 'panel.tab.result')
   })
 })
 
@@ -434,14 +424,14 @@ test('P1 收起/展开：面板保持挂载，收起时全部 hidden', () => {
     collapse.props.onClick()
 
     root = renderer.tree()
-    assert.equal(byClass(root, 'mv-dock-tab').length, 0)
+    assert.equal(byClass(root, 'mv-dock-head').length, 0)
     assert.ok(byClass(root, 'mv-dock-pill')[0])
     assert.equal(panelNodes(root).length, before)
     assert.ok(panelNodes(root).every((panel) => panel.props.hidden === true))
 
     byClass(root, 'mv-dock-pill')[0].props.onClick()
     root = renderer.tree()
-    assert.equal(byClass(root, 'mv-dock-tab').length, 3)
+    assert.equal(byClass(root, 'mv-dock-head').length, 1)
   })
 })
 
@@ -459,7 +449,7 @@ test('P1 刷新恢复：v2 偏好恢复活动页签与收起状态', () => {
     store.set('mv.ui.v2', JSON.stringify({ version: 2, activeTab: 'result', collapsed: false, width: 360 }))
     const { renderer } = renderDock({ analysis: FLOOD, showLayers: true })
     const root = renderer.tree()
-    assert.ok(activeTabNodes(root)[0].props.id.endsWith('result'))
+    assert.equal(activeTitle(root), 'panel.tab.result')
   })
 })
 
@@ -468,21 +458,19 @@ test('P2 对象页签：按需出现，到达时空闲自动切换，关闭后�
     const objectPanel = { key: 'vector:1', node: React.createElement('div', { className: 'mv-test-object' }, 'object body') }
     const { renderer, props } = renderDock({ showLayers: true })
     let root = renderer.tree()
-    assert.equal(byClass(root, 'mv-dock-tab').length, 3)
+    assert.equal(activeTitle(root), 'panel.tab.layers')
 
     props.objectPanel = objectPanel
     renderer.rerender()
     root = renderer.tree()
-    const labels = byClass(root, 'mv-dock-tab').map((node) => node.props['aria-label'])
-    assert.ok(labels.includes('panel.tab.object'))
-    assert.ok(activeTabNodes(root)[0].props.id.endsWith('object'))
+    assert.equal(activeTitle(root), 'panel.tab.object')
     assert.equal(byClass(root, 'mv-test-object').length, 1)
 
     props.objectPanel = null
     renderer.rerender()
     root = renderer.tree()
     assert.equal(byClass(root, 'mv-test-object').length, 0)
-    assert.equal(byClass(root, 'mv-dock-tab').length, 3)
+    assert.equal(activeTitle(root), 'panel.tab.layers')
   })
 })
 
@@ -491,7 +479,7 @@ test('P1 旧右栏偏好迁移：analysis → result', () => {
     store.set('mv.rightDock.v1', JSON.stringify({ activeId: 'analysis' }))
     const { renderer } = renderDock({ analysis: FLOOD, showLayers: true })
     const root = renderer.tree()
-    assert.ok(activeTabNodes(root)[0].props.id.endsWith('result'))
+    assert.equal(activeTitle(root), 'panel.tab.result')
   })
 })
 

@@ -14,7 +14,7 @@ import { readRepoFile } from './helpers/source.mjs'
 
 const viewer = readRepoFile('src/client/viewer/ViewerSurface.js')
 const panel = readRepoFile('src/client/ui/layers-panel.js')
-const layers3d = readRepoFile('src/client/ui/layers-3d.js')
+const layersSurface = readRepoFile('src/client/ui/layers-surface.js')
 const messages = readRepoFile('src/client/messages.js')
 
 test('地形失败：自动恢复只在面板内提示，显式切换才 toast', () => {
@@ -27,12 +27,13 @@ test('地形失败：自动恢复只在面板内提示，显式切换才 toast',
   assert.match(viewer, /setTerrainError\(''\)/)
 })
 
-test('地形失败：面板 L1 下方显示原因 + 重试按钮', () => {
+test('地形失败：地表 Tab 的地形组显示原因 + 重试按钮', () => {
   assert.match(panel, /terrainError,/)
   assert.match(panel, /onRetryTerrain,/)
-  // The visible error row lives in the 3D data tab (terrain is 3D data, not a tool).
-  assert.match(layers3d, /key: 'terrain-error', className: 'mv-none mv-terrain-error'/)
-  assert.match(layers3d, /t\('terrain\.retry'\)/)
+  // Terrain is ground data, so its visible error row lives in the 地表 tab's 地形 group.
+  assert.match(layersSurface, /id: 'terrain'/)
+  assert.match(layersSurface, /className: 'mv-none mv-terrain-error'/)
+  assert.match(layersSurface, /t\('terrain\.retry'\)/)
   assert.match(viewer, /onRetryTerrain: \(\) => applyTerrain\(sourcesRef\.current\?\.settings\?\.terrain \?\? null, true\)/)
 })
 
