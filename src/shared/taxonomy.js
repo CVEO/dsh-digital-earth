@@ -17,7 +17,7 @@ const entry = (id, key, name, nameEn, color, definition, definitionEn) => Object
 export const DEFAULT_CLASSES = Object.freeze([
   entry(1, 'building', '建筑', 'Building', '#f59e0b',
     '单栋建筑屋顶外轮廓，不含立面、阴影、道路和相邻建筑；相邻建筑分成独立实例。',
-    'One building roof footprint. Exclude facades, shadows, roads and adjacent buildings; keep adjacent buildings as separate instances.'),
+    'One building roof footprint. Exclude facades, shadows, roads and neighbours; separate adjacent buildings.'),
   entry(2, 'water', '水体', 'Water', '#38bdf8',
     '湖泊、池塘、河流等独立水面；堤埂内的水域按可见水面整体。',
     'One lake, pond or river surface. Treat the water body inside its banks as one visible surface.'),
@@ -32,7 +32,7 @@ export const DEFAULT_CLASSES = Object.freeze([
     'One car or truck. Draw the visible body only, without its shadow.'),
   entry(6, 'sports_field', '运动场', 'Sports field', '#a78bfa',
     '跑道、球场等运动场地：跑道与场芯作为一个整体实例，不含周边草地与看台。',
-    'Running tracks and courts as one instance each: keep the track and its infield together, exclude surrounding grass and stands.'),
+    'One running track or court: keep track and infield together, exclude surrounding grass and stands.'),
   entry(7, 'farmland', '农田', 'Farmland', '#facc15',
     '耕地、农田地块；按田埂/道路分隔的独立田块输出。',
     'Cultivated plots, split at ridges or roads into separate instances.'),

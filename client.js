@@ -10519,7 +10519,7 @@ var DEFAULT_CLASSES = Object.freeze([
     "Building",
     "#f59e0b",
     "单栋建筑屋顶外轮廓，不含立面、阴影、道路和相邻建筑；相邻建筑分成独立实例。",
-    "One building roof footprint. Exclude facades, shadows, roads and adjacent buildings; keep adjacent buildings as separate instances."
+    "One building roof footprint. Exclude facades, shadows, roads and neighbours; separate adjacent buildings."
   ),
   entry(
     2,
@@ -10564,7 +10564,7 @@ var DEFAULT_CLASSES = Object.freeze([
     "Sports field",
     "#a78bfa",
     "跑道、球场等运动场地：跑道与场芯作为一个整体实例，不含周边草地与看台。",
-    "Running tracks and courts as one instance each: keep the track and its infield together, exclude surrounding grass and stands."
+    "One running track or court: keep track and infield together, exclude surrounding grass and stands."
   ),
   entry(
     7,
