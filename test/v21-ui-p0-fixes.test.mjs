@@ -23,6 +23,8 @@ const { ProfileBar } = await import('../src/client/ui/profile-bar.js')
 const { TopBar } = await import('../src/client/ui/topbar.js')
 const { AnalysisCard } = await import('../src/client/ui/cards.js')
 const { RightStack } = await import('../src/client/ui/right-stack.js')
+const { DEFAULT_CLASSES, SPORTS_CLASSES, buildClassCatalog, TAXONOMY_LIMITS } = await import('../src/shared/taxonomy.js')
+const { INSTANCE_LIMITS } = await import('../src/client/scene/instance-segment.js')
 
 const t = (key, params) => (params ? `${key}:${JSON.stringify(params)}` : key)
 const read = (rel) => readFileSync(new URL(`../${rel}`, import.meta.url), 'utf8')
@@ -312,4 +314,22 @@ test('CSS 与 PanelRail 契约：下拉菜单右对齐防裁切、in-dock 重置
   assert.match(rail, /if \(!isCollapsed && Number\.isFinite\(value\)\)/)
   const surface = read('src/client/viewer/ViewerSurface.js')
   assert.match(surface, /workspace\.closeTool\(header\.toolId\)/)
+})
+
+test('taxonomy 中英文预设与最大长度自定义类别均满足实例分割协议长度上限', () => {
+  const maxCustom = 'A'.repeat(TAXONOMY_LIMITS.maxLabelLength)
+  for (const lang of ['zh', 'en']) {
+    for (const presets of [DEFAULT_CLASSES, SPORTS_CLASSES]) {
+      for (const item of buildClassCatalog([maxCustom], presets, lang)) {
+        assert.ok(
+          [...item.name].length <= INSTANCE_LIMITS.maxClassNameChars,
+          `${lang} ${item.key} name 超过 ${INSTANCE_LIMITS.maxClassNameChars}: ${item.name}`,
+        )
+        assert.ok(
+          [...item.definition].length <= INSTANCE_LIMITS.maxClassDefinitionChars,
+          `${lang} ${item.key} definition 超过 ${INSTANCE_LIMITS.maxClassDefinitionChars} (${[...item.definition].length})`,
+        )
+      }
+    }
+  }
 })
