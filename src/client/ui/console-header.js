@@ -28,3 +28,32 @@ export function consoleHeader({ t, activeTab = null, lastTab = null, windows = [
   const panelDetail = tab === 'tools' && entry && !toolIndexShown ? t(entry.labelKey) : null
   return { tab, panelLabel: labelKey ? t(labelKey) : t('dock.title'), panelDetail, toolId }
 }
+
+/**
+ * Context close/clear action for embedded panels whose own `<header>` is hidden
+ * inside the unified right rail (`result` analysis/report, `object` details/card).
+ */
+export function consoleCloseAction({
+  t,
+  activeTab = null,
+  analysis = null,
+  reportPreview = null,
+  hasObject = false,
+  onCloseAnalysis = null,
+  onCloseReport = null,
+  onCloseObject = null,
+}) {
+  if (activeTab === 'result') {
+    if (reportPreview?.html && typeof onCloseReport === 'function') {
+      return { onClosePanel: onCloseReport, closePanelLabel: t('report.close'), closePanelDanger: false }
+    }
+    if (analysis?.result && typeof onCloseAnalysis === 'function') {
+      const label = analysis.operation === 'profile' ? t('profile.clear') : t('layers.analysisClear')
+      return { onClosePanel: onCloseAnalysis, closePanelLabel: label, closePanelDanger: true }
+    }
+  }
+  if (activeTab === 'object' && hasObject && typeof onCloseObject === 'function') {
+    return { onClosePanel: onCloseObject, closePanelLabel: t('btn.close'), closePanelDanger: false }
+  }
+  return { onClosePanel: null, closePanelLabel: '', closePanelDanger: false }
+}

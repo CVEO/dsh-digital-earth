@@ -7,10 +7,13 @@
  */
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
+import { register } from 'node:module'
 import test from 'node:test'
 
-import { isChromeShortcut } from '../src/client/ui/chrome-visibility.js'
-import { MESSAGES } from '../src/client/messages.js'
+register('./helpers/react-stub-loader.mjs', import.meta.url)
+
+const { isChromeShortcut } = await import('../src/client/ui/chrome-visibility.js')
+const { MESSAGES } = await import('../src/client/messages.js')
 
 const read = (file) => readFileSync(new URL(`../${file}`, import.meta.url), 'utf8')
 

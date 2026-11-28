@@ -9,28 +9,37 @@
  */
 
 export const LAYERS_CSS = `
-/* ---- group header: the whole left region is the toggle, not just the text ---- */
-.mv-group{padding:9px 2px 4px;gap:4px}
-.mv-lgroup>.mv-group{padding:9px 2px 4px}
-.mv-group-toggle{flex:1 1 auto;align-self:stretch;min-width:0;min-height:26px;justify-content:flex-start;padding:3px 6px;margin-left:-6px;gap:6px}
-.mv-group-title{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.mv-group-count{font-size:11px}
+/* ---- scene secondary segmented control (三维 / 地表) ---- */
+.mv-layers .mv-layer-tabs{display:flex;gap:2px;margin:8px 10px 4px;padding:2px;border-radius:8px;border:.5px solid color-mix(in srgb,var(--mv-line) 75%,transparent);background:color-mix(in srgb,var(--mv-lift) 80%,transparent)}
+.mv-layers .mv-layer-tab{padding:4px 10px;border-radius:6px;font-size:11.5px;font-weight:500;line-height:1.4;color:var(--mv-dim);transition:background-color .14s ease,color .14s ease,box-shadow .14s ease}
+.mv-layers .mv-layer-tab:hover{color:var(--mv-text)}
+.mv-layers .mv-layer-tab.on{background:var(--mv-glass-strong);color:var(--mv-text);font-weight:600;box-shadow:0 1px 2px rgba(15,23,42,.08)}
+/* ---- group header: clean transparent section divider, vertically centred ---- */
+.mv-lgroup{gap:2px}
+.mv-group{padding:6px 6px 4px 4px;gap:4px}
+.mv-lgroup>.mv-group{position:static;padding:7px 6px 5px 4px;margin-top:8px;border-top:.5px solid color-mix(in srgb,var(--mv-line) 75%,transparent);background:transparent;border-radius:0}
+.mv-lgroup:first-child>.mv-group{border-top:0;margin-top:0;padding-top:4px;border-radius:0}
+.mv-group-toggle{flex:1 1 auto;align-self:stretch;min-width:0;min-height:24px;justify-content:flex-start;padding:2px 6px 2px 4px;margin-left:-4px;gap:6px;border-radius:6px}
+.mv-group-chevron{width:12px;display:inline-flex;align-items:center;justify-content:center;font-size:10px;color:var(--mv-dim)}
+.mv-group-toggle:hover .mv-group-chevron{color:var(--mv-text)}
+.mv-group-title{font-size:11.5px;font-weight:600;letter-spacing:.01em;color:color-mix(in srgb,var(--mv-text) 82%,var(--mv-dim));white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mv-group-count{font-size:11px;font-weight:500;color:color-mix(in srgb,var(--mv-dim) 82%,transparent)}
 .mv-group-actions{gap:2px}
-.mv-layers .mv-group-actions .mv-cta{min-height:24px;padding:2px 9px;font-size:11.5px}
+.mv-layers .mv-group-actions .mv-cta{min-height:22px;padding:2px 8px;font-size:11px}
 .mv-layers .mv-group-actions .mv-cta:focus-visible{outline:2px solid var(--mv-accent);outline-offset:1px}
-.mv-layers .mv-group-actions .mv-icon-btn{width:24px;height:24px;color:color-mix(in srgb,var(--mv-text) 62%,transparent)}
-.mv-layers .mv-group-actions .mv-icon-btn:hover{color:var(--mv-text);background:color-mix(in srgb,var(--mv-lift) 78%,transparent)}
-.mv-layers .mv-group-actions .mv-icon-btn:disabled{opacity:.4;cursor:default}
-/* ---- rows: one optical size per level, actions are 16px strokes, not glyphs ---- */
-.mv-layer{gap:2px;align-items:center}
-.mv-layer .mv-row-name{font-size:12.5px;line-height:1.45}
-.mv-layer .mv-row-meta{font-size:11px}
-.mv-layer .mv-icon-btn{width:26px;height:26px;font-size:12px;color:color-mix(in srgb,var(--mv-text) 72%,transparent)}
-.mv-layer .mv-icon-btn:hover{color:var(--mv-text);background:color-mix(in srgb,var(--mv-lift) 80%,transparent)}
-.mv-layer .mv-icon-btn:disabled{color:var(--mv-dim);opacity:.4}
+.mv-layers .mv-group-actions .mv-icon-btn{width:24px;height:24px;border-radius:6px;color:var(--mv-dim)}
+.mv-layers .mv-group-actions .mv-icon-btn:hover{color:var(--mv-text);background:color-mix(in srgb,var(--mv-lift) 82%,transparent)}
+.mv-layers .mv-group-actions .mv-icon-btn:disabled{opacity:.32;cursor:default}
+/* ---- rows: optically balanced height, actions flush with group header right edge ---- */
+.mv-layers .mv-layer{min-height:32px;padding:5px 6px;gap:4px;border-radius:8px;align-items:center;transition:background-color .12s ease}
+.mv-layer .mv-row-name{font-size:12px;font-weight:500;line-height:1.4}
+.mv-layer .mv-row-meta{font-size:10.5px;line-height:1.35}
+.mv-layer .mv-icon-btn{width:24px;height:24px;border-radius:6px;font-size:12px;color:var(--mv-dim)}
+.mv-layer .mv-icon-btn:hover{color:var(--mv-text);background:color-mix(in srgb,var(--mv-lift) 85%,transparent)}
+.mv-layer .mv-icon-btn:disabled{color:var(--mv-dim);opacity:.32}
 .mv-layer .mv-row-more{color:var(--mv-dim)}
 .mv-layer .mv-row-more:hover{color:var(--mv-text)}
-.mv-icon-btn.is-off{color:var(--mv-dim);background:transparent}
+.mv-icon-btn.is-off{color:var(--mv-dim);background:transparent;opacity:.65}
 /* Hidden rows stay legible: dimmed name, no strike-through (that reads as deleted). */
 .mv-layer.off .name{color:var(--mv-dim)}
 .mv-layer.off .mv-row-name{text-decoration:none;color:color-mix(in srgb,var(--mv-text) 62%,transparent)}
@@ -43,15 +52,14 @@ export const LAYERS_CSS = `
 .mv-row-menu .mv-menu-item.is-disabled{opacity:.55}
 .mv-row-menu .mv-menu-item.is-disabled .mv-menu-hint{opacity:.9}
 /* ---- feature sub-rows hang from the parent dot, not from the eye ---- */
-.mv-overlay-features{margin-left:45px;padding-left:8px;border-left:1px solid color-mix(in srgb,var(--mv-line) 90%,transparent)}
+.mv-overlay-features{margin-left:40px;padding-left:8px;border-left:1px solid color-mix(in srgb,var(--mv-line) 90%,transparent)}
 .mv-overlay-feature-name{font-size:12px}
-/* ---- empty state aligns with row names so the group still reads as one column ---- */
-.mv-none{margin:0;padding:6px 8px 8px 62px;font-size:11.5px}
-.mv-imagery-hint{padding-left:24px}
-/* ---- a long dock scrolls: keep the group context visible while it does ---- */
-.mv-layer-list{scrollbar-gutter:stable}
-.mv-lgroup>.mv-group{position:sticky;top:0;z-index:2;background:var(--mv-glass-strong);border-radius:0 0 6px 6px}
-.mv-lgroup:first-child>.mv-group{border-radius:6px}
+/* ---- empty state: full-width quiet inset note, aligned flush with rows ---- */
+.mv-layers .mv-none{margin:2px 0 4px;padding:7px 10px;border-radius:7px;background:color-mix(in srgb,var(--mv-lift) 52%,transparent);font-size:11px;line-height:1.5;color:var(--mv-dim)}
+.mv-layers .mv-none.mv-imagery-hint{background:transparent;padding:2px 8px 4px 18px}
+.mv-lgroup-hint{margin:0 0 4px 18px;font-size:11px}
+/* ---- list padding: crisp left/right symmetry without dead scrollbar gutter ---- */
+.mv-layer-list{padding:2px 10px 12px;scrollbar-gutter:auto}
 /* ---- active shader: a dot in the meta line, so colour is not the only cue ---- */
 .mv-layer.has-shader .mv-row-meta::before{content:'';display:inline-block;width:5px;height:5px;margin-right:4px;border-radius:50%;background:#3ddc97;vertical-align:1px}
 /* ---- row menus read as actions, not as secondary notes ---- */

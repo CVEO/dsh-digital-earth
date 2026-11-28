@@ -122,10 +122,12 @@ export function PlaceSearchPanel({ t, url, onFly }) {
         : null,
       keyField
         ? h('label', { className: 'mv-places-key' },
-            h('span', null, providerLabel(t, entry), ' · ', meta.help ? link(meta.help, t('settings.places.getKey')) : null),
-            h('input', { type: 'password', autoComplete: 'off', maxLength: 128, value: key, placeholder: managed ? t('settings.places.managed') : '', 'aria-label': `${providerLabel(t, entry)} · ${t('settings.places.keyLabel')}`, onChange: (event) => setKey(event.target.value) }))
+            h('span', { className: 'mv-places-key-head' },
+              h('strong', null, `${providerLabel(t, entry)} · ${t('settings.places.keyLabel')}`),
+              meta.help ? link(meta.help, `${t('settings.places.getKey')} ↗`) : null),
+            h('input', { type: 'password', autoComplete: 'off', maxLength: 128, value: key, placeholder: managed ? t('settings.places.managed') : t('settings.places.keyLabel'), 'aria-label': `${providerLabel(t, entry)} · ${t('settings.places.keyLabel')}`, onChange: (event) => setKey(event.target.value) }))
         : null),
-    h('div', { role: 'status', 'aria-live': 'polite', className: 'mv-places-status' }, status),
+    h('div', { role: 'status', 'aria-live': 'polite', className: `mv-places-status${error ? ' is-error' : ''}` }, status),
     results?.length
       ? h('ul', null, results.map((row, i) => h('li', { key: i },
           // A result flies the camera and keeps the panel open, so several places

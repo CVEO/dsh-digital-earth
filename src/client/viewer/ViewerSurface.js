@@ -60,7 +60,8 @@ import { RightStack } from '../ui/right-stack.js'
 import { ChromeA11y, ChromeShell, useChromeVisibility } from '../ui/chrome-visibility.js'
 import { useEscapeLayer } from '../ui/escape-stack.js'
 import { useToolWorkspace } from '../ui/tool-workspace.js'
-import { consoleHeader } from '../ui/console-header.js'
+import { consoleCloseAction, consoleHeader } from '../ui/console-header.js'
+import { ProfileBar } from '../ui/profile-bar.js'
 import { LoadingGlobe } from '../ui/loading-globe.js'
 import { SelectionOverlay } from '../ui/selection-overlay.js'
 import { VectorCard } from '../ui/vector-card.js'
@@ -87,11 +88,8 @@ const h = React.createElement
 // Canvas tool mode → the tool window that owns it. Used to end a tool when its
 // window closes (audit A7). Modes not listed here (identify) stay active.
 const TOOL_WINDOW_OF_MODE = {
-  distance: 'measure',
-  area: 'measure',
-  height: 'measure',
-  profile: 'analysis',
-  annotate: 'annotation',
+  distance: 'measure', area: 'measure', height: 'measure',
+  profile: 'analysis', annotate: 'annotation',
 }
 
     /**
@@ -193,28 +191,23 @@ const TOOL_WINDOW_OF_MODE = {
       // affordance is in the toolbar row, which is above the rail.
       const [toolIndexShown, setToolIndexShown] = React.useState(false)
       const [reportPreview, setReportPreview] = React.useState(null)
-      // v1.6.2 Batch D: 图层/工具 toolbar entries focus a dock tab instead of
-      // toggling an independently stacked card. The dock decides whether this
-      // request activates a tab or closes the already-active panel.
       const [dockRequest, setDockRequest] = React.useState(null)
-      const requestDock = (kind) => setDockRequest((prev) => ({ kind, seq: (prev?.seq ?? 0) + 1 }))
+      const requestDock = (kind, mode = 'toggle') => setDockRequest((prev) => ({ kind, mode, seq: (prev?.seq ?? 0) + 1 }))
       const [toolRequest, setToolRequest] = React.useState(null)
-      /**
-       * Open one tool window: a new request renders its body, and the tools
-       * destination always shows the detail (not the index) afterwards.
-       */
       const requestToolWindow = (id, extra = {}) => {
         setToolIndexShown(false)
         setToolRequest((prev) => ({ id, ...extra, seq: (prev?.seq ?? 0) + 1 }))
       }
       const workspace = useToolWorkspace(toolRequest)
-      // A7: closing a tool window must end the canvas tool it owns. Without this
-      // the profile/annotation tool kept intercepting clicks with only Esc as an
-      // escape hatch (and the measure strip looked like the tool was gone).
+      const prevWindowsRef = React.useRef(workspace.windows)
       React.useEffect(() => {
+        const prev = prevWindowsRef.current
+        prevWindowsRef.current = workspace.windows
         const owner = TOOL_WINDOW_OF_MODE[tool]
         if (!owner) return
         if (workspace.windows.some((item) => item.id === owner)) return
+        if (tool === 'profile' && workspace.windows.some((item) => item.id === 'measure')) return
+        if (!prev.some((item) => item.id === owner || (tool === 'profile' && item.id === 'measure'))) return
         setToolMode(null)
       }, [tool, workspace.windows])
       const [, setOverlayRev] = React.useState(0)
@@ -2377,14 +2370,22 @@ const TOOL_WINDOW_OF_MODE = {
         saveSceneSnapshot(true)
       }
 
-      // Console header: the destination's name (and the open tool when the tools
-      // destination is showing a detail) replaces the old second title row.
       const header = consoleHeader({
         t,
         activeTab: activePanelTab,
         lastTab: lastPanelTabRef.current,
         windows: workspace.windows,
         toolIndexShown,
+      })
+      const closeAction = consoleCloseAction({
+        t,
+        activeTab: activePanelTab,
+        analysis,
+        reportPreview,
+        hasObject: Boolean(objectPanel?.key),
+        onCloseAnalysis: () => clearAnalysis(),
+        onCloseReport: () => setReportPreview(null),
+        onCloseObject: () => (vectorSelection ? vectorRef.current?.clearSelection() : sceneDetails.close()),
       })
 
       return h(
@@ -2427,7 +2428,8 @@ const TOOL_WINDOW_OF_MODE = {
             t,
             panelLabel: header.panelLabel,
             panelDetail: header.panelDetail,
-            onBack: () => setToolIndexShown(true),
+            onBack: () => { setToolIndexShown(true); if (header.toolId) workspace.closeTool(header.toolId) },
+            ...closeAction,
             onToggleChrome: toggleChrome,
           menuRef,
           openMenu,
@@ -2564,15 +2566,11 @@ const TOOL_WINDOW_OF_MODE = {
             onToggleOverlayVisible: toggleOverlayVisible,
             onQuickAnnotate: () => {
               requestToolWindow('annotation')
-              // Open the tools destination as well: without this the request only
-              // opened the tool window behind the layers tab, so 绘制标注 looked dead.
-              requestDock('tools')
+              requestDock('tools', 'activate')
             },
-            // The measure tool opens like the annotation tool: one request, then
-            // the rail shows the tools destination.
             onOpenMeasure: () => {
               requestToolWindow('measure')
-              requestDock('tools')
+              requestDock('tools', 'activate')
             },
             onSelectAgentFeature: selectOverlayFeature,
             onFlyAgentFeature: (overlayIndex, featureIndex) => {
@@ -2642,6 +2640,7 @@ const TOOL_WINDOW_OF_MODE = {
             onAskSelection: (options) => askAgentService.askSelection(options),
             onParseSelection: () => {
               requestToolWindow('parse', { aoiSeq: (toolRequest?.aoiSeq ?? 0) + 1 })
+              requestDock('tools', 'activate')
             },
           },
         }),
@@ -2699,7 +2698,7 @@ const TOOL_WINDOW_OF_MODE = {
             if (!viewerNow || !card?.point) return
             const selectionTool = getSelectionTool(viewerNow, { getCesium: () => cesiumRef.current, t, showToast })
             selectionTool?.selectAreaAround?.({ lon: card.point.lon, lat: card.point.lat, radiusM: 15, height: card.point.surface_height_m ?? 0 })
-            workspace.openTool('select')
+            setToolIndexShown(false); workspace.openTool('select'); requestDock('tools', 'activate')
           },
         }),
         tour.element,
@@ -2772,6 +2771,12 @@ const TOOL_WINDOW_OF_MODE = {
               ),
             )
           : null,
+        h(ProfileBar, {
+          key: 'profile-bar', t, analysis, hidden: Boolean(measureInfo),
+          resultOpen: activePanelTab === 'result',
+          onOpenResult: () => requestDock('result', 'activate'),
+          onRedraw: () => profileTool.start(), onClear: () => clearAnalysis(),
+        }),
         // aria-live: screen readers announce scene feedback without stealing focus.
         toast
           ? h('div', { key: 'toast', className: 'mv-toast', role: 'status', 'aria-live': 'polite' }, toast)

@@ -8,7 +8,10 @@
  * 宿主 `/vision-instances` 的成功/失败/挂起响应，用于覆盖取消与重跑。
  */
 import assert from 'node:assert/strict'
+import { register } from 'node:module'
 import test from 'node:test'
+
+register('./helpers/react-stub-loader.mjs', import.meta.url)
 
 const { createParseController } = await import('../src/client/ui/parse-controller.js')
 

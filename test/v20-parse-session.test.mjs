@@ -5,7 +5,10 @@
  * hydrate 保留 id/status/geometry，flushParseSession 写盘，重开会话恢复。
  */
 import assert from 'node:assert/strict'
+import { register } from 'node:module'
 import test from 'node:test'
+
+register('./helpers/react-stub-loader.mjs', import.meta.url)
 
 const memory = new Map()
 globalThis.localStorage = {

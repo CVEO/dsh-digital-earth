@@ -23,6 +23,9 @@ export function TopBar({
   panelLabel = '',
   panelDetail = null,
   onBack = null,
+  onClosePanel = null,
+  closePanelLabel = '',
+  closePanelDanger = false,
   onOpenSettings,
   onToggleChrome,
 }) {
@@ -72,6 +75,20 @@ export function TopBar({
         : null,
       h('span', { key: 'title', className: 'mv-top-title', title: panelLabel }, panelLabel),
       panelDetail ? h('span', { key: 'detail', className: 'mv-top-detail', title: panelDetail }, `· ${panelDetail}`) : null,
+      typeof onClosePanel === 'function'
+        ? h(
+            'button',
+            {
+              key: 'close',
+              type: 'button',
+              className: `mv-top-close${closePanelDanger ? ' danger' : ''}`,
+              title: closePanelLabel || t('btn.close'),
+              'aria-label': closePanelLabel || t('btn.close'),
+              onClick: onClosePanel,
+            },
+            '✕',
+          )
+        : null,
     ),
     h(
       'div',

@@ -9,7 +9,10 @@
  */
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
+import { register } from 'node:module'
 import test from 'node:test'
+
+register('./helpers/react-stub-loader.mjs', import.meta.url)
 
 const { consoleHeader, openToolIds } = await import('../src/client/ui/console-header.js')
 const { ToolbarQuick } = await import('../src/client/ui/toolbar-quick.js')
@@ -18,8 +21,8 @@ const { boundsHost } = await import('../src/client/ui/resizable.js')
 
 const t = (key) => key
 const kids = (node) => {
-  const children = node?.props?.children
-  return Array.isArray(children) ? children : [children]
+  const children = node?.children ?? node?.props?.children
+  return Array.isArray(children) ? children.flat() : [children]
 }
 const read = (rel) => readFileSync(new URL(`../${rel}`, import.meta.url), 'utf8')
 

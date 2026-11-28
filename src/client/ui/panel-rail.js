@@ -71,15 +71,15 @@ export function PanelRail({
   // The console shell hugs its content, so the rail hands it the one width the
   // toolbar must share. Setting it on the shell (a DOM style, not React state)
   // avoids a re-render of the whole viewer on every drag pixel.
-  const syncConsoleWidth = (node, value) => {
+  const syncConsoleWidth = (node, value, isCollapsed = collapsed) => {
     const chrome = node?.closest?.('.mv-chrome')
     if (!chrome?.style) return
-    if (Number.isFinite(value)) chrome.style.setProperty('--mv-console-width', `${Math.round(value) + 1}px`)
+    if (!isCollapsed && Number.isFinite(value)) chrome.style.setProperty('--mv-console-width', `${Math.round(value) + 1}px`)
     else chrome.style.removeProperty('--mv-console-width')
   }
 
   React.useEffect(() => {
-    syncConsoleWidth(railRef.current, resize.size.width)
+    syncConsoleWidth(railRef.current, resize.size.width, collapsed)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resize.size.width, collapsed])
 
@@ -87,7 +87,7 @@ export function PanelRail({
     railRef.current = node
     if (!node) return
     resize.ref.current = node
-    syncConsoleWidth(node, resize.size.width)
+    syncConsoleWidth(node, resize.size.width, collapsed)
   }
 
   // Esc while focus is inside a panel collapses the rail; it never closes data.

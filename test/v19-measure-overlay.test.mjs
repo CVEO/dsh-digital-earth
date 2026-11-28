@@ -7,7 +7,10 @@
  * tool switch (see v162 for the panel wiring).
  */
 import assert from 'node:assert/strict'
+import { register } from 'node:module'
 import test from 'node:test'
+
+register('./helpers/react-stub-loader.mjs', import.meta.url)
 
 const { buildMeasureCommand, measureLonLatHeights, measureResultOf } = await import('../src/client/scene/measure-commit.js')
 const { commitMeasurementToOverlay, drawMeasurePreview } = await import('../src/client/scene/measure-render.js')

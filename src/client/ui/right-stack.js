@@ -100,14 +100,20 @@ export function RightStack({
   }, [state.unread.result, state.unread.object, onUnread])
 
   // Automatic result focus follows the confirmed policy: only an idle, expanded
-  // rail switches; otherwise the result tab gets an unread dot.
+  // rail switches; otherwise the result tab gets an unread dot. Analysis/measure
+  // tool windows are the ones that initiate profiles/analyses, so returning a
+  // result from them switches directly instead of trapping the user on the tool.
   const prevResultRef = React.useRef(analysis?.result)
-  const lockedByTool = Boolean(activeToolId) && state.activeTab === 'tools'
+  const detailToolId = !showToolIndex ? activeToolId : null
+  const lockedByTool = Boolean(detailToolId) && state.activeTab === 'tools'
+  const analysisInitiator = detailToolId === 'measure' || detailToolId === 'analysis'
   React.useEffect(() => {
     const result = analysis?.result
-    if (result && result !== prevResultRef.current) dispatch({ type: 'resultArrived', busy: busy || lockedByTool })
+    if (result && result !== prevResultRef.current) {
+      dispatch({ type: 'resultArrived', busy: busy || (lockedByTool && !analysisInitiator) })
+    }
     prevResultRef.current = result
-  }, [analysis?.result, busy, lockedByTool])
+  }, [analysis?.result, busy, lockedByTool, analysisInitiator])
 
   const prevObjectRef = React.useRef(objectPanel?.key)
   React.useEffect(() => {
@@ -124,19 +130,21 @@ export function RightStack({
     prevReportRef.current = key
   }, [reportPreview?.key, dispatch])
 
-  // Toolbar domain buttons: focus the destination, or toggle the rail closed when
-  // it is already the active destination. No panel is closed by a toolbar click.
+  // Toolbar domain buttons toggle the destination (re-clicking collapses),
+  // whereas programmatic shortcuts pass mode='activate' so they always open.
   const pendingRequestRef = React.useRef(null)
   React.useEffect(() => {
     if (!dockRequest?.kind) return
-    pendingRequestRef.current = ['layers', 'tools', 'places', 'result', 'object'].includes(dockRequest.kind) ? dockRequest.kind : null
-  }, [dockRequest?.seq, dockRequest?.kind])
+    pendingRequestRef.current = ['layers', 'tools', 'places', 'result', 'object'].includes(dockRequest.kind)
+      ? { tabId: dockRequest.kind, mode: dockRequest.mode === 'activate' ? 'activate' : 'toggle' }
+      : null
+  }, [dockRequest?.seq, dockRequest?.kind, dockRequest?.mode])
   React.useEffect(() => {
-    const tabId = pendingRequestRef.current
-    if (!tabId) return
-    if (!available.includes(tabId)) return
+    const req = pendingRequestRef.current
+    if (!req) return
+    if (!available.includes(req.tabId)) return
     pendingRequestRef.current = null
-    dispatch({ type: 'toggle', tabId })
+    dispatch({ type: req.mode, tabId: req.tabId })
   }, [dockRequest?.seq, availableSignature])
 
   if (!available.length) return null
