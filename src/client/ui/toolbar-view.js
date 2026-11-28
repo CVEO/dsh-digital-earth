@@ -16,7 +16,6 @@ export function viewMenuItems({
   showHud = false,
   fullscreen = false,
   closeMenu,
-  onOpenPlaces,
   onResetView,
   onToggleHud,
   onToggleFullscreen,
@@ -30,7 +29,6 @@ export function viewMenuItems({
   }
   const icon = (name) => h(GlyphIcon, { name })
   const items = [
-    ...(onOpenPlaces ? [h(MenuItem, { key: 'places', icon: icon('search'), onClick: onOpenPlaces }, t('places.title'))] : []),
     h(MenuItem, { key: 'reset', icon: icon('view'), onClick: run(onResetView) }, t('btn.reset')),
     h(
       MenuItem,

@@ -92,7 +92,10 @@ const BINARY_EXT = new Set([
   // scan must skip it rather than read it as text.
   '.npz', '.npy', '.las', '.laz', '.tif', '.tiff',
 ])
-const SKIP_DIRS = new Set(['.git', '.research', 'node_modules', 'vendor', 'dist', 'captures', '.dsh-earth', 'roof_task'])
+// Gitignored workspace directories are local notes, captures and release
+// material: they never ship and never enter the repo, so scanning them would only
+// couple this test to one developer's machine.
+const SKIP_DIRS = new Set(['.git', '.research', 'node_modules', 'vendor', 'dist', 'captures', '.dsh-earth', 'roof_task', 'docs', 'verify', '.dsh-out', 'market', 'promo'])
 
 /** 收集包内文本文件（跳过 vendor/.git/.research 等目录与二进制文件）。 */
 async function collectTextFiles(dir, out = []) {

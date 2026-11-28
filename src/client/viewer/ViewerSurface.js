@@ -2425,14 +2425,6 @@ const TOOL_WINDOW_OF_MODE = {
           h(TopBar, {
             key: 'top',
             t,
-            places: {
-              url: meta?.placesUrl,
-              onFly: place => {
-                const started = flyToBbox(viewerRef.current, cesiumRef.current, placeBounds(place))
-                if (started) setEmptyDismissed(true)
-                return started
-              },
-            },
             panelLabel: header.panelLabel,
             panelDetail: header.panelDetail,
             onBack: () => setToolIndexShown(true),
@@ -2492,6 +2484,8 @@ const TOOL_WINDOW_OF_MODE = {
               if (!showTools) setShowTools(true)
               requestDock('tools')
             },
+            showPlaces: activePanelTab === 'places',
+            onTogglePlaces: () => requestDock('places'),
             onOpenResult: () => requestDock('result'),
           },
           onOpenSettings: () => setSettingsOpen(true),
@@ -2530,6 +2524,14 @@ const TOOL_WINDOW_OF_MODE = {
           onCloseAnalysis: () => clearAnalysis(),
           showLayers,
           showTools,
+          placesPanel: {
+            url: meta?.placesUrl,
+            onFly: (place) => {
+              const started = flyToBbox(viewerRef.current, cesiumRef.current, placeBounds(place))
+              if (started) setEmptyDismissed(true)
+              return started
+            },
+          },
           layersPanel: {
             config: sources,
             settings: sources?.settings ?? {},
@@ -2703,7 +2705,7 @@ const TOOL_WINDOW_OF_MODE = {
         tour.element,
         swipe.element,
         h(ChromeA11y, { key: 'chrome-a11y', t, status, hidden: chromeHidden, onShow: toggleChrome }),
-        phase === 'ready' && layers.length === 0 && !emptyDismissed && openMenu !== 'view' && openMenu !== 'places' && !restoringScene
+        phase === 'ready' && layers.length === 0 && !emptyDismissed && openMenu !== 'view' && !restoringScene
           ? h(
               'div',
               { key: 'empty', className: 'mv-overlay' },

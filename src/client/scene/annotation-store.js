@@ -10,8 +10,8 @@
  *   - every mutation replaces the whole feature list (immutable update) and pushes
  *     the previous list onto an undo stack capped at ANNOTATION_UNDO_LIMIT entries;
  *     redo is cleared on any new mutation;
- *   - `rev` counts content edits (`patch()` / `replaceGeometry()`) only, so
- *     approving a row never looks like a geometry/attribute edit to downstream QA;
+ *   - `rev` counts content edits (`patch()`) only, so approving a row never
+ *     looks like an attribute edit to downstream QA;
  *   - `getState()`, `all()` and `accepted()` hand out deep copies, so the UI can
  *     never mutate the store behind the store's back;
  *   - geometry is carried through untouched: this module classifies and reviews,
@@ -29,40 +29,8 @@ export const ANNOTATION_PATCHABLE_KEYS = Object.freeze([
   'name',
   'class',
   'class_key',
-  'height_m',
-  'height_source',
-  'floors',
-  // Clearing the measured base/roof keeps a hand-edited height from still
-  // exporting the old surface geometry as if it were measured.
-  'base_m',
-  'roof_m',
-  // Footprint area is derived data: replacing a coarse box with a refined outline
-  // must be able to refresh it, and the panel never recomputes it from geometry.
   'area_m2',
 ])
-
-/**
- * Refinement provenance written by `replaceGeometry()`. `outline_source` says which
- * outline the row now carries (`box` / `refined` / `manual`), `refine_state` how the
- * last attempt ended, and the remaining keys record the measured quality gates.
- * These stay out of `ANNOTATION_PATCHABLE_KEYS` on purpose: the review form must
- * not silently turn a `box` row into a `refined` one.
- */
-export const ANNOTATION_REFINE_KEYS = Object.freeze([
-  'outline_source',
-  'outline_quality',
-  // A successful refine changes the geometry family: a detection box becomes a
-  // polygon. Without this key the export's box filter would drop the refined row.
-  'shape',
-  'refine_error',
-  'refine_state',
-  'refine_attempts',
-  'refine_bbox_iou',
-  'refine_area_ratio',
-])
-
-/** Keys `replaceGeometry()` may write: editable review fields plus refinement data. */
-export const ANNOTATION_REPLACE_KEYS = Object.freeze([...ANNOTATION_PATCHABLE_KEYS, ...ANNOTATION_REFINE_KEYS])
 
 /**
  * Candidate properties copied from the incoming feature. `hex` is carried too so
@@ -77,20 +45,11 @@ export const ANNOTATION_CARRIED_KEYS = Object.freeze([
   'color',
   'clippedAtTileEdge',
   // Provenance: which model label came back, and which source produced the row
-  // (tiles3d / 2d / manual). Without these a 2D candidate looked like a 3D one.
+  // (ortho / manual). The row itself is always a flat 2D footprint.
   'class_raw',
   'source_kind',
   'shape',
-  // Outline provenance from P1a/P1b: a `box` row is a coarse fallback, `refined` /
-  // `manual` rows carry a reviewed outline; the export can mark the difference.
-  'outline_source',
-  'outline_quality',
   'confidence',
-  'height_m',
-  'height_source',
-  'floors',
-  'base_m',
-  'roof_m',
   'area_m2',
   'name',
   'hex',
@@ -315,65 +274,6 @@ export function createAnnotationStore({ now = Date.now, idPrefix = 'A' } = {}) {
   }
 
   /**
-   * Replace candidate outlines in one batch — the P1b refine write path.
-   *
-   * `updates` is a list of `{ id, geometry?, properties? }`. Only existing ids are
-   * touched; unknown ids and non-object entries are ignored (the refine runner may
-   * race a deletion made in the panel). `geometry` is written only when it is a
-   * plain object; `undefined`/`null` means "properties only", so a failed refine
-   * keeps the coarse box. Properties are limited to `ANNOTATION_REPLACE_KEYS`, so
-   * status, confidence, id, method/source and run bookkeeping can never be changed
-   * through this path unless the key is whitelisted for explicit review edits.
-   *
-   * The whole batch is one content edit: exactly one commit (one undo step, one
-   * notify), and every changed feature gets `rev + 1` — even when the same id is
-   * listed twice, because the user sees one refinement action.
-   *
-   * @returns {number} how many existing candidates actually changed
-   */
-  function replaceGeometry(updates) {
-    const list = Array.isArray(updates) ? updates : []
-    if (list.length === 0) return 0
-    // Merge per id first: one edit per feature, last value wins for duplicated ids.
-    const wanted = new Map()
-    for (const raw of list) {
-      if (!isObject(raw)) continue
-      if (typeof raw.id !== 'string' || raw.id === '') continue
-      let update = wanted.get(raw.id)
-      if (update === undefined) {
-        update = { geometry: undefined, properties: {} }
-        wanted.set(raw.id, update)
-      }
-      // A null geometry is a properties-only update: never clear the outline.
-      if (isObject(raw.geometry)) update.geometry = clone(raw.geometry)
-      if (!isObject(raw.properties)) continue
-      for (const key of ANNOTATION_REPLACE_KEYS) {
-        if (!hasOwn(raw.properties, key)) continue
-        if (raw.properties[key] === undefined) continue
-        update.properties[key] = clone(raw.properties[key])
-      }
-    }
-    if (wanted.size === 0) return 0
-    let changed = 0
-    const next = features.map((feature) => {
-      const update = wanted.get(feature.properties.id)
-      if (update === undefined) return feature
-      const hasGeometry = update.geometry !== undefined
-      const propertyKeys = Object.keys(update.properties)
-      if (!hasGeometry && propertyKeys.length === 0) return feature
-      const properties = { ...feature.properties }
-      for (const key of propertyKeys) properties[key] = update.properties[key]
-      const rev = typeof properties.rev === 'number' && Number.isFinite(properties.rev) ? properties.rev : 0
-      properties.rev = rev + 1
-      changed += 1
-      return hasGeometry ? { ...feature, geometry: update.geometry, properties } : { ...feature, properties }
-    })
-    if (changed === 0) return 0
-    commit(`replace-geometry ${changed}`, next)
-    return changed
-  }
-
-  /**
    * Restore a persisted queue (snapshot v2). Keeps ids/status/rev/geometry and
    * every JSON-safe property; invalid rows are skipped. History starts clean: a
    * restored session cannot undo work performed before the reload.
@@ -508,7 +408,6 @@ export function createAnnotationStore({ now = Date.now, idPrefix = 'A' } = {}) {
     addCandidates,
     setStatus,
     patch,
-    replaceGeometry,
     remove,
     hydrate,
     undo,

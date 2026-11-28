@@ -15,3 +15,26 @@ remain subject to Esri's terms of use.
 The loading globe's bundled land mask is derived from the Natural Earth II
 textures included with CesiumJS (vendor/cesium/Assets/Textures/NaturalEarthII).
 Natural Earth raster data is in the public domain: https://www.naturalearthdata.com/
+
+Place search is streamed at runtime from the provider the user selects:
+Tianditu (https://cloudcenter.tianditu.gov.cn/) and Amap
+(https://console.amap.com/dev/key/app) with a user-supplied key, Photon
+(https://photon.komoot.io/), or an OpenStreetMap Nominatim instance
+(https://operations.osmfoundation.org/policies/nominatim/). Tianditu and Amap
+data remain subject to their own service terms. Photon and Nominatim results
+contain data © OpenStreetMap contributors, available under the Open Database
+License (ODbL): https://www.openstreetmap.org/copyright
+
+Users may add their own provider instance (an own server, a mirror or a proxy) by
+supplying its service URL in Settings; requests then go to that URL and the terms
+of that service apply.
+
+Service availability, data content and terms of use are the responsibility of
+each provider, not of this plugin or its developers; confirm and comply with the
+applicable provider terms before use.
+
+The plugin itself sends no telemetry and collects no usage statistics. Only the
+features the user starts send data out: AI 2D instance extraction and "send view
+to AI" upload a nadir panel capture to the chosen vision-model service (the DSH
+model or a custom OpenAI-compatible endpoint), and place search sends the typed
+query to the selected provider.

@@ -1,11 +1,11 @@
 /** Workspace tabs for layers, tools and results. Panel state controls expansion. */
 import React from 'react'
 
-import { ToolEntryIcon, ToolsIcon, LayersIcon } from './icons.js'
+import { GlyphIcon, ToolEntryIcon, ToolsIcon, LayersIcon } from './icons.js'
 
 const h = React.createElement
 
-export function ToolbarQuick({ t, showLayers, showTools, showResult, resultDisabled = false, resultUnread = false, onToggleLayers, onToggleTools, onOpenResult }) {
+export function ToolbarQuick({ t, showLayers, showTools, showPlaces, showResult, resultDisabled = false, resultUnread = false, onToggleLayers, onToggleTools, onTogglePlaces, onOpenResult }) {
   const entry = (key, icon, label, onClick, active, title = label, disabled = false, unread = false) =>
     h(
       'button',
@@ -30,6 +30,7 @@ export function ToolbarQuick({ t, showLayers, showTools, showResult, resultDisab
     null,
     entry('layers', h(LayersIcon), t('btn.layers'), onToggleLayers, showLayers, showLayers ? t('btn.layersHide') : t('btn.layersShow')),
     entry('tools', h(ToolsIcon), t('btn.tools'), onToggleTools, showTools, showTools ? t('btn.toolsHide') : t('btn.toolsShow')),
+    entry('places', h(GlyphIcon, { name: 'search' }), t('places.title'), onTogglePlaces, showPlaces, showPlaces ? t('btn.panelHide') : t('btn.panelShow')),
     // D8: with nothing in the result tab the destination stays inert.
     entry('result', h(ToolEntryIcon, { kind: 'analysis' }), t('panel.tab.result'), onOpenResult, showResult, resultDisabled ? t('btn.resultEmpty') : t('panel.tab.result'), resultDisabled, resultUnread && !resultDisabled),
   )

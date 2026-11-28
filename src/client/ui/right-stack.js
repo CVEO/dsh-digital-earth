@@ -11,6 +11,7 @@ import React from 'react'
 
 import { AnalysisCard } from './cards.js'
 import { LayersPanel } from './layers-panel.js'
+import { PlaceSearchPanel } from './place-search.js'
 import { ToolsPanel } from './tools-panel.js'
 import { ToolWindow } from './tool-window.js'
 import { ToolBody } from './tool-windows.js'
@@ -47,6 +48,7 @@ export function RightStack({
   showLayers,
   toolsPanel,
   showTools,
+  placesPanel = null,
   openWindows = [],
   onSelectTool,
   onCloseToolWindow,
@@ -69,6 +71,7 @@ export function RightStack({
   const available = visiblePanelTabs({ hasResult, hasObject }).filter((id) => {
     if (id === 'layers') return Boolean(showLayers)
     if (id === 'tools') return Boolean(showTools || activeToolId)
+    if (id === 'places') return Boolean(placesPanel)
     return true
   })
   const availableSignature = available.join('|')
@@ -126,7 +129,7 @@ export function RightStack({
   const pendingRequestRef = React.useRef(null)
   React.useEffect(() => {
     if (!dockRequest?.kind) return
-    pendingRequestRef.current = ['layers', 'tools', 'result', 'object'].includes(dockRequest.kind) ? dockRequest.kind : null
+    pendingRequestRef.current = ['layers', 'tools', 'places', 'result', 'object'].includes(dockRequest.kind) ? dockRequest.kind : null
   }, [dockRequest?.seq, dockRequest?.kind])
   React.useEffect(() => {
     const tabId = pendingRequestRef.current
@@ -185,6 +188,9 @@ export function RightStack({
             onCloseTool: onCloseToolWindow,
           }),
     })
+  }
+  if (placesPanel) {
+    panels.push({ id: 'places', node: h(PlaceSearchPanel, { key: 'places', t, ...placesPanel }) })
   }
   if (reportPreview?.html) {
     panels.push({

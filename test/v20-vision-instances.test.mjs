@@ -1,25 +1,39 @@
 /**
  * v1.7.0 — host-side orthophoto instance segmentation.
  *
- * Pins the instance protocol ported from the standalone
- * `llm_instance_segmentation` project: the `{"o":[[classId,[[x,y],...]],...]}`
- * answer envelope with integer 0..1000 coordinates, the class table validator
+ * Pins the instance protocol: the `{"o":[[classId,[[x,y],...]],...]}` answer
+ * envelope with integer 0..1000 coordinates, the class table validator
  * (1..8 classes, de-fanged name/definition), the `/vision-instances/<TOKEN>`
  * request validator, the single-concurrency handler, and its route + meta entry.
  */
-import { test } from 'node:test'
+import { test, after } from 'node:test'
 import assert from 'node:assert/strict'
 import { EventEmitter } from 'node:events'
+import { mkdtemp, rm } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 
-import {
+// The host state directory is fixed when constants.js loads, so point DSH_HOME at
+// a throwaway directory first: a developer's real vision.json must never change
+// what these assertions see.
+const previousHome = process.env.DSH_HOME
+const home = await mkdtemp(join(tmpdir(), 'dsh-de-vision-instances-'))
+process.env.DSH_HOME = home
+after(async () => {
+  if (previousHome === undefined) delete process.env.DSH_HOME
+  else process.env.DSH_HOME = previousHome
+  await rm(home, { recursive: true, force: true })
+})
+
+const {
   INSTANCE_SYSTEM,
   instanceUserText,
   normalizeInstanceClasses,
   parseInstanceAnswer,
-} from '../src/host/vision/instances.js'
-import { createVisionInstancesHandler, validateVisionInstancesRequest } from '../src/host/vision/handler.js'
-import { createOpenAiCompatBackend } from '../src/host/vision/backends/openai-compat.js'
-import { registerRoutes } from '../src/host/routes.js'
+} = await import('../src/host/vision/instances.js')
+const { createVisionInstancesHandler, validateVisionInstancesRequest } = await import('../src/host/vision/handler.js')
+const { createOpenAiCompatBackend } = await import('../src/host/vision/backends/openai-compat.js')
+const { registerRoutes } = await import('../src/host/routes.js')
 
 const CLASSES = [
   { id: 1, name: '水体', definition: '独立水面或塘口，含堤埂内水域' },

@@ -47,27 +47,45 @@ import { LAYERS_CSS } from './layers-css.js'
 .mv-chrome-reveal{position:absolute;top:calc(var(--mv-console-top,10px) + var(--mv-console-gap,4px));right:calc(var(--mv-console-right,10px) + var(--mv-console-gap,4px));z-index:13;display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;padding:0;border-radius:7px;background:var(--mv-glass);color:var(--mv-text);border:.5px solid var(--mv-line);font:inherit;font-size:11.5px;cursor:pointer;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:var(--mv-shadow)}
 .mv-chrome-reveal svg{color:var(--mv-accent)}
 .mv-top{box-sizing:border-box;position:relative;display:flex;justify-content:flex-end;align-items:center;flex:none;width:100%;min-width:0;min-height:42px;z-index:10;pointer-events:auto;border-bottom:.5px solid var(--mv-line)}
-.mv-place{position:absolute;top:calc(100% + 6px);right:0;z-index:26;box-sizing:border-box;width:min(324px,calc(100vw - 24px));max-height:min(440px,65vh);overflow:auto;overscroll-behavior:contain;padding:12px;border-radius:12px;background:var(--mv-glass-strong);text-align:left;color:var(--mv-text)}
-.mv-root.mv-docked .mv-place{width:min(324px,calc(100cqw - 34px))}
-.mv-place header,.mv-place-source,.mv-place footer,.mv-place-source label{display:flex;align-items:center;justify-content:space-between;gap:8px}
-.mv-place header{margin-bottom:9px;font-size:14px}
-.mv-place form,.mv-place-key,.mv-place-row{display:grid;gap:8px}
-.mv-place-query{display:flex;gap:6px}
-.mv-place input,.mv-place select{box-sizing:border-box;min-width:0;border:1px solid var(--mv-line);border-radius:6px;padding:6px 8px;background:var(--mv-input);color:var(--mv-text);font:inherit}
-.mv-place input{width:100%}
-.mv-place-submit{flex:none;border:0;border-radius:6px;padding:6px 10px;background:var(--mv-accent);color:white;cursor:pointer;font:inherit}
-.mv-place-submit:disabled{opacity:.55;cursor:default}
-.mv-place-source,.mv-place-key,.mv-place-status,.mv-place footer{font-size:11.5px;color:var(--mv-dim)}
-.mv-place select option{color:var(--mv-text);background:var(--mv-glass-strong)}
-.mv-place-key{gap:4px}
-.mv-place a,.mv-place-link{color:var(--mv-accent)}
-.mv-place-link{cursor:pointer;background:none;border:0;font:inherit;padding:2px 0}
-.mv-place :focus-visible{outline:2px solid var(--mv-accent);outline-offset:1px}
-.mv-place-status:not(:empty),.mv-place footer{margin-top:10px}
-.mv-place ul{list-style:none;margin:8px 0 0;padding:0;border-top:1px solid var(--mv-line)}
-.mv-place-row{gap:1px;width:100%;text-align:left;padding:7px 5px;color:inherit;background:none;border:0;border-radius:5px;font:inherit;cursor:pointer;overflow-wrap:anywhere}
-.mv-place-row:hover,.mv-place-row:focus-visible{background:var(--mv-lift)}
-.mv-place-row span{font-size:11px;color:var(--mv-dim)}
+/* 地名检索 panel body: a rail panel, not a popover, so it keeps the same
+   padding rhythm and scrolling as the layers/tools panels. */
+.mv-places{display:flex;flex-direction:column;gap:10px;padding:12px;overflow:auto;overscroll-behavior:contain;min-height:0;flex:1 1 auto}
+.mv-places form,.mv-places-key,.mv-places-row{display:grid;gap:8px}
+.mv-places-query{display:flex;gap:6px}
+.mv-places input[type=text],.mv-places input[type=search],.mv-places select{box-sizing:border-box;min-width:0;border:.5px solid var(--mv-line);border-radius:6px;padding:6px 8px;background:var(--mv-input);color:var(--mv-text);font:inherit;font-size:12px}
+.mv-places input[type=text],.mv-places input[type=search]{width:100%}
+.mv-places-submit{flex:none;border:0;border-radius:6px;padding:6px 10px;background:var(--mv-accent);color:#fff;cursor:pointer;font:inherit;font-size:12px}
+.mv-places-submit:disabled{opacity:.55;cursor:default}
+.mv-places-source,.mv-places-status,.mv-places footer{font-size:11px;color:var(--mv-dim)}
+.mv-places select option{color:var(--mv-text);background:var(--mv-glass-strong)}
+.mv-places-key{gap:4px}
+.mv-place-link{cursor:pointer;background:none;border:0;font:inherit;font-size:11px;padding:2px 0;color:var(--mv-accent)}
+.mv-places a{color:var(--mv-accent)}
+.mv-places :focus-visible{outline:2px solid var(--mv-accent);outline-offset:1px}
+.mv-places-status:not(:empty),.mv-places footer{margin-top:2px}
+.mv-places ul{list-style:none;margin:0;padding:0;border-top:.5px solid var(--mv-line)}
+.mv-places-row{gap:1px;width:100%;text-align:left;padding:7px 5px;color:inherit;background:none;border:0;border-radius:5px;font:inherit;cursor:pointer;overflow-wrap:anywhere}
+.mv-places-row:hover,.mv-places-row:focus-visible{background:var(--mv-lift)}
+.mv-places-row span{font-size:11px;color:var(--mv-dim)}
+/* Settings → 地名检索: one card per provider, same rhythm as the source rows. */
+.mv-providers{display:grid;gap:9px}
+.mv-src.mv-provider.on{border-color:color-mix(in srgb,var(--mv-accent) 46%,var(--mv-line))}
+.mv-provider .meta span[title]{font-variant-numeric:tabular-nums}
+.mv-provider-form{display:grid;gap:9px;padding:10px;border:.5px solid var(--mv-line);border-radius:9px;background:color-mix(in srgb,var(--mv-bg) 55%,transparent)}
+.mv-provider-form .mv-field-hint{font-size:10.5px;line-height:1.45;color:var(--mv-dim);font-style:normal}
+.mv-provider-foot{display:flex;align-items:center;flex-wrap:wrap;gap:8px}
+.mv-provider-foot .mv-field-hint{flex:1 1 auto}
+.mv-provider-actions{display:flex;gap:8px;justify-content:flex-end}
+.mv-provider-state{font-size:11px;color:var(--mv-dim);margin:0}
+.mv-provider-state.danger{color:var(--mv-danger)}
+.mv-providers-add{justify-self:start}
+.mv-switch{appearance:none;-webkit-appearance:none;position:relative;flex:none;width:32px;height:18px;margin:0;border:.5px solid var(--mv-line);border-radius:9px;background:color-mix(in srgb,var(--mv-dim) 26%,transparent);cursor:pointer;transition:background .15s ease,border-color .15s ease}
+.mv-switch::after{content:"";position:absolute;top:1.5px;left:1.5px;width:13px;height:13px;border-radius:50%;background:var(--mv-text);transition:transform .15s ease}
+.mv-switch:checked{background:var(--mv-accent);border-color:var(--mv-accent)}
+.mv-switch:checked::after{transform:translateX(14px);background:#fff}
+.mv-switch:disabled{opacity:.45;cursor:default}
+.mv-switch:focus-visible{outline:2px solid var(--mv-accent);outline-offset:2px}
+.mv-disclaimer{opacity:.85}
 .mv-top.menu-open{z-index:26}
 .mv-actions{position:relative;display:flex;align-items:center;gap:1px;padding:4px 6px;border-radius:0;pointer-events:auto;flex:1 1 auto;flex-wrap:nowrap;justify-content:flex-end;min-width:0}
 .mv-top .mv-btn,.mv-top .mv-btn.icon{width:26px;height:26px;padding:0;justify-content:center;gap:0;flex:none}
@@ -481,9 +499,6 @@ import { LAYERS_CSS } from './layers-css.js'
 .mv-dialog .body{padding:12px 14px;overflow:auto;display:flex;flex-direction:column;gap:8px}
 .mv-note{margin:0 0 2px;color:var(--mv-dim);font-size:11px;line-height:1.65}
 .mv-src{display:flex;align-items:center;gap:8px;padding:8px 10px;border:.5px solid var(--mv-line);border-radius:9px;background:color-mix(in srgb,var(--mv-bg) 55%,transparent)}
-.mv-src .radio{width:16px;height:16px;flex:none;border-radius:50%;border:1.5px solid var(--mv-line);cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
-.mv-src .radio.on{border-color:var(--mv-accent)}
-.mv-src .radio.on::after{content:"";width:8px;height:8px;border-radius:50%;background:var(--mv-accent)}
 .mv-src .meta{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
 .mv-src .meta b{font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mv-src .meta span{font-size:10.5px;color:var(--mv-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}

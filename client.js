@@ -50,7 +50,7 @@ __export(index_exports, {
 module.exports = __toCommonJS(index_exports);
 
 // src/client/plugin.js
-var import_react57 = __toESM(require("react"), 1);
+var import_react58 = __toESM(require("react"), 1);
 
 // src/client/messages-v17.js
 var V17_MESSAGES = {
@@ -405,7 +405,6 @@ var PARSE_MESSAGES = {
     "parse.joint": "联合定位",
     "parse.separate": "逐类搜索",
     "parse.locatorHint": "联合定位按编号返回；按类名定位使用文字标签；逐类搜索为每类单独请求。",
-    "parse.language": "zh",
     "parse.classProfile": "类别体系",
     "parse.generalProfile": "通用地物",
     "parse.sportsProfile": "运动设施",
@@ -554,7 +553,6 @@ var PARSE_MESSAGES = {
     "parse.joint": "Joint search",
     "parse.separate": "Search each class",
     "parse.locatorHint": "Joint search uses class IDs. Name search uses text labels. Separate search requests one class at a time.",
-    "parse.language": "en",
     "parse.classProfile": "Class catalog",
     "parse.generalProfile": "General features",
     "parse.sportsProfile": "Sports facilities",
@@ -936,6 +934,8 @@ var V18_MESSAGES = {
     "btn.tools": "工具",
     "btn.toolsShow": "展开工具箱",
     "btn.toolsHide": "收起工具箱",
+    "btn.panelShow": "展开面板",
+    "btn.panelHide": "收起面板",
     "btn.output": "输出",
     "layers.appearance": "图层外观",
     "layers.appearance3dgs": "3DGS 点云不支持视觉特效（仅支持 3D Tiles 网格）",
@@ -1126,6 +1126,8 @@ var V18_MESSAGES = {
     "btn.tools": "Tools",
     "btn.toolsShow": "Show tools",
     "btn.toolsHide": "Hide tools",
+    "btn.panelShow": "Show panel",
+    "btn.panelHide": "Hide panel",
     "btn.output": "Output",
     "layers.appearance": "Layer appearance",
     "layers.appearance3dgs": "Effects are not available on 3DGS splats (3D Tiles meshes only)",
@@ -1761,46 +1763,126 @@ var PROFILE_MESSAGES = {
 // src/client/messages-places.js
 var PLACE_MESSAGES = {
   zh: {
-    "places.rejected": "天地图未接受本次查询，请核对地名和服务密钥。",
     "places.title": "地名检索",
     "places.placeholder": "输入城市、地址或地标",
-    "places.keyNeeded": "请输入天地图服务密钥。",
-    "places.denied": "天地图拒绝了请求，请检查密钥及服务权限。",
-    "places.rate": "查询过于频繁，请稍后再试。",
-    "places.camera": "地图正在加载，请稍后再定位。",
-    "places.failed": "无法连接检索服务，请稍后重试。",
-    "places.source": "服务商",
-    "places.saveSearch": "保存并搜索",
     "places.search": "搜索",
-    "places.tdt": "天地图",
-    "places.changeKey": "更换密钥",
-    "places.token": "天地图服务密钥",
-    "places.apply": "申请密钥",
+    "places.saveSearch": "保存并搜索",
     "places.busy": "正在搜索…",
     "places.empty": "没有匹配的地点，可补充城市名再试。",
+    "places.camera": "地图正在加载，请稍后再定位。",
+    "places.source": "服务商",
     "places.refine": "在此区域继续查找",
-    "places.policy": "使用政策"
+    "places.changeKey": "更换密钥",
+    "places.policy": "使用政策",
+    "places.attribution": "© OpenStreetMap 贡献者",
+    "places.noneEnabled": "还没有启用任何服务商。请到 设置 → 地名检索 启用后再搜索。",
+    "places.disabled": "「{name}」未启用，可在 设置 → 地名检索 中启用。",
+    "places.keyNeeded": "请先为「{name}」配置服务密钥。",
+    "places.denied": "「{name}」拒绝了请求，请核对密钥与服务权限。",
+    "places.rate": "查询过于频繁或已超出配额，请稍后重试。",
+    "places.rejected": "「{name}」未接受本次查询，请核对检索词与密钥。",
+    "places.failed": "无法连接「{name}」，可在 设置 → 地名检索 测试连通性或改用其他服务商。",
+    "places.provider.tianditu": "天地图",
+    "places.provider.amap": "高德地图",
+    "places.provider.photon": "Photon",
+    "places.provider.nominatim": "OpenStreetMap",
+    "settings.tab.places": "地名检索",
+    "settings.places.hint": "每个服务商自带服务地址与密钥，可像影像底图一样逐条编辑；「启用」决定面板里可选的服务商与默认选择，修改立即生效。也可添加自定义实例（自建、镜像或代理），请求参数由插件按服务类型附加。",
+    "settings.places.defaultNote": "未选择时优先使用已启用且已配置密钥的服务商，否则使用第一个已启用的服务商；内置服务商可停用但不可删除。",
+    "settings.places.add": "添加服务商",
+    "settings.places.edit": "编辑",
+    "settings.places.delete": "删除",
+    "settings.places.builtin": "内置",
+    "settings.places.custom": "自定义",
+    "settings.places.nameLabel": "名称",
+    "settings.places.builtinNameHint": "内置服务商留空即使用默认名称。",
+    "settings.places.typeLabel": "服务类型",
+    "settings.places.urlLabel": "服务地址",
+    "settings.places.urlHint": "填写完整的 http(s) 地址，可指向自建实例、镜像或代理。",
+    "settings.places.restoreUrl": "恢复默认地址",
+    "settings.places.keyOptional": "留空则保留已保存的密钥。",
+    "settings.places.keyWillClear": "保存后将清除已存密钥",
+    "settings.places.customNeedsName": "自定义服务商需要填写名称。",
+    "settings.places.badUrl": "服务地址需要以 http:// 或 https:// 开头。",
+    "settings.places.enableLabel": "启用「{name}」",
+    "settings.places.noKey": "无需密钥",
+    "settings.places.configured": "已配置密钥",
+    "settings.places.notConfigured": "未配置密钥",
+    "settings.places.managed": "由宿主环境变量管理",
+    "settings.places.keyLabel": "服务密钥",
+    "settings.places.clearKey": "清除",
+    "settings.places.saved": "已保存",
+    "settings.places.getKey": "获取密钥",
+    "settings.places.test": "测试",
+    "settings.places.testing": "正在测试…",
+    "settings.places.testOk": "连接正常 · {n} 条结果 · {ms} ms",
+    "settings.places.testFail": "连接失败：{reason}",
+    "settings.places.note.tianditu": "中文地名、行政区与 POI。需申请「服务端」类型的 tk。",
+    "settings.places.note.amap": "地址与 POI 检索。需申请「Web 服务」类型的 key，按服务商配额计费。",
+    "settings.places.note.photon": "无需密钥。数据 © OpenStreetMap 贡献者（ODbL）。",
+    "settings.places.note.nominatim": "无需密钥。公共实例要求全应用 ≤1 次/秒，也可指向自建或代理实例。",
+    "settings.places.thirdParty": "地名检索由第三方地图/地理编码服务提供，服务可用性、数据内容与使用条款由各服务商负责，与本插件开发方无关；使用前请确认并遵守对应服务商的服务条款。"
   },
   en: {
-    "places.rejected": "Tianditu rejected the query. Check the place name and service key.",
     "places.title": "Place search",
     "places.placeholder": "City, address or landmark",
-    "places.keyNeeded": "Enter a Tianditu service key.",
-    "places.denied": "Tianditu declined the request. Check the key and its service permissions.",
-    "places.rate": "Too many searches. Try again shortly.",
-    "places.camera": "The map is loading. Try the location again shortly.",
-    "places.failed": "Could not reach the search service. Please try again.",
-    "places.source": "Provider",
-    "places.saveSearch": "Save & search",
     "places.search": "Search",
-    "places.tdt": "Tianditu",
-    "places.changeKey": "Change key",
-    "places.token": "Tianditu service key",
-    "places.apply": "Get a key",
+    "places.saveSearch": "Save & search",
     "places.busy": "Searching…",
     "places.empty": "No matching places. Try adding the city name.",
+    "places.camera": "The map is loading. Try the location again shortly.",
+    "places.source": "Provider",
     "places.refine": "Search within this region",
-    "places.policy": "Usage policy"
+    "places.changeKey": "Change key",
+    "places.policy": "Usage policy",
+    "places.attribution": "© OpenStreetMap contributors",
+    "places.noneEnabled": "No provider is enabled yet. Enable one in Settings → Place search.",
+    "places.disabled": "{name} is not enabled. Turn it on in Settings → Place search.",
+    "places.keyNeeded": "Configure a service key for {name} first.",
+    "places.denied": "{name} declined the request. Check the key and its service permissions.",
+    "places.rate": "Too many searches or the quota is exhausted. Try again shortly.",
+    "places.rejected": "{name} did not accept this query. Check the place name and key.",
+    "places.failed": "Could not reach {name}. Test it in Settings → Place search or pick another provider.",
+    "places.provider.tianditu": "Tianditu",
+    "places.provider.amap": "Amap",
+    "places.provider.photon": "Photon",
+    "places.provider.nominatim": "OpenStreetMap",
+    "settings.tab.places": "Place search",
+    "settings.places.hint": "Each provider carries its own service URL and key, edited row by row like an imagery source; the Enable switch decides which providers the panel offers and uses by default, and changes apply immediately. Custom instances (own server, mirror or proxy) are supported — the plugin appends the service-specific query parameters.",
+    "settings.places.defaultNote": "With nothing selected, an enabled provider that already has a key wins, otherwise the first enabled provider is used. Built-in providers can be switched off but not removed.",
+    "settings.places.add": "Add provider",
+    "settings.places.edit": "Edit",
+    "settings.places.delete": "Delete",
+    "settings.places.builtin": "Built-in",
+    "settings.places.custom": "Custom",
+    "settings.places.nameLabel": "Name",
+    "settings.places.builtinNameHint": "Leave empty on a built-in provider to use its default name.",
+    "settings.places.typeLabel": "Service type",
+    "settings.places.urlLabel": "Service URL",
+    "settings.places.urlHint": "Enter the full http(s) URL — your own instance, a mirror or a proxy.",
+    "settings.places.restoreUrl": "Reset URL",
+    "settings.places.keyOptional": "Leave empty to keep the stored key.",
+    "settings.places.keyWillClear": "Saving will clear the stored key",
+    "settings.places.customNeedsName": "A custom provider needs a name.",
+    "settings.places.badUrl": "The service URL must start with http:// or https://.",
+    "settings.places.enableLabel": "Enable {name}",
+    "settings.places.noKey": "No key needed",
+    "settings.places.configured": "Key configured",
+    "settings.places.notConfigured": "No key configured",
+    "settings.places.managed": "Managed by a host environment variable",
+    "settings.places.keyLabel": "Service key",
+    "settings.places.clearKey": "Clear",
+    "settings.places.saved": "Saved",
+    "settings.places.getKey": "Get a key",
+    "settings.places.test": "Test",
+    "settings.places.testing": "Testing…",
+    "settings.places.testOk": "Reachable · {n} results · {ms} ms",
+    "settings.places.testFail": "Connection failed: {reason}",
+    "settings.places.note.tianditu": "Chinese place names, admin areas and POIs. Needs a server-side tk.",
+    "settings.places.note.amap": "Address and POI search. Needs a Web service key; the provider's quota applies.",
+    "settings.places.note.photon": "No key needed. Data © OpenStreetMap contributors (ODbL).",
+    "settings.places.note.nominatim": "No key needed. The public instance asks every app to stay at or below 1 request/second; your own or a proxy instance also works.",
+    "settings.places.thirdParty": "Place search is provided by third-party map and geocoding services. Availability, data and terms of use are the responsibility of each provider, not of this plugin's developer; check and follow the provider's terms before use."
   }
 };
 
@@ -1983,8 +2065,9 @@ var MESSAGES = {
     "settings.tab.imagery": "影像底图",
     "settings.tab.terrain": "地形",
     "settings.tab.appearance": "外观",
-    "settings.imageryHint": "此处维护「底图」菜单中的影像源；单选按钮切换当前底图。",
-    "settings.terrainHint": "此处维护可选的地形源；单选按钮用于开启或切换地形。",
+    "settings.imageryHint": "此处维护「底图」菜单中的影像源；打开「启用」开关使用该底图，关闭后不加载底图。",
+    "settings.terrainHint": "此处维护可选的地形源；打开「启用」开关使用该地形，关闭后不加载地形。",
+    "settings.sourceEnable": "启用「{name}」",
     "settings.empty": "还没有数据源，点击「添加」新建一个。",
     "settings.field.name": "名称",
     "settings.field.type": "类型",
@@ -2399,8 +2482,9 @@ var MESSAGES = {
     "settings.tab.imagery": "Imagery",
     "settings.tab.terrain": "Terrain",
     "settings.tab.appearance": "Appearance",
-    "settings.imageryHint": "Manage the imagery sources offered in the Basemap menu; the radio button picks the active one.",
-    "settings.terrainHint": "Manage the available terrain sources; the radio button enables or switches terrain.",
+    "settings.imageryHint": "Manage the imagery sources offered in the Basemap menu; switch Enable on to use a source, off to load no basemap.",
+    "settings.terrainHint": "Manage the available terrain sources; switch Enable on to use a terrain, off to load none.",
+    "settings.sourceEnable": "Enable {name}",
     "settings.empty": "No sources yet — click Add to create one.",
     "settings.field.name": "Name",
     "settings.field.type": "Type",
@@ -2795,33 +2879,33 @@ function normalizeRasterEntry(raw, { target, fallbackId, fallbackName, isOverlay
     });
     return null;
   }
-  const entry = {
+  const entry2 = {
     id: cleanId(raw.id, fallbackId),
     name: cleanString(raw.name, 60) || fallbackName,
     type,
     url: urlCheck.url
   };
   const credit = cleanString(raw.credit, 200);
-  if (credit !== "") entry.credit = credit;
+  if (credit !== "") entry2.credit = credit;
   if (typeof raw.maximumLevel === "number" && Number.isFinite(raw.maximumLevel) && raw.maximumLevel >= 0) {
-    entry.maximumLevel = Math.min(24, Math.floor(raw.maximumLevel));
+    entry2.maximumLevel = Math.min(24, Math.floor(raw.maximumLevel));
   }
   if (raw.tilingScheme === "geographic" || raw.tilingScheme === "web-mercator") {
-    entry.tilingScheme = raw.tilingScheme;
+    entry2.tilingScheme = raw.tilingScheme;
   }
-  if (raw.reverseY === true) entry.reverseY = true;
+  if (raw.reverseY === true) entry2.reverseY = true;
   if (Array.isArray(raw.subdomains)) {
     const subdomains = raw.subdomains.map((item) => cleanString(item, 8)).filter(Boolean).slice(0, 8);
-    if (subdomains.length > 0) entry.subdomains = subdomains;
+    if (subdomains.length > 0) entry2.subdomains = subdomains;
   }
   const wmsLayers = cleanString(raw.layers, 200);
-  if (wmsLayers !== "") entry.layers = wmsLayers;
+  if (wmsLayers !== "") entry2.layers = wmsLayers;
   if (isOverlay) {
     const rawOpacity = raw.opacity;
-    entry.opacity = typeof rawOpacity === "number" && Number.isFinite(rawOpacity) ? Math.min(1, Math.max(0, rawOpacity)) : 1;
-    entry.visible = raw.visible !== false;
+    entry2.opacity = typeof rawOpacity === "number" && Number.isFinite(rawOpacity) ? Math.min(1, Math.max(0, rawOpacity)) : 1;
+    entry2.visible = raw.visible !== false;
   }
-  return entry;
+  return entry2;
 }
 function normalizeView(raw, ignored) {
   if (raw === void 0 || raw === null) return null;
@@ -3141,11 +3225,11 @@ function createInitialSceneCoordinator() {
   const viewers = /* @__PURE__ */ new Set();
   function findMountedViewer(sessionId) {
     let fallback = null;
-    for (const entry of viewers) {
-      const currentSession = entry.getSessionId?.() ?? null;
-      if (sessionId !== null && currentSession === sessionId) return entry;
-      if (sessionId === null && currentSession !== null) fallback = entry;
-      else if (fallback === null) fallback = entry;
+    for (const entry2 of viewers) {
+      const currentSession = entry2.getSessionId?.() ?? null;
+      if (sessionId !== null && currentSession === sessionId) return entry2;
+      if (sessionId === null && currentSession !== null) fallback = entry2;
+      else if (fallback === null) fallback = entry2;
     }
     return fallback;
   }
@@ -3414,10 +3498,10 @@ function GlyphIcon({ name, size = 16 }) {
 }
 
 // src/client/ui/layout.js
-var import_react55 = __toESM(require("react"), 1);
+var import_react56 = __toESM(require("react"), 1);
 
 // src/client/viewer/ViewerSurface.js
-var import_react54 = __toESM(require("react"), 1);
+var import_react55 = __toESM(require("react"), 1);
 
 // src/client/analysis/height-service.js
 var CACHE_DEGREES = 1e-7;
@@ -3877,7 +3961,7 @@ var collectProfileRefinementFractions = (entries, lengthMeters, remainingBudget,
   const selected = [];
   for (const candidate of candidates) {
     if (selected.length >= budget) break;
-    const nearExisting = entries.some((entry) => Math.abs(entry.fraction - candidate.fraction) <= minFractionGap);
+    const nearExisting = entries.some((entry2) => Math.abs(entry2.fraction - candidate.fraction) <= minFractionGap);
     const nearSelected = selected.some((fraction) => Math.abs(fraction - candidate.fraction) <= minFractionGap);
     if (!nearExisting && !nearSelected) selected.push(candidate.fraction);
   }
@@ -3905,7 +3989,7 @@ var sampleProfileEntries = async ({
     fraction,
     height: initialBatch.values[index] ? initialBatch.values[index].height : null
   }));
-  if (entries.some((entry) => entry.height !== null)) {
+  if (entries.some((entry2) => entry2.height !== null)) {
     const effectiveRounds = heightMode === "terrain" ? Math.min(rounds, 1) : rounds;
     const refineOpts = heightMode === "terrain" ? { minJumpM: 4, minStepM: 5 } : void 0;
     for (let round3 = 0; round3 < effectiveRounds; round3 += 1) {
@@ -3925,11 +4009,11 @@ var sampleProfileEntries = async ({
     }
   }
   let withData = 0;
-  const points = entries.map((entry) => {
-    if (entry.height !== null) withData += 1;
+  const points = entries.map((entry2) => {
+    if (entry2.height !== null) withData += 1;
     return {
-      distance_m: analysisRound(length * entry.fraction, 2),
-      height_m: entry.height === null ? null : analysisRound(entry.height, 2)
+      distance_m: analysisRound(length * entry2.fraction, 2),
+      height_m: entry2.height === null ? null : analysisRound(entry2.height, 2)
     };
   });
   return { entries, points, withData };
@@ -4299,14 +4383,14 @@ var CLIP_OWNER_ANALYSIS = "analysis";
 var registry = /* @__PURE__ */ new WeakMap();
 function liveEntry(tileset) {
   if (!tileset || typeof tileset !== "object") return null;
-  const entry = registry.get(tileset);
-  if (!entry) return null;
-  const destroyed = typeof entry.collection?.isDestroyed === "function" ? entry.collection.isDestroyed() : false;
+  const entry2 = registry.get(tileset);
+  if (!entry2) return null;
+  const destroyed = typeof entry2.collection?.isDestroyed === "function" ? entry2.collection.isDestroyed() : false;
   if (destroyed) {
     registry.delete(tileset);
     return null;
   }
-  return entry;
+  return entry2;
 }
 function setClipPlane(collection, plane) {
   if (!collection || !plane || !plane.normal || !Number.isFinite(plane.distance)) return false;
@@ -4327,9 +4411,9 @@ function setClipPlane(collection, plane) {
   }
 }
 function clipConflictOf(tileset) {
-  const entry = liveEntry(tileset);
-  if (entry && entry.owner !== null && entry.owner !== CLIP_OWNER_ANALYSIS) return "swipe";
-  const registered = entry?.collection ?? null;
+  const entry2 = liveEntry(tileset);
+  if (entry2 && entry2.owner !== null && entry2.owner !== CLIP_OWNER_ANALYSIS) return "swipe";
+  const registered = entry2?.collection ?? null;
   let assigned = null;
   try {
     assigned = tileset?.clippingPlanes ?? null;
@@ -4349,8 +4433,8 @@ function acquireClipCollection(Cesium, tileset, options = {}) {
   if (!plane || !plane.normal || !Number.isFinite(plane.distance)) {
     return { ok: false, reason: "unavailable" };
   }
-  const entry = liveEntry(tileset);
-  const cached = entry?.collection ?? null;
+  const entry2 = liveEntry(tileset);
+  const cached = entry2?.collection ?? null;
   let existing = null;
   try {
     existing = tileset.clippingPlanes ?? null;
@@ -4361,10 +4445,10 @@ function acquireClipCollection(Cesium, tileset, options = {}) {
     existing = null;
   }
   if (existing !== null && existing !== cached) {
-    return { ok: false, reason: "conflict", owner: entry?.owner ?? null };
+    return { ok: false, reason: "conflict", owner: entry2?.owner ?? null };
   }
-  if (entry && entry.owner !== null && entry.owner !== owner) {
-    return { ok: false, reason: "conflict", owner: entry.owner };
+  if (entry2 && entry2.owner !== null && entry2.owner !== owner) {
+    return { ok: false, reason: "conflict", owner: entry2.owner };
   }
   let collection = cached;
   if (collection === null) {
@@ -4390,7 +4474,7 @@ function acquireClipCollection(Cesium, tileset, options = {}) {
     } catch {
       return { ok: false, reason: "unavailable" };
     }
-    entry.owner = owner;
+    entry2.owner = owner;
   }
   if (tileset.clippingPlanes !== collection) {
     try {
@@ -4405,15 +4489,15 @@ function acquireClipCollection(Cesium, tileset, options = {}) {
   return { ok: true, collection, reused: cached !== null };
 }
 function releaseClipCollection(tileset, owner) {
-  const entry = liveEntry(tileset);
-  if (!entry) return false;
-  if (owner !== void 0 && entry.owner !== owner) return false;
+  const entry2 = liveEntry(tileset);
+  if (!entry2) return false;
+  if (owner !== void 0 && entry2.owner !== owner) return false;
   try {
-    entry.collection.enabled = false;
+    entry2.collection.enabled = false;
   } catch {
     return false;
   }
-  entry.owner = null;
+  entry2.owner = null;
   return true;
 }
 
@@ -4886,7 +4970,7 @@ function createAnalysisEngine(deps) {
     viewer.clock.currentTime = Cesium.JulianDate.fromDate(date);
     viewer.clock.shouldAnimate = false;
     for (const saved of restore.tilesets) {
-      const item = layersRef.current.find((entry) => entry.id === saved.id);
+      const item = layersRef.current.find((entry2) => entry2.id === saved.id);
       if (item && item.tileset) {
         item.tileset.shadows = Cesium.ShadowMode.ENABLED;
         if (!showShadows) item.tileset.shadows = Cesium.ShadowMode.DISABLED;
@@ -5189,18 +5273,18 @@ function withAnnotationProperties(feature, patch = {}) {
     const previousProps = feature.properties && typeof feature.properties === "object" ? feature.properties : {};
     const parsed = [];
     const seen = /* @__PURE__ */ new Set();
-    for (const entry of patch.attributes) {
-      const key = typeof entry?.key === "string" ? entry.key.replace(/\s+/g, " ").trim().slice(0, ANNOTATION_MAX_ATTR_KEY) : "";
+    for (const entry2 of patch.attributes) {
+      const key = typeof entry2?.key === "string" ? entry2.key.replace(/\s+/g, " ").trim().slice(0, ANNOTATION_MAX_ATTR_KEY) : "";
       if (key === "") return { ok: false, error: "invalid_attribute_key" };
       if (!isCustomAttributeKey(key)) return { ok: false, error: "reserved_attribute_key" };
       if (seen.has(key)) return { ok: false, error: "duplicate_attribute_key" };
       seen.add(key);
       const prevRaw = previousProps[key];
-      if (entry.preserveObject && prevRaw !== null && typeof prevRaw === "object") {
+      if (entry2.preserveObject && prevRaw !== null && typeof prevRaw === "object") {
         parsed.push([key, prevRaw]);
         continue;
       }
-      const rawVal = entry?.value;
+      const rawVal = entry2?.value;
       if (typeof rawVal === "number" && Number.isFinite(rawVal)) {
         parsed.push([key, rawVal]);
       } else if (typeof rawVal === "boolean") {
@@ -6081,7 +6165,7 @@ var isSnapshotLayer = (layer) => layer !== null && typeof layer === "object" && 
 var SNAPSHOT_ANALYSIS_ACTIONS = ["profile", "flood", "sunlight"];
 var SNAPSHOT_EXTRA_ANALYSIS_ACTIONS = ["clip", "skyline"];
 var isSnapshotAnalysis = (analysis) => analysis !== null && typeof analysis === "object" && typeof analysis.action === "string" && (SNAPSHOT_ANALYSIS_ACTIONS.includes(analysis.action) || SNAPSHOT_EXTRA_ANALYSIS_ACTIONS.includes(analysis.action));
-var isSnapshotPresetStack = (preset) => Array.isArray(preset) && preset.length >= 1 && preset.length <= 3 && preset.every((entry) => typeof entry === "string" && entry.trim() !== "");
+var isSnapshotPresetStack = (preset) => Array.isArray(preset) && preset.length >= 1 && preset.length <= 3 && preset.every((entry2) => typeof entry2 === "string" && entry2.trim() !== "");
 var isSnapshotShader = (item) => item !== null && typeof item === "object" && (typeof item.layer === "string" && typeof item.preset === "string" || typeof item.layer === "string" && isSnapshotPresetStack(item.preset));
 var normalizeSnapshotCompaction = (value) => {
   if (value === null || typeof value !== "object") return null;
@@ -6100,18 +6184,18 @@ var normalizeSnapshotRasterFrames = (raw) => {
   if (raw === null || typeof raw !== "object" || Array.isArray(raw)) return {};
   const out = {};
   let count = 0;
-  for (const [id, entry] of Object.entries(raw)) {
+  for (const [id, entry2] of Object.entries(raw)) {
     if (count >= 32) break;
     if (typeof id !== "string" || id.trim() === "" || id.length > 80) continue;
-    if (Number.isInteger(entry) && entry >= 0 && entry < 60) {
-      out[id] = { frame: entry };
+    if (Number.isInteger(entry2) && entry2 >= 0 && entry2 < 60) {
+      out[id] = { frame: entry2 };
       count += 1;
       continue;
     }
-    if (entry !== null && typeof entry === "object" && !Array.isArray(entry)) {
-      const frame = entry.frame;
+    if (entry2 !== null && typeof entry2 === "object" && !Array.isArray(entry2)) {
+      const frame = entry2.frame;
       if (!Number.isInteger(frame) || frame < 0 || frame >= 60) continue;
-      const time = typeof entry.time === "string" && entry.time.trim() !== "" ? entry.time.trim().slice(0, 40) : "";
+      const time = typeof entry2.time === "string" && entry2.time.trim() !== "" ? entry2.time.trim().slice(0, 40) : "";
       out[id] = time !== "" ? { frame, time } : { frame };
       count += 1;
     }
@@ -6433,13 +6517,13 @@ function resolveSourceFrames(source) {
   if (rawFrames && rawFrames.length > 0) {
     const out = [];
     for (let index = 0; index < rawFrames.length; index += 1) {
-      const entry = rawFrames[index];
-      if (!entry || typeof entry !== "object" || typeof entry.url !== "string" || entry.url.trim() === "") continue;
-      const entryTime = cleanTimeString(entry.time);
+      const entry2 = rawFrames[index];
+      if (!entry2 || typeof entry2 !== "object" || typeof entry2.url !== "string" || entry2.url.trim() === "") continue;
+      const entryTime = cleanTimeString(entry2.time);
       const pairedTime = rawTimes && typeof rawTimes[index] === "string" ? cleanTimeString(rawTimes[index]) : "";
       const time = entryTime || pairedTime || null;
-      const url = substituteTime(entry.url.trim(), time);
-      const label = (typeof entry.label === "string" ? entry.label.trim().slice(0, MAX_FRAME_LABEL_LENGTH) : "") || time || `#${index + 1}`;
+      const url = substituteTime(entry2.url.trim(), time);
+      const label = (typeof entry2.label === "string" ? entry2.label.trim().slice(0, MAX_FRAME_LABEL_LENGTH) : "") || time || `#${index + 1}`;
       out.push({ index: out.length, label, url, time });
     }
     return out;
@@ -6627,20 +6711,20 @@ function createOverlayLayers({ Cesium, viewer, providerFactory, onError = () => 
     }
   }
   function removeNow(id) {
-    const entry = entries.get(id);
-    if (!entry) return false;
+    const entry2 = entries.get(id);
+    if (!entry2) return false;
     frameSeqs.delete(id);
-    destroyLayer(entry.layer);
+    destroyLayer(entry2.layer);
     entries.delete(id);
     return true;
   }
-  function needsRebuild(entry, source) {
-    return entry.source.type !== source.type || entry.source.url !== source.url || (entry.source.layers ?? "") !== (source.layers ?? "") || temporalSignature(entry.source) !== temporalSignature(source);
+  function needsRebuild(entry2, source) {
+    return entry2.source.type !== source.type || entry2.source.url !== source.url || (entry2.source.layers ?? "") !== (source.layers ?? "") || temporalSignature(entry2.source) !== temporalSignature(source);
   }
-  function applyStyle(entry) {
-    if (!entry.layer) return;
-    entry.layer.alpha = entry.source.opacity;
-    entry.layer.show = entry.source.visible !== false;
+  function applyStyle(entry2) {
+    if (!entry2.layer) return;
+    entry2.layer.alpha = entry2.source.opacity;
+    entry2.layer.show = entry2.source.visible !== false;
   }
   async function addNow(source, initialFrameIndex = 0) {
     const layers2 = collection();
@@ -6657,16 +6741,16 @@ function createOverlayLayers({ Cesium, viewer, providerFactory, onError = () => 
       return null;
     }
     const layer = layers2.addImageryProvider(provider);
-    const entry = {
+    const entry2 = {
       id: source.id,
       source: { ...source },
       frames,
       frameIndex,
       layer
     };
-    entries.set(source.id, entry);
-    applyStyle(entry);
-    return entry;
+    entries.set(source.id, entry2);
+    applyStyle(entry2);
+    return entry2;
   }
   return {
     /** Add (or replace) one overlay and return its entry, or null on failure. */
@@ -6685,19 +6769,19 @@ function createOverlayLayers({ Cesium, viewer, providerFactory, onError = () => 
     },
     setOpacity(id, opacity) {
       return enqueue(() => {
-        const entry = entries.get(id);
-        if (!entry) return false;
-        entry.source.opacity = Math.min(1, Math.max(0, Number(opacity) || 0));
-        applyStyle(entry);
+        const entry2 = entries.get(id);
+        if (!entry2) return false;
+        entry2.source.opacity = Math.min(1, Math.max(0, Number(opacity) || 0));
+        applyStyle(entry2);
         return true;
       });
     },
     setVisible(id, visible) {
       return enqueue(() => {
-        const entry = entries.get(id);
-        if (!entry) return false;
-        entry.source.visible = visible !== false;
-        applyStyle(entry);
+        const entry2 = entries.get(id);
+        if (!entry2) return false;
+        entry2.source.visible = visible !== false;
+        applyStyle(entry2);
         return true;
       });
     },
@@ -6711,41 +6795,41 @@ function createOverlayLayers({ Cesium, viewer, providerFactory, onError = () => 
       frameSeqs.set(id, seq);
       return enqueue(async () => {
         if (frameSeqs.get(id) !== seq) return { ok: false, stale: true };
-        const entry = entries.get(id);
-        if (!entry || entry.frames.length === 0) return { ok: false, reason: "unavailable" };
-        const targetIndex = clampFrameIndex(nextIndex, entry.frames);
-        if (targetIndex === entry.frameIndex) {
-          return { ok: true, unchanged: true, frameIndex: targetIndex, frame: entry.frames[targetIndex] };
+        const entry2 = entries.get(id);
+        if (!entry2 || entry2.frames.length === 0) return { ok: false, reason: "unavailable" };
+        const targetIndex = clampFrameIndex(nextIndex, entry2.frames);
+        if (targetIndex === entry2.frameIndex) {
+          return { ok: true, unchanged: true, frameIndex: targetIndex, frame: entry2.frames[targetIndex] };
         }
-        const effectiveSource = resolveFrameSource(entry.source, targetIndex);
+        const effectiveSource = resolveFrameSource(entry2.source, targetIndex);
         let provider;
         try {
           provider = await buildProvider(Cesium, effectiveSource);
         } catch (error) {
           if (frameSeqs.get(id) !== seq) return { ok: false, stale: true };
-          onError(error, entry.source);
+          onError(error, entry2.source);
           return { ok: false, error: error instanceof Error ? error.message : String(error) };
         }
-        if (frameSeqs.get(id) !== seq || entries.get(id) !== entry) {
+        if (frameSeqs.get(id) !== seq || entries.get(id) !== entry2) {
           return { ok: false, stale: true };
         }
         const layers2 = collection();
         if (!layers2) return { ok: false, reason: "unavailable" };
-        const oldLayer = entry.layer;
+        const oldLayer = entry2.layer;
         const oldIndex = typeof layers2.indexOf === "function" ? layers2.indexOf(oldLayer) : -1;
         const nextLayer = oldIndex >= 0 ? layers2.addImageryProvider(provider, oldIndex) : layers2.addImageryProvider(provider);
         if (oldLayer && oldLayer.splitDirection !== void 0) {
           nextLayer.splitDirection = oldLayer.splitDirection;
         }
-        entry.layer = nextLayer;
-        entry.frameIndex = targetIndex;
-        applyStyle(entry);
+        entry2.layer = nextLayer;
+        entry2.frameIndex = targetIndex;
+        applyStyle(entry2);
         destroyLayer(oldLayer);
         try {
           viewer?.scene?.requestRender?.();
         } catch {
         }
-        return { ok: true, frameIndex: targetIndex, frame: entry.frames[targetIndex] };
+        return { ok: true, frameIndex: targetIndex, frame: entry2.frames[targetIndex] };
       });
     },
     /** Current 0-based frame index for an overlay (0 for non-temporal or missing). */
@@ -6790,18 +6874,18 @@ function createOverlayLayers({ Cesium, viewer, providerFactory, onError = () => 
         const currentOrder = [...entries.keys()];
         const orderedEntries = [];
         for (const source of next) {
-          const entry = entries.get(source.id);
-          if (entry) orderedEntries.push([source.id, entry]);
+          const entry2 = entries.get(source.id);
+          if (entry2) orderedEntries.push([source.id, entry2]);
         }
         const orderChanged = orderedEntries.length === currentOrder.length && orderedEntries.some(([id], idx) => currentOrder[idx] !== id);
         if (orderChanged) {
           entries.clear();
           const layers2 = collection();
-          for (const [id, entry] of orderedEntries) {
-            entries.set(id, entry);
+          for (const [id, entry2] of orderedEntries) {
+            entries.set(id, entry2);
             try {
-              if (layers2 && entry.layer && typeof layers2.raiseToTop === "function") {
-                layers2.raiseToTop(entry.layer);
+              if (layers2 && entry2.layer && typeof layers2.raiseToTop === "function") {
+                layers2.raiseToTop(entry2.layer);
               }
             } catch {
             }
@@ -6812,16 +6896,16 @@ function createOverlayLayers({ Cesium, viewer, providerFactory, onError = () => 
     },
     /** Live stack in insert order (bottom-most overlay first). */
     list() {
-      return [...entries.values()].map((entry) => {
-        const temporal = describeRasterFrames(entry.source, entry.frameIndex);
-        const activeUrl = entry.frames.length > 0 ? entry.frames[entry.frameIndex]?.url ?? entry.source.url : entry.source.url;
+      return [...entries.values()].map((entry2) => {
+        const temporal = describeRasterFrames(entry2.source, entry2.frameIndex);
+        const activeUrl = entry2.frames.length > 0 ? entry2.frames[entry2.frameIndex]?.url ?? entry2.source.url : entry2.source.url;
         return {
-          id: entry.id,
-          name: entry.source.name,
-          type: entry.source.type,
+          id: entry2.id,
+          name: entry2.source.name,
+          type: entry2.source.type,
           url: activeUrl,
-          opacity: entry.source.opacity,
-          visible: entry.source.visible !== false,
+          opacity: entry2.source.opacity,
+          visible: entry2.source.visible !== false,
           ...temporal ?? {}
         };
       });
@@ -8814,15 +8898,15 @@ function createVectorInteraction({ Cesium, viewer, root, getTool, onSelect }) {
   const enabled = () => !moving && (!getTool() || getTool() === "pick" || getTool() === "identify");
   const labels = createVectorLabels({ Cesium, viewer, root, onHover: setHover, onSelect: select, isInteractive: enabled });
   function applyEntityState(entity, group) {
-    const entry = entries.get(entity);
-    if (!entry) return;
+    const entry2 = entries.get(entity);
+    if (!entry2) return;
     const active = group === selected || group === hovered;
-    for (const [graphic, property, original] of entry.originals) graphic[property] = original;
+    for (const [graphic, property, original] of entry2.originals) graphic[property] = original;
     if (!active) return;
     if (entity.polyline) {
       const isSelected = group === selected;
-      entity.polyline.width = valueOf(entry.width) + (isSelected ? 2.5 : 1.5);
-      const material = entry.options.polyline.material;
+      entity.polyline.width = valueOf(entry2.width) + (isSelected ? 2.5 : 1.5);
+      const material = entry2.options.polyline.material;
       if (material instanceof Cesium.PolylineOutlineMaterialProperty) {
         const color = Cesium.Color.lerp(valueOf(material.color), Cesium.Color.WHITE, isSelected ? 0.4 : 0.2, new Cesium.Color());
         entity.polyline.material = vectorLineMaterial(Cesium, color, isSelected ? 1.75 : 1.5);
@@ -8831,7 +8915,7 @@ function createVectorInteraction({ Cesium, viewer, root, getTool, onSelect }) {
     if (entity.point) entity.point.pixelSize = 11;
     for (const kind of ["polygon", "rectangle"]) {
       const graphic = entity[kind];
-      const color = entry.options[kind]?.material;
+      const color = entry2.options[kind]?.material;
       if (graphic && color instanceof Cesium.Color) graphic.material = color.withAlpha(group === selected ? 0.3 : 0.23);
     }
   }
@@ -8884,7 +8968,7 @@ function createVectorInteraction({ Cesium, viewer, root, getTool, onSelect }) {
     let closest = 6;
     let found = null;
     const occluder = new Cesium.EllipsoidalOccluder(scene.globe.ellipsoid, viewer.camera.positionWC);
-    for (const [entity, entry] of entries) {
+    for (const [entity, entry2] of entries) {
       if (!entity.polyline || valueOf(entity.polyline.clampToGround) || entity.isShowing === false || budget <= 0) continue;
       const positions = valueOf(entity.polyline.positions) ?? [];
       let previous = null;
@@ -8895,7 +8979,7 @@ function createVectorInteraction({ Cesium, viewer, root, getTool, onSelect }) {
           const distance = segmentDistance(position, previous, point);
           if (distance < closest) {
             closest = distance;
-            found = entry.group;
+            found = entry2.group;
           }
         }
         previous = point;
@@ -8924,16 +9008,16 @@ function createVectorInteraction({ Cesium, viewer, root, getTool, onSelect }) {
   }
   function removed(collection, added, removedEntities) {
     for (const entity of removedEntities) {
-      const entry = entries.get(entity);
-      if (!entry) continue;
+      const entry2 = entries.get(entity);
+      if (!entry2) continue;
       labels.remove(entity);
       entries.delete(entity);
-      const record = groups.get(entry.group);
+      const record = groups.get(entry2.group);
       record.entities.delete(entity);
       if (record.entities.size > 0) continue;
-      if (hovered === entry.group) setHover(null);
-      if (selected === entry.group) select(null);
-      groups.delete(entry.group);
+      if (hovered === entry2.group) setHover(null);
+      if (selected === entry2.group) select(null);
+      groups.delete(entry2.group);
     }
   }
   function onKey(event) {
@@ -9118,10 +9202,10 @@ function summarizeHeights(values) {
 function normalizeIdentity(raw) {
   const kind = typeof raw?.kind === "string" ? raw.kind : "scene";
   const featureId = typeof raw?.featureId === "number" && Number.isFinite(raw.featureId) ? raw.featureId : null;
-  const properties = (Array.isArray(raw?.properties) ? raw.properties : []).filter((entry) => entry && typeof entry.name === "string").slice(0, SELECTION_MAX_PROPERTIES).map((entry) => ({ name: entry.name.slice(0, 60), value: String(entry.value ?? "").slice(0, 160) }));
+  const properties = (Array.isArray(raw?.properties) ? raw.properties : []).filter((entry2) => entry2 && typeof entry2.name === "string").slice(0, SELECTION_MAX_PROPERTIES).map((entry2) => ({ name: entry2.name.slice(0, 60), value: String(entry2.value ?? "").slice(0, 160) }));
   let name = typeof raw?.name === "string" && raw.name.trim() !== "" ? raw.name.trim().slice(0, 80) : null;
   if (name === null) {
-    const found = properties.find((entry) => IDENTITY_KEYS.includes(entry.name));
+    const found = properties.find((entry2) => IDENTITY_KEYS.includes(entry2.name));
     if (found && found.value.trim() !== "") name = found.value.trim().slice(0, 80);
   }
   return {
@@ -10420,97 +10504,118 @@ function installCanvasInput({
 // src/shared/taxonomy.js
 var MAX_CLASSES = 12;
 var MAX_LABEL = 16;
+var entry = (id, key, name, nameEn, color, definition, definitionEn) => Object.freeze({ id, key, name, nameEn, color, definition, definitionEn });
 var DEFAULT_CLASSES = Object.freeze([
-  Object.freeze({
-    id: 1,
-    key: "building",
-    name: "建筑",
-    color: "#f59e0b",
-    definition: "单栋建筑屋顶外轮廓，不含立面、阴影、道路和相邻建筑；相邻建筑分成独立实例。"
-  }),
-  Object.freeze({
-    id: 2,
-    key: "water",
-    name: "水体",
-    color: "#38bdf8",
-    definition: "湖泊、池塘、河流等独立水面；堤埂内的水域按可见水面整体。"
-  }),
-  Object.freeze({
-    id: 3,
-    key: "vegetation",
-    name: "植被",
-    color: "#4ade80",
-    definition: "林地、树冠、绿化带等植被覆盖区域；道路与建筑之间的独立绿化也按实例输出。"
-  }),
-  Object.freeze({
-    id: 4,
-    key: "road",
-    name: "道路",
-    color: "#94a3b8",
-    definition: "可见道路路面或道路中心带；被建筑/植被遮挡处断开，不推测被遮挡部分。"
-  }),
-  Object.freeze({
-    id: 5,
-    key: "vehicle",
-    name: "车辆",
-    color: "#f87272",
-    definition: "单辆汽车、卡车等车辆；只输出可见车体，不含阴影。"
-  }),
-  Object.freeze({
-    id: 6,
-    key: "sports_field",
-    name: "运动场",
-    color: "#a78bfa",
-    definition: "跑道、球场等运动场地：跑道与场芯作为一个整体实例，不含周边草地与看台。"
-  }),
-  Object.freeze({
-    id: 7,
-    key: "farmland",
-    name: "农田",
-    color: "#facc15",
-    definition: "耕地、农田地块；按田埂/道路分隔的独立田块输出。"
-  }),
-  Object.freeze({
-    id: 8,
-    key: "other",
-    name: "其他地物",
-    color: "#c084fc",
-    definition: "清晰可见但不属于以上类别的地物，按独立可见图斑输出。"
-  })
+  entry(
+    1,
+    "building",
+    "建筑",
+    "Building",
+    "#f59e0b",
+    "单栋建筑屋顶外轮廓，不含立面、阴影、道路和相邻建筑；相邻建筑分成独立实例。",
+    "One building roof footprint. Exclude facades, shadows, roads and adjacent buildings; keep adjacent buildings as separate instances."
+  ),
+  entry(
+    2,
+    "water",
+    "水体",
+    "Water",
+    "#38bdf8",
+    "湖泊、池塘、河流等独立水面；堤埂内的水域按可见水面整体。",
+    "One lake, pond or river surface. Treat the water body inside its banks as one visible surface."
+  ),
+  entry(
+    3,
+    "vegetation",
+    "植被",
+    "Vegetation",
+    "#4ade80",
+    "林地、树冠、绿化带等植被覆盖区域；道路与建筑之间的独立绿化也按实例输出。",
+    "Woodland, tree crowns or green belts; also output standalone greenery between roads and buildings as its own instance."
+  ),
+  entry(
+    4,
+    "road",
+    "道路",
+    "Road",
+    "#94a3b8",
+    "可见道路路面或道路中心带；被建筑/植被遮挡处断开，不推测被遮挡部分。",
+    "Visible road surface or carriageway band. Break where buildings or vegetation cover it; never infer occluded parts."
+  ),
+  entry(
+    5,
+    "vehicle",
+    "车辆",
+    "Vehicle",
+    "#f87272",
+    "单辆汽车、卡车等车辆；只输出可见车体，不含阴影。",
+    "One car or truck. Draw the visible body only, without its shadow."
+  ),
+  entry(
+    6,
+    "sports_field",
+    "运动场",
+    "Sports field",
+    "#a78bfa",
+    "跑道、球场等运动场地：跑道与场芯作为一个整体实例，不含周边草地与看台。",
+    "Running tracks and courts as one instance each: keep the track and its infield together, exclude surrounding grass and stands."
+  ),
+  entry(
+    7,
+    "farmland",
+    "农田",
+    "Farmland",
+    "#facc15",
+    "耕地、农田地块；按田埂/道路分隔的独立田块输出。",
+    "Cultivated plots, split at ridges or roads into separate instances."
+  ),
+  entry(
+    8,
+    "other",
+    "其他地物",
+    "Other feature",
+    "#c084fc",
+    "清晰可见但不属于以上类别的地物，按独立可见图斑输出。",
+    "Clearly visible features outside the other classes, one visible patch per instance."
+  )
 ]);
 var SPORTS_CLASSES = Object.freeze([
-  Object.freeze({
-    id: 21,
-    key: "tennis",
-    name: "网球场",
-    color: "#84cc16",
-    definition: "One tennis court. Follow the outer doubles playing lines. Exclude the surrounding runoff.",
-    descriptionZh: "沿双打边线逐片描绘网球场。"
-  }),
-  Object.freeze({
-    id: 22,
-    key: "pool",
-    name: "游泳池",
-    color: "#38bdf8",
-    definition: "One outdoor swimming pool. Trace the water edge, excluding the deck. Separate adjacent basins.",
-    descriptionZh: "沿池水边缘描绘，每个独立池体单独提取。"
-  }),
-  Object.freeze({
-    id: 23,
-    key: "track",
-    name: "田径场",
-    color: "#ef795d",
-    definition: "One oval running track complex. Trace the outer lane boundary as a filled footprint including the infield.",
-    descriptionZh: "沿最外圈跑道描绘，场芯计入整座田径场。"
-  }),
-  Object.freeze({
-    id: 24,
-    key: "pitch",
-    name: "足球场",
-    color: "#4ade80",
-    definition: "One football playing pitch with identifiable markings. Follow its touchlines and goal lines.",
-    descriptionZh: "按可辨认的边线与底线描绘足球比赛区。"
-  })
+  entry(
+    21,
+    "tennis",
+    "网球场",
+    "Tennis court",
+    "#84cc16",
+    "沿双打边线逐片描绘网球场。",
+    "One tennis court. Follow the outer doubles playing lines. Exclude the surrounding runoff."
+  ),
+  entry(
+    22,
+    "pool",
+    "游泳池",
+    "Swimming pool",
+    "#38bdf8",
+    "沿池水边缘描绘，每个独立池体单独提取。",
+    "One outdoor swimming pool. Trace the water edge, excluding the deck. Separate adjacent basins."
+  ),
+  entry(
+    23,
+    "track",
+    "田径场",
+    "Athletics track",
+    "#ef795d",
+    "沿最外圈跑道描绘，场芯计入整座田径场。",
+    "One oval running track complex. Trace the outer lane boundary as a filled footprint including the infield."
+  ),
+  entry(
+    24,
+    "pitch",
+    "足球场",
+    "Football pitch",
+    "#4ade80",
+    "按可辨认的边线与底线描绘足球比赛区。",
+    "One football playing pitch with identifiable markings. Follow its touchlines and goal lines."
+  )
 ]);
 function sanitizeCustomLabel(raw) {
   if (typeof raw !== "string") return "";
@@ -10523,27 +10628,35 @@ function customColor(label) {
   for (const ch of String(label)) hash = hash * 31 + ch.codePointAt(0) >>> 0;
   return HASH_COLORS[hash % HASH_COLORS.length];
 }
-function customClass(label) {
+function customClass(label, language = "zh") {
   const clean = sanitizeCustomLabel(label);
   if (clean === "") return null;
   return {
     key: `custom:${clean}`,
     name: clean,
     color: customColor(clean),
-    definition: `用户自定义类别：${clean}。只输出该类别的独立可见图斑，不要包含周边其他地物。`,
+    definition: language === "en" ? `User-defined class: ${clean}. Output only this class as separate visible patches, without surrounding features.` : `用户自定义类别：${clean}。只输出该类别的独立可见图斑，不要包含周边其他地物。`,
     custom: true
   };
 }
-function buildClassCatalog(customLabels = [], presets = DEFAULT_CLASSES) {
-  const catalog = presets.map((entry) => ({ ...entry, custom: false }));
-  const seen = new Set(catalog.map((entry) => entry.name));
-  let nextId = Math.max(...catalog.map((entry) => entry.id)) + 1;
+function buildClassCatalog(customLabels = [], presets = DEFAULT_CLASSES, language = "zh") {
+  const english = language === "en";
+  const catalog = presets.map((item) => ({
+    id: item.id,
+    key: item.key,
+    name: english ? item.nameEn : item.name,
+    color: item.color,
+    definition: english ? item.definitionEn : item.definition,
+    custom: false
+  }));
+  const seen = new Set(catalog.map((item) => item.name));
+  let nextId = Math.max(...catalog.map((item) => item.id)) + 1;
   for (const raw of Array.isArray(customLabels) ? customLabels : []) {
     if (catalog.length >= MAX_CLASSES) break;
-    const entry = customClass(raw);
-    if (!entry || seen.has(entry.name)) continue;
-    seen.add(entry.name);
-    catalog.push({ ...entry, id: nextId });
+    const custom = customClass(raw, language);
+    if (!custom || seen.has(custom.name)) continue;
+    seen.add(custom.name);
+    catalog.push({ ...custom, id: nextId });
     nextId += 1;
   }
   return catalog;
@@ -10718,9 +10831,9 @@ function traceWindows(boxes, window2, width, height, classes) {
     const x = rect.left + rect.width * (b[0] + b[2]) / 2e3;
     const y = rect.top + rect.height * (b[1] + b[3]) / 2e3;
     const w = rect.width * (b[2] - b[0]) / 1e3;
-    const h50 = rect.height * (b[3] - b[1]) / 1e3;
-    if (w < 2 || h50 < 2 || x < core.left || x >= core.left + core.width || y < core.top || y >= core.top + core.height) continue;
-    const dx = Math.min(511, Math.max(5, w * 0.78)), dy = Math.min(511, Math.max(5, h50 * 0.78));
+    const h51 = rect.height * (b[3] - b[1]) / 1e3;
+    if (w < 2 || h51 < 2 || x < core.left || x >= core.left + core.width || y < core.top || y >= core.top + core.height) continue;
+    const dx = Math.min(511, Math.max(5, w * 0.78)), dy = Math.min(511, Math.max(5, h51 * 0.78));
     const left = Math.max(0, Math.floor(x - dx)), top = Math.max(0, Math.floor(y - dy));
     const right = Math.min(width, Math.ceil(x + dx)), bottom = Math.min(height, Math.ceil(y + dy));
     const targetRect = { left, top, width: right - left, height: bottom - top };
@@ -10731,7 +10844,7 @@ function traceWindows(boxes, window2, width, height, classes) {
       core,
       mode: "trace",
       classId: item.classId,
-      proposal: { left: x - w / 2, top: y - h50 / 2, width: w, height: h50 }
+      proposal: { left: x - w / 2, top: y - h51 / 2, width: w, height: h51 }
     });
   }
   const byClass = /* @__PURE__ */ new Map();
@@ -11304,26 +11417,26 @@ function normalizeClasses(classes) {
   }
   const normalized = [];
   const seen = /* @__PURE__ */ new Set();
-  for (const entry of classes) {
-    if (!entry || typeof entry !== "object") throw invalidRequest("classes", "Every class must be an object.");
-    const rawId = entry.id;
+  for (const entry2 of classes) {
+    if (!entry2 || typeof entry2 !== "object") throw invalidRequest("classes", "Every class must be an object.");
+    const rawId = entry2.id;
     if (!Number.isSafeInteger(rawId) || rawId <= 0) {
       throw invalidRequest("classes", "Every class id must be a positive integer.");
     }
     if (seen.has(rawId)) throw invalidRequest("classes", `Duplicate class id ${rawId}.`);
     seen.add(rawId);
-    const name = cleanClassText(entry.name);
+    const name = cleanClassText(entry2.name);
     if (!name) throw invalidRequest("classes", "Every class needs a non-empty name.");
     if ([...name].length > INSTANCE_LIMITS.maxClassNameChars) {
       throw invalidRequest("classes", `Class name must be at most ${INSTANCE_LIMITS.maxClassNameChars} characters.`);
     }
-    const providedDefinition = cleanClassText(entry.definition);
+    const providedDefinition = cleanClassText(entry2.definition);
     const definition = providedDefinition !== "" ? providedDefinition : `${CUSTOM_DEFINITION_PREFIX}${name}`;
     if ([...definition].length > INSTANCE_LIMITS.maxClassDefinitionChars) {
       throw invalidRequest("classes", `Class definition must be at most ${INSTANCE_LIMITS.maxClassDefinitionChars} characters.`);
     }
-    const key = typeof entry.key === "string" && entry.key.trim() !== "" ? entry.key.trim() : classKeyOf(name) ?? name;
-    const color = typeof entry.color === "string" && entry.color.trim() !== "" ? entry.color.trim() : classHex(name);
+    const key = typeof entry2.key === "string" && entry2.key.trim() !== "" ? entry2.key.trim() : classKeyOf(name) ?? name;
+    const color = typeof entry2.color === "string" && entry2.color.trim() !== "" ? entry2.color.trim() : classHex(name);
     normalized.push({ id: rawId, idKey: String(rawId), name, definition, key, color });
   }
   return normalized;
@@ -11442,8 +11555,8 @@ function pointInBBox(point, bbox) {
   return point.lon >= bbox.west && point.lon <= bbox.east && point.lat >= bbox.south && point.lat <= bbox.north;
 }
 function buildCandidate(raw, window2, classesById, source) {
-  const entry = classesById.get(String(raw?.classId));
-  if (!entry) return null;
+  const entry2 = classesById.get(String(raw?.classId));
+  if (!entry2) return null;
   if (!Array.isArray(raw.polygon) || raw.polygon.length < 3 || raw.polygon.length > 2e3) return null;
   const normalized = [];
   for (const vertex of raw.polygon) {
@@ -11476,10 +11589,10 @@ function buildCandidate(raw, window2, classesById, source) {
   }
   if (ring.length < 3) return null;
   return {
-    classId: entry.id,
-    classKey: entry.key,
-    className: entry.name,
-    color: entry.color,
+    classId: entry2.id,
+    classKey: entry2.key,
+    className: entry2.name,
+    color: entry2.color,
     pixels,
     bbox,
     areaPx,
@@ -11593,7 +11706,7 @@ async function segmentInstances({
   captureFrame = captureOrtho
 } = {}) {
   const normalizedClasses = normalizeClasses(classes);
-  const classesById = new Map(normalizedClasses.map((entry) => [entry.idKey, entry]));
+  const classesById = new Map(normalizedClasses.map((entry2) => [entry2.idKey, entry2]));
   const requestClasses = normalizedClasses.map(({ id, name, definition }) => ({ id, name, definition }));
   const url = typeof meta?.visionInstancesUrl === "string" ? meta.visionInstancesUrl.trim() : "";
   if (!url) throw visionError("unavailable", { stage: "instance_segment", detail: "meta.visionInstancesUrl is missing." });
@@ -11874,13 +11987,13 @@ function resolveAgentClasses(rawClasses) {
   const names = requested.filter((value) => typeof value === "string" && value.trim() !== "").map((value) => value.trim());
   if (names.length === 0) return catalog;
   const selected = [];
-  let nextCustomId = Math.max(...catalog.map((entry) => entry.id)) + 1;
+  let nextCustomId = Math.max(...catalog.map((entry2) => entry2.id)) + 1;
   for (const name of names) {
     const lower = name.toLowerCase();
-    const preset = [...catalog, ...SPORTS_CLASSES].find((entry2) => entry2.name.toLowerCase() === lower || entry2.key.toLowerCase() === lower);
-    const entry = preset ?? customClass(name);
-    if (!entry || selected.some((item) => item.key === entry.key)) continue;
-    selected.push(preset ?? { ...entry, id: nextCustomId++ });
+    const preset = [...catalog, ...SPORTS_CLASSES].find((entry3) => entry3.name.toLowerCase() === lower || entry3.key.toLowerCase() === lower);
+    const entry2 = preset ?? customClass(name);
+    if (!entry2 || selected.some((item) => item.key === entry2.key)) continue;
+    selected.push(preset ?? { ...entry2, id: nextCustomId++ });
     if (selected.length === TAXONOMY_LIMITS.maxClasses) break;
   }
   return selected.length > 0 ? selected : catalog;
@@ -11952,7 +12065,7 @@ async function runAgentExtraction({
       count: 0,
       truncated: false,
       bbox: bbox ?? null,
-      classes: catalog.map((entry) => entry.name),
+      classes: catalog.map((entry2) => entry2.name),
       report: result.report,
       geojson: { type: "FeatureCollection", features: [] }
     };
@@ -11972,7 +12085,7 @@ async function runAgentExtraction({
     truncated,
     by_class: byClass,
     bbox: bbox ?? result.report?.source?.bbox ?? null,
-    classes: catalog.map((entry) => entry.name),
+    classes: catalog.map((entry2) => entry2.name),
     report: result.report,
     geojson: collection
   };
@@ -12039,9 +12152,9 @@ function createCommandBridge(deps) {
       return layer;
     };
     if (action === "authorize") {
-      const request2 = normalizeAccessRequest(args);
-      if (!request2.directory) throw new Error(`access_denied: ${t2("access.badPath")}`);
-      const decision = await askPathAccess(request2);
+      const request = normalizeAccessRequest(args);
+      if (!request.directory) throw new Error(`access_denied: ${t2("access.badPath")}`);
+      const decision = await askPathAccess(request);
       if (!decision.allowed) throw new Error(`access_denied: ${decision.message || t2("access.denied")}`);
       return { authorized: true, directory: decision.directory };
     }
@@ -12808,8 +12921,8 @@ var baselineByTileset = /* @__PURE__ */ new WeakMap();
 var pausedBoundsByTileset = /* @__PURE__ */ new WeakMap();
 var clayStateByTileset = /* @__PURE__ */ new WeakMap();
 function isClayActive(tileset) {
-  const entry = clayStateByTileset.get(tileset);
-  return Boolean(entry && tileset?.customShader === entry.shader);
+  const entry2 = clayStateByTileset.get(tileset);
+  return Boolean(entry2 && tileset?.customShader === entry2.shader);
 }
 function createClayCustomShader(Cesium) {
   if (!Cesium || typeof Cesium.CustomShader !== "function") return null;
@@ -12829,10 +12942,10 @@ function setClayMode(tileset, enabled, Cesium) {
     tileset.customShader = shader;
     return true;
   }
-  const entry = clayStateByTileset.get(tileset);
+  const entry2 = clayStateByTileset.get(tileset);
   clayStateByTileset.delete(tileset);
-  if (entry && tileset.customShader === entry.shader) {
-    tileset.customShader = entry.previous ?? void 0;
+  if (entry2 && tileset.customShader === entry2.shader) {
+    tileset.customShader = entry2.previous ?? void 0;
   }
   return true;
 }
@@ -13494,7 +13607,7 @@ function createShaderEngine(deps) {
   const shaderActiveList = () => {
     pruneShaderEntries();
     const order = new Map(layersRef.current.map((layer, index) => [layer.id, index]));
-    return [...shaderEntriesRef.current.values()].sort((left, right) => (order.get(left.layer.id) ?? 0) - (order.get(right.layer.id) ?? 0)).map((entry) => ({ layer: entry.layerName, layerId: entry.layer.id, preset: entry.preset, params: { ...entry.params } }));
+    return [...shaderEntriesRef.current.values()].sort((left, right) => (order.get(left.layer.id) ?? 0) - (order.get(right.layer.id) ?? 0)).map((entry2) => ({ layer: entry2.layerName, layerId: entry2.layer.id, preset: entry2.preset, params: { ...entry2.params } }));
   };
   const refreshShaderActive = () => (setShaderActive(shaderActiveList()), viewerRef.current?.scene?.requestRender?.());
   function ensureShaderTick() {
@@ -13503,8 +13616,8 @@ function createShaderEngine(deps) {
     const tick = () => {
       const seconds = (typeof performance !== "undefined" ? performance.now() : Date.now()) / 1e3;
       let animated = false;
-      for (const entry of shaderEntriesRef.current.values()) {
-        const shader = entry.shader;
+      for (const entry2 of shaderEntriesRef.current.values()) {
+        const shader = entry2.shader;
         if (!shader || !shader.uniforms || !("u_time" in shader.uniforms)) continue;
         try {
           shader.setUniform("u_time", seconds);
@@ -13532,17 +13645,17 @@ function createShaderEngine(deps) {
   }
   function pruneShaderEntries() {
     let pruned = false;
-    for (const entry of [...shaderEntriesRef.current.values()]) {
-      const layer = layersRef.current.find((item) => item.id === entry.layer.id);
+    for (const entry2 of [...shaderEntriesRef.current.values()]) {
+      const layer = layersRef.current.find((item) => item.id === entry2.layer.id);
       if (layer && layer.visible !== false) {
-        entry.layer = layer;
-        entry.layerName = layer.name;
+        entry2.layer = layer;
+        entry2.layerName = layer.name;
         continue;
       }
       pruned = true;
-      shaderEntriesRef.current.delete(entry.layer.id);
-      comparisons.delete(entry.layer.id);
-      if (layer) restoreShaderEntry(entry);
+      shaderEntriesRef.current.delete(entry2.layer.id);
+      comparisons.delete(entry2.layer.id);
+      if (layer) restoreShaderEntry(entry2);
     }
     if (pruned) {
       if (shaderEntriesRef.current.size === 0) releaseShaderTick();
@@ -13553,18 +13666,18 @@ function createShaderEngine(deps) {
   function finishCompare(layerId) {
     if (!comparisons.has(layerId)) return false;
     comparisons.delete(layerId);
-    const entry = shaderEntriesRef.current.get(layerId);
-    if (entry && entry.layer && entry.layer.tileset) {
+    const entry2 = shaderEntriesRef.current.get(layerId);
+    if (entry2 && entry2.layer && entry2.layer.tileset) {
       try {
-        entry.layer.tileset.customShader = entry.shader;
+        entry2.layer.tileset.customShader = entry2.shader;
       } catch {
       }
     }
     return true;
   }
-  function restoreShaderEntry(entry) {
+  function restoreShaderEntry(entry2) {
     try {
-      entry.layer.tileset.customShader = entry.previous ?? void 0;
+      entry2.layer.tileset.customShader = entry2.previous ?? void 0;
       return null;
     } catch (error) {
       return error;
@@ -13572,11 +13685,11 @@ function createShaderEngine(deps) {
   }
   function detachShaderForLayer(id, restore) {
     const entries = shaderEntriesRef.current;
-    const entry = entries.get(id);
-    if (!entry) return false;
+    const entry2 = entries.get(id);
+    if (!entry2) return false;
     entries.delete(id);
     finishCompare(id);
-    if (restore) restoreShaderEntry(entry);
+    if (restore) restoreShaderEntry(entry2);
     refreshShaderActive();
     if (entries.size === 0) releaseShaderTick();
     return true;
@@ -13609,14 +13722,14 @@ function createShaderEngine(deps) {
     }
     throw shaderFail("当前视图没有可见的 3D Tiles 图层。", "先加载或显示 3D Tiles 图层后重试。");
   }
-  function applyShader(request2) {
+  function applyShader(request) {
     const Cesium = cesiumRef.current;
     const viewer = viewerRef.current;
     if (!Cesium || !viewer) throw shaderFail("三维引擎尚未就绪。", "打开数字地球面板后重试。");
     if (typeof Cesium.CustomShader !== "function") {
       throw shaderFail("当前 Cesium 不支持 CustomShader。", "升级 Cesium 版本或换用其他可视化方式。");
     }
-    const layer = resolveShaderLayer(request2.layer);
+    const layer = resolveShaderLayer(request.layer);
     if (layer.visible === false) {
       throw shaderFail(`图层 "${layer.name}" 当前为隐藏状态。`, "先在图层面板显示该图层，再应用视觉特效。");
     }
@@ -13625,28 +13738,28 @@ function createShaderEngine(deps) {
     }
     finishCompare(layer.id);
     const range = shaderHeightRange(Cesium, layer.tileset, null);
-    if (request2.params.min_height !== void 0) range.minimum = request2.params.min_height;
-    if (request2.params.max_height !== void 0) range.maximum = request2.params.max_height;
+    if (request.params.min_height !== void 0) range.minimum = request.params.min_height;
+    if (request.params.max_height !== void 0) range.maximum = request.params.max_height;
     if (!(range.maximum > range.minimum)) {
       throw shaderFail(`高程范围无效（${range.minimum}..${range.maximum}）。`, "传入 min_height < max_height。");
     }
     const existing = shaderEntriesRef.current.get(layer.id);
-    if (existing && samePresetStack(existing.preset, request2.preset) && typeof existing.shader?.setUniform === "function") {
-      const uniforms = shaderUniforms(Cesium, request2.presets ?? request2.preset, request2.params, range);
+    if (existing && samePresetStack(existing.preset, request.preset) && typeof existing.shader?.setUniform === "function") {
+      const uniforms = shaderUniforms(Cesium, request.presets ?? request.preset, request.params, range);
       try {
         for (const [name, uniform] of Object.entries(uniforms)) if (name !== "u_time") existing.shader.setUniform(name, uniform.value);
       } catch (error) {
         throw shaderFail(`更新着色器参数失败（${message(error)}）。`, "换一个预设或重置后重试。");
       }
-      existing.params = { ...request2.params };
+      existing.params = { ...request.params };
       refreshShaderActive();
-      return shaderResult("apply", request2.preset, layer.name);
+      return shaderResult("apply", request.preset, layer.name);
     }
     const options = {
-      uniforms: shaderUniforms(Cesium, request2.presets ?? request2.preset, request2.params, range),
-      fragmentShaderText: shaderFragmentSource(request2.presets ?? request2.preset)
+      uniforms: shaderUniforms(Cesium, request.presets ?? request.preset, request.params, range),
+      fragmentShaderText: shaderFragmentSource(request.presets ?? request.preset)
     };
-    const stack = Array.isArray(request2.presets) ? request2.presets : [request2.preset];
+    const stack = Array.isArray(request.presets) ? request.presets : [request.preset];
     if ((stack.includes("water") || stack.includes("water-depth")) && Cesium.CustomShaderTranslucencyMode?.INHERIT !== void 0) {
       options.translucencyMode = Cesium.CustomShaderTranslucencyMode.INHERIT;
     }
@@ -13689,14 +13802,14 @@ function createShaderEngine(deps) {
     shaderEntriesRef.current.set(layer.id, {
       layer,
       layerName: layer.name,
-      preset: request2.preset,
-      params: { ...request2.params },
+      preset: request.preset,
+      params: { ...request.params },
       previous,
       shader
     });
     ensureShaderTick();
     refreshShaderActive();
-    return shaderResult("apply", request2.preset, layer.name);
+    return shaderResult("apply", request.preset, layer.name);
   }
   function resetShader(layerToken) {
     pruneShaderEntries();
@@ -13709,16 +13822,16 @@ function createShaderEngine(deps) {
         throw shaderFail(`未找到图层 "${layerToken}"。`, "用 earth_scene 的 list 动作查看当前图层名。");
       }
       targetLayerName = layer.name;
-      const entry = entries.get(layer.id);
-      if (entry) targets = [entry];
+      const entry2 = entries.get(layer.id);
+      if (entry2) targets = [entry2];
     } else {
       targets = [...entries.values()];
     }
     let failure = null;
-    for (const entry of targets) {
-      finishCompare(entry.layer.id);
-      entries.delete(entry.layer.id);
-      const error = restoreShaderEntry(entry);
+    for (const entry2 of targets) {
+      finishCompare(entry2.layer.id);
+      entries.delete(entry2.layer.id);
+      const error = restoreShaderEntry(entry2);
       if (error && !failure) failure = error;
     }
     comparisons.clear();
@@ -13731,15 +13844,15 @@ function createShaderEngine(deps) {
   }
   function compareShader(layerToken, enabled) {
     const layer = resolveShaderLayer(layerToken);
-    const entry = shaderEntriesRef.current.get(layer.id);
+    const entry2 = shaderEntriesRef.current.get(layer.id);
     if (enabled) {
-      if (!entry) {
+      if (!entry2) {
         throw shaderFail("当前图层还没有应用着色器，无法对比。", "先应用一个预设，再点「原图对比」。");
       }
       if (!comparisons.has(layer.id)) {
-        comparisons.set(layer.id, { original: entry.previous ?? null });
+        comparisons.set(layer.id, { original: entry2.previous ?? null });
         try {
-          layer.tileset.customShader = entry.previous ?? void 0;
+          layer.tileset.customShader = entry2.previous ?? void 0;
         } catch (error) {
           comparisons.delete(layer.id);
           throw shaderFail(`原图对比失败（${message(error)}）。`, "重试，或先重置该图层再对比。");
@@ -13751,14 +13864,14 @@ function createShaderEngine(deps) {
     return { compared: false, layer: layer.name };
   }
   async function shaderCommand(args = {}) {
-    const request2 = shaderValidateRequest(args);
-    if (request2 instanceof Error) throw request2;
-    if (request2.operation === "list") return shaderResult("list", null, null);
+    const request = shaderValidateRequest(args);
+    if (request instanceof Error) throw request;
+    if (request.operation === "list") return shaderResult("list", null, null);
     const Cesium = cesiumRef.current;
     const viewer = viewerRef.current;
     if (!Cesium || !viewer) throw shaderFail("三维引擎尚未就绪。", "打开数字地球面板后重试。");
-    if (request2.operation === "reset") return resetShader(request2.layer);
-    return applyShader(request2);
+    if (request.operation === "reset") return resetShader(request.layer);
+    return applyShader(request);
   }
   return {
     /** Bridge entry: apply / reset / list. */
@@ -14298,27 +14411,27 @@ var SHADER_FORM_DEFAULTS = {
   waterHeight: "",
   depthMax: ""
 };
-function formFromShaderEntry(entry) {
-  const selected = Array.isArray(entry?.preset) ? [...entry.preset] : entry?.preset ? [entry.preset] : [];
+function formFromShaderEntry(entry2) {
+  const selected = Array.isArray(entry2?.preset) ? [...entry2.preset] : entry2?.preset ? [entry2.preset] : [];
   const preset = selected.length > 0 ? selected.length === 1 ? selected[0] : selected : SHADER_FORM_DEFAULTS.preset;
-  const form = { ...SHADER_FORM_DEFAULTS, layerId: typeof entry?.layerId === "string" ? entry.layerId : "", preset };
+  const form = { ...SHADER_FORM_DEFAULTS, layerId: typeof entry2?.layerId === "string" ? entry2.layerId : "", preset };
   for (const [param, key] of Object.entries(SHADER_PARAM_FORM_KEYS)) {
-    const value = entry?.params?.[param];
+    const value = entry2?.params?.[param];
     if (typeof value === "number" && Number.isFinite(value)) form[key] = String(value);
   }
   return form;
 }
-function shaderEntrySummary(t2, entry) {
-  const presets = Array.isArray(entry?.preset) ? entry.preset : entry?.preset ? [entry.preset] : [];
+function shaderEntrySummary(t2, entry2) {
+  const presets = Array.isArray(entry2?.preset) ? entry2.preset : entry2?.preset ? [entry2.preset] : [];
   const parts = [];
   for (const [param, key] of Object.entries(SHADER_PARAM_FORM_KEYS)) {
-    const value = entry?.params?.[param];
+    const value = entry2?.params?.[param];
     if (typeof value !== "number" || !Number.isFinite(value)) continue;
     parts.push(`${t2(`shader.param.${key}`)} ${value}`);
   }
   const presetText = presets.map((item) => t2(`shader.preset.${item}`)).join(" + ");
   return t2("shader.entryTooltip", {
-    layer: entry?.layer ?? "",
+    layer: entry2?.layer ?? "",
     presets: presetText,
     params: parts.join(" · ") || t2("shader.entryNoParams")
   });
@@ -14416,7 +14529,7 @@ function createWorkbenchWiring({
     /** The layer the card should show under "automatic selection". */
     target,
     /** Load an applied shader row into the form (edit-in-place). */
-    loadEntry: (entry) => setShaderForm(formFromShaderEntry(entry)),
+    loadEntry: (entry2) => setShaderForm(formFromShaderEntry(entry2)),
     /** Apply the current workbench stack (or an explicit form) to all visible mesh layers. */
     async applyAll(overrideForm = null) {
       if (disposed) return { applied: [], skippedHidden: 0, skippedGaussian: 0, failed: [] };
@@ -14427,9 +14540,9 @@ function createWorkbenchWiring({
       return await applyAllInternal(overrideForm);
     },
     /** Load an existing active layer effect into the workbench and sync it to all visible mesh layers. */
-    async syncEntryToAll(entry) {
-      if (!entry || disposed) return null;
-      const nextForm = formFromShaderEntry(entry);
+    async syncEntryToAll(entry2) {
+      if (!entry2 || disposed) return null;
+      const nextForm = formFromShaderEntry(entry2);
       setShaderForm(nextForm);
       if (applyTimer !== null) {
         clearTimeout(applyTimer);
@@ -14583,10 +14696,10 @@ function createLocalDirectoryWiring({
       const data = await response.json();
       const list = Array.isArray(data?.directories) ? data.directories : [];
       const entries = [];
-      for (const entry of list) {
-        const dir = typeof entry === "string" ? entry : entry?.path;
+      for (const entry2 of list) {
+        const dir = typeof entry2 === "string" ? entry2 : entry2?.path;
         if (typeof dir !== "string" || dir === "") continue;
-        entries.push({ dir, name: typeof entry?.name === "string" && entry.name !== "" ? entry.name : folderName2(dir) });
+        entries.push({ dir, name: typeof entry2?.name === "string" && entry2.name !== "" ? entry2.name : folderName2(dir) });
         if (entries.length >= 5) break;
       }
       setRecentDirs(entries);
@@ -15185,10 +15298,10 @@ function readAllSavedPositions() {
 }
 function readSavedPos(storageKey) {
   if (!storageKey) return null;
-  const entry = readAllSavedPositions()[storageKey];
-  if (!entry || !Number.isFinite(entry.x) || !Number.isFinite(entry.y)) return null;
-  const result = { x: Math.round(entry.x), y: Math.round(entry.y) };
-  if (Number.isFinite(entry.width) && entry.width > 0) result.width = Math.round(entry.width);
+  const entry2 = readAllSavedPositions()[storageKey];
+  if (!entry2 || !Number.isFinite(entry2.x) || !Number.isFinite(entry2.y)) return null;
+  const result = { x: Math.round(entry2.x), y: Math.round(entry2.y) };
+  if (Number.isFinite(entry2.width) && entry2.width > 0) result.width = Math.round(entry2.width);
   return result;
 }
 function writeSavedPos(storageKey, pos) {
@@ -15878,9 +15991,9 @@ function ShaderWorkbench({
     stopCompare();
     onApplyAll?.();
   };
-  const runSyncEntry = (entry) => {
+  const runSyncEntry = (entry2) => {
     stopCompare();
-    onSyncEntry?.(entry);
+    onSyncEntry?.(entry2);
   };
   const runResetEntry = (token) => {
     stopCompare();
@@ -16215,21 +16328,21 @@ function ShaderWorkbench({
         { className: "active" },
         h6("b", null, t2("shader.active")),
         active.length === 0 ? h6("span", { className: "empty" }, t2("shader.activeEmpty")) : active.map(
-          (entry) => h6(
+          (entry2) => h6(
             "div",
-            { key: entry.layer, className: "item" },
+            { key: entry2.layer, className: "item" },
             onLoadEntry ? h6(
               "button",
               {
                 type: "button",
                 className: "mv-shader-load",
-                title: t2("shaderSync.loadRow", { name: entry.layer }),
-                onClick: () => onLoadEntry(entry)
+                title: t2("shaderSync.loadRow", { name: entry2.layer }),
+                onClick: () => onLoadEntry(entry2)
               },
-              h6("span", null, entry.layer)
-            ) : h6("span", { title: entry.layer }, entry.layer),
+              h6("span", null, entry2.layer)
+            ) : h6("span", { title: entry2.layer }, entry2.layer),
             h6("span", { className: "applied-tag" }, t2("shader.appliedTag")),
-            h6("em", { title: presetLabel(entry.preset) }, presetLabel(entry.preset)),
+            h6("em", { title: presetLabel(entry2.preset) }, presetLabel(entry2.preset)),
             onSyncEntry && eligibleCount > 1 ? h6(
               "button",
               {
@@ -16237,7 +16350,7 @@ function ShaderWorkbench({
                 className: "mv-icon-btn",
                 title: t2("shaderSync.syncRow"),
                 "aria-label": t2("shaderSync.syncRow"),
-                onClick: () => runSyncEntry(entry)
+                onClick: () => runSyncEntry(entry2)
               },
               "⇄"
             ) : null,
@@ -16248,7 +16361,7 @@ function ShaderWorkbench({
                 className: "mv-icon-btn",
                 title: t2("shader.resetLayer"),
                 "aria-label": t2("shader.resetLayer"),
-                onClick: () => runResetEntry(entry.layerId ?? entry.layer)
+                onClick: () => runResetEntry(entry2.layerId ?? entry2.layer)
               },
               "✕"
             ) : null
@@ -16683,27 +16796,45 @@ var CSS = `
 .mv-chrome-reveal{position:absolute;top:calc(var(--mv-console-top,10px) + var(--mv-console-gap,4px));right:calc(var(--mv-console-right,10px) + var(--mv-console-gap,4px));z-index:13;display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;padding:0;border-radius:7px;background:var(--mv-glass);color:var(--mv-text);border:.5px solid var(--mv-line);font:inherit;font-size:11.5px;cursor:pointer;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:var(--mv-shadow)}
 .mv-chrome-reveal svg{color:var(--mv-accent)}
 .mv-top{box-sizing:border-box;position:relative;display:flex;justify-content:flex-end;align-items:center;flex:none;width:100%;min-width:0;min-height:42px;z-index:10;pointer-events:auto;border-bottom:.5px solid var(--mv-line)}
-.mv-place{position:absolute;top:calc(100% + 6px);right:0;z-index:26;box-sizing:border-box;width:min(324px,calc(100vw - 24px));max-height:min(440px,65vh);overflow:auto;overscroll-behavior:contain;padding:12px;border-radius:12px;background:var(--mv-glass-strong);text-align:left;color:var(--mv-text)}
-.mv-root.mv-docked .mv-place{width:min(324px,calc(100cqw - 34px))}
-.mv-place header,.mv-place-source,.mv-place footer,.mv-place-source label{display:flex;align-items:center;justify-content:space-between;gap:8px}
-.mv-place header{margin-bottom:9px;font-size:14px}
-.mv-place form,.mv-place-key,.mv-place-row{display:grid;gap:8px}
-.mv-place-query{display:flex;gap:6px}
-.mv-place input,.mv-place select{box-sizing:border-box;min-width:0;border:1px solid var(--mv-line);border-radius:6px;padding:6px 8px;background:var(--mv-input);color:var(--mv-text);font:inherit}
-.mv-place input{width:100%}
-.mv-place-submit{flex:none;border:0;border-radius:6px;padding:6px 10px;background:var(--mv-accent);color:white;cursor:pointer;font:inherit}
-.mv-place-submit:disabled{opacity:.55;cursor:default}
-.mv-place-source,.mv-place-key,.mv-place-status,.mv-place footer{font-size:11.5px;color:var(--mv-dim)}
-.mv-place select option{color:var(--mv-text);background:var(--mv-glass-strong)}
-.mv-place-key{gap:4px}
-.mv-place a,.mv-place-link{color:var(--mv-accent)}
-.mv-place-link{cursor:pointer;background:none;border:0;font:inherit;padding:2px 0}
-.mv-place :focus-visible{outline:2px solid var(--mv-accent);outline-offset:1px}
-.mv-place-status:not(:empty),.mv-place footer{margin-top:10px}
-.mv-place ul{list-style:none;margin:8px 0 0;padding:0;border-top:1px solid var(--mv-line)}
-.mv-place-row{gap:1px;width:100%;text-align:left;padding:7px 5px;color:inherit;background:none;border:0;border-radius:5px;font:inherit;cursor:pointer;overflow-wrap:anywhere}
-.mv-place-row:hover,.mv-place-row:focus-visible{background:var(--mv-lift)}
-.mv-place-row span{font-size:11px;color:var(--mv-dim)}
+/* 地名检索 panel body: a rail panel, not a popover, so it keeps the same
+   padding rhythm and scrolling as the layers/tools panels. */
+.mv-places{display:flex;flex-direction:column;gap:10px;padding:12px;overflow:auto;overscroll-behavior:contain;min-height:0;flex:1 1 auto}
+.mv-places form,.mv-places-key,.mv-places-row{display:grid;gap:8px}
+.mv-places-query{display:flex;gap:6px}
+.mv-places input[type=text],.mv-places input[type=search],.mv-places select{box-sizing:border-box;min-width:0;border:.5px solid var(--mv-line);border-radius:6px;padding:6px 8px;background:var(--mv-input);color:var(--mv-text);font:inherit;font-size:12px}
+.mv-places input[type=text],.mv-places input[type=search]{width:100%}
+.mv-places-submit{flex:none;border:0;border-radius:6px;padding:6px 10px;background:var(--mv-accent);color:#fff;cursor:pointer;font:inherit;font-size:12px}
+.mv-places-submit:disabled{opacity:.55;cursor:default}
+.mv-places-source,.mv-places-status,.mv-places footer{font-size:11px;color:var(--mv-dim)}
+.mv-places select option{color:var(--mv-text);background:var(--mv-glass-strong)}
+.mv-places-key{gap:4px}
+.mv-place-link{cursor:pointer;background:none;border:0;font:inherit;font-size:11px;padding:2px 0;color:var(--mv-accent)}
+.mv-places a{color:var(--mv-accent)}
+.mv-places :focus-visible{outline:2px solid var(--mv-accent);outline-offset:1px}
+.mv-places-status:not(:empty),.mv-places footer{margin-top:2px}
+.mv-places ul{list-style:none;margin:0;padding:0;border-top:.5px solid var(--mv-line)}
+.mv-places-row{gap:1px;width:100%;text-align:left;padding:7px 5px;color:inherit;background:none;border:0;border-radius:5px;font:inherit;cursor:pointer;overflow-wrap:anywhere}
+.mv-places-row:hover,.mv-places-row:focus-visible{background:var(--mv-lift)}
+.mv-places-row span{font-size:11px;color:var(--mv-dim)}
+/* Settings → 地名检索: one card per provider, same rhythm as the source rows. */
+.mv-providers{display:grid;gap:9px}
+.mv-src.mv-provider.on{border-color:color-mix(in srgb,var(--mv-accent) 46%,var(--mv-line))}
+.mv-provider .meta span[title]{font-variant-numeric:tabular-nums}
+.mv-provider-form{display:grid;gap:9px;padding:10px;border:.5px solid var(--mv-line);border-radius:9px;background:color-mix(in srgb,var(--mv-bg) 55%,transparent)}
+.mv-provider-form .mv-field-hint{font-size:10.5px;line-height:1.45;color:var(--mv-dim);font-style:normal}
+.mv-provider-foot{display:flex;align-items:center;flex-wrap:wrap;gap:8px}
+.mv-provider-foot .mv-field-hint{flex:1 1 auto}
+.mv-provider-actions{display:flex;gap:8px;justify-content:flex-end}
+.mv-provider-state{font-size:11px;color:var(--mv-dim);margin:0}
+.mv-provider-state.danger{color:var(--mv-danger)}
+.mv-providers-add{justify-self:start}
+.mv-switch{appearance:none;-webkit-appearance:none;position:relative;flex:none;width:32px;height:18px;margin:0;border:.5px solid var(--mv-line);border-radius:9px;background:color-mix(in srgb,var(--mv-dim) 26%,transparent);cursor:pointer;transition:background .15s ease,border-color .15s ease}
+.mv-switch::after{content:"";position:absolute;top:1.5px;left:1.5px;width:13px;height:13px;border-radius:50%;background:var(--mv-text);transition:transform .15s ease}
+.mv-switch:checked{background:var(--mv-accent);border-color:var(--mv-accent)}
+.mv-switch:checked::after{transform:translateX(14px);background:#fff}
+.mv-switch:disabled{opacity:.45;cursor:default}
+.mv-switch:focus-visible{outline:2px solid var(--mv-accent);outline-offset:2px}
+.mv-disclaimer{opacity:.85}
 .mv-top.menu-open{z-index:26}
 .mv-actions{position:relative;display:flex;align-items:center;gap:1px;padding:4px 6px;border-radius:0;pointer-events:auto;flex:1 1 auto;flex-wrap:nowrap;justify-content:flex-end;min-width:0}
 .mv-top .mv-btn,.mv-top .mv-btn.icon{width:26px;height:26px;padding:0;justify-content:center;gap:0;flex:none}
@@ -17117,9 +17248,6 @@ var CSS = `
 .mv-dialog .body{padding:12px 14px;overflow:auto;display:flex;flex-direction:column;gap:8px}
 .mv-note{margin:0 0 2px;color:var(--mv-dim);font-size:11px;line-height:1.65}
 .mv-src{display:flex;align-items:center;gap:8px;padding:8px 10px;border:.5px solid var(--mv-line);border-radius:9px;background:color-mix(in srgb,var(--mv-bg) 55%,transparent)}
-.mv-src .radio{width:16px;height:16px;flex:none;border-radius:50%;border:1.5px solid var(--mv-line);cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
-.mv-src .radio.on{border-color:var(--mv-accent)}
-.mv-src .radio.on::after{content:"";width:8px;height:8px;border-radius:50%;background:var(--mv-accent)}
 .mv-src .meta{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
 .mv-src .meta b{font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mv-src .meta span{font-size:10.5px;color:var(--mv-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -17486,7 +17614,7 @@ function revealPanel() {
 }
 
 // src/client/ui/dialogs.js
-var import_react10 = __toESM(require("react"), 1);
+var import_react11 = __toESM(require("react"), 1);
 
 // src/client/ui/use-dialog-a11y.js
 var import_react9 = __toESM(require("react"), 1);
@@ -17529,8 +17657,302 @@ function useDialogA11y({ open = true, onEscape, restoreFocus = true } = {}) {
   return dialogRef;
 }
 
-// src/client/ui/dialogs.js
+// src/client/ui/place-providers.js
+var import_react10 = __toESM(require("react"), 1);
 var h7 = import_react10.default.createElement;
+var PLACE_TYPES = Object.freeze(["tianditu", "amap", "photon", "nominatim"]);
+var PLACE_TYPE_META = Object.freeze({
+  tianditu: { needsKey: true, help: "https://cloudcenter.tianditu.gov.cn/", url: "https://api.tianditu.gov.cn/v2/search" },
+  amap: { needsKey: true, help: "https://console.amap.com/dev/key/app", url: "https://restapi.amap.com/v3/place/text" },
+  photon: { needsKey: false, osm: true, url: "https://photon.komoot.io/api/" },
+  nominatim: { needsKey: false, osm: true, policy: "https://operations.osmfoundation.org/policies/nominatim/", url: "https://nominatim.openstreetmap.org/search" }
+});
+var placeTypeMeta = (type) => PLACE_TYPE_META[type] ?? PLACE_TYPE_META.photon;
+var placeProvider = (config, id) => config?.providers?.find((entry2) => entry2.id === id) ?? null;
+function providerLabel(t2, entry2) {
+  const item = typeof entry2 === "string" ? { id: entry2, type: entry2, name: "" } : entry2 ?? {};
+  const name = typeof item.name === "string" ? item.name.trim() : "";
+  return name || t2(`places.provider.${item.type ?? item.id ?? "photon"}`);
+}
+var isHttpUrl = (value) => /^https?:\/\/\S+$/i.test(String(value ?? "").trim());
+async function placeRequest(url, method, body, signal) {
+  if (!url) throw new Error("provider");
+  const response = await fetch(url, {
+    method,
+    signal,
+    credentials: "same-origin",
+    headers: { "x-dsh-panel": "1", "content-type": "application/json" },
+    body: body ? JSON.stringify(body) : void 0
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.error || "provider");
+  return data;
+}
+function placeErrorMessage(t2, code, entry2) {
+  const name = providerLabel(t2, entry2);
+  const key = {
+    key: "places.keyNeeded",
+    denied: "places.denied",
+    rate: "places.rate",
+    rejected: "places.rejected",
+    input: "places.rejected",
+    disabled: "places.disabled",
+    camera: "places.camera",
+    provider: "places.failed"
+  }[code] ?? "places.failed";
+  return t2(key, { name });
+}
+function PlaceProvidersPanel({ t: t2, url, askConfirm }) {
+  const [config, setConfig] = import_react10.default.useState(null);
+  const [loadError, setLoadError] = import_react10.default.useState("");
+  const [editing, setEditing] = import_react10.default.useState(null);
+  const [form, setForm] = import_react10.default.useState(null);
+  const [busy, setBusy] = import_react10.default.useState("");
+  const [status, setStatus] = import_react10.default.useState(null);
+  const language = isChinese() ? "zh" : "en";
+  const list = config?.providers ?? [];
+  import_react10.default.useEffect(() => {
+    const controller = new AbortController();
+    placeRequest(url, "GET", null, controller.signal).then((data) => {
+      if (!controller.signal.aborted) setConfig(data);
+    }).catch((err) => {
+      if (!controller.signal.aborted) setLoadError(err.message);
+    });
+    return () => controller.abort();
+  }, [url]);
+  async function commit(nextList, id) {
+    setBusy(id ?? "list");
+    setStatus(null);
+    try {
+      setConfig(await placeRequest(url, "PUT", { providers: nextList }));
+      if (id) setStatus({ kind: "ok", text: t2("settings.places.saved") });
+      return true;
+    } catch (err) {
+      setStatus({ kind: "fail", text: placeErrorMessage(t2, err.message, id) });
+      return false;
+    } finally {
+      setBusy("");
+    }
+  }
+  const toggle = (entry2, on) => commit(list.map((item) => item.id === entry2.id ? { ...item, enabled: on } : item), entry2.id);
+  function startEdit(entry2) {
+    setStatus(null);
+    setEditing({ mode: "edit", builtin: entry2.builtin === true });
+    setForm({ id: entry2.id, name: entry2.name, type: entry2.type, url: entry2.url, key: "", clearKey: false });
+  }
+  function startAdd() {
+    const type = "photon";
+    setStatus(null);
+    setEditing({ mode: "add", builtin: false });
+    setForm({ id: `place-${Date.now().toString(36)}`, name: "", type, url: placeTypeMeta(type).url, key: "", clearKey: false });
+  }
+  function cancelForm() {
+    setEditing(null);
+    setForm(null);
+  }
+  async function saveForm() {
+    const name = form.name.trim();
+    const meta = placeTypeMeta(form.type);
+    if (!editing.builtin && !name) {
+      setStatus({ kind: "fail", text: t2("settings.places.customNeedsName") });
+      return;
+    }
+    if (!isHttpUrl(form.url)) {
+      setStatus({ kind: "fail", text: t2("settings.places.badUrl") });
+      return;
+    }
+    const previous = placeProvider(config, form.id);
+    const entry2 = {
+      id: form.id,
+      name,
+      type: form.type,
+      url: form.url.trim(),
+      enabled: previous?.enabled ?? true
+    };
+    if (meta.needsKey && form.key.trim()) entry2.key = form.key.trim();
+    else if (meta.needsKey && form.clearKey) entry2.key = "";
+    const exists = list.some((item) => item.id === form.id);
+    const nextList = exists ? list.map((item) => item.id === form.id ? { ...item, ...entry2 } : item) : [...list, entry2];
+    if (await commit(nextList, form.id)) cancelForm();
+  }
+  async function remove(entry2) {
+    const accepted = await askConfirm?.({
+      title: t2("settings.confirmDeleteTitle"),
+      message: t2("settings.deleteConfirm", { name: providerLabel(t2, entry2) }),
+      confirmLabel: t2("btn.delete"),
+      cancelLabel: t2("btn.cancel"),
+      danger: true
+    });
+    if (accepted) await commit(list.filter((item) => item.id !== entry2.id), "");
+  }
+  async function runTest(entry2) {
+    const started = typeof performance !== "undefined" ? performance.now() : Date.now();
+    setBusy(entry2.id);
+    setStatus({ kind: "busy", text: t2("settings.places.testing") });
+    try {
+      const data = await placeRequest(url, "POST", { provider: entry2.id, query: isChinese() ? "武汉" : "Paris", language });
+      const ms = Math.round((typeof performance !== "undefined" ? performance.now() : Date.now()) - started);
+      setStatus({ kind: "ok", text: t2("settings.places.testOk", { n: data?.results?.length ?? 0, ms }) });
+    } catch (err) {
+      setStatus({ kind: "fail", text: t2("settings.places.testFail", { reason: placeErrorMessage(t2, err.message, entry2) }) });
+    } finally {
+      setBusy("");
+    }
+  }
+  const link = (href, text) => h7("a", { className: "mv-place-link", href, target: "_blank", rel: "noreferrer" }, text);
+  const field = (label, input, hint) => h7(
+    "div",
+    { className: "mv-field" },
+    h7("label", null, label),
+    input,
+    hint ? h7("small", { className: "mv-field-hint" }, hint) : null
+  );
+  const change = (patch) => setForm((current2) => ({ ...current2, ...patch }));
+  function formView() {
+    const meta = placeTypeMeta(form.type);
+    const previous = placeProvider(config, form.id);
+    const managed = previous?.managed === true;
+    const keyState = managed ? t2("settings.places.managed") : previous?.configured ? t2("settings.places.configured") : t2("settings.places.notConfigured");
+    return h7(
+      "div",
+      { className: "mv-provider-form", key: form.id },
+      field(
+        t2("settings.places.nameLabel"),
+        h7("input", {
+          type: "text",
+          maxLength: 120,
+          value: form.name,
+          placeholder: t2(`places.provider.${form.type}`),
+          onChange: (event) => change({ name: event.target.value })
+        }),
+        editing.builtin ? t2("settings.places.builtinNameHint") : null
+      ),
+      field(
+        t2("settings.places.typeLabel"),
+        h7("select", {
+          value: form.type,
+          disabled: editing.builtin,
+          onChange: (event) => {
+            const type = event.target.value;
+            change({ type, url: placeTypeMeta(type).url, key: "", clearKey: false });
+          }
+        }, PLACE_TYPES.map((type) => h7("option", { key: type, value: type }, t2(`places.provider.${type}`)))),
+        t2(`settings.places.note.${form.type}`)
+      ),
+      field(
+        t2("settings.places.urlLabel"),
+        h7("input", {
+          type: "text",
+          maxLength: 400,
+          spellCheck: false,
+          value: form.url,
+          placeholder: meta.url,
+          onChange: (event) => change({ url: event.target.value })
+        }),
+        t2("settings.places.urlHint")
+      ),
+      meta.needsKey && !managed ? h7(
+        "div",
+        { className: "mv-field" },
+        h7("label", null, `${t2("settings.places.keyLabel")} · ${keyState}`),
+        h7("input", {
+          type: "password",
+          autoComplete: "off",
+          maxLength: 128,
+          value: form.key,
+          placeholder: previous?.configured ? "••••••••" : t2("settings.places.keyLabel"),
+          onChange: (event) => change({ key: event.target.value, clearKey: false })
+        }),
+        h7(
+          "div",
+          { className: "mv-provider-foot" },
+          h7("small", { className: "mv-field-hint" }, t2("settings.places.keyOptional")),
+          form.clearKey ? h7("small", { className: "mv-provider-state danger" }, t2("settings.places.keyWillClear")) : null,
+          previous?.configured ? h7("button", { type: "button", className: "mv-place-link", onClick: () => change({ key: "", clearKey: true }) }, t2("settings.places.clearKey")) : null
+        )
+      ) : null,
+      h7(
+        "div",
+        { className: "mv-provider-foot" },
+        meta.help ? link(meta.help, `${t2("settings.places.getKey")} ↗`) : null,
+        meta.policy ? link(meta.policy, t2("places.policy")) : null,
+        form.url.trim() !== meta.url ? h7("button", { type: "button", className: "mv-place-link", onClick: () => change({ url: meta.url }) }, t2("settings.places.restoreUrl")) : null
+      ),
+      h7(
+        "div",
+        { className: "mv-provider-actions" },
+        h7("button", { type: "button", className: "mv-cta", onClick: cancelForm }, t2("btn.cancel")),
+        h7("button", { type: "button", className: "mv-cta primary", disabled: busy === form.id, onClick: () => void saveForm() }, t2("btn.save"))
+      )
+    );
+  }
+  function row2(entry2) {
+    const meta = placeTypeMeta(entry2.type);
+    const on = entry2.enabled === true;
+    const keyState = entry2.managed ? t2("settings.places.managed") : entry2.needsKey ? entry2.configured ? t2("settings.places.configured") : t2("settings.places.notConfigured") : t2("settings.places.noKey");
+    const testable = on && (!entry2.needsKey || entry2.configured);
+    return h7(
+      "div",
+      { key: entry2.id, className: `mv-src mv-provider${on ? " on" : ""}` },
+      h7("input", {
+        type: "checkbox",
+        role: "switch",
+        className: "mv-switch",
+        checked: on,
+        disabled: busy === entry2.id,
+        "aria-label": t2("settings.places.enableLabel", { name: providerLabel(t2, entry2) }),
+        onChange: (event) => void toggle(entry2, event.target.checked)
+      }),
+      h7(
+        "div",
+        { className: "meta" },
+        h7("b", null, providerLabel(t2, entry2)),
+        h7("span", { title: entry2.url }, entry2.url),
+        h7("span", null, `${t2(`places.provider.${entry2.type}`)} · ${keyState}`)
+      ),
+      h7("span", { className: "badge" }, entry2.builtin ? t2("settings.places.builtin") : t2("settings.places.custom")),
+      h7("button", {
+        type: "button",
+        className: "mv-icon-btn",
+        title: t2("settings.places.test"),
+        "aria-label": `${t2("settings.places.test")} · ${providerLabel(t2, entry2)}`,
+        disabled: !testable || busy === entry2.id,
+        onClick: () => void runTest(entry2)
+      }, "⟳"),
+      h7("button", {
+        type: "button",
+        className: "mv-icon-btn",
+        title: t2("settings.places.edit"),
+        "aria-label": `${t2("settings.places.edit")} · ${providerLabel(t2, entry2)}`,
+        onClick: () => startEdit(entry2)
+      }, "✎"),
+      entry2.builtin ? null : h7("button", {
+        type: "button",
+        className: "mv-icon-btn",
+        title: t2("settings.places.delete"),
+        "aria-label": `${t2("settings.places.delete")} · ${providerLabel(t2, entry2)}`,
+        onClick: () => void remove(entry2)
+      }, "✕")
+    );
+  }
+  if (!config) {
+    return h7("div", null, h7("p", { className: "mv-note" }, loadError ? placeErrorMessage(t2, loadError, "photon") : t2("toast.loadingData")));
+  }
+  const statusLine = status ? h7("p", { className: `mv-provider-state${status.kind === "fail" ? " danger" : ""}`, role: "status" }, status.text) : null;
+  return h7(
+    "div",
+    { className: "mv-providers" },
+    h7("p", { className: "mv-note" }, t2("settings.places.hint")),
+    list.map((entry2) => editing?.mode === "edit" && form && entry2.id === form.id ? formView() : row2(entry2)),
+    editing?.mode === "add" && form ? formView() : h7("button", { type: "button", className: "mv-cta mv-providers-add", onClick: startAdd, disabled: busy !== "" }, `+ ${t2("settings.places.add")}`),
+    statusLine,
+    h7("p", { className: "mv-note" }, t2("settings.places.defaultNote")),
+    h7("p", { className: "mv-note mv-disclaimer" }, t2("settings.places.thirdParty"))
+  );
+}
+
+// src/client/ui/dialogs.js
+var h8 = import_react11.default.createElement;
 var sourceFrameCount = (source) => Array.isArray(source?.frames) && source.frames.length > 0 ? source.frames.length : Array.isArray(source?.times) && source.times.length > 0 ? source.times.length : 0;
 var SOURCE_TYPES = {
   imagery: ["xyz", "arcgis", "wms"],
@@ -17551,42 +17973,42 @@ var emptySource = (kind) => ({
 });
 function SourceForm({ kind, source, onPickLocal, onChange, onCancel, t: t2 }) {
   const set = (patch) => onChange({ ...source, ...patch });
-  const field = (label, input) => h7("div", { className: "mv-field" }, h7("label", null, label), input);
+  const field = (label, input) => h8("div", { className: "mv-field" }, h8("label", null, label), input);
   const pickTiles = async () => {
     if (typeof onPickLocal !== "function") return;
     const url = await onPickLocal();
     if (url) set({ type: "xyz", url, maximumLevel: source.maximumLevel ?? 18 });
   };
-  const text = (key, value, placeholder) => h7("input", {
+  const text = (key, value, placeholder) => h8("input", {
     key,
     value: value ?? "",
     placeholder: placeholder ?? "",
     onChange: (event) => set({ [key]: event.target.value })
   });
-  return h7(
+  return h8(
     "div",
     { className: "mv-form" },
-    h7(
+    h8(
       "div",
       { className: "grid" },
       field(t2("settings.field.name"), text("name", source.name)),
       field(
         t2("settings.field.type"),
-        h7(
+        h8(
           "select",
           { value: source.type, onChange: (event) => set({ type: event.target.value }) },
-          SOURCE_TYPES[kind].map((type) => h7("option", { key: type, value: type }, t2(SOURCE_TYPE_KEY[type])))
+          SOURCE_TYPES[kind].map((type) => h8("option", { key: type, value: type }, t2(SOURCE_TYPE_KEY[type])))
         )
       )
     ),
     field(t2("settings.field.url"), text("url", source.url, kind === "imagery" ? "https://…/{z}/{x}/{y}.png" : "https://…")),
     field(t2("settings.field.credit"), text("credit", source.credit)),
-    kind === "imagery" && source.type === "xyz" ? h7(
+    kind === "imagery" && source.type === "xyz" ? h8(
       "div",
       { className: "grid" },
       field(
         t2("settings.field.maxLevel"),
-        h7("input", {
+        h8("input", {
           type: "number",
           min: 0,
           max: 25,
@@ -17596,19 +18018,19 @@ function SourceForm({ kind, source, onPickLocal, onChange, onCancel, t: t2 }) {
       ),
       field(
         t2("settings.field.tilingScheme"),
-        h7(
+        h8(
           "select",
           {
             value: source.tilingScheme ?? "web-mercator",
             onChange: (event) => set({ tilingScheme: event.target.value })
           },
-          h7("option", { value: "web-mercator" }, t2("settings.tiling.webMercator")),
-          h7("option", { value: "geographic" }, t2("settings.tiling.geographic"))
+          h8("option", { value: "web-mercator" }, t2("settings.tiling.webMercator")),
+          h8("option", { value: "geographic" }, t2("settings.tiling.geographic"))
         )
       ),
       field(
         t2("settings.field.subdomains"),
-        h7("input", {
+        h8("input", {
           value: (source.subdomains ?? []).join(","),
           onChange: (event) => set({
             subdomains: event.target.value.split(",").map((item) => item.trim()).filter((item) => item !== "")
@@ -17616,24 +18038,24 @@ function SourceForm({ kind, source, onPickLocal, onChange, onCancel, t: t2 }) {
         })
       )
     ) : null,
-    kind === "imagery" && source.type === "xyz" ? h7(
+    kind === "imagery" && source.type === "xyz" ? h8(
       "div",
       { className: "grid" },
-      h7(
+      h8(
         "div",
         { className: "mv-field check" },
-        h7("input", {
+        h8("input", {
           id: "mv-reverse-y",
           type: "checkbox",
           checked: source.reverseY === true,
           onChange: (event) => set({ reverseY: event.target.checked })
         }),
-        h7("label", { htmlFor: "mv-reverse-y" }, t2("settings.field.tms"))
+        h8("label", { htmlFor: "mv-reverse-y" }, t2("settings.field.tms"))
       ),
-      h7(
+      h8(
         "div",
         { className: "mv-field" },
-        h7(
+        h8(
           "button",
           { type: "button", className: "mv-cta", onClick: pickTiles },
           t2("settings.field.localTiles")
@@ -17641,47 +18063,47 @@ function SourceForm({ kind, source, onPickLocal, onChange, onCancel, t: t2 }) {
       )
     ) : null,
     kind === "imagery" && source.type === "wms" ? field(t2("settings.field.layers"), text("layers", source.layers)) : null,
-    kind === "terrain" ? h7(
+    kind === "terrain" ? h8(
       "div",
       { className: "grid" },
-      h7(
+      h8(
         "div",
         { className: "mv-field check" },
-        h7("input", {
+        h8("input", {
           id: "mv-normals",
           type: "checkbox",
           checked: source.requestVertexNormals === true,
           onChange: (event) => set({ requestVertexNormals: event.target.checked })
         }),
-        h7("label", { htmlFor: "mv-normals" }, t2("settings.field.normals"))
+        h8("label", { htmlFor: "mv-normals" }, t2("settings.field.normals"))
       ),
-      h7(
+      h8(
         "div",
         { className: "mv-field check" },
-        h7("input", {
+        h8("input", {
           id: "mv-water",
           type: "checkbox",
           checked: source.requestWaterMask === true,
           onChange: (event) => set({ requestWaterMask: event.target.checked })
         }),
-        h7("label", { htmlFor: "mv-water" }, t2("settings.field.waterMask"))
+        h8("label", { htmlFor: "mv-water" }, t2("settings.field.waterMask"))
       )
     ) : null,
-    h7(
+    h8(
       "div",
       { style: { display: "flex", justifyContent: "flex-end", gap: "8px" } },
-      h7("button", { type: "button", className: "mv-cta", onClick: onCancel }, t2("btn.cancel"))
+      h8("button", { type: "button", className: "mv-cta", onClick: onCancel }, t2("btn.cancel"))
     )
   );
 }
 function SourcesDialog({ config, defaults, environmentDark, themeMode, onPickLocal, onSave, onClose, messages, meta, bridgeOn, bridgeReload, askConfirm, notify }) {
   const t2 = messages;
   const dialogRef = useDialogA11y({ open: true, onEscape: onClose });
-  const [draft, setDraft] = import_react10.default.useState(() => clone(config));
-  const [tab, setTab] = import_react10.default.useState("imagery");
-  const [editing, setEditing] = import_react10.default.useState(null);
-  const field = (label, input) => h7("div", { className: "mv-field" }, h7("label", null, label), input);
-  const [autoOpen, setAutoOpen] = import_react10.default.useState(readAutoOpen);
+  const [draft, setDraft] = import_react11.default.useState(() => clone(config));
+  const [tab, setTab] = import_react11.default.useState("imagery");
+  const [editing, setEditing] = import_react11.default.useState(null);
+  const field = (label, input) => h8("div", { className: "mv-field" }, h8("label", null, label), input);
+  const [autoOpen, setAutoOpen] = import_react11.default.useState(readAutoOpen);
   const activeId = (kind) => kind === "imagery" ? draft.settings.imagery : draft.settings.terrain;
   const setSources = (kind, list) => setDraft((current2) => ({ ...current2, [kind]: list }));
   const selectSource = (kind, id) => setDraft((current2) => ({
@@ -17734,7 +18156,7 @@ function SourcesDialog({ config, defaults, environmentDark, themeMode, onPickLoc
     ["dark", "theme.dark"]
   ];
   const rowsFor = (kind) => draft[kind].map(
-    (source) => editing?.kind === kind && editing.id === source.id ? h7(SourceForm, {
+    (source) => editing?.kind === kind && editing.id === source.id ? h8(SourceForm, {
       key: source.id,
       kind,
       source,
@@ -17742,28 +18164,30 @@ function SourcesDialog({ config, defaults, environmentDark, themeMode, onPickLoc
       onPickLocal,
       onChange: (next) => updateSource(kind, next),
       onCancel: () => setEditing(null)
-    }) : h7(
+    }) : h8(
       "div",
       { key: source.id, className: "mv-src" },
-      h7("span", {
-        className: `radio${activeId(kind) === source.id ? " on" : ""}`,
-        role: "radio",
-        "aria-checked": activeId(kind) === source.id,
-        tabIndex: 0,
-        onClick: () => selectSource(kind, activeId(kind) === source.id ? null : source.id),
-        onKeyDown: (event) => {
-          if (event.key === "Enter" || event.key === " ") selectSource(kind, source.id);
-        }
+      // Enable switch, same control as the 地名检索 tab: on = this source is
+      // the one in use, off = nothing of this kind is loaded. Picking another
+      // row moves the switch, because only one source per kind can be active.
+      h8("input", {
+        type: "checkbox",
+        role: "switch",
+        className: "mv-switch",
+        checked: activeId(kind) === source.id,
+        disabled: source.name.trim() === "",
+        "aria-label": t2("settings.sourceEnable", { name: source.name }),
+        onChange: (event) => selectSource(kind, event.target.checked ? source.id : null)
       }),
-      h7(
+      h8(
         "div",
         { className: "meta" },
-        h7("b", null, source.name),
-        h7("span", null, source.url)
+        h8("b", null, source.name),
+        h8("span", null, source.url)
       ),
-      h7("span", { className: "badge" }, t2(SOURCE_TYPE_KEY[source.type] ?? source.type)),
-      kind === "imagery" && sourceFrameCount(source) >= 2 ? h7("span", { className: "badge" }, t2("rasterTime.frameCount", { n: sourceFrameCount(source) })) : null,
-      h7(
+      h8("span", { className: "badge" }, t2(SOURCE_TYPE_KEY[source.type] ?? source.type)),
+      kind === "imagery" && sourceFrameCount(source) >= 2 ? h8("span", { className: "badge" }, t2("rasterTime.frameCount", { n: sourceFrameCount(source) })) : null,
+      h8(
         "button",
         {
           type: "button",
@@ -17773,7 +18197,7 @@ function SourcesDialog({ config, defaults, environmentDark, themeMode, onPickLoc
         },
         "✎"
       ),
-      h7(
+      h8(
         "button",
         {
           type: "button",
@@ -17794,15 +18218,15 @@ function SourcesDialog({ config, defaults, environmentDark, themeMode, onPickLoc
       )
     )
   );
-  const appearance = h7(
+  const appearance = h8(
     "div",
     { style: { display: "flex", flexDirection: "column", gap: "10px" } },
-    h7("p", { className: "mv-note" }, t2("theme.appearanceHint")),
-    h7(
+    h8("p", { className: "mv-note" }, t2("theme.appearanceHint")),
+    h8(
       "div",
       { className: "mv-seg", role: "radiogroup" },
       segments.map(
-        ([value, key]) => h7(
+        ([value, key]) => h8(
           "button",
           {
             key: value,
@@ -17816,17 +18240,17 @@ function SourcesDialog({ config, defaults, environmentDark, themeMode, onPickLoc
         )
       )
     ),
-    h7("p", { className: "mv-note" }, `${t2("theme.auto")} · ${environmentDark ? t2("theme.dark") : t2("theme.light")}`),
-    h7(
+    h8("p", { className: "mv-note" }, `${t2("theme.auto")} · ${environmentDark ? t2("theme.dark") : t2("theme.light")}`),
+    h8(
       "label",
       { className: "mv-toggle" },
-      h7(
+      h8(
         "span",
         { className: "text" },
-        h7("b", null, t2("settings.autoOpenPanel")),
-        h7("span", null, t2("settings.autoOpenPanelHint"))
+        h8("b", null, t2("settings.autoOpenPanel")),
+        h8("span", null, t2("settings.autoOpenPanelHint"))
       ),
-      h7("input", {
+      h8("input", {
         type: "checkbox",
         checked: autoOpen,
         onChange: (event) => {
@@ -17835,16 +18259,16 @@ function SourcesDialog({ config, defaults, environmentDark, themeMode, onPickLoc
         }
       })
     ),
-    h7(
+    h8(
       "label",
       { className: "mv-toggle" },
-      h7(
+      h8(
         "span",
         { className: "text" },
-        h7("b", null, t2("settings.screenshotHud")),
-        h7("span", null, t2("settings.screenshotHudHint"))
+        h8("b", null, t2("settings.screenshotHud")),
+        h8("span", null, t2("settings.screenshotHudHint"))
       ),
-      h7("input", {
+      h8("input", {
         type: "checkbox",
         checked: draft.settings.screenshotHud === true,
         onChange: (event) => setDraft((current2) => ({
@@ -17855,7 +18279,7 @@ function SourcesDialog({ config, defaults, environmentDark, themeMode, onPickLoc
     ),
     field(
       t2("settings.quality"),
-      h7(
+      h8(
         "select",
         {
           value: draft.settings.quality === "high" ? "high" : "balanced",
@@ -17864,21 +18288,21 @@ function SourcesDialog({ config, defaults, environmentDark, themeMode, onPickLoc
             settings: { ...current2.settings, quality: event.target.value }
           }))
         },
-        h7("option", { value: "balanced" }, t2("settings.qualityBalanced")),
-        h7("option", { value: "high" }, t2("settings.qualityHigh"))
+        h8("option", { value: "balanced" }, t2("settings.qualityBalanced")),
+        h8("option", { value: "high" }, t2("settings.qualityHigh"))
       )
     ),
-    h7("p", { className: "mv-note" }, t2("settings.qualityHint")),
-    h7(
+    h8("p", { className: "mv-note" }, t2("settings.qualityHint")),
+    h8(
       "label",
       { className: "mv-toggle" },
-      h7(
+      h8(
         "span",
         { className: "text" },
-        h7("b", null, t2("settings.terrainDepthTest")),
-        h7("span", null, t2("settings.terrainDepthTestHint"))
+        h8("b", null, t2("settings.terrainDepthTest")),
+        h8("span", null, t2("settings.terrainDepthTestHint"))
       ),
-      h7("input", {
+      h8("input", {
         type: "checkbox",
         // Missing/false = off: underground content stays visible, matching the
         // Cesium default and the documented behaviour before v1.5.
@@ -17889,16 +18313,16 @@ function SourcesDialog({ config, defaults, environmentDark, themeMode, onPickLoc
         }))
       })
     ),
-    h7(
+    h8(
       "label",
       { className: "mv-toggle" },
-      h7(
+      h8(
         "span",
         { className: "text" },
-        h7("b", null, t2("settings.showLayers")),
-        h7("span", null, t2("settings.showLayersHint"))
+        h8("b", null, t2("settings.showLayers")),
+        h8("span", null, t2("settings.showLayersHint"))
       ),
-      h7("input", {
+      h8("input", {
         type: "checkbox",
         checked: draft.settings.showLayers !== false,
         onChange: (event) => setDraft((current2) => ({
@@ -17907,16 +18331,16 @@ function SourcesDialog({ config, defaults, environmentDark, themeMode, onPickLoc
         }))
       })
     ),
-    h7(
+    h8(
       "label",
       { className: "mv-toggle" },
-      h7(
+      h8(
         "span",
         { className: "text" },
-        h7("b", null, t2("settings.showHud")),
-        h7("span", null, t2("settings.showHudHint"))
+        h8("b", null, t2("settings.showHud")),
+        h8("span", null, t2("settings.showHudHint"))
       ),
-      h7("input", {
+      h8("input", {
         type: "checkbox",
         checked: draft.settings.showHud !== false,
         onChange: (event) => setDraft((current2) => ({
@@ -17925,16 +18349,16 @@ function SourcesDialog({ config, defaults, environmentDark, themeMode, onPickLoc
         }))
       })
     ),
-    h7(
+    h8(
       "label",
       { className: "mv-toggle" },
-      h7(
+      h8(
         "span",
         { className: "text" },
-        h7("b", null, t2("settings.hudDetailed")),
-        h7("span", null, t2("settings.hudDetailedHint"))
+        h8("b", null, t2("settings.hudDetailed")),
+        h8("span", null, t2("settings.hudDetailedHint"))
       ),
-      h7("input", {
+      h8("input", {
         type: "checkbox",
         // Off by default: the instrument keeps five numbers unless asked.
         checked: draft.settings.hudDetailed === true,
@@ -17948,69 +18372,69 @@ function SourcesDialog({ config, defaults, environmentDark, themeMode, onPickLoc
   const homepage = meta?.homepage ?? FALLBACK_ABOUT.homepage;
   const issuesUrl = meta?.issues ?? `${String(homepage).replace(/\/+$/, "")}/issues`;
   const teamUrl = meta?.team?.url ?? FALLBACK_ABOUT.teamUrl;
-  const about = h7(
+  const about = h8(
     "div",
     { className: "mv-about" },
-    h7("p", { className: "intro" }, t2("about.intro")),
-    h7(
+    h8("p", { className: "intro" }, t2("about.intro")),
+    h8(
       "div",
       { className: "row" },
-      h7("span", { className: "key" }, t2("about.version")),
-      h7("span", null, meta?.version ?? FALLBACK_ABOUT.version)
+      h8("span", { className: "key" }, t2("about.version")),
+      h8("span", null, meta?.version ?? FALLBACK_ABOUT.version)
     ),
-    h7(
+    h8(
       "div",
       { className: "row" },
-      h7("span", { className: "key" }, t2("about.homepage")),
-      h7("a", { href: homepage, target: "_blank", rel: "noopener noreferrer" }, homepage)
+      h8("span", { className: "key" }, t2("about.homepage")),
+      h8("a", { href: homepage, target: "_blank", rel: "noopener noreferrer" }, homepage)
     ),
-    h7(
+    h8(
       "div",
       { className: "row" },
-      h7("span", { className: "key" }, t2("about.issues")),
-      h7("a", { href: issuesUrl, target: "_blank", rel: "noopener noreferrer" }, "GitHub Issues")
+      h8("span", { className: "key" }, t2("about.issues")),
+      h8("a", { href: issuesUrl, target: "_blank", rel: "noopener noreferrer" }, "GitHub Issues")
     ),
-    h7(
+    h8(
       "div",
       { className: "row" },
-      h7("span", { className: "key" }, t2("about.team")),
-      h7(
+      h8("span", { className: "key" }, t2("about.team")),
+      h8(
         "div",
         { className: "team" },
-        h7("a", { href: teamUrl, target: "_blank", rel: "noopener noreferrer" }, meta?.team?.name ?? t2("about.teamName")),
-        h7("small", null, teamUrl)
+        h8("a", { href: teamUrl, target: "_blank", rel: "noopener noreferrer" }, meta?.team?.name ?? t2("about.teamName")),
+        h8("small", null, teamUrl)
       )
     ),
-    h7(
+    h8(
       "div",
       { className: "row" },
-      h7("span", { className: "key" }, t2("about.agent")),
-      h7("span", null, bridgeReload ? t2("about.agent.stale") : bridgeOn ? t2("about.agent.on") : t2("about.agent.off"))
+      h8("span", { className: "key" }, t2("about.agent")),
+      h8("span", null, bridgeReload ? t2("about.agent.stale") : bridgeOn ? t2("about.agent.on") : t2("about.agent.off"))
     ),
-    h7(
+    h8(
       "div",
       { className: "row" },
-      h7("span", { className: "key" }, t2("about.licenseLabel")),
-      h7("span", null, t2("about.license"))
+      h8("span", { className: "key" }, t2("about.licenseLabel")),
+      h8("span", null, t2("about.license"))
     )
   );
-  return h7(
+  return h8(
     "div",
     { className: "mv-modal", onPointerDown: (event) => event.target === event.currentTarget && onClose() },
-    h7(
+    h8(
       "div",
       { ref: dialogRef, className: "mv-dialog", role: "dialog", "aria-modal": true },
-      h7(
+      h8(
         "header",
         null,
-        h7("b", null, t2("settings.title")),
-        h7("button", { type: "button", className: "mv-icon-btn", onClick: onClose, title: t2("btn.close") }, "✕")
+        h8("b", null, t2("settings.title")),
+        h8("button", { type: "button", className: "mv-icon-btn", onClick: onClose, title: t2("btn.close") }, "✕")
       ),
-      h7(
+      h8(
         "div",
         { className: "mv-tabs" },
-        [["imagery", "settings.tab.imagery"], ["terrain", "settings.tab.terrain"], ["appearance", "settings.tab.appearance"], ["about", "settings.tab.about"]].map(
-          ([value, key]) => h7(
+        [["imagery", "settings.tab.imagery"], ["terrain", "settings.tab.terrain"], ["places", "settings.tab.places"], ["appearance", "settings.tab.appearance"], ["about", "settings.tab.about"]].map(
+          ([value, key]) => h8(
             "button",
             {
               key: value,
@@ -18022,35 +18446,36 @@ function SourcesDialog({ config, defaults, environmentDark, themeMode, onPickLoc
           )
         )
       ),
-      h7(
+      h8(
         "div",
         { className: "body" },
-        tab === "about" ? about : tab === "appearance" ? appearance : h7(
-          import_react10.default.Fragment,
+        tab === "about" ? about : tab === "appearance" ? appearance : tab === "places" ? h8(PlaceProvidersPanel, { t: t2, url: meta?.placesUrl, askConfirm }) : h8(
+          import_react11.default.Fragment,
           null,
-          h7("p", { className: "mv-note" }, t2(tab === "imagery" ? "settings.imageryHint" : "settings.terrainHint")),
+          h8("p", { className: "mv-note" }, t2(tab === "imagery" ? "settings.imageryHint" : "settings.terrainHint")),
           rowsFor(tab),
-          draft[tab].length === 0 && editing === null ? h7("p", { className: "mv-note" }, t2("settings.empty")) : null,
-          h7(
+          draft[tab].length === 0 && editing === null ? h8("p", { className: "mv-note" }, t2("settings.empty")) : null,
+          h8(
             "div",
             { style: { display: "flex", justifyContent: "flex-start" } },
-            h7("button", { type: "button", className: "mv-cta", onClick: () => addSource(tab) }, `+ ${t2("btn.add")}`)
+            h8("button", { type: "button", className: "mv-cta", onClick: () => addSource(tab) }, `+ ${t2("btn.add")}`)
           )
         )
       ),
-      h7(
+      h8(
         "div",
         { className: "footer" },
-        h7(
+        h8(
           "div",
           { style: { display: "flex", alignItems: "center", gap: "10px", minWidth: 0 } },
-          h7("button", { type: "button", className: "mv-cta", onClick: restore }, t2("btn.restore"))
+          // The places tab saves on its own, so source restore/save do not apply there.
+          tab === "places" ? null : h8("button", { type: "button", className: "mv-cta", onClick: restore }, t2("btn.restore"))
         ),
-        h7(
+        h8(
           "div",
           { className: "right" },
-          h7("button", { type: "button", className: "mv-cta", onClick: onClose }, t2("btn.cancel")),
-          h7("button", { type: "button", className: "mv-cta primary", onClick: save }, t2("btn.save"))
+          h8("button", { type: "button", className: "mv-cta", onClick: onClose }, t2("btn.cancel")),
+          tab === "places" ? null : h8("button", { type: "button", className: "mv-cta primary", onClick: save }, t2("btn.save"))
         )
       )
     )
@@ -18073,120 +18498,120 @@ function HealthDialog({ state, messages: t2, onClose, onCopy }) {
   ] : [];
   const runtime = report?.runtime ?? null;
   const reportPath = state?.reportPath ?? report?.reportPath ?? "";
-  const body = state?.loading ? h7(
+  const body = state?.loading ? h8(
     "div",
     { className: "mv-health-loading" },
-    h7("div", { className: "mv-spinner" }),
-    h7("p", { className: "mv-note" }, t2("health.loading"))
-  ) : state?.error ? h7("p", { className: "mv-note" }, t2("health.failed", { message: state.error })) : report ? h7(
+    h8("div", { className: "mv-spinner" }),
+    h8("p", { className: "mv-note" }, t2("health.loading"))
+  ) : state?.error ? h8("p", { className: "mv-note" }, t2("health.failed", { message: state.error })) : report ? h8(
     "div",
     { className: "mv-health-body" },
-    h7(
+    h8(
       "div",
       { className: "mv-health-rows" },
       rows.map(
-        ([key, value]) => h7(
+        ([key, value]) => h8(
           "div",
           { className: "row", key },
-          h7("span", { className: "key" }, t2(key)),
-          h7("span", { className: "value" }, value)
+          h8("span", { className: "key" }, t2(key)),
+          h8("span", { className: "value" }, value)
         )
       )
     ),
-    h7(
+    h8(
       "div",
       { className: "mv-health-section" },
-      h7("b", null, `${t2("health.issues")} · ${issues.length}`),
-      issues.length > 0 ? h7(
+      h8("b", null, `${t2("health.issues")} · ${issues.length}`),
+      issues.length > 0 ? h8(
         "ul",
         { className: "issues" },
         issues.map(
-          (issue, index) => h7(
+          (issue, index) => h8(
             "li",
             { key: `${issue.code}-${index}`, className: `lvl-${issue.level}` },
-            h7("span", { className: "badge" }, t2(`health.level.${issue.level}`)),
-            h7("code", null, issue.code),
-            h7("span", { className: "msg" }, issue.message)
+            h8("span", { className: "badge" }, t2(`health.level.${issue.level}`)),
+            h8("code", null, issue.code),
+            h8("span", { className: "msg" }, issue.message)
           )
         )
-      ) : h7("p", { className: "mv-note" }, t2("health.noIssues"))
+      ) : h8("p", { className: "mv-note" }, t2("health.noIssues"))
     ),
-    runtime ? h7(
+    runtime ? h8(
       "div",
       { className: "mv-health-section" },
-      h7("b", null, t2("health.runtime")),
-      h7(
+      h8("b", null, t2("health.runtime")),
+      h8(
         "div",
         { className: "mv-health-runtime" },
         `${t2("hud.tiles")} ${runtime.tiles ?? 0} · ${t2("hud.pending")} ${runtime.pending ?? 0} · ${t2("hud.triangles")} ${runtime.triangles ?? 0}`
       )
     ) : null,
-    h7(
+    h8(
       "div",
       { className: "mv-health-path" },
-      h7("span", { className: "key" }, t2("health.reportPath")),
-      h7("code", { title: reportPath }, reportPath || t2("health.unknown")),
-      reportPath ? h7("button", { type: "button", className: "mv-cta", onClick: onCopy }, t2("health.copy")) : null
+      h8("span", { className: "key" }, t2("health.reportPath")),
+      h8("code", { title: reportPath }, reportPath || t2("health.unknown")),
+      reportPath ? h8("button", { type: "button", className: "mv-cta", onClick: onCopy }, t2("health.copy")) : null
     )
   ) : null;
-  return h7(
+  return h8(
     "div",
     { className: "mv-modal", onPointerDown: (event) => event.target === event.currentTarget && onClose() },
-    h7(
+    h8(
       "div",
       { ref: dialogRef, className: "mv-dialog mv-health", role: "dialog", "aria-modal": true },
-      h7(
+      h8(
         "header",
         null,
-        h7("b", null, state?.layer ? `${t2("health.title")} · ${state.layer}` : t2("health.title")),
-        h7("button", { type: "button", className: "mv-icon-btn", onClick: onClose, title: t2("btn.close") }, "✕")
+        h8("b", null, state?.layer ? `${t2("health.title")} · ${state.layer}` : t2("health.title")),
+        h8("button", { type: "button", className: "mv-icon-btn", onClick: onClose, title: t2("btn.close") }, "✕")
       ),
-      h7("div", { className: "body" }, body)
+      h8("div", { className: "body" }, body)
     )
   );
 }
-function PathAccessDialog({ request: request2, busy, t: t2, onAllow, onDeny }) {
-  const denyRef = import_react10.default.useRef(null);
+function PathAccessDialog({ request, busy, t: t2, onAllow, onDeny }) {
+  const denyRef = import_react11.default.useRef(null);
   const dialogRef = useDialogA11y({ open: true, onEscape: onDeny });
-  import_react10.default.useEffect(() => {
+  import_react11.default.useEffect(() => {
     denyRef.current?.focus?.();
   }, []);
-  const action = request2.request === "load" ? t2("access.request.load") : request2.request === "inspect" ? t2("access.request.inspect") : t2("access.request.generic");
-  const row2 = (key, value) => value ? h7("div", { key, className: "row" }, h7("span", { className: "key" }, t2(key)), h7("code", { title: value }, value)) : null;
-  return h7(
+  const action = request.request === "load" ? t2("access.request.load") : request.request === "inspect" ? t2("access.request.inspect") : t2("access.request.generic");
+  const row2 = (key, value) => value ? h8("div", { key, className: "row" }, h8("span", { className: "key" }, t2(key)), h8("code", { title: value }, value)) : null;
+  return h8(
     "div",
     { className: "mv-modal", onPointerDown: (event) => event.target === event.currentTarget && !busy && onDeny() },
-    h7(
+    h8(
       "div",
       { ref: dialogRef, className: "mv-dialog mv-access", role: "dialog", "aria-modal": true, "aria-labelledby": "mv-access-title" },
-      h7(
+      h8(
         "header",
         null,
-        h7("b", { id: "mv-access-title" }, `${t2("access.title")} · ${action}`),
-        h7("button", { type: "button", className: "mv-icon-btn", onClick: onDeny, disabled: busy, title: t2("btn.close") }, "✕")
+        h8("b", { id: "mv-access-title" }, `${t2("access.title")} · ${action}`),
+        h8("button", { type: "button", className: "mv-icon-btn", onClick: onDeny, disabled: busy, title: t2("btn.close") }, "✕")
       ),
-      h7(
+      h8(
         "div",
         { className: "body" },
-        h7("p", { className: "mv-note" }, t2("access.body")),
-        h7(
+        h8("p", { className: "mv-note" }, t2("access.body")),
+        h8(
           "div",
           { className: "mv-access-path" },
-          row2("access.path", request2.path),
-          row2("access.dir", request2.directory),
-          request2.resolved ? row2("access.target", request2.target) : null
+          row2("access.path", request.path),
+          row2("access.dir", request.directory),
+          request.resolved ? row2("access.target", request.target) : null
         ),
-        request2.kind === "missing" ? h7("p", { className: "mv-note" }, t2("access.missing")) : null,
-        request2.resolved ? h7("p", { className: "mv-note" }, t2("access.resolved")) : null
+        request.kind === "missing" ? h8("p", { className: "mv-note" }, t2("access.missing")) : null,
+        request.resolved ? h8("p", { className: "mv-note" }, t2("access.resolved")) : null
       ),
-      h7(
+      h8(
         "div",
         { className: "footer" },
-        h7(
+        h8(
           "div",
           { className: "right" },
-          h7("button", { ref: denyRef, type: "button", className: "mv-cta", onClick: onDeny, disabled: busy }, t2("access.cancel")),
-          h7(
+          h8("button", { ref: denyRef, type: "button", className: "mv-cta", onClick: onDeny, disabled: busy }, t2("access.cancel")),
+          h8(
             "button",
             { type: "button", className: "mv-cta primary", onClick: onAllow, disabled: busy },
             busy ? t2("access.allowing") : t2("access.allow")
@@ -18200,26 +18625,26 @@ function ScanDialog({ scan, t: t2, onSelect, onClose }) {
   const dialogRef = useDialogA11y({ open: Boolean(scan), onEscape: onClose });
   if (!scan) return null;
   const items = Array.isArray(scan.items) ? scan.items : [];
-  return h7(
+  return h8(
     "div",
     { className: "mv-modal", onPointerDown: (event) => event.target === event.currentTarget && onClose() },
-    h7(
+    h8(
       "div",
       { ref: dialogRef, className: "mv-dialog", role: "dialog", "aria-modal": true },
-      h7(
+      h8(
         "header",
         null,
-        h7("b", null, t2("layers.title")),
-        h7("span", { className: "path", style: { fontWeight: 400, color: "var(--mv-dim)" } }, scan.dir),
-        h7("button", { type: "button", className: "mv-icon-btn", onClick: onClose, title: t2("btn.close") }, "✕")
+        h8("b", null, t2("layers.title")),
+        h8("span", { className: "path", style: { fontWeight: 400, color: "var(--mv-dim)" } }, scan.dir),
+        h8("button", { type: "button", className: "mv-icon-btn", onClick: onClose, title: t2("btn.close") }, "✕")
       ),
-      h7(
+      h8(
         "div",
         { className: "body" },
-        h7("p", { className: "mv-note" }, t2("scan.foundCount", { n: items.length })),
-        scan.truncated ? h7("p", { className: "mv-note" }, t2("scan.truncatedHint", { limit: scan.limit ?? 200 })) : null,
+        h8("p", { className: "mv-note" }, t2("scan.foundCount", { n: items.length })),
+        scan.truncated ? h8("p", { className: "mv-note" }, t2("scan.truncatedHint", { limit: scan.limit ?? 200 })) : null,
         items.map(
-          (item) => h7(
+          (item) => h8(
             "button",
             {
               key: item.url,
@@ -18228,7 +18653,7 @@ function ScanDialog({ scan, t: t2, onSelect, onClose }) {
               style: { textAlign: "left", display: "flex", flexDirection: "column", gap: "2px" },
               onClick: () => onSelect(item)
             },
-            h7("span", null, item.name)
+            h8("span", null, item.name)
           )
         )
       )
@@ -18237,16 +18662,16 @@ function ScanDialog({ scan, t: t2, onSelect, onClose }) {
 }
 
 // src/client/ui/url-bar.js
-var import_react11 = __toESM(require("react"), 1);
-var h8 = import_react11.default.createElement;
+var import_react12 = __toESM(require("react"), 1);
+var h9 = import_react12.default.createElement;
 var WINDOW_KEY = "urlbar";
 function UrlBar({ value, placeholder, submitLabel, closeLabel = "Close", onChange, onSubmit, onClose }) {
   const zIndex = useFloatingZIndex(WINDOW_KEY);
   const focus = () => focusFloatingWindow(WINDOW_KEY);
-  return h8(
+  return h9(
     "div",
     { className: "mv-urlbar mv-glass", style: { zIndex }, onPointerDownCapture: focus, onFocusCapture: focus },
-    h8("input", {
+    h9("input", {
       autoFocus: true,
       value,
       placeholder,
@@ -18256,8 +18681,8 @@ function UrlBar({ value, placeholder, submitLabel, closeLabel = "Close", onChang
         if (event.key === "Escape") onClose();
       }
     }),
-    h8("button", { type: "button", onClick: onSubmit }, submitLabel),
-    h8(
+    h9("button", { type: "button", onClick: onSubmit }, submitLabel),
+    h9(
       "button",
       {
         type: "button",
@@ -18272,7 +18697,7 @@ function UrlBar({ value, placeholder, submitLabel, closeLabel = "Close", onChang
 }
 
 // src/client/ui/compass.js
-var import_react12 = __toESM(require("react"), 1);
+var import_react13 = __toESM(require("react"), 1);
 
 // src/client/scene/heading.js
 function headingDegrees(heading) {
@@ -18282,7 +18707,7 @@ function headingDegrees(heading) {
 }
 
 // src/client/ui/compass.js
-var h9 = import_react12.default.createElement;
+var h10 = import_react13.default.createElement;
 var TICKS = Array.from({ length: 24 }, (_, index) => {
   const angle = index * 15 * Math.PI / 180;
   const major = index % 6 === 0;
@@ -18298,9 +18723,9 @@ var TICKS = Array.from({ length: 24 }, (_, index) => {
   };
 });
 function Compass({ getViewer, t: t2 }) {
-  const needleRef = import_react12.default.useRef(null);
-  const viewerRef = import_react12.default.useRef(null);
-  import_react12.default.useEffect(() => {
+  const needleRef = import_react13.default.useRef(null);
+  const viewerRef = import_react13.default.useRef(null);
+  import_react13.default.useEffect(() => {
     const viewer = getViewer?.();
     viewerRef.current = viewer;
     if (!viewer) return void 0;
@@ -18329,7 +18754,7 @@ function Compass({ getViewer, t: t2 }) {
       duration: 0.5
     });
   };
-  return h9(
+  return h10(
     "button",
     {
       type: "button",
@@ -18338,13 +18763,13 @@ function Compass({ getViewer, t: t2 }) {
       "aria-label": t2("compass.reset"),
       onClick: resetNorth
     },
-    h9(
+    h10(
       "svg",
       { viewBox: "0 0 56 56", width: 56, height: 56, "aria-hidden": true },
-      h9("circle", { cx: 28, cy: 28, r: 26, fill: "none", stroke: "currentColor", strokeWidth: 0.8, opacity: 0.4 }),
-      h9("circle", { cx: 28, cy: 28, r: 20.8, fill: "none", stroke: "currentColor", strokeWidth: 0.55, opacity: 0.28 }),
+      h10("circle", { cx: 28, cy: 28, r: 26, fill: "none", stroke: "currentColor", strokeWidth: 0.8, opacity: 0.4 }),
+      h10("circle", { cx: 28, cy: 28, r: 20.8, fill: "none", stroke: "currentColor", strokeWidth: 0.55, opacity: 0.28 }),
       ...TICKS.map(
-        (tick) => h9("line", {
+        (tick) => h10("line", {
           key: tick.key,
           x1: tick.x1,
           y1: tick.y1,
@@ -18355,27 +18780,27 @@ function Compass({ getViewer, t: t2 }) {
           opacity: tick.opacity
         })
       ),
-      h9("text", { x: 28, y: 10.6, textAnchor: "middle", fontSize: 7, fontWeight: 700, fill: "var(--mv-accent)" }, "N"),
-      h9("text", { x: 46.8, y: 30.4, textAnchor: "middle", fontSize: 6, fontWeight: 600, fill: "currentColor", opacity: 0.66 }, "E"),
-      h9("text", { x: 28, y: 49.8, textAnchor: "middle", fontSize: 6, fontWeight: 600, fill: "currentColor", opacity: 0.66 }, "S"),
-      h9("text", { x: 9.2, y: 30.4, textAnchor: "middle", fontSize: 6, fontWeight: 600, fill: "currentColor", opacity: 0.66 }, "W"),
-      h9(
+      h10("text", { x: 28, y: 10.6, textAnchor: "middle", fontSize: 7, fontWeight: 700, fill: "var(--mv-accent)" }, "N"),
+      h10("text", { x: 46.8, y: 30.4, textAnchor: "middle", fontSize: 6, fontWeight: 600, fill: "currentColor", opacity: 0.66 }, "E"),
+      h10("text", { x: 28, y: 49.8, textAnchor: "middle", fontSize: 6, fontWeight: 600, fill: "currentColor", opacity: 0.66 }, "S"),
+      h10("text", { x: 9.2, y: 30.4, textAnchor: "middle", fontSize: 6, fontWeight: 600, fill: "currentColor", opacity: 0.66 }, "W"),
+      h10(
         "g",
         { ref: needleRef, className: "mv-compass-rose" },
-        h9("path", { d: "M28 13 32.2 28 28 26.2 23.8 28Z", fill: "#e5484d" }),
-        h9("path", { d: "M28 43 23.8 28 28 29.8 32.2 28Z", fill: "currentColor", opacity: 0.52 }),
-        h9("circle", { cx: 28, cy: 28, r: 2.1, fill: "var(--mv-glass-strong, #fff)", stroke: "currentColor", strokeWidth: 0.6, opacity: 0.95 })
+        h10("path", { d: "M28 13 32.2 28 28 26.2 23.8 28Z", fill: "#e5484d" }),
+        h10("path", { d: "M28 43 23.8 28 28 29.8 32.2 28Z", fill: "currentColor", opacity: 0.52 }),
+        h10("circle", { cx: 28, cy: 28, r: 2.1, fill: "var(--mv-glass-strong, #fff)", stroke: "currentColor", strokeWidth: 0.6, opacity: 0.95 })
       )
     )
   );
 }
 
 // src/client/ui/hud.js
-var import_react13 = __toESM(require("react"), 1);
-var h10 = import_react13.default.createElement;
+var import_react14 = __toESM(require("react"), 1);
+var h11 = import_react14.default.createElement;
 function StatusHud({ fps, stats, viewerRef, cesiumRef, labels, readoutRef, detailed = false }) {
-  const cursorRef = import_react13.default.useRef(null);
-  import_react13.default.useEffect(() => {
+  const cursorRef = import_react14.default.useRef(null);
+  import_react14.default.useEffect(() => {
     const viewer = viewerRef.current;
     const Cesium = cesiumRef.current;
     if (!viewer || !Cesium) return void 0;
@@ -18454,241 +18879,40 @@ function StatusHud({ fps, stats, viewerRef, cesiumRef, labels, readoutRef, detai
       if (readoutRef) readoutRef.current = null;
     };
   }, []);
-  return h10(
+  return h11(
     "div",
     { className: "mv-hud mv-glass" },
-    h10(
+    h11(
       "div",
       { className: "row mv-hud-primary" },
       // fps is null while the scene is idle (no render pass for 2 s); a dash is
       // honest, a 0 would suggest the scene renders nothing while idling.
-      h10("span", { className: "mv-hud-fps", title: t("hud.fpsTitle") }, "FPS ", h10("b", null, fps === null ? "—" : fps)),
-      h10("span", { className: "mv-hud-cursor" }, `${labels.pointer} `, h10("b", { ref: cursorRef }, t("hud.empty"))),
-      h10("span", { className: "mv-hud-camera" }, `${labels.camera} `, h10("b", null, stats.height)),
-      detailed ? h10("span", { className: "mv-hud-heading" }, `${labels.heading} `, h10("b", null, `${stats.heading} / ${stats.pitch}`)) : null
+      h11("span", { className: "mv-hud-fps", title: t("hud.fpsTitle") }, "FPS ", h11("b", null, fps === null ? "—" : fps)),
+      h11("span", { className: "mv-hud-cursor" }, `${labels.pointer} `, h11("b", { ref: cursorRef }, t("hud.empty"))),
+      h11("span", { className: "mv-hud-camera" }, `${labels.camera} `, h11("b", null, stats.height)),
+      detailed ? h11("span", { className: "mv-hud-heading" }, `${labels.heading} `, h11("b", null, `${stats.heading} / ${stats.pitch}`)) : null
     ),
     detailed ? (stats.layers ?? []).map(
-      (row2) => h10(
+      (row2) => h11(
         "div",
         { key: row2.id, className: "row mv-hud-layer" },
-        h10("b", null, row2.name),
-        h10("span", null, `${labels.tiles} `, h10("b", null, formatCount(row2.tiles))),
-        h10("span", null, `${labels.pending} `, h10("b", null, formatCount(row2.pending))),
-        h10("span", null, `${labels.triangles} `, h10("b", null, formatCount(row2.triangles))),
-        h10("span", null, `${labels.cache} `, h10("b", null, formatBytes(row2.memory)))
+        h11("b", null, row2.name),
+        h11("span", null, `${labels.tiles} `, h11("b", null, formatCount(row2.tiles))),
+        h11("span", null, `${labels.pending} `, h11("b", null, formatCount(row2.pending))),
+        h11("span", null, `${labels.triangles} `, h11("b", null, formatCount(row2.triangles))),
+        h11("span", null, `${labels.cache} `, h11("b", null, formatBytes(row2.memory)))
       )
     ) : null
   );
 }
 
 // src/client/ui/topbar.js
-var import_react19 = __toESM(require("react"), 1);
-
-// src/client/ui/place-search.js
-var import_react15 = __toESM(require("react"), 1);
-
-// src/client/ui/escape-stack.js
-var import_react14 = __toESM(require("react"), 1);
-var layers = [];
-var listening = false;
-function isEscape(event) {
-  return event?.key === "Escape" || event?.key === "Esc";
-}
-function onKeyDown(event) {
-  if (!isEscape(event)) return;
-  for (let index = layers.length - 1; index >= 0; index -= 1) {
-    const layer = layers[index];
-    if (!layer || typeof layer.handler !== "function") continue;
-    if (layer.handler(event) !== false) return;
-  }
-}
-function ensureListening() {
-  if (listening || typeof document === "undefined" || typeof document.addEventListener !== "function") return;
-  document.addEventListener("keydown", onKeyDown);
-  listening = true;
-}
-function stopListening() {
-  if (!listening || typeof document === "undefined" || typeof document.removeEventListener !== "function") return;
-  document.removeEventListener("keydown", onKeyDown);
-  listening = false;
-}
-function registerEscapeLayer(handler) {
-  if (typeof handler !== "function") throw new TypeError("registerEscapeLayer(handler) needs a function");
-  const layer = { handler };
-  layers.push(layer);
-  ensureListening();
-  return () => {
-    const index = layers.indexOf(layer);
-    if (index >= 0) layers.splice(index, 1);
-    if (layers.length === 0) stopListening();
-  };
-}
-function useEscapeLayer(handler, active = true) {
-  const handlerRef = import_react14.default.useRef(handler);
-  handlerRef.current = handler;
-  import_react14.default.useEffect(() => {
-    if (!active) return void 0;
-    return registerEscapeLayer((event) => handlerRef.current?.(event));
-  }, [active]);
-}
-
-// src/client/ui/place-search.js
-var h11 = import_react15.default.createElement;
-var providers = ["tianditu", "osm"];
-var pref = "dsh-digital-earth.place-provider";
-var policy = "https://operations.osmfoundation.org/policies/nominatim/";
-function preferred() {
-  try {
-    return localStorage.getItem(pref) === "osm" ? "osm" : "tianditu";
-  } catch {
-    return "tianditu";
-  }
-}
-async function request(url, method, body, signal) {
-  if (!url) throw new Error("provider");
-  const response = await fetch(url, {
-    method,
-    signal,
-    credentials: "same-origin",
-    headers: { "x-dsh-panel": "1", "content-type": "application/json" },
-    body: body ? JSON.stringify(body) : void 0
-  });
-  const data = await response.json();
-  if (!response.ok) throw new Error(data.error || "provider");
-  return data;
-}
-function PlaceSearch({ t: t2, url, onFly, onClose }) {
-  const [provider, setProvider] = import_react15.default.useState(preferred);
-  const [query, setQuery] = import_react15.default.useState("");
-  const [key, setKey] = import_react15.default.useState("");
-  const [config, setConfig] = import_react15.default.useState(null);
-  const [editing, setEditing] = import_react15.default.useState(false);
-  const [busy, setBusy] = import_react15.default.useState(false);
-  const [error, setError] = import_react15.default.useState("");
-  const [results, setResults] = import_react15.default.useState(null);
-  const active = import_react15.default.useRef(null);
-  const input = import_react15.default.useRef(null);
-  const keyField = provider === "tianditu" && (editing || config?.configured === false);
-  const link = (href, text) => h11("a", { href, target: "_blank", rel: "noreferrer" }, text);
-  const messages = { rejected: t2("places.rejected"), key: t2("places.keyNeeded"), denied: t2("places.denied"), rate: t2("places.rate"), camera: t2("places.camera"), provider: t2("places.failed") };
-  useEscapeLayer(() => {
-    onClose();
-    return true;
-  });
-  import_react15.default.useEffect(() => {
-    input.current?.focus();
-    return () => active.current?.abort();
-  }, []);
-  import_react15.default.useEffect(() => {
-    if (provider !== "tianditu") return;
-    const controller = new AbortController();
-    request(url, "GET", null, controller.signal).then((data) => {
-      if (!controller.signal.aborted) setConfig(data);
-    }).catch(() => {
-      if (!controller.signal.aborted) setError("provider");
-    });
-    return () => controller.abort();
-  }, [url, provider]);
-  function reset() {
-    active.current?.abort();
-    setResults(null);
-    setBusy(false);
-    setError("");
-  }
-  function changeProvider(event) {
-    reset();
-    const next = event.target.value;
-    setProvider(next);
-    setEditing(false);
-    setKey("");
-    try {
-      localStorage.setItem(pref, next);
-    } catch {
-    }
-  }
-  async function search(region) {
-    reset();
-    const controller = new AbortController();
-    active.current = controller;
-    setBusy(true);
-    try {
-      if (keyField && key.trim()) {
-        await request(url, "PUT", { token: key.trim() }, controller.signal);
-        if (controller.signal.aborted) return;
-        setConfig({ configured: true, managed: false });
-        setEditing(false);
-        setKey("");
-      }
-      const data = await request(url, "POST", { provider, query, region, language: isChinese() ? "zh" : "en" }, controller.signal);
-      if (!controller.signal.aborted) setResults(data.results);
-    } catch (err) {
-      if (!controller.signal.aborted) {
-        setError(err.message);
-        if (err.message === "key") setEditing(true);
-      }
-    } finally {
-      if (!controller.signal.aborted) setBusy(false);
-    }
-  }
-  return h11(
-    "section",
-    { className: "mv-place mv-glass", "aria-label": t2("places.title") },
-    h11("header", null, h11("strong", null, t2("places.title")), h11("button", { type: "button", className: "mv-icon-btn", "aria-label": t2("btn.close"), onClick: onClose }, "×")),
-    h11(
-      "form",
-      { onSubmit: (event) => {
-        event.preventDefault();
-        if (!busy && query.trim()) void search();
-      } },
-      h11(
-        "div",
-        { className: "mv-place-query" },
-        h11("input", { ref: input, type: "search", maxLength: 160, value: query, placeholder: t2("places.placeholder"), "aria-label": t2("places.title"), onChange: (event) => {
-          reset();
-          setQuery(event.target.value);
-        } }),
-        h11("button", { type: "submit", className: "mv-place-submit", disabled: busy || !query.trim() || keyField && !key.trim() }, keyField ? t2("places.saveSearch") : t2("places.search"))
-      ),
-      h11(
-        "div",
-        { className: "mv-place-source" },
-        h11("label", null, t2("places.source"), h11("select", { value: provider, onChange: changeProvider }, providers.map((id) => h11("option", { key: id, value: id }, id === "osm" ? "OpenStreetMap" : t2("places.tdt"))))),
-        provider === "tianditu" && config?.configured && !config.managed ? h11("button", { type: "button", className: "mv-place-link", onClick: () => {
-          reset();
-          setEditing(!editing);
-          setKey("");
-        } }, editing ? t2("btn.cancel") : t2("places.changeKey")) : null
-      ),
-      keyField ? h11(
-        "label",
-        { className: "mv-place-key" },
-        h11("span", null, t2("places.token"), " · ", link("https://console.tianditu.gov.cn/", t2("places.apply"))),
-        h11("input", { type: "password", autoComplete: "off", maxLength: 128, value: key, onChange: (event) => setKey(event.target.value) })
-      ) : null
-    ),
-    h11("div", { role: "status", "aria-live": "polite", className: "mv-place-status" }, busy ? t2("places.busy") : error ? messages[error] || messages.provider : results?.length === 0 ? t2("places.empty") : ""),
-    results?.length ? h11("ul", null, results.map((row2, i) => h11(
-      "li",
-      { key: i },
-      h11(
-        "button",
-        { type: "button", className: "mv-place-row", onClick: () => {
-          if (row2.region) void search(row2.region);
-          else if (onFly(row2)) onClose();
-          else setError("camera");
-        } },
-        h11("strong", null, row2.name),
-        h11("span", null, row2.region ? t2("places.refine") : row2.detail || [row2.lon, row2.lat].map((n) => n.toFixed(4)).join(", "))
-      )
-    ))) : null,
-    provider === "osm" ? h11("footer", null, link("https://www.openstreetmap.org/copyright", "© OpenStreetMap contributors"), link(policy, t2("places.policy"))) : null
-  );
-}
+var import_react18 = __toESM(require("react"), 1);
 
 // src/client/ui/menu-item.js
-var import_react16 = __toESM(require("react"), 1);
+var import_react15 = __toESM(require("react"), 1);
 var MENU_SEP = { width: "auto", height: ".5px", margin: "4px 8px" };
-var h12 = import_react16.default.createElement;
+var h12 = import_react15.default.createElement;
 function MenuItem({
   onClick,
   children,
@@ -18788,7 +19012,7 @@ function rememberRecentUrl(list, url, at = (/* @__PURE__ */ new Date()).toISOStr
   const clean = sanitizeRecentUrl(url);
   const previous = sanitizeRecentUrls(list);
   if (clean === null) return previous;
-  return sanitizeRecentUrls([{ url: clean, at }, ...previous.filter((entry) => entry.url !== clean)]);
+  return sanitizeRecentUrls([{ url: clean, at }, ...previous.filter((entry2) => entry2.url !== clean)]);
 }
 function writeRecentUrls(list, storage2) {
   const target = storageOf(storage2);
@@ -18811,7 +19035,7 @@ function recordRecentTilesetUrl(list, source, { restored = false, storage: stora
 
 // src/client/ui/data-menu.js
 function dataMenuItems({
-  h: h50,
+  h: h51,
   MenuItem: MenuItem2,
   t: t2,
   recentDirs,
@@ -18830,50 +19054,50 @@ function dataMenuItems({
     if (typeof closeMenu === "function") closeMenu();
     action();
   };
-  const icon = (name) => h50(GlyphIcon, { name });
+  const icon = (name) => h51(GlyphIcon, { name });
   const items = [];
   if (typeof onAddLayer === "function") {
-    items.push(h50("span", { key: "add-label", className: "mv-menu-section" }, t2("menu.addGroup")));
-    items.push(h50(MenuItem2, { key: "add", icon: icon("add"), onClick: run(() => onAddLayer(null)) }, t2("menu.addLayer")));
+    items.push(h51("span", { key: "add-label", className: "mv-menu-section" }, t2("menu.addGroup")));
+    items.push(h51(MenuItem2, { key: "add", icon: icon("add"), onClick: run(() => onAddLayer(null)) }, t2("menu.addLayer")));
   }
   if (typeof onImportVector === "function") {
     items.push(
-      h50(MenuItem2, { key: "import", icon: icon("import"), onClick: run(() => onImportVector()) }, t2("menu.import"))
+      h51(MenuItem2, { key: "import", icon: icon("import"), onClick: run(() => onImportVector()) }, t2("menu.import"))
     );
   }
-  items.push(h50(MenuItem2, { key: "local", icon: icon("folder"), onClick: run(onOpenLocal) }, t2("btn.openLocal")));
-  items.push(h50(MenuItem2, { key: "url", icon: icon("link"), onClick: run(onToggleUrlBar) }, t2("menu.loadAddress")));
+  items.push(h51(MenuItem2, { key: "local", icon: icon("folder"), onClick: run(onOpenLocal) }, t2("btn.openLocal")));
+  items.push(h51(MenuItem2, { key: "url", icon: icon("link"), onClick: run(onToggleUrlBar) }, t2("menu.loadAddress")));
   const recent = [];
   if (Array.isArray(recentUrls) && recentUrls.length > 0) {
-    for (const entry of recentUrls) {
+    for (const entry2 of recentUrls) {
       recent.push(
-        h50(
+        h51(
           MenuItem2,
-          { key: `url:${entry.url}`, title: entry.url, icon: icon("history"), onClick: run(() => onOpenRecentUrl(entry.url)) },
-          h50("span", { className: "ellipsis" }, recentUrlLabel(entry.url))
+          { key: `url:${entry2.url}`, title: entry2.url, icon: icon("history"), onClick: run(() => onOpenRecentUrl(entry2.url)) },
+          h51("span", { className: "ellipsis" }, recentUrlLabel(entry2.url))
         )
       );
     }
   }
   if (Array.isArray(recentDirs) && recentDirs.length > 0) {
-    for (const entry of recentDirs) {
+    for (const entry2 of recentDirs) {
       recent.push(
-        h50(
+        h51(
           MenuItem2,
-          { key: `dir:${entry.dir}`, title: entry.dir, icon: icon("history"), onClick: run(() => onOpenRecentDirectory(entry.dir)) },
-          h50("span", { className: "ellipsis" }, entry.name)
+          { key: `dir:${entry2.dir}`, title: entry2.dir, icon: icon("history"), onClick: run(() => onOpenRecentDirectory(entry2.dir)) },
+          h51("span", { className: "ellipsis" }, entry2.name)
         )
       );
     }
   }
   if (recent.length > 0) {
-    items.push(h50("span", { key: "recent-label", className: "mv-menu-section" }, t2("menu.recent")));
+    items.push(h51("span", { key: "recent-label", className: "mv-menu-section" }, t2("menu.recent")));
     items.push(...recent);
   }
-  items.push(h50("i", { key: "sep", className: "mv-sep", style: MENU_SEP }));
-  items.push(h50("span", { key: "manage-label", className: "mv-menu-section" }, t2("menu.manage")));
+  items.push(h51("i", { key: "sep", className: "mv-sep", style: MENU_SEP }));
+  items.push(h51("span", { key: "manage-label", className: "mv-menu-section" }, t2("menu.manage")));
   items.push(
-    h50(
+    h51(
       MenuItem2,
       { key: "clearAgent", danger: true, disabled: !(agentOverlayCount > 0), onClick: run(onClearAgent) },
       t2("menu.clearAgent")
@@ -18884,7 +19108,7 @@ function dataMenuItems({
 
 // src/client/ui/toolbar-output.js
 function outputMenuItems({
-  h: h50,
+  h: h51,
   MenuItem: MenuItem2,
   t: t2,
   sessionId = null,
@@ -18901,11 +19125,11 @@ function outputMenuItems({
     if (typeof closeMenu === "function") closeMenu();
     action();
   };
-  const icon = (name) => h50(GlyphIcon, { name });
+  const icon = (name) => h51(GlyphIcon, { name });
   const items = [
-    h50(MenuItem2, { key: "screenshot", icon: icon("output"), onClick: run(onScreenshot) }, t2("btn.screenshot")),
-    h50(MenuItem2, { key: "report", icon: icon("export"), onClick: run(onReport) }, t2("menu.report")),
-    h50(
+    h51(MenuItem2, { key: "screenshot", icon: icon("output"), onClick: run(onScreenshot) }, t2("btn.screenshot")),
+    h51(MenuItem2, { key: "report", icon: icon("export"), onClick: run(onReport) }, t2("menu.report")),
+    h51(
       MenuItem2,
       {
         key: "vector",
@@ -18918,26 +19142,25 @@ function outputMenuItems({
     )
   ];
   if (sessionId || typeof onOpenBeside === "function") {
-    items.push(h50("i", { key: "sep2", className: "mv-sep", style: MENU_SEP }));
+    items.push(h51("i", { key: "sep2", className: "mv-sep", style: MENU_SEP }));
   }
   if (sessionId) {
-    items.push(h50(MenuItem2, { key: "ask", icon: icon("chat"), onClick: run(onAskAgent) }, t2("btn.askAgent")));
+    items.push(h51(MenuItem2, { key: "ask", icon: icon("chat"), onClick: run(onAskAgent) }, t2("btn.askAgent")));
   }
   if (!docked && typeof onOpenBeside === "function") {
-    items.push(h50(MenuItem2, { key: "beside", icon: icon("chat"), onClick: run(onOpenBeside) }, t2("btn.beside")));
+    items.push(h51(MenuItem2, { key: "beside", icon: icon("chat"), onClick: run(onOpenBeside) }, t2("btn.beside")));
   }
   return items;
 }
 
 // src/client/ui/toolbar-view.js
 function viewMenuItems({
-  h: h50,
+  h: h51,
   MenuItem: MenuItem2,
   t: t2,
   showHud = false,
   fullscreen = false,
   closeMenu,
-  onOpenPlaces,
   onResetView,
   onToggleHud,
   onToggleFullscreen,
@@ -18949,36 +19172,35 @@ function viewMenuItems({
     if (typeof closeMenu === "function") closeMenu();
     action();
   };
-  const icon = (name) => h50(GlyphIcon, { name });
+  const icon = (name) => h51(GlyphIcon, { name });
   const items = [
-    ...onOpenPlaces ? [h50(MenuItem2, { key: "places", icon: icon("search"), onClick: onOpenPlaces }, t2("places.title"))] : [],
-    h50(MenuItem2, { key: "reset", icon: icon("view"), onClick: run(onResetView) }, t2("btn.reset")),
-    h50(
+    h51(MenuItem2, { key: "reset", icon: icon("view"), onClick: run(onResetView) }, t2("btn.reset")),
+    h51(
       MenuItem2,
-      { key: "hud", icon: h50(GlyphIcon, { name: "props" }), checked: showHud, onClick: run(onToggleHud) },
+      { key: "hud", icon: h51(GlyphIcon, { name: "props" }), checked: showHud, onClick: run(onToggleHud) },
       t2("btn.hud")
     ),
-    h50(
+    h51(
       MenuItem2,
-      { key: "fullscreen", icon: h50(GlyphIcon, { name: "scene" }), checked: fullscreen, onClick: run(onToggleFullscreen) },
+      { key: "fullscreen", icon: h51(GlyphIcon, { name: "scene" }), checked: fullscreen, onClick: run(onToggleFullscreen) },
       fullscreen ? t2("btn.fullscreenExit") : t2("btn.fullscreenTitle")
     )
   ];
   if (typeof onOpenBookmarks === "function" || typeof onShowSceneDetails === "function") {
-    items.push(h50("i", { key: "sep", className: "mv-sep", style: MENU_SEP }));
+    items.push(h51("i", { key: "sep", className: "mv-sep", style: MENU_SEP }));
   }
   if (typeof onOpenBookmarks === "function") {
-    items.push(h50(MenuItem2, { key: "bookmarks", icon: icon("history"), onClick: run(onOpenBookmarks) }, t2("menu.bookmarks")));
+    items.push(h51(MenuItem2, { key: "bookmarks", icon: icon("history"), onClick: run(onOpenBookmarks) }, t2("menu.bookmarks")));
   }
   if (typeof onShowSceneDetails === "function") {
     items.push(
-      h50(MenuItem2, { key: "details", icon: icon("output"), onClick: run(onShowSceneDetails) }, t2("sceneDetails.title"))
+      h51(MenuItem2, { key: "details", icon: icon("output"), onClick: run(onShowSceneDetails) }, t2("sceneDetails.title"))
     );
   }
   if (typeof onToggleChrome === "function") {
-    items.push(h50("i", { key: "chrome-sep", className: "mv-sep", style: MENU_SEP }));
+    items.push(h51("i", { key: "chrome-sep", className: "mv-sep", style: MENU_SEP }));
     items.push(
-      h50(
+      h51(
         MenuItem2,
         { key: "hideChrome", icon: icon("hide"), hint: "H", onClick: run(onToggleChrome) },
         t2("dock.hideChrome")
@@ -18989,10 +19211,10 @@ function viewMenuItems({
 }
 
 // src/client/ui/toolbar-quick.js
-var import_react17 = __toESM(require("react"), 1);
-var h13 = import_react17.default.createElement;
-function ToolbarQuick({ t: t2, showLayers, showTools, showResult, resultDisabled = false, resultUnread = false, onToggleLayers, onToggleTools, onOpenResult }) {
-  const entry = (key, icon, label, onClick, active, title = label, disabled = false, unread = false) => h13(
+var import_react16 = __toESM(require("react"), 1);
+var h13 = import_react16.default.createElement;
+function ToolbarQuick({ t: t2, showLayers, showTools, showPlaces, showResult, resultDisabled = false, resultUnread = false, onToggleLayers, onToggleTools, onTogglePlaces, onOpenResult }) {
+  const entry2 = (key, icon, label, onClick, active, title = label, disabled = false, unread = false) => h13(
     "button",
     {
       key,
@@ -19011,18 +19233,19 @@ function ToolbarQuick({ t: t2, showLayers, showTools, showResult, resultDisabled
     unread ? h13("span", { className: "mv-btn-dot", "aria-hidden": true }) : null
   );
   return h13(
-    import_react17.default.Fragment,
+    import_react16.default.Fragment,
     null,
-    entry("layers", h13(LayersIcon), t2("btn.layers"), onToggleLayers, showLayers, showLayers ? t2("btn.layersHide") : t2("btn.layersShow")),
-    entry("tools", h13(ToolsIcon), t2("btn.tools"), onToggleTools, showTools, showTools ? t2("btn.toolsHide") : t2("btn.toolsShow")),
+    entry2("layers", h13(LayersIcon), t2("btn.layers"), onToggleLayers, showLayers, showLayers ? t2("btn.layersHide") : t2("btn.layersShow")),
+    entry2("tools", h13(ToolsIcon), t2("btn.tools"), onToggleTools, showTools, showTools ? t2("btn.toolsHide") : t2("btn.toolsShow")),
+    entry2("places", h13(GlyphIcon, { name: "search" }), t2("places.title"), onTogglePlaces, showPlaces, showPlaces ? t2("btn.panelHide") : t2("btn.panelShow")),
     // D8: with nothing in the result tab the destination stays inert.
-    entry("result", h13(ToolEntryIcon, { kind: "analysis" }), t2("panel.tab.result"), onOpenResult, showResult, resultDisabled ? t2("btn.resultEmpty") : t2("panel.tab.result"), resultDisabled, resultUnread && !resultDisabled)
+    entry2("result", h13(ToolEntryIcon, { kind: "analysis" }), t2("panel.tab.result"), onOpenResult, showResult, resultDisabled ? t2("btn.resultEmpty") : t2("panel.tab.result"), resultDisabled, resultUnread && !resultDisabled)
   );
 }
 
 // src/client/ui/toolbar-settings.js
-var import_react18 = __toESM(require("react"), 1);
-var h14 = import_react18.default.createElement;
+var import_react17 = __toESM(require("react"), 1);
+var h14 = import_react17.default.createElement;
 function ToolbarSettings({ t: t2, setSettingsOpen }) {
   return h14(
     "button",
@@ -19049,7 +19272,7 @@ function ToolbarSettings({ t: t2, setSettingsOpen }) {
 }
 
 // src/client/ui/topbar.js
-var h15 = import_react19.default.createElement;
+var h15 = import_react18.default.createElement;
 function TopBar({
   t: t2,
   menuRef,
@@ -19058,7 +19281,6 @@ function TopBar({
   data,
   view,
   output,
-  places,
   quick,
   panelLabel = "",
   panelDetail = null,
@@ -19066,10 +19288,6 @@ function TopBar({
   onOpenSettings,
   onToggleChrome
 }) {
-  const closePlaces = () => {
-    setOpenMenu(null);
-    menuRef?.current?.querySelector('[data-mv-menu="view"]')?.focus();
-  };
   const closeMenu = () => setOpenMenu(null);
   const menu = (id, label, items, icon) => h15(
     "div",
@@ -19120,8 +19338,7 @@ function TopBar({
         dataMenuItems({ h: h15, MenuItem, t: t2, closeMenu, ...data }),
         h15(GlyphIcon, { name: "folder" })
       ),
-      menu("view", t2("btn.view"), viewMenuItems({ h: h15, MenuItem, t: t2, closeMenu, onOpenPlaces: places ? () => setOpenMenu("places") : null, ...view }), h15(GlyphIcon, { name: "view" })),
-      openMenu === "places" && places ? h15(PlaceSearch, { t: t2, ...places, onClose: closePlaces }) : null,
+      menu("view", t2("btn.view"), viewMenuItems({ h: h15, MenuItem, t: t2, closeMenu, ...view }), h15(GlyphIcon, { name: "view" })),
       menu("output", t2("btn.output"), outputMenuItems({ h: h15, MenuItem, t: t2, closeMenu, ...output }), h15(GlyphIcon, { name: "export" })),
       h15("i", { key: "s1", className: "mv-sep" }),
       h15("div", { key: "quick", className: "mv-quick", role: "group", "aria-label": t2("panel.title") }, h15(ToolbarQuick, { t: t2, ...quick })),
@@ -19145,10 +19362,10 @@ function TopBar({
 }
 
 // src/client/ui/scene-dialogs.js
-var import_react22 = __toESM(require("react"), 1);
+var import_react21 = __toESM(require("react"), 1);
 
 // src/client/ui/add-layer-dialog.js
-var import_react20 = __toESM(require("react"), 1);
+var import_react19 = __toESM(require("react"), 1);
 
 // src/client/scene/vector-errors.js
 function vectorError(message2) {
@@ -19706,7 +19923,7 @@ function isVectorDrag(dataTransfer) {
 }
 
 // src/client/ui/add-layer-dialog.js
-var h16 = import_react20.default.createElement;
+var h16 = import_react19.default.createElement;
 var OVERLAY_TYPES2 = ["wms", "xyz", "arcgis"];
 var EMPTY_DRAFT = {
   type: "wms",
@@ -19725,7 +19942,7 @@ var KINDS = [
 ];
 function AddLayerDialog({
   t: t2,
-  request: request2,
+  request,
   onClose,
   onOpenLocal,
   onOpenUrl,
@@ -19735,22 +19952,22 @@ function AddLayerDialog({
   onOverlayAdd,
   onImportVector
 }) {
-  const open = Boolean(request2);
-  const [kind, setKind] = import_react20.default.useState(request2?.kind ?? null);
-  const [draft, setDraft] = import_react20.default.useState(EMPTY_DRAFT);
-  const [error, setError] = import_react20.default.useState("");
-  const [vectorError2, setVectorError] = import_react20.default.useState("");
-  const [busy, setBusy] = import_react20.default.useState(false);
-  const fileRef = import_react20.default.useRef(null);
+  const open = Boolean(request);
+  const [kind, setKind] = import_react19.default.useState(request?.kind ?? null);
+  const [draft, setDraft] = import_react19.default.useState(EMPTY_DRAFT);
+  const [error, setError] = import_react19.default.useState("");
+  const [vectorError2, setVectorError] = import_react19.default.useState("");
+  const [busy, setBusy] = import_react19.default.useState(false);
+  const fileRef = import_react19.default.useRef(null);
   const requestClose = () => onClose?.();
   const dialogRef = useDialogA11y({ open, onEscape: requestClose });
-  import_react20.default.useEffect(() => {
+  import_react19.default.useEffect(() => {
     if (!open) return;
-    setKind(request2?.kind ?? null);
+    setKind(request?.kind ?? null);
     setDraft(EMPTY_DRAFT);
     setError("");
     setVectorError("");
-  }, [open, request2?.kind, request2?.token]);
+  }, [open, request?.kind, request?.token]);
   if (!open) return null;
   const titleId = "mv-add-layer-title";
   const patch = (next) => setDraft((current2) => ({ ...current2, ...next }));
@@ -19820,17 +20037,17 @@ function AddLayerDialog({
     "div",
     { className: "mv-add-kinds" },
     ...KINDS.map(
-      (entry) => h16(
+      (entry2) => h16(
         "button",
-        { key: entry.id, type: "button", className: "mv-add-kind", onClick: () => setKind(entry.id) },
-        h16("span", { className: "mv-add-kind-icon", "aria-hidden": true }, h16(GlyphIcon, { name: entry.glyph, size: 20 })),
-        h16("b", null, entry.title(t2)),
-        h16("span", { className: "mv-add-kind-hint" }, entry.hint(t2))
+        { key: entry2.id, type: "button", className: "mv-add-kind", onClick: () => setKind(entry2.id) },
+        h16("span", { className: "mv-add-kind-icon", "aria-hidden": true }, h16(GlyphIcon, { name: entry2.glyph, size: 20 })),
+        h16("b", null, entry2.title(t2)),
+        h16("span", { className: "mv-add-kind-hint" }, entry2.hint(t2))
       )
     )
   );
   const body3d = () => h16(
-    import_react20.default.Fragment,
+    import_react19.default.Fragment,
     null,
     h16("p", { className: "mv-note" }, t2("layers.add3dHint")),
     h16(
@@ -19860,26 +20077,26 @@ function AddLayerDialog({
       { className: "mv-add-recents" },
       h16("p", { className: "mv-menu-section" }, t2("menu.recentDirs")),
       ...recentDirs.map(
-        (entry) => h16(
+        (entry2) => h16(
           "button",
           {
-            key: entry.dir,
+            key: entry2.dir,
             type: "button",
             className: "mv-add-recent",
-            title: entry.dir,
+            title: entry2.dir,
             onClick: () => {
               onClose?.();
-              onOpenRecent?.(entry.dir);
+              onOpenRecent?.(entry2.dir);
             }
           },
           h16(GlyphIcon, { name: "history", size: 14 }),
-          h16("span", { className: "ellipsis" }, entry.name)
+          h16("span", { className: "ellipsis" }, entry2.name)
         )
       )
     ) : null
   );
   const bodyRasterOnline = () => h16(
-    import_react20.default.Fragment,
+    import_react19.default.Fragment,
     null,
     field(
       t2("layers.overlayType"),
@@ -19967,7 +20184,7 @@ function AddLayerDialog({
     error ? h16("p", { className: "mv-note mv-danger" }, error) : null
   );
   const bodyVector = () => h16(
-    import_react20.default.Fragment,
+    import_react19.default.Fragment,
     null,
     h16("p", { className: "mv-note" }, t2("layers.addVectorHint")),
     h16("input", {
@@ -20020,7 +20237,7 @@ function AddLayerDialog({
         "header",
         null,
         back(),
-        h16("b", { id: titleId }, kind === null ? t2("layers.addTitle") : KINDS.find((entry) => entry.id === kind).title(t2)),
+        h16("b", { id: titleId }, kind === null ? t2("layers.addTitle") : KINDS.find((entry2) => entry2.id === kind).title(t2)),
         h16(
           "button",
           {
@@ -20044,8 +20261,8 @@ function AddLayerDialog({
 }
 
 // src/client/ui/layer-properties.js
-var import_react21 = __toESM(require("react"), 1);
-var h17 = import_react21.default.createElement;
+var import_react20 = __toESM(require("react"), 1);
+var h17 = import_react20.default.createElement;
 var TABS = ["info", "look", "data"];
 function row(label, value) {
   if (value === null || value === void 0 || value === "") return null;
@@ -20078,13 +20295,13 @@ function LayerProperties({
 }) {
   const open = Boolean(selection);
   const dialogRef = useDialogA11y({ open, onEscape: onClose });
-  const [tab, setTab] = import_react21.default.useState("info");
+  const [tab, setTab] = import_react20.default.useState("info");
   const propTabLabel = {
     info: t2("layers.propsTab.info"),
     look: t2("layers.propsTab.look"),
     data: t2("layers.propsTab.data")
   };
-  import_react21.default.useEffect(() => {
+  import_react20.default.useEffect(() => {
     if (open) setTab("info");
   }, [open, selection?.kind, selection?.id, selection?.index]);
   if (!open) return null;
@@ -20094,26 +20311,26 @@ function LayerProperties({
   let source = "";
   let tint = "";
   if (kind === "3d") {
-    const layer = (layers2 ?? []).find((entry) => entry.id === selection.id);
+    const layer = (layers2 ?? []).find((entry2) => entry2.id === selection.id);
     if (!layer) return null;
-    const shader = (shaderActive ?? []).find((entry) => entry.layerId === layer.id) ?? null;
+    const shader = (shaderActive ?? []).find((entry2) => entry2.layerId === layer.id) ?? null;
     name = layer.name;
     kindLabel = layer.kind === "3dgs" ? t2("layers.kindSplats") : t2("layers.kindTiles");
     source = layer.url || layer.path || "";
     tint = shader ? shaderEntrySummary(t2, shader) : "";
     const titleId2 = "mv-prop-title";
     const tabs = TABS.map(
-      (entry) => h17(
+      (entry2) => h17(
         "button",
         {
-          key: entry,
+          key: entry2,
           type: "button",
           role: "tab",
-          className: `mv-tab${tab === entry ? " on" : ""}`,
-          "aria-selected": tab === entry,
-          onClick: () => setTab(entry)
+          className: `mv-tab${tab === entry2 ? " on" : ""}`,
+          "aria-selected": tab === entry2,
+          onClick: () => setTab(entry2)
         },
-        propTabLabel[entry]
+        propTabLabel[entry2]
       )
     );
     const body2 = tab === "info" ? h17(
@@ -20182,23 +20399,23 @@ function LayerProperties({
   }
   if (kind === "raster") {
     const overlay = [...settings?.overlays ?? [], ...config?.rasterOverlays ?? []].find(
-      (entry) => entry.id === selection.id
+      (entry2) => entry2.id === selection.id
     );
     if (!overlay) return null;
     const titleId2 = "mv-prop-title";
     const frames = hasRasterTimeline(overlay) ? resolveSourceFrames(overlay) : [];
     const tabs = TABS.map(
-      (entry) => h17(
+      (entry2) => h17(
         "button",
         {
-          key: entry,
+          key: entry2,
           type: "button",
           role: "tab",
-          className: `mv-tab${tab === entry ? " on" : ""}`,
-          "aria-selected": tab === entry,
-          onClick: () => setTab(entry)
+          className: `mv-tab${tab === entry2 ? " on" : ""}`,
+          "aria-selected": tab === entry2,
+          onClick: () => setTab(entry2)
         },
-        propTabLabel[entry]
+        propTabLabel[entry2]
       )
     );
     const body2 = tab === "info" ? h17(
@@ -20266,7 +20483,7 @@ function LayerProperties({
       )
     );
   }
-  const overlayRow = (agentOverlays ?? []).find((entry) => entry.index === selection.index);
+  const overlayRow = (agentOverlays ?? []).find((entry2) => entry2.index === selection.index);
   if (!overlayRow) return null;
   const features = Array.isArray(overlayDetails?.[selection.index]) ? overlayDetails[selection.index] : [];
   const titleId = "mv-prop-title-vector";
@@ -20324,10 +20541,10 @@ function LayerProperties({
 }
 
 // src/client/ui/scene-dialogs.js
-var h18 = import_react22.default.createElement;
+var h18 = import_react21.default.createElement;
 function SceneDialogs({
   t: t2,
-  request: request2,
+  request,
   selection,
   layers: layers2,
   config,
@@ -20352,12 +20569,12 @@ function SceneDialogs({
   onFlyAgentOverlay
 }) {
   return h18(
-    import_react22.default.Fragment,
+    import_react21.default.Fragment,
     null,
     h18(AddLayerDialog, {
       key: "add-layer",
       t: t2,
-      request: request2,
+      request,
       onClose: onCloseAdd,
       onOpenLocal: workbench?.openLocal,
       onOpenUrl: workbench?.openUrl,
@@ -20392,17 +20609,17 @@ function SceneDialogs({
 }
 
 // src/client/ui/right-stack.js
-var import_react43 = __toESM(require("react"), 1);
+var import_react44 = __toESM(require("react"), 1);
 
 // src/client/ui/layers-panel.js
-var import_react29 = __toESM(require("react"), 1);
+var import_react28 = __toESM(require("react"), 1);
 
 // src/client/ui/layers-entities.js
-var import_react26 = __toESM(require("react"), 1);
+var import_react25 = __toESM(require("react"), 1);
 
 // src/client/ui/layer-row.js
-var import_react23 = __toESM(require("react"), 1);
-var h19 = import_react23.default.createElement;
+var import_react22 = __toESM(require("react"), 1);
+var h19 = import_react22.default.createElement;
 function RowEye({ t: t2, visible, onToggle }) {
   return h19(
     "button",
@@ -20441,9 +20658,9 @@ function LayerRow({
   children = null
 }) {
   const label = title || name;
-  const moreRef = import_react23.default.useRef?.(null) ?? { current: null };
-  const [up, setUp] = import_react23.default.useState(false);
-  import_react23.default.useLayoutEffect?.(() => {
+  const moreRef = import_react22.default.useRef?.(null) ?? { current: null };
+  const [up, setUp] = import_react22.default.useState(false);
+  import_react22.default.useLayoutEffect?.(() => {
     if (!menuOpen) {
       setUp(false);
       return;
@@ -20534,11 +20751,11 @@ function LayerRow({
 }
 
 // src/client/ui/use-row-menu.js
-var import_react24 = __toESM(require("react"), 1);
+var import_react23 = __toESM(require("react"), 1);
 function useRowMenu() {
-  const [openId, setOpenId] = import_react24.default.useState(null);
-  const ref = import_react24.default.useRef(null);
-  import_react24.default.useEffect(() => {
+  const [openId, setOpenId] = import_react23.default.useState(null);
+  const ref = import_react23.default.useRef(null);
+  import_react23.default.useEffect(() => {
     if (openId === null || typeof document === "undefined") return void 0;
     const close = (event) => {
       if (!ref.current?.contains(event.target)) setOpenId(null);
@@ -20550,7 +20767,7 @@ function useRowMenu() {
 }
 
 // src/client/ui/layer-group.js
-var import_react25 = __toESM(require("react"), 1);
+var import_react24 = __toESM(require("react"), 1);
 
 // src/client/ui/panel-prefs.js
 var STORAGE_PREFIX = "mv.pref.";
@@ -20576,10 +20793,10 @@ function groupOpenKey(id) {
 }
 
 // src/client/ui/layer-group.js
-var h20 = import_react25.default.createElement;
+var h20 = import_react24.default.createElement;
 function useGroupOpen(id, fallback = true) {
-  const [open, setOpen] = import_react25.default.useState(() => readPanelFlag(groupOpenKey(id), fallback));
-  const toggle = import_react25.default.useCallback(() => {
+  const [open, setOpen] = import_react24.default.useState(() => readPanelFlag(groupOpenKey(id), fallback));
+  const toggle = import_react24.default.useCallback(() => {
     setOpen((value) => {
       writePanelFlag(groupOpenKey(id), !value);
       return !value;
@@ -20624,7 +20841,7 @@ function LayerGroup({ t: t2, id, title, count, open, onToggle, actions, empty, h
 }
 
 // src/client/ui/layers-entities.js
-var h21 = import_react26.default.createElement;
+var h21 = import_react25.default.createElement;
 function splitEntityRows(agentOverlays) {
   const rows = Array.isArray(agentOverlays) ? agentOverlays : [];
   return {
@@ -20665,13 +20882,13 @@ function LayersEntities({
   onToggleOverlayVisible
 }) {
   const rowMenu = useRowMenu();
-  const [expanded, setExpanded] = import_react26.default.useState({});
+  const [expanded, setExpanded] = import_react25.default.useState({});
   const [openAnnotations, toggleAnnotations] = useGroupOpen("annotations");
   const [openMeasurements, toggleMeasurements] = useGroupOpen("measurements");
   const [openContent, toggleContent] = useGroupOpen("content");
   const { annotations, measurements } = splitEntityRows(agentOverlays);
   const shaderFor = (layer) => (shaderActive ?? []).find(
-    (entry) => entry.layerId === layer.id || entry.layerId === void 0 && entry.layer === layer.name
+    (entry2) => entry2.layerId === layer.id || entry2.layerId === void 0 && entry2.layer === layer.name
   ) ?? null;
   const featureList = (row2) => row2.kind === "draw" && Array.isArray(overlayDetails?.[row2.index]) ? overlayDetails[row2.index] : [];
   const dotColor = (row2) => {
@@ -20756,7 +20973,7 @@ function LayersEntities({
         meta: row2.detail,
         off: row2.hidden === true,
         lead: h21(
-          import_react26.default.Fragment,
+          import_react25.default.Fragment,
           null,
           rowEye(row2),
           hasFeatures ? h21(
@@ -20774,7 +20991,7 @@ function LayersEntities({
           h21(RowDot, { color: dotColor(row2) })
         ),
         trail: h21(
-          import_react26.default.Fragment,
+          import_react25.default.Fragment,
           null,
           canExtrude ? h21(
             "button",
@@ -20857,7 +21074,7 @@ function LayersEntities({
     name: row2.label,
     meta: row2.detail,
     lead: h21(
-      import_react26.default.Fragment,
+      import_react25.default.Fragment,
       null,
       rowEye(row2),
       h21(RowDot, { color: VECTOR_COLORS.accent })
@@ -20895,7 +21112,7 @@ function LayersEntities({
         onToggle: () => onToggleLayer(layer.id)
       }),
       trail: h21(
-        import_react26.default.Fragment,
+        import_react25.default.Fragment,
         null,
         h21(
           "button",
@@ -20957,7 +21174,7 @@ function LayersEntities({
         open: openAnnotations,
         onToggle: toggleAnnotations,
         actions: h21(
-          import_react26.default.Fragment,
+          import_react25.default.Fragment,
           null,
           onQuickAnnotate ? action("pen", t2("annotation.quickDraw"), onQuickAnnotate) : null,
           clearButton(t2("layers.clearAnnotations"), annotations.length, annotations.length === 0, onClearAnnotations)
@@ -20976,7 +21193,7 @@ function LayersEntities({
         open: openMeasurements,
         onToggle: toggleMeasurements,
         actions: h21(
-          import_react26.default.Fragment,
+          import_react25.default.Fragment,
           null,
           onOpenMeasure ? action("ruler", t2("btn.measure"), onOpenMeasure) : null,
           clearButton(t2("layers.clearMeasurements"), measurements.length, measurements.length === 0, onClearMeasurements)
@@ -20995,7 +21212,7 @@ function LayersEntities({
         open: openContent,
         onToggle: toggleContent,
         actions: h21(
-          import_react26.default.Fragment,
+          import_react25.default.Fragment,
           null,
           layers2.length > 0 ? action("frame", t2("layers.frameAll"), onFrameAll) : null,
           action("add", t2("layers.addLayer"), () => onAddLayer?.("3d"))
@@ -21008,29 +21225,29 @@ function LayersEntities({
 }
 
 // src/client/ui/layers-surface.js
-var import_react28 = __toESM(require("react"), 1);
+var import_react27 = __toESM(require("react"), 1);
 
 // src/client/ui/raster-timeline.js
-var import_react27 = __toESM(require("react"), 1);
-var h22 = import_react27.default.createElement;
+var import_react26 = __toESM(require("react"), 1);
+var h22 = import_react26.default.createElement;
 var PLAYBACK_SPEEDS = [
   { label: "0.5×", ms: 2e3 },
   { label: "1×", ms: 1e3 },
   { label: "2×", ms: 500 }
 ];
 function RasterTimeline({ t: t2, source, frameIndex = 0, disabled = false, onSelectFrame }) {
-  const frames = import_react27.default.useMemo(() => resolveSourceFrames(source), [source]);
-  const [playing, setPlaying] = import_react27.default.useState(false);
-  const [speedIdx, setSpeedIdx] = import_react27.default.useState(1);
+  const frames = import_react26.default.useMemo(() => resolveSourceFrames(source), [source]);
+  const [playing, setPlaying] = import_react26.default.useState(false);
+  const [speedIdx, setSpeedIdx] = import_react26.default.useState(1);
   const current2 = clampFrameIndex(frameIndex, frames);
-  const currentRef = import_react27.default.useRef(current2);
+  const currentRef = import_react26.default.useRef(current2);
   currentRef.current = current2;
-  const selectRef = import_react27.default.useRef(onSelectFrame);
+  const selectRef = import_react26.default.useRef(onSelectFrame);
   selectRef.current = onSelectFrame;
-  import_react27.default.useEffect(() => {
+  import_react26.default.useEffect(() => {
     if ((disabled || frames.length < 2) && playing) setPlaying(false);
   }, [disabled, frames.length, playing]);
-  import_react27.default.useEffect(() => {
+  import_react26.default.useEffect(() => {
     if (!playing || disabled || frames.length < 2) return void 0;
     const intervalMs = PLAYBACK_SPEEDS[speedIdx]?.ms ?? 1e3;
     const timer = setInterval(() => {
@@ -21147,7 +21364,7 @@ function RasterTimeline({ t: t2, source, frameIndex = 0, disabled = false, onSel
 }
 
 // src/client/ui/layers-surface.js
-var h23 = import_react28.default.createElement;
+var h23 = import_react27.default.createElement;
 var OVERLAY_KIND_LABEL = { wms: "WMS", xyz: "XYZ", arcgis: "ArcGIS" };
 function LayersSurface({
   t: t2,
@@ -21184,7 +21401,7 @@ function LayersSurface({
   onAddLayer
 }) {
   const rowMenu = useRowMenu();
-  const [expanded, setExpanded] = import_react28.default.useState({});
+  const [expanded, setExpanded] = import_react27.default.useState({});
   const [openVector, toggleVector] = useGroupOpen("vector");
   const [openRaster, toggleRaster] = useGroupOpen("raster");
   const [openImagery, toggleImagery] = useGroupOpen("imagery", false);
@@ -21282,7 +21499,7 @@ function LayersSurface({
         meta: count > 0 ? `${count} ${t2("layers.propsFeaturesUnit")}` : row2.detail,
         off: row2.hidden === true,
         lead: h23(
-          import_react28.default.Fragment,
+          import_react27.default.Fragment,
           null,
           h23(RowEye, {
             t: t2,
@@ -21359,7 +21576,7 @@ function LayersSurface({
           onToggle: () => onOverlayVisible?.(overlay.id, overlay.visible === false)
         }),
         trail: h23(
-          import_react28.default.Fragment,
+          import_react27.default.Fragment,
           null,
           h23(
             "button",
@@ -21425,7 +21642,7 @@ function LayersSurface({
         open: openVector,
         onToggle: toggleVector,
         actions: h23(
-          import_react28.default.Fragment,
+          import_react27.default.Fragment,
           null,
           onAddLayer ? action("import", t2("layers.importVector"), () => onAddLayer("vector")) : null,
           vectorExport ? h23(
@@ -21472,7 +21689,7 @@ function LayersSurface({
         hint: openImagery ? null : `${t2("layers.imageryCurrent")} ${imagerySummary}`
       },
       h23(
-        import_react28.default.Fragment,
+        import_react27.default.Fragment,
         null,
         radioRow("i-off", t2("menu.none"), settings?.imagery == null, () => onSelectImagery(null)),
         imagerySources.map(
@@ -21500,7 +21717,7 @@ function LayersSurface({
         hint: openTerrain ? null : `${t2("layers.terrainCurrent")} ${terrainSummary}`
       },
       h23(
-        import_react28.default.Fragment,
+        import_react27.default.Fragment,
         null,
         radioRow("t-off", t2("menu.terrainOff"), terrainActive === null, () => onSelectTerrain(null)),
         terrainSources.map(
@@ -21522,7 +21739,7 @@ function LayersSurface({
 }
 
 // src/client/ui/layers-panel.js
-var h24 = import_react29.default.createElement;
+var h24 = import_react28.default.createElement;
 var nextTabsId = 0;
 var TAB_KEY = "layers.tab.surface";
 function LayersPanel({
@@ -21575,8 +21792,8 @@ function LayersPanel({
   forceFloat = false,
   onFloatingChange
 }) {
-  const [tab, setTab] = import_react29.default.useState(() => readPanelFlag(TAB_KEY, false) ? "surface" : "3d");
-  const selectTab = import_react29.default.useCallback((next) => {
+  const [tab, setTab] = import_react28.default.useState(() => readPanelFlag(TAB_KEY, false) ? "surface" : "3d");
+  const selectTab = import_react28.default.useCallback((next) => {
     setTab(next);
     writePanelFlag(TAB_KEY, next === "surface");
   }, []);
@@ -21598,11 +21815,11 @@ function LayersPanel({
     restoreSaved: false,
     hasExplicitWidth: Boolean(resize.size.width)
   });
-  import_react29.default.useEffect(() => {
+  import_react28.default.useEffect(() => {
     onFloatingChange?.(floating.moved);
   }, [floating.moved, onFloatingChange]);
-  const tabsId = import_react29.default.useMemo(() => `mv-data-${++nextTabsId}`, []);
-  const tabsRef = import_react29.default.useRef(null);
+  const tabsId = import_react28.default.useMemo(() => `mv-data-${++nextTabsId}`, []);
+  const tabsRef = import_react28.default.useRef(null);
   const onTabKey = (event) => {
     if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
     event.preventDefault();
@@ -21787,6 +22004,163 @@ function LayersPanel({
   );
 }
 
+// src/client/ui/place-search.js
+var import_react29 = __toESM(require("react"), 1);
+var h25 = import_react29.default.createElement;
+var pref = "dsh-digital-earth.place-provider";
+function preferred() {
+  try {
+    return localStorage.getItem(pref) || "";
+  } catch {
+    return "";
+  }
+}
+function remember(id) {
+  try {
+    localStorage.setItem(pref, id);
+  } catch {
+  }
+}
+function PlaceSearchPanel({ t: t2, url, onFly }) {
+  const [config, setConfig] = import_react29.default.useState(null);
+  const [provider, setProvider] = import_react29.default.useState(preferred);
+  const [query, setQuery] = import_react29.default.useState("");
+  const [key, setKey] = import_react29.default.useState("");
+  const [editing, setEditing] = import_react29.default.useState(false);
+  const [busy, setBusy] = import_react29.default.useState(false);
+  const [error, setError] = import_react29.default.useState("");
+  const [results, setResults] = import_react29.default.useState(null);
+  const active = import_react29.default.useRef(null);
+  const enabled = (config?.providers ?? []).filter((entry3) => entry3.enabled);
+  const usable = enabled.some((entry3) => entry3.id === provider) ? provider : enabled[0]?.id ?? "";
+  const entry2 = placeProvider(config, usable);
+  const meta = placeTypeMeta(entry2?.type);
+  const configured = entry2?.configured === true;
+  const managed = entry2?.managed === true;
+  const keyField = Boolean(usable) && meta.needsKey && !managed && (editing || !configured);
+  const link = (href, text) => h25("a", { href, target: "_blank", rel: "noreferrer" }, text);
+  import_react29.default.useEffect(() => () => active.current?.abort(), []);
+  import_react29.default.useEffect(() => {
+    const controller = new AbortController();
+    placeRequest(url, "GET", null, controller.signal).then((data) => {
+      if (controller.signal.aborted) return;
+      setConfig(data);
+      const next = data.selected || data.provider;
+      if (next) {
+        setProvider(next);
+        remember(next);
+      }
+    }).catch(() => {
+      if (!controller.signal.aborted) setError("provider");
+    });
+    return () => controller.abort();
+  }, [url]);
+  import_react29.default.useEffect(() => {
+    if (config && usable && usable !== provider) {
+      setProvider(usable);
+      remember(usable);
+    }
+  }, [config, usable, provider]);
+  function reset() {
+    active.current?.abort();
+    setResults(null);
+    setBusy(false);
+    setError("");
+  }
+  function changeProvider(event) {
+    reset();
+    const next = event.target.value;
+    setProvider(next);
+    setEditing(false);
+    setKey("");
+    remember(next);
+    void placeRequest(url, "PUT", { selected: next }).then(setConfig).catch(() => {
+    });
+  }
+  async function search(region) {
+    reset();
+    const controller = new AbortController();
+    active.current = controller;
+    setBusy(true);
+    try {
+      if (keyField && key.trim()) {
+        setConfig(await placeRequest(url, "PUT", { keys: { [usable]: key.trim() } }, controller.signal));
+        if (controller.signal.aborted) return;
+        setEditing(false);
+        setKey("");
+      }
+      const data = await placeRequest(url, "POST", { provider: usable, query, region, language: isChinese() ? "zh" : "en" }, controller.signal);
+      if (!controller.signal.aborted) setResults(data.results);
+    } catch (err) {
+      if (!controller.signal.aborted) {
+        setError(err.message);
+        if (err.message === "key") setEditing(true);
+      }
+    } finally {
+      if (!controller.signal.aborted) setBusy(false);
+    }
+  }
+  const status = !usable ? t2("places.noneEnabled") : busy ? t2("places.busy") : error ? placeErrorMessage(t2, error, entry2) : results?.length === 0 ? t2("places.empty") : "";
+  return h25(
+    "div",
+    { className: "mv-places", "aria-label": t2("places.title") },
+    h25(
+      "form",
+      { onSubmit: (event) => {
+        event.preventDefault();
+        if (!busy && usable && query.trim()) void search();
+      } },
+      h25(
+        "div",
+        { className: "mv-places-query" },
+        h25("input", { type: "search", maxLength: 160, value: query, placeholder: t2("places.placeholder"), "aria-label": t2("places.title"), disabled: !usable, onChange: (event) => {
+          reset();
+          setQuery(event.target.value);
+        } }),
+        h25("button", { type: "submit", className: "mv-places-submit", disabled: busy || !usable || !query.trim() || keyField && !key.trim() }, keyField ? t2("places.saveSearch") : t2("places.search"))
+      ),
+      usable ? h25(
+        "div",
+        { className: "mv-places-source" },
+        h25("label", null, t2("places.source"), h25("select", { value: usable, onChange: changeProvider }, enabled.map((item) => h25("option", { key: item.id, value: item.id }, providerLabel(t2, item))))),
+        keyField ? null : configured && !managed && meta.needsKey ? h25("button", { type: "button", className: "mv-place-link", onClick: () => {
+          reset();
+          setEditing(!editing);
+          setKey("");
+        } }, editing ? t2("btn.cancel") : t2("places.changeKey")) : null
+      ) : null,
+      keyField ? h25(
+        "label",
+        { className: "mv-places-key" },
+        h25("span", null, providerLabel(t2, entry2), " · ", meta.help ? link(meta.help, t2("settings.places.getKey")) : null),
+        h25("input", { type: "password", autoComplete: "off", maxLength: 128, value: key, placeholder: managed ? t2("settings.places.managed") : "", "aria-label": `${providerLabel(t2, entry2)} · ${t2("settings.places.keyLabel")}`, onChange: (event) => setKey(event.target.value) })
+      ) : null
+    ),
+    h25("div", { role: "status", "aria-live": "polite", className: "mv-places-status" }, status),
+    results?.length ? h25("ul", null, results.map((row2, i) => h25(
+      "li",
+      { key: i },
+      // A result flies the camera and keeps the panel open, so several places
+      // can be compared without reopening the search.
+      h25(
+        "button",
+        { type: "button", className: "mv-places-row", onClick: () => {
+          if (row2.region) void search(row2.region);
+          else if (!onFly(row2)) setError("camera");
+        } },
+        h25("strong", null, row2.name),
+        h25("span", null, row2.region ? t2("places.refine") : row2.detail || [row2.lon, row2.lat].map((n) => n.toFixed(4)).join(", "))
+      )
+    ))) : null,
+    meta.osm && usable ? h25(
+      "footer",
+      null,
+      link("https://www.openstreetmap.org/copyright", t2("places.attribution")),
+      meta.policy ? link(meta.policy, t2("places.policy")) : null
+    ) : null
+  );
+}
+
 // src/client/ui/tools-panel.js
 var import_react30 = __toESM(require("react"), 1);
 
@@ -21801,7 +22175,7 @@ var TOOL_ENTRIES = [
   { id: "effects", labelKey: "tools.effects", hintKey: "tools.effectsHint", icon: "effects" },
   { id: "view", labelKey: "tools.view", hintKey: "tools.viewHint", icon: "view" }
 ];
-var TOOL_IDS = TOOL_ENTRIES.map((entry) => entry.id);
+var TOOL_IDS = TOOL_ENTRIES.map((entry2) => entry2.id);
 var TOOL_GROUPS = [
   { titleKey: "tools.group.measure", ids: ["measure", "select", "annotation", "parse"] },
   { titleKey: "tools.group.analysis", ids: ["analysis", "compare"] },
@@ -21814,11 +22188,11 @@ function toolGroups() {
   })).filter((group) => group.entries.length > 0);
 }
 function toolEntry(id) {
-  return TOOL_ENTRIES.find((entry) => entry.id === id) ?? null;
+  return TOOL_ENTRIES.find((entry2) => entry2.id === id) ?? null;
 }
 
 // src/client/ui/tools-panel.js
-var h25 = import_react30.default.createElement;
+var h26 = import_react30.default.createElement;
 function ToolsPanel({
   t: t2,
   openWindows = [],
@@ -21864,7 +22238,7 @@ function ToolsPanel({
   };
   const row2 = (item) => {
     const active = openSet.has(item.id);
-    return h25(
+    return h26(
       "button",
       {
         key: item.id,
@@ -21883,13 +22257,13 @@ function ToolsPanel({
           onSelectTool?.(item.id);
         }
       },
-      h25("span", { className: "mv-tool-entry-icon" }, h25(ToolEntryIcon, { kind: item.icon })),
-      h25("span", { className: "mv-tool-entry-name" }, t2(item.labelKey)),
-      active ? h25("span", { className: "mv-tool-entry-dot", "aria-hidden": true }) : null
+      h26("span", { className: "mv-tool-entry-icon" }, h26(ToolEntryIcon, { kind: item.icon })),
+      h26("span", { className: "mv-tool-entry-name" }, t2(item.labelKey)),
+      active ? h26("span", { className: "mv-tool-entry-dot", "aria-hidden": true }) : null
     );
   };
   const panelStyle = embedded ? void 0 : indexMinimized ? floating.moved ? floating.style : { zIndex: floating.zIndex } : floating.moved ? { ...floating.style, ...resize.style } : { ...floating.style, height: resize.style?.height, maxHeight: resize.style?.maxHeight };
-  return h25(
+  return h26(
     "div",
     {
       className: `mv-tools mv-glass ${floating.className}${indexMinimized ? " minimized" : ""}${embedded ? " in-dock" : ""}`,
@@ -21897,33 +22271,33 @@ function ToolsPanel({
       style: panelStyle,
       ...floating.panelProps
     },
-    h25(
+    h26(
       "header",
       floating.headerProps,
       floating.dragHandle,
-      h25(
+      h26(
         "span",
         { className: "mv-tools-title" },
-        h25("span", null, t2("tools.title")),
-        activeEntries.length > 0 && !indexMinimized ? h25("span", { className: "mv-tools-count" }, t2("tools.openCount", { n: activeEntries.length })) : null,
+        h26("span", null, t2("tools.title")),
+        activeEntries.length > 0 && !indexMinimized ? h26("span", { className: "mv-tools-count" }, t2("tools.openCount", { n: activeEntries.length })) : null,
         indexMinimized ? activeEntries.map(
-          (entry) => h25(
+          (entry2) => h26(
             "button",
             {
-              key: entry.id,
+              key: entry2.id,
               type: "button",
               className: "mv-tools-active-pill",
-              onClick: () => onSelectTool?.(entry.id)
+              onClick: () => onSelectTool?.(entry2.id)
             },
-            t2(entry.labelKey)
+            t2(entry2.labelKey)
           )
         ) : null
       ),
-      h25(
+      h26(
         "div",
         { className: "mv-head-actions" },
         floating.resetButton,
-        h25(
+        h26(
           "button",
           {
             type: "button",
@@ -21935,24 +22309,24 @@ function ToolsPanel({
           },
           indexMinimized ? "▸" : "▾"
         ),
-        h25("button", { type: "button", className: "mv-icon-btn", title: t2("tools.collapse"), "aria-label": t2("tools.collapse"), onClick: onCollapse }, "✕")
+        h26("button", { type: "button", className: "mv-icon-btn", title: t2("tools.collapse"), "aria-label": t2("tools.collapse"), onClick: onCollapse }, "✕")
       )
     ),
     floating.liveRegion,
-    indexMinimized ? null : h25(
+    indexMinimized ? null : h26(
       "div",
       { className: "mv-tool-index-wrap" },
-      h25(
+      h26(
         "div",
         { className: "mv-tool-index", role: "navigation", "aria-label": t2("tools.index") },
         ...toolGroups().flatMap((group) => [
-          h25("div", { key: `group:${group.titleKey}`, className: "mv-tool-group-title" }, t2(group.titleKey)),
+          h26("div", { key: `group:${group.titleKey}`, className: "mv-tool-group-title" }, t2(group.titleKey)),
           ...group.entries.map(row2)
         ])
       ),
-      h25("p", { className: "mv-tools-hint" }, t2("tools.independentHint"))
+      h26("p", { className: "mv-tools-hint" }, t2("tools.independentHint"))
     ),
-    indexMinimized ? null : h25(ResizeHandle, {
+    indexMinimized ? null : h26(ResizeHandle, {
       axis: "height",
       edge: "bottom",
       label: t2("resize.height"),
@@ -21962,7 +22336,7 @@ function ToolsPanel({
       min: resize.minHeight,
       max: resize.maxHeight
     }),
-    indexMinimized || !floating.moved ? null : h25(ResizeHandle, {
+    indexMinimized || !floating.moved ? null : h26(ResizeHandle, {
       axis: "corner",
       edge: "corner",
       label: t2("resize.size"),
@@ -21977,10 +22351,10 @@ function ToolsPanel({
 
 // src/client/ui/tool-window.js
 var import_react31 = __toESM(require("react"), 1);
-var h26 = import_react31.default.createElement;
+var h27 = import_react31.default.createElement;
 function ToolWindow({
   t: t2,
-  entry,
+  entry: entry2,
   minimized = false,
   expanded = false,
   autoFloat = false,
@@ -22004,9 +22378,9 @@ function ToolWindow({
     minHeight: 150,
     maxHeight: 560
   });
-  const label = entry ? t2(entry.labelKey) : "";
+  const label = entry2 ? t2(entry2.labelKey) : "";
   const floating = useFloatingWindow({
-    storageKey: entry ? `toolwin.${entry.id}` : "toolwin.none",
+    storageKey: entry2 ? `toolwin.${entry2.id}` : "toolwin.none",
     title: label,
     t: t2,
     autoFloat,
@@ -22019,13 +22393,13 @@ function ToolWindow({
   import_react31.default.useEffect(() => {
     onFloatingChange?.(floating.moved);
   }, [floating.moved, onFloatingChange]);
-  if (!entry) return null;
+  if (!entry2) return null;
   const toggleLabel = minimized ? t2("tools.windowExpand") : t2("tools.windowMinimize");
   const zoomLabel = expanded ? t2("tools.windowRestore") : t2("tools.windowZoom");
   const dockedResize = { height: resize.style?.height, maxHeight: resize.style?.maxHeight };
   const baseStyle = floating.moved ? { ...floating.style, ...resize.style } : { ...floating.style, ...dockedResize };
   const bodyStyle = embedded ? void 0 : minimized ? floating.moved ? floating.style : void 0 : expanded ? { ...baseStyle, height: "min(480px, 60vh)", maxHeight: "none", flex: "0 0 auto" } : baseStyle;
-  return h26(
+  return h27(
     "section",
     {
       className: `mv-toolwin mv-glass ${floating.className}${minimized ? " minimized" : ""}${expanded && !minimized ? " expanded" : ""}${embedded ? " in-dock" : ""}`,
@@ -22034,21 +22408,21 @@ function ToolWindow({
       "aria-label": label,
       ...floating.panelProps
     },
-    h26(
+    h27(
       "header",
       floating.headerProps,
       floating.dragHandle,
-      h26(
+      h27(
         "span",
         { className: "mv-toolwin-title" },
-        h26("span", { className: "mv-toolwin-badge" }, h26(ToolEntryIcon, { kind: entry.icon, size: 14 })),
-        h26("span", null, label)
+        h27("span", { className: "mv-toolwin-badge" }, h27(ToolEntryIcon, { kind: entry2.icon, size: 14 })),
+        h27("span", null, label)
       ),
-      h26(
+      h27(
         "div",
         { className: "mv-head-actions" },
         floating.resetButton,
-        typeof onToggleExpand === "function" ? h26(
+        typeof onToggleExpand === "function" ? h27(
           "button",
           {
             type: "button",
@@ -22060,7 +22434,7 @@ function ToolWindow({
           },
           expanded && !minimized ? "⤡" : "⤢"
         ) : null,
-        h26(
+        h27(
           "button",
           {
             type: "button",
@@ -22072,7 +22446,7 @@ function ToolWindow({
           },
           minimized ? "▸" : "▾"
         ),
-        h26(
+        h27(
           "button",
           {
             type: "button",
@@ -22086,8 +22460,8 @@ function ToolWindow({
       )
     ),
     floating.liveRegion,
-    minimized && !embedded ? null : h26("div", { className: "mv-toolwin-body" }, children),
-    minimized || expanded ? null : h26(ResizeHandle, {
+    minimized && !embedded ? null : h27("div", { className: "mv-toolwin-body" }, children),
+    minimized || expanded ? null : h27(ResizeHandle, {
       axis: "height",
       edge: "bottom",
       label: t2("resize.height"),
@@ -22097,7 +22471,7 @@ function ToolWindow({
       min: resize.minHeight,
       max: resize.maxHeight
     }),
-    minimized || expanded || !floating.moved ? null : h26(ResizeHandle, {
+    minimized || expanded || !floating.moved ? null : h27(ResizeHandle, {
       axis: "corner",
       edge: "corner",
       label: t2("resize.size"),
@@ -22813,7 +23187,7 @@ function createSunTimeline({ getCesium, getViewer, getLayers }) {
 }
 
 // src/client/ui/sun-timeline.js
-var h27 = import_react32.default.createElement;
+var h28 = import_react32.default.createElement;
 var ZONE_MODES = ["scene", "browser", "utc"];
 var PLAYBACK_SPEEDS2 = [15, 60, 180];
 function translate(t2, key, vars) {
@@ -22959,39 +23333,39 @@ function SunTimeline({ t: t2, getCesium, getViewer, getLayers, onBeforeEnable, a
   };
   const notes = [];
   if (failed) {
-    notes.push(h27("p", { key: "failed", className: "mv-sun-note mv-sun-alert" }, failureText()));
+    notes.push(h28("p", { key: "failed", className: "mv-sun-note mv-sun-alert" }, failureText()));
   } else if (readout?.night) {
-    notes.push(h27("p", { key: "night", className: "mv-sun-note mv-sun-night" }, translate(t2, "sun.nightHint")));
+    notes.push(h28("p", { key: "night", className: "mv-sun-note mv-sun-night" }, translate(t2, "sun.nightHint")));
   }
-  notes.push(h27("p", { key: "tz", className: "mv-sun-note" }, translate(t2, "sun.timezoneHint")));
+  notes.push(h28("p", { key: "tz", className: "mv-sun-note" }, translate(t2, "sun.timezoneHint")));
   if (readout) {
-    notes.push(h27("p", { key: "sky", className: "mv-sun-note" }, translate(t2, effects ? "sun.fxHint" : "sun.skyHint")));
+    notes.push(h28("p", { key: "sky", className: "mv-sun-note" }, translate(t2, effects ? "sun.fxHint" : "sun.skyHint")));
   }
-  return h27(
+  return h28(
     "div",
     { className: "mv-sun" },
-    h27(
+    h28(
       "div",
       { className: "mv-sun-head" },
-      h27("b", null, t2("sun.title")),
-      h27(
+      h28("b", null, t2("sun.title")),
+      h28(
         "label",
         { className: "mv-sun-toggle" },
-        h27("input", { type: "checkbox", checked: enabled, onChange: (event) => toggle(event.target.checked) }),
+        h28("input", { type: "checkbox", checked: enabled, onChange: (event) => toggle(event.target.checked) }),
         t2("sun.enable")
       )
     ),
-    enabled ? h27(
+    enabled ? h28(
       import_react32.default.Fragment,
       null,
-      h27(
+      h28(
         "div",
         { className: "mv-sun-row" },
-        h27("span", null, t2("sun.date")),
-        h27("input", { type: "date", value: day, "aria-label": t2("sun.date"), onChange: (event) => changeDay(event.target.value) }),
-        h27("span", { className: "mv-sun-clock" }, sunClockLabel(minutes))
+        h28("span", null, t2("sun.date")),
+        h28("input", { type: "date", value: day, "aria-label": t2("sun.date"), onChange: (event) => changeDay(event.target.value) }),
+        h28("span", { className: "mv-sun-clock" }, sunClockLabel(minutes))
       ),
-      h27("input", {
+      h28("input", {
         className: "mv-sun-range",
         type: "range",
         min: 0,
@@ -23001,10 +23375,10 @@ function SunTimeline({ t: t2, getCesium, getViewer, getLayers, onBeforeEnable, a
         "aria-label": t2("sun.time"),
         onChange: (event) => changeMinutes(Number(event.target.value))
       }),
-      h27(
+      h28(
         "div",
         { className: "mv-sun-playback" },
-        h27(
+        h28(
           "button",
           {
             type: "button",
@@ -23013,11 +23387,11 @@ function SunTimeline({ t: t2, getCesium, getViewer, getLayers, onBeforeEnable, a
           },
           playing ? `⏸ ${translate(t2, "sun.pause") || "Pause"}` : `▶ ${translate(t2, "sun.play") || "Play"}`
         ),
-        h27(
+        h28(
           "div",
           { className: "mv-sun-speeds" },
           ...PLAYBACK_SPEEDS2.map(
-            (value) => h27(
+            (value) => h28(
               "button",
               {
                 key: value,
@@ -23030,47 +23404,47 @@ function SunTimeline({ t: t2, getCesium, getViewer, getLayers, onBeforeEnable, a
           )
         )
       ),
-      h27(
+      h28(
         "div",
         { className: "mv-sun-row" },
-        h27("span", null, t2("sun.zone")),
-        h27(
+        h28("span", null, t2("sun.zone")),
+        h28(
           "select",
           { value: zoneMode, "aria-label": t2("sun.zone"), onChange: (event) => changeZone(event.target.value) },
-          ...ZONE_MODES.map((mode) => h27("option", { key: mode, value: mode }, translate(t2, `sun.zone.${mode}`)))
+          ...ZONE_MODES.map((mode) => h28("option", { key: mode, value: mode }, translate(t2, `sun.zone.${mode}`)))
         )
       ),
-      h27("div", { className: "mv-sun-zone" }, zoneLabel),
-      h27(
+      h28("div", { className: "mv-sun-zone" }, zoneLabel),
+      h28(
         "div",
         { className: "mv-sun-readout" },
-        h27("span", null, `${t2("sun.altitude")} ${readout ? `${readout.altitude.toFixed(1)}°` : "—"}`),
-        h27("span", null, `${t2("sun.azimuth")} ${readout ? `${readout.azimuth.toFixed(1)}°` : "—"}`)
+        h28("span", null, `${t2("sun.altitude")} ${readout ? `${readout.altitude.toFixed(1)}°` : "—"}`),
+        h28("span", null, `${t2("sun.azimuth")} ${readout ? `${readout.azimuth.toFixed(1)}°` : "—"}`)
       ),
-      h27(
+      h28(
         "div",
         { className: "mv-sun-checks" },
-        h27(
+        h28(
           "label",
           { className: "mv-sun-check" },
-          h27("input", { type: "checkbox", checked: shadows, onChange: (event) => changeShadows(event.target.checked) }),
+          h28("input", { type: "checkbox", checked: shadows, onChange: (event) => changeShadows(event.target.checked) }),
           t2("sun.shadows")
         ),
-        h27(
+        h28(
           "label",
           { className: "mv-sun-check" },
-          h27("input", { type: "checkbox", checked: effects, onChange: (event) => changeEffects(event.target.checked) }),
+          h28("input", { type: "checkbox", checked: effects, onChange: (event) => changeEffects(event.target.checked) }),
           translate(t2, "sun.effects") || "Sky & sun FX"
         )
       ),
       notes
-    ) : h27("p", { className: "mv-none" }, t2("sun.hint"))
+    ) : h28("p", { className: "mv-none" }, t2("sun.hint"))
   );
 }
 
 // src/client/ui/tools-bookmarks.js
 var import_react33 = __toESM(require("react"), 1);
-var h28 = import_react33.default.createElement;
+var h29 = import_react33.default.createElement;
 function ToolsBookmarks({ t: t2, getCurrentView, getViewer, onFlyView, onStartTour, showToast }) {
   const [bookmarks, setBookmarks] = import_react33.default.useState(() => loadBookmarks());
   const [notice, setNotice] = import_react33.default.useState("");
@@ -23138,14 +23512,14 @@ function ToolsBookmarks({ t: t2, getCurrentView, getViewer, onFlyView, onStartTo
     setBookmarks(next);
     saveBookmarks(next);
   };
-  return h28(
+  return h29(
     import_react33.default.Fragment,
     null,
-    h28(
+    h29(
       "div",
       { className: "mv-group-actions" },
-      h28("button", { type: "button", className: "mv-cta", onClick: saveCurrent }, t2("bookmarks.save")),
-      h28(
+      h29("button", { type: "button", className: "mv-cta", onClick: saveCurrent }, t2("bookmarks.save")),
+      h29(
         "button",
         {
           type: "button",
@@ -23159,31 +23533,31 @@ function ToolsBookmarks({ t: t2, getCurrentView, getViewer, onFlyView, onStartTo
         t2("tour.start")
       )
     ),
-    bookmarks.length >= 2 ? h28(
+    bookmarks.length >= 2 ? h29(
       "div",
       { className: "mv-bm-bar" },
-      h28("span", { className: "mv-bm-bar-text" }, t2("bookmarks.tourOrder", { n: bookmarks.length })),
-      h28(
+      h29("span", { className: "mv-bm-bar-text" }, t2("bookmarks.tourOrder", { n: bookmarks.length })),
+      h29(
         "button",
         { type: "button", className: "mv-bm-bar-btn", title: t2("bookmarks.reverseHint"), onClick: reverseAll },
         t2("bookmarks.reverse")
       )
     ) : null,
-    notice !== "" ? h28("div", { className: "mv-none" }, notice) : null,
-    bookmarks.length === 0 ? h28("div", { className: "mv-none" }, t2("bookmarks.empty")) : h28(
+    notice !== "" ? h29("div", { className: "mv-none" }, notice) : null,
+    bookmarks.length === 0 ? h29("div", { className: "mv-none" }, t2("bookmarks.empty")) : h29(
       "div",
       { className: "mv-bm-list" },
       ...bookmarks.map((item, index) => {
         const meta = formatBookmarkMeta(item.view);
         const isEditing = editingId === item.id;
         const isActive = activeId === item.id;
-        return h28(
+        return h29(
           "div",
           { key: item.id, className: `mv-bookmark${isActive ? " active" : ""}` },
-          h28(
+          h29(
             "div",
             { className: "mv-bm-main" },
-            h28(
+            h29(
               "button",
               {
                 type: "button",
@@ -23191,21 +23565,21 @@ function ToolsBookmarks({ t: t2, getCurrentView, getViewer, onFlyView, onStartTo
                 title: t2("bookmarks.flyHint"),
                 onClick: () => flyTo(item)
               },
-              item.thumb ? h28("img", { src: item.thumb, alt: item.name }) : h28(
+              item.thumb ? h29("img", { src: item.thumb, alt: item.name }) : h29(
                 "span",
                 { className: "mv-bm-thumb-ph" },
-                h28("strong", null, meta?.alt ?? "3D"),
-                h28("small", null, meta ? `${meta.compass}` : "")
+                h29("strong", null, meta?.alt ?? "3D"),
+                h29("small", null, meta ? `${meta.compass}` : "")
               ),
-              h28("span", { className: "mv-bm-index" }, String(index + 1))
+              h29("span", { className: "mv-bm-index" }, String(index + 1))
             ),
-            h28(
+            h29(
               "div",
               { className: "mv-bm-info" },
-              h28(
+              h29(
                 "div",
                 { className: "mv-bm-title-row" },
-                isEditing ? h28("input", {
+                isEditing ? h29("input", {
                   className: "mv-bm-rename",
                   value: draftName,
                   maxLength: 60,
@@ -23217,7 +23591,7 @@ function ToolsBookmarks({ t: t2, getCurrentView, getViewer, onFlyView, onStartTo
                     if (event.key === "Enter") commitRename(item.id);
                     else if (event.key === "Escape") setEditingId(null);
                   }
-                }) : h28(
+                }) : h29(
                   "button",
                   {
                     type: "button",
@@ -23228,10 +23602,10 @@ function ToolsBookmarks({ t: t2, getCurrentView, getViewer, onFlyView, onStartTo
                   },
                   item.name
                 ),
-                h28(
+                h29(
                   "div",
                   { className: "mv-bm-ops" },
-                  h28(
+                  h29(
                     "button",
                     {
                       type: "button",
@@ -23243,7 +23617,7 @@ function ToolsBookmarks({ t: t2, getCurrentView, getViewer, onFlyView, onStartTo
                     },
                     "↑"
                   ),
-                  h28(
+                  h29(
                     "button",
                     {
                       type: "button",
@@ -23255,7 +23629,7 @@ function ToolsBookmarks({ t: t2, getCurrentView, getViewer, onFlyView, onStartTo
                     },
                     "↓"
                   ),
-                  h28(
+                  h29(
                     "button",
                     {
                       type: "button",
@@ -23266,7 +23640,7 @@ function ToolsBookmarks({ t: t2, getCurrentView, getViewer, onFlyView, onStartTo
                     },
                     "✎"
                   ),
-                  h28(
+                  h29(
                     "button",
                     {
                       type: "button",
@@ -23277,7 +23651,7 @@ function ToolsBookmarks({ t: t2, getCurrentView, getViewer, onFlyView, onStartTo
                     },
                     "↻"
                   ),
-                  h28(
+                  h29(
                     "button",
                     {
                       type: "button",
@@ -23290,7 +23664,7 @@ function ToolsBookmarks({ t: t2, getCurrentView, getViewer, onFlyView, onStartTo
                   )
                 )
               ),
-              meta ? h28(
+              meta ? h29(
                 "div",
                 { className: "mv-bm-meta", title: meta.coords },
                 t2("bookmarks.metaLine", {
@@ -23300,10 +23674,10 @@ function ToolsBookmarks({ t: t2, getCurrentView, getViewer, onFlyView, onStartTo
                   compass: meta.compass
                 })
               ) : null,
-              meta ? h28("div", { className: "mv-bm-coords" }, meta.coords) : null
+              meta ? h29("div", { className: "mv-bm-coords" }, meta.coords) : null
             )
           ),
-          h28("input", {
+          h29("input", {
             className: "mv-caption",
             value: item.caption ?? "",
             placeholder: t2("bookmarks.captionPlaceholder"),
@@ -23326,7 +23700,7 @@ var import_react35 = __toESM(require("react"), 1);
 
 // src/client/ui/selection-question.js
 var import_react34 = __toESM(require("react"), 1);
-var h29 = import_react34.default.createElement;
+var h30 = import_react34.default.createElement;
 function SelectionQuestion({ selection, t: t2, onAskSelection, showToast }) {
   const [open, setOpen] = import_react34.default.useState(true);
   const [question, setQuestion] = import_react34.default.useState("");
@@ -23390,25 +23764,25 @@ ${JSON.stringify(selectionQuestionContext(selection))}`);
       showToast?.(t2("selection.copyFailed"));
     }
   };
-  if (!open) return h29("button", { type: "button", className: "mv-cta primary", onClick: () => setOpen(true) }, t2("question.open"));
+  if (!open) return h30("button", { type: "button", className: "mv-cta primary", onClick: () => setOpen(true) }, t2("question.open"));
   const sending = status === "sending";
   const noContext = selection.kind === "screen" && (!includeImage || !selection.frame?.image);
-  return h29(
+  return h30(
     "form",
     { className: "mv-selection-question", onSubmit: submit, "aria-label": t2("question.title"), "aria-busy": sending },
-    h29(
+    h30(
       "div",
       { className: "mv-question-head" },
-      h29("strong", null, t2("question.title")),
-      h29("button", { type: "button", className: "mv-icon-btn", disabled: sending, "aria-label": t2("question.close"), onClick: () => setOpen(false) }, "✕")
+      h30("strong", null, t2("question.title")),
+      h30("button", { type: "button", className: "mv-icon-btn", disabled: sending, "aria-label": t2("question.close"), onClick: () => setOpen(false) }, "✕")
     ),
-    h29("p", { className: "mv-question-note" }, t2("question.hint")),
-    selection.frame?.image ? h29("img", { className: "mv-question-preview", src: selection.frame.image, alt: t2("question.imageAlt") }) : h29("p", { className: "mv-question-note" }, t2(selection.kind === "screen" ? "question.error.screen_requires_image" : "question.noImage")),
-    h29(
+    h30("p", { className: "mv-question-note" }, t2("question.hint")),
+    selection.frame?.image ? h30("img", { className: "mv-question-preview", src: selection.frame.image, alt: t2("question.imageAlt") }) : h30("p", { className: "mv-question-note" }, t2(selection.kind === "screen" ? "question.error.screen_requires_image" : "question.noImage")),
+    h30(
       "label",
       { className: "mv-question-label" },
       t2("question.label"),
-      h29("textarea", {
+      h30("textarea", {
         ref: inputRef,
         value: question,
         rows: 3,
@@ -23421,7 +23795,7 @@ ${JSON.stringify(selectionQuestionContext(selection))}`);
         }
       })
     ),
-    h29("div", { className: "mv-question-prompts" }, ...["describe", "compare", "next"].map((key) => h29("button", {
+    h30("div", { className: "mv-question-prompts" }, ...["describe", "compare", "next"].map((key) => h30("button", {
       type: "button",
       key,
       disabled: sending,
@@ -23430,10 +23804,10 @@ ${JSON.stringify(selectionQuestionContext(selection))}`);
         inputRef.current?.focus?.({ preventScroll: true });
       }
     }, t2(`question.quick.${key}`)))),
-    selection.frame?.image ? h29(
+    selection.frame?.image ? h30(
       "label",
       { className: "mv-question-image" },
-      h29("input", { type: "checkbox", checked: includeImage, disabled: sending, onChange: (event) => {
+      h30("input", { type: "checkbox", checked: includeImage, disabled: sending, onChange: (event) => {
         setIncludeImage(event.target.checked);
         requestRef.current = null;
         setStatus("idle");
@@ -23441,20 +23815,20 @@ ${JSON.stringify(selectionQuestionContext(selection))}`);
       } }),
       t2("question.includeImage")
     ) : null,
-    h29(
+    h30(
       "div",
       { className: "mv-question-actions" },
-      h29("button", { type: "submit", className: "mv-cta primary", disabled: sending || status === "sent" || noContext || !question.trim() || typeof onAskSelection !== "function" }, t2(sending ? "question.sending" : "question.send")),
-      h29("button", { type: "button", className: "mv-cta", onClick: () => void copy() }, t2("question.copy"))
+      h30("button", { type: "submit", className: "mv-cta primary", disabled: sending || status === "sent" || noContext || !question.trim() || typeof onAskSelection !== "function" }, t2(sending ? "question.sending" : "question.send")),
+      h30("button", { type: "button", className: "mv-cta", onClick: () => void copy() }, t2("question.copy"))
     ),
-    status === "sent" ? h29("p", { className: "mv-question-status", role: "status" }, t2("question.sent")) : null,
-    error ? h29("p", { className: "mv-question-error", role: "alert" }, t2(`question.error.${error}`)) : null,
-    noContext && selection.frame?.image ? h29("p", { className: "mv-question-note" }, t2("question.error.screen_requires_image")) : null
+    status === "sent" ? h30("p", { className: "mv-question-status", role: "status" }, t2("question.sent")) : null,
+    error ? h30("p", { className: "mv-question-error", role: "alert" }, t2(`question.error.${error}`)) : null,
+    noContext && selection.frame?.image ? h30("p", { className: "mv-question-note" }, t2("question.error.screen_requires_image")) : null
   );
 }
 
 // src/client/ui/selection-tool.js
-var h30 = import_react35.default.createElement;
+var h31 = import_react35.default.createElement;
 function summaryText(t2, selection) {
   if (selection.kind === "screen") return t2("selection.surfaceUnavailable");
   if (selection.kind === "objects") {
@@ -23598,104 +23972,104 @@ function SelectionTool({ t: t2, getCesium, getViewer, showToast, runAnalysis, ge
   if (isObjects) {
     const rows = Array.isArray(selection.rows) ? selection.rows : [];
     stats.push(
-      h30("div", { key: "count", className: "stat" }, h30("span", null, t2("selection.objectsSelected")), h30("b", null, String(rows.length))),
+      h31("div", { key: "count", className: "stat" }, h31("span", null, t2("selection.objectsSelected")), h31("b", null, String(rows.length))),
       ...rows.slice(0, 8).map(
-        (row2, index) => h30(
+        (row2, index) => h31(
           "div",
           { key: `row-${index}-${row2.kind}-${row2.index}`, className: "stat" },
-          h30("span", null, row2.label ?? `${row2.kind} ${row2.index + 1}`),
-          h30("b", null, row2.detail ?? "")
+          h31("span", null, row2.label ?? `${row2.kind} ${row2.index + 1}`),
+          h31("b", null, row2.detail ?? "")
         )
       )
     );
   } else if (selection?.kind === "point") {
     stats.push(
-      h30("div", { key: "lon", className: "stat" }, h30("span", null, t2("selection.lon")), h30("b", null, selection.lon.toFixed(6))),
-      h30("div", { key: "lat", className: "stat" }, h30("span", null, t2("selection.lat")), h30("b", null, selection.lat.toFixed(6))),
-      h30(
+      h31("div", { key: "lon", className: "stat" }, h31("span", null, t2("selection.lon")), h31("b", null, selection.lon.toFixed(6))),
+      h31("div", { key: "lat", className: "stat" }, h31("span", null, t2("selection.lat")), h31("b", null, selection.lat.toFixed(6))),
+      h31(
         "div",
         { key: "height", className: "stat" },
-        h30("span", null, t2("selection.height")),
-        h30("b", null, selection.height === null ? "—" : formatHeight(selection.height))
+        h31("span", null, t2("selection.height")),
+        h31("b", null, selection.height === null ? "—" : formatHeight(selection.height))
       )
     );
   } else if (selection && !isScreen) {
     stats.push(
-      h30("div", { key: "area", className: "stat" }, h30("span", null, t2("selection.area")), h30("b", null, formatArea(selection.area_m2))),
-      h30("div", { key: "perimeter", className: "stat" }, h30("span", null, t2("selection.perimeter")), h30("b", null, formatDistance(selection.perimeter_m))),
-      selection.heightRange ? h30(
+      h31("div", { key: "area", className: "stat" }, h31("span", null, t2("selection.area")), h31("b", null, formatArea(selection.area_m2))),
+      h31("div", { key: "perimeter", className: "stat" }, h31("span", null, t2("selection.perimeter")), h31("b", null, formatDistance(selection.perimeter_m))),
+      selection.heightRange ? h31(
         "div",
         { key: "height", className: "stat" },
-        h30("span", null, t2("selection.heightRange")),
-        h30("b", null, `${formatHeight(selection.heightRange.min)} – ${formatHeight(selection.heightRange.max)}`)
+        h31("span", null, t2("selection.heightRange")),
+        h31("b", null, `${formatHeight(selection.heightRange.min)} – ${formatHeight(selection.heightRange.max)}`)
       ) : null,
-      h30("div", { key: "verts", className: "stat" }, h30("span", null, t2("selection.vertices")), h30("b", null, `${Math.max(0, selection.ring.length - 1)}`))
+      h31("div", { key: "verts", className: "stat" }, h31("span", null, t2("selection.vertices")), h31("b", null, `${Math.max(0, selection.ring.length - 1)}`))
     );
   }
-  return h30(
+  return h31(
     "div",
     { className: "mv-selection" },
-    h30(
+    h31(
       "div",
       { className: "mv-selection-actions mv-selection-modes" },
-      h30(
+      h31(
         "button",
         { type: "button", className: `mv-cta${activeMode === "point" ? " primary" : ""}`, "aria-pressed": activeMode === "point", onClick: () => start("point") },
         t2(activeMode === "point" ? "selection.pointActive" : "selection.point")
       ),
-      h30(
+      h31(
         "button",
         { type: "button", className: `mv-cta${activeMode === "polygon" ? " primary" : ""}`, "aria-pressed": activeMode === "polygon", onClick: () => start("polygon") },
         t2(activeMode === "polygon" ? "selection.polygonActive" : "selection.polygon")
       ),
-      h30(
+      h31(
         "button",
         { type: "button", className: `mv-cta${activeMode === "rect" ? " primary" : ""}`, "aria-pressed": activeMode === "rect", onClick: () => start("rect") },
         t2(activeMode === "rect" ? "selection.rectActive" : "selection.rect")
       ),
-      h30(
+      h31(
         "button",
         { type: "button", className: `mv-cta${activeMode === "objects" ? " primary" : ""}`, "aria-pressed": activeMode === "objects", onClick: () => start("objects") },
         t2(activeMode === "objects" ? "selection.objectsActive" : "selection.objects")
       )
     ),
-    h30(
+    h31(
       "p",
       { className: "mv-none" },
       t2(
         activeMode === "point" ? "selection.pointHint" : activeMode === "polygon" ? "selection.polygonHint" : activeMode === "objects" ? "selection.objectsHint" : activeMode === "rect" ? "selection.dragHint" : "selection.hint"
       )
     ),
-    selection ? h30(
+    selection ? h31(
       import_react35.default.Fragment,
       null,
-      h30(SelectionQuestion, { key: `${selection.created_at}-${selection.kind}`, selection, t: t2, onAskSelection, showToast }),
+      h31(SelectionQuestion, { key: `${selection.created_at}-${selection.kind}`, selection, t: t2, onAskSelection, showToast }),
       ...stats,
-      selection.approximate && !isScreen ? h30("p", { key: "approx", className: "mv-none" }, t2(selection.kind === "vision" ? "vision.selectionApproximate" : selection.source === "screen-visible-surface" ? "selection.surfaceApproximate" : "selection.approximate")) : null,
-      selection.complete ? null : h30("p", { key: "partial", className: "mv-none" }, t2(isScreen ? "selection.surfaceUnavailable" : "selection.partial")),
-      isScreen ? null : isObjects ? h30(
+      selection.approximate && !isScreen ? h31("p", { key: "approx", className: "mv-none" }, t2(selection.kind === "vision" ? "vision.selectionApproximate" : selection.source === "screen-visible-surface" ? "selection.surfaceApproximate" : "selection.approximate")) : null,
+      selection.complete ? null : h31("p", { key: "partial", className: "mv-none" }, t2(isScreen ? "selection.surfaceUnavailable" : "selection.partial")),
+      isScreen ? null : isObjects ? h31(
         "div",
         { className: "mv-selection-actions" },
-        h30("button", { type: "button", className: "mv-cta", onClick: removeObjects }, t2("selection.objectsRemove")),
-        h30("button", { type: "button", className: "mv-cta", onClick: exportObjects }, t2("selection.objectsExport")),
-        h30("button", { type: "button", className: "mv-cta", onClick: copySummary }, t2("selection.objectsCopy"))
-      ) : isPoint ? h30(
+        h31("button", { type: "button", className: "mv-cta", onClick: removeObjects }, t2("selection.objectsRemove")),
+        h31("button", { type: "button", className: "mv-cta", onClick: exportObjects }, t2("selection.objectsExport")),
+        h31("button", { type: "button", className: "mv-cta", onClick: copySummary }, t2("selection.objectsCopy"))
+      ) : isPoint ? h31(
         "div",
         { className: "mv-selection-actions" },
-        h30("button", { type: "button", className: "mv-cta", onClick: () => void skyline() }, t2("selection.skyline")),
-        h30("button", { type: "button", className: "mv-cta", onClick: exportGeoJSON }, t2("selection.export"))
-      ) : h30(
+        h31("button", { type: "button", className: "mv-cta", onClick: () => void skyline() }, t2("selection.skyline")),
+        h31("button", { type: "button", className: "mv-cta", onClick: exportGeoJSON }, t2("selection.export"))
+      ) : h31(
         "div",
         { className: "mv-selection-actions" },
-        typeof onParseSelection === "function" ? h30("button", { type: "button", className: "mv-cta", title: t2("selection.parseAoiHint"), onClick: () => onParseSelection(selection) }, t2("selection.parseAoi")) : null,
-        h30("button", { type: "button", className: "mv-cta", title: t2("selection.floodBounds"), onClick: () => void flood() }, t2("selection.flood")),
-        h30("button", { type: "button", className: "mv-cta", onClick: exportGeoJSON }, t2("selection.export"))
+        typeof onParseSelection === "function" ? h31("button", { type: "button", className: "mv-cta", title: t2("selection.parseAoiHint"), onClick: () => onParseSelection(selection) }, t2("selection.parseAoi")) : null,
+        h31("button", { type: "button", className: "mv-cta", title: t2("selection.floodBounds"), onClick: () => void flood() }, t2("selection.flood")),
+        h31("button", { type: "button", className: "mv-cta", onClick: exportGeoJSON }, t2("selection.export"))
       ),
-      h30(
+      h31(
         "div",
         { className: "mv-selection-actions" },
-        isObjects ? null : h30("button", { type: "button", className: "mv-cta", onClick: copySummary }, t2("selection.copy")),
-        h30("button", { type: "button", className: "mv-cta", onClick: clear }, t2("selection.clear"))
+        isObjects ? null : h31("button", { type: "button", className: "mv-cta", onClick: copySummary }, t2("selection.copy")),
+        h31("button", { type: "button", className: "mv-cta", onClick: clear }, t2("selection.clear"))
       )
     ) : null
   );
@@ -23709,7 +24083,7 @@ var import_react37 = __toESM(require("react"), 1);
 
 // src/client/ui/parse-model-settings.js
 var import_react36 = __toESM(require("react"), 1);
-var h31 = import_react36.default.createElement;
+var h32 = import_react36.default.createElement;
 var modeLabels = { "dsh-default": "parse.mode.dsh-default", "dsh-model": "parse.mode.dsh-model", "openai-compat": "parse.mode.openai-compat" };
 async function requestConfig(url, session, signal, config) {
   const headers = { "x-dsh-panel": "vision-config" };
@@ -23765,10 +24139,10 @@ function ParseModelSettings({ t: t2, url, sessionId, busy, actions }) {
     });
     return () => gate.abort();
   }, [mode, directory, url]);
-  const status = error ? h31("div", { role: "alert", className: "mv-parse-invalid" }, [
+  const status = error ? h32("div", { role: "alert", className: "mv-parse-invalid" }, [
     t2("parse.modelConfigError"),
     " ",
-    h31("button", {
+    h32("button", {
       key: "retry",
       type: "button",
       className: "mv-parse-mini-btn",
@@ -23776,18 +24150,18 @@ function ParseModelSettings({ t: t2, url, sessionId, busy, actions }) {
       disabled: busy || writing
     }, t2("parse.retry"))
   ]) : null;
-  if (!draft) return status || h31("span", { role: "status", className: "mv-parse-note" }, t2("parse.loadingModels"));
+  if (!draft) return status || h32("span", { role: "status", className: "mv-parse-note" }, t2("parse.loadingModels"));
   const dsh = draft.dshModel, api = draft.openaiCompat;
   const update = (key, value) => setDraft((old) => ({ ...old, [key]: value }));
-  const field = (label, input2) => h31("label", { key: label, className: "mv-parse-model-field" }, [h31("span", { key: "label" }, t2(label)), import_react36.default.cloneElement(input2, { "aria-label": t2(label) })]);
-  const select = (value, onChange, opts) => h31("select", {
+  const field = (label, input2) => h32("label", { key: label, className: "mv-parse-model-field" }, [h32("span", { key: "label" }, t2(label)), import_react36.default.cloneElement(input2, { "aria-label": t2(label) })]);
+  const select = (value, onChange, opts) => h32("select", {
     key: "input",
     className: "mv-parse-select",
     value,
     onChange: (e) => onChange(e.target.value)
   }, opts);
-  const option = (id, label) => h31("option", { key: id, value: id }, label);
-  const input = (value, onChange, type = "text", placeholder) => h31("input", {
+  const option = (id, label) => h32("option", { key: id, value: id }, label);
+  const input = (value, onChange, type = "text", placeholder) => h32("input", {
     key: "input",
     className: "mv-parse-inline-input",
     value: value || "",
@@ -23800,7 +24174,7 @@ function ParseModelSettings({ t: t2, url, sessionId, busy, actions }) {
   const ds = draft.mode === "dsh-model", external = draft.mode === "openai-compat";
   const active = saved.probe?.model || saved.config[saved.config.mode === "openai-compat" ? "openaiCompat" : "dshModel"]?.model;
   const fields = [
-    h31("legend", { key: "legend" }, t2("parse.modelTitle")),
+    h32("legend", { key: "legend" }, t2("parse.modelTitle")),
     field("parse.modelSource", select(draft.mode, (v) => update("mode", v), Object.entries(modeLabels).map(([id, key]) => option(id, t2(key)))))
   ];
   if (ds) {
@@ -23808,7 +24182,7 @@ function ParseModelSettings({ t: t2, url, sessionId, busy, actions }) {
     const models = groupsAvailable.find((group) => group.id === dsh.provider)?.models ?? [];
     const setProvider = (provider) => update("dshModel", { provider, model: groupsAvailable.find((g) => g.id === provider)?.models[0]?.id || "" });
     if (directory === null) {
-      fields.push(h31("span", { key: "catalog-loading", role: "status", className: "mv-parse-note" }, t2("parse.loadingModels")));
+      fields.push(h32("span", { key: "catalog-loading", role: "status", className: "mv-parse-note" }, t2("parse.loadingModels")));
     } else if (directory.length) {
       const groups = directory.map((g) => option(g.id, g.name || g.id));
       if (!directory.some((g) => g.id === dsh.provider)) groups.unshift(option(dsh.provider, dsh.provider || t2("parse.chooseProvider")));
@@ -23854,8 +24228,8 @@ function ParseModelSettings({ t: t2, url, sessionId, busy, actions }) {
     }
   }
   const valid = ds ? dsh.provider.trim() && dsh.model.trim() : !external || /^https?:\/\//i.test(api.baseUrl) && api.model.trim();
-  fields.push(h31("div", { key: "save", className: "mv-parse-model-apply" }, [
-    h31("button", {
+  fields.push(h32("div", { key: "save", className: "mv-parse-model-apply" }, [
+    h32("button", {
       key: "apply",
       type: "button",
       className: "mv-parse-mini-btn",
@@ -23863,17 +24237,17 @@ function ParseModelSettings({ t: t2, url, sessionId, busy, actions }) {
       disabled: !valid || JSON.stringify(saved.config) === JSON.stringify(draft),
       onClick: save
     }, t2("parse.applyModel")),
-    h31(
+    h32(
       "span",
       { key: "current", className: "mv-parse-note", role: "status" },
       saved.probe?.code === "model_not_visual" ? t2("parse.err.model_not_visual") : saved.probe?.ok === false ? t2("parse.modelUnavailable") : t2("parse.activeModel", { name: active || t2("parse.mode.dsh-default") })
     )
   ]), status);
-  return h31("fieldset", { className: "mv-parse-model", disabled: busy || writing }, fields);
+  return h32("fieldset", { className: "mv-parse-model", disabled: busy || writing }, fields);
 }
 
 // src/client/ui/parse-workbench.js
-var h32 = import_react37.default.createElement;
+var h33 = import_react37.default.createElement;
 function filterCandidates(candidates, filter) {
   const list = Array.isArray(candidates) ? candidates : [];
   if (filter === "pending" || filter === "accepted" || filter === "rejected") {
@@ -23935,9 +24309,9 @@ function filterEntries(t2) {
   ];
 }
 function renderHeader(t2, state, ui) {
-  return h32("div", { className: "mv-parse-head", "data-row": "head" }, [
-    h32("span", { key: "title", className: "mv-parse-title" }, t2("parse.panelTitle")),
-    h32("button", {
+  return h33("div", { className: "mv-parse-head", "data-row": "head" }, [
+    h33("span", { key: "title", className: "mv-parse-title" }, t2("parse.panelTitle")),
+    h33("button", {
       key: "settings",
       type: "button",
       className: "mv-parse-mini-btn",
@@ -23950,8 +24324,8 @@ function renderHeader(t2, state, ui) {
 }
 function renderSettings(t2, state, actions) {
   const catalog = Array.isArray(state?.classes?.catalog) ? state.classes.catalog : [];
-  return h32("div", { className: "mv-parse-settings", "data-row": "settings" }, [
-    state?.visionConfigUrl ? h32(ParseModelSettings, {
+  return h33("div", { className: "mv-parse-settings", "data-row": "settings" }, [
+    state?.visionConfigUrl ? h33(ParseModelSettings, {
       key: "model",
       t: t2,
       url: state.visionConfigUrl,
@@ -23959,8 +24333,8 @@ function renderSettings(t2, state, actions) {
       busy: state.busy,
       actions
     }) : null,
-    h32("label", { key: "scale", className: "mv-parse-scale" }, [
-      h32("input", {
+    h33("label", { key: "scale", className: "mv-parse-scale" }, [
+      h33("input", {
         key: "toggle",
         type: "checkbox",
         checked: state?.multiScale === true,
@@ -23969,10 +24343,10 @@ function renderSettings(t2, state, actions) {
       }),
       t2("parse.multiScale")
     ]),
-    h32("span", { key: "scale-detail", className: "mv-parse-note" }, t2("parse.multiScaleHint")),
-    h32("label", { key: "locator", className: "mv-parse-profile", title: t2("parse.locatorHint") }, [
+    h33("span", { key: "scale-detail", className: "mv-parse-note" }, t2("parse.multiScaleHint")),
+    h33("label", { key: "locator", className: "mv-parse-profile", title: t2("parse.locatorHint") }, [
       t2("parse.locator"),
-      h32("select", {
+      h33("select", {
         key: "select",
         className: "mv-parse-select",
         value: state?.locator ?? "joint",
@@ -23980,13 +24354,13 @@ function renderSettings(t2, state, actions) {
         "aria-label": t2("parse.locator"),
         onChange: (e) => actions?.setLocator?.(e.target.value)
       }, [
-        h32("option", { key: "joint", value: "joint" }, t2("parse.joint")),
-        h32("option", { key: "names", value: "names" }, t2("parse.namedLabels")),
-        h32("option", { key: "separate", value: "separate" }, t2("parse.separate"))
+        h33("option", { key: "joint", value: "joint" }, t2("parse.joint")),
+        h33("option", { key: "names", value: "names" }, t2("parse.namedLabels")),
+        h33("option", { key: "separate", value: "separate" }, t2("parse.separate"))
       ])
     ]),
-    h32("label", { key: "reuse", className: "mv-parse-scale", title: t2("parse.reuseHint") }, [
-      h32("input", {
+    h33("label", { key: "reuse", className: "mv-parse-scale", title: t2("parse.reuseHint") }, [
+      h33("input", {
         key: "toggle",
         type: "checkbox",
         checked: state?.reuse !== false,
@@ -23995,23 +24369,23 @@ function renderSettings(t2, state, actions) {
       }),
       t2("parse.reuse")
     ]),
-    state?.report?.reusedCalls > 0 ? h32("span", { key: "reused", className: "mv-parse-note" }, t2("parse.reusedCount", { n: state.report.reusedCalls })) : null,
-    state?.report?.modelUsed ? h32("span", { key: "used", className: "mv-parse-note" }, t2("parse.lastModel", { name: state.report.modelUsed })) : null,
-    h32(
+    state?.report?.reusedCalls > 0 ? h33("span", { key: "reused", className: "mv-parse-note" }, t2("parse.reusedCount", { n: state.report.reusedCalls })) : null,
+    state?.report?.modelUsed ? h33("span", { key: "used", className: "mv-parse-note" }, t2("parse.lastModel", { name: state.report.modelUsed })) : null,
+    h33(
       "details",
       { key: "definitions", className: "mv-parse-definitions" },
-      h32("summary", null, t2("parse.settingsClasses")),
-      h32("div", { key: "defs", className: "mv-parse-defs" }, catalog.map((entry) => h32("div", {
-        key: entry.key,
+      h33("summary", null, t2("parse.settingsClasses")),
+      h33("div", { key: "defs", className: "mv-parse-defs" }, catalog.map((entry2) => h33("div", {
+        key: entry2.key,
         className: "mv-parse-def"
       }, [
-        h32("span", { key: "name", className: "mv-parse-def-name" }, entry.custom ? `${entry.name} · ${t2("parse.customTag")}` : entry.name),
-        h32("span", { key: "text", className: "mv-parse-def-text" }, entry.definition)
+        h33("span", { key: "name", className: "mv-parse-def-name" }, entry2.custom ? `${entry2.name} · ${t2("parse.customTag")}` : entry2.name),
+        h33("span", { key: "text", className: "mv-parse-def-text" }, entry2.definition)
       ])))
     ),
-    h32("div", { key: "resolution", className: "mv-parse-note" }, t2("parse.settingsResolution")),
-    h32("div", { key: "tiling", className: "mv-parse-note" }, t2("parse.settingsTiling")),
-    state?.report?.usage ? h32("div", { key: "tokens", className: "mv-parse-note" }, t2("parse.tokenUsage", {
+    h33("div", { key: "resolution", className: "mv-parse-note" }, t2("parse.settingsResolution")),
+    h33("div", { key: "tiling", className: "mv-parse-note" }, t2("parse.settingsTiling")),
+    state?.report?.usage ? h33("div", { key: "tokens", className: "mv-parse-note" }, t2("parse.tokenUsage", {
       n: state.report.usage.totalTokens,
       measured: state.report.usage.measuredCalls,
       calls: state.report.calls - (state.report.reusedCalls || 0)
@@ -24022,7 +24396,7 @@ function renderRun(t2, state, actions) {
   const busy = state?.busy === true;
   const rows = [];
   if (busy) {
-    rows.push(h32("button", {
+    rows.push(h33("button", {
       key: "stop",
       type: "button",
       className: "mv-cta danger mv-parse-run-btn",
@@ -24032,17 +24406,17 @@ function renderRun(t2, state, actions) {
     }, t2("parse.stop")));
   } else if (state?.confirmRerun === true) {
     const rerun = state?.rerun ?? {};
-    rows.push(h32("div", {
+    rows.push(h33("div", {
       key: "confirm",
       className: "mv-parse-confirm",
       role: "group",
       "aria-label": t2("parse.rerunConfirm", { n: rerun.total ?? 0, accepted: rerun.accepted ?? 0 })
     }, [
-      h32("span", { key: "text", className: "mv-parse-confirm-text" }, t2("parse.rerunConfirm", {
+      h33("span", { key: "text", className: "mv-parse-confirm-text" }, t2("parse.rerunConfirm", {
         n: rerun.total ?? 0,
         accepted: rerun.accepted ?? 0
       })),
-      h32("button", {
+      h33("button", {
         key: "go",
         type: "button",
         className: "mv-cta primary mv-parse-run-btn",
@@ -24050,7 +24424,7 @@ function renderRun(t2, state, actions) {
         title: t2("parse.rerunGo"),
         onClick: () => actions?.confirmRun?.()
       }, t2("parse.rerunGo")),
-      h32("button", {
+      h33("button", {
         key: "no",
         type: "button",
         className: "mv-parse-mini-btn",
@@ -24062,7 +24436,7 @@ function renderRun(t2, state, actions) {
   } else {
     const canRun = state?.canRun === true;
     const label = typeof state?.primaryLabel === "string" && state.primaryLabel !== "" ? state.primaryLabel : t2("parse.start");
-    rows.push(h32("button", {
+    rows.push(h33("button", {
       key: "run",
       type: "button",
       className: "mv-cta primary mv-parse-run-btn",
@@ -24075,12 +24449,12 @@ function renderRun(t2, state, actions) {
     }, label));
   }
   if (!busy && typeof state?.reason === "string" && state.reason !== "") {
-    rows.push(h32("div", { key: "reason", className: "mv-parse-reason" }, state.reason));
+    rows.push(h33("div", { key: "reason", className: "mv-parse-reason" }, state.reason));
   }
-  return h32("div", { className: "mv-parse-run", "data-row": "run" }, rows);
+  return h33("div", { className: "mv-parse-run", "data-row": "run" }, rows);
 }
 function renderStatus(t2, state) {
-  return h32("div", {
+  return h33("div", {
     className: "mv-parse-status",
     role: "status",
     "aria-live": "polite",
@@ -24091,9 +24465,9 @@ function renderError(t2, state, actions) {
   const error = state?.error;
   if (!error) return null;
   const message2 = typeof error.message === "string" && error.message !== "" ? error.message : t2("parse.err.model_failed");
-  return h32("div", { className: "mv-parse-error", "data-error": error.code ?? "error", role: "alert" }, [
-    h32("div", { key: "msg", className: "mv-parse-error-msg" }, message2),
-    h32("button", {
+  return h33("div", { className: "mv-parse-error", "data-error": error.code ?? "error", role: "alert" }, [
+    h33("div", { key: "msg", className: "mv-parse-error-msg" }, message2),
+    h33("button", {
       key: "retry",
       type: "button",
       className: "mv-parse-mini-btn",
@@ -24108,13 +24482,13 @@ function renderScope(t2, state, actions) {
   const scope = state?.scope ?? "view";
   const aoi = state?.aoi ?? {};
   const drawing = aoi.drawing === true;
-  const rows = [h32("div", {
+  const rows = [h33("div", {
     key: "seg",
     className: "mv-parse-seg",
     role: "group",
     "aria-label": t2("parse.scopeLabel")
   }, [
-    h32("button", {
+    h33("button", {
       key: "view",
       type: "button",
       "data-scope": "view",
@@ -24124,7 +24498,7 @@ function renderScope(t2, state, actions) {
       title: t2("parse.scopeCurrent"),
       onClick: () => actions?.setScope?.("view")
     }, t2("parse.scopeCurrent")),
-    h32("button", {
+    h33("button", {
       key: "aoi",
       type: "button",
       "data-scope": "aoi",
@@ -24140,8 +24514,8 @@ function renderScope(t2, state, actions) {
   ])];
   if (scope === "aoi") {
     const drawEntries = [{ id: "rect", label: aoi.ready === true ? t2("parse.aoiRedraw") : t2("parse.aoiDraw") }];
-    rows.push(h32("div", { key: "aoi", className: "mv-parse-aoi" }, [
-      ...drawEntries.map(({ id, label }) => h32("button", {
+    rows.push(h33("div", { key: "aoi", className: "mv-parse-aoi" }, [
+      ...drawEntries.map(({ id, label }) => h33("button", {
         key: id,
         type: "button",
         className: "mv-parse-mini-btn",
@@ -24150,7 +24524,7 @@ function renderScope(t2, state, actions) {
         title: drawing ? t2("parse.drawing") : label,
         onClick: () => actions?.startDrawAoi?.(id)
       }, drawing ? t2("parse.drawing") : label)),
-      aoi.ready === true ? h32("button", {
+      aoi.ready === true ? h33("button", {
         key: "clear",
         type: "button",
         className: "mv-parse-mini-btn",
@@ -24159,29 +24533,29 @@ function renderScope(t2, state, actions) {
         title: t2("parse.aoiClear"),
         onClick: () => actions?.clearAoi?.()
       }, t2("parse.aoiClear")) : null,
-      h32("span", { key: "note", className: "mv-parse-note" }, aoi.ready === true ? t2("parse.aoiReadyLabel", { area: Number.isFinite(aoi.area_m2) ? formatArea(aoi.area_m2) : "—" }) : t2("parse.needAoi"))
+      h33("span", { key: "note", className: "mv-parse-note" }, aoi.ready === true ? t2("parse.aoiReadyLabel", { area: Number.isFinite(aoi.area_m2) ? formatArea(aoi.area_m2) : "—" }) : t2("parse.needAoi"))
     ]));
   }
-  return h32("div", { className: "mv-parse-sec", "data-row": "scope" }, rows);
+  return h33("div", { className: "mv-parse-sec", "data-row": "scope" }, rows);
 }
 function renderClasses(t2, state, actions, ui) {
   const busy = state?.busy === true;
   const catalog = Array.isArray(state?.classes?.catalog) ? state.classes.catalog : [];
-  const chips = catalog.map((entry) => h32("button", {
-    key: entry.key,
+  const chips = catalog.map((entry2) => h33("button", {
+    key: entry2.key,
     type: "button",
-    "data-class": entry.key,
-    "aria-pressed": entry.on === true,
-    className: `mv-parse-chip${entry.on === true ? " on" : ""}`,
+    "data-class": entry2.key,
+    "aria-pressed": entry2.on === true,
+    className: `mv-parse-chip${entry2.on === true ? " on" : ""}`,
     disabled: busy,
-    title: entry.definition ? `${entry.name} · ${entry.definition}` : entry.name,
-    onClick: () => actions?.toggleClass?.(entry.key)
+    title: entry2.definition ? `${entry2.name} · ${entry2.definition}` : entry2.name,
+    onClick: () => actions?.toggleClass?.(entry2.key)
   }, [
-    h32("span", { key: "dot", className: "mv-parse-dot", style: dotStyle(entry.color), "aria-hidden": true }),
-    entry.name
+    h33("span", { key: "dot", className: "mv-parse-dot", style: dotStyle(entry2.color), "aria-hidden": true }),
+    entry2.name
   ]));
   if (ui.customOpen) {
-    chips.push(h32("input", {
+    chips.push(h33("input", {
       key: "custom-input",
       type: "text",
       className: "mv-parse-inline-input",
@@ -24201,7 +24575,7 @@ function renderClasses(t2, state, actions, ui) {
         }
       }
     }));
-    chips.push(h32("button", {
+    chips.push(h33("button", {
       key: "custom-save",
       type: "button",
       className: "mv-parse-mini-btn",
@@ -24210,7 +24584,7 @@ function renderClasses(t2, state, actions, ui) {
       title: t2("parse.customSave"),
       onClick: () => ui.submitCustom()
     }, t2("parse.customSave")));
-    chips.push(h32("button", {
+    chips.push(h33("button", {
       key: "custom-cancel",
       type: "button",
       className: "mv-parse-mini-btn",
@@ -24219,7 +24593,7 @@ function renderClasses(t2, state, actions, ui) {
       onClick: () => ui.closeCustom()
     }, t2("parse.cancel")));
   } else {
-    chips.push(h32("button", {
+    chips.push(h33("button", {
       key: "custom-add",
       type: "button",
       className: "mv-parse-chip mv-parse-chip-add",
@@ -24229,7 +24603,7 @@ function renderClasses(t2, state, actions, ui) {
       onClick: () => ui.openCustom()
     }, t2("parse.customClass")));
   }
-  chips.push(h32("button", {
+  chips.push(h33("button", {
     key: "reset",
     type: "button",
     className: "mv-parse-mini-btn",
@@ -24238,10 +24612,10 @@ function renderClasses(t2, state, actions, ui) {
     title: t2("parse.classResetHint"),
     onClick: () => actions?.resetClasses?.()
   }, t2("parse.classReset")));
-  return h32("div", { className: "mv-parse-sec", "data-row": "classes" }, [
-    h32("label", { key: "profile", className: "mv-parse-profile" }, [
+  return h33("div", { className: "mv-parse-sec", "data-row": "classes" }, [
+    h33("label", { key: "profile", className: "mv-parse-profile" }, [
       t2("parse.classProfile"),
-      h32("select", {
+      h33("select", {
         key: "choice",
         className: "mv-parse-select",
         disabled: busy,
@@ -24249,13 +24623,13 @@ function renderClasses(t2, state, actions, ui) {
         "aria-label": t2("parse.classProfile"),
         onChange: (e) => actions?.setClassProfile?.(e.target.value)
       }, [
-        h32("option", { key: "general", value: "general" }, t2("parse.generalProfile")),
-        h32("option", { key: "sports", value: "sports" }, t2("parse.sportsProfile"))
+        h33("option", { key: "general", value: "general" }, t2("parse.generalProfile")),
+        h33("option", { key: "sports", value: "sports" }, t2("parse.sportsProfile"))
       ])
     ]),
-    h32("div", { key: "chips", className: "mv-parse-chips", role: "group", "aria-label": t2("parse.classesLabel") }, chips),
-    ui.customError ? h32("div", { key: "invalid", className: "mv-parse-invalid", role: "alert" }, t2("parse.customInvalid")) : null,
-    h32("div", { key: "summary", className: "mv-parse-note" }, state?.classes?.summary ?? "")
+    h33("div", { key: "chips", className: "mv-parse-chips", role: "group", "aria-label": t2("parse.classesLabel") }, chips),
+    ui.customError ? h33("div", { key: "invalid", className: "mv-parse-invalid", role: "alert" }, t2("parse.customInvalid")) : null,
+    h33("div", { key: "summary", className: "mv-parse-note" }, state?.classes?.summary ?? "")
   ]);
 }
 function renderRow(t2, state, actions, candidate) {
@@ -24265,7 +24639,7 @@ function renderRow(t2, state, actions, candidate) {
   const active = state?.activeId === id;
   const status = candidate?.status ?? "pending";
   const classText = candidate?.className || candidate?.classKey || t2("parse.class.other");
-  const icon = (key, action, glyph, label, run) => h32("button", {
+  const icon = (key, action, glyph, label, run) => h33("button", {
     key,
     type: "button",
     className: "mv-parse-icon-btn",
@@ -24297,14 +24671,14 @@ function renderRow(t2, state, actions, candidate) {
     icon("remove", "remove", "⌫", t2("parse.remove"), () => actions?.remove?.([id])),
     icon("fly", "fly", "⌖", t2("parse.flyTo"), () => actions?.flyTo?.(id))
   );
-  return h32("div", { key: id, role: "listitem", className: "mv-parse-item-wrap", "data-id": id }, h32("div", {
+  return h33("div", { key: id, role: "listitem", className: "mv-parse-item-wrap", "data-id": id }, h33("div", {
     className: `mv-parse-row mv-parse-item${selected ? " on" : ""}${active ? " active" : ""}`,
     "data-item-id": id,
     onClick: () => {
       if (!busy) actions?.activate?.(id);
     }
   }, [
-    h32("input", {
+    h33("input", {
       key: "select",
       type: "checkbox",
       className: "mv-parse-check",
@@ -24319,8 +24693,8 @@ function renderRow(t2, state, actions, candidate) {
         actions?.select?.(next);
       }
     }),
-    h32("span", { key: "dot", className: "mv-parse-dot", style: dotStyle(candidate?.color), "aria-hidden": true }),
-    h32("button", {
+    h33("span", { key: "dot", className: "mv-parse-dot", style: dotStyle(candidate?.color), "aria-hidden": true }),
+    h33("button", {
       key: "class",
       type: "button",
       className: "mv-parse-item-class",
@@ -24329,9 +24703,9 @@ function renderRow(t2, state, actions, candidate) {
       "aria-label": t2("parse.previewCandidate", { name: classText }),
       onClick: (event) => press(event, () => actions?.activate?.(id))
     }, classText),
-    candidate?.clippedAtTileEdge === true ? h32("span", { key: "clipped", className: "mv-parse-item-tag", title: t2("parse.clippedHint") }, t2("parse.clippedTag")) : null,
-    h32("span", { key: "area", className: "mv-parse-item-area", title: t2("parse.areaLabel") }, areaText(candidate?.area_m2)),
-    h32("span", { key: "actions", className: "mv-parse-item-actions" }, buttons)
+    candidate?.clippedAtTileEdge === true ? h33("span", { key: "clipped", className: "mv-parse-item-tag", title: t2("parse.clippedHint") }, t2("parse.clippedTag")) : null,
+    h33("span", { key: "area", className: "mv-parse-item-area", title: t2("parse.areaLabel") }, areaText(candidate?.area_m2)),
+    h33("span", { key: "actions", className: "mv-parse-item-actions" }, buttons)
   ]));
 }
 function renderQueue(t2, state, actions) {
@@ -24339,15 +24713,15 @@ function renderQueue(t2, state, actions) {
   const rows = visibleCandidates(state);
   const counts = state?.counts ?? {};
   const pending = Number(counts.pending) || 0;
-  return h32("div", { className: "mv-parse-queue", "data-row": "queue" }, [
-    h32("div", { key: "head", className: "mv-parse-queue-head" }, [
-      h32("span", { key: "counts", className: "mv-parse-queue-counts" }, t2("parse.queueCounts", {
+  return h33("div", { className: "mv-parse-queue", "data-row": "queue" }, [
+    h33("div", { key: "head", className: "mv-parse-queue-head" }, [
+      h33("span", { key: "counts", className: "mv-parse-queue-counts" }, t2("parse.queueCounts", {
         n: Number(counts.total) || 0,
         pending,
         accepted: Number(counts.accepted) || 0
       })),
-      h32("span", { key: "tools", className: "mv-parse-queue-tools", role: "group", "aria-label": t2("parse.filterLabel") }, [
-        h32("select", {
+      h33("span", { key: "tools", className: "mv-parse-queue-tools", role: "group", "aria-label": t2("parse.filterLabel") }, [
+        h33("select", {
           key: "filter",
           className: "mv-parse-select",
           "data-filter-select": "1",
@@ -24356,8 +24730,8 @@ function renderQueue(t2, state, actions) {
           title: t2("parse.filterLabel"),
           disabled: busy,
           onChange: (event) => actions?.setFilter?.(event?.target?.value ?? "all")
-        }, filterEntries(t2).map((entry) => h32("option", { key: entry.id, value: entry.id }, entry.label))),
-        h32("button", {
+        }, filterEntries(t2).map((entry2) => h33("option", { key: entry2.id, value: entry2.id }, entry2.label))),
+        h33("button", {
           key: "pending",
           type: "button",
           className: "mv-parse-mini-btn",
@@ -24368,7 +24742,7 @@ function renderQueue(t2, state, actions) {
             (state?.candidates ?? []).filter((candidate) => candidate?.status === "pending").map((candidate) => candidate.id)
           )
         }, t2("parse.selectPending")),
-        h32("button", {
+        h33("button", {
           key: "adopt-selected",
           type: "button",
           className: "mv-parse-mini-btn",
@@ -24377,7 +24751,7 @@ function renderQueue(t2, state, actions) {
           title: t2("parse.adoptSelected"),
           onClick: () => actions?.adopt?.(state?.selected ?? [])
         }, t2("parse.adoptSelected")),
-        h32("button", {
+        h33("button", {
           key: "reject-selected",
           type: "button",
           className: "mv-parse-mini-btn",
@@ -24386,7 +24760,7 @@ function renderQueue(t2, state, actions) {
           title: t2("parse.rejectSelected"),
           onClick: () => actions?.reject?.(state?.selected ?? [])
         }, t2("parse.rejectSelected")),
-        h32("button", {
+        h33("button", {
           key: "undo",
           type: "button",
           className: "mv-parse-icon-btn",
@@ -24396,7 +24770,7 @@ function renderQueue(t2, state, actions) {
           "aria-label": t2("parse.undo"),
           onClick: () => actions?.undo?.()
         }, "↶"),
-        h32("button", {
+        h33("button", {
           key: "redo",
           type: "button",
           className: "mv-parse-icon-btn",
@@ -24408,7 +24782,7 @@ function renderQueue(t2, state, actions) {
         }, "↷")
       ])
     ]),
-    h32("div", { key: "rows", className: "mv-parse-rows", role: "list", "aria-label": t2("parse.queueLabel") }, rows.length > 0 ? rows.map((candidate) => renderRow(t2, state, actions, candidate)) : h32("div", { role: "listitem", className: "mv-parse-empty" }, t2("parse.queueEmpty")))
+    h33("div", { key: "rows", className: "mv-parse-rows", role: "list", "aria-label": t2("parse.queueLabel") }, rows.length > 0 ? rows.map((candidate) => renderRow(t2, state, actions, candidate)) : h33("div", { role: "listitem", className: "mv-parse-empty" }, t2("parse.queueEmpty")))
   ]);
 }
 function renderExport(t2, state, actions, ui) {
@@ -24416,9 +24790,9 @@ function renderExport(t2, state, actions, ui) {
   const scope = ui.exportScope === "all" ? "all" : "accepted";
   const count = exportCount(state, scope);
   const disabled = busy || count === 0;
-  return h32("div", { className: "mv-parse-export", "data-row": "export" }, [
-    h32("div", { key: "scope", className: "mv-parse-export-row", role: "group", "aria-label": t2("parse.exportScopeLabel") }, [
-      h32("button", {
+  return h33("div", { className: "mv-parse-export", "data-row": "export" }, [
+    h33("div", { key: "scope", className: "mv-parse-export-row", role: "group", "aria-label": t2("parse.exportScopeLabel") }, [
+      h33("button", {
         key: "accepted",
         type: "button",
         "data-export-scope": "accepted",
@@ -24428,7 +24802,7 @@ function renderExport(t2, state, actions, ui) {
         title: t2("parse.filterAccepted"),
         onClick: () => ui.setExportScope("accepted")
       }, t2("parse.filterAccepted")),
-      h32("button", {
+      h33("button", {
         key: "all",
         type: "button",
         "data-export-scope": "all",
@@ -24439,8 +24813,8 @@ function renderExport(t2, state, actions, ui) {
         onClick: () => ui.setExportScope("all")
       }, t2("parse.filterAllQueue"))
     ]),
-    count === 0 && Number(state?.counts?.total) > 0 ? h32("div", { key: "need", className: "mv-parse-note" }, t2("parse.exportNeedAccept")) : null,
-    h32("div", { key: "do", className: "mv-parse-export-row" }, h32("button", {
+    count === 0 && Number(state?.counts?.total) > 0 ? h33("div", { key: "need", className: "mv-parse-note" }, t2("parse.exportNeedAccept")) : null,
+    h33("div", { key: "do", className: "mv-parse-export-row" }, h33("button", {
       key: "export",
       type: "button",
       className: "mv-cta primary mv-parse-export-do",
@@ -24497,7 +24871,7 @@ function useWorkbenchUi(t2, state, actions) {
 function ParseWorkbench({ t: t2, state, actions }) {
   const translate2 = typeof t2 === "function" ? t2 : (key) => key;
   const ui = useWorkbenchUi(translate2, state, actions);
-  return h32("div", { className: "mv-parse mv-parse-workbench" }, [
+  return h33("div", { className: "mv-parse mv-parse-workbench" }, [
     renderHeader(translate2, state, ui),
     ui.settingsOpen ? renderSettings(translate2, state, actions) : null,
     renderScope(translate2, state, actions),
@@ -24524,23 +24898,11 @@ var EXPORT_PROPERTY_ORDER = Object.freeze([
   "source_kind",
   "shape",
   "confidence",
-  "height_m",
-  "height_source",
-  "floors",
-  "base_m",
-  "roof_m",
   "area_m2",
   "run_id",
-  "rev",
-  // P1b refinement provenance: `box` outlines are a coarse fallback, `refined` /
-  // `manual` outlines were reviewed. Kept at the end so the legacy prefix of the
-  // property contract does not move.
-  "outline_source",
-  "outline_quality",
-  "refine_state"
+  "rev"
 ]);
 var EXPORT_DEFAULT_DECIMALS = 7;
-var EXPORT_DEFAULT_HEIGHT_DECIMALS = 2;
 var STRING_KEYS = /* @__PURE__ */ new Set([
   "id",
   "class",
@@ -24552,13 +24914,9 @@ var STRING_KEYS = /* @__PURE__ */ new Set([
   "source",
   "source_kind",
   "shape",
-  "height_source",
-  "run_id",
-  "outline_source",
-  "outline_quality",
-  "refine_state"
+  "run_id"
 ]);
-var NUMBER_KEYS = /* @__PURE__ */ new Set(["confidence", "height_m", "floors", "base_m", "roof_m", "area_m2", "rev"]);
+var NUMBER_KEYS = /* @__PURE__ */ new Set(["confidence", "area_m2", "rev"]);
 var isObject = (value) => value !== null && typeof value === "object" && !Array.isArray(value);
 var finiteNumber2 = (value) => typeof value === "number" && Number.isFinite(value) ? value : null;
 function decimalsOf(value, fallback) {
@@ -24587,20 +24945,18 @@ function outerRings(geometry) {
   }
   return null;
 }
-function exportProperties(properties, estimated) {
+function exportProperties(properties) {
   const source = isObject(properties) ? properties : {};
   const out = {};
   for (const key of EXPORT_PROPERTY_ORDER) {
     const value = source[key];
     if (STRING_KEYS.has(key)) out[key] = typeof value === "string" ? value : null;
     else if (NUMBER_KEYS.has(key)) out[key] = finiteNumber2(value);
-    else if (key === "clippedAtTileEdge") out[key] = value === true ? true : null;
-    else out[key] = null;
+    else out[key] = value === true ? true : null;
   }
-  if (estimated) out.estimated_geometry = true;
   return out;
 }
-function buildRing(ring, { withZ, decimals, zDecimals, z }) {
+function buildRing(ring, decimals) {
   if (!Array.isArray(ring) || ring.length < 3) return null;
   const out = [];
   for (const position of ring) {
@@ -24608,8 +24964,7 @@ function buildRing(ring, { withZ, decimals, zDecimals, z }) {
     const lon = finiteNumber2(position[0]);
     const lat = finiteNumber2(position[1]);
     if (lon === null || lat === null) return null;
-    const pair = [roundTo(lon, decimals), roundTo(lat, decimals)];
-    out.push(withZ ? [...pair, roundTo(z, zDecimals)] : pair);
+    out.push([roundTo(lon, decimals), roundTo(lat, decimals)]);
   }
   const first = out[0];
   const last = out[out.length - 1];
@@ -24618,12 +24973,8 @@ function buildRing(ring, { withZ, decimals, zDecimals, z }) {
 }
 function buildGeoJsonExport(features, options = {}) {
   const list = Array.isArray(features) ? features : [];
-  const withZ = options.withZ === true;
-  const assumeZero = options.assumeZero === true;
   const decimals = decimalsOf(options.round, EXPORT_DEFAULT_DECIMALS);
-  const zDecimals = decimalsOf(options.heightRound, EXPORT_DEFAULT_HEIGHT_DECIMALS);
   const collection = { type: "FeatureCollection", features: [] };
-  let missing = 0;
   let skipped = 0;
   for (const feature of list) {
     if (!isObject(feature)) {
@@ -24635,55 +24986,28 @@ function buildGeoJsonExport(features, options = {}) {
       skipped += 1;
       continue;
     }
-    const properties = isObject(feature.properties) ? feature.properties : {};
-    let z = 0;
-    let estimated = false;
-    if (withZ) {
-      const base = finiteNumber2(properties.base_m);
-      const height = finiteNumber2(properties.height_m);
-      if (height !== null && height > 0) {
-        z = (base ?? 0) + height;
-        if (base === null) estimated = true;
-      } else {
-        missing += 1;
-        if (!assumeZero) {
-          skipped += 1;
-          continue;
-        }
-        estimated = true;
-        z = base ?? 0;
-      }
-    }
-    const exported = exportProperties(properties, estimated);
+    const properties = exportProperties(feature.properties);
     for (const ring of rings) {
-      const coordinates = buildRing(ring, { withZ, decimals, zDecimals, z });
+      const coordinates = buildRing(ring, decimals);
       if (coordinates === null) {
         skipped += 1;
         continue;
       }
       collection.features.push({
         type: "Feature",
-        properties: { ...exported },
+        properties: { ...properties },
         geometry: { type: "Polygon", coordinates: [coordinates] }
       });
     }
   }
-  return {
-    collection,
-    count: collection.features.length,
-    missing,
-    skipped,
-    withZ,
-    assumeZero
-  };
+  return { collection, count: collection.features.length, skipped };
 }
-function suggestedFilename({ format = "geojson", date = /* @__PURE__ */ new Date() } = {}) {
+function suggestedFilename({ date = /* @__PURE__ */ new Date() } = {}) {
   const when = date instanceof Date && !Number.isNaN(date.getTime()) ? date : /* @__PURE__ */ new Date();
   const year = String(when.getFullYear());
   const month = String(when.getMonth() + 1).padStart(2, "0");
   const day = String(when.getDate()).padStart(2, "0");
-  const suffix = format === "geojson-z" ? "-z" : "";
-  return `extract-${year}${month}${day}${suffix}.geojson`;
+  return `extract-${year}${month}${day}.geojson`;
 }
 
 // src/client/scene/annotation-store.js
@@ -24693,30 +25017,8 @@ var ANNOTATION_PATCHABLE_KEYS = Object.freeze([
   "name",
   "class",
   "class_key",
-  "height_m",
-  "height_source",
-  "floors",
-  // Clearing the measured base/roof keeps a hand-edited height from still
-  // exporting the old surface geometry as if it were measured.
-  "base_m",
-  "roof_m",
-  // Footprint area is derived data: replacing a coarse box with a refined outline
-  // must be able to refresh it, and the panel never recomputes it from geometry.
   "area_m2"
 ]);
-var ANNOTATION_REFINE_KEYS = Object.freeze([
-  "outline_source",
-  "outline_quality",
-  // A successful refine changes the geometry family: a detection box becomes a
-  // polygon. Without this key the export's box filter would drop the refined row.
-  "shape",
-  "refine_error",
-  "refine_state",
-  "refine_attempts",
-  "refine_bbox_iou",
-  "refine_area_ratio"
-]);
-var ANNOTATION_REPLACE_KEYS = Object.freeze([...ANNOTATION_PATCHABLE_KEYS, ...ANNOTATION_REFINE_KEYS]);
 var ANNOTATION_CARRIED_KEYS = Object.freeze([
   "class",
   "class_key",
@@ -24724,20 +25026,11 @@ var ANNOTATION_CARRIED_KEYS = Object.freeze([
   "color",
   "clippedAtTileEdge",
   // Provenance: which model label came back, and which source produced the row
-  // (tiles3d / 2d / manual). Without these a 2D candidate looked like a 3D one.
+  // (ortho / manual). The row itself is always a flat 2D footprint.
   "class_raw",
   "source_kind",
   "shape",
-  // Outline provenance from P1a/P1b: a `box` row is a coarse fallback, `refined` /
-  // `manual` rows carry a reviewed outline; the export can mark the difference.
-  "outline_source",
-  "outline_quality",
   "confidence",
-  "height_m",
-  "height_source",
-  "floors",
-  "base_m",
-  "roof_m",
   "area_m2",
   "name",
   "hex"
@@ -24900,45 +25193,6 @@ function createAnnotationStore({ now = Date.now, idPrefix = "A" } = {}) {
     commit(`patch ${id}`, next);
     return true;
   }
-  function replaceGeometry(updates) {
-    const list = Array.isArray(updates) ? updates : [];
-    if (list.length === 0) return 0;
-    const wanted = /* @__PURE__ */ new Map();
-    for (const raw of list) {
-      if (!isObject2(raw)) continue;
-      if (typeof raw.id !== "string" || raw.id === "") continue;
-      let update = wanted.get(raw.id);
-      if (update === void 0) {
-        update = { geometry: void 0, properties: {} };
-        wanted.set(raw.id, update);
-      }
-      if (isObject2(raw.geometry)) update.geometry = clone2(raw.geometry);
-      if (!isObject2(raw.properties)) continue;
-      for (const key of ANNOTATION_REPLACE_KEYS) {
-        if (!hasOwn(raw.properties, key)) continue;
-        if (raw.properties[key] === void 0) continue;
-        update.properties[key] = clone2(raw.properties[key]);
-      }
-    }
-    if (wanted.size === 0) return 0;
-    let changed = 0;
-    const next = features.map((feature) => {
-      const update = wanted.get(feature.properties.id);
-      if (update === void 0) return feature;
-      const hasGeometry = update.geometry !== void 0;
-      const propertyKeys = Object.keys(update.properties);
-      if (!hasGeometry && propertyKeys.length === 0) return feature;
-      const properties = { ...feature.properties };
-      for (const key of propertyKeys) properties[key] = update.properties[key];
-      const rev = typeof properties.rev === "number" && Number.isFinite(properties.rev) ? properties.rev : 0;
-      properties.rev = rev + 1;
-      changed += 1;
-      return hasGeometry ? { ...feature, geometry: update.geometry, properties } : { ...feature, properties };
-    });
-    if (changed === 0) return 0;
-    commit(`replace-geometry ${changed}`, next);
-    return changed;
-  }
   function hydrate(rawFeatures) {
     const list = Array.isArray(rawFeatures) ? rawFeatures.slice(0, 500) : [];
     const next = [];
@@ -24983,21 +25237,21 @@ function createAnnotationStore({ now = Date.now, idPrefix = "A" } = {}) {
     return removed;
   }
   function undo() {
-    const entry = undoStack.pop();
-    if (entry === void 0) return { ok: false, label: null };
-    redoStack.push({ label: entry.label, features });
-    features = entry.features;
+    const entry2 = undoStack.pop();
+    if (entry2 === void 0) return { ok: false, label: null };
+    redoStack.push({ label: entry2.label, features });
+    features = entry2.features;
     notify();
-    return { ok: true, label: entry.label };
+    return { ok: true, label: entry2.label };
   }
   function redo() {
-    const entry = redoStack.pop();
-    if (entry === void 0) return { ok: false, label: null };
-    undoStack.push({ label: entry.label, features });
+    const entry2 = redoStack.pop();
+    if (entry2 === void 0) return { ok: false, label: null };
+    undoStack.push({ label: entry2.label, features });
     if (undoStack.length > ANNOTATION_UNDO_LIMIT) undoStack.shift();
-    features = entry.features;
+    features = entry2.features;
     notify();
-    return { ok: true, label: entry.label };
+    return { ok: true, label: entry2.label };
   }
   function stats() {
     const out = { total: 0, pending: 0, accepted: 0, rejected: 0, byClass: [] };
@@ -25040,7 +25294,6 @@ function createAnnotationStore({ now = Date.now, idPrefix = "A" } = {}) {
     addCandidates,
     setStatus,
     patch,
-    replaceGeometry,
     remove,
     hydrate,
     undo,
@@ -25219,7 +25472,7 @@ function createParseController(ctx) {
   let profile = "general";
   const presets = () => profile === "sports" ? SPORTS_CLASSES : DEFAULT_CLASSES;
   const customLabels = [];
-  let selectedKeys = new Set(DEFAULT_CLASSES.map((entry) => entry.key));
+  let selectedKeys = new Set(DEFAULT_CLASSES.map((entry2) => entry2.key));
   let phase = "idle";
   let modelSaving = false;
   let reuse = true;
@@ -25252,16 +25505,16 @@ function createParseController(ctx) {
   const changed = () => {
     emit();
   };
-  const catalog = () => buildClassCatalog(customLabels, presets());
-  const selectedEntries = () => catalog().filter((entry) => selectedKeys.has(entry.key));
+  const catalog = () => buildClassCatalog(customLabels, presets(), isChinese() ? "zh" : "en");
+  const selectedEntries = () => catalog().filter((entry2) => selectedKeys.has(entry2.key));
   const aoiReady = () => Boolean(aoi && aoi.bbox);
   const firstId = () => store.getState().candidates[0]?.properties?.id ?? null;
   const summaryText2 = () => {
     const list = catalog();
-    const picked = list.filter((entry) => selectedKeys.has(entry.key));
+    const picked = list.filter((entry2) => selectedKeys.has(entry2.key));
     if (picked.length === 0) return t2("parse.classesNone");
     if (picked.length === list.length) return t2("parse.classesAll", { n: list.length });
-    const names = picked.map((entry) => entry.name);
+    const names = picked.map((entry2) => entry2.name);
     if (names.length <= 2) return t2("parse.classesOnly", { label: names.join(t2("parse.listSeparator")) });
     return t2("parse.classesCount", { n: names.length });
   };
@@ -25300,14 +25553,14 @@ function createParseController(ctx) {
       progress,
       classes: {
         profile,
-        catalog: catalog().map((entry) => ({
-          id: entry.id,
-          key: entry.key,
-          name: entry.name,
-          color: entry.color,
-          definition: entry.descriptionZh && t2("parse.language") === "zh" ? entry.descriptionZh : entry.definition,
-          custom: entry.custom === true,
-          on: selectedKeys.has(entry.key)
+        catalog: catalog().map((entry2) => ({
+          id: entry2.id,
+          key: entry2.key,
+          name: entry2.name,
+          color: entry2.color,
+          definition: entry2.definition,
+          custom: entry2.custom === true,
+          on: selectedKeys.has(entry2.key)
         })),
         custom: customLabels.slice(),
         summary: summaryText2()
@@ -25340,7 +25593,7 @@ function createParseController(ctx) {
     }
   };
   const addCandidates = (features, { replace = true } = {}) => {
-    if (replace) store.startRun({ mode: "instances", source: "ortho", scope, classes: selectedEntries().map((entry) => entry.key) });
+    if (replace) store.startRun({ mode: "instances", source: "ortho", scope, classes: selectedEntries().map((entry2) => entry2.key) });
     if (Array.isArray(features) && features.length > 0) store.addCandidates(features);
     selected = [];
     activeId = firstId();
@@ -25449,12 +25702,12 @@ function createParseController(ctx) {
         separateClasses: locator === "separate",
         reuse,
         bbox: scope === "aoi" ? aoi?.bbox ?? null : null,
-        classes: entries.map((entry) => ({
-          id: entry.id,
-          name: entry.name,
-          definition: entry.definition,
-          key: entry.key,
-          color: entry.color
+        classes: entries.map((entry2) => ({
+          id: entry2.id,
+          name: entry2.name,
+          definition: entry2.definition,
+          key: entry2.key,
+          color: entry2.color
         })),
         signal: controller?.signal ?? null,
         onProgress: (event) => {
@@ -25544,12 +25797,12 @@ function createParseController(ctx) {
   const runExport = (nextScope) => {
     const target = EXPORT_SCOPES.has(nextScope) ? nextScope : "accepted";
     const features = target === "all" ? store.all() : store.accepted();
-    const { collection, count } = buildGeoJsonExport(features, { withZ: false });
+    const { collection, count } = buildGeoJsonExport(features);
     if (count === 0) {
       toast(t2("parse.exportEmpty"));
       return false;
     }
-    const written = downloadText(suggestedFilename({ format: "geojson" }), JSON.stringify(collection, null, 2), "application/geo+json");
+    const written = downloadText(suggestedFilename(), JSON.stringify(collection, null, 2), "application/geo+json");
     if (!written) {
       toast(t2("parse.exportEmpty"));
       return false;
@@ -25656,12 +25909,12 @@ function createParseController(ctx) {
     setClassProfile(next) {
       if (busy || !["general", "sports"].includes(next) || next === profile) return;
       profile = next;
-      selectedKeys = new Set(presets().map((entry) => entry.key));
+      selectedKeys = new Set(presets().map((entry2) => entry2.key));
       confirmRerun = false;
       changed();
     },
     toggleClass(key) {
-      if (busy || typeof key !== "string" || !catalog().some((entry) => entry.key === key)) return;
+      if (busy || typeof key !== "string" || !catalog().some((entry2) => entry2.key === key)) return;
       if (selectedKeys.has(key)) selectedKeys.delete(key);
       else selectedKeys.add(key);
       confirmRerun = false;
@@ -25674,7 +25927,7 @@ function createParseController(ctx) {
         toast(t2("parse.customInvalid"));
         return;
       }
-      const existing = catalog().find((entry) => entry.name === clean || entry.key === clean);
+      const existing = catalog().find((entry2) => entry2.name === clean || entry2.key === clean);
       if (existing) {
         selectedKeys.add(existing.key);
         changed();
@@ -25692,7 +25945,7 @@ function createParseController(ctx) {
     resetClasses() {
       if (busy) return;
       customLabels.length = 0;
-      selectedKeys = new Set(presets().map((entry) => entry.key));
+      selectedKeys = new Set(presets().map((entry2) => entry2.key));
       confirmRerun = false;
       changed();
     },
@@ -25828,13 +26081,13 @@ function createParseController(ctx) {
   const restoreSnapshot = (payload) => {
     if (!payload || typeof payload !== "object") return false;
     profile = payload?.profile === "sports" ? "sports" : "general";
-    selectedKeys = new Set(presets().map((entry) => entry.key));
+    selectedKeys = new Set(presets().map((entry2) => entry2.key));
     const labels = Array.isArray(payload?.customClasses) ? payload.customClasses.map((label) => sanitizeCustomLabel(label)).filter((label) => label !== "") : [];
     customLabels.length = 0;
     customLabels.push(...labels.slice(0, TAXONOMY_LIMITS.maxClasses));
     for (const label of customLabels) selectedKeys.add(`custom:${label}`);
     if (Array.isArray(payload?.selectedKeys)) {
-      const known = new Set(catalog().map((entry) => entry.key));
+      const known = new Set(catalog().map((entry2) => entry2.key));
       selectedKeys = new Set(payload.selectedKeys.filter((key) => known.has(key)));
     }
     reuse = payload?.reuse !== false;
@@ -25997,7 +26250,7 @@ try {
 }
 
 // src/client/ui/parse-panel.js
-var h33 = import_react38.default.createElement;
+var h34 = import_react38.default.createElement;
 var consumedAoiRequest = null;
 function ParsePanel(props) {
   const controller = parseSession(props);
@@ -26012,13 +26265,13 @@ function ParsePanel(props) {
   }, [controller]);
   import_react38.default.useEffect(() => {
     controller?.refresh();
-    const request2 = props.openRequest;
-    if (request2?.aoiSeq && request2 !== consumedAoiRequest) {
-      consumedAoiRequest = request2;
+    const request = props.openRequest;
+    if (request?.aoiSeq && request !== consumedAoiRequest) {
+      consumedAoiRequest = request;
       controller?.actions?.setScope?.("aoi");
     }
   }, [controller, props.openRequest?.id, props.openRequest?.aoiSeq]);
-  return h33(ParseWorkbench, {
+  return h34(ParseWorkbench, {
     t: props.t,
     state: controller.getState(),
     actions: controller.actions,
@@ -26531,7 +26784,7 @@ async function exportComparisonBundle({ getViewer, getCesium, getLayers, getMeta
       rightLayer.tileset.splitDirection = dirs.RIGHT;
     }
     viewer.scene.splitPosition = ratio;
-    const overlay = includeDivider || includeLabels ? (ctx, w, h50) => drawSplitFigureOverlay(ctx, w, h50, {
+    const overlay = includeDivider || includeLabels ? (ctx, w, h51) => drawSplitFigureOverlay(ctx, w, h51, {
       ratio,
       includeDivider,
       includeLabels,
@@ -26588,11 +26841,11 @@ async function exportComparisonBundle({ getViewer, getCesium, getLayers, getMeta
     camera,
     left: leftMeta,
     right: rightMeta,
-    files: shots.map(({ role, filename, width: w, height: h50, format: fmt }) => ({
+    files: shots.map(({ role, filename, width: w, height: h51, format: fmt }) => ({
       role,
       filename,
       width: w,
-      height: h50,
+      height: h51,
       format: fmt
     }))
   };
@@ -26633,7 +26886,7 @@ async function downloadComparisonBundle(bundle, { delayMs = 120 } = {}) {
 }
 
 // src/client/ui/compare-panel.js
-var h34 = import_react39.default.createElement;
+var h35 = import_react39.default.createElement;
 var SSE_PRESETS = [1, 4, 16, 32];
 var EXPORT_WIDTHS = [1280, 1920, 2560];
 function legacyCopyText(text) {
@@ -26897,54 +27150,54 @@ function ComparePanel({
     }
   };
   const is3dgsInspect = diag ? !diag.supportsWireframe : inspectLayer?.kind === "3dgs";
-  return h34(
+  return h35(
     "div",
     { className: "mv-compare" },
     // ---- Section 1: Dual-layer split comparison ----
-    h34(
+    h35(
       "section",
       { className: "mv-compare-sec" },
-      h34(
+      h35(
         "div",
         { className: "mv-compare-sec-head" },
-        h34("span", { className: "mv-compare-sec-title" }, t2("compare.sectionSplit"))
+        h35("span", { className: "mv-compare-sec-title" }, t2("compare.sectionSplit"))
       ),
-      list.length === 0 ? h34("p", { className: "mv-none" }, t2("compare.noLayers")) : h34(
+      list.length === 0 ? h35("p", { className: "mv-none" }, t2("compare.noLayers")) : h35(
         import_react39.default.Fragment,
         null,
-        h34(
+        h35(
           "label",
           { className: "mv-compare-field" },
-          h34("span", null, t2("compare.leftLayer")),
-          h34(
+          h35("span", null, t2("compare.leftLayer")),
+          h35(
             "select",
             {
               value: leftId,
               "aria-label": t2("compare.leftLayer"),
               onChange: (event) => handleLeftChange(event.target.value)
             },
-            ...list.map((layer) => h34("option", { key: layer.id, value: layer.id }, formatLayerOption(t2, layer)))
+            ...list.map((layer) => h35("option", { key: layer.id, value: layer.id }, formatLayerOption(t2, layer)))
           )
         ),
-        h34(
+        h35(
           "label",
           { className: "mv-compare-field" },
-          h34("span", null, t2("compare.rightLayer")),
-          h34(
+          h35("span", null, t2("compare.rightLayer")),
+          h35(
             "select",
             {
               value: rightId,
               "aria-label": t2("compare.rightLayer"),
               onChange: (event) => handleRightChange(event.target.value)
             },
-            h34("option", { value: "" }, t2("compare.rightNone")),
-            ...list.filter((layer) => layer.id !== leftId).map((layer) => h34("option", { key: layer.id, value: layer.id }, formatLayerOption(t2, layer)))
+            h35("option", { value: "" }, t2("compare.rightNone")),
+            ...list.filter((layer) => layer.id !== leftId).map((layer) => h35("option", { key: layer.id, value: layer.id }, formatLayerOption(t2, layer)))
           )
         ),
-        h34(
+        h35(
           "div",
           { className: "mv-compare-row" },
-          h34(
+          h35(
             "button",
             {
               type: "button",
@@ -26955,7 +27208,7 @@ function ComparePanel({
             },
             isActive ? t2("compare.stop") : t2("compare.start")
           ),
-          h34(
+          h35(
             "button",
             {
               type: "button",
@@ -26965,7 +27218,7 @@ function ComparePanel({
             },
             t2("compare.swap")
           ),
-          h34(
+          h35(
             "button",
             {
               type: "button",
@@ -26975,11 +27228,11 @@ function ComparePanel({
             t2("compare.center")
           )
         ),
-        h34(
+        h35(
           "label",
           { className: "mv-compare-slider-row" },
-          h34("span", null, t2("compare.ratio")),
-          h34("input", {
+          h35("span", null, t2("compare.ratio")),
+          h35("input", {
             type: "range",
             min: 5,
             max: 95,
@@ -26987,42 +27240,42 @@ function ComparePanel({
             "aria-label": t2("compare.ratio"),
             onChange: (event) => handleRatio(Number(event.target.value) / 100)
           }),
-          h34("b", null, `${pct}%`)
+          h35("b", null, `${pct}%`)
         )
       )
     ),
     // ---- Section 2: Mesh topology & LOD inspection ----
-    list.length > 0 ? h34(
+    list.length > 0 ? h35(
       "section",
       { className: "mv-compare-sec" },
-      h34(
+      h35(
         "div",
         { className: "mv-compare-sec-head" },
-        h34("span", { className: "mv-compare-sec-title" }, t2("compare.sectionInspect")),
-        h34(
+        h35("span", { className: "mv-compare-sec-title" }, t2("compare.sectionInspect")),
+        h35(
           "button",
           { type: "button", className: "mv-compare-sse-pill", disabled: !diag, onClick: handleResetInspect },
           t2("compare.resetInspect")
         )
       ),
-      h34(
+      h35(
         "label",
         { className: "mv-compare-field" },
-        h34("span", null, t2("compare.inspectTarget")),
-        h34(
+        h35("span", null, t2("compare.inspectTarget")),
+        h35(
           "select",
           {
             value: inspectId,
             "aria-label": t2("compare.inspectTarget"),
             onChange: (event) => setInspectId(event.target.value)
           },
-          ...list.map((layer) => h34("option", { key: layer.id, value: layer.id }, formatLayerOption(t2, layer)))
+          ...list.map((layer) => h35("option", { key: layer.id, value: layer.id }, formatLayerOption(t2, layer)))
         )
       ),
-      h34(
+      h35(
         "div",
         { className: "mv-compare-toggles" },
-        h34(
+        h35(
           "button",
           {
             type: "button",
@@ -27034,7 +27287,7 @@ function ComparePanel({
           },
           `${diag?.wireframe ? "☑" : "☐"} ${t2("compare.wireframe")}`
         ),
-        h34(
+        h35(
           "button",
           {
             type: "button",
@@ -27047,13 +27300,13 @@ function ComparePanel({
           `${diag?.clay ? "☑" : "☐"} ${t2("compare.clay")}`
         )
       ),
-      is3dgsInspect ? h34("p", { className: "mv-compare-warn" }, t2("compare.wireframe3dgsHint")) : null,
-      h34(
+      is3dgsInspect ? h35("p", { className: "mv-compare-warn" }, t2("compare.wireframe3dgsHint")) : null,
+      h35(
         "div",
         { className: "mv-compare-sse-row", title: t2("compare.sseHint") },
-        h34("span", { className: "mv-compare-sec-title" }, t2("compare.sse")),
+        h35("span", { className: "mv-compare-sec-title" }, t2("compare.sse")),
         ...SSE_PRESETS.map(
-          (preset) => h34(
+          (preset) => h35(
             "button",
             {
               key: preset,
@@ -27065,7 +27318,7 @@ function ComparePanel({
             String(preset)
           )
         ),
-        h34("input", {
+        h35("input", {
           type: "number",
           className: "mv-compare-sse-input",
           min: 0.25,
@@ -27080,29 +27333,29 @@ function ComparePanel({
           }
         })
       ),
-      diag ? h34(
+      diag ? h35(
         "div",
         { className: "mv-compare-stats" },
-        h34("span", null, t2("compare.statTiles"), h34("b", null, String(diag.statistics.selectedTiles))),
-        h34("span", null, t2("compare.statTriangles"), h34("b", null, formatCount2(diag.statistics.triangles))),
-        h34("span", null, t2("compare.statMemory"), h34("b", null, formatDiagnosticBytes(diag.statistics.totalMemoryBytes))),
-        h34("span", null, t2("compare.statPending"), h34("b", null, String(diag.statistics.pendingRequests)))
+        h35("span", null, t2("compare.statTiles"), h35("b", null, String(diag.statistics.selectedTiles))),
+        h35("span", null, t2("compare.statTriangles"), h35("b", null, formatCount2(diag.statistics.triangles))),
+        h35("span", null, t2("compare.statMemory"), h35("b", null, formatDiagnosticBytes(diag.statistics.totalMemoryBytes))),
+        h35("span", null, t2("compare.statPending"), h35("b", null, String(diag.statistics.pendingRequests)))
       ) : null
     ) : null,
     // ---- Section 3: Exact camera pose & multi-frame figure export ----
-    h34(
+    h35(
       "section",
       { className: "mv-compare-sec" },
-      h34(
+      h35(
         "div",
         { className: "mv-compare-sec-head" },
-        h34("span", { className: "mv-compare-sec-title" }, t2("compare.sectionPoseExport"))
+        h35("span", { className: "mv-compare-sec-title" }, t2("compare.sectionPoseExport"))
       ),
-      h34(
+      h35(
         "div",
         { className: "mv-compare-row" },
-        h34("button", { type: "button", className: "mv-cta", onClick: handleCopyPose }, t2("compare.copyPose")),
-        h34(
+        h35("button", { type: "button", className: "mv-cta", onClick: handleCopyPose }, t2("compare.copyPose")),
+        h35(
           "button",
           {
             type: "button",
@@ -27113,64 +27366,64 @@ function ComparePanel({
           poseOpen ? t2("compare.cancelPose") : t2("compare.pastePose")
         )
       ),
-      poseOpen ? h34(
+      poseOpen ? h35(
         "div",
         { className: "mv-compare-pose-box" },
-        h34("textarea", {
+        h35("textarea", {
           value: poseText,
           placeholder: t2("compare.posePlaceholder"),
           "aria-label": t2("compare.pastePose"),
           onChange: (event) => setPoseText(event.target.value)
         }),
-        h34(
+        h35(
           "div",
           { className: "mv-compare-row" },
-          h34("button", { type: "button", className: "mv-cta primary", onClick: handleApplyPose }, t2("compare.applyPose")),
-          h34("button", { type: "button", className: "mv-cta", onClick: () => setPoseOpen(false) }, t2("compare.cancelPose"))
+          h35("button", { type: "button", className: "mv-cta primary", onClick: handleApplyPose }, t2("compare.applyPose")),
+          h35("button", { type: "button", className: "mv-cta", onClick: () => setPoseOpen(false) }, t2("compare.cancelPose"))
         )
       ) : null,
-      list.length > 0 ? h34(
+      list.length > 0 ? h35(
         import_react39.default.Fragment,
         null,
-        h34(
+        h35(
           "div",
           { className: "mv-compare-checks" },
-          h34(
+          h35(
             "label",
             { className: "mv-compare-check" },
-            h34("input", {
+            h35("input", {
               type: "checkbox",
               checked: exportDivider,
               onChange: (event) => setExportDivider(event.target.checked)
             }),
-            h34("span", null, t2("compare.exportDivider"))
+            h35("span", null, t2("compare.exportDivider"))
           ),
-          h34(
+          h35(
             "label",
             { className: "mv-compare-check" },
-            h34("input", {
+            h35("input", {
               type: "checkbox",
               checked: exportLabels,
               onChange: (event) => setExportLabels(event.target.checked)
             }),
-            h34("span", null, t2("compare.exportLabels"))
+            h35("span", null, t2("compare.exportLabels"))
           )
         ),
-        h34(
+        h35(
           "label",
           { className: "mv-compare-field" },
-          h34("span", null, t2("compare.exportWidth")),
-          h34(
+          h35("span", null, t2("compare.exportWidth")),
+          h35(
             "select",
             {
               value: String(exportWidth),
               "aria-label": t2("compare.exportWidth"),
               onChange: (event) => setExportWidth(Number(event.target.value) || 1920)
             },
-            ...EXPORT_WIDTHS.map((w) => h34("option", { key: w, value: String(w) }, `${w} px`))
+            ...EXPORT_WIDTHS.map((w) => h35("option", { key: w, value: String(w) }, `${w} px`))
           )
         ),
-        h34(
+        h35(
           "button",
           {
             type: "button",
@@ -27180,29 +27433,29 @@ function ComparePanel({
           },
           exporting ? t2("compare.exporting") : t2("compare.exportBtn")
         ),
-        h34("p", { className: "mv-none" }, t2("compare.exportHint"))
+        h35("p", { className: "mv-none" }, t2("compare.exportHint"))
       ) : null,
-      h34("div", { className: "mv-compare-status", role: "status" }, statusMsg)
+      h35("div", { className: "mv-compare-status", role: "status" }, statusMsg)
     )
   );
 }
 
 // src/client/ui/tool-windows.js
-var h35 = import_react40.default.createElement;
+var h36 = import_react40.default.createElement;
 var MEASURE_TOOLS = [
   ["distance", "tool.distance"],
   ["area", "tool.area"],
   ["height", "tool.height"]
 ];
 function MeasureBody({ t: t2, tool, onStartTool, onClearMeasure, onStartProfile }) {
-  return h35(
+  return h36(
     import_react40.default.Fragment,
     null,
-    h35(
+    h36(
       "div",
       { className: "mv-tool-grid" },
       ...MEASURE_TOOLS.map(
-        ([mode, labelKey]) => h35(
+        ([mode, labelKey]) => h36(
           "button",
           {
             key: mode,
@@ -27214,7 +27467,7 @@ function MeasureBody({ t: t2, tool, onStartTool, onClearMeasure, onStartProfile 
           t2(labelKey)
         )
       ),
-      typeof onStartProfile === "function" ? h35(
+      typeof onStartProfile === "function" ? h36(
         "button",
         {
           key: "profile-shortcut",
@@ -27226,8 +27479,8 @@ function MeasureBody({ t: t2, tool, onStartTool, onClearMeasure, onStartProfile 
         t2("profile.draw")
       ) : null
     ),
-    h35("button", { type: "button", className: "mv-cta", onClick: onClearMeasure }, t2("tool.clear")),
-    h35("p", { className: "mv-none" }, t2("tools.measureHint"))
+    h36("button", { type: "button", className: "mv-cta", onClick: onClearMeasure }, t2("tool.clear")),
+    h36("p", { className: "mv-none" }, t2("tools.measureHint"))
   );
 }
 function SelectBody({
@@ -27243,13 +27496,13 @@ function SelectBody({
   onAskSelection,
   onParseSelection
 }) {
-  return h35(
+  return h36(
     import_react40.default.Fragment,
     null,
-    h35(SelectionTool, { t: t2, getCesium, getViewer, showToast, runAnalysis, getTerrainActive, getOverlayRows, onRemoveOverlayRows, onActivateSelection, onAskSelection, onParseSelection }),
+    h36(SelectionTool, { t: t2, getCesium, getViewer, showToast, runAnalysis, getTerrainActive, getOverlayRows, onRemoveOverlayRows, onActivateSelection, onAskSelection, onParseSelection }),
     // Ask Agent lives in the top toolbar only: one entry point for "hand the view
     // to the conversation", instead of a second one hiding inside the toolbox.
-    h35("p", { className: "mv-none" }, t2("tools.selectHint"))
+    h36("p", { className: "mv-none" }, t2("tools.selectHint"))
   );
 }
 function AnalysisBody({ t: t2, analysis, onStartProfile, onClearAnalysis, getCesium, getViewer, getLayers, showToast }) {
@@ -27260,34 +27513,34 @@ function AnalysisBody({ t: t2, analysis, onStartProfile, onClearAnalysis, getCes
     onClearAnalysis();
     if (typeof showToast === "function") showToast(t2("toast.sunReplacesAnalysis"));
   };
-  return h35(
+  return h36(
     import_react40.default.Fragment,
     null,
-    h35("button", { type: "button", className: "mv-cta primary", onClick: () => onStartProfile({ source, samples: samples === "auto" ? void 0 : samples }) }, t2("profile.draw")),
-    h35("p", { className: "mv-none" }, t2("profile.subtitle")),
-    h35(
+    h36("button", { type: "button", className: "mv-cta primary", onClick: () => onStartProfile({ source, samples: samples === "auto" ? void 0 : samples }) }, t2("profile.draw")),
+    h36("p", { className: "mv-none" }, t2("profile.subtitle")),
+    h36(
       "div",
       { className: "mv-profile-opts" },
-      h35(
+      h36(
         "label",
         { className: "mv-profile-opt" },
-        h35("span", null, t2("profile.sourceLabel")),
-        h35(
+        h36("span", null, t2("profile.sourceLabel")),
+        h36(
           "select",
           {
             value: source,
             "aria-label": t2("profile.sourceLabel"),
             onChange: (event) => setSource(event.target.value)
           },
-          h35("option", { value: "tiles" }, t2("profile.sourceTiles")),
-          h35("option", { value: "terrain" }, t2("profile.sourceTerrain"))
+          h36("option", { value: "tiles" }, t2("profile.sourceTiles")),
+          h36("option", { value: "terrain" }, t2("profile.sourceTerrain"))
         )
       ),
-      h35(
+      h36(
         "label",
         { className: "mv-profile-opt" },
-        h35("span", null, t2("profile.samplesLabel")),
-        h35(
+        h36("span", null, t2("profile.samplesLabel")),
+        h36(
           "select",
           {
             value: String(samples),
@@ -27297,33 +27550,33 @@ function AnalysisBody({ t: t2, analysis, onStartProfile, onClearAnalysis, getCes
               setSamples(value === "auto" ? "auto" : Number(value) || "auto");
             }
           },
-          h35("option", { value: "auto" }, t2("profile.samplesAuto")),
-          h35("option", { value: "64" }, t2("profile.samplesOption", { n: 64 })),
-          h35("option", { value: "128" }, t2("profile.samplesOption", { n: 128 })),
-          h35("option", { value: "256" }, t2("profile.samplesOption", { n: 256 })),
-          h35("option", { value: "512" }, t2("profile.samplesOption", { n: 512 }))
+          h36("option", { value: "auto" }, t2("profile.samplesAuto")),
+          h36("option", { value: "64" }, t2("profile.samplesOption", { n: 64 })),
+          h36("option", { value: "128" }, t2("profile.samplesOption", { n: 128 })),
+          h36("option", { value: "256" }, t2("profile.samplesOption", { n: 256 })),
+          h36("option", { value: "512" }, t2("profile.samplesOption", { n: 512 }))
         )
       )
     ),
-    analysis ? h35(
+    analysis ? h36(
       "div",
       { className: "mv-layer" },
-      h35(
+      h36(
         "span",
         { className: "name" },
         `${typeof analysis.operation === "string" && analysis.operation !== "" ? t2(`analysis.title.${analysis.operation}`) : t2("layers.analysis")}${typeof analysis.layerName === "string" && analysis.layerName !== "" ? ` · ${analysis.layerName}` : ""}`
       ),
-      h35("button", { type: "button", className: "mv-icon-btn", title: t2("layers.analysisClear"), "aria-label": t2("layers.analysisClear"), onClick: onClearAnalysis }, "✕")
+      h36("button", { type: "button", className: "mv-icon-btn", title: t2("layers.analysisClear"), "aria-label": t2("layers.analysisClear"), onClick: onClearAnalysis }, "✕")
     ) : null,
-    h35("p", { className: "mv-none" }, t2("tools.analysisHint")),
-    h35("div", { className: "mv-group-title" }, t2("tools.sun")),
-    h35(SunTimeline, { t: t2, getCesium, getViewer, getLayers, onBeforeEnable: handleSunEnable, active: true })
+    h36("p", { className: "mv-none" }, t2("tools.analysisHint")),
+    h36("div", { className: "mv-group-title" }, t2("tools.sun")),
+    h36(SunTimeline, { t: t2, getCesium, getViewer, getLayers, onBeforeEnable: handleSunEnable, active: true })
   );
 }
 function EffectsBody({ t: t2, shaderActive, onOpenShader, onResetAllShaders }) {
   const list = Array.isArray(shaderActive) ? shaderActive : [];
-  const formatEffect = (entry) => {
-    const raw = entry?.preset ?? entry?.presets;
+  const formatEffect = (entry2) => {
+    const raw = entry2?.preset ?? entry2?.presets;
     if (!raw) return "";
     const items = Array.isArray(raw) ? raw : [raw];
     return items.map((item) => {
@@ -27332,43 +27585,43 @@ function EffectsBody({ t: t2, shaderActive, onOpenShader, onResetAllShaders }) {
       return translated && translated !== key ? translated : String(item);
     }).join(" + ");
   };
-  return h35(
+  return h36(
     import_react40.default.Fragment,
     null,
-    list.length > 0 && typeof onResetAllShaders === "function" ? h35(
+    list.length > 0 && typeof onResetAllShaders === "function" ? h36(
       "div",
       { className: "mv-tool-grid" },
-      h35("button", { type: "button", className: "mv-cta primary", onClick: onOpenShader }, t2("btn.shaderShow")),
-      h35("button", { type: "button", className: "mv-cta", onClick: onResetAllShaders }, t2("shader.resetAll"))
-    ) : h35("button", { type: "button", className: "mv-cta primary", onClick: onOpenShader }, t2("btn.shaderShow")),
-    list.length > 0 ? h35(
+      h36("button", { type: "button", className: "mv-cta primary", onClick: onOpenShader }, t2("btn.shaderShow")),
+      h36("button", { type: "button", className: "mv-cta", onClick: onResetAllShaders }, t2("shader.resetAll"))
+    ) : h36("button", { type: "button", className: "mv-cta primary", onClick: onOpenShader }, t2("btn.shaderShow")),
+    list.length > 0 ? h36(
       "div",
       { className: "mv-tool-effects-list" },
       ...list.slice(0, 6).map(
-        (entry) => h35(
+        (entry2) => h36(
           "div",
-          { key: entry.layerId ?? entry.layer, className: "mv-layer has-shader" },
-          h35("span", { className: "name", title: entry.layer }, entry.layer),
-          h35("span", { className: "mv-tools-active-pill" }, formatEffect(entry))
+          { key: entry2.layerId ?? entry2.layer, className: "mv-layer has-shader" },
+          h36("span", { className: "name", title: entry2.layer }, entry2.layer),
+          h36("span", { className: "mv-tools-active-pill" }, formatEffect(entry2))
         )
       )
     ) : null,
-    h35("p", { className: "mv-none" }, list.length > 0 ? t2("tools.effectsActive", { n: list.length }) : t2("tools.effectsEmpty"))
+    h36("p", { className: "mv-none" }, list.length > 0 ? t2("tools.effectsActive", { n: list.length }) : t2("tools.effectsEmpty"))
   );
 }
 function ViewBody({ t: t2, getCurrentView, getViewer, onFlyView, onStartTour, showToast }) {
-  return h35(ToolsBookmarks, { t: t2, getCurrentView, getViewer, onFlyView, onStartTour, showToast });
+  return h36(ToolsBookmarks, { t: t2, getCurrentView, getViewer, onFlyView, onStartTour, showToast });
 }
 function AnnotationBody({ t: t2, onStartAnnotation }) {
   const [style, setStyle] = import_react40.default.useState("accent");
-  return h35(
+  return h36(
     import_react40.default.Fragment,
     null,
-    h35(
+    h36(
       "div",
       { className: "mv-tool-grid" },
       ...["point", "line", "area", "note"].map(
-        (kind) => h35(
+        (kind) => h36(
           "button",
           {
             key: kind,
@@ -27380,15 +27633,15 @@ function AnnotationBody({ t: t2, onStartAnnotation }) {
         )
       )
     ),
-    h35(
+    h36(
       "div",
       { className: "mv-anno-palette", role: "radiogroup", "aria-label": t2("annotation.styleLabel") },
-      h35("span", { className: "mv-anno-palette-label" }, t2("annotation.styleLabel")),
-      h35(
+      h36("span", { className: "mv-anno-palette-label" }, t2("annotation.styleLabel")),
+      h36(
         "div",
         { className: "mv-swatch-row" },
         ...ANNOTATION_STYLES.map(
-          (preset) => h35("button", {
+          (preset) => h36("button", {
             key: preset,
             type: "button",
             className: `mv-swatch${style === preset ? " on" : ""}`,
@@ -27402,27 +27655,75 @@ function AnnotationBody({ t: t2, onStartAnnotation }) {
         )
       )
     ),
-    h35("p", { className: "mv-none" }, t2("annotation.drawHint"))
+    h36("p", { className: "mv-none" }, t2("annotation.drawHint"))
   );
 }
 function ToolBody({ entryId, ...rest }) {
-  if (entryId === "measure") return h35(MeasureBody, rest);
-  if (entryId === "select") return h35(SelectBody, rest);
-  if (entryId === "annotation") return h35(AnnotationBody, rest);
-  if (entryId === "parse") return h35(ParsePanel, rest);
-  if (entryId === "analysis") return h35(AnalysisBody, rest);
-  if (entryId === "compare") return h35(ComparePanel, rest);
-  if (entryId === "effects") return h35(EffectsBody, rest);
-  if (entryId === "view") return h35(ViewBody, rest);
+  if (entryId === "measure") return h36(MeasureBody, rest);
+  if (entryId === "select") return h36(SelectBody, rest);
+  if (entryId === "annotation") return h36(AnnotationBody, rest);
+  if (entryId === "parse") return h36(ParsePanel, rest);
+  if (entryId === "analysis") return h36(AnalysisBody, rest);
+  if (entryId === "compare") return h36(ComparePanel, rest);
+  if (entryId === "effects") return h36(EffectsBody, rest);
+  if (entryId === "view") return h36(ViewBody, rest);
   return null;
 }
 
 // src/client/ui/panel-rail.js
+var import_react42 = __toESM(require("react"), 1);
+
+// src/client/ui/escape-stack.js
 var import_react41 = __toESM(require("react"), 1);
-var h36 = import_react41.default.createElement;
+var layers = [];
+var listening = false;
+function isEscape(event) {
+  return event?.key === "Escape" || event?.key === "Esc";
+}
+function onKeyDown(event) {
+  if (!isEscape(event)) return;
+  for (let index = layers.length - 1; index >= 0; index -= 1) {
+    const layer = layers[index];
+    if (!layer || typeof layer.handler !== "function") continue;
+    if (layer.handler(event) !== false) return;
+  }
+}
+function ensureListening() {
+  if (listening || typeof document === "undefined" || typeof document.addEventListener !== "function") return;
+  document.addEventListener("keydown", onKeyDown);
+  listening = true;
+}
+function stopListening() {
+  if (!listening || typeof document === "undefined" || typeof document.removeEventListener !== "function") return;
+  document.removeEventListener("keydown", onKeyDown);
+  listening = false;
+}
+function registerEscapeLayer(handler) {
+  if (typeof handler !== "function") throw new TypeError("registerEscapeLayer(handler) needs a function");
+  const layer = { handler };
+  layers.push(layer);
+  ensureListening();
+  return () => {
+    const index = layers.indexOf(layer);
+    if (index >= 0) layers.splice(index, 1);
+    if (layers.length === 0) stopListening();
+  };
+}
+function useEscapeLayer(handler, active = true) {
+  const handlerRef = import_react41.default.useRef(handler);
+  handlerRef.current = handler;
+  import_react41.default.useEffect(() => {
+    if (!active) return void 0;
+    return registerEscapeLayer((event) => handlerRef.current?.(event));
+  }, [active]);
+}
+
+// src/client/ui/panel-rail.js
+var h37 = import_react42.default.createElement;
 function tabLabel(t2, tabId) {
   if (tabId === "layers") return t2("panel.tab.layers");
   if (tabId === "tools") return t2("panel.tab.tools");
+  if (tabId === "places") return t2("places.title");
   if (tabId === "object") return t2("panel.tab.object");
   return t2("panel.tab.result");
 }
@@ -27445,9 +27746,9 @@ function PanelRail({
     minWidth: 280,
     maxWidth: 720
   });
-  const railRef = import_react41.default.useRef(null);
-  const lastReportedWidth = import_react41.default.useRef(null);
-  import_react41.default.useEffect(() => {
+  const railRef = import_react42.default.useRef(null);
+  const lastReportedWidth = import_react42.default.useRef(null);
+  import_react42.default.useEffect(() => {
     const next = resize.size.width;
     if (Number.isFinite(next) && next !== lastReportedWidth.current) {
       lastReportedWidth.current = next;
@@ -27460,7 +27761,7 @@ function PanelRail({
     if (Number.isFinite(value)) chrome.style.setProperty("--mv-console-width", `${Math.round(value) + 1}px`);
     else chrome.style.removeProperty("--mv-console-width");
   };
-  import_react41.default.useEffect(() => {
+  import_react42.default.useEffect(() => {
     syncConsoleWidth(railRef.current, resize.size.width);
   }, [resize.size.width, collapsed]);
   const railRefCallback = (node) => {
@@ -27477,7 +27778,7 @@ function PanelRail({
     return true;
   }, !collapsed);
   if (!tabs.length) return null;
-  return h36(
+  return h37(
     "div",
     {
       className: `mv-right mv-dock${collapsed ? " is-collapsed" : ""}`,
@@ -27488,7 +27789,7 @@ function PanelRail({
       style: collapsed ? void 0 : { width: "100%" },
       "aria-label": ariaLabel ?? void 0
     },
-    collapsed ? null : h36(ResizeHandle, {
+    collapsed ? null : h37(ResizeHandle, {
       axis: "width",
       edge: "left",
       label: t2("resize.width"),
@@ -27498,11 +27799,11 @@ function PanelRail({
       min: resize.minWidth,
       max: resize.maxWidth
     }),
-    h36(
+    h37(
       "div",
       { className: "mv-dock-body" },
       ...panels.map(
-        (panel) => h36(
+        (panel) => h37(
           "div",
           {
             key: panel.id,
@@ -27520,19 +27821,19 @@ function PanelRail({
 }
 
 // src/client/ui/report-preview.js
-var import_react42 = __toESM(require("react"), 1);
-var h37 = import_react42.default.createElement;
+var import_react43 = __toESM(require("react"), 1);
+var h38 = import_react43.default.createElement;
 function ReportPreview({ t: t2, report, onClose }) {
   if (!report?.html) return null;
   const title = typeof report.title === "string" && report.title ? report.title : t2("menu.report");
-  return h37(
+  return h38(
     "div",
     { className: "mv-report-preview" },
-    h37(
+    h38(
       "header",
       { className: "mv-report-preview-head" },
-      h37("span", { className: "mv-report-preview-title", title }, title),
-      h37(
+      h38("span", { className: "mv-report-preview-title", title }, title),
+      h38(
         "button",
         {
           type: "button",
@@ -27544,7 +27845,7 @@ function ReportPreview({ t: t2, report, onClose }) {
         "✕"
       )
     ),
-    h37("iframe", {
+    h38("iframe", {
       className: "mv-report-preview-frame",
       title,
       srcDoc: report.html,
@@ -27557,17 +27858,18 @@ function ReportPreview({ t: t2, report, onClose }) {
 // src/client/ui/panel-state.js
 var PANEL_STORAGE_KEY = "mv.ui.v2";
 var PANEL_LEGACY_DOCK_KEY = "mv.rightDock.v1";
-var PANEL_TABS = Object.freeze(["layers", "tools", "result", "object"]);
+var PANEL_TABS = Object.freeze(["layers", "tools", "places", "result", "object"]);
 var PANEL_TAB_LABELS = Object.freeze({
   layers: "layers.title",
   tools: "tools.title",
+  places: "places.title",
   result: "panel.tab.result",
   object: "panel.tab.object"
 });
 var PANEL_DEFAULT_WIDTH = 300;
 var PANEL_MIN_WIDTH = 240;
 var PANEL_MAX_WIDTH = 720;
-var FALLBACK_ORDER = ["layers", "tools", "result", "object"];
+var FALLBACK_ORDER = ["layers", "tools", "places", "result", "object"];
 function isPanelTab(value) {
   return PANEL_TABS.includes(value);
 }
@@ -27746,13 +28048,13 @@ function writePanelState(state, storage2 = globalThis.localStorage) {
 }
 
 // src/client/ui/right-stack.js
-var h38 = import_react43.default.createElement;
+var h39 = import_react44.default.createElement;
 function ResultEmpty({ t: t2 }) {
-  return h38(
+  return h39(
     "div",
     { className: "mv-panel-empty" },
-    h38("h3", null, t2("panel.result.emptyTitle")),
-    h38("p", null, t2("panel.result.emptyBody"))
+    h39("h3", null, t2("panel.result.emptyTitle")),
+    h39("p", null, t2("panel.result.emptyBody"))
   );
 }
 function RightStack({
@@ -27767,6 +28069,7 @@ function RightStack({
   showLayers,
   toolsPanel,
   showTools,
+  placesPanel = null,
   openWindows = [],
   onSelectTool,
   onCloseToolWindow,
@@ -27789,51 +28092,52 @@ function RightStack({
   const available = visiblePanelTabs({ hasResult, hasObject }).filter((id) => {
     if (id === "layers") return Boolean(showLayers);
     if (id === "tools") return Boolean(showTools || activeToolId);
+    if (id === "places") return Boolean(placesPanel);
     return true;
   });
   const availableSignature = available.join("|");
-  const [state, setState] = import_react43.default.useState(
+  const [state, setState] = import_react44.default.useState(
     () => panelReducer(readPanelState(), { type: "prune", available })
   );
-  const dispatch = import_react43.default.useCallback((action) => setState((current2) => panelReducer(current2, action)), []);
-  import_react43.default.useEffect(() => {
+  const dispatch = import_react44.default.useCallback((action) => setState((current2) => panelReducer(current2, action)), []);
+  import_react44.default.useEffect(() => {
     dispatch({ type: "prune", available });
   }, [availableSignature]);
-  import_react43.default.useEffect(() => {
+  import_react44.default.useEffect(() => {
     writePanelState(state);
   }, [state]);
-  import_react43.default.useEffect(() => {
+  import_react44.default.useEffect(() => {
     onActiveTab?.(state.collapsed ? null : state.activeTab);
   }, [state.activeTab, state.collapsed, onActiveTab]);
-  import_react43.default.useEffect(() => {
+  import_react44.default.useEffect(() => {
     onUnread?.(state.unread);
   }, [state.unread.result, state.unread.object, onUnread]);
-  const prevResultRef = import_react43.default.useRef(analysis?.result);
+  const prevResultRef = import_react44.default.useRef(analysis?.result);
   const lockedByTool = Boolean(activeToolId) && state.activeTab === "tools";
-  import_react43.default.useEffect(() => {
+  import_react44.default.useEffect(() => {
     const result = analysis?.result;
     if (result && result !== prevResultRef.current) dispatch({ type: "resultArrived", busy: busy || lockedByTool });
     prevResultRef.current = result;
   }, [analysis?.result, busy, lockedByTool]);
-  const prevObjectRef = import_react43.default.useRef(objectPanel?.key);
-  import_react43.default.useEffect(() => {
+  const prevObjectRef = import_react44.default.useRef(objectPanel?.key);
+  import_react44.default.useEffect(() => {
     const key = objectPanel?.key;
     if (key && key !== prevObjectRef.current) dispatch({ type: "objectArrived", busy: busy || lockedByTool });
     else if (!key) dispatch({ type: "objectCleared" });
     prevObjectRef.current = key;
   }, [objectPanel?.key, busy, lockedByTool]);
-  const prevReportRef = import_react43.default.useRef(null);
-  import_react43.default.useEffect(() => {
+  const prevReportRef = import_react44.default.useRef(null);
+  import_react44.default.useEffect(() => {
     const key = reportPreview?.key;
     if (key && key !== prevReportRef.current) dispatch({ type: "activate", tabId: "result" });
     prevReportRef.current = key;
   }, [reportPreview?.key, dispatch]);
-  const pendingRequestRef = import_react43.default.useRef(null);
-  import_react43.default.useEffect(() => {
+  const pendingRequestRef = import_react44.default.useRef(null);
+  import_react44.default.useEffect(() => {
     if (!dockRequest?.kind) return;
-    pendingRequestRef.current = ["layers", "tools", "result", "object"].includes(dockRequest.kind) ? dockRequest.kind : null;
+    pendingRequestRef.current = ["layers", "tools", "places", "result", "object"].includes(dockRequest.kind) ? dockRequest.kind : null;
   }, [dockRequest?.seq, dockRequest?.kind]);
-  import_react43.default.useEffect(() => {
+  import_react44.default.useEffect(() => {
     const tabId = pendingRequestRef.current;
     if (!tabId) return;
     if (!available.includes(tabId)) return;
@@ -27845,36 +28149,36 @@ function RightStack({
   if (showLayers) {
     panels.push({
       id: "layers",
-      node: h38(LayersPanel, { key: "layers", t: t2, ...layersPanel ?? {}, embedded: true })
+      node: h39(LayersPanel, { key: "layers", t: t2, ...layersPanel ?? {}, embedded: true })
     });
   }
   if (showTools || activeToolId) {
-    const entry = activeToolId ? toolEntry(activeToolId) : null;
-    const detail = activeToolId && entry && !showToolIndex;
+    const entry2 = activeToolId ? toolEntry(activeToolId) : null;
+    const detail = activeToolId && entry2 && !showToolIndex;
     panels.push({
       id: "tools",
-      node: detail ? h38(
+      node: detail ? h39(
         "div",
         { key: "tools", className: "mv-panel-detail" },
-        h38(
+        h39(
           ToolWindow,
           {
             t: t2,
-            entry,
+            entry: entry2,
             embedded: true,
             onClose: () => {
               onShowToolIndex?.(true);
               onCloseToolWindow?.(activeToolId);
             }
           },
-          h38(ToolBody, {
+          h39(ToolBody, {
             t: t2,
             ...toolsPanel ?? {},
             entryId: activeToolId,
             openRequest: toolsPanel?.openRequest?.id === activeToolId ? toolsPanel.openRequest : null
           })
         )
-      ) : h38(ToolsPanel, {
+      ) : h39(ToolsPanel, {
         key: "tools",
         t: t2,
         ...toolsPanel ?? {},
@@ -27887,15 +28191,18 @@ function RightStack({
       })
     });
   }
+  if (placesPanel) {
+    panels.push({ id: "places", node: h39(PlaceSearchPanel, { key: "places", t: t2, ...placesPanel }) });
+  }
   if (reportPreview?.html) {
     panels.push({
       id: "result",
-      node: h38(ReportPreview, { key: "report-preview", t: t2, report: reportPreview, onClose: onCloseReport })
+      node: h39(ReportPreview, { key: "report-preview", t: t2, report: reportPreview, onClose: onCloseReport })
     });
   } else if (hasResult) {
     panels.push({
       id: "result",
-      node: h38(AnalysisCard, {
+      node: h39(AnalysisCard, {
         key: "result",
         state: analysis,
         t: t2,
@@ -27907,12 +28214,12 @@ function RightStack({
       })
     });
   } else {
-    panels.push({ id: "result", node: h38(ResultEmpty, { key: "result", t: t2 }) });
+    panels.push({ id: "result", node: h39(ResultEmpty, { key: "result", t: t2 }) });
   }
   if (hasObject) {
-    panels.push({ id: "object", node: h38("div", { key: "object", className: "mv-panel-object" }, objectPanel.node) });
+    panels.push({ id: "object", node: h39("div", { key: "object", className: "mv-panel-object" }, objectPanel.node) });
   }
-  return h38(PanelRail, {
+  return h39(PanelRail, {
     t: t2,
     tabs: available.map((id) => ({ id })),
     activeTab: state.activeTab,
@@ -27927,11 +28234,11 @@ function RightStack({
 }
 
 // src/client/ui/chrome-visibility.js
-var import_react44 = __toESM(require("react"), 1);
-var h39 = import_react44.default.createElement;
+var import_react45 = __toESM(require("react"), 1);
+var h40 = import_react45.default.createElement;
 var CHROME_HIDDEN_KEY = "chrome.hidden";
 function ChromeShell({ hidden, children }) {
-  return h39(
+  return h40(
     "div",
     {
       className: `mv-chrome${hidden ? " is-hidden" : ""}`,
@@ -27948,11 +28255,11 @@ function ChromeA11y({ t: t2, status, hidden, onShow }) {
       if (typeof document !== "undefined") document.querySelector(".mv-chrome-hide")?.focus?.();
     }, 0);
   };
-  return h39(
-    import_react44.default.Fragment,
+  return h40(
+    import_react45.default.Fragment,
     null,
-    h39("span", { className: "mv-sr-only", role: "status", "aria-live": "polite" }, status),
-    hidden ? h39(
+    h40("span", { className: "mv-sr-only", role: "status", "aria-live": "polite" }, status),
+    hidden ? h40(
       "button",
       {
         type: "button",
@@ -27964,7 +28271,7 @@ function ChromeA11y({ t: t2, status, hidden, onShow }) {
         autoFocus: true,
         onClick: show
       },
-      h39(GlyphIcon, { name: "view" })
+      h40(GlyphIcon, { name: "view" })
     ) : null
   );
 }
@@ -27979,12 +28286,12 @@ function isChromeShortcut(event, target, dialogOpen = false) {
   return !dialogOpen;
 }
 function useChromeVisibility() {
-  const [hidden, setHidden] = import_react44.default.useState(() => readPanelFlag(CHROME_HIDDEN_KEY, false));
-  const toggle = import_react44.default.useCallback(() => setHidden((value) => !value), []);
-  import_react44.default.useEffect(() => {
+  const [hidden, setHidden] = import_react45.default.useState(() => readPanelFlag(CHROME_HIDDEN_KEY, false));
+  const toggle = import_react45.default.useCallback(() => setHidden((value) => !value), []);
+  import_react45.default.useEffect(() => {
     writePanelFlag(CHROME_HIDDEN_KEY, hidden);
   }, [hidden]);
-  import_react44.default.useEffect(() => {
+  import_react45.default.useEffect(() => {
     const onKeyDown2 = (event) => {
       const dialogOpen = typeof document !== "undefined" && typeof document.querySelector === "function" && Boolean(document.querySelector('[role="dialog"]'));
       if (!isChromeShortcut(event, event.target, dialogOpen)) return;
@@ -27998,7 +28305,7 @@ function useChromeVisibility() {
 }
 
 // src/client/ui/tool-workspace.js
-var import_react45 = __toESM(require("react"), 1);
+var import_react46 = __toESM(require("react"), 1);
 function openWorkspaceTool(windows, id, { toggleIfOpen = false } = {}) {
   const list = Array.isArray(windows) ? windows : [];
   if (!toolEntry(id)) return list;
@@ -28025,16 +28332,16 @@ function toggleExpandWorkspaceTool(windows, id) {
   );
 }
 function useToolWorkspace(openRequest) {
-  const [windows, setWindows] = import_react45.default.useState([]);
-  const lastSeqRef = import_react45.default.useRef(0);
-  import_react45.default.useEffect(() => {
+  const [windows, setWindows] = import_react46.default.useState([]);
+  const lastSeqRef = import_react46.default.useRef(0);
+  import_react46.default.useEffect(() => {
     const seq = openRequest?.seq ?? 0;
     if (!openRequest?.id || seq <= lastSeqRef.current) return;
     lastSeqRef.current = seq;
     setWindows((prev) => openWorkspaceTool(prev, openRequest.id, { toggleIfOpen: false }));
     focusFloatingWindow(`toolwin.${openRequest.id}`);
   }, [openRequest?.id, openRequest?.seq]);
-  const selectTool = import_react45.default.useCallback((id) => {
+  const selectTool = import_react46.default.useCallback((id) => {
     setWindows((prev) => {
       const active = prev.length === 1 && prev[0].id === id;
       if (active) return [];
@@ -28043,17 +28350,17 @@ function useToolWorkspace(openRequest) {
     });
     focusFloatingWindow(`toolwin.${id}`);
   }, []);
-  const openTool = import_react45.default.useCallback((id) => {
+  const openTool = import_react46.default.useCallback((id) => {
     setWindows((prev) => openWorkspaceTool(prev, id, { toggleIfOpen: false }));
     focusFloatingWindow(`toolwin.${id}`);
   }, []);
-  const closeTool = import_react45.default.useCallback((id) => {
+  const closeTool = import_react46.default.useCallback((id) => {
     setWindows((prev) => closeWorkspaceTool(prev, id));
   }, []);
-  const toggleMinimize = import_react45.default.useCallback((id) => {
+  const toggleMinimize = import_react46.default.useCallback((id) => {
     setWindows((prev) => toggleMinimizeWorkspaceTool(prev, id));
   }, []);
-  const toggleExpand = import_react45.default.useCallback((id) => {
+  const toggleExpand = import_react46.default.useCallback((id) => {
     setWindows((prev) => toggleExpandWorkspaceTool(prev, id));
     focusFloatingWindow(`toolwin.${id}`);
   }, []);
@@ -28077,13 +28384,13 @@ function consoleHeader({ t: t2, activeTab = null, lastTab = null, windows = [], 
   const labelKey = PANEL_TAB_LABELS[tab];
   const ids = openToolIds(windows);
   const toolId = ids.length > 0 ? ids[ids.length - 1] : null;
-  const entry = toolId ? toolEntry(toolId) : null;
-  const panelDetail = tab === "tools" && entry && !toolIndexShown ? t2(entry.labelKey) : null;
+  const entry2 = toolId ? toolEntry(toolId) : null;
+  const panelDetail = tab === "tools" && entry2 && !toolIndexShown ? t2(entry2.labelKey) : null;
   return { tab, panelLabel: labelKey ? t2(labelKey) : t2("dock.title"), panelDetail, toolId };
 }
 
 // src/client/ui/loading-globe.js
-var import_react46 = __toESM(require("react"), 1);
+var import_react47 = __toESM(require("react"), 1);
 
 // src/client/ui/earth-mask.js
 var EARTH_MASK = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAgAAAAEACAYAAADFkM5nAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAABUQSURBVHhe7dmLjuW2siDR8/8/PQPbt+zqSD1I8U1GAAuNm5uiKO2qds+c//3vf//7f5Ik6ThhIEmS9hcGkiRpf2EgSZL2FwaSJGl/YSBJkvYXBpIkaX9hIEmS9hcGkiRpf2EgSZL2FwaSJGl/YSBluYprJEnTCQMpWU68dga94v14DkkaIAykJCnxmhZWjc8hSZ2FgfSv3/+xuovXtNAr3leSNhYG0r/e4voWWsZ7SdJBwkD6w+//UI76j+dTXPu2/ne8TpIOEgbSEp7+A87/wF/937xGkg4TBtJ2+A8ASVIcSEv7+Q89/1/8/gNAqustrtd0wkBa2lNcK+mb0rifhggDaQtXcY10ulHxHBoiDJTJH+j53MV10qlGxDNouDBQhre4Xn0xfi6dYrZ4Pg0RBsrw1NVaztQW4+fSF6v8LO0Qn+nu+fiZkoSBMqX88L3F9Tl7t/IU185s1XNLX50c34UehYE6SonX9JASr5kZ4+fSSIyf362z+/juUuXG6xcTBuooJ17b2l1ctwLGz6VR7kpdZ8/xPf68y17vlPf+ff8JhEFTJXGvWXw925e4x8xmOu+q7/AUT3Htbu5KWWNrx5+FAcKgup7x3iUYP+cafpbi7vqnuEeq0utzMX7e21Vco7ZqxD1Xd1fKGtsv/nw0FgbVWIzvqBfGz+/krqe7uK4Xxs9VX894756+9HRdjf3Nnmr6D4C/WIzv6M3X6672YFx3dw0/y3EX17VyFdeojZHxLF+MbKaz2J49/lTxB7DU7u34nPwOSzB+XttdXKf6Zopno5mb/Xy2dv/+/wA8xV+Yr3Zut2fl89TUev8fd3Gd6pkxnnH285r1qsn/BGBr9fOd8Xus4SmubeEurlO53Equ/YlnuGNmsSb/APiLrRG/t9re4voWruKakZ7i2lnlVnr977gXmdl1zf4BQDZn/J5auoprWmL8fCTGz2f1pRp7mFl+/N3zHwCHxu+nF8bPexl57x18rdY+ZpYff/+a/wPA5orfj5TrSzX2MLPv8Xfw/4RBNTZP/G6kXF/jPiV7mVl6/L27EAbV2Dzxu2lp1H3VRmnc7+ueJdeazRR/H6gk7vUiDKqqEfdMYf/Fd9PKW1yv+dWIe37d/8s1ZrPF34E7ufH6RGHQxJe4R4mT47toITVep7mVxv2emO0ef+YnEAZNpcbrajoxvoPacuK1mldp3O+J2ezxZ3YDYdAV4+etnRSfvabceL3mVRL3umM2a/xZ3UwYHOek+Ow11Yx7a05vcf0Vsxnjz2lLV3FNI2FwpJPis9dSO+6vb1q/07u4LuUasxniz2sLb3F9I2FwtJPis5dqEe+hPFdxTam7uC7lGrOR8ee0lZR4TSNhoMQvaLf4DnK1ivdRuqu45ounuPaK2WzxZ7Slt7i+oTBQwhd0Qnwnd3rEeyrdVVyT4ymuvWI2Y/w5bekprm0sDPR/7L/4bka8J95Xf2Jvn/8V17xJ6cs1ZqPjz21LT3FtY2GgX+y/+G5meD88z6mu+rLmjtkp8We/hau4ppMwENh/zfZueJ5TXfX2+U/cK+UasxP6/bvA348SV/cYJAx0wf5ptvfC85zs6b28xfUp15jtHn8X+DtSovZ+H4WBbth88TvStbdy1pqdEn8n+Hu1gTDQAxsbvw+lu+pubmb+A0AXrH58x+rLzP7s6veDvzcbCAMlsLrx/b4puVZ/MrPY1e8If3c2EAbKYPXiu71zFdcoMrO07n53ON9AGCjDDvGZRj4Xz3HlKq5RZGZp8XdnY2GgDKvH5xn5bLy/2jCz+/j7srkwUIYd4jONfD7eX/WZ2X38fdlcGCjDrvE5Rzwv7616Vu7p/E+fpcZ3tcM7s/T4vW8uDJThhEY9M++relrUat+/4vmvnuNunhP3L93P1orf+wHCQBlOqeUz852qvdr12jvHl7jH131snfh9U87aBYWBMuzW3TPVfGa+Q/X3padra+x/F/fOkROv/bKHrRW/6yuMny8uDJRht1o/F9+f6qoR9+I9+PnvuOZuXWrc66vUeF3u9TZ/P98nv+M7jJ8vLgyUwdLju1N9pXG/N4yf361LjfuUSInX5F5vc8bvMlfNvSYTBspgafG9qb4acc8UjJ8/rU2Je3yVGq/7sofNEb8/BWGgDPYe35naKIl7ffW235dy9uDalGuu4vVf97Fx8bvTpTBQBnuO70vtfIl71PC0/1Upa3rHM810NnuP35tuhYEy2H18V2rrS9yjhqf9GT+/W9c7nmems50Yv4O374Nrvqi518TCQBnsOr4ntfcl7tFD6v1HxrPMcq7T4ru/w/j5F7X3m1QYKJP9Gd+P+vgS9+gl5Qwj41lmONOp8Tu4chXX5GD8fCNhoA/sn/he1E9OvLa3lHOMjGeZ4Uz2T/xOnr4brklVY49FhIE+sH/ie1Ffb3F9rlr7pBrdTGexf+LPyNN3xM+fXMU1GwoDfWRH/MIsI+U7KYl7jWLnxO+eGD+/cxfXbSgMVODk+C40v9K43yi2f/zO7+RecxfXbSoMVOjE+A40Xut4v9Fs3/hdl3iL6zcXBqrgpPjsGq9HvOdotnf8vr+4i+sOEgaqaOf4rBqvd7z/KHZG/N5VLAxU2Y7xGTXe6HienuyM+L2rWBiogZ3is2kOs8RzEePnueys+P2rSBiokR3iM2keM8Wz5Z6R192x8+LPgIqEgTqYrdQz8Tk0B7NT4s++ioSBOpkhnulK7nr1Z3Xync4ff/ZVJAzUSY94z69a7Kk6rF6+27nj96NiYaAOesR7lmi1r8pY3fh+fcdzxe9GxcJAHfAHukW8Z6mWeyuftfn94Xuuvb99i9+JqggDDVA77l9D6/2Vxv6r1XvhO29xD8uL34WqCAMNVCvuW0vr/fXM/qzl++HeT6xtfN+qJgw0WI24p/ZgsZbvh+//jbWJ71nVhIEmUBr30/rsupbviXvXZu/xnamqMNAkSuJeWp/d1/Jdce/f+3Oey+7ju1ITYaCJfIl7aH32HN/XiHfG+6eyGN+RmgkDTSY3Xq+1WVp8byPeHe+fyv6L70ZNhYEmlBOvbaHnvU5n6Y1+d7x/qhGNvv9PfBfqKgw0oZx4bQu973cqy2v0++P9c/SK9219/7u9eX8NEQaaVE689g7j5ymu4hp9Z+nx3fV8f7xvqRbxHlS7q/0501BhoEnlxGuvXMU1KUqu1TvLi++vxzvk/WqoHfe/UyvuqymFgSaWE69924PrariKa/TM8uL7a/0Oea9aasV939SIe2paYaDJ5ZRzLdfWcBXX6Jnlx3fY6j3yHrWVxv1S1Yh7akphoIXUjHtrDvYtvsfa75J7t1AS98pRK+5bqsWehwsDLaZW3FdzsG/xPdZ6l9yzpa9xn1y14r6lWux5uDDQgmrFfTWWlVXzfXKvXnLitV9xz5K491ct9lQcaGE1497qz8qq9T65T28p8ZpS3LMk7v1F7f30tzDQxnLj9erLyit5p7x2lJR4TQslca8vau6lv4WBNpcbr1c/Vqecd8rvYAZvcX0rJXGvL2rto3+FgQ70FNeqH6vb03vlu5/JW1zfSkncS1MIAx3sLq5TH1a3q/fKdz6jt7i+Fd4zJ+6lKYSBDnYV16gvqx/f8Qqe4tpWru6XGvfSFMJAh7uKa3LV2udEVj++4xU8xbWt3N0vJV6jKYSBxN/d8PmT1Hidnln/+B2MdhfXjXAX12kqYSD97csvca24r/5h/eN3MNJVXDMS4+c1td7/EGEg/SHnF6123P901je+/xkwfn6K05+/kjCQLr39srWM9zqV9Y3vfxYjzzfqvvQ7fqZkYSBl6RnvfSLrE9/7zFY8c6lVv6vJhIGUpXe8/4msfXznM1vxzLWc+tyVhIGUZUQ8w4msXXzXsxtx7t73UxNhIGUbFc9xmpq12nfF+J4V+b62EAZStpni2U7xJe5Rut8O8T2c7u6dtHhnjJ+rujCQss0Wz6dvTovPr/v/eYHx8xx3cZ2qCwMp24zxjKpj5/is+sfd+6nx7p7iWlUXBlK2GeMZVc+O8Rn1n7v3dDdP9RbXq7owkLLMHM+qOnaLz6foLa5/kxKvUXVhICWbPZ5XdewSn0vPnuLaOznxWlUXBlKSVeK5VW6X+Fx69hTXXsmN16u6MJBerRTPrjI7xGdSuru4jr7EPVRdGEivVovn13czVHIWPo/yXcU1V3Lj9aouDKRHu8TnUpoZ+noWPou+u4prKCdeqybCQHq0U3w2vZuhr2fhs+i7p7g29bqfnq7hZ1/c7VPzHosIA+nRjvEZ9WzV+Bwq8xTXpl73V2/r+Xku7vEUr91MGEiPTorPrv+sEs+tuu7iujuMn6euyfE17rOBMJAenRafX/+ZPZ5XbVzFNSUYP//ia9xncWEgPTo5vovTzR7PqzYYP6+l1f5f4h6LCgPp0enxfZxu5nhWtbPDe8+N1y8oDKRXp8f3cbKZ41nVx6rvPzdev6AwkF6dHt/H6WaN51Q/q34HX+M+iwgDKcnJ8V2cbtZ4To3H+PlIpXG/BYSBlOzU+B5ON2s8p8Zi/HwGbz2t414LCAMp2cnxXZxu1nhOKRXj57/XcL6IMJCynBjfgeb9OeA5Jf0rDKQsp8Xn1z9mjmeV9LcwkLKdEJ9Zf5o5nlXS38JA+mT3+Lz608zxrJL+FgbSZ7vG51Q0czyrznMX113JWbuYMJA+2zU+p/40ezyvzvIU11LO2gWFgfTZrvE59afZ43nvMH6u9bzF9cT4+eLCQCqyW3w+RbPH8165ims0r6vvLTXudbfv29oFhYFUbKf4bPrTCvHMdBfXaU6lcb+3vblmYWEgVbFDfCZFK8Qzp5yf6zSfmnHvp3twzcLCQGpixfgMimaP5009O9dqPi1KvQfXLSoMpGZWi+dXNGs8Jz3FtZpPy1LvwTMtKAykZlaL51c0Wzzflbe4XnOZJZ5rQWEgNbNaPL+uzRLPdectrtc8ZopnW1AYSE2tFM+uazPEMz15i+s1hxnjGRcTBlJTq8Rz697oeJ43b3G9xlohnnkRYSA1tUI8s96NjGd58xTXqr9V43MsIAykplaIZ9a7kfEsb57iWvWzenyeBYSB1MwK8cxKNyqe481TXKs+donPNbkwkJqZMZ5R342K53jzFNeqvd3i800sDKRmZopnUx0j4hne3MV16mPH+IyTCgOpmVniuVTPiHiGN3dxnfrYNT7nhMJAamaGeCbV1TveP1WNPVTHrvE5JxQGUjOj43nURq94X61p5/iskwkDqZmR8Sxqp0e8p9a1e3zeiYSB1MToeB610zreT2vbPT7vRMJAamJkPIvaah3vp7XtHp93ImEgNTEynkXttYz30vp2js86kTCQmhgVz6F+WsR7aA87x2edSBhI1Y2MZ1E/LeI9tIed47NOJAyk6kbFc6i/mnFv7WXX+JwTCQOpuhHxDBqnNO6nPe0Yn3EyYSBV1zveX2OVxL20r5q12PNLfMbJhIFUXc94b41XEvfSvr7GfVL0iPecUBhI1fWK99UcvsZ9tLfceH2u1vF+EwoDqbpe8b6aj9+V7jzFtbW0iveZVBhIVbWO95O0LsbPW6oV951YGEhVtYr3kaRSNeKeEwsDqZqW8V6SVENp3G9iYSBV0zLeS5JqKIl7TS4MpGpaxntJUi1f4h6zeDhfGEjVtIj3kKRW+HfPan8PMXweL5BqqRX3lSS9Y/g8XiDVUhr3kySle/m7NAykakriXpKkqsJAquZL3EOSZjPz31kZ5woDqZrceL0kzYjx8xE+nCcMpGpy4/WSNKPZ/t76eJ4wkKrJjddL0qxm+XuL8fMHYSBVkxOvlSTdu4prXoSBVE1OvFaSdI/x8wRhIFWRGq+TJL2r8PdoGEhVpMRrJElpKvw9GgZSsZx4rSSpizCQiuXEayVJXYSBVCw1XidJ6iYMpGKp8TpJUjdhIFXxFtdLkroKA6mKt7hektRVGEjV3MV1kqTuwkCq5i6ukyR1FwZSNXdxnSSpuzCQqmL8XJI0RBhIkqT9hYEkSdpfGEjN+T8HSNJwYSBJkvYXBpIkaX9hIEmS9hcGkiRpf2EgSZL2FwaSJGl/YSBJkvYXBpIkaX9hIEmS9hcGkiRpf2EgSZL2FwaSJGl/YSBJkvYXBpIkaX9hIEmS9hcGkiRpf2EgSbrwO362o7e4fjZvcf2BwkAaxl9MzeYprl1Ny3ivmmrFfVOVXDuZMJCGqfHLKaXqFe/byqzxnDzzzGd/is+yoDCQhmD8XKplVDxHDSu18tlz47NOKgyk7q7iGqnEDPFMNazWquduEb/LAcJA6uourpNyzBbPd3VOfka2Z/yeOwoDqZmceK3qK437tbJ6fJ6dns3qxZ+NDsJAaiI3Xq97P+9rtfgcKz7DU3y2HLZGP9/V7z9TfIl7VBAGUnVf4h6KbM74PX1lc8fvK0dp3O+jMNBiKv4wNJMbr9efbI5+fx/8jmqxM+PPQSNhoIXkxGt/X895TbnxeuW/Q+sTv6fa7Lz4M9BYGGghreJ9SrXce1c2V/x+WusV75tjlXjuWc/OM3YQBscpiXv1Nks8l76zNeL3VkvPeO8aZoxnnPGsPFsnYXCUGeMZn/To7T48k8r0jPfOdXp8HyVGxDPUNDKe5U5qP2t//1lTiz0ThcFydo/Pe6VFvMfd/fiZyvH9tor3zWX943fA74Gf/f6c89Zqxr0pZ+3ddYxrW+l9v1/CYHq94n1bSI3Xpfh9XWrco5Yv97iKa05n/8V3QzOWej4+yypqxD1n8hbX32H8vKEwmFLLeK+eUuN1d77GfWr7cp+f9W/xutOcHt/Hk1Xjc6yiRtxzJm9x/RPGzxsJA00g5wegRtxT6zg5vosUV93NW8ZzrWpkPMspKj57GChTSdzri5K4l9YzMp5FZxkdz7O7Bs8eBpI28tTP51/+lEbH8+zqKq75KAwkLaTBXwpSsp+fu95/nuYqrvkgDCRJ0v7CQJIk7S8MtJDSuJ8knaI07regMNBCSuN+u2L8XNJ5avWzV86fkwgDLaQ07reTlHjNinZ5DumLleOzDBAGuvHzhU3yxf2tNO63gxH93Lf3n+yvuXSSnfp5Hj5jMzxAbmHDBf08B5/n9/wu7pXrhPjMNVlZfJ/q7+d7yP2zFu6b+ucMrKyl3+BMPwA/Z8n902z1+DPd88/V1epnr9w/a8V9e/1pZfkWzczMDsx/AJiZmR2Y/wAwMzM7MP8BYGZmdmD/H2qz0FAxQljGAAAAAElFTkSuQmCC";
@@ -28137,8 +28444,8 @@ function renderGlobePixels(projection, texture, elapsed = 0) {
 
 // src/client/ui/loading-globe.js
 function LoadingGlobe() {
-  const canvasRef = import_react46.default.useRef(null);
-  import_react46.default.useEffect(() => {
+  const canvasRef = import_react47.default.useRef(null);
+  import_react47.default.useEffect(() => {
     const canvas = canvasRef.current;
     const context = canvas?.getContext("2d");
     if (!context) return;
@@ -28189,16 +28496,16 @@ function LoadingGlobe() {
       document.removeEventListener("visibilitychange", resume);
     };
   }, []);
-  return import_react46.default.createElement(
+  return import_react47.default.createElement(
     "div",
     { className: "mv-spinner", "aria-hidden": true },
-    import_react46.default.createElement("canvas", { ref: canvasRef, className: "mv-loading-globe" })
+    import_react47.default.createElement("canvas", { ref: canvasRef, className: "mv-loading-globe" })
   );
 }
 
 // src/client/ui/selection-overlay.js
-var import_react47 = __toESM(require("react"), 1);
-var h40 = import_react47.default.createElement;
+var import_react48 = __toESM(require("react"), 1);
+var h41 = import_react48.default.createElement;
 var CONFIDENCE_TIER = {
   measured: { key: "selection.confidence.high", tone: "high" },
   estimated: { key: "selection.confidence.medium", tone: "medium" },
@@ -28221,17 +28528,17 @@ function numberText(value, suffix = " m", digits = 0) {
   return `${rounded}${suffix}`;
 }
 function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t: t2, showToast, onMeasure, onSelectArea }) {
-  const [card, setCard] = import_react47.default.useState(null);
-  const [busy, setBusy] = import_react47.default.useState(false);
-  const [errorLine, setErrorLine] = import_react47.default.useState("");
-  const [exporting, setExporting] = import_react47.default.useState(false);
-  const [showAllProps, setShowAllProps] = import_react47.default.useState(false);
-  const anchorRef = import_react47.default.useRef(null);
-  const bracketRef = import_react47.default.useRef(null);
-  const chipRef = import_react47.default.useRef(null);
-  const requestRef = import_react47.default.useRef(null);
-  const validityRef = import_react47.default.useRef(null);
-  const dismiss = import_react47.default.useCallback(() => {
+  const [card, setCard] = import_react48.default.useState(null);
+  const [busy, setBusy] = import_react48.default.useState(false);
+  const [errorLine, setErrorLine] = import_react48.default.useState("");
+  const [exporting, setExporting] = import_react48.default.useState(false);
+  const [showAllProps, setShowAllProps] = import_react48.default.useState(false);
+  const anchorRef = import_react48.default.useRef(null);
+  const bracketRef = import_react48.default.useRef(null);
+  const chipRef = import_react48.default.useRef(null);
+  const requestRef = import_react48.default.useRef(null);
+  const validityRef = import_react48.default.useRef(null);
+  const dismiss = import_react48.default.useCallback(() => {
     requestRef.current?.abort();
     requestRef.current = null;
     validityRef.current = null;
@@ -28242,19 +28549,19 @@ function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t: t2, s
     setErrorLine("");
     setShowAllProps(false);
   }, []);
-  const identify = import_react47.default.useCallback(
+  const identify = import_react48.default.useCallback(
     async (position) => {
       if (!controller) return;
       requestRef.current?.abort();
-      const request2 = new AbortController();
-      requestRef.current = request2;
-      const current2 = () => requestRef.current === request2 && !request2.signal.aborted;
+      const request = new AbortController();
+      requestRef.current = request;
+      const current2 = () => requestRef.current === request && !request.signal.aborted;
       setBusy(true);
       setErrorLine("");
       setCard(null);
       setShowAllProps(false);
       try {
-        const result = await controller.identifyAt(position, { signal: request2.signal });
+        const result = await controller.identifyAt(position, { signal: request.signal });
         if (!current2()) return;
         if (result?.isValid && !result.isValid()) {
           dismiss();
@@ -28279,7 +28586,7 @@ function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t: t2, s
     },
     [controller, t2, dismiss]
   );
-  import_react47.default.useEffect(() => {
+  import_react48.default.useEffect(() => {
     if (!apiRef) return void 0;
     identify.cancel = dismiss;
     apiRef.current = active ? identify : null;
@@ -28287,15 +28594,15 @@ function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t: t2, s
       if (apiRef) apiRef.current = null;
     };
   }, [apiRef, active, identify, dismiss]);
-  import_react47.default.useEffect(() => {
+  import_react48.default.useEffect(() => {
     if (active) return;
     dismiss();
   }, [active, dismiss]);
-  import_react47.default.useEffect(() => () => {
+  import_react48.default.useEffect(() => () => {
     requestRef.current?.abort();
     if (bracketRef.current) bracketRef.current.style.display = "none";
   }, []);
-  import_react47.default.useEffect(() => {
+  import_react48.default.useEffect(() => {
     if (!active || !card) return void 0;
     const viewer = controller?.getViewer?.();
     const Cesium = controller?.getCesium?.();
@@ -28332,7 +28639,7 @@ function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t: t2, s
       }
     };
   }, [active, card, controller, dismiss]);
-  import_react47.default.useEffect(() => {
+  import_react48.default.useEffect(() => {
     if (!active) return void 0;
     const onKey = (event) => {
       if (event.key === "Escape") {
@@ -28389,7 +28696,7 @@ function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t: t2, s
   const groundSourceFact = factOf(card, "ground_source");
   const confidenceChip = (basis) => {
     const tier = CONFIDENCE_TIER[basis] ?? CONFIDENCE_TIER.inferred;
-    return h40("span", { className: `mv-sel-conf ${tier.tone}`, title: t2(tier.key) }, t2(tier.key));
+    return h41("span", { className: `mv-sel-conf ${tier.tone}`, title: t2(tier.key) }, t2(tier.key));
   };
   const limitations = Array.isArray(card?.limitations) ? card.limitations : [];
   const radii = card?.sampling?.radii_m ?? [30, 60, 120];
@@ -28416,80 +28723,80 @@ function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t: t2, s
     showToast(t2("selection.copyFailed"));
   };
   const showFootnote = limitations.includes("no_building_identity") || limitations.includes("tile_feature_only");
-  return h40(
-    import_react47.default.Fragment,
+  return h41(
+    import_react48.default.Fragment,
     null,
-    h40(
+    h41(
       "div",
       { ref: bracketRef, className: "mv-sel-anchor", style: { display: "none" }, "aria-hidden": true },
-      h40("i", { className: "c tl" }),
-      h40("i", { className: "c tr" }),
-      h40("i", { className: "c bl" }),
-      h40("i", { className: "c br" }),
-      h40("span", { className: "leader" }),
-      h40("b", { ref: chipRef, className: "chip" }, object && object.value !== null ? `≈ ${numberText(object.value, " m")}` : t2("selection.noHeight"))
+      h41("i", { className: "c tl" }),
+      h41("i", { className: "c tr" }),
+      h41("i", { className: "c bl" }),
+      h41("i", { className: "c br" }),
+      h41("span", { className: "leader" }),
+      h41("b", { ref: chipRef, className: "chip" }, object && object.value !== null ? `≈ ${numberText(object.value, " m")}` : t2("selection.noHeight"))
     ),
-    busy ? h40("div", { className: "mv-select mv-select-loading mv-glass", role: "status" }, h40("div", { className: "mv-spinner" }), h40("span", null, t2("selection.reading"))) : null,
-    errorLine !== "" ? h40(
+    busy ? h41("div", { className: "mv-select mv-select-loading mv-glass", role: "status" }, h41("div", { className: "mv-spinner" }), h41("span", null, t2("selection.reading"))) : null,
+    errorLine !== "" ? h41(
       "div",
       { className: "mv-select mv-glass" },
-      h40("div", { className: "mv-select-error" }, h40("span", null, errorLine))
+      h41("div", { className: "mv-select-error" }, h41("span", null, errorLine))
     ) : null,
-    card ? h40(
+    card ? h41(
       "div",
       { className: "mv-select mv-glass" },
-      h40(
+      h41(
         "header",
         null,
-        h40("span", { className: "kind" }, t2("selection.resultLabel")),
-        h40(
+        h41("span", { className: "kind" }, t2("selection.resultLabel")),
+        h41(
           "button",
           { type: "button", className: "mv-icon-btn", title: t2("btn.close"), "aria-label": t2("btn.close"), onClick: dismiss },
           "✕"
         )
       ),
-      h40("h3", null, card.identity?.name ?? t2(TITLE_KEY[card.identity?.kind] ?? TITLE_KEY.tile_feature)),
-      h40("p", { className: "layer" }, card.layer?.name ?? t2("selection.unknownLayer")),
-      h40(
+      h41("h3", null, card.identity?.name ?? t2(TITLE_KEY[card.identity?.kind] ?? TITLE_KEY.tile_feature)),
+      h41("p", { className: "layer" }, card.layer?.name ?? t2("selection.unknownLayer")),
+      h41(
         "div",
         { className: "mv-sel-meta" },
-        h40("span", { className: "mv-sel-meta-chip" }, t2(hitKindKey)),
-        groundSourceFact ? h40("span", { className: "mv-sel-meta-chip" }, t2(groundSourceLabelKey(groundSourceFact.value))) : null,
-        featureId != null ? h40("span", { className: "mv-sel-meta-chip" }, t2("selection.featureId", { id: featureId })) : null
+        h41("span", { className: "mv-sel-meta-chip" }, t2(hitKindKey)),
+        groundSourceFact ? h41("span", { className: "mv-sel-meta-chip" }, t2(groundSourceLabelKey(groundSourceFact.value))) : null,
+        featureId != null ? h41("span", { className: "mv-sel-meta-chip" }, t2("selection.featureId", { id: featureId })) : null
       ),
-      lonLat !== "" ? h40(
+      lonLat !== "" ? h41(
         "div",
         { className: "coords" },
-        h40("span", { className: "key" }, t2("selection.coordinates")),
-        h40("code", { title: t2("selection.copyCoords") }, lonLat),
-        h40(
+        h41("span", { className: "key" }, t2("selection.coordinates")),
+        h41("code", { title: t2("selection.copyCoords") }, lonLat),
+        h41(
           "button",
           { type: "button", className: "mv-icon-btn", title: t2("selection.copyCoords"), "aria-label": t2("selection.copyCoords"), onClick: copyCoordinates },
           "⧉"
         )
       ) : null,
-      h40(
+      h41(
         "div",
         { className: "facts" },
-        surface ? h40(
+        surface ? h41(
           "div",
           { className: "fact" },
-          h40("span", { className: "key" }, t2("selection.surfaceHeight")),
-          h40("b", null, numberText(surface.value)),
+          h41("span", { className: "key" }, t2("selection.surfaceHeight")),
+          h41("b", null, numberText(surface.value)),
           confidenceChip("measured")
         ) : null,
-        object ? h40(
+        object ? h41(
           "div",
           { className: "fact" },
-          h40("span", { className: "key" }, t2("selection.objectHeight")),
-          h40("b", null, numberText(object.value)),
+          h41("span", { className: "key" }, t2("selection.objectHeight")),
+          h41("b", null, numberText(object.value)),
           confidenceChip(object.basis)
         ) : null,
-        above ? h40(
+        above ? h41(
           "div",
           { className: "fact" },
-          h40("span", { className: "key", title: t2("selection.aboveMedianHint") }, t2("selection.aboveMedian")),
-          h40(
+          h41("span", { className: "key", title: t2("selection.aboveMedianHint") }, t2("selection.aboveMedian")),
+          h41(
             "b",
             null,
             typeof above.value === "number" ? `${Math.round(above.value) > 0 ? "+" : ""}${Math.round(above.value)} m` : "—"
@@ -28497,26 +28804,26 @@ function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t: t2, s
           confidenceChip(above.basis)
         ) : null
       ),
-      properties.length > 0 ? h40(
+      properties.length > 0 ? h41(
         "div",
         { className: "props" },
-        h40(
+        h41(
           "span",
           { className: "props-title" },
           propertyInfo.hidden > 0 ? t2("selection.propertiesCount", { shown: properties.length, total: propertyInfo.total }) : t2("selection.properties")
         ),
         ...properties.map(
-          (property, index) => h40(
+          (property, index) => h41(
             "div",
             { key: `${property.name}-${index}`, className: "prop" },
-            h40("span", { title: property.name }, property.name),
-            h40("b", { title: property.value }, property.value)
+            h41("span", { title: property.name }, property.name),
+            h41("b", { title: property.value }, property.value)
           )
         ),
-        propertyInfo.hidden > 0 ? h40(
-          import_react47.default.Fragment,
+        propertyInfo.hidden > 0 ? h41(
+          import_react48.default.Fragment,
           null,
-          h40(
+          h41(
             "button",
             {
               type: "button",
@@ -28529,7 +28836,7 @@ function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t: t2, s
           )
         ) : null
       ) : null,
-      samplingMin != null && samplingMax != null ? h40(
+      samplingMin != null && samplingMax != null ? h41(
         "p",
         { className: "sampling" },
         t2("selection.neighborBand", {
@@ -28538,27 +28845,27 @@ function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t: t2, s
           spread: Math.round(samplingSpread ?? 0)
         })
       ) : null,
-      h40(
+      h41(
         "p",
         { className: "sampling", title: t2("selection.samplingHint") },
         t2("selection.sampling", { count: card.sampling?.count ?? 0, radii: radii.join("/") })
       ),
-      showFootnote ? h40("p", { className: "footnote" }, t2("selection.footnote")) : null,
-      h40(
+      showFootnote ? h41("p", { className: "footnote" }, t2("selection.footnote")) : null,
+      h41(
         "div",
         { className: "actions" },
-        h40("button", { type: "button", className: "mv-cta", title: t2("selection.flyHint"), onClick: flyNear }, t2("selection.fly")),
-        h40("button", { type: "button", className: "mv-cta", title: t2("selection.measureHint"), onClick: measure }, t2("selection.measure")),
-        h40(
+        h41("button", { type: "button", className: "mv-cta", title: t2("selection.flyHint"), onClick: flyNear }, t2("selection.fly")),
+        h41("button", { type: "button", className: "mv-cta", title: t2("selection.measureHint"), onClick: measure }, t2("selection.measure")),
+        h41(
           "button",
           { type: "button", className: "mv-cta primary", title: t2("selection.exportHint"), disabled: exporting, onClick: takeAway },
           exporting ? t2("selection.exporting") : t2("selection.takeAway")
         )
       ),
-      typeof onSelectArea === "function" ? h40(
+      typeof onSelectArea === "function" ? h41(
         "div",
         { className: "actions secondary" },
-        h40(
+        h41(
           "button",
           { type: "button", className: "mv-cta", title: t2("selection.approximate"), onClick: selectAround },
           t2("selection.areaAction")
@@ -28569,8 +28876,8 @@ function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t: t2, s
 }
 
 // src/client/ui/vector-card.js
-var import_react48 = __toESM(require("react"), 1);
-var h41 = import_react48.default.createElement;
+var import_react49 = __toESM(require("react"), 1);
+var h42 = import_react49.default.createElement;
 function VectorCard({ selection, onClose, onChange, onDelete, onExport, onSendToChat, t: t2, embedded = false }) {
   const feature = selection?.feature ?? null;
   const command = selection?.command ?? null;
@@ -28588,26 +28895,26 @@ function VectorCard({ selection, onClose, onChange, onDelete, onExport, onSendTo
   const savedKind = annotationKindOf(feature);
   const savedStyle = annotationStyleOf(feature, command?.style ?? "accent");
   const savedExtrusion = annotationExtrusionOf(feature);
-  const savedAttrs = import_react48.default.useMemo(() => extractCustomAttributes(feature), [feature]);
-  const [name, setName] = import_react48.default.useState("");
-  const [note, setNote] = import_react48.default.useState("");
-  const [kind, setKind] = import_react48.default.useState("point");
-  const [style, setStyle] = import_react48.default.useState("accent");
-  const [extruded, setExtruded] = import_react48.default.useState(false);
-  const [heightInput, setHeightInput] = import_react48.default.useState("15");
-  const [lonInput, setLonInput] = import_react48.default.useState("");
-  const [latInput, setLatInput] = import_react48.default.useState("");
-  const nextAttrId = import_react48.default.useRef(1);
-  const [attrs, setAttrs] = import_react48.default.useState([]);
-  const [attrsOpen, setAttrsOpen] = import_react48.default.useState(false);
-  const [busy, setBusy] = import_react48.default.useState(false);
+  const savedAttrs = import_react49.default.useMemo(() => extractCustomAttributes(feature), [feature]);
+  const [name, setName] = import_react49.default.useState("");
+  const [note, setNote] = import_react49.default.useState("");
+  const [kind, setKind] = import_react49.default.useState("point");
+  const [style, setStyle] = import_react49.default.useState("accent");
+  const [extruded, setExtruded] = import_react49.default.useState(false);
+  const [heightInput, setHeightInput] = import_react49.default.useState("15");
+  const [lonInput, setLonInput] = import_react49.default.useState("");
+  const [latInput, setLatInput] = import_react49.default.useState("");
+  const nextAttrId = import_react49.default.useRef(1);
+  const [attrs, setAttrs] = import_react49.default.useState([]);
+  const [attrsOpen, setAttrsOpen] = import_react49.default.useState(false);
+  const [busy, setBusy] = import_react49.default.useState(false);
   const floating = useFloatingWindow({
     storageKey: "vector-card",
     title: selection?.title || t2("vector.selection"),
     t: t2,
     restoreSaved: false
   });
-  import_react48.default.useEffect(() => {
+  import_react49.default.useEffect(() => {
     setName(savedName);
     setNote(savedNote);
     setKind(savedKind);
@@ -28707,7 +29014,7 @@ function VectorCard({ selection, onClose, onChange, onDelete, onExport, onSendTo
   const removeAttrRow = (id) => {
     setAttrs((prev) => prev.filter((item) => item.id !== id));
   };
-  return h41(
+  return h42(
     "section",
     {
       className: `mv-vector-card${embedded ? " in-dock" : ""} ${embedded ? "" : floating.className}`,
@@ -28716,18 +29023,18 @@ function VectorCard({ selection, onClose, onChange, onDelete, onExport, onSendTo
       "aria-label": t2("vector.selection"),
       ...embedded ? {} : floating.panelProps
     },
-    h41(
+    h42(
       "header",
       embedded ? { className: "mv-dock-card-head" } : floating.headerProps,
       embedded ? null : floating.dragHandle,
-      h41(
+      h42(
         "div",
         null,
-        h41("span", { className: "eyebrow" }, selection.kind),
-        h41("h3", null, selection.title)
+        h42("span", { className: "eyebrow" }, selection.kind),
+        h42("h3", null, selection.title)
       ),
       embedded ? null : floating.resetButton,
-      h41(
+      h42(
         "button",
         {
           type: "button",
@@ -28740,47 +29047,47 @@ function VectorCard({ selection, onClose, onChange, onDelete, onExport, onSendTo
       )
     ),
     embedded ? null : floating.liveRegion,
-    selection.summary ? h41("p", { className: "summary" }, selection.summary) : null,
-    editable ? h41(
+    selection.summary ? h42("p", { className: "summary" }, selection.summary) : null,
+    editable ? h42(
       "div",
       { className: "mv-vector-edit" },
-      h41(
+      h42(
         "label",
         null,
-        h41("span", null, t2("annotation.name")),
-        h41("input", {
+        h42("span", null, t2("annotation.name")),
+        h42("input", {
           value: name,
           maxLength: 80,
           placeholder: t2("annotation.namePlaceholder"),
           onChange: (event) => setName(event.target.value)
         })
       ),
-      h41(
+      h42(
         "div",
         { className: "mv-vector-row-2" },
-        h41(
+        h42(
           "label",
           null,
-          h41("span", null, t2("annotation.kindLabel")),
-          h41(
+          h42("span", null, t2("annotation.kindLabel")),
+          h42(
             "select",
             {
               value: kind,
               "aria-label": t2("annotation.kindLabel"),
               onChange: (event) => setKind(event.target.value)
             },
-            ...ANNOTATION_KINDS.map((item) => h41("option", { key: item, value: item }, t2(`annotation.kind.${item}`)))
+            ...ANNOTATION_KINDS.map((item) => h42("option", { key: item, value: item }, t2(`annotation.kind.${item}`)))
           )
         ),
-        h41(
+        h42(
           "div",
           { className: "mv-vector-field" },
-          h41("span", { className: "mv-vector-field-label" }, t2("annotation.styleLabel")),
-          h41(
+          h42("span", { className: "mv-vector-field-label" }, t2("annotation.styleLabel")),
+          h42(
             "div",
             { className: "mv-swatch-row", role: "radiogroup", "aria-label": t2("annotation.styleLabel") },
             ...ANNOTATION_STYLES.map(
-              (preset) => h41("button", {
+              (preset) => h42("button", {
                 key: preset,
                 type: "button",
                 className: `mv-swatch${style === preset ? " on" : ""}`,
@@ -28795,24 +29102,24 @@ function VectorCard({ selection, onClose, onChange, onDelete, onExport, onSendTo
           )
         )
       ),
-      isPolygon ? h41(
+      isPolygon ? h42(
         "div",
         { className: "mv-extrude-box" },
-        h41(
+        h42(
           "label",
           { className: "mv-extrude-toggle" },
-          h41("input", {
+          h42("input", {
             type: "checkbox",
             checked: extruded,
             onChange: (event) => setExtruded(Boolean(event.target.checked))
           }),
-          h41("span", null, t2("annotation.extrude3d"))
+          h42("span", null, t2("annotation.extrude3d"))
         ),
-        extruded ? h41(
+        extruded ? h42(
           "label",
           { className: "mv-extrude-height" },
-          h41("span", null, t2("annotation.extrudeHeight")),
-          h41("input", {
+          h42("span", null, t2("annotation.extrudeHeight")),
+          h42("input", {
             type: "number",
             min: 0.5,
             max: ANNOTATION_MAX_HEIGHT_M,
@@ -28821,20 +29128,20 @@ function VectorCard({ selection, onClose, onChange, onDelete, onExport, onSendTo
             "aria-label": t2("annotation.extrudeHeight"),
             onChange: (event) => setHeightInput(event.target.value)
           })
-        ) : h41("span", { className: "mv-extrude-hint" }, t2("annotation.extrudeHint"))
+        ) : h42("span", { className: "mv-extrude-hint" }, t2("annotation.extrudeHint"))
       ) : null,
-      isPoint ? h41(
+      isPoint ? h42(
         "div",
         { className: "mv-vector-field" },
-        h41("span", { className: "mv-vector-field-label" }, t2("annotation.pointCoords")),
-        h41(
+        h42("span", { className: "mv-vector-field-label" }, t2("annotation.pointCoords")),
+        h42(
           "div",
           { className: "mv-point-coords" },
-          h41(
+          h42(
             "label",
             null,
-            h41("span", null, t2("annotation.lon")),
-            h41("input", {
+            h42("span", null, t2("annotation.lon")),
+            h42("input", {
               type: "number",
               step: "0.000001",
               min: -180,
@@ -28844,11 +29151,11 @@ function VectorCard({ selection, onClose, onChange, onDelete, onExport, onSendTo
               onChange: (event) => setLonInput(event.target.value)
             })
           ),
-          h41(
+          h42(
             "label",
             null,
-            h41("span", null, t2("annotation.lat")),
-            h41("input", {
+            h42("span", null, t2("annotation.lat")),
+            h42("input", {
               type: "number",
               step: "0.000001",
               min: -90,
@@ -28860,11 +29167,11 @@ function VectorCard({ selection, onClose, onChange, onDelete, onExport, onSendTo
           )
         )
       ) : null,
-      h41(
+      h42(
         "label",
         null,
-        h41("span", null, t2("annotation.note")),
-        h41("textarea", {
+        h42("span", null, t2("annotation.note")),
+        h42("textarea", {
           value: note,
           maxLength: 280,
           rows: 2,
@@ -28872,13 +29179,13 @@ function VectorCard({ selection, onClose, onChange, onDelete, onExport, onSendTo
           onChange: (event) => setNote(event.target.value)
         })
       ),
-      h41(
+      h42(
         "div",
         { className: "mv-attr-box" },
-        h41(
+        h42(
           "div",
           { className: "mv-attr-head" },
-          h41(
+          h42(
             "button",
             {
               type: "button",
@@ -28887,23 +29194,23 @@ function VectorCard({ selection, onClose, onChange, onDelete, onExport, onSendTo
               "aria-label": t2(attrsOpen ? "annotation.attributesCollapse" : "annotation.attributesExpand"),
               onClick: () => setAttrsOpen((open) => !open)
             },
-            h41("span", { "aria-hidden": true }, attrsOpen ? "▾" : "▸"),
-            h41("span", null, `${t2("annotation.attributes")}${attrs.length ? ` (${attrs.length})` : ""}`)
+            h42("span", { "aria-hidden": true }, attrsOpen ? "▾" : "▸"),
+            h42("span", null, `${t2("annotation.attributes")}${attrs.length ? ` (${attrs.length})` : ""}`)
           ),
-          h41(
+          h42(
             "button",
             { type: "button", className: "mv-attr-add", onClick: addAttrRow },
             t2("annotation.addAttribute")
           )
         ),
-        attrsOpen && attrs.length > 0 ? h41(
+        attrsOpen && attrs.length > 0 ? h42(
           "div",
           { className: "mv-attr-list" },
           ...attrs.map(
-            (item) => h41(
+            (item) => h42(
               "div",
               { key: item.id, className: "mv-attr-row" },
-              h41("input", {
+              h42("input", {
                 type: "text",
                 maxLength: ANNOTATION_MAX_ATTR_KEY,
                 value: item.key,
@@ -28912,7 +29219,7 @@ function VectorCard({ selection, onClose, onChange, onDelete, onExport, onSendTo
                 "aria-label": t2("annotation.attrKeyPlaceholder"),
                 onChange: (event) => updateAttrRow(item.id, "key", event.target.value)
               }),
-              item.preserveObject ? h41("span", { className: "mv-attr-json", title: item.value }, item.value) : h41("input", {
+              item.preserveObject ? h42("span", { className: "mv-attr-json", title: item.value }, item.value) : h42("input", {
                 type: "text",
                 maxLength: ANNOTATION_MAX_ATTR_VALUE,
                 value: item.value,
@@ -28920,7 +29227,7 @@ function VectorCard({ selection, onClose, onChange, onDelete, onExport, onSendTo
                 "aria-label": item.key || t2("annotation.attrValuePlaceholder"),
                 onChange: (event) => updateAttrRow(item.id, "value", event.target.value)
               }),
-              h41(
+              h42(
                 "button",
                 {
                   type: "button",
@@ -28934,21 +29241,21 @@ function VectorCard({ selection, onClose, onChange, onDelete, onExport, onSendTo
             )
           )
         ) : null,
-        attrsOpen && complexAttrCount > 0 ? h41("span", { className: "mv-attr-hint" }, t2("annotation.attrsComplexHint", { n: complexAttrCount })) : null
+        attrsOpen && complexAttrCount > 0 ? h42("span", { className: "mv-attr-hint" }, t2("annotation.attrsComplexHint", { n: complexAttrCount })) : null
       )
     ) : null,
-    rows.length ? h41(
+    rows.length ? h42(
       "dl",
       null,
       rows.map(
-        ([itemName, value], index) => h41("div", { key: index }, h41("dt", null, itemName), h41("dd", null, value))
+        ([itemName, value], index) => h42("div", { key: index }, h42("dt", null, itemName), h42("dd", null, value))
       )
     ) : null,
-    shapeEditable ? h41("p", { className: "mv-vector-shortcuts" }, t2("annotation.shortcutHint")) : null,
-    editable ? h41(
+    shapeEditable ? h42("p", { className: "mv-vector-shortcuts" }, t2("annotation.shortcutHint")) : null,
+    editable ? h42(
       "footer",
       { className: "mv-vector-actions" },
-      h41(
+      h42(
         "button",
         {
           type: "button",
@@ -28958,7 +29265,7 @@ function VectorCard({ selection, onClose, onChange, onDelete, onExport, onSendTo
         },
         t2("annotation.save")
       ),
-      h41(
+      h42(
         "button",
         {
           type: "button",
@@ -28968,7 +29275,7 @@ function VectorCard({ selection, onClose, onChange, onDelete, onExport, onSendTo
         },
         t2("annotation.export")
       ),
-      typeof onSendToChat === "function" ? h41(
+      typeof onSendToChat === "function" ? h42(
         "button",
         {
           type: "button",
@@ -28979,7 +29286,7 @@ function VectorCard({ selection, onClose, onChange, onDelete, onExport, onSendTo
         },
         t2("annotation.sendToChat")
       ) : null,
-      h41(
+      h42(
         "button",
         {
           type: "button",
@@ -28990,12 +29297,12 @@ function VectorCard({ selection, onClose, onChange, onDelete, onExport, onSendTo
         t2("annotation.delete")
       )
     ) : null,
-    h41("footer", null, editable ? t2("annotation.editHint") : t2("vector.selectedHint"))
+    h42("footer", null, editable ? t2("annotation.editHint") : t2("vector.selectedHint"))
   );
 }
 
 // src/client/ui/tour-bar.js
-var import_react49 = __toESM(require("react"), 1);
+var import_react50 = __toESM(require("react"), 1);
 
 // src/client/scene/tour.js
 var TOUR_MIN_DURATION = 1.6;
@@ -29041,16 +29348,16 @@ function tourDuration(fromView, toView) {
 }
 
 // src/client/ui/tour-bar.js
-var h42 = import_react49.default.createElement;
+var h43 = import_react50.default.createElement;
 function useTour({ t: t2, showToast, getCurrentView, onFlyView, onFinish }) {
-  const [state, setState] = import_react49.default.useState(null);
-  const barRef = import_react49.default.useRef(null);
-  const apiRef = import_react49.default.useRef({});
+  const [state, setState] = import_react50.default.useState(null);
+  const barRef = import_react50.default.useRef(null);
+  const apiRef = import_react50.default.useRef({});
   apiRef.current = { t: t2, showToast, getCurrentView, onFlyView, onFinish };
-  const stop = import_react49.default.useCallback(() => {
+  const stop = import_react50.default.useCallback(() => {
     setState(null);
   }, []);
-  const start = import_react49.default.useCallback(
+  const start = import_react50.default.useCallback(
     (bookmarks) => {
       const stops = buildTour(bookmarks);
       if (stops.length < TOUR_MIN_STOPS) {
@@ -29062,7 +29369,7 @@ function useTour({ t: t2, showToast, getCurrentView, onFlyView, onFinish }) {
     },
     [showToast, t2]
   );
-  import_react49.default.useEffect(() => {
+  import_react50.default.useEffect(() => {
     if (!state || !state.playing) return void 0;
     const api = apiRef.current;
     const current3 = state.stops[state.index];
@@ -29082,7 +29389,7 @@ function useTour({ t: t2, showToast, getCurrentView, onFlyView, onFinish }) {
     }, Math.round(duration * 1e3) + TOUR_DWELL_MS);
     return () => clearTimeout(timer);
   }, [state]);
-  import_react49.default.useEffect(() => {
+  import_react50.default.useEffect(() => {
     if (!state || !state.playing) return void 0;
     const onPointerDown = (event) => {
       const bar = barRef.current;
@@ -29097,28 +29404,28 @@ function useTour({ t: t2, showToast, getCurrentView, onFlyView, onFinish }) {
     return true;
   }, Boolean(state));
   const current2 = state ? state.stops[state.index] : null;
-  const element = state ? h42(
+  const element = state ? h43(
     "div",
     { ref: barRef, className: "mv-tour mv-glass", role: "region", "aria-label": t2("tour.title") },
-    h42(
+    h43(
       "div",
       { className: "mv-tour-head" },
-      h42("b", null, t2("tour.title")),
-      current2?.name ? h42("span", { className: "mv-tour-stop-name" }, current2.name) : null,
-      h42("span", { className: "mv-tour-progress" }, t2("tour.progress", { index: state.index + 1, total: state.stops.length })),
-      h42("button", { type: "button", className: "mv-icon-btn", title: t2("tour.exit"), "aria-label": t2("tour.exit"), onClick: stop }, "✕")
+      h43("b", null, t2("tour.title")),
+      current2?.name ? h43("span", { className: "mv-tour-stop-name" }, current2.name) : null,
+      h43("span", { className: "mv-tour-progress" }, t2("tour.progress", { index: state.index + 1, total: state.stops.length })),
+      h43("button", { type: "button", className: "mv-icon-btn", title: t2("tour.exit"), "aria-label": t2("tour.exit"), onClick: stop }, "✕")
     ),
-    h42(
+    h43(
       "div",
       { className: "mv-tour-body" },
-      current2?.thumb ? h42("img", { className: "mv-tour-thumb", src: current2.thumb, alt: current2.name || t2("tour.title") }) : null,
-      h42("p", { className: "mv-tour-caption" }, stopCaption(current2, state.index, t2))
+      current2?.thumb ? h43("img", { className: "mv-tour-thumb", src: current2.thumb, alt: current2.name || t2("tour.title") }) : null,
+      h43("p", { className: "mv-tour-caption" }, stopCaption(current2, state.index, t2))
     ),
-    h42(
+    h43(
       "div",
       { className: "mv-tour-actions" },
-      h42("button", { type: "button", className: "mv-icon-btn", title: t2("tour.prev"), "aria-label": t2("tour.prev"), onClick: () => setState((previous) => previous ? { ...previous, index: stepIndex(previous.index, -1, previous.stops.length), playing: true } : null) }, "⏮"),
-      h42(
+      h43("button", { type: "button", className: "mv-icon-btn", title: t2("tour.prev"), "aria-label": t2("tour.prev"), onClick: () => setState((previous) => previous ? { ...previous, index: stepIndex(previous.index, -1, previous.stops.length), playing: true } : null) }, "⏮"),
+      h43(
         "button",
         {
           type: "button",
@@ -29127,15 +29434,15 @@ function useTour({ t: t2, showToast, getCurrentView, onFlyView, onFinish }) {
         },
         state.playing ? t2("tour.pause") : t2("tour.play")
       ),
-      h42("button", { type: "button", className: "mv-icon-btn", title: t2("tour.next"), "aria-label": t2("tour.next"), onClick: () => setState((previous) => previous ? { ...previous, index: stepIndex(previous.index, 1, previous.stops.length), playing: true } : null) }, "⏭")
+      h43("button", { type: "button", className: "mv-icon-btn", title: t2("tour.next"), "aria-label": t2("tour.next"), onClick: () => setState((previous) => previous ? { ...previous, index: stepIndex(previous.index, 1, previous.stops.length), playing: true } : null) }, "⏭")
     ),
-    h42("p", { className: "mv-tour-hint" }, t2("tour.hint"))
+    h43("p", { className: "mv-tour-hint" }, t2("tour.hint"))
   ) : null;
   return { start, stop, element };
 }
 
 // src/client/ui/swipe-bar.js
-var import_react50 = __toESM(require("react"), 1);
+var import_react51 = __toESM(require("react"), 1);
 
 // src/client/scene/swipe.js
 var clampSwipeRatio = (value) => {
@@ -29520,7 +29827,7 @@ function createSwipeSession({ getCesium, getViewer, getLayers, getOverlayLayers 
 }
 
 // src/client/ui/swipe-bar.js
-var h43 = import_react50.default.createElement;
+var h44 = import_react51.default.createElement;
 function engineLayersOf(deps) {
   const full = deps?.getLayers?.();
   if (Array.isArray(full)) return full;
@@ -29531,12 +29838,12 @@ function toastForReason(api, reason) {
   api.showToast?.(api.t?.(msgKey) ?? msgKey);
 }
 function useSwipe({ t: t2, showToast, layers: layers2, overlays, getCesium, getViewer, getOverlayLayers, getLayers }) {
-  const [state, setState] = import_react50.default.useState(null);
-  const containerRef = import_react50.default.useRef(null);
-  const draggingRef = import_react50.default.useRef(false);
-  const depsRef = import_react50.default.useRef({});
+  const [state, setState] = import_react51.default.useState(null);
+  const containerRef = import_react51.default.useRef(null);
+  const draggingRef = import_react51.default.useRef(false);
+  const depsRef = import_react51.default.useRef({});
   depsRef.current = { t: t2, showToast, layers: layers2, overlays, getCesium, getViewer, getOverlayLayers, getLayers };
-  const sessionRef = import_react50.default.useRef(null);
+  const sessionRef = import_react51.default.useRef(null);
   if (!sessionRef.current) {
     sessionRef.current = createSwipeSession({
       getCesium: () => depsRef.current.getCesium?.(),
@@ -29545,11 +29852,11 @@ function useSwipe({ t: t2, showToast, layers: layers2, overlays, getCesium, getV
       getOverlayLayers: () => depsRef.current.getOverlayLayers?.()
     });
   }
-  const stop = import_react50.default.useCallback(() => {
+  const stop = import_react51.default.useCallback(() => {
     sessionRef.current?.stop();
     setState(null);
   }, []);
-  const runAction = import_react50.default.useCallback((fn, { silent = false } = {}) => {
+  const runAction = import_react51.default.useCallback((fn, { silent = false } = {}) => {
     let res;
     try {
       res = fn(sessionRef.current);
@@ -29563,29 +29870,29 @@ function useSwipe({ t: t2, showToast, layers: layers2, overlays, getCesium, getV
     setState(res.state);
     return res;
   }, []);
-  const startSplit = import_react50.default.useCallback(
+  const startSplit = import_react51.default.useCallback(
     (layerId, options) => runAction((session) => session.startSplit(layerId, options)),
     [runAction]
   );
-  const startPair = import_react50.default.useCallback(
+  const startPair = import_react51.default.useCallback(
     (leftLayerId, rightLayerId, options) => runAction((session) => session.startPair(leftLayerId, rightLayerId, options)),
     [runAction]
   );
-  const swapSides = import_react50.default.useCallback(() => runAction((session) => session.swapSides(), { silent: true }), [runAction]);
-  const setLeftLayer = import_react50.default.useCallback(
+  const swapSides = import_react51.default.useCallback(() => runAction((session) => session.swapSides(), { silent: true }), [runAction]);
+  const setLeftLayer = import_react51.default.useCallback(
     (leftLayerId) => runAction((session) => session.setLeftLayer(leftLayerId)),
     [runAction]
   );
-  const setRightLayer = import_react50.default.useCallback(
+  const setRightLayer = import_react51.default.useCallback(
     (rightLayerId) => runAction((session) => session.setRightLayer(rightLayerId)),
     [runAction]
   );
-  const setRatio = import_react50.default.useCallback((nextRatio) => {
+  const setRatio = import_react51.default.useCallback((nextRatio) => {
     const next = sessionRef.current?.setRatio(clampSwipeRatio(nextRatio));
     if (next) setState(next);
     return next;
   }, []);
-  const toggle3d = import_react50.default.useCallback(
+  const toggle3d = import_react51.default.useCallback(
     (layerId) => {
       const current2 = sessionRef.current?.getState();
       if (current2 && (current2.kind === "3d" || current2.kind === "split") && current2.id === layerId) {
@@ -29597,7 +29904,7 @@ function useSwipe({ t: t2, showToast, layers: layers2, overlays, getCesium, getV
     },
     [stop, startSplit]
   );
-  const toggleRaster = import_react50.default.useCallback(
+  const toggleRaster = import_react51.default.useCallback(
     (overlayId) => {
       const current2 = sessionRef.current?.getState();
       if (current2 && current2.kind === "raster" && current2.id === overlayId) {
@@ -29609,13 +29916,13 @@ function useSwipe({ t: t2, showToast, layers: layers2, overlays, getCesium, getV
     },
     [stop, runAction]
   );
-  import_react50.default.useEffect(() => {
+  import_react51.default.useEffect(() => {
     if (!state) return;
     if (sessionRef.current?.reconcile({ layers: engineLayersOf(depsRef.current), overlays: overlays ?? [] })) {
       setState(null);
     }
   }, [state, layers2, overlays]);
-  import_react50.default.useEffect(() => {
+  import_react51.default.useEffect(() => {
     if (!state || typeof document === "undefined") return void 0;
     const onKeyDown2 = (event) => {
       if (event.key !== "Escape") return;
@@ -29625,7 +29932,7 @@ function useSwipe({ t: t2, showToast, layers: layers2, overlays, getCesium, getV
     document.addEventListener("keydown", onKeyDown2, true);
     return () => document.removeEventListener("keydown", onKeyDown2, true);
   }, [state, stop]);
-  import_react50.default.useEffect(() => () => sessionRef.current?.stop(), []);
+  import_react51.default.useEffect(() => () => sessionRef.current?.stop(), []);
   const updateRatioFromClient = (clientX, clientY) => {
     const current2 = sessionRef.current?.getState();
     if (!current2) return;
@@ -29679,21 +29986,21 @@ function useSwipe({ t: t2, showToast, layers: layers2, overlays, getCesium, getV
   const rightCandidates = is3dLike ? visible3d.filter((item) => item.id !== activeLeftId) : [];
   const axisDisabled = !state || state.kind === "raster" || isPair || isSplit && state.layerKind === "3dgs";
   const axisTitle = state?.kind === "raster" ? t2("swipe.rasterVerticalOnly") : isPair || isSplit && state?.layerKind === "3dgs" ? t2("swipe.horizontalUnsupported3dgs") : t2("swipe.switchAxis");
-  const element = state ? h43(
+  const element = state ? h44(
     "div",
     {
       key: "swipe",
       ref: containerRef,
       className: `mv-swipe ${horiz ? "horiz" : "vert"}`
     },
-    h43(
+    h44(
       "div",
       {
         className: "mv-swipe-line",
         style: horiz ? { top: pct } : { left: pct }
       },
-      h43("span", { className: "mv-swipe-badge with" }, leftBadgeText),
-      h43(
+      h44("span", { className: "mv-swipe-badge with" }, leftBadgeText),
+      h44(
         "div",
         {
           className: "mv-swipe-handle",
@@ -29712,18 +30019,18 @@ function useSwipe({ t: t2, showToast, layers: layers2, overlays, getCesium, getV
         },
         horiz ? "═" : "║"
       ),
-      h43("span", { className: "mv-swipe-badge without" }, rightBadgeText)
+      h44("span", { className: "mv-swipe-badge without" }, rightBadgeText)
     ),
-    h43(
+    h44(
       "div",
       { className: "mv-swipe-bar mv-glass" },
-      h43(
+      h44(
         "span",
         { className: "mv-swipe-title" },
         isPair ? `${state.leftName} ↔ ${state.rightName}` : `${t2("swipe.title")} · ${state.name}`
       ),
-      h43("span", { className: "mv-swipe-pct" }, pctInt),
-      rightCandidates.length > 0 ? h43(
+      h44("span", { className: "mv-swipe-pct" }, pctInt),
+      rightCandidates.length > 0 ? h44(
         "select",
         {
           className: "mv-swipe-select",
@@ -29732,10 +30039,10 @@ function useSwipe({ t: t2, showToast, layers: layers2, overlays, getCesium, getV
           "aria-label": t2("swipe.rightPicker"),
           onChange: (event) => setRightLayer(event.target.value || null)
         },
-        h43("option", { value: "" }, t2("swipe.rightNone")),
-        ...rightCandidates.map((item) => h43("option", { key: item.id, value: item.id }, item.name))
+        h44("option", { value: "" }, t2("swipe.rightNone")),
+        ...rightCandidates.map((item) => h44("option", { key: item.id, value: item.id }, item.name))
       ) : null,
-      isPair || isSplit ? h43(
+      isPair || isSplit ? h44(
         "button",
         {
           type: "button",
@@ -29746,7 +30053,7 @@ function useSwipe({ t: t2, showToast, layers: layers2, overlays, getCesium, getV
         },
         "⇄"
       ) : null,
-      !isPair ? h43(
+      !isPair ? h44(
         "button",
         {
           type: "button",
@@ -29757,7 +30064,7 @@ function useSwipe({ t: t2, showToast, layers: layers2, overlays, getCesium, getV
         },
         horiz ? t2("swipe.vertical") : t2("swipe.horizontal")
       ) : null,
-      h43(
+      h44(
         "button",
         {
           type: "button",
@@ -29784,12 +30091,12 @@ function useSwipe({ t: t2, showToast, layers: layers2, overlays, getCesium, getV
 }
 
 // src/client/ui/scene-details.js
-var import_react51 = __toESM(require("react"), 1);
-var h44 = import_react51.default.createElement;
+var import_react52 = __toESM(require("react"), 1);
+var h45 = import_react52.default.createElement;
 function useSceneDetails({ t: t2, stats, config, layers: layers2, analysis, shaderActive, embedded = false }) {
-  const [focus, setFocus] = import_react51.default.useState(null);
-  const open = import_react51.default.useCallback((layerId) => setFocus({ layerId: typeof layerId === "string" ? layerId : null }), []);
-  const close = import_react51.default.useCallback(() => setFocus(null), []);
+  const [focus, setFocus] = import_react52.default.useState(null);
+  const open = import_react52.default.useCallback((layerId) => setFocus({ layerId: typeof layerId === "string" ? layerId : null }), []);
+  const close = import_react52.default.useCallback(() => setFocus(null), []);
   useEscapeLayer(() => {
     setFocus(null);
     return true;
@@ -29802,11 +30109,11 @@ function useSceneDetails({ t: t2, stats, config, layers: layers2, analysis, shad
     restoreSaved: false
   });
   const sourceName = (list, id) => (Array.isArray(list) ? list.find((source) => source.id === id)?.name : null) ?? t2("sceneDetails.none");
-  const row2 = (label, value) => h44("div", { className: "mv-sd-row" }, h44("span", null, label), h44("b", null, value));
+  const row2 = (label, value) => h45("div", { className: "mv-sd-row" }, h45("span", null, label), h45("b", null, value));
   const layerRows = (stats?.layers ?? (layers2 ?? []).map((layer) => ({ id: layer.id, name: layer.name }))).filter(
     (layer) => focusedLayer === null || layer.id === focusedLayer.id
   );
-  const element = focus ? h44(
+  const element = focus ? h45(
     "div",
     {
       className: `mv-scene-details${embedded ? " in-dock" : ""} mv-glass ${embedded ? "" : floating.className}`,
@@ -29816,19 +30123,19 @@ function useSceneDetails({ t: t2, stats, config, layers: layers2, analysis, shad
       "aria-label": focusedLayer ? t2("sceneDetails.layerTitle") : t2("sceneDetails.title"),
       ...embedded ? {} : floating.panelProps
     },
-    h44(
+    h45(
       "header",
       embedded ? { className: "mv-dock-card-head" } : floating.headerProps,
       embedded ? null : floating.dragHandle,
-      h44("b", { className: "title" }, focusedLayer ? t2("sceneDetails.layerTitle") : t2("sceneDetails.title")),
+      h45("b", { className: "title" }, focusedLayer ? t2("sceneDetails.layerTitle") : t2("sceneDetails.title")),
       embedded ? null : floating.resetButton,
-      h44("button", { type: "button", className: "mv-icon-btn", title: t2("btn.close"), "aria-label": t2("btn.close"), onClick: close }, "✕")
+      h45("button", { type: "button", className: "mv-icon-btn", title: t2("btn.close"), "aria-label": t2("btn.close"), onClick: close }, "✕")
     ),
     embedded ? null : floating.liveRegion,
-    h44(
+    h45(
       "div",
       { className: "mv-sd-section" },
-      h44("div", { className: "mv-sd-title" }, t2("sceneDetails.scene")),
+      h45("div", { className: "mv-sd-title" }, t2("sceneDetails.scene")),
       row2(t2("hud.camera"), stats?.height ?? "—"),
       row2(t2("hud.heading"), `${stats?.heading ?? "—"} / ${stats?.pitch ?? "—"}`),
       row2(t2("layers.imagery"), sourceName(config?.imagery, config?.settings?.imagery)),
@@ -29839,17 +30146,17 @@ function useSceneDetails({ t: t2, stats, config, layers: layers2, analysis, shad
       ),
       row2(t2("sceneDetails.shader"), shaderActive?.length ? String(shaderActive.length) : t2("sceneDetails.none"))
     ),
-    focusedLayer?.georefIssue ? h44("p", { className: "mv-sd-warn" }, `⚠ ${t2("layers.georefWarning")}`) : null,
-    h44(
+    focusedLayer?.georefIssue ? h45("p", { className: "mv-sd-warn" }, `⚠ ${t2("layers.georefWarning")}`) : null,
+    h45(
       "div",
       { className: "mv-sd-section" },
-      h44("div", { className: "mv-sd-title" }, focusedLayer ? t2("sceneDetails.layer") : t2("sceneDetails.layers")),
-      layerRows.length === 0 ? h44("div", { className: "mv-sd-empty" }, t2("sceneDetails.none")) : layerRows.map(
-        (layer) => h44(
+      h45("div", { className: "mv-sd-title" }, focusedLayer ? t2("sceneDetails.layer") : t2("sceneDetails.layers")),
+      layerRows.length === 0 ? h45("div", { className: "mv-sd-empty" }, t2("sceneDetails.none")) : layerRows.map(
+        (layer) => h45(
           "div",
           { key: layer.id, className: "mv-sd-layer" },
-          h44("b", null, layer.name ?? "—"),
-          h44(
+          h45("b", null, layer.name ?? "—"),
+          h45(
             "span",
             null,
             `${t2("hud.tiles")} ${formatCount(layer.tiles)} · ${t2("hud.pending")} ${formatCount(layer.pending)} · ${t2("hud.triangles")} ${formatCount(layer.triangles)} · ${t2("hud.cache")} ${formatBytes(layer.memory)}`
@@ -29862,13 +30169,13 @@ function useSceneDetails({ t: t2, stats, config, layers: layers2, analysis, shad
 }
 
 // src/client/ui/use-workbench.js
-var import_react52 = __toESM(require("react"), 1);
+var import_react53 = __toESM(require("react"), 1);
 function useWorkbenchWiring(deps) {
-  const latest = import_react52.default.useRef(deps);
+  const latest = import_react53.default.useRef(deps);
   latest.current = deps;
-  const service2 = import_react52.default.useRef(null);
+  const service2 = import_react53.default.useRef(null);
   if (!service2.current) service2.current = createWorkbenchWiring(Object.fromEntries(Object.keys(deps).map((key) => [key, (...args) => latest.current[key]?.(...args)])));
-  import_react52.default.useEffect(() => {
+  import_react53.default.useEffect(() => {
     service2.current.activate();
     return () => service2.current.dispose();
   }, []);
@@ -29876,8 +30183,8 @@ function useWorkbenchWiring(deps) {
 }
 
 // src/client/ui/confirm-dialog.js
-var import_react53 = __toESM(require("react"), 1);
-var h45 = import_react53.default.createElement;
+var import_react54 = __toESM(require("react"), 1);
+var h46 = import_react54.default.createElement;
 function ConfirmDialog({
   open,
   title,
@@ -29891,18 +30198,18 @@ function ConfirmDialog({
   onCancel,
   onSecondary
 }) {
-  const cancelRef = import_react53.default.useRef(null);
-  const handlersRef = import_react53.default.useRef({ onCancel });
+  const cancelRef = import_react54.default.useRef(null);
+  const handlersRef = import_react54.default.useRef({ onCancel });
   handlersRef.current = { onCancel };
   const dialogRef = useDialogA11y({ open, onEscape: () => handlersRef.current.onCancel?.() });
-  import_react53.default.useEffect(() => {
+  import_react54.default.useEffect(() => {
     if (!open) return void 0;
     const timer = window.setTimeout(() => cancelRef.current?.focus(), 0);
     return () => window.clearTimeout(timer);
   }, [open]);
   if (!open) return null;
   const titleId = "mv-confirm-title";
-  return h45(
+  return h46(
     "div",
     {
       className: "mv-modal mv-confirm-modal",
@@ -29910,7 +30217,7 @@ function ConfirmDialog({
         if (event.target === event.currentTarget) onCancel?.();
       }
     },
-    h45(
+    h46(
       "div",
       {
         ref: dialogRef,
@@ -29920,23 +30227,23 @@ function ConfirmDialog({
         "aria-labelledby": titleId,
         ...detail !== "" ? { "aria-describedby": "mv-confirm-detail" } : {}
       },
-      h45("header", null, h45("b", { id: titleId }, title)),
-      h45(
+      h46("header", null, h46("b", { id: titleId }, title)),
+      h46(
         "div",
         { className: "body" },
-        message2 !== "" ? h45("p", { className: "mv-confirm-message" }, message2) : null,
-        detail !== "" ? h45("p", { id: "mv-confirm-detail", className: "mv-note" }, detail) : null
+        message2 !== "" ? h46("p", { className: "mv-confirm-message" }, message2) : null,
+        detail !== "" ? h46("p", { id: "mv-confirm-detail", className: "mv-note" }, detail) : null
       ),
-      h45(
+      h46(
         "div",
         { className: "footer" },
-        h45("div", null),
-        h45(
+        h46("div", null),
+        h46(
           "div",
           { className: "right" },
-          secondaryLabel !== "" && typeof onSecondary === "function" ? h45("button", { type: "button", className: "mv-cta", onClick: onSecondary }, secondaryLabel) : null,
-          h45("button", { ref: cancelRef, type: "button", className: "mv-cta", onClick: onCancel }, cancelLabel),
-          h45(
+          secondaryLabel !== "" && typeof onSecondary === "function" ? h46("button", { type: "button", className: "mv-cta", onClick: onSecondary }, secondaryLabel) : null,
+          h46("button", { ref: cancelRef, type: "button", className: "mv-cta", onClick: onCancel }, cancelLabel),
+          h46(
             "button",
             { type: "button", className: `mv-cta${danger ? " danger" : " primary"}`, onClick: onConfirm },
             confirmLabel
@@ -29947,8 +30254,8 @@ function ConfirmDialog({
   );
 }
 function useConfirm() {
-  const [request2, setRequest] = import_react53.default.useState(null);
-  const resolveRef = import_react53.default.useRef(null);
+  const [request, setRequest] = import_react54.default.useState(null);
+  const resolveRef = import_react54.default.useRef(null);
   const settle = (value) => {
     const resolve = resolveRef.current;
     resolveRef.current = null;
@@ -29960,13 +30267,13 @@ function useConfirm() {
     resolveRef.current = resolve;
     setRequest({ ...options, open: true });
   });
-  const dialog = request2 ? h45(ConfirmDialog, {
-    ...request2,
+  const dialog = request ? h46(ConfirmDialog, {
+    ...request,
     onConfirm: () => settle(true),
     onCancel: () => settle(false),
     // The caller may supply only a label for the third choice; the handler is
     // always ours so the promise never stays pending.
-    ...request2.secondaryLabel !== "" || typeof request2.onSecondary === "function" ? { onSecondary: () => settle("secondary") } : {}
+    ...request.secondaryLabel !== "" || typeof request.onSecondary === "function" ? { onSecondary: () => settle("secondary") } : {}
   }) : null;
   return { confirm, dialog };
 }
@@ -31136,10 +31443,10 @@ function createAnnotationEditor({ getCesium, getViewer, getRoot, pickSurface, up
     const rootRect = root.getBoundingClientRect();
     const offsetX = canvasRect.left - rootRect.left;
     const offsetY = canvasRect.top - rootRect.top;
-    for (const entry of state.entries) {
-      const point = entry.kind === "center" ? state.centerPoint : { lon: entry.lon, lat: entry.lat };
+    for (const entry2 of state.entries) {
+      const point = entry2.kind === "center" ? state.centerPoint : { lon: entry2.lon, lat: entry2.lat };
       if (!point) {
-        entry.el.style.display = "none";
+        entry2.el.style.display = "none";
         continue;
       }
       let windowPoint = null;
@@ -31154,11 +31461,11 @@ function createAnnotationEditor({ getCesium, getViewer, getRoot, pickSurface, up
         windowPoint = null;
       }
       if (!windowPoint || !Number.isFinite(windowPoint.x) || !Number.isFinite(windowPoint.y)) {
-        entry.el.style.display = "none";
+        entry2.el.style.display = "none";
         continue;
       }
-      entry.el.style.display = "";
-      entry.el.style.transform = `translate(${offsetX + windowPoint.x}px, ${offsetY + windowPoint.y}px)`;
+      entry2.el.style.display = "";
+      entry2.el.style.transform = `translate(${offsetX + windowPoint.x}px, ${offsetY + windowPoint.y}px)`;
     }
   };
   const isSameTarget = (state, id, name, kind, geometryType) => {
@@ -31175,8 +31482,8 @@ function createAnnotationEditor({ getCesium, getViewer, getRoot, pickSurface, up
     state.centerPoint = annotationCenterPoint(handles);
     return handles;
   };
-  const addHistory = (state, entry) => {
-    state.history.push(entry);
+  const addHistory = (state, entry2) => {
+    state.history.push(entry2);
     while (state.history.length > DRAG_HISTORY_LIMIT) state.history.shift();
   };
   const commit = (state, nextFeature, beforeFeature, messageKey) => {
@@ -31210,21 +31517,21 @@ function createAnnotationEditor({ getCesium, getViewer, getRoot, pickSurface, up
     return true;
   };
   const undo = (state) => {
-    const entry = state.history.pop();
-    if (!entry) {
+    const entry2 = state.history.pop();
+    if (!entry2) {
       showToast(t2("annotation.nothingToUndo"));
       return false;
     }
     const ok = updateGeometry(
-      { id: entry.id, name: entry.name, kind: entry.kind, geometry: entry.previous, previous: entry.current },
+      { id: entry2.id, name: entry2.name, kind: entry2.kind, geometry: entry2.previous, previous: entry2.current },
       "annotation.undone"
     );
     if (!ok) {
-      state.history.push(entry);
+      state.history.push(entry2);
       return false;
     }
-    state.feature = { ...state.feature, geometry: entry.previous };
-    state.target = { id: entry.id, name: entry.name, kind: entry.kind, geometry: entry.previous };
+    state.feature = { ...state.feature, geometry: entry2.previous };
+    state.target = { id: entry2.id, name: entry2.name, kind: entry2.kind, geometry: entry2.previous };
     if (state.layer) rebuildHandles(state);
     else refreshFeature(state);
     return true;
@@ -31268,11 +31575,11 @@ function createAnnotationEditor({ getCesium, getViewer, getRoot, pickSurface, up
     } catch {
     }
   };
-  const startDrag = (state, event, entry) => {
+  const startDrag = (state, event, entry2) => {
     const origin = lonLatAt(event);
     if (!origin) return;
     state.dragging = {
-      entry,
+      entry: entry2,
       startX: event.clientX,
       startY: event.clientY,
       origin,
@@ -31288,8 +31595,8 @@ function createAnnotationEditor({ getCesium, getViewer, getRoot, pickSurface, up
     document2.addEventListener("pointerup", up);
     document2.addEventListener("pointercancel", up);
   };
-  const insertVertex = (state, entry) => {
-    const point = annotationInsertPoint(state.feature, entry.vertexIndex);
+  const insertVertex = (state, entry2) => {
+    const point = annotationInsertPoint(state.feature, entry2.vertexIndex);
     if (!point.ok) {
       showToast(t2("annotation.vertexFailed"));
       return false;
@@ -31306,8 +31613,8 @@ function createAnnotationEditor({ getCesium, getViewer, getRoot, pickSurface, up
     }
     return false;
   };
-  const deleteVertex = (state, entry) => {
-    const next = deleteAnnotationVertex(state.feature, 0, entry.vertexIndex);
+  const deleteVertex = (state, entry2) => {
+    const next = deleteAnnotationVertex(state.feature, 0, entry2.vertexIndex);
     if (!next.ok) {
       showToast(t2(next.error === "too_few_vertices" ? "annotation.tooFewVertices" : "annotation.vertexFailed"));
       return false;
@@ -31319,15 +31626,15 @@ function createAnnotationEditor({ getCesium, getViewer, getRoot, pickSurface, up
     }
     return false;
   };
-  const onHandlePointerDown = (state, event, entry) => {
+  const onHandlePointerDown = (state, event, entry2) => {
     if (event.button !== void 0 && event.button !== 0) return;
     event.preventDefault();
     event.stopPropagation();
-    if (entry.kind === "vertex" && event.altKey) {
-      insertVertex(state, entry);
+    if (entry2.kind === "vertex" && event.altKey) {
+      insertVertex(state, entry2);
       return;
     }
-    startDrag(state, event, entry);
+    startDrag(state, event, entry2);
   };
   const rebuildHandles = (state) => {
     removeLayer(state);
@@ -31338,33 +31645,33 @@ function createAnnotationEditor({ getCesium, getViewer, getRoot, pickSurface, up
     const handles = refreshFeature(state);
     if (handles.length === 0 || handles.length > HANDLE_LIMIT) return;
     for (const handle of handles) {
-      const entry = { kind: "vertex", ringIndex: handle.ringIndex, vertexIndex: handle.vertexIndex, lon: handle.lon, lat: handle.lat };
+      const entry2 = { kind: "vertex", ringIndex: handle.ringIndex, vertexIndex: handle.vertexIndex, lon: handle.lon, lat: handle.lat };
       const el = document2.createElement("div");
       el.className = "mv-vertex";
       el.setAttribute("role", "button");
       el.setAttribute("tabindex", "-1");
       el.title = t2("annotation.vertexHint");
-      el.addEventListener("pointerdown", (event) => onHandlePointerDown(state, event, entry));
+      el.addEventListener("pointerdown", (event) => onHandlePointerDown(state, event, entry2));
       el.addEventListener("dblclick", (event) => {
         event.preventDefault();
         event.stopPropagation();
-        deleteVertex(state, entry);
+        deleteVertex(state, entry2);
       });
       layer.appendChild(el);
-      entry.el = el;
-      state.entries.push(entry);
+      entry2.el = el;
+      state.entries.push(entry2);
     }
     if (state.centerPoint) {
-      const entry = { kind: "center" };
+      const entry2 = { kind: "center" };
       const el = document2.createElement("div");
       el.className = "mv-vertex center";
       el.setAttribute("role", "button");
       el.setAttribute("tabindex", "-1");
       el.title = t2("annotation.centerHint");
-      el.addEventListener("pointerdown", (event) => onHandlePointerDown(state, event, entry));
+      el.addEventListener("pointerdown", (event) => onHandlePointerDown(state, event, entry2));
       layer.appendChild(el);
-      entry.el = el;
-      state.entries.push(entry);
+      entry2.el = el;
+      state.entries.push(entry2);
     }
     positionHandles(state);
   };
@@ -32214,7 +32521,7 @@ function createProfileEdit({ getCesium, getViewer, getRoot, pickSurface, onRecom
 }
 
 // src/client/viewer/ViewerSurface.js
-var h46 = import_react54.default.createElement;
+var h47 = import_react55.default.createElement;
 var TOOL_WINDOW_OF_MODE = {
   distance: "measure",
   area: "measure",
@@ -32227,92 +32534,92 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
   const t2 = typeof injectedT === "function" ? injectedT : fallbackT;
   const net = createNetwork({ t: t2 });
   const environmentDark = useEnvironmentDark();
-  const rootRef = import_react54.default.useRef(null);
-  const globeRef = import_react54.default.useRef(null);
-  const creditRef = import_react54.default.useRef(null);
-  const menuRef = import_react54.default.useRef(null);
-  const viewerRef = import_react54.default.useRef(null);
-  const cesiumRef = import_react54.default.useRef(null);
-  const metaRef = import_react54.default.useRef(null);
-  const layersRef = import_react54.default.useRef([]);
-  const toolRef = import_react54.default.useRef("identify");
-  const profileToolRef = import_react54.default.useRef(null);
-  const measureRef = import_react54.default.useRef({ points: [], entities: [] });
-  const measurePreviewRef = import_react54.default.useRef(null);
-  const vectorRef = import_react54.default.useRef(null);
-  const handlerRef = import_react54.default.useRef(null);
-  const imageryRef = import_react54.default.useRef(null);
-  const overlayLayersRef = import_react54.default.useRef(null);
-  const sourcesRef = import_react54.default.useRef(null);
-  const toastTimer = import_react54.default.useRef(0);
-  const captureReadoutRef = import_react54.default.useRef(null);
-  const commandChainRef = import_react54.default.useRef(Promise.resolve());
-  const commandRef = import_react54.default.useRef(null);
-  const selectionApiRef = import_react54.default.useRef(null);
-  const accessRef = import_react54.default.useRef(null);
-  const analysisRef = import_react54.default.useRef({ operation: null, layerId: null, layerName: null, entities: [], restore: null });
-  const analysisCommandRef = import_react54.default.useRef(null);
-  const shaderEntriesRef = import_react54.default.useRef(/* @__PURE__ */ new Map());
-  const shaderTickRef = import_react54.default.useRef(null);
-  const readyGateRef = import_react54.default.useRef({ ready: false, error: null, waiters: [] });
-  const healthSeqRef = import_react54.default.useRef(0);
-  const sessionRef = import_react54.default.useRef(sessionId);
+  const rootRef = import_react55.default.useRef(null);
+  const globeRef = import_react55.default.useRef(null);
+  const creditRef = import_react55.default.useRef(null);
+  const menuRef = import_react55.default.useRef(null);
+  const viewerRef = import_react55.default.useRef(null);
+  const cesiumRef = import_react55.default.useRef(null);
+  const metaRef = import_react55.default.useRef(null);
+  const layersRef = import_react55.default.useRef([]);
+  const toolRef = import_react55.default.useRef("identify");
+  const profileToolRef = import_react55.default.useRef(null);
+  const measureRef = import_react55.default.useRef({ points: [], entities: [] });
+  const measurePreviewRef = import_react55.default.useRef(null);
+  const vectorRef = import_react55.default.useRef(null);
+  const handlerRef = import_react55.default.useRef(null);
+  const imageryRef = import_react55.default.useRef(null);
+  const overlayLayersRef = import_react55.default.useRef(null);
+  const sourcesRef = import_react55.default.useRef(null);
+  const toastTimer = import_react55.default.useRef(0);
+  const captureReadoutRef = import_react55.default.useRef(null);
+  const commandChainRef = import_react55.default.useRef(Promise.resolve());
+  const commandRef = import_react55.default.useRef(null);
+  const selectionApiRef = import_react55.default.useRef(null);
+  const accessRef = import_react55.default.useRef(null);
+  const analysisRef = import_react55.default.useRef({ operation: null, layerId: null, layerName: null, entities: [], restore: null });
+  const analysisCommandRef = import_react55.default.useRef(null);
+  const shaderEntriesRef = import_react55.default.useRef(/* @__PURE__ */ new Map());
+  const shaderTickRef = import_react55.default.useRef(null);
+  const readyGateRef = import_react55.default.useRef({ ready: false, error: null, waiters: [] });
+  const healthSeqRef = import_react55.default.useRef(0);
+  const sessionRef = import_react55.default.useRef(sessionId);
   sessionRef.current = sessionId;
-  const initialScenePropRef = import_react54.default.useRef(initialScene);
+  const initialScenePropRef = import_react55.default.useRef(initialScene);
   initialScenePropRef.current = initialScene;
-  const baseCatalogRef = import_react54.default.useRef(null);
-  const appliedInitSigRef = import_react54.default.useRef("");
-  const [phase, setPhase] = import_react54.default.useState("loading");
-  const [error, setError] = import_react54.default.useState("");
-  const [layers2, setLayers] = import_react54.default.useState([]);
-  const [sources, setSources] = import_react54.default.useState(null);
-  const [defaults, setDefaults] = import_react54.default.useState(null);
-  const [tool, setTool] = import_react54.default.useState("identify");
-  const [fps, setFps] = import_react54.default.useState(null);
-  const fpsRef = import_react54.default.useRef(null);
-  const [fullscreen, setFullscreen] = import_react54.default.useState(false);
-  const [stats, setStats] = import_react54.default.useState(null);
-  const [measureInfo, setMeasureInfo] = import_react54.default.useState(null);
-  const [vectorSelection, setVectorSelection] = import_react54.default.useState(null);
-  const [scan, setScan] = import_react54.default.useState(null);
-  const [emptyDismissed, setEmptyDismissed] = import_react54.default.useState(false);
-  const [restoringScene, setRestoringScene] = import_react54.default.useState(false);
-  const [urlBar, setUrlBar] = import_react54.default.useState(false);
-  const [urlInput, setUrlInput] = import_react54.default.useState("");
-  const [busy, setBusy] = import_react54.default.useState("");
-  const [toast, setToast] = import_react54.default.useState("");
-  const [openMenu, setOpenMenu] = import_react54.default.useState(null);
-  const [recentDirs, setRecentDirs] = import_react54.default.useState([]);
-  const [recentUrls, setRecentUrls] = import_react54.default.useState(() => readRecentUrls());
-  const recentUrlsRef = import_react54.default.useRef(recentUrls);
-  const [accessRequest, setAccessRequest] = import_react54.default.useState(null);
-  const [accessBusy, setAccessBusy] = import_react54.default.useState(false);
-  const [analysis, setAnalysis] = import_react54.default.useState(null);
-  const [profileHover, setProfileHover] = import_react54.default.useState(null);
-  const [shaderOpen, setShaderOpen] = import_react54.default.useState(false);
-  const [showTools, setShowTools] = import_react54.default.useState(true);
-  const [activePanelTab, setActivePanelTab] = import_react54.default.useState("layers");
-  const lastPanelTabRef = import_react54.default.useRef("layers");
-  const [dockUnread, setDockUnread] = import_react54.default.useState({ result: false, object: false });
-  const [toolIndexShown, setToolIndexShown] = import_react54.default.useState(false);
-  const [reportPreview, setReportPreview] = import_react54.default.useState(null);
-  const [dockRequest, setDockRequest] = import_react54.default.useState(null);
+  const baseCatalogRef = import_react55.default.useRef(null);
+  const appliedInitSigRef = import_react55.default.useRef("");
+  const [phase, setPhase] = import_react55.default.useState("loading");
+  const [error, setError] = import_react55.default.useState("");
+  const [layers2, setLayers] = import_react55.default.useState([]);
+  const [sources, setSources] = import_react55.default.useState(null);
+  const [defaults, setDefaults] = import_react55.default.useState(null);
+  const [tool, setTool] = import_react55.default.useState("identify");
+  const [fps, setFps] = import_react55.default.useState(null);
+  const fpsRef = import_react55.default.useRef(null);
+  const [fullscreen, setFullscreen] = import_react55.default.useState(false);
+  const [stats, setStats] = import_react55.default.useState(null);
+  const [measureInfo, setMeasureInfo] = import_react55.default.useState(null);
+  const [vectorSelection, setVectorSelection] = import_react55.default.useState(null);
+  const [scan, setScan] = import_react55.default.useState(null);
+  const [emptyDismissed, setEmptyDismissed] = import_react55.default.useState(false);
+  const [restoringScene, setRestoringScene] = import_react55.default.useState(false);
+  const [urlBar, setUrlBar] = import_react55.default.useState(false);
+  const [urlInput, setUrlInput] = import_react55.default.useState("");
+  const [busy, setBusy] = import_react55.default.useState("");
+  const [toast, setToast] = import_react55.default.useState("");
+  const [openMenu, setOpenMenu] = import_react55.default.useState(null);
+  const [recentDirs, setRecentDirs] = import_react55.default.useState([]);
+  const [recentUrls, setRecentUrls] = import_react55.default.useState(() => readRecentUrls());
+  const recentUrlsRef = import_react55.default.useRef(recentUrls);
+  const [accessRequest, setAccessRequest] = import_react55.default.useState(null);
+  const [accessBusy, setAccessBusy] = import_react55.default.useState(false);
+  const [analysis, setAnalysis] = import_react55.default.useState(null);
+  const [profileHover, setProfileHover] = import_react55.default.useState(null);
+  const [shaderOpen, setShaderOpen] = import_react55.default.useState(false);
+  const [showTools, setShowTools] = import_react55.default.useState(true);
+  const [activePanelTab, setActivePanelTab] = import_react55.default.useState("layers");
+  const lastPanelTabRef = import_react55.default.useRef("layers");
+  const [dockUnread, setDockUnread] = import_react55.default.useState({ result: false, object: false });
+  const [toolIndexShown, setToolIndexShown] = import_react55.default.useState(false);
+  const [reportPreview, setReportPreview] = import_react55.default.useState(null);
+  const [dockRequest, setDockRequest] = import_react55.default.useState(null);
   const requestDock = (kind) => setDockRequest((prev) => ({ kind, seq: (prev?.seq ?? 0) + 1 }));
-  const [toolRequest, setToolRequest] = import_react54.default.useState(null);
+  const [toolRequest, setToolRequest] = import_react55.default.useState(null);
   const requestToolWindow = (id, extra = {}) => {
     setToolIndexShown(false);
     setToolRequest((prev) => ({ id, ...extra, seq: (prev?.seq ?? 0) + 1 }));
   };
   const workspace = useToolWorkspace(toolRequest);
-  import_react54.default.useEffect(() => {
+  import_react55.default.useEffect(() => {
     const owner = TOOL_WINDOW_OF_MODE[tool];
     if (!owner) return;
     if (workspace.windows.some((item) => item.id === owner)) return;
     setToolMode(null);
   }, [tool, workspace.windows]);
-  const [, setOverlayRev] = import_react54.default.useState(0);
-  const [shaderActive, setShaderActive] = import_react54.default.useState([]);
-  const [shaderForm, setShaderForm] = import_react54.default.useState({
+  const [, setOverlayRev] = import_react55.default.useState(0);
+  const [shaderActive, setShaderActive] = import_react55.default.useState([]);
+  const [shaderForm, setShaderForm] = import_react55.default.useState({
     layerId: "",
     preset: "height-false-color",
     minHeight: "",
@@ -32324,17 +32631,17 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
     waterHeight: "",
     depthMax: ""
   });
-  const [settingsOpen, setSettingsOpen] = import_react54.default.useState(false);
-  const [health, setHealth] = import_react54.default.useState(null);
-  const [terrainBusy, setTerrainBusy] = import_react54.default.useState(false);
-  const [terrainError, setTerrainError] = import_react54.default.useState("");
-  const [imageryBusy, setImageryBusy] = import_react54.default.useState(false);
-  const [rasterFrames, setRasterFrames] = import_react54.default.useState({});
-  const rasterFramesRef = import_react54.default.useRef({});
-  const [meta, setMeta] = import_react54.default.useState(null);
-  const [bridgeOn, setBridgeOn] = import_react54.default.useState(false);
-  const [bridgeReload, setBridgeReload] = import_react54.default.useState(false);
-  const [bridgeEpoch, setBridgeEpoch] = import_react54.default.useState(0);
+  const [settingsOpen, setSettingsOpen] = import_react55.default.useState(false);
+  const [health, setHealth] = import_react55.default.useState(null);
+  const [terrainBusy, setTerrainBusy] = import_react55.default.useState(false);
+  const [terrainError, setTerrainError] = import_react55.default.useState("");
+  const [imageryBusy, setImageryBusy] = import_react55.default.useState(false);
+  const [rasterFrames, setRasterFrames] = import_react55.default.useState({});
+  const rasterFramesRef = import_react55.default.useRef({});
+  const [meta, setMeta] = import_react55.default.useState(null);
+  const [bridgeOn, setBridgeOn] = import_react55.default.useState(false);
+  const [bridgeReload, setBridgeReload] = import_react55.default.useState(false);
+  const [bridgeEpoch, setBridgeEpoch] = import_react55.default.useState(0);
   const { confirm, dialog: confirmDialog } = useConfirm();
   const themeMode = sources?.settings?.theme ?? "auto";
   const resolvedDark = themeMode === "auto" ? environmentDark : themeMode === "dark";
@@ -32392,8 +32699,8 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
     setLayers(layersRef.current.map((layer) => ({ id: layer.id, name: layer.name, visible: layer.visible, kind: layer.kind, georefIssue: layer.georefIssue })));
     markSceneDirty();
   };
-  const saveChainRef = import_react54.default.useRef(Promise.resolve());
-  const saveSeqRef = import_react54.default.useRef(0);
+  const saveChainRef = import_react55.default.useRef(Promise.resolve());
+  const saveSeqRef = import_react55.default.useRef(0);
   const commitSources = (next, notify) => {
     const previous = sourcesRef.current;
     sourcesRef.current = next;
@@ -32445,21 +32752,21 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
     setAccessBusy(false);
     current2.resolve(outcome);
   };
-  const askPathAccess = (request2) => new Promise((resolve) => {
+  const askPathAccess = (request) => new Promise((resolve) => {
     if (accessRef.current) settleAccess({ allowed: false, message: t2("access.denied") });
     revealPanel();
     const timer = setTimeout(() => settleAccess({ allowed: false, message: t2("access.denied") }), ACCESS_TIMEOUT_MS);
     accessRef.current = { resolve, timer };
     setAccessBusy(false);
-    setAccessRequest(request2);
+    setAccessRequest(request);
   });
   const allowPathAccess = async () => {
-    const request2 = accessRequest;
-    if (!request2 || accessBusy || !accessRef.current) return;
+    const request = accessRequest;
+    if (!request || accessBusy || !accessRef.current) return;
     setAccessBusy(true);
     try {
-      await scanLocalDirectory(metaRef.current, request2.directory);
-      settleAccess({ allowed: true, directory: request2.directory });
+      await scanLocalDirectory(metaRef.current, request.directory);
+      settleAccess({ allowed: true, directory: request.directory });
     } catch (error2) {
       const detail = message(error2);
       settleAccess({ allowed: false, message: t2("access.scanFailed", { message: detail }) });
@@ -32579,9 +32886,9 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
       showToast(t2("toast.reportFailed", { message: message(error2) }));
     }
   }
-  const imagerySeqRef = import_react54.default.useRef(0);
-  const terrainSeqRef = import_react54.default.useRef(0);
-  const imageryErrorUnsubRef = import_react54.default.useRef(null);
+  const imagerySeqRef = import_react55.default.useRef(0);
+  const terrainSeqRef = import_react55.default.useRef(0);
+  const imageryErrorUnsubRef = import_react55.default.useRef(null);
   async function applyImagery(id, notify, frameIndex) {
     const Cesium = cesiumRef.current;
     const viewer = viewerRef.current;
@@ -32706,8 +33013,8 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
   const toggleDomFullscreen = () => {
     const root = rootRef.current;
     if (!root) return;
-    const request2 = root.requestFullscreen?.bind(root);
-    if (typeof request2 !== "function") {
+    const request = root.requestFullscreen?.bind(root);
+    if (typeof request !== "function") {
       showToast(t2("toast.fullscreenUnsupported"));
       return;
     }
@@ -32809,7 +33116,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
     });
     if (toolRef.current === mode) measurePreviewRef.current?.sync(mode);
   }
-  const agentOverlayRef = import_react54.default.useRef({
+  const agentOverlayRef = import_react55.default.useRef({
     draw: [],
     measure: [],
     drawnFeatures: 0,
@@ -32820,7 +33127,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
     // Entities per command (WeakMap keeps snapshots JSON-clean).
     entityGroups: /* @__PURE__ */ new WeakMap()
   });
-  const [agentOverlayCount, setAgentOverlayCount] = import_react54.default.useState(0);
+  const [agentOverlayCount, setAgentOverlayCount] = import_react55.default.useState(0);
   const syncAgentOverlayCount = () => {
     const state = agentOverlayRef.current;
     setAgentOverlayCount(state.draw.length + state.measure.length);
@@ -32875,7 +33182,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
     t: t2,
     onFinish: annotations.add
   });
-  import_react54.default.useEffect(() => {
+  import_react55.default.useEffect(() => {
     if (tool !== "annotate") annotationTool.abort();
   }, [tool]);
   const annotationEditor = createAnnotationEditor({
@@ -32887,10 +33194,10 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
     showToast,
     t: t2
   });
-  import_react54.default.useEffect(() => {
+  import_react55.default.useEffect(() => {
     annotationEditor.focus(vectorSelection);
   }, [vectorSelection]);
-  import_react54.default.useEffect(() => () => annotationEditor.dispose(), []);
+  import_react55.default.useEffect(() => () => annotationEditor.dispose(), []);
   const vectorExport = createVectorExport({ stateRef: agentOverlayRef, getMeta: () => metaRef.current, getSession: () => sessionId, showToast, t: t2 });
   const vectorRenderer = createVectorRenderer({
     getState: () => agentOverlayRef.current,
@@ -32901,7 +33208,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
   });
   const drawAgentOverlay = (Cesium, viewer, geojson, style, caption, origin) => vectorRenderer.drawAgentOverlay(Cesium, viewer, geojson, style, caption, origin);
   const measureAgentOverlay = (Cesium, viewer, args) => vectorRenderer.measureAgentOverlay(Cesium, viewer, args);
-  const parseOverlayRef = import_react54.default.useRef(null), parseOverlay = parseOverlayRef.current ??= createParseOverlaySync({
+  const parseOverlayRef = import_react55.default.useRef(null), parseOverlay = parseOverlayRef.current ??= createParseOverlaySync({
     getState: () => agentOverlayRef.current,
     getViewer: () => viewerRef.current,
     draw: (geojson, style, caption, origin) => drawAgentOverlay(cesiumRef.current, viewerRef.current, geojson, style, caption, origin),
@@ -32952,7 +33259,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
       ...source === "terrain" ? { source: "terrain" } : {}
     }).catch((error2) => showToast(t2("profile.recomputeFailed", { message: error2?.message ?? String(error2) })))
   });
-  import_react54.default.useEffect(() => {
+  import_react55.default.useEffect(() => {
     profileEdit.sync(analysis);
     return () => profileEdit.clear();
   }, [analysis]);
@@ -32972,9 +33279,9 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
   const shaderActiveList = () => shaderEngine.activeList();
   const detachShaderForLayer = (id, restore) => shaderEngine.detachForLayer(id, restore);
   const releaseShaderTick = () => shaderEngine.releaseTick();
-  const sceneDirtyRef = import_react54.default.useRef(false);
-  const restoringRef = import_react54.default.useRef(false);
-  const sceneRestoredRef = import_react54.default.useRef(false);
+  const sceneDirtyRef = import_react55.default.useRef(false);
+  const restoringRef = import_react55.default.useRef(false);
+  const sceneRestoredRef = import_react55.default.useRef(false);
   const hostSceneStore = createHostSceneStore({
     getMeta: () => metaRef.current,
     loadMeta,
@@ -33008,10 +33315,10 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
         measure: agentOverlayRef.current.measureCommands
       },
       analysis: analysisCommandRef.current,
-      shaders: [...shaderEntriesRef.current.values()].map((entry) => ({
-        layer: entry.layerName,
-        preset: entry.preset,
-        params: { ...entry.params }
+      shaders: [...shaderEntriesRef.current.values()].map((entry2) => ({
+        layer: entry2.layerName,
+        preset: entry2.preset,
+        params: { ...entry2.params }
       })),
       ...Object.keys(rasterFrameController.snapshotFrames()).length > 0 ? { rasterFrames: rasterFrameController.snapshotFrames() } : {}
     };
@@ -33213,7 +33520,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
     );
   }
   function layerLabel(tileset) {
-    const found = layersRef.current.find((entry) => entry.tileset === tileset);
+    const found = layersRef.current.find((entry2) => entry2.tileset === tileset);
     return found ? found.name : t2("model.unnamed");
   }
   const pointerTools = createPointerTools({
@@ -33283,7 +33590,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
     drawVectorLabels: (context, width, height) => vectorRef.current?.drawLabels(context, width, height)
   });
   const { renderSnapshot, screenshot, captureScene } = capture;
-  const selectionController = import_react54.default.useMemo(() => createSelectionController({
+  const selectionController = import_react55.default.useMemo(() => createSelectionController({
     getViewer: () => viewerRef.current,
     getCesium: () => cesiumRef.current,
     getLayers: () => layersRef.current,
@@ -33419,7 +33726,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
   }
   const collectStats = () => collectLayerStats({ Cesium: cesiumRef.current, viewer: viewerRef.current, layers: layersRef.current, formatHeight });
   async function inspectLayer(layerId) {
-    const layer = layersRef.current.find((entry) => entry.id === layerId);
+    const layer = layersRef.current.find((entry2) => entry2.id === layerId);
     if (!layer) return;
     const source = sourceOfLayer(layer);
     if (!source) {
@@ -33546,7 +33853,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
   });
   const runCommand = (action, args = {}, session = null) => commandBridge.runCommand(action, args, session);
   commandRef.current = runCommand;
-  import_react54.default.useEffect(() => {
+  import_react55.default.useEffect(() => {
     if (!sessionId || !meta?.bridgeUrl) return void 0;
     const bridgeSession = sessionId;
     const endpoint = `${meta.bridgeUrl}?token=${encodeURIComponent(meta.token)}&session=${encodeURIComponent(bridgeSession)}`;
@@ -33655,7 +33962,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
       }
     };
   }, [sessionId, meta, bridgeEpoch]);
-  import_react54.default.useEffect(
+  import_react55.default.useEffect(
     () => () => {
       const current2 = accessRef.current;
       if (!current2) return;
@@ -33665,7 +33972,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
     },
     []
   );
-  import_react54.default.useEffect(() => {
+  import_react55.default.useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
@@ -33810,7 +34117,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
       layersRef.current = [];
     };
   }, []);
-  import_react54.default.useEffect(() => {
+  import_react55.default.useEffect(() => {
     if (phase !== "ready") return void 0;
     return initialSceneCoordinator.registerViewer({
       getSessionId: () => sessionRef.current,
@@ -33818,7 +34125,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
       apply: (normalized) => applyInitialScene(normalized)
     });
   }, [phase]);
-  import_react54.default.useEffect(() => {
+  import_react55.default.useEffect(() => {
     if (phase !== "ready" || initialScene === null || initialScene === void 0) return void 0;
     const normalized = normalizeInitialScene(initialScene, sessionRef.current);
     if (!normalized.active) return void 0;
@@ -33828,7 +34135,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
     });
     return void 0;
   }, [phase, initialScene]);
-  import_react54.default.useEffect(() => {
+  import_react55.default.useEffect(() => {
     if (phase !== "ready" || sceneRestoredRef.current) return void 0;
     if (typeof sessionId !== "string" || sessionId === "") return void 0;
     sceneRestoredRef.current = true;
@@ -33850,7 +34157,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
       cancelled = true;
     };
   }, [phase, sessionId]);
-  import_react54.default.useEffect(() => {
+  import_react55.default.useEffect(() => {
     const timer = setInterval(() => {
       if (sceneDirtyRef.current) saveSceneSnapshot();
     }, 3e3);
@@ -33868,7 +34175,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
       document.removeEventListener("visibilitychange", onVisibility);
     };
   }, []);
-  import_react54.default.useEffect(() => {
+  import_react55.default.useEffect(() => {
     if (!openMenu) return void 0;
     const close = (event) => {
       if (!menuRef.current?.contains(event.target)) setOpenMenu(null);
@@ -33876,10 +34183,10 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
     document.addEventListener("pointerdown", close, true);
     return () => document.removeEventListener("pointerdown", close, true);
   }, [openMenu]);
-  import_react54.default.useEffect(() => {
+  import_react55.default.useEffect(() => {
     if (openMenu === "data" || showLayers) refreshRecentDirs();
   }, [openMenu, showLayers, meta?.directoriesUrl]);
-  import_react54.default.useEffect(() => {
+  import_react55.default.useEffect(() => {
     if (phase !== "ready") return void 0;
     const element = globeRef.current;
     if (!element || typeof ResizeObserver === "undefined") return void 0;
@@ -33892,7 +34199,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
     observer.observe(element);
     return () => observer.disconnect();
   }, [phase]);
-  import_react54.default.useEffect(() => {
+  import_react55.default.useEffect(() => {
     const onChange = () => {
       setFullscreen(document.fullscreenElement === rootRef.current);
       try {
@@ -33903,7 +34210,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
     document.addEventListener("fullscreenchange", onChange);
     return () => document.removeEventListener("fullscreenchange", onChange);
   }, []);
-  import_react54.default.useEffect(() => {
+  import_react55.default.useEffect(() => {
     if (phase !== "ready") return void 0;
     const viewer = viewerRef.current;
     if (!viewer) return void 0;
@@ -33968,7 +34275,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
     finishMeasure();
     return true;
   }, measureMode);
-  import_react54.default.useEffect(() => {
+  import_react55.default.useEffect(() => {
     if (phase !== "ready") return void 0;
     let lastKey = "";
     const timer = setInterval(() => {
@@ -33981,7 +34288,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
     }, 1e3);
     return () => clearInterval(timer);
   }, [phase]);
-  import_react54.default.useEffect(() => {
+  import_react55.default.useEffect(() => {
     const viewer = viewerRef.current;
     const Cesium = cesiumRef.current;
     if (phase !== "ready" || !viewer || !Cesium) return;
@@ -34031,7 +34338,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
   });
   const objectPanel = vectorSelection ? {
     key: `vector:${vectorSelection.id ?? vectorSelection.feature?.id ?? vectorSelection.title ?? "selection"}`,
-    node: h46(VectorCard, {
+    node: h47(VectorCard, {
       embedded: true,
       selection: vectorSelection,
       onClose: () => vectorRef.current?.clearSelection(),
@@ -34055,12 +34362,12 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
       saveSceneSnapshot(true);
     }
   });
-  const [addLayerRequest, setAddLayerRequest] = import_react54.default.useState(null);
-  const [layerProps, setLayerProps] = import_react54.default.useState(null);
+  const [addLayerRequest, setAddLayerRequest] = import_react55.default.useState(null);
+  const [layerProps, setLayerProps] = import_react55.default.useState(null);
   const [chromeHidden, toggleChrome] = useChromeVisibility();
   const openAddLayer = (kind) => setAddLayerRequest({ kind: kind ?? null, token: Date.now() });
-  const openLayerShader = (layer, entry) => {
-    workbench.loadEntry(entry ?? { layer: layer.name, layerId: layer.id, preset: "height-false-color" });
+  const openLayerShader = (layer, entry2) => {
+    workbench.loadEntry(entry2 ?? { layer: layer.name, layerId: layer.id, preset: "height-false-color" });
     setShaderOpen(true);
   };
   const selectOverlayFeature = (overlayIndex, featureIndex) => {
@@ -34081,7 +34388,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
     windows: workspace.windows,
     toolIndexShown
   });
-  return h46(
+  return h47(
     "div",
     {
       ref: rootRef,
@@ -34106,25 +34413,17 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
         );
       }
     },
-    h46("style", { key: "css" }, CSS),
-    h46("div", { key: "globe", ref: globeRef, className: "mv-globe" }),
-    activeImagery?.credit ? h46("div", { key: "attr", className: "mv-attr" }, `${t2("credit.imagery")} © ${activeImagery.credit}`) : null,
-    h46("div", { key: "credits", ref: creditRef, className: "mv-credits" }),
-    h46(Compass, { key: "compass", getViewer: () => viewerRef.current, t: t2 }),
-    h46(
+    h47("style", { key: "css" }, CSS),
+    h47("div", { key: "globe", ref: globeRef, className: "mv-globe" }),
+    activeImagery?.credit ? h47("div", { key: "attr", className: "mv-attr" }, `${t2("credit.imagery")} © ${activeImagery.credit}`) : null,
+    h47("div", { key: "credits", ref: creditRef, className: "mv-credits" }),
+    h47(Compass, { key: "compass", getViewer: () => viewerRef.current, t: t2 }),
+    h47(
       ChromeShell,
       { key: "chrome", hidden: chromeHidden },
-      h46(TopBar, {
+      h47(TopBar, {
         key: "top",
         t: t2,
-        places: {
-          url: meta?.placesUrl,
-          onFly: (place) => {
-            const started = flyToBbox(viewerRef.current, cesiumRef.current, placeBounds(place));
-            if (started) setEmptyDismissed(true);
-            return started;
-          }
-        },
         panelLabel: header.panelLabel,
         panelDetail: header.panelDetail,
         onBack: () => setToolIndexShown(true),
@@ -34184,11 +34483,13 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
             if (!showTools) setShowTools(true);
             requestDock("tools");
           },
+          showPlaces: activePanelTab === "places",
+          onTogglePlaces: () => requestDock("places"),
           onOpenResult: () => requestDock("result")
         },
         onOpenSettings: () => setSettingsOpen(true)
       }),
-      h46(RightStack, {
+      h47(RightStack, {
         t: t2,
         busy: Boolean(measureMode || tool === "annotation"),
         dockRequest,
@@ -34222,6 +34523,14 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
         onCloseAnalysis: () => clearAnalysis(),
         showLayers,
         showTools,
+        placesPanel: {
+          url: meta?.placesUrl,
+          onFly: (place) => {
+            const started = flyToBbox(viewerRef.current, cesiumRef.current, placeBounds(place));
+            if (started) setEmptyDismissed(true);
+            return started;
+          }
+        },
         layersPanel: {
           config: sources,
           settings: sources?.settings ?? {},
@@ -34338,7 +34647,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
         }
       })
     ),
-    urlBar ? h46(UrlBar, {
+    urlBar ? h47(UrlBar, {
       key: "urlbar",
       value: urlInput,
       placeholder: t2("urlbar.placeholder"),
@@ -34348,7 +34657,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
       onSubmit: submitUrl,
       onClose: () => setUrlBar(false)
     }) : null,
-    shaderOpen ? h46(ShaderWorkbench, {
+    shaderOpen ? h47(ShaderWorkbench, {
       key: "shader",
       t: t2,
       layers: layers2,
@@ -34375,7 +34684,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
       onResetEntry: workbench.resetLayerFor
     }) : null,
     // v1.7 P0: 指认 card + corner brackets (panel-only) and the tour bar.
-    h46(SelectionOverlay, {
+    h47(SelectionOverlay, {
       key: "selection",
       active: tool === "identify",
       apiRef: selectionApiRef,
@@ -34394,14 +34703,14 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
     }),
     tour.element,
     swipe.element,
-    h46(ChromeA11y, { key: "chrome-a11y", t: t2, status, hidden: chromeHidden, onShow: toggleChrome }),
-    phase === "ready" && layers2.length === 0 && !emptyDismissed && openMenu !== "view" && openMenu !== "places" && !restoringScene ? h46(
+    h47(ChromeA11y, { key: "chrome-a11y", t: t2, status, hidden: chromeHidden, onShow: toggleChrome }),
+    phase === "ready" && layers2.length === 0 && !emptyDismissed && openMenu !== "view" && !restoringScene ? h47(
       "div",
       { key: "empty", className: "mv-overlay" },
-      h46(
+      h47(
         "div",
         { className: "mv-empty" },
-        h46(
+        h47(
           "button",
           {
             type: "button",
@@ -34412,35 +34721,35 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
           },
           "✕"
         ),
-        h46(ViewerIcon, { size: 30 }),
-        h46("h2", null, t2("panel.empty.title")),
-        h46("p", null, t2("panel.empty.body")),
-        h46(
+        h47(ViewerIcon, { size: 30 }),
+        h47("h2", null, t2("panel.empty.title")),
+        h47("p", null, t2("panel.empty.body")),
+        h47(
           "div",
           { className: "buttons" },
-          h46("button", { type: "button", className: "mv-cta primary", onClick: pickLocal }, t2("panel.empty.local")),
-          h46("button", { type: "button", className: "mv-cta", onClick: () => setUrlBar(true) }, t2("panel.empty.url"))
+          h47("button", { type: "button", className: "mv-cta primary", onClick: pickLocal }, t2("panel.empty.local")),
+          h47("button", { type: "button", className: "mv-cta", onClick: () => setUrlBar(true) }, t2("panel.empty.url"))
         )
       )
     ) : null,
-    phase === "loading" ? h46("div", { key: "loading", className: "mv-overlay dim", role: "status" }, h46("div", { className: "mv-empty" }, h46(LoadingGlobe), h46("p", null, t2("panel.status.loading")))) : null,
-    phase === "error" ? h46(
+    phase === "loading" ? h47("div", { key: "loading", className: "mv-overlay dim", role: "status" }, h47("div", { className: "mv-empty" }, h47(LoadingGlobe), h47("p", null, t2("panel.status.loading")))) : null,
+    phase === "error" ? h47(
       "div",
       { key: "error", className: "mv-overlay dim" },
-      h46(
+      h47(
         "div",
         { className: "mv-empty" },
-        h46("h2", null, "⚠"),
-        h46("p", null, error),
-        h46("div", { className: "buttons" }, h46("button", { type: "button", className: "mv-cta", onClick: () => location.reload() }, t2("btn.retry")))
+        h47("h2", null, "⚠"),
+        h47("p", null, error),
+        h47("div", { className: "buttons" }, h47("button", { type: "button", className: "mv-cta", onClick: () => location.reload() }, t2("btn.retry")))
       )
     ) : null,
-    stats && showHud ? h46(StatusHud, { key: "hud", fps, stats, viewerRef, cesiumRef, labels: hudLabels, readoutRef: captureReadoutRef, detailed: hudDetailed }) : null,
-    measureInfo ? h46(
+    stats && showHud ? h47(StatusHud, { key: "hud", fps, stats, viewerRef, cesiumRef, labels: hudLabels, readoutRef: captureReadoutRef, detailed: hudDetailed }) : null,
+    measureInfo ? h47(
       "div",
       { key: "measure", className: "mv-measure mv-glass" },
-      h46("span", { className: "text" }, measureInfo.text),
-      h46(
+      h47("span", { className: "text" }, measureInfo.text),
+      h47(
         "button",
         {
           type: "button",
@@ -34453,9 +34762,9 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
       )
     ) : null,
     // aria-live: screen readers announce scene feedback without stealing focus.
-    toast ? h46("div", { key: "toast", className: "mv-toast", role: "status", "aria-live": "polite" }, toast) : null,
+    toast ? h47("div", { key: "toast", className: "mv-toast", role: "status", "aria-live": "polite" }, toast) : null,
     // v1.8: one surface for adding data, one for per-layer properties.
-    h46(SceneDialogs, {
+    h47(SceneDialogs, {
       key: "scene-dialogs",
       t: t2,
       request: addLayerRequest,
@@ -34484,7 +34793,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
     }),
     // Shared destructive-action confirmation (focus trap, Esc = cancel).
     confirmDialog,
-    scan ? h46(ScanDialog, {
+    scan ? h47(ScanDialog, {
       key: "scan",
       scan,
       t: t2,
@@ -34494,7 +34803,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
         path: net.joinLocalPath(scan.dir, item.name)
       })
     }) : null,
-    health ? h46(HealthDialog, {
+    health ? h47(HealthDialog, {
       key: "health",
       state: health,
       messages: t2,
@@ -34510,7 +34819,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
         }
       }
     }) : null,
-    settingsOpen && sources && defaults ? h46(SourcesDialog, {
+    settingsOpen && sources && defaults ? h47(SourcesDialog, {
       key: "settings",
       config: sources,
       defaults,
@@ -34526,7 +34835,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
       askConfirm: confirm,
       notify: showToast
     }) : null,
-    accessRequest ? h46(PathAccessDialog, {
+    accessRequest ? h47(PathAccessDialog, {
       key: "access",
       request: accessRequest,
       busy: accessBusy,
@@ -34534,31 +34843,31 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
       onAllow: allowPathAccess,
       onDeny: () => settleAccess({ allowed: false, message: t2("access.denied") })
     }) : null,
-    imageryBusy || terrainBusy ? h46("div", { key: "busy", className: "mv-measure mv-glass", style: { bottom: "44px" } }, t2("toast.loadingData")) : null
+    imageryBusy || terrainBusy ? h47("div", { key: "busy", className: "mv-measure mv-glass", style: { bottom: "44px" } }, t2("toast.loadingData")) : null
   );
 }
 
 // src/client/ui/layout.js
-var h47 = import_react55.default.createElement;
+var h48 = import_react56.default.createElement;
 function ViewerPanel(props) {
   const initialScene = extractInitialSceneParam(props);
-  return h47(ViewerSurface, { t: props.t, sessionId: null, docked: false, initialScene });
+  return h48(ViewerSurface, { t: props.t, sessionId: null, docked: false, initialScene });
 }
 function EarthTabBody(props) {
   const info = typeof props.useTabInfo === "function" ? props.useTabInfo() : null;
   const sessionId = props.sessionId ?? info?.tab?.sessionId ?? info?.sessionId ?? null;
   const initialScene = extractInitialSceneParam(props, info);
-  return h47(ViewerSurface, { t: props.t, sessionId, docked: true, initialScene });
+  return h48(ViewerSurface, { t: props.t, sessionId, docked: true, initialScene });
 }
 
 // src/client/ui/tool-row.js
-var import_react56 = __toESM(require("react"), 1);
-var h48 = import_react56.default.createElement;
+var import_react57 = __toESM(require("react"), 1);
+var h49 = import_react57.default.createElement;
 function HeaderButton(props) {
   const fallbackT = useTranslation();
   const t2 = typeof props.t === "function" ? props.t : fallbackT;
-  const [hover, setHover] = import_react56.default.useState(false);
-  return h48(
+  const [hover, setHover] = import_react57.default.useState(false);
+  return h49(
     "button",
     {
       type: "button",
@@ -34585,7 +34894,7 @@ function HeaderButton(props) {
       onMouseEnter: () => setHover(true),
       onMouseLeave: () => setHover(false)
     },
-    h48(ViewerIcon, { size: 16 })
+    h49(ViewerIcon, { size: 16 })
   );
 }
 var ensureToolCss = () => {
@@ -34675,8 +34984,8 @@ var TOOL_SUMMARY_KEYS = {
 var AUTO_OPENED_CALLS = /* @__PURE__ */ new Set();
 function EarthToolRow({ toolName, phase, block, callId }) {
   const t2 = useTranslation();
-  const openedRef = import_react56.default.useRef(false);
-  import_react56.default.useEffect(() => {
+  const openedRef = import_react57.default.useRef(false);
+  import_react57.default.useEffect(() => {
     if (phase === "result" || openedRef.current) return;
     if (typeof callId === "string" && AUTO_OPENED_CALLS.has(callId)) return;
     if (!readAutoOpen()) return;
@@ -34690,8 +34999,8 @@ function EarthToolRow({ toolName, phase, block, callId }) {
     } catch {
     }
   }, [phase, callId]);
-  const [thumbUrl, setThumbUrl] = import_react56.default.useState("");
-  import_react56.default.useEffect(() => {
+  const [thumbUrl, setThumbUrl] = import_react57.default.useState("");
+  import_react57.default.useEffect(() => {
     if (toolName !== "earth_capture" || phase !== "result" || block?.isError === true) return void 0;
     const content = Array.isArray(block?.content) ? block.content : [];
     const text = content.filter((part) => part?.type === "text" && typeof part.text === "string").map((part) => part.text).join("\n");
@@ -34714,14 +35023,14 @@ function EarthToolRow({ toolName, phase, block, callId }) {
   const failure = state === "error" ? resultFirstLine(block) : "";
   const summaryKey = toolName === "earth_scene" ? SCENE_ACTION_KEYS[action] ?? "tool.action.generic" : TOOL_SUMMARY_KEYS[toolName] ?? "tool.action.generic";
   const summary = failure !== "" ? failure : t2(summaryKey);
-  return h48(
+  return h49(
     "div",
     { className: "mv-toolrow", "data-state": state, "data-tool": toolName },
-    h48("span", { className: "glyph", "aria-hidden": true }, h48(ViewerIcon, { size: 14 })),
-    h48("span", { className: "title" }, t2("panel.title")),
-    h48("span", { className: "sep", "aria-hidden": true }),
-    h48("span", { className: "summary", title: failure !== "" ? failure : void 0 }, summary),
-    thumbUrl === "" ? null : h48(
+    h49("span", { className: "glyph", "aria-hidden": true }, h49(ViewerIcon, { size: 14 })),
+    h49("span", { className: "title" }, t2("panel.title")),
+    h49("span", { className: "sep", "aria-hidden": true }),
+    h49("span", { className: "summary", title: failure !== "" ? failure : void 0 }, summary),
+    thumbUrl === "" ? null : h49(
       "a",
       {
         className: "thumb",
@@ -34730,9 +35039,9 @@ function EarthToolRow({ toolName, phase, block, callId }) {
         rel: "noopener noreferrer",
         title: t2("tool.thumbOpen")
       },
-      h48("img", { src: thumbUrl, alt: "", loading: "lazy" })
+      h49("img", { src: thumbUrl, alt: "", loading: "lazy" })
     ),
-    h48(
+    h49(
       "button",
       { type: "button", className: "open", title: t2("tool.openTip"), onClick: openEarthPanel },
       t2("tool.open")
@@ -34741,7 +35050,7 @@ function EarthToolRow({ toolName, phase, block, callId }) {
 }
 
 // src/client/plugin.js
-var h49 = import_react57.default.createElement;
+var h50 = import_react58.default.createElement;
 var plugin = {
   inject: ["slots", "uiWorkspace", "locale", "theme"],
   apply(ctx) {
@@ -34805,7 +35114,7 @@ var plugin = {
       "conversation.session.header.utilities",
       () => ctx.slots.register(
         { name: "conversation.session.header.utilities", id: "digital-earth-open", order: -1, locale: NS },
-        (props) => h49(HeaderButton, { ...props, onOpen: openEarthPanel })
+        (props) => h50(HeaderButton, { ...props, onOpen: openEarthPanel })
       )
     );
     ctx.inject(["betterSidebar"], (betterScope) => {
@@ -34816,7 +35125,7 @@ var plugin = {
           id: "dsh-digital-earth",
           title: () => translate2("panel.title"),
           description: () => translate2("panel.description"),
-          icon: (size) => h49(ViewerIcon, { size }),
+          icon: (size) => h50(ViewerIcon, { size }),
           order: 15,
           // One Digital Earth pane per session: clicking the start-page card
           // again should focus the existing tab, never stack duplicates.
@@ -34824,7 +35133,7 @@ var plugin = {
           component: (tabProps = {}) => {
             const tabScope = tabProps?.scope;
             const initialScene = extractInitialSceneParam(tabProps, tabScope);
-            return h49(EarthTabBody, { t: translate2, sessionId: tabScope?.sessionId ?? null, initialScene });
+            return h50(EarthTabBody, { t: translate2, sessionId: tabScope?.sessionId ?? null, initialScene });
           }
         }),
         "dsh-digital-earth: better-sidebar tab"

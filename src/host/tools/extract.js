@@ -40,7 +40,7 @@ const EXTRACT_PARAMETERS = {
     classes: {
       type: 'array',
       items: { type: 'string' },
-      description: 'Optional class names/keys from earth_extract classes. A name not in the default catalog becomes a custom class (definition: 用户自定义：<name>). Omit for all default classes.',
+      description: 'Optional class names/keys from earth_extract classes. A name outside the default catalog becomes a custom class with a generic single-footprint definition. Omit for all default classes.',
     },
     max_features: {
       type: 'integer',
@@ -130,8 +130,12 @@ export function createExtractTool(bridge) {
       if (!EXTRACT_ACTIONS.includes(action)) throw extractError(`unknown action ${JSON.stringify(action)}; use ${EXTRACT_ACTIONS.join(', ')}.`)
       if (action === 'classes') {
         return {
-          profiles: { sports: SPORTS_CLASSES.map(({ key, name, definition }) => ({ key, name, definition })) },
-          classes: DEFAULT_CLASSES.map((entry) => ({ id: entry.id, key: entry.key, name: entry.name, definition: entry.definition })),
+          profiles: {
+            sports: SPORTS_CLASSES.map(({ key, name, nameEn, definition, definitionEn }) => ({ key, name, name_en: nameEn, definition, definition_en: definitionEn })),
+          },
+          classes: DEFAULT_CLASSES.map((entry) => ({
+            id: entry.id, key: entry.key, name: entry.name, name_en: entry.nameEn, definition: entry.definition, definition_en: entry.definitionEn,
+          })),
         }
       }
       const target = resolveSessionTarget(bridge, exec)

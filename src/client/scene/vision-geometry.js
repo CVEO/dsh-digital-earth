@@ -224,7 +224,7 @@ function extractRawShape(value) {
     if (!(right > left && bottom > top)) throw visionError('invalid_result', { stage: 'geometry', detail: 'Invalid bbox ordering.' })
     polygon = [[left, top], [right, top], [right, bottom], [left, bottom]]
   }
-  // Gemini / MiMo style box_2d: [ymin, xmin, ymax, xmax]
+  // Model-side box_2d convention: [ymin, xmin, ymax, xmax]
   if (!polygon && Array.isArray(value?.box_2d) && value.box_2d.length === 4) {
     const [ymin, xmin, ymax, xmax] = value.box_2d.map(Number)
     if (!(xmax > xmin && ymax > ymin)) throw visionError('invalid_result', { stage: 'geometry', detail: 'Invalid box_2d ordering.' })

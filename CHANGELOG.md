@@ -9,7 +9,10 @@
 - **简化工作台** — 首屏只有设置、开始/停止、范围、类别、状态、候选队列和导出；设置折叠；行内只保留采纳/排除/恢复/删除/定位；无弹窗、无高度/来源/精修/LoD/格式切换。
 - **Agent 工具 earth_extract** — 对话里给定 WGS84 范围（或当前视口）与类别，一次调用完成实例分割，返回二维 GeoJSON FeatureCollection 并在场景中渲染为一个叠加层；action=classes 列默认类别，action=clear 清除该叠加层；不做多步规划。
 - **清理旧三维提取** — 删除旧批量检测框/框精修/LoD1/CZML/KML/高度策略/3DGS 来源等代码与测试；保留 Cesium 三维场景本身与其余场景/标注/分析工具。
-- **地名检索** — 从「视图」搜索城市、地址和地标，选择结果定位。默认天地图，可切换 OpenStreetMap。
+- **地名检索扩展为四服务商** — 服务商从 2 个（天地图 / OpenStreetMap）扩到 4 个：天地图（需要服务端 tk，默认启用）、高德地图（需要 Web 服务 key，默认启用）、Photon（无需密钥，默认不启用；数据 © OpenStreetMap contributors，ODbL）与 OpenStreetMap 官方 Nominatim（无需密钥，默认不启用；受公共实例使用政策约束，建议自建或代理时使用）。检索入口改为独立面板：右侧新增与「场景」「工具」并列的「地名检索」面板，菜单栏有独立一级按钮「地名检索」，不再放在「视图」菜单里。天地图申请入口更新为 `cloudcenter.tianditu.gov.cn`。地名检索由第三方地图 / 地理编码服务提供，服务可用性、数据内容与使用条款由各服务商负责，与本插件开发方无关。
+- **设置新增「地名检索」管理页** — 设置对话框在影像底图、地形之后新增第 3 个 tab（顺序：影像底图 / 地形 / 地名检索 / 外观 / 关于），与影像底图、地形同样的「列表 + 详情表单」模式：每行显示服务名称、服务地址与「启用」开关，`✎` 打开详情表单（名称 / 服务类型 / 服务地址 / 密钥），`⟳` 现场测试，`✕` 删除自定义条目，「+ 添加服务商」可用四种服务类型之一新增实例并自填服务地址（自建 Photon、Nominatim 镜像或代理）；三个 tab（影像底图 / 地形 / 地名检索）都有「启用」开关，内置服务商可停用但不可删除。Photon 与 Nominatim 默认不启用。服务商列表（含各自的服务地址与密钥）保存在宿主状态目录 `~/.dsh/digital-earth/place-search.json`（0600，不写入仓库、不进浏览器存储；旧版 `{token}` / `{keys, enabled}` 配置在读取时自动迁移），`TIANDITU_TOKEN` 可覆盖天地图密钥。
+- **内容卫生清理** — 移除指向校内服务地址的模型特判与内部模型/项目名注释（统一表述为“OpenAI 兼容 VLM”）；`.gitignore` 去掉个人文件规则，并加入本地推广素材目录 `assets/promo/`；导出 GeoJSON 收敛为纯二维字段（去掉 `height_m` / `base_m` / `roof_m` / `floors` / `refine_*` 等高度与精修列）；类别定义中英对齐（自定义类别定义随界面语言）；README 不再引用泄露第三方桌宠与用量统计的旧分屏截图，README / THIRD-PARTY / NOTICE 与插件市场描述同步更新（补地名检索所访问的服务、数据外发说明、OSM 数据署名与公开截图来源）。
+- **文档清理** — 把引用未随仓库发布文档的 8 处死链改为不带路径的纯文字说明（“本地开发 / 审计记录，未随仓库发布”），并补齐 CONTRIBUTING 的目录表（`src/shared/`、`.github/`）。
 - **模型与尺度** — 提取支持跟随当前对话、选择 DSH 模型或连接自定义 API，可启用多尺度搜索并切换运动设施类别体系。
 - **工程门禁** — 更新为七工具契约与提示词预算；新增实例协议、正射取景/分块、Agent 提取、工作台极简视图测试。
 
@@ -86,7 +89,7 @@
 - **对象框选** — 工具卡选择组新增「对象框选」：在画面上拖一个屏幕框，投影命中已有的 Agent 标注/量测行后列成清单，可批量删除、复制列表或把选中标注合并导出为一个 GeoJSON（量测不导出）；不产生新的空间几何、不新增工具。框选期间相机锁定，右键/Esc 取消；批量删除按行号降序执行，实体计数同步更新。
 - **本地矢量导入（GeoJSON / Shapefile）** — 「地图」Tab 的矢量叠加新增「导入矢量」，也支持把 `.geojson/.json` 或 `.shp`（可同批 `.dbf`）直接拖进画面：浏览器 File API 读取，纯前端校验（GeoJSON/Shapefile 类型、要素 ≤500、坐标 ≤2 万、有限数值）后复用现有 Agent overlay 渲染器叠加显示，与标注共用清除逻辑。Shapefile 解析支持 Point/MultiPoint/PolyLine/Polygon（含 Z/M 变体的 XY），带 DBF 属性；不新增 Host 路由、不引入第三方解析库。聊天附件形式仍留到后续。
 - **文档** — 中英文 README 使用 CRAIG 公开的克莱蒙费朗 3D Tiles 演示，截图说明补充数据来源与数据集中心坐标（约 45.7944°N, 3.1676°E）；从主演示与预设列表中移除等高线；安装示例跟随 1.5.2。
-- **工程** — 构建产物 `client.js` 由 `src/client` 重建；`npm run check` 与 `npm run release:check` 全绿。工具栏外观/设置菜单抽到 `ui/toolbar-menus.js`，本地目录/最近目录与多数据集扫描接线抽到 `ui/workbench-wiring.js` 与 `ui/dialogs.js`（`ScanDialog`），`ViewerSurface` 从 2929 行降到 2824 行。图层/工具箱信息架构、对话交互傻瓜化、GeoJSON/Shapefile 附件等较大改动记录到 `docs/BACKLOG-1.6.md`。
+- **工程** — 构建产物 `client.js` 由 `src/client` 重建；`npm run check` 与 `npm run release:check` 全绿。工具栏外观/设置菜单抽到 `ui/toolbar-menus.js`，本地目录/最近目录与多数据集扫描接线抽到 `ui/workbench-wiring.js` 与 `ui/dialogs.js`（`ScanDialog`），`ViewerSurface` 从 2929 行降到 2824 行。图层与工具箱信息架构、对话交互傻瓜化、GeoJSON/Shapefile 附件等较大改动记录在本地开发记录（未随仓库发布）。
 - **三维与地图页签二次打开本地数据（需求 A + F06/F11/F13）** — 三维 Tab「三维内容层」分组头部新增「＋ 添加」菜单（含「打开本地目录…」「粘贴在线 / 本机地址…」及「最近打开」目录列表），解决加载第一份数据后空状态消失导致无法打开第二份本地数据的问题；单 `tileset.json` 目录直接追加加载并自动定位，多 `tileset.json` 目录弹出 `ScanDialog` 明确提示发现数量供用户选择；地图 Tab 栅格叠加表单新增「选择本地瓦片目录…」，矢量导入支持多 `.geojson/.json` 合并、保留 `feature.id` 及矢量行一键定位；修复 `/scan` 被普通瓦片文件挤占 200 项预算及 `resolveLocalTileset` 将截断扫描误判为唯一候选的问题（F13），修复数据源名称输入框丢值问题（F06），并区分未找到 `tileset.json`、目录未授权、Host 路径不可读等任务语言提示。
 - **场景持久化一致性与水面近景波纹改进（F01/F02/F10 + 5.2）** — 修复 10 秒宿主写入节流窗口内本地删空图层/标注后刷新被旧宿主快照复活的问题（`loadSceneSnapshot` 按 `savedAt` 时间戳优选更新快照并回写宿主，节流窗口到期自动执行 trailing flush，恢复期间阻塞快照反写，增删矢量/图层立即强制刷盘）；修复超 512 KB 快照把全部标注、量测和分析一刀切清零的问题（F02：先递归保留 6 位小数坐标、裁剪冗余属性至 12 项，超预算时保留量测/分析与最新绘制要素）；补全快照 schema 对 `clip`/`skyline` 分析与 1..3 层叠加视觉特效数组的恢复支持（F10）；`water` 预设新增近景细波纹分量（`smoothstep(0.08, 0.45, footprint)`），消除拉近到街区/建筑尺度时退化为静态蓝色平涂的问题，同时修复滑块实时调参将 `u_time` 重置为 0 的问题并在 `u_time` 帧推进时触发 `requestRender`。
 - **空间几何质量、取消传播与底图/叠加层可靠性（F03/F04/F05/F07/F09/F14/F15）** — 修复 3D Tiles 剖切面（`clip`）将世界坐标系地心距离（约 6378 km）直接塞进局部坐标系 `ClippingPlaneCollection` 导致模型整块消失或整块保留的问题（F03：通过 `analysisLocalizeClipPlane` 精确投影至 `clippingPlanesOriginMatrix` / `modelMatrix` / ENU 局部坐标系）；修复 AI 视觉轮廓反投影在部分采样点丢失深度时仍硬编码 `complete: true` 的问题，如实输出 `complete: false`、`missRatio`、`depth_source` 与 `warnings` 并贯通到导出 GeoJSON（F04）；打通 Host 工具取消信号到前端面板的 `event: cancel` SSE 帧，取消时立即关闭授权弹窗并中止挂起命令（F05）；为底图与地形切换增加异步序号护栏并支持同 ID 数据源编辑 URL 后热重建（F07）；修复栅格叠加层上下移动顺序时未同步重排 Cesium `imageryLayers` 的问题（F09）；`askAgent` 优先复用截图瞬间保存的相机与图层元数据并补充 `clip`/`skyline` 分析上下文（F14）；淹没分析新增有效采样率（`coverage_ratio`）、未采样面积（`unknown_km2`）与低采样覆盖率警告（`low_sample_coverage`）（F15）。
@@ -113,7 +116,7 @@ UI and interaction patch for the layer panel, manual profile and sun timeline.
 
 ## 1.5.0
 
-图层平台与性能版本，按 `docs/PLAN-v1.6.md` 的阶段推进（**发布版本号始终保持 1.5.0**，不单独发 1.6.0）。以下为本轮已完成项：
+图层平台与性能版本，按本地开发计划（未随仓库发布）的阶段推进（**发布版本号始终保持 1.5.0**，不单独发 1.6.0）。以下为本轮已完成项：
 
 - **新功能：指认（选中卡 + L 形角标 + 高度引线）**：工具栏新增准星按钮，点击场景中的对象后由面板弹出选中卡——显示坐标、表面高程（采样值）、高度估计（几何；邻域 8 方位 × 30/60/120 m 共 24 点，样本数 / 地面 / 跨度一并给出）与「高于邻域中位数」，并用**红黄绿三档置信度**（高 / 中 / 低）标注每条结论的来源。卡片保持克制：属性未知与限制**只写入证据 JSON**，界面上仅在底部保留一行小字说明高度为几何估计；三个动作的完整说明放在按钮悬浮提示里。**没有 batch table 的摄影测量数据用中性命中级别作标题（「三维瓦片区域」/「瓦片内要素」/「场景表面」），不写"未命名对象"式措辞、不编造名称、不给伪精度**（高度一律取整到米，对比基线写明是邻域中位数、含屋顶）。角标通过 `scene.postRender` 投影跟随三维点（直接写 DOM，不触发 React 重渲染），卡片宽度 ≤340 px、实底可读；Esc 关闭卡片、再点按钮退出指认。纯面板功能，**不改任何工具契约**。
 - **新功能：导出证据包（PNG + JSON sidecar）**：选中卡上的「导出证据」先截一张干净 PNG，再把证据 JSON 一并写入 `$DSH_HOME/digital-earth/exports/`——JSON 含 schema 版本、插件版本、时间、相机视角、坐标、采样方法与统计、身份依据、`facts[]`（每个数字带 `basis: measured/estimated/inferred` 来源）、未知与限制，以及 `earth: {datum: WGS84, height_reference: ellipsoid}`，未测量字段写 `null` 而不填 0。新增**页面专用** host 路由 `POST /api/3dviewer/export/<token>`（16 MiB 请求上限、JSON ≤256 KiB、目录最多保留 200 份、文件名由宿主生成），路由与 token 不出现在任何工具结果里。
@@ -163,12 +166,12 @@ UI and interaction patch for the layer panel, manual profile and sun timeline.
 
 - **删除 `tileset_info.json` 地理配准兼容层**：以前宿主会在 `/tiles` 上读同级 `tileset_info.json` 的 `srs` + `srs_origin`，给缺少根 `transform` 的 `tileset.json` 补一个 ENU→ECEF 根变换。现在**只接受标准 3D Tiles 1.0 / 1.1**：根瓦片必须自带 `root.transform`（16 个数）或 `root.boundingVolume.region`，否则按 ECEF 读局部米、数据会落在地心附近。插件不再猜测、不再改写要发给 Cesium 的 JSON——`/tiles` 恢复为纯静态文件服务，「渲染的字节」永远等于「磁盘的字节」。
 - **替代方案**：数据体检（`earth_scene action=inspect`）在根文档缺世界定位时报 **error 级 `tileset_not_georeferenced`**，说明症状与修法（重新导出时写入根 `transform` / `region`）。OSGB 转换链请把世界定位写进 `tileset.json`，不要依赖 sidecar 文件。
-- **实验功能包未随本版发布**：自动找目标 / 视觉锚定、第一人称巡检 `earth_camera`、双期卷帘对比、单体化量测、视域 / 通视 / 控高、巡游录制、接触表、QA 清单、照片叠合、属性查询、覆盖网格、取景框、GeoJSON 导出、场景召回等 16 项**已整体移出主线**（天际线 / 剖切 / 水深着色已按 D-16 / D-17 回到 1.5.0 主线），代码保留在分支 / tag `wip/feature-bomb`（该分支是 1.5 开发期堆出来的功能爆炸，不代表已发布能力）。解冻条件见 `docs/DIRECTION.md` §7 与 `docs/spec/SPEC-v1.5.md` §7（先有 `HeightService`、多数据集图层模型或属性语义层，再逐个回归）。
+- **实验功能包未随本版发布**：自动找目标 / 视觉锚定、第一人称巡检 `earth_camera`、双期卷帘对比、单体化量测、视域 / 通视 / 控高、巡游录制、接触表、QA 清单、照片叠合、属性查询、覆盖网格、取景框、GeoJSON 导出、场景召回等 16 项**已整体移出主线**（天际线 / 剖切 / 水深着色已按 D-16 / D-17 回到 1.5.0 主线），代码保留在分支 / tag `wip/feature-bomb`（该分支是 1.5 开发期堆出来的功能爆炸，不代表已发布能力）。解冻条件见本地方向记录与冻结需求记录（均未随仓库发布）§7（先有 `HeightService`、多数据集图层模型或属性语义层，再逐个回归）。
 
 ### 修复
 
 - **FPS 不再是错的度量**：仪表改为计数 Cesium 真实渲染帧（`scene.postRender`，与 Cesium 自带 `PerformanceDisplay` 同语义）+ EMA 平滑；页面隐藏、WebGL 上下文丢失、或连续 2 秒无渲染帧时进入**空闲态**，HUD 显示 `—` 而不是冻结的旧数字（此前读数来自窗口 `requestAnimationFrame`，静止时会一直停在某个值，例如 32）。`earth_scene status` 新增可加字段 `render: { fps, idle, terrain_depth_test }`。
-- **性能：移除每帧的帧缓冲拷贝**：`preserveDrawingBuffer` 改为 `false`（截图链路本来就在同一个同步任务里 `viewer.render()` 后立即 `drawImage`，不依赖保留缓冲）。这一项直接减少每帧一次全分辨率拷贝，是"开地形后拖拽掉到 30 FPS"归因后落地的第一刀；HUD 相机/图层统计从 500 ms 降到 1 s 且数值无变化时不触发 React 重渲染，静止场景的面板重渲染降为零。归因与后续修复（分辨率档、地形 LOD、瓦片 LOD）见 `docs/research/performance.md` 与 `docs/PLAN-v1.6.md`。
+- **性能：移除每帧的帧缓冲拷贝**：`preserveDrawingBuffer` 改为 `false`（截图链路本来就在同一个同步任务里 `viewer.render()` 后立即 `drawImage`，不依赖保留缓冲）。这一项直接减少每帧一次全分辨率拷贝，是"开地形后拖拽掉到 30 FPS"归因后落地的第一刀；HUD 相机/图层统计从 500 ms 降到 1 s 且数值无变化时不触发 React 重渲染，静止场景的面板重渲染降为零。归因与后续修复（分辨率档、地形 LOD、瓦片 LOD）见本地性能归因记录与开发计划（均未随仓库发布）。
 - **「全屏」名副其实**：新增真正的全屏（DOM Fullscreen API，面板根节点 `requestFullscreen`，停靠态与主区域都可用，Esc / 系统退出后自动同步状态并 `viewer.resize()`）；原来叫「全屏查看」的按钮实际是把 DSH 右侧栏最大化，现更名为「最大化侧栏」。
 - **工具栏更省空间**：截图 / 问 Agent / 复位改为图标按钮（tooltip + aria-label），两个全屏相关按钮本来就是图标；停靠窄宽度下不再因为文字标签换行到第二排。
 - **地形遮挡（深度测试）可开关**：新增设置项 `terrainDepthTest`（默认关）。关闭时地下管网、埋在地形下的模型都能看见（Cesium 默认行为）；开启时地形会遮挡埋在下面的内容、天际线更干净。切换只改 `Globe` 属性，不重建 viewer，切换地形后自动重放。
@@ -185,7 +188,7 @@ UI and interaction patch for the layer panel, manual profile and sun timeline.
 
 ### 文档
 
-- 新增 `docs/AUDIT.md`（证据化审计）、`docs/spec/SPEC-v1.5.md`（冻结需求与决策记录）、`docs/DIRECTION.md`（方向、四层图层模型、路线图、工程准则）、`docs/audit/{host,client,release}.md`（逐行审计明细）、`docs/research/layers.md`（公开 XYZ / WMS / WMTS / ArcGIS / MVT 端点的实测结果与能力矩阵）、`docs/DELIVERY.md`（重装验证清单）。
+- 新增本地审计与规划记录：证据化审计、冻结需求与决策记录、方向与四层图层模型、逐行审计明细、公开 XYZ / WMS / WMTS / ArcGIS / MVT 端点的实测结果与能力矩阵、重装验证清单（均未随仓库发布）。
 
 ## 1.4.0
 

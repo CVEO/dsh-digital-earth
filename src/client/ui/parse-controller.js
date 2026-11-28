@@ -15,6 +15,7 @@ import { segmentInstances } from '../scene/instance-segment.js'
 import { getSelectionTool, peekSelection, subscribeSelection } from '../scene/selection-tools.js'
 import { bboxFromSelection, isAoiSelectionCapable } from '../scene/aoi.js'
 import { DEFAULT_CLASSES, SPORTS_CLASSES, TAXONOMY_LIMITS, buildClassCatalog, sanitizeCustomLabel } from '../../shared/taxonomy.js'
+import { isChinese } from '../i18n.js'
 import { bindParseSnapshot } from './parse-snapshot.js'
 
 const FILTERS = new Set(['all', 'pending', 'accepted', 'rejected'])
@@ -133,7 +134,7 @@ export function createParseController(ctx) {
   const cesiumOf = () => context.getCesium?.() ?? null
   const emit = () => { if (!disposed) for (const listener of listeners) { try { listener() } catch { /* isolation */ } } }
   const changed = () => { emit() }
-  const catalog = () => buildClassCatalog(customLabels, presets())
+  const catalog = () => buildClassCatalog(customLabels, presets(), isChinese() ? 'zh' : 'en')
   const selectedEntries = () => catalog().filter((entry) => selectedKeys.has(entry.key))
   const aoiReady = () => Boolean(aoi && aoi.bbox)
   const firstId = () => store.getState().candidates[0]?.properties?.id ?? null
@@ -190,7 +191,7 @@ export function createParseController(ctx) {
           key: entry.key,
           name: entry.name,
           color: entry.color,
-          definition: entry.descriptionZh && t('parse.language') === 'zh' ? entry.descriptionZh : entry.definition,
+          definition: entry.definition,
           custom: entry.custom === true,
           on: selectedKeys.has(entry.key),
         })),
@@ -419,9 +420,9 @@ export function createParseController(ctx) {
   const runExport = (nextScope) => {
     const target = EXPORT_SCOPES.has(nextScope) ? nextScope : 'accepted'
     const features = target === 'all' ? store.all() : store.accepted()
-    const { collection, count } = buildGeoJsonExport(features, { withZ: false })
+    const { collection, count } = buildGeoJsonExport(features)
     if (count === 0) { toast(t('parse.exportEmpty')); return false }
-    const written = downloadText(suggestedFilename({ format: 'geojson' }), JSON.stringify(collection, null, 2), 'application/geo+json')
+    const written = downloadText(suggestedFilename(), JSON.stringify(collection, null, 2), 'application/geo+json')
     if (!written) { toast(t('parse.exportEmpty')); return false }
     toast(t('parse.exported', { n: count }))
     return true

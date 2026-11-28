@@ -1,8 +1,7 @@
 /**
  * host/vision/instances.js — orthophoto instance-segmentation protocol.
  *
- * Ported from the standalone `llm_instance_segmentation` project and rewritten
- * for this plugin: the page sends one class table per request, the model answers
+ * Protocol: the page sends one class table per request, the model answers
  * with polygon-only instances as `{"o":[[classId,[[x,y],...]],...]}`, and every
  * coordinate is an integer in 0..1000 relative to the supplied crop (x right,
  * y down, both axes normalized independently).

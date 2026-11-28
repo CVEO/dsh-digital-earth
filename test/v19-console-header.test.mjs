@@ -50,9 +50,9 @@ test('工具窗口 id 兼容字符串与 {id}，最后一个即当前', () => {
 })
 
 test('结果目的地承担未读点：aria-label 带上未读文案，非当前目的地才亮', () => {
-  const base = { t, showLayers: false, showTools: false, showResult: false, onToggleLayers: () => {}, onToggleTools: () => {}, onOpenResult: () => {} }
+  const base = { t, showLayers: false, showTools: false, showPlaces: false, showResult: false, onToggleLayers: () => {}, onToggleTools: () => {}, onTogglePlaces: () => {}, onOpenResult: () => {} }
   const unread = ToolbarQuick({ ...base, resultDisabled: false, resultUnread: true })
-  const resultButton = kids(unread)[2]
+  const resultButton = kids(unread)[3]
   assert.ok(resultButton, '结果入口存在')
   assert.match(resultButton.props['aria-label'], /dock\.unread/)
   assert.ok(

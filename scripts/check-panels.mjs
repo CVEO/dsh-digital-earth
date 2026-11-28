@@ -19,7 +19,7 @@ const read = (path) => readFileSync(join(root, path), 'utf8')
 
 const state = read('src/client/ui/panel-state.js')
 if (!state.includes("export const PANEL_STORAGE_KEY = 'mv.ui.v2'")) fail('panel-state: storage key is not mv.ui.v2')
-for (const id of ['layers', 'tools', 'result', 'object']) {
+for (const id of ['layers', 'tools', 'places', 'result', 'object']) {
   if (!new RegExp(`'${id}'`).test(state)) fail(`panel-state: missing tab ${id}`)
 }
 for (const marker of ['panelReducer', 'readPanelState', 'writePanelState', 'visiblePanelTabs', 'clampPanelWidth']) {
@@ -70,8 +70,13 @@ if (/\.mv-dock-tab-close/.test(css)) fail('css: dead tab-close rules must be rem
 
 const quick = read('src/client/ui/toolbar-quick.js')
 const entries = [...quick.matchAll(/entry\('([a-z]+)'/g)].map((match) => match[1])
-if (entries.join(',') !== 'layers,tools,result') fail(`toolbar-quick: expected layers,tools,result, got ${entries.join(',')}`)
+if (entries.join(',') !== 'layers,tools,places,result') fail(`toolbar-quick: expected layers,tools,places,result, got ${entries.join(',')}`)
 if (/openToolCount|showAnalysis|showView|onOpenAnalysis|onOpenView/.test(quick)) fail('toolbar-quick: old analysis/view entries must stay removed')
+if (!quick.includes("entry('places'") || !quick.includes('onTogglePlaces')) fail('toolbar-quick: 地名检索 is a first-level destination')
+const view = read('src/client/ui/toolbar-view.js')
+if (/places/i.test(view)) fail('toolbar-view: place search must not live in the 视图 menu any more')
+const topbarSource = read('src/client/ui/topbar.js')
+if (/PlaceSearch|places/.test(topbarSource)) fail('topbar: the place-search popover must stay deleted')
 
 const messages = read('src/client/messages-dock.js')
 for (const key of ['panel.tab.layers', 'panel.tab.tools', 'panel.tab.result', 'panel.tab.object', 'panel.result.emptyTitle']) {
@@ -108,4 +113,4 @@ if (problems.length) {
   for (const problem of problems) console.error(`  - ${problem}`)
   process.exit(1)
 }
-console.log('check-panels: single rail, 4 destinations, master-detail and persistence intact')
+console.log('check-panels: single rail, 5 destinations, master-detail and persistence intact')

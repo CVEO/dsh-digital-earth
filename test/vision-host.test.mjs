@@ -1,8 +1,24 @@
-import { test } from 'node:test'
+import { test, after } from 'node:test'
 import assert from 'node:assert/strict'
 import { EventEmitter } from 'node:events'
-import { createVisionHandler, validateVisionRequest } from '../src/host/vision.js'
-import { registerRoutes } from '../src/host/routes.js'
+import { mkdtemp, rm } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+
+// The host state directory is fixed when constants.js loads, so point DSH_HOME at
+// a throwaway directory first: a locally configured vision.json must not decide
+// whether these probes report model_unknown.
+const previousHome = process.env.DSH_HOME
+const home = await mkdtemp(join(tmpdir(), 'dsh-de-vision-host-'))
+process.env.DSH_HOME = home
+after(async () => {
+  if (previousHome === undefined) delete process.env.DSH_HOME
+  else process.env.DSH_HOME = previousHome
+  await rm(home, { recursive: true, force: true })
+})
+
+const { createVisionHandler, validateVisionRequest } = await import('../src/host/vision.js')
+const { registerRoutes } = await import('../src/host/routes.js')
 
 const outline = { polygon: [[0.2, 0.2], [0.8, 0.2], [0.8, 0.8], [0.2, 0.8]] }
 const finish = { type: 'finish', reason: { kind: 'stop' } }

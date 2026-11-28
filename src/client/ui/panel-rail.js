@@ -31,6 +31,7 @@ const h = React.createElement
 function tabLabel(t, tabId) {
   if (tabId === 'layers') return t('panel.tab.layers')
   if (tabId === 'tools') return t('panel.tab.tools')
+  if (tabId === 'places') return t('places.title')
   if (tabId === 'object') return t('panel.tab.object')
   return t('panel.tab.result')
 }

@@ -1,8 +1,8 @@
 /**
  * host/vision/backends/openai-compat.js — standalone OpenAI-compatible HTTP VLM
- * backend adapter. Allows connecting supercomputing DeepSeek, MiMo 2.6 Flash,
- * Qwen-VL, vLLM, SGLang, or Ollama vision endpoints independently of DSH's
- * global chat model and without relying on DSH static capability metadata.
+ * backend adapter. Connects any OpenAI-compatible vision endpoint (hosted model
+ * APIs, vLLM, SGLang, Ollama) independently of DSH's global chat model and without
+ * relying on DSH static capability metadata.
  */
 import { parseVisionBatchOutput, parseVisionOutput, visionError } from '../../../client/scene/vision-geometry.js'
 import { classifyProviderError } from '../capability.js'
@@ -68,10 +68,12 @@ async function runOpenAiVisionCall(cfg, { system, userText, input, maxTokens, si
     stream: false,
   }
 
-  // WHU serves Qwen vision aliases through a chat template with a separate thinking budget.
-  if (system === GROUND_SYSTEM && /^(?:qwen-flash|qwen-27b)$/i.test(cfg.model) &&
-      new URL(endpoint).hostname === 'llm.whu.edu.cn') {
-    body.chat_template_kwargs = { enable_thinking: false }
+  // Servers that need a chat-template switch (for example a model whose reasoning
+  // budget must be off for a JSON-only vision answer) declare it in the vision
+  // configuration instead of being special-cased per hostname in this file.
+  const templateKwargs = cfg.chatTemplateKwargs
+  if (templateKwargs && typeof templateKwargs === 'object' && Object.keys(templateKwargs).length > 0) {
+    body.chat_template_kwargs = { ...templateKwargs }
   }
 
   let responseJson

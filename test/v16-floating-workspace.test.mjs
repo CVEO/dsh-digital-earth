@@ -408,21 +408,25 @@ test('tool-workspace & RightStack：选择工具单活主从，关闭工具箱�
     }
   })
 })
-test('ToolbarQuick renders 图层/工具/结果 and reports pressed state', () => {
+test('ToolbarQuick renders 图层/工具/地名检索/结果 and reports pressed state', () => {
   let toolsClicks = 0
   let layersClicks = 0
   let resultClicks = 0
+  let placesClicks = 0
   const tree = ToolbarQuick({
     t: (key) => key,
     showLayers: false,
     showTools: true,
+    showPlaces: true,
     showResult: true,
     onToggleLayers: () => { layersClicks++ },
     onToggleTools: () => { toolsClicks++ },
+    onTogglePlaces: () => { placesClicks++ },
     onOpenResult: () => { resultClicks++ },
   })
   const buttons = findAll(tree, (node) => node.type === 'button')
-  assert.equal(buttons.length, 3, '工具栏只保留图层/工具/结果三个域入口')
+  assert.equal(buttons.length, 4, '工具栏保留图层/工具/地名检索/结果四个域入口')
+  assert.ok(buttons.some((b) => textOf(b).includes('places.title')), '地名检索是一级入口')
   const toolsBtn = buttons.find((b) => textOf(b).includes('btn.tools'))
   const layersBtn = buttons.find((b) => textOf(b).includes('btn.layers'))
   const resultBtn = buttons.find((b) => textOf(b).includes('panel.tab.result'))

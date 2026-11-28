@@ -23,9 +23,6 @@ After opening Digital Earth in DSH, the 3D scene panel appears beside the conver
 
 The 3D engine and UI assets ship with the plugin, so no additional GIS server is required; local layers need not be uploaded, while online imagery and terrain use the selected sources. When you run AI extraction, the current orthophoto is sent to the configured model.
 
-<p align="center"><img src="assets/readme/split-view.jpg" alt="DSH conversation and Digital Earth split view: chat on the left, 3D scene and tools on the right (real screenshot)" width="92%"></p>
-<p align="center"><sub>DSH conversation and Digital Earth split view: chat on the left, 3D scene, layers and tools on the right</sub></p>
-
 ## Quick start
 
 **Easiest install**: open the desktop DeepSeek Harness, click **Plugins** in the top-right corner, enter the full package name `@cveo/dsh-digital-earth` in the plugin market search box, and install "Digital Earth". Then restart DSH as described in step 1.
@@ -68,13 +65,13 @@ No tool names or coordinates are required. After loading the sample data, say an
 | "Generate a Markdown report of the current scene." | Collects layers, camera, measurements, analyses and captures | A report path with a ready-to-share Markdown / HTML file |
 | Click a building or the ground. | Default identification reads the hit layer, coordinates, surface/geometric height and attributes | An identify card and object attributes; "Select around this point" creates a 15 m approximate AOI |
 | Tools → Rectangle selection → drag → ask "What buildings and vegetation are in this area?" | Saves the selection image and coordinates, then sends them to the current conversation | A chat answer; the selection can be measured, exported or used for flood analysis |
-| Tools → AI selection → click a target | Sends the image to the vision model and projects an approximate visible-surface outline | An approximate selection you can confirm; the default model must accept images |
+| Tools → AI extraction → Start extraction | Takes a nadir view, then runs tiled instance segmentation and returns 2D GeoJSON | Requires a DSH vision model that accepts images; dense building areas need manual review |
 
 > For a README screenshot, start with the first row: the elevation-ramp effect is visually obvious and shows both chat and the plugin at work.
 
 ## Core capabilities
 
-- **Scene browsing**: stack multiple 3D Tiles / 3DGS layers with visibility, fly-to and attribute identification; the layer card is a single Scene card grouped into annotations / measurements / 3D content / vector / raster / imagery / terrain, with icon actions and tooltips on each group header; measure, profile, sun, analysis, visual effects and view bookmarks live in the Tools destination. The right side is one single-column console: the header shows the active destination on the left (Scene / Tools / Result) and, on the right, three menus (Data ▾ / View ▾ / Output ▾), the Scene / Tools / Result panel buttons, settings and hide; the active panel sits directly below it with no brand strip and no second title row. Dragging the panel’s left edge resizes the whole console, so the menu row and the panel always share one width. Pressing the active destination again collapses the panel, while `H` or the hide button collapses the menu and panel together and leaves one “Show interface” handle at the same spot. One panel is visible at a time while the others stay mounted so a switch never loses a draft. Tools use an index ↔ detail master-detail flow: the header reads “Tools · Measure” and the `‹` chevron before the title returns to the index. A compass that resets north keeps the globe readable.
+- **Scene browsing**: stack multiple 3D Tiles / 3DGS layers with visibility, fly-to and attribute identification; the layer card is a single Scene card grouped into annotations / measurements / 3D content / vector / raster / imagery / terrain, with icon actions and tooltips on each group header; measure, profile, sun, analysis, visual effects and view bookmarks live in the Tools destination. The right side is one single-column console: the header shows the active destination on the left (Scene / Tools / Result / Place search) and, on the right, three menus (Data ▾ / View ▾ / Output ▾), the Scene / Tools / Result / Place search panel buttons, settings and hide; the active panel sits directly below it with no brand strip and no second title row. Dragging the panel’s left edge resizes the whole console, so the menu row and the panel always share one width. Pressing the active destination again collapses the panel, while `H` or the hide button collapses the menu and panel together and leaves one “Show interface” handle at the same spot. One panel is visible at a time while the others stay mounted so a switch never loses a draft. Tools use an index ↔ detail master-detail flow: the header reads “Tools · Measure” and the `‹` chevron before the title returns to the index. A compass that resets north keeps the globe readable.
 - **Measurement and identification**: distance, area and height, plus drag-box ground selection that reports area/perimeter/boundary height and exports GeoJSON; the coordinate HUD samples at 5–6 Hz and the identify card reports surface height and an estimated geometric height.
 - **Spatial analysis**: 3D profile, flood, sunlight, clip and skyline — one active analysis at a time, drawn in the scene with the height source (3D Tiles surface or terrain) stated in the result.
 - **Deliverables**: Clean snapshots (Manual and Agent snapshots keep only the 3D view by default), HTML / Markdown scene reports, evidence packs and per-session scene restore; the snapshot folder keeps the last 50 files, suitable for reports, presentations and archives. Snapshots are canvas-only bitmaps by contract (v1.6.2): DOM overlays and toolbars never enter the image. They also report camera longitude/latitude, height, heading, pitch, time and visible layers, and write a JSON sidecar next to the image.
@@ -89,7 +86,7 @@ All screenshots below are from real panel sessions. Sample data: the public Cler
 
 <img src="assets/readme/profile.jpg" alt="3D profile from the cathedral across the old town, with elevation source, relief and cut/fill statistics (public CRAIG Clermont-Ferrand 3D Tiles)" width="32%">
 <img src="assets/readme/shader.jpg" alt="Visual-effects workbench: elevation-ramp colouring with adjustable height range (public CRAIG Clermont-Ferrand 3D Tiles)" width="32%">
-<img src="assets/readme/tools.jpg" alt="Tools card: point, lasso, rectangle/object selection, AI selection, profile and sun timeline" width="32%">
+<img src="assets/readme/tools.jpg" alt="Tools card: point, lasso, rectangle/object selection, send view to AI, profile and sun timeline" width="32%">
 
 <p align="center"><img src="assets/readme/tour.gif" alt="Digital Earth panel demo: identify, selection question, flood analysis, tools card and view tour" width="640"></p>
 
@@ -120,9 +117,20 @@ Drag previews use screen coordinates; depth is sampled only on release. Surface 
 
 ### Place search
 
-Open **View → Place search**, enter a city, address or landmark, then select a result to fly there. Tianditu is the initial provider. Enter your service key in the panel or set `TIANDITU_TOKEN` on the DSH host. The panel saves keys in the host’s Digital Earth configuration directory. Use the address to distinguish namesakes, or select a region to narrow grouped results. [Tianditu search API](https://lbs.tianditu.gov.cn/server/search2.html)
+Open the top-level **Place search** button in the menu bar to show its own right-side panel (alongside **Scene** and **Tools**), enter a city, address or landmark, and select a result to fly there. Use the address to distinguish namesakes, or select a region to narrow grouped results. Provider enablement, keys and testing are managed in **Settings → Place search**.
 
-OpenStreetMap supports occasional, manually submitted searches. The public Nominatim service permits at most one request per second across the entire application. The plugin caches and rate-limits per host. For multiple installations, set `DSH_NOMINATIM_SEARCH_URL` to the full search endpoint of a shared rate-limited proxy or your own instance. [Nominatim usage policy](https://operations.osmfoundation.org/policies/nominatim/)
+| Provider | Key | Default | Notes |
+| --- | --- | --- | --- |
+| Tianditu | Required (server-side tk) | On | Chinese place names, administrative areas and POIs. Get one at <a href="https://cloudcenter.tianditu.gov.cn/">cloudcenter.tianditu.gov.cn</a>; the host environment variable `TIANDITU_TOKEN` overrides the key saved in Settings. |
+| Amap | Required (Web service key) | On | Addresses and POIs. Get one at <a href="https://console.amap.com/dev/key/app">console.amap.com/dev/key/app</a>. |
+| Photon (OpenStreetMap) | Not required | Off | No key needed; data © OpenStreetMap contributors, licensed under the ODbL, at <a href="https://photon.komoot.io/">photon.komoot.io</a>. |
+| OpenStreetMap official (Nominatim) | Not required | Off | No key needed; the public instance policy permits at most one request per second across the entire application, so a self-hosted or proxied instance is recommended (`DSH_NOMINATIM_SEARCH_URL` points at the full search endpoint of a shared rate-limited proxy or your own instance). [Nominatim usage policy](https://operations.osmfoundation.org/policies/nominatim/) |
+
+Tianditu and Amap are enabled by default but need their own keys before they can query; Photon and Nominatim are disabled by default.
+
+**Settings → Place search** manages the providers with the same list-and-detail-form model as the Imagery basemap and Terrain tabs: every row shows its service name, service URL and an enable switch, `✎` opens the detail form (name / service type / service URL / key where required), `⟳` runs a live connectivity test and `✕` deletes a custom entry; **Add provider** appends another instance of one of the four service types with your own URL — a self-hosted Photon, a Nominatim mirror or a proxy all plug in the same way, with the plugin appending that type's query parameters. All three tabs (Imagery basemap / Terrain / Place search) carry an enable switch, and built-in providers can be switched off but not deleted. Keys live in the host state directory `~/.dsh/digital-earth/place-search.json` (mode 0600; never written to the repository or to browser storage).
+
+Place search is provided by third-party map and geocoding services. Service availability, data content and terms of use are the responsibility of each provider, not of this plugin's developers; confirm and comply with the applicable provider terms before use (for example, the respective policies of Tianditu, Amap, and OpenStreetMap / Nominatim).
 
 ## Data and accuracy
 

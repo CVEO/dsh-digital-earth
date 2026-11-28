@@ -10,6 +10,7 @@ import { FALLBACK_ABOUT } from '../messages.js'
 import { readAutoOpen, writeAutoOpen } from '../preferences.js'
 
 import { useDialogA11y } from './use-dialog-a11y.js'
+import { PlaceProvidersPanel } from './place-providers.js'
 
 const h = React.createElement
 
@@ -267,15 +268,17 @@ const sourceFrameCount = (source) =>
             : h(
                 'div',
                 { key: source.id, className: 'mv-src' },
-                h('span', {
-                  className: `radio${activeId(kind) === source.id ? ' on' : ''}`,
-                  role: 'radio',
-                  'aria-checked': activeId(kind) === source.id,
-                  tabIndex: 0,
-                  onClick: () => selectSource(kind, activeId(kind) === source.id ? null : source.id),
-                  onKeyDown: (event) => {
-                    if (event.key === 'Enter' || event.key === ' ') selectSource(kind, source.id)
-                  },
+                // Enable switch, same control as the 地名检索 tab: on = this source is
+                // the one in use, off = nothing of this kind is loaded. Picking another
+                // row moves the switch, because only one source per kind can be active.
+                h('input', {
+                  type: 'checkbox',
+                  role: 'switch',
+                  className: 'mv-switch',
+                  checked: activeId(kind) === source.id,
+                  disabled: source.name.trim() === '',
+                  'aria-label': t('settings.sourceEnable', { name: source.name }),
+                  onChange: (event) => selectSource(kind, event.target.checked ? source.id : null),
                 }),
                 h(
                   'div',
@@ -544,7 +547,7 @@ const sourceFrameCount = (source) =>
           h(
             'div',
             { className: 'mv-tabs' },
-            [['imagery', 'settings.tab.imagery'], ['terrain', 'settings.tab.terrain'], ['appearance', 'settings.tab.appearance'], ['about', 'settings.tab.about']].map(
+            [['imagery', 'settings.tab.imagery'], ['terrain', 'settings.tab.terrain'], ['places', 'settings.tab.places'], ['appearance', 'settings.tab.appearance'], ['about', 'settings.tab.about']].map(
               ([value, key]) =>
                 h(
                   'button',
@@ -565,7 +568,9 @@ const sourceFrameCount = (source) =>
               ? about
               : tab === 'appearance'
                 ? appearance
-                : h(
+                : tab === 'places'
+                  ? h(PlaceProvidersPanel, { t, url: meta?.placesUrl, askConfirm })
+                  : h(
                     React.Fragment,
                     null,
                     h('p', { className: 'mv-note' }, t(tab === 'imagery' ? 'settings.imageryHint' : 'settings.terrainHint')),
@@ -586,13 +591,14 @@ const sourceFrameCount = (source) =>
             h(
               'div',
               { style: { display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 } },
-              h('button', { type: 'button', className: 'mv-cta', onClick: restore }, t('btn.restore')),
+              // The places tab saves on its own, so source restore/save do not apply there.
+              tab === 'places' ? null : h('button', { type: 'button', className: 'mv-cta', onClick: restore }, t('btn.restore')),
             ),
             h(
               'div',
               { className: 'right' },
               h('button', { type: 'button', className: 'mv-cta', onClick: onClose }, t('btn.cancel')),
-              h('button', { type: 'button', className: 'mv-cta primary', onClick: save }, t('btn.save')),
+              tab === 'places' ? null : h('button', { type: 'button', className: 'mv-cta primary', onClick: save }, t('btn.save')),
             ),
           ),
         ),

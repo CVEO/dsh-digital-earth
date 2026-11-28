@@ -1,8 +1,8 @@
 /**
  * host/vision/capability.js — three-state model capability probing, error
  * classification, and short-lived probe caching so third-party / custom
- * providers (supercomputing DeepSeek, MiMo 2.6 Flash, OpenAI-compatible relays)
- * are never prematurely blocked by missing DSH static metadata.
+ * providers (OpenAI-compatible relays, self-hosted servers) are never
+ * prematurely blocked by missing DSH static metadata.
  */
 import { visionError } from '../../client/scene/vision-geometry.js'
 import { sanitizeDiagnosticDetail } from './prompts.js'

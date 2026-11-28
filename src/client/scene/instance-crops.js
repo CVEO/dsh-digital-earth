@@ -1,7 +1,7 @@
 // Convert normalized detector boxes to context crops in the frozen frame.
 // The proposal is only a camera window. It never becomes a feature.
-// With a broad catalog Qwen can return one extent for an entire row of roofs
-// or put a road and its surroundings in a single box. Give footprints and
+// With a broad catalog a detector can return one extent for an entire row of
+// roofs or put a road and its surroundings in a single box. Give footprints and
 // road surfaces their own localization pass. Small catalogs use one request.
 export function classWindows(windows, classes, separateClasses = false) {
   if (separateClasses && classes.length > 1) return windows.flatMap(w => classes.map(c => ({

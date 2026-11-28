@@ -31,6 +31,7 @@ dsh-digital-earth/
 ├── index.js                 # 宿主入口：inject / apply + 公开 re-export
 ├── src/host/                # 宿主：路由、命令桥、体检、存储、七个工具、/earth
 ├── src/client/              # 客户端源码：面板、图层、量测 / 指认、分析、着色器、i18n
+├── src/shared/              # 共享类别体系与协议常量（面板与宿主共用，中英对齐）
 ├── client.js                # 客户端产物（npm run build:client 生成）
 ├── assets/readme/           # README 截图
 ├── icon.svg                 # 插件市场图标
@@ -38,6 +39,7 @@ dsh-digital-earth/
 ├── vendor/cesium/           # 自托管三维引擎（第三方声明见 THIRD-PARTY.md / NOTICE）
 ├── scripts/                 # 构建、行数预算、地理配准修复、发布自检
 ├── test/                    # 单元 / 契约 / 产物冒烟测试
+├── .github/                 # CI 与发布工作流（打 tag 后经 OIDC 发布 npm）
 ├── CHANGELOG.md
 ├── THIRD-PARTY.md
 ├── NOTICE
@@ -56,6 +58,7 @@ dsh-digital-earth/
 - 一个模块一个职责；纯计算与 React / Cesium 分离；新文件优先控制在 300 行内。
 - 行数预算：`index.js` ≤ 80 行；`src/host/**` 单文件 ≤ 600 行；`src/client/**` 单文件 ≤ 900 行；`ViewerSurface.js` 是限期例外，只允许缩小。
 - 不提交本机绝对路径、个人截图、token 或本地临时笔记。
+- 本地专属内容已在 `.gitignore` 中忽略（`docs/`、`.research/`、`captures/` 等）；本地推广素材目录 `assets/promo/` 也已加入忽略，不要用 `git add -f` 强行提交。
 - 提交前跑通 `npm run check`；涉及发布链路的改动再跑 `npm run release:check`。
 
 ## 发布 / Release

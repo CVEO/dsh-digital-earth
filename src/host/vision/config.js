@@ -27,6 +27,7 @@ export function defaultVisionConfig() {
       model: '',
       coordSpace: 'auto',
       maxTokens: 4096,
+      chatTemplateKwargs: {},
     },
   }
 }
@@ -46,6 +47,24 @@ function cleanHttpUrl(value) {
   } catch {
     return ''
   }
+}
+
+/**
+ * Optional `chat_template_kwargs` forwarded to OpenAI-compatible servers that need
+ * an explicit template switch (for example disabling a model's reasoning budget on
+ * a vision request). Kept as plain primitives so the value stays JSON-safe and a
+ * misconfiguration can never inject nested request structure.
+ */
+function cleanChatTemplateKwargs(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {}
+  const out = {}
+  for (const [rawKey, rawValue] of Object.entries(value).slice(0, 8)) {
+    const key = cleanStr(rawKey, 48)
+    if (!/^[A-Za-z0-9_]{1,48}$/.test(key)) continue
+    if (typeof rawValue === 'boolean' || typeof rawValue === 'number') { out[key] = rawValue; continue }
+    if (typeof rawValue === 'string') out[key] = cleanStr(rawValue, 64)
+  }
+  return out
 }
 
 function cleanMaxTokens(value, fallback = 4096) {
@@ -84,6 +103,7 @@ export function normalizeVisionConfig(raw, existing = null) {
     model: cleanStr(oaRaw.model, 160),
     coordSpace: COORD_SPACES.has(oaRaw.coordSpace) ? oaRaw.coordSpace : 'auto',
     maxTokens: cleanMaxTokens(oaRaw.maxTokens, 4096),
+    chatTemplateKwargs: cleanChatTemplateKwargs(oaRaw.chatTemplateKwargs),
   }
 
   return { mode, allowUnverifiedModalities, dshModel, openaiCompat }
@@ -107,6 +127,7 @@ export function redactVisionConfig(config) {
       model: safe.openaiCompat.model,
       coordSpace: safe.openaiCompat.coordSpace,
       maxTokens: safe.openaiCompat.maxTokens,
+      chatTemplateKwargs: { ...safe.openaiCompat.chatTemplateKwargs },
       hasApiKey: safe.openaiCompat.apiKey !== '',
       apiKeyHint: maskKey(safe.openaiCompat.apiKey),
     },

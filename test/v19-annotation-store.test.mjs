@@ -9,8 +9,6 @@ import test from 'node:test'
 const {
   ANNOTATION_CARRIED_KEYS,
   ANNOTATION_PATCHABLE_KEYS,
-  ANNOTATION_REFINE_KEYS,
-  ANNOTATION_REPLACE_KEYS,
   ANNOTATION_UNDO_LIMIT,
   createAnnotationStore,
 } = await import('../src/client/scene/annotation-store.js')
@@ -70,11 +68,6 @@ test('addCandidates 补全 id/status/method/source/run_id/rev 并保留类别字
       class: '建筑',
       class_key: 'building',
       confidence: 0.82,
-      height_m: 12.5,
-      height_source: 'dsm',
-      floors: 4,
-      base_m: 3.2,
-      roof_m: 15.7,
       area_m2: 128.4,
       name: '建筑 7',
       hex: '#ffce65',
@@ -96,11 +89,6 @@ test('addCandidates 补全 id/status/method/source/run_id/rev 并保留类别字
   assert.equal(props.class, '建筑')
   assert.equal(props.class_key, 'building')
   assert.equal(props.confidence, 0.82)
-  assert.equal(props.height_m, 12.5)
-  assert.equal(props.height_source, 'dsm')
-  assert.equal(props.floors, 4)
-  assert.equal(props.base_m, 3.2)
-  assert.equal(props.roof_m, 15.7)
   assert.equal(props.area_m2, 128.4)
   assert.equal(props.name, '建筑 7')
   assert.equal(props.hex, '#ffce65')
@@ -152,13 +140,13 @@ test('setStatus 只统计真正变化的条数，非法状态不改动', () => {
 test('patch 只接受白名单键并递增 rev', () => {
   const store = storeWithClock()
   store.startRun({})
-  store.addCandidates([polygon({ name: '建筑 1', height_m: null })])
+  store.addCandidates([polygon({ name: '建筑 1' })])
 
-  assert.equal(store.patch('A-01', { name: '厂房', height_m: 8.5, floors: 3 }), true)
+  assert.equal(store.patch('A-01', { name: '厂房', class: '建筑', area_m2: 42 }), true)
   const patched = store.all()[0].properties
   assert.equal(patched.name, '厂房')
-  assert.equal(patched.height_m, 8.5)
-  assert.equal(patched.floors, 3)
+  assert.equal(patched.class, '建筑')
+  assert.equal(patched.area_m2, 42)
   assert.equal(patched.rev, 2)
 
   // Unknown keys only: the call is a no-op, not a success.
@@ -173,7 +161,9 @@ test('patch 只接受白名单键并递增 rev', () => {
   // undefined is ignored instead of wiping a field.
   assert.equal(store.patch('A-01', { name: undefined }), false)
   assert.equal(store.all()[0].properties.name, '厂房')
-  assert.ok(ANNOTATION_PATCHABLE_KEYS.includes('height_source'))
+  assert.ok(ANNOTATION_PATCHABLE_KEYS.includes('area_m2'))
+  // 二维提取不写任何三维字段：高度不能通过审查表单落库。
+  assert.equal(ANNOTATION_PATCHABLE_KEYS.includes('height_m'), false)
 })
 
 test('undo 撤销 addCandidates 清空队列，redo 恢复候选与 id', () => {
@@ -196,18 +186,19 @@ test('undo 撤销 addCandidates 清空队列，redo 恢复候选与 id', () => {
 test('undo 撤销 patch 恢复旧值、rev 与状态', () => {
   const store = storeWithClock()
   store.startRun({})
-  store.addCandidates([polygon({ name: '建筑 1', height_m: null })])
+  store.addCandidates([polygon({ name: '建筑 1', area_m2: 30 })])
 
-  store.patch('A-01', { name: '厂房', height_m: 9 })
+  store.patch('A-01', { name: '厂房', area_m2: 45 })
   assert.equal(store.all()[0].properties.rev, 2)
   store.undo()
   const restored = store.all()[0].properties
   assert.equal(restored.name, '建筑 1')
-  assert.equal(restored.height_m, null)
+  assert.equal(restored.area_m2, 30)
   assert.equal(restored.rev, 1)
 
   store.redo()
   assert.equal(store.all()[0].properties.name, '厂房')
+  assert.equal(store.all()[0].properties.area_m2, 45)
   assert.equal(store.all()[0].properties.rev, 2)
 })
 
@@ -346,186 +337,6 @@ test('startRun 重置队列、id 编号与撤销历史', () => {
   const ids = store.addCandidates([polygon()])
   assert.deepEqual(ids, ['A-01'])
   assert.equal(store.all()[0].properties.run_id, second.run_id)
-})
-
-test('ANNOTATION_REFINE_KEYS 覆盖精修落库字段，候选携带 outline_source 与 outline_quality', () => {
-  assert.ok(ANNOTATION_REFINE_KEYS.includes('outline_source'))
-  assert.ok(ANNOTATION_REFINE_KEYS.includes('refine_state'))
-  for (const key of ['outline_quality', 'refine_attempts', 'refine_bbox_iou', 'refine_area_ratio']) {
-    assert.ok(ANNOTATION_REFINE_KEYS.includes(key))
-  }
-  // replaceGeometry 的允许键 = 审查字段 ∪ 精修字段；面积是派生数据，必须能刷新。
-  assert.ok(ANNOTATION_PATCHABLE_KEYS.includes('area_m2'))
-  assert.ok(ANNOTATION_REPLACE_KEYS.includes('area_m2'))
-  assert.ok(ANNOTATION_REPLACE_KEYS.includes('refine_state'))
-  // 既有来源字段不许丢。
-  for (const key of ['shape', 'source_kind', 'class_raw', 'outline_source', 'outline_quality']) {
-    assert.ok(ANNOTATION_CARRIED_KEYS.includes(key))
-  }
-
-  const store = storeWithClock()
-  store.startRun({})
-  store.addCandidates([polygon({ outline_source: 'box', outline_quality: 'clipped' })])
-  const props = store.all()[0].properties
-  assert.equal(props.outline_source, 'box')
-  assert.equal(props.outline_quality, 'clipped')
-})
-
-test('replaceGeometry 批量替换几何只提交一次，每个变更要素 rev+1 且继承类别与高度', () => {
-  const store = storeWithClock()
-  store.startRun({})
-  store.addCandidates([
-    polygon({ class: '建筑', class_key: 'building', confidence: 0.82, height_m: 12.5, height_source: 'dsm', area_m2: 128.4 }),
-    polygon({ class: '水体' }),
-    polygon({ class: '道路' }),
-  ])
-  const untouchedGeometry = store.all()[1].geometry
-  const seen = []
-  store.subscribe((state) => seen.push(state))
-  const undoBefore = store.history().undo
-
-  const refined = {
-    type: 'Polygon',
-    coordinates: [[[100, 30], [100.002, 30], [100.002, 30.002], [100, 30.002], [100, 30]]],
-  }
-  const changed = store.replaceGeometry([
-    {
-      id: 'A-01',
-      geometry: refined,
-      properties: {
-        outline_source: 'refined',
-        outline_quality: 'ok',
-        refine_state: 'refined',
-        refine_attempts: 1,
-        refine_bbox_iou: 0.78,
-        refine_area_ratio: 0.94,
-        area_m2: 210.5,
-      },
-    },
-    { id: 'A-03', geometry: refined, properties: { outline_source: 'refined', refine_state: 'failed' } },
-  ])
-
-  assert.equal(changed, 2)
-  // 一次 commit = 一步撤销 = 一次通知。
-  assert.equal(store.history().undo, undoBefore + 1)
-  assert.equal(seen.length, 1)
-  assert.equal(seen[0].candidates.length, 3)
-
-  const rows = store.all()
-  assert.deepEqual(rows[0].geometry, refined)
-  assert.deepEqual(rows[2].geometry, refined)
-  // 未列出的候选完全不动。
-  assert.deepEqual(rows[1].geometry, untouchedGeometry)
-  assert.equal(rows[0].properties.rev, 2)
-  assert.equal(rows[1].properties.rev, 1)
-  assert.equal(rows[2].properties.rev, 2)
-  // 精修继承类别/高度/置信度/状态，只新增来源与质量字段。
-  assert.equal(rows[0].properties.class, '建筑')
-  assert.equal(rows[0].properties.class_key, 'building')
-  assert.equal(rows[0].properties.confidence, 0.82)
-  assert.equal(rows[0].properties.height_m, 12.5)
-  assert.equal(rows[0].properties.height_source, 'dsm')
-  assert.equal(rows[0].properties.status, 'pending')
-  assert.equal(rows[0].properties.outline_source, 'refined')
-  assert.equal(rows[0].properties.outline_quality, 'ok')
-  assert.equal(rows[0].properties.refine_state, 'refined')
-  assert.equal(rows[0].properties.refine_attempts, 1)
-  assert.equal(rows[0].properties.refine_bbox_iou, 0.78)
-  assert.equal(rows[0].properties.refine_area_ratio, 0.94)
-  assert.equal(rows[0].properties.area_m2, 210.5)
-  assert.equal(rows[2].properties.refine_state, 'failed')
-})
-
-test('replaceGeometry 只应用白名单属性、忽略未知 id 与非法条目', () => {
-  const store = storeWithClock()
-  store.startRun({})
-  store.addCandidates([polygon({ class: '建筑', confidence: 0.82, height_m: 9 })])
-  const refined = { type: 'Polygon', coordinates: [[[100, 30], [100.003, 30], [100.003, 30.003], [100, 30]]] }
-  const undoBefore = store.history().undo
-
-  const changed = store.replaceGeometry([
-    { id: 'A-99', geometry: refined, properties: { refine_state: 'refined' } },
-    { geometry: refined, properties: { refine_state: 'refined' } },
-    null,
-    42,
-    'A-01',
-    { id: 'A-01', properties: { status: 'accepted', confidence: 0.01, id: 'Z-99', note: '内部字段', refine_state: 'refined' } },
-  ])
-
-  assert.equal(changed, 1)
-  const props = store.all()[0].properties
-  assert.equal(props.id, 'A-01')
-  assert.equal(props.status, 'pending')
-  assert.equal(props.confidence, 0.82)
-  assert.equal(props.height_m, 9)
-  assert.equal(props.class, '建筑')
-  assert.equal(props.refine_state, 'refined')
-  assert.equal('note' in props, false)
-  // 未知 id / 非对象 / 缺 id 的条目都不产生额外提交。
-  assert.equal(store.history().undo, undoBefore + 1)
-  assert.equal(store.replaceGeometry([]), 0)
-  assert.equal(store.replaceGeometry(null), 0)
-  assert.equal(store.replaceGeometry([{ id: 'A-01', properties: { status: 'rejected' } }]), 0)
-  assert.equal(store.replaceGeometry([{ id: 'A-01', geometry: null }]), 0)
-  assert.equal(store.history().undo, undoBefore + 1)
-  assert.equal(store.all()[0].properties.status, 'pending')
-})
-
-test('replaceGeometry 一次 undo 回滚整批几何与属性，redo 可恢复', () => {
-  const store = storeWithClock()
-  store.startRun({})
-  store.addCandidates([polygon({ name: '建筑 1' }), polygon({ name: '建筑 2' })])
-  const before = store.all()
-  const refined = { type: 'Polygon', coordinates: [[[100, 30], [100.004, 30], [100.004, 30.004], [100, 30]]] }
-
-  assert.equal(store.replaceGeometry([
-    { id: 'A-01', geometry: refined, properties: { outline_source: 'refined', refine_state: 'refined', area_m2: 300 } },
-    { id: 'A-02', geometry: refined, properties: { outline_source: 'box', refine_state: 'skipped' } },
-  ]), 2)
-  assert.equal(store.history().undo, 2)
-
-  const undone = store.undo()
-  assert.equal(undone.ok, true)
-  assert.equal(typeof undone.label, 'string')
-  const restored = store.all()
-  assert.deepEqual(restored, before)
-  assert.equal(restored[0].properties.rev, 1)
-  assert.equal('refine_state' in restored[0].properties, false)
-  assert.equal(store.history().undo, 1)
-
-  assert.equal(store.redo().ok, true)
-  assert.deepEqual(store.all()[0].geometry, refined)
-  assert.equal(store.all()[0].properties.rev, 2)
-  assert.equal(store.all()[0].properties.refine_state, 'refined')
-})
-
-test('replaceGeometry 支持只写属性，同批同 id 只递增一次 rev', () => {
-  const store = storeWithClock()
-  store.startRun({})
-  store.addCandidates([polygon({ name: '建筑 1' })])
-  const geometry = store.all()[0].geometry
-
-  assert.equal(store.replaceGeometry([{ id: 'A-01', properties: { outline_source: 'box', area_m2: 456.7 } }]), 1)
-  const row = store.all()[0]
-  assert.deepEqual(row.geometry, geometry)
-  assert.equal(row.properties.outline_source, 'box')
-  assert.equal(row.properties.area_m2, 456.7)
-  assert.equal(row.properties.rev, 2)
-
-  // 同一批里两条同 id 更新合并成一次内容编辑，后写入的值生效。
-  const refined = { type: 'Polygon', coordinates: [[[100, 30], [100.005, 30], [100.005, 30.005], [100, 30]]] }
-  const changed = store.replaceGeometry([
-    { id: 'A-01', properties: { outline_source: 'refined', refine_state: 'refined' } },
-    { id: 'A-01', geometry: refined, properties: { refine_attempts: 2, area_m2: 789 } },
-  ])
-  assert.equal(changed, 1)
-  const merged = store.all()[0]
-  assert.deepEqual(merged.geometry, refined)
-  assert.equal(merged.properties.outline_source, 'refined')
-  assert.equal(merged.properties.refine_state, 'refined')
-  assert.equal(merged.properties.refine_attempts, 2)
-  assert.equal(merged.properties.area_m2, 789)
-  assert.equal(merged.properties.rev, 3)
 })
 
 test('hydrate：刷新后恢复队列，保留 id/status/rev/geometry，历史清空', async () => {

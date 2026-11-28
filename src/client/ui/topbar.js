@@ -2,7 +2,6 @@
 import React from 'react'
 
 import { GlyphIcon } from './icons.js'
-import { PlaceSearch } from './place-search.js'
 import { MenuItem } from './menu-item.js'
 import { dataMenuItems } from './data-menu.js'
 import { outputMenuItems } from './toolbar-output.js'
@@ -20,7 +19,6 @@ export function TopBar({
   data,
   view,
   output,
-  places,
   quick,
   panelLabel = '',
   panelDetail = null,
@@ -28,10 +26,6 @@ export function TopBar({
   onOpenSettings,
   onToggleChrome,
 }) {
-  const closePlaces = () => {
-    setOpenMenu(null)
-    menuRef?.current?.querySelector('[data-mv-menu="view"]')?.focus()
-  }
   const closeMenu = () => setOpenMenu(null)
   const menu = (id, label, items, icon) =>
     h(
@@ -88,8 +82,7 @@ export function TopBar({
         dataMenuItems({ h, MenuItem, t, closeMenu, ...data }),
         h(GlyphIcon, { name: 'folder' }),
       ),
-      menu('view', t('btn.view'), viewMenuItems({ h, MenuItem, t, closeMenu, onOpenPlaces: places ? () => setOpenMenu('places') : null, ...view }), h(GlyphIcon, { name: 'view' })),
-      openMenu === 'places' && places ? h(PlaceSearch, { t, ...places, onClose: closePlaces }) : null,
+      menu('view', t('btn.view'), viewMenuItems({ h, MenuItem, t, closeMenu, ...view }), h(GlyphIcon, { name: 'view' })),
       menu('output', t('btn.output'), outputMenuItems({ h, MenuItem, t, closeMenu, ...output }), h(GlyphIcon, { name: 'export' })),
       h('i', { key: 's1', className: 'mv-sep' }),
       h('div', { key: 'quick', className: 'mv-quick', role: 'group', 'aria-label': t('panel.title') }, h(ToolbarQuick, { t, ...quick })),
