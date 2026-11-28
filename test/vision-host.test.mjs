@@ -1,8 +1,24 @@
-import { test } from 'node:test'
+import { test, after } from 'node:test'
 import assert from 'node:assert/strict'
 import { EventEmitter } from 'node:events'
-import { createVisionHandler, validateVisionRequest } from '../src/host/vision.js'
-import { registerRoutes } from '../src/host/routes.js'
+import { mkdtemp, rm } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+
+// The host state directory is fixed when constants.js loads, so point DSH_HOME at
+// a throwaway directory first: a locally configured vision.json must not decide
+// whether these probes report model_unknown.
+const previousHome = process.env.DSH_HOME
+const home = await mkdtemp(join(tmpdir(), 'dsh-de-vision-host-'))
+process.env.DSH_HOME = home
+after(async () => {
+  if (previousHome === undefined) delete process.env.DSH_HOME
+  else process.env.DSH_HOME = previousHome
+  await rm(home, { recursive: true, force: true })
+})
+
+const { createVisionHandler, validateVisionRequest } = await import('../src/host/vision.js')
+const { registerRoutes } = await import('../src/host/routes.js')
 
 const outline = { polygon: [[0.2, 0.2], [0.8, 0.2], [0.8, 0.8], [0.2, 0.8]] }
 const finish = { type: 'finish', reason: { kind: 'stop' } }
@@ -83,17 +99,28 @@ test('视觉直连：一次图片调用，无 tools/历史；完整文本块不�
   assert.equal(typeof options.system, 'string')
 })
 
-test('视觉能力探测不存图、不产生模型调用；不支持/未知能力直接拒绝', async () => {
+test('视觉能力探测不存图、不产生模型调用；不支持能力拒绝、未声明能力乐观放行', async () => {
   const ctx = context()
   assert.equal((await invoke(createVisionHandler(ctx), { method: 'GET' })).status, 200)
   assert.deepEqual(ctx.calls, { saves: [], streams: [] })
-  for (const [modalities, code] of [[['text'], 'model_not_visual'], [null, 'model_unknown']]) {
-    const unavailable = context({ modalities })
-    const res = await invoke(createVisionHandler(unavailable))
-    assert.equal(res.json().code, code)
-    assert.equal(res.json().next, 'change_model')
-    assert.deepEqual(unavailable.calls, { saves: [], streams: [] })
-  }
+  const unsupported = context({ modalities: ['text'] })
+  const resUnsupported = await invoke(createVisionHandler(unsupported))
+  assert.equal(resUnsupported.json().code, 'model_not_visual')
+  assert.equal(resUnsupported.json().next, 'change_model')
+  assert.equal(resUnsupported.json().diagnostic?.canForce, true)
+  assert.deepEqual(unsupported.calls, { saves: [], streams: [] })
+  // Undeclared modalities (custom/third-party providers) probe as capability='unknown' and allow optimistic calls.
+  const undeclared = context({ modalities: null })
+  const probeUndeclared = await invoke(createVisionHandler(undeclared), { method: 'GET' })
+  assert.equal(probeUndeclared.status, 200)
+  assert.equal(probeUndeclared.json().capability, 'unknown')
+  assert.deepEqual(undeclared.calls, { saves: [], streams: [] })
+  // Missing active selection still fails cleanly with model_unknown.
+  const noModel = context()
+  noModel.services.agentDefaultModel = { currentSelection: () => null }
+  const resNoModel = await invoke(createVisionHandler(noModel))
+  assert.equal(resNoModel.json().code, 'model_unknown')
+  assert.equal(resNoModel.json().next, 'change_model')
   const res = await invoke(createVisionHandler({ get() { throw new Error('missing') } }))
   assert.equal(res.status, 503)
   assert.equal(res.json().next, 'manual')

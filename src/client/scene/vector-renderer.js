@@ -210,13 +210,19 @@ export function createVectorRenderer({ getState, getVector, t, markSceneDirty, s
     }
     const drawGeometry = (geometry, properties, feature) => {
       if (geometry === null || typeof geometry !== 'object') return
-      const label = agentLabelText(nameOf(properties), caption)
+      const label = agentLabelText(nameOf(properties) || properties?.class_name, caption)
       const featureStyle = typeof properties?.style === 'string' && VECTOR_COLORS[properties.style] ? properties.style : style
-      const featureColor = featureStyle === style ? color : agentOverlayColor(Cesium, featureStyle)
+      const extraction = properties?.source_kind === 'ortho' ||
+        (Number.isInteger(properties?.class_id) && typeof properties?.class_key === 'string' && properties?.area_m2 != null)
+      const classColor = extraction && /^#[0-9a-f]{6}$/i.test(properties?.color) ? properties.color : null
+      const featureColor = classColor ? Cesium.Color.fromCssColorString(classColor) :
+        (featureStyle === style ? color : agentOverlayColor(Cesium, featureStyle))
       descriptor = {
         group: {},
         kind: t('layers.vectorDrawn'),
         style: featureStyle,
+        extraction,
+        classColor,
         featureKind: typeof properties?.kind === 'string' ? properties.kind : undefined,
         title: label || t('layers.vectorDrawn'),
         summary: t(`vector.geometry.${String(geometry.type ?? '').replace('Multi', '')}`),
@@ -254,9 +260,15 @@ export function createVectorRenderer({ getState, getVector, t, markSceneDirty, s
           break
       }
     }
-    const rawFeatures = Array.isArray(geojson?.features) ? geojson.features : []
+    const rawFeatures = Array.isArray(geojson?.features)
+      ? geojson.features
+      : geojson?.type === 'Feature'
+        ? [geojson]
+        : []
     const features = rawFeatures.map((item) => (item?.type === 'Feature' ? ensureAnnotationFeatureId(item) : item))
-    const storedGeojson = geojson && typeof geojson === 'object' ? { ...geojson, features } : geojson
+    // Keep one shape: per-feature actions index into `features`, so a bare
+    // Feature must be stored as a one-feature collection, not as-is.
+    const storedGeojson = rawFeatures.length > 0 ? { type: 'FeatureCollection', features } : geojson
     for (const feature of features) {
       if (feature?.geometry?.type === 'GeometryCollection') {
         for (const child of feature.geometry.geometries ?? []) {

@@ -11,6 +11,7 @@ import React from 'react'
 
 import { AnalysisCard } from './cards.js'
 import { LayersPanel } from './layers-panel.js'
+import { PlaceSearchPanel } from './place-search.js'
 import { ToolsPanel } from './tools-panel.js'
 import { ToolWindow } from './tool-window.js'
 import { ToolBody } from './tool-windows.js'
@@ -47,6 +48,7 @@ export function RightStack({
   showLayers,
   toolsPanel,
   showTools,
+  placesPanel = null,
   openWindows = [],
   onSelectTool,
   onCloseToolWindow,
@@ -54,6 +56,12 @@ export function RightStack({
   dockRequest = null,
   objectPanel = null,
   onActiveTab,
+  onUnread,
+  // Master/detail of the tools destination. The console header owns the back
+  // affordance, so the state is lifted to the viewer: the header can show
+  // "工具 · 量测" and switch back without a second label row inside the panel.
+  showToolIndex = false,
+  onShowToolIndex,
 }) {
   const windows = Array.isArray(openWindows) ? openWindows : []
   const windowIds = windows.map((win) => (typeof win === 'string' ? win : win?.id)).filter(Boolean)
@@ -63,6 +71,7 @@ export function RightStack({
   const available = visiblePanelTabs({ hasResult, hasObject }).filter((id) => {
     if (id === 'layers') return Boolean(showLayers)
     if (id === 'tools') return Boolean(showTools || activeToolId)
+    if (id === 'places') return Boolean(placesPanel)
     return true
   })
   const availableSignature = available.join('|')
@@ -86,15 +95,25 @@ export function RightStack({
     onActiveTab?.(state.collapsed ? null : state.activeTab)
   }, [state.activeTab, state.collapsed, onActiveTab])
 
+  React.useEffect(() => {
+    onUnread?.(state.unread)
+  }, [state.unread.result, state.unread.object, onUnread])
+
   // Automatic result focus follows the confirmed policy: only an idle, expanded
-  // rail switches; otherwise the result tab gets an unread dot.
+  // rail switches; otherwise the result tab gets an unread dot. Analysis/measure
+  // tool windows are the ones that initiate profiles/analyses, so returning a
+  // result from them switches directly instead of trapping the user on the tool.
   const prevResultRef = React.useRef(analysis?.result)
-  const lockedByTool = Boolean(activeToolId) && state.activeTab === 'tools'
+  const detailToolId = !showToolIndex ? activeToolId : null
+  const lockedByTool = Boolean(detailToolId) && state.activeTab === 'tools'
+  const analysisInitiator = detailToolId === 'measure' || detailToolId === 'analysis'
   React.useEffect(() => {
     const result = analysis?.result
-    if (result && result !== prevResultRef.current) dispatch({ type: 'resultArrived', busy: busy || lockedByTool })
+    if (result && result !== prevResultRef.current) {
+      dispatch({ type: 'resultArrived', busy: busy || (lockedByTool && !analysisInitiator) })
+    }
     prevResultRef.current = result
-  }, [analysis?.result, busy, lockedByTool])
+  }, [analysis?.result, busy, lockedByTool, analysisInitiator])
 
   const prevObjectRef = React.useRef(objectPanel?.key)
   React.useEffect(() => {
@@ -111,22 +130,22 @@ export function RightStack({
     prevReportRef.current = key
   }, [reportPreview?.key, dispatch])
 
-  // Toolbar domain buttons: focus the destination, or toggle the rail closed when
-  // it is already the active destination. No panel is closed by a toolbar click.
+  // Toolbar domain buttons toggle the destination (re-clicking collapses),
+  // whereas programmatic shortcuts pass mode='activate' so they always open.
   const pendingRequestRef = React.useRef(null)
   React.useEffect(() => {
     if (!dockRequest?.kind) return
-    pendingRequestRef.current = ['layers', 'tools', 'result', 'object'].includes(dockRequest.kind) ? dockRequest.kind : null
-  }, [dockRequest?.seq, dockRequest?.kind])
+    pendingRequestRef.current = ['layers', 'tools', 'places', 'result', 'object'].includes(dockRequest.kind)
+      ? { tabId: dockRequest.kind, mode: dockRequest.mode === 'activate' ? 'activate' : 'toggle' }
+      : null
+  }, [dockRequest?.seq, dockRequest?.kind, dockRequest?.mode])
   React.useEffect(() => {
-    const tabId = pendingRequestRef.current
-    if (!tabId) return
-    if (!available.includes(tabId)) return
+    const req = pendingRequestRef.current
+    if (!req) return
+    if (!available.includes(req.tabId)) return
     pendingRequestRef.current = null
-    dispatch({ type: 'toggle', tabId })
+    dispatch({ type: req.mode, tabId: req.tabId })
   }, [dockRequest?.seq, availableSignature])
-
-  const [showToolIndex, setShowToolIndex] = React.useState(false)
 
   if (!available.length) return null
 
@@ -147,22 +166,13 @@ export function RightStack({
             'div',
             { key: 'tools', className: 'mv-panel-detail' },
             h(
-              'button',
-              {
-                type: 'button',
-                className: 'mv-panel-back',
-                onClick: () => setShowToolIndex(true),
-              },
-              `← ${t('tools.title')}`,
-            ),
-            h(
               ToolWindow,
               {
                 t,
                 entry,
                 embedded: true,
                 onClose: () => {
-                  setShowToolIndex(true)
+                  onShowToolIndex?.(true)
                   onCloseToolWindow?.(activeToolId)
                 },
               },
@@ -180,12 +190,15 @@ export function RightStack({
             ...(toolsPanel ?? {}),
             embedded: true,
             onSelectTool: (toolId) => {
-              setShowToolIndex(false)
+              onShowToolIndex?.(false)
               onSelectTool?.(toolId)
             },
             onCloseTool: onCloseToolWindow,
           }),
     })
+  }
+  if (placesPanel) {
+    panels.push({ id: 'places', node: h(PlaceSearchPanel, { key: 'places', t, ...placesPanel }) })
   }
   if (reportPreview?.html) {
     panels.push({
@@ -218,7 +231,6 @@ export function RightStack({
     tabs: available.map((id) => ({ id })),
     activeTab: state.activeTab,
     collapsed: state.collapsed,
-    unread: state.unread,
     width: state.width,
     panels,
     onActivate: (tabId) => dispatch({ type: 'activate', tabId }),

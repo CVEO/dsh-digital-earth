@@ -6,6 +6,8 @@
  * model-readable value or throwing an actionable error. Handlers and refs are
  * injected so the module holds no React state and cannot pin a stale viewer.
  */
+import { clearExtractionOverlay, runAgentExtraction } from './agent-extract.js'
+
 export function createCommandBridge(deps) {
   const cesiumRef = { get current() { return deps.getCesium() } }
   const viewerRef = { get current() { return deps.getViewer() } }
@@ -264,6 +266,38 @@ export function createCommandBridge(deps) {
           resetView()
           await delay(1400)
           return { view: (await collectSceneStatus()).view }
+        }
+        if (action === 'extract') {
+          // Agent tool earth_extract: orthophoto + tiled instance segmentation.
+          // The result is drawn as one agent overlay and returned as 2D GeoJSON.
+          const abort = new AbortController()
+          const timer = setTimeout(() => abort.abort(), 230000)
+          try {
+            return await runAgentExtraction({
+              viewer,
+              Cesium,
+              meta: metaRef.current,
+              bbox: args.bbox ?? null,
+              classes: args.classes ?? null,
+              sessionId: deps.getSession?.(),
+              separateClasses: args.separate_classes === true,
+              reuse: args.reuse !== false,
+              namedLabels: args.named_labels === true,
+              multiScale: args.multi_scale === true,
+              maxFeatures: args.max_features,
+              maxCalls: args.max_calls,
+              label: typeof args.label === 'string' ? args.label : undefined,
+              clear: args.clear === true,
+              clearAgent: () => clearExtractionOverlay({ state: agentOverlayRef.current, viewer }),
+              signal: abort.signal,
+              draw: drawAgentOverlay,
+            })
+          } catch (error) {
+            const text = message(error)
+            throw new Error(text.includes('next:') ? text : `${text} next: 检查面板是否已打开、视觉模型是否可用，或缩小范围后重试。`)
+          } finally {
+            clearTimeout(timer)
+          }
         }
         if (action === 'pick') {
           const position = new Cesium.Cartesian2(

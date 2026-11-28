@@ -59,7 +59,7 @@ export function vectorLineMaterial(Cesium, color, outlineWidth = 1.25) {
   })
 }
 
-export function styleVectorOptions(Cesium, options) {
+export function styleVectorOptions(Cesium, options, extraction = false) {
   const result = { ...options }
   if (options.point) {
     result.point = {
@@ -74,8 +74,8 @@ export function styleVectorOptions(Cesium, options) {
     const color = line.material
     result.polyline = {
       ...line,
-      width: 4.5,
-      ...(color instanceof Cesium.Color ? { material: vectorLineMaterial(Cesium, color) } : {}),
+      width: extraction ? 2 : 4.5,
+      ...(color instanceof Cesium.Color ? { material: vectorLineMaterial(Cesium, color, extraction ? 0.45 : 1.25) } : {}),
       ...(line.clampToGround ? { classificationType: Cesium.ClassificationType.BOTH } : { arcType: Cesium.ArcType.NONE }),
     }
     if (line.depthFailMaterial && color instanceof Cesium.Color) {
@@ -95,7 +95,7 @@ export function styleVectorOptions(Cesium, options) {
       outline: hasElevation ? (options.polygon.outline ?? true) : false,
     }
     if (options.polygon.material instanceof Cesium.Color) {
-      result.polygon.material = options.polygon.material.withAlpha(hasElevation ? 0.34 : 0.16)
+      result.polygon.material = options.polygon.material.withAlpha(hasElevation ? 0.34 : extraction ? 0.09 : 0.16)
     }
     if (!hasElevation) result.polygon.classificationType = Cesium.ClassificationType.BOTH
   }

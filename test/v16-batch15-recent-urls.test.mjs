@@ -7,8 +7,11 @@
  */
 import assert from 'node:assert/strict'
 import test from 'node:test'
+import { register } from 'node:module'
+
+register('./helpers/react-stub-loader.mjs', import.meta.url)
+
 import { readRepoFile } from './helpers/source.mjs'
-import { MESSAGES } from '../src/client/messages.js'
 import {
   RECENT_URLS_LIMIT,
   readRecentUrls,
@@ -18,7 +21,10 @@ import {
   sanitizeRecentUrl,
   writeRecentUrls,
 } from '../src/client/ui/recent-urls.js'
-import { dataMenuItems } from '../src/client/ui/data-menu.js'
+
+// messages/data-menu pull in ui/icons.js (React) — import them after the loader.
+const { MESSAGES } = await import('../src/client/messages.js')
+const { dataMenuItems } = await import('../src/client/ui/data-menu.js')
 
 function fakeStorage(initial = null) {
   let value = initial
@@ -142,15 +148,23 @@ test('the Data menu shows address actions and history before recent folders and 
 
 
   })
-  const labels = items.filter((item) => item.type === 'span').map((item) => item.children[0])
-  assert.deepEqual(labels, ['menu.recentUrls', 'menu.recentDirs'])
-  assert.equal(items[1].children[0], 'btn.openUrl')
+  // v1.8：菜单按 添加 / 最近 / 管理 分组，组标签是本地化 key。
+  const groupLabels = items.filter((item) => item.type === 'span').map((item) => item.children[0])
+  assert.deepEqual(groupLabels, ['menu.recent', 'menu.manage'])
+  // “加载地址…”是显式动作，必须排在“最近”分组之前，历史只做快捷方式。
+  const openUrlIndex = items.findIndex((item) => item.children?.[0] === 'menu.loadAddress')
+  const recentLabelIndex = items.findIndex((item) => item.type === 'span' && item.children?.[0] === 'menu.recent')
+  assert.ok(openUrlIndex >= 0 && openUrlIndex < recentLabelIndex)
   const urlItem = items.find((item) => item.props.title === 'https://example.com/data/tileset.json')
   assert.ok(urlItem, 'the address row keeps the full URL as its tooltip')
   assert.equal(urlItem.children[0].children[0], 'example.com/data')
   urlItem.props.onClick()
   assert.deepEqual(calls, ['close', 'url:https://example.com/data/tileset.json'])
-  // B1 数据菜单瘦身：场景报告移到「画面与输出」，数据菜单只管数据。
+  // 最近目录排在最近地址之后，且同为历史项。
+  const dirItem = items.find((item) => item.props.title === 'D:/data/city')
+  assert.ok(dirItem, 'recent folders keep their own history row')
+  assert.ok(items.indexOf(dirItem) > items.indexOf(urlItem))
+  // B1 数据菜单瘦身：场景报告移到「输出」，数据菜单只管数据。
   assert.ok(!items.some((item) => item.children?.[0] === 'menu.report'))
   assert.ok(!items.some((item) => item.children?.[0] === 'tool.clear'))
   const clear = items.find((item) => item.children?.[0] === 'menu.clearAgent')
@@ -159,18 +173,20 @@ test('the Data menu shows address actions and history before recent folders and 
   assert.ok(items.some((item) => item.type === 'i'), 'the separator survives the extraction')
 })
 
-test('ViewerSurface remembers only remotely loaded addresses and the catalog has the label', () => {
+test('ViewerSurface remembers only remotely loaded addresses and the data menu shows the recent group label', () => {
   const surface = readRepoFile('src/client/viewer/ViewerSurface.js')
-  assert.match(surface, /dataMenuItems\(/)
+  // 菜单条目由 TopBar 组装，但最近地址状态与飞行仍在 ViewerSurface 里。
+  assert.match(surface, /onOpenRecentUrl: openRecentUrl/)
   assert.match(surface, /React\.useState\(\(\) => readRecentUrls\(\)\)/)
   assert.match(surface, /layersRef\.current\.push\(layer\)[\s\S]*?recordRecentTilesetUrl\(previousUrls, source, \{ restored: options\.fly === false \}\)/)
   assert.match(surface, /function openRecentUrl\(url\)/)
   assert.match(surface, /void addTileset\(url, recentUrlLabel\(url\), \{ kind: 'remote', url \}\)/)
+  assert.match(readRepoFile('src/client/ui/topbar.js'), /dataMenuItems\(/)
   const menuModule = readRepoFile('src/client/ui/data-menu.js')
-  assert.match(menuModule, /t\('menu\.recentUrls'\)/)
+  assert.match(menuModule, /t\('menu\.recent'\)/)
   assert.match(menuModule, /recentUrlLabel\(entry\.url\)/)
   for (const locale of ['zh', 'en']) {
-    assert.equal(typeof MESSAGES[locale]['menu.recentUrls'], 'string')
-    assert.notEqual(MESSAGES[locale]['menu.recentUrls'], '')
+    assert.equal(typeof MESSAGES[locale]['menu.recent'], 'string')
+    assert.notEqual(MESSAGES[locale]['menu.recent'], '')
   }
 })

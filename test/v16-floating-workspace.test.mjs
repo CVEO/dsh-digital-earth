@@ -26,12 +26,12 @@ const {
 } = await import('../src/client/ui/tool-workspace.js')
 const { RightStack } = await import('../src/client/ui/right-stack.js')
 const { ToolbarQuick } = await import('../src/client/ui/toolbar-quick.js')
-const { LayersMap } = await import('../src/client/ui/layers-map.js')
+const { LayersSurface } = await import('../src/client/ui/layers-surface.js')
 const { AnalysisCard } = await import('../src/client/ui/cards.js')
 const { UrlBar } = await import('../src/client/ui/url-bar.js')
 const { UI_MESSAGES } = await import('../src/client/messages-ui.js')
 const { MESSAGES } = await import('../src/client/messages.js')
-const { IMAGERY_OPEN_KEY, readPanelFlag } = await import('../src/client/ui/panel-prefs.js')
+const { groupOpenKey, readPanelFlag } = await import('../src/client/ui/panel-prefs.js')
 
 function withEnv(fn) {
   const store = new Map()
@@ -408,21 +408,25 @@ test('tool-workspace & RightStack：选择工具单活主从，关闭工具箱�
     }
   })
 })
-test('ToolbarQuick renders 图层/工具/结果 and reports pressed state', () => {
+test('ToolbarQuick renders 图层/工具/地名检索/结果 and reports pressed state', () => {
   let toolsClicks = 0
   let layersClicks = 0
   let resultClicks = 0
+  let placesClicks = 0
   const tree = ToolbarQuick({
     t: (key) => key,
     showLayers: false,
     showTools: true,
+    showPlaces: true,
     showResult: true,
     onToggleLayers: () => { layersClicks++ },
     onToggleTools: () => { toolsClicks++ },
+    onTogglePlaces: () => { placesClicks++ },
     onOpenResult: () => { resultClicks++ },
   })
   const buttons = findAll(tree, (node) => node.type === 'button')
-  assert.equal(buttons.length, 3, '工具栏只保留图层/工具/结果三个域入口')
+  assert.equal(buttons.length, 4, '工具栏保留图层/工具/地名检索/结果四个域入口')
+  assert.ok(buttons.some((b) => textOf(b).includes('places.title')), '地名检索是一级入口')
   const toolsBtn = buttons.find((b) => textOf(b).includes('btn.tools'))
   const layersBtn = buttons.find((b) => textOf(b).includes('btn.layers'))
   const resultBtn = buttons.find((b) => textOf(b).includes('panel.tab.result'))
@@ -439,43 +443,55 @@ test('ToolbarQuick renders 图层/工具/结果 and reports pressed state', () =
   assert.equal(resultClicks, 1)
 })
 
-test('LayersMap renders prominent L4 imagery fold affordance beside title + active summary bar', () => {
+test('LayersSurface renders the imagery group collapsed by default with an active-basemap hint', () => {
   withEnv(() => {
     const r = renderHooks(() =>
-      LayersMap({
+      LayersSurface({
         t: tIdentity,
         config: {
           imagery: [
             { id: 'arcgis', name: 'ArcGIS Imagery' },
             { id: 'osm', name: 'OpenStreetMap' },
           ],
+          terrain: [],
         },
         settings: { imagery: 'arcgis' },
         onSelectImagery: () => {},
       }),
     )
     try {
-      const tree = r.getTree()
-      const foldTop = findAll(tree, (n) => hasClass(n, 'mv-fold-top'))[0]
-      const chevron = findAll(foldTop, (n) => hasClass(n, 'mv-group-chevron'))[0]
-      const title = findAll(foldTop, (n) => hasClass(n, 'mv-group-title'))[0]
-      const count = findAll(foldTop, (n) => hasClass(n, 'mv-fold-count'))[0]
-      const state = findAll(foldTop, (n) => hasClass(n, 'mv-fold-state'))[0]
-      const summary = findAll(tree, (n) => hasClass(n, 'mv-fold-summary'))[0]
-      assert.ok(chevron && title && count && state && summary)
-      assert.equal(textOf(count), 'layers.imageryCount')
-      assert.equal(textOf(state), 'layers.imageryClickExpand')
-      assert.ok(textOf(summary).includes('ArcGIS Imagery'))
+      const imageryGroup = () => findAll(r.getTree(), (n) => n.props?.['data-group'] === 'imagery')[0]
+      let group = imageryGroup()
+      assert.ok(group, '影像底图仍是地表页签里的一个分组')
+      const chevron = findAll(group, (n) => hasClass(n, 'mv-group-chevron'))[0]
+      const title = findAll(group, (n) => hasClass(n, 'mv-group-title'))[0]
+      const count = findAll(group, (n) => hasClass(n, 'mv-group-count'))[0]
+      assert.ok(chevron && title && count)
+      assert.equal(textOf(title), 'layers.imagery')
+      // v1.9: 计数只算真实来源（“关闭底图”不是来源）。
+      assert.equal(textOf(count), '· 2')
+      assert.equal(hasClass(group, 'open'), false, '底图组默认折叠')
+      // 折叠时组头只留一行“当前底图”提示，列表不进入 DOM。
+      const hint = findAll(group, (n) => hasClass(n, 'mv-lgroup-hint'))[0]
+      assert.ok(hint)
+      assert.ok(textOf(hint).includes('layers.imageryCurrent'))
+      assert.ok(textOf(hint).includes('ArcGIS Imagery'))
+      assert.equal(findAll(group, (n) => hasClass(n, 'mv-lgroup-body')).length, 0)
+      // 旧的 mv-fold-* 折箱已删除：分组头就是唯一的折叠入口。
+      assert.equal(findAll(r.getTree(), (n) => hasClass(n, 'mv-fold-box')).length, 0)
 
-      const toggleBtn = findAll(tree, (n) => hasClass(n, 'mv-group-toggle'))[0]
+      const toggleBtn = findAll(group, (n) => hasClass(n, 'mv-group-toggle'))[0]
       assert.equal(toggleBtn.props['aria-expanded'], false)
       toggleBtn.props.onClick()
-      const openTree = r.getTree()
-      assert.equal(readPanelFlag(IMAGERY_OPEN_KEY, false), true)
-      const openToggleBtn = findAll(openTree, (n) => hasClass(n, 'mv-group-toggle'))[0]
+
+      group = imageryGroup()
+      assert.equal(hasClass(group, 'open'), true)
+      assert.equal(findAll(group, (n) => hasClass(n, 'mv-lgroup-body')).length, 1)
+      assert.equal(readPanelFlag(groupOpenKey('imagery'), false), true)
+      assert.equal(findAll(group, (n) => hasClass(n, 'mv-lgroup-hint')).length, 0, '展开后不再重复提示')
+      const openToggleBtn = findAll(group, (n) => hasClass(n, 'mv-group-toggle'))[0]
       assert.equal(openToggleBtn.props['aria-expanded'], true)
-      const openState = findAll(openTree, (n) => hasClass(n, 'mv-fold-state'))[0]
-      assert.equal(textOf(openState), 'layers.imageryClickFold')
+      assert.equal(findAll(group, (n) => hasClass(n, 'mv-group-chevron'))[0].props.className, 'mv-group-chevron open')
     } finally {
       r.cleanup()
     }

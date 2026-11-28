@@ -159,10 +159,10 @@ test('prune：活动页签不可用时回退到第一个可用页签', () => {
   assert.equal(panelReducer(state, { type: 'prune', available: ['layers', 'tools'] }), state)
 })
 
-test('visiblePanelTabs：图层/工具/结果常驻，对象按内容出现，顺序固定', () => {
-  assert.deepEqual(visiblePanelTabs(), ['layers', 'tools', 'result'])
-  assert.deepEqual(visiblePanelTabs({ hasResult: true }), ['layers', 'tools', 'result'])
-  assert.deepEqual(visiblePanelTabs({ hasResult: true, hasObject: true }), ['layers', 'tools', 'result', 'object'])
+test('visiblePanelTabs：图层/工具/地名检索/结果常驻，对象按内容出现，顺序固定', () => {
+  assert.deepEqual(visiblePanelTabs(), ['layers', 'tools', 'places', 'result'])
+  assert.deepEqual(visiblePanelTabs({ hasResult: true }), ['layers', 'tools', 'places', 'result'])
+  assert.deepEqual(visiblePanelTabs({ hasResult: true, hasObject: true }), ['layers', 'tools', 'places', 'result', 'object'])
 })
 
 test('readPanelState：无存储回默认；坏 JSON 不抛', () => {

@@ -49,10 +49,18 @@ function seedGroups(s) {
   return s
 }
 
-test('列表：标注与量测各一行，带名称/要素数/量测值', () => {
+test('列表：标注与量测各一行，带名称/要素数/量测值/隐藏态', () => {
   const rows = buildAgentOverlayList(seedGroups(state()))
   assert.equal(rows.length, 4)
-  assert.deepEqual(rows[0], { id: 'draw-0', kind: 'draw', index: 0, label: '风险点', detail: '1 要素', origin: 'agent' })
+  assert.deepEqual(rows[0], {
+    id: 'draw-0',
+    kind: 'draw',
+    index: 0,
+    label: '风险点',
+    detail: '1 要素',
+    origin: 'agent',
+    hidden: false,
+  })
   assert.deepEqual(rows[1].label, '标注 2')
   assert.equal(rows[1].detail, '2 要素')
   assert.equal(rows[2].label, '量测 1')
@@ -60,6 +68,15 @@ test('列表：标注与量测各一行，带名称/要素数/量测值', () => 
   assert.ok(rows[2].detail.includes('1234.5 m'))
   assert.ok(rows[3].detail.includes('area'))
   assert.ok(rows[3].detail.includes('9876.5 m²'))
+  // 行数据现在带 hidden：可见性来自命令上的视图标记，行本身只是投影。
+  assert.ok(rows.every((row) => row.hidden === false))
+  const withHidden = seedGroups(state())
+  withHidden.drawCommands[1].hidden = true
+  withHidden.measureCommands[0].hidden = true
+  const hiddenRows = buildAgentOverlayList(withHidden)
+  assert.equal(hiddenRows[0].hidden, false)
+  assert.equal(hiddenRows[1].hidden, true)
+  assert.equal(hiddenRows[2].hidden, true)
   // 空状态给空列表，面板不会崩。
   assert.deepEqual(buildAgentOverlayList({ drawCommands: [], measureCommands: [] }), [])
 })

@@ -14,31 +14,70 @@ import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
+import { register } from 'node:module'
 import { fileURLToPath } from 'node:url'
 
 import { clientSource, readRepoFile } from './helpers/source.mjs'
+
+register('./helpers/react-stub-loader.mjs', import.meta.url)
+const { LayerRow } = await import('../src/client/ui/layer-row.js')
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)))
 const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'))
 const client = clientSource()
 
-test('B1 工具栏收敛：6 个顶层入口，选择不再是工具栏开关', () => {
+function findAll(node, pred, out = []) {
+  if (!node) return out
+  if (Array.isArray(node)) {
+    for (const child of node) findAll(child, pred, out)
+    return out
+  }
+  if (typeof node === 'object') {
+    if (pred(node)) out.push(node)
+    if (Array.isArray(node.children)) findAll(node.children, pred, out)
+    else if (node.props?.children) findAll(node.props.children, pred, out)
+  }
+  return out
+}
+
+test('B1 工具栏收敛：数据/视图/输出三个菜单 + 图层·工具·结果 一个分段组', () => {
   const quick = readRepoFile('src/client/ui/toolbar-quick.js')
-  // 三个域按钮：图层 / 工具 / 结果；数据、输出、设置各自一个入口。
+  // 三个域按钮：图层 / 工具 / 结果，画成同一段 .mv-quick。
   for (const key of ['layers', 'tools', 'result']) {
-    assert.ok(quick.includes(`entry('${key}'`), `工具栏缺少 ${key} 入口`)
+    assert.ok(new RegExp(`entry\\(\\s*'${key}'`).test(quick), `工具栏缺少 ${key} 入口`)
   }
-  assert.ok(!quick.includes("entry('analysis'"), '分析并入工具与结果，不再单占工具栏')
-  assert.ok(!quick.includes("entry('view'"), '视图并入工具与输出菜单')
-  assert.ok(!quick.includes("entry('select'"), '选择回归工具卡，不占用工具栏')
+  assert.ok(!/entry\(\s*'analysis'/.test(quick), '分析并入工具与结果，不再单占工具栏')
+  assert.ok(!/entry\(\s*'view'/.test(quick), '视图是菜单，不是工具域按钮')
+  assert.ok(!/entry\(\s*'select'/.test(quick), '选择回归工具卡，不占用工具栏')
   assert.ok(!quick.includes('openToolCount'))
-  assert.ok(client.includes('dataMenuItems'))
-  assert.ok(client.includes('outputMenuItems'))
-  assert.ok(client.includes('ToolbarSettings'))
-  const output = readRepoFile('src/client/ui/toolbar-output.js')
-  for (const marker of ['onScreenshot', 'onReport', 'onToggleHud', 'onResetView', 'onToggleFullscreen', 'onAskAgent', 'onOpenBeside']) {
-    assert.ok(output.includes(marker), `画面与输出菜单缺少 ${marker}`)
+
+  // 顶层入口：数据 ▾ | 图层·工具·结果 | 视图 ▾ | 输出 ▾ | ⚙。
+  const topbar = readRepoFile('src/client/ui/topbar.js')
+  assert.ok(topbar.includes("className: 'mv-quick'"), '图层/工具/结果应合成一段 .mv-quick')
+  assert.ok(topbar.includes('dataMenuItems('))
+  assert.ok(topbar.includes('viewMenuItems('))
+  assert.ok(topbar.includes('outputMenuItems('))
+  assert.ok(topbar.includes('ToolbarSettings'))
+  assert.equal((topbar.match(/\n\s+menu\(/g) ?? []).length, 3, '只有 数据/视图/输出 三个下拉菜单')
+  for (const marker of ['t(\'btn.data\')', 't(\'btn.view\')', 't(\'btn.output\')']) {
+    assert.ok(topbar.includes(marker), `顶层缺少 ${marker}`)
   }
+
+  // 输出 = 带走什么：截图 / 报告 / 导出矢量 / 交给 Agent / 并排打开。
+  const output = readRepoFile('src/client/ui/toolbar-output.js')
+  for (const marker of ['onScreenshot', 'onReport', 'onExportVector', 'onAskAgent', 'onOpenBeside']) {
+    assert.ok(output.includes(marker), `输出菜单缺少 ${marker}`)
+  }
+  assert.ok(!output.includes('onToggleHud'), 'HUD 属于视图，不留在输出菜单')
+  assert.ok(!output.includes('onResetView'), '复位视角属于视图，不留在输出菜单')
+
+  // 视图 = 怎么看：复位 / HUD / 全屏 / 书签 / 场景详情。
+  const view = readRepoFile('src/client/ui/toolbar-view.js')
+  for (const marker of ['onResetView', 'onToggleHud', 'onToggleFullscreen', 'onOpenBookmarks', 'onShowSceneDetails']) {
+    assert.ok(view.includes(marker), `视图菜单缺少 ${marker}`)
+  }
+  assert.ok(!view.includes('onScreenshot'), '截图属于输出，不留在视图菜单')
+
   // 数据菜单只负责数据。
   const dataMenu = readRepoFile('src/client/ui/data-menu.js')
   assert.ok(!dataMenu.includes('menu.report'))
@@ -51,17 +90,51 @@ test('B1 工具栏收敛：6 个顶层入口，选择不再是工具栏开关', 
 test('B1 图层行：整行不响应点击，✦ 是唯一外观入口，次要动作在溢出菜单', () => {
   const row = readRepoFile('src/client/ui/layer-row.js')
   assert.ok(!row.includes('onClick: openShader'), '整行点击不再打开特效工作台')
-  assert.ok(row.includes('mv-icon-btn mv-shader-edit'))
-  assert.ok(row.includes('disabled: is3dgs'))
-  assert.ok(row.includes("t('layers.appearance3dgs')"))
-  assert.ok(row.includes('mv-row-menu'))
-  for (const action of ['onFlyLayer', 'onInspectLayer', 'onSwipeLayer', 'onRemoveLayer']) {
-    assert.ok(row.includes(action), `溢出菜单缺少 ${action}`)
+  assert.ok(row.includes('mv-row-menu'), '溢出菜单是行壳的通用能力')
+  assert.ok(row.includes('mv-row-more'), '⋯ 是打开溢出菜单的唯一按钮')
+
+  // 行壳是纯展示：根节点不挂 onClick，点名称才是「飞向」。
+  const order = []
+  const tree = LayerRow({
+    t: (key) => key,
+    id: 'layer-a',
+    name: '倾斜摄影 A',
+    menu: [
+      { key: 'fly', label: 'btn.flyTo', onClick: () => order.push('fly') },
+      { key: 'swipe', label: 'swipe.toggle', disabled: true, checked: true },
+      { key: 'sep', sep: true },
+      { key: 'remove', label: 'btn.delete', danger: true, onClick: () => order.push('remove') },
+    ],
+    menuOpen: true,
+    onMenuToggle: (next) => order.push(`toggle:${next}`),
+    onNameClick: () => order.push('name'),
+  })
+  assert.equal(tree.props.onClick, undefined, '整行不再响应点击')
+  const more = findAll(tree, (node) => typeof node?.props?.className === 'string' && node.props.className.includes('mv-row-more'))[0]
+  assert.ok(more, '缺少溢出菜单按钮')
+  assert.equal(more.props['aria-haspopup'], 'menu')
+  assert.equal(more.props['aria-expanded'], true)
+  const items = findAll(tree, (node) => node?.type?.name === 'MenuItem')
+  assert.equal(items.length, 3, '飞向 / 分屏 / 删除，分隔线不算菜单项')
+  assert.equal(items[1].props.disabled, true, 'disabled 透传给菜单项')
+  assert.equal(items[2].props.danger, true, '删除项是危险色')
+  // 选中菜单项：先关菜单，再执行动作（行不再自己管菜单开合）。
+  items[0].props.onClick()
+  assert.deepEqual(order, ['toggle:null', 'fly'])
+
+  // ✦ 外观入口住在三维内容行；3DGS 点云没有着色器，按钮禁用。
+  const layers = readRepoFile('src/client/ui/layers-entities.js')
+  assert.ok(layers.includes('mv-icon-btn mv-shader-edit'))
+  assert.ok(layers.includes('disabled: is3dgs'))
+  assert.ok(layers.includes("t('layers.appearance3dgs')"))
+  // 每行的次要动作：飞向 / 属性… / 分屏（随可见性禁用）/ 删除。
+  for (const action of ['onFlyLayer', 'onOpenLayerProperties', 'onSwipeLayer', 'onRemoveLayer']) {
+    assert.ok(layers.includes(action), `溢出菜单缺少 ${action}`)
   }
-  const layers = readRepoFile('src/client/ui/layers-3d.js')
-  assert.ok(layers.includes("event.key !== 'Escape'"))
-  assert.ok(layers.includes('setRowMenu(null)'))
-  assert.ok(layers.includes('.mv-row-menu'))
+  assert.ok(layers.includes('disabled: !layer.visible'), '隐藏的图层不能开分屏')
+  // 单层体检不再是行内动作，而是「属性…」对话框里的入口。
+  assert.ok(!layers.includes('onInspectLayer'))
+  assert.ok(readRepoFile('src/client/ui/layer-properties.js').includes('onInspectLayer'))
 })
 
 test('B1 工具索引按域分组，目录顺序保持既有契约', () => {
@@ -131,5 +204,5 @@ test('B5 工程门禁存在并接入 npm run check', () => {
   const messages = readRepoFile('src/client/messages.js')
   assert.ok(messages.includes(`version: '${pkg.version}'`), 'messages fallback follows package.json')
   assert.ok(readRepoFile('src/host/about.js').includes(`version: '${pkg.version}'`), 'about follows package.json')
-  assert.ok(readRepoFile('README.md').includes('画面与输出'))
+  assert.ok(readRepoFile('README.md').includes('输出 → 问 Agent'))
 })

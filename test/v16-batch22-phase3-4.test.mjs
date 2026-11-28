@@ -25,8 +25,8 @@ const {
 } = await import('../src/client/ui/workbench-wiring.js')
 const { ShaderWorkbench } = await import('../src/client/ui/cards.js')
 const { EffectsBody } = await import('../src/client/ui/tool-windows.js')
-const { LayersMap } = await import('../src/client/ui/layers-map.js')
-const { IMAGERY_OPEN_KEY, writePanelFlag } = await import('../src/client/ui/panel-prefs.js')
+const { LayersSurface } = await import('../src/client/ui/layers-surface.js')
+const { groupOpenKey, writePanelFlag } = await import('../src/client/ui/panel-prefs.js')
 const { readRepoFile } = await import('./helpers/source.mjs')
 
 const t = (key, params) =>
@@ -366,23 +366,29 @@ test('sources catalog 精简至 3 项内置底图并兼容清理旧版空白 Esr
   assert.equal(activeLegacy.settings.imagery, 'esri-light-gray')
 })
 
-test('LayersMap 展开底图列表时展示高缩放覆盖说明，ViewerSurface 监听 tile errorEvent', () => {
+test('LayersSurface 展开底图列表时展示高缩放覆盖说明，ViewerSurface 监听 tile errorEvent', () => {
+  const getProps = () => ({
+    t,
+    config: { imagery: [{ id: 'esri-world-imagery', name: 'Esri World Imagery' }] },
+    settings: { imagery: 'esri-world-imagery' },
+    onSelectImagery: () => {},
+    onOverlayAdd: () => {},
+    onOverlayRemove: () => {},
+    onOverlayOpacity: () => {},
+    onOverlayVisible: () => {},
+    onOverlayMove: () => {},
+  })
   withStorage(() => {
-    writePanelFlag(IMAGERY_OPEN_KEY, true)
-    const tree = createRenderer(LayersMap, () => ({
-      t,
-      config: { imagery: [{ id: 'esri-world-imagery', name: 'Esri World Imagery' }] },
-      settings: { imagery: 'esri-world-imagery' },
-      onSelectImagery: () => {},
-      onOverlayAdd: () => {},
-      onOverlayRemove: () => {},
-      onOverlayOpacity: () => {},
-      onOverlayVisible: () => {},
-      onOverlayMove: () => {},
-      onImportVector: () => {},
-      onPickLocalTiles: () => {},
-    })).tree()
-    assert.ok(textOf(tree).includes('layers.imageryCoverageHint'))
+    // 折叠时说明不在 DOM 里：它属于底图组的展开内容，而不是常驻横幅。
+    const collapsed = createRenderer(LayersSurface, getProps).tree()
+    assert.ok(!textOf(collapsed).includes('layers.imageryCoverageHint'))
+
+    writePanelFlag(groupOpenKey('imagery'), true)
+    const tree = createRenderer(LayersSurface, getProps).tree()
+    const imageryGroup = findAll(tree, (n) => n.props?.['data-group'] === 'imagery')[0]
+    assert.ok(imageryGroup)
+    assert.ok(String(imageryGroup.props.className).includes('open'), '底图组按持久化偏好展开')
+    assert.ok(textOf(imageryGroup).includes('layers.imageryCoverageHint'))
   })
 
   const viewer = readRepoFile('src/client/viewer/ViewerSurface.js')

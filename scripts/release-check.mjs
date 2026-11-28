@@ -85,7 +85,7 @@ try {
 }
 if (packed) {
   const files = Array.isArray(packed.files) ? packed.files.map((entry) => entry.path) : []
-  const required = ['package.json', 'index.js', 'client.js', 'src/host', 'src/client', 'vendor/cesium', 'CHANGELOG.md']
+  const required = ['package.json', 'index.js', 'client.js', 'src/host', 'src/client', 'src/shared', 'vendor/cesium', 'CHANGELOG.md']
   for (const prefix of required) {
     ok(files.some((file) => file === prefix || file.startsWith(`${prefix}/`)), `package contains ${prefix}`)
   }

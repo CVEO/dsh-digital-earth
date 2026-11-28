@@ -50,7 +50,7 @@ __export(index_exports, {
 module.exports = __toCommonJS(index_exports);
 
 // src/client/plugin.js
-var import_react48 = __toESM(require("react"), 1);
+var import_react59 = __toESM(require("react"), 1);
 
 // src/client/messages-v17.js
 var V17_MESSAGES = {
@@ -266,80 +266,6 @@ var VECTOR_MESSAGES = {
   }
 };
 
-// src/client/messages-vision.js
-var VISION_MESSAGES = {
-  zh: {
-    "vision.title": "AI 辅助目标圈选",
-    "vision.action": "AI 提取目标轮廓",
-    "vision.actionHint": "将当前视图提交至 DSH 默认视觉模型，单次识别可能产生模型费用；结果需确认后采用。",
-    "vision.pickHint": "请先单击场景目标，再在识别卡中选择「AI 提取目标轮廓」。",
-    "vision.notice": "使用 DSH 默认视觉模型进行一次识别。当前视图截图将发送给模型并保存为附件，可能产生费用；结果仅为可见表面近似轮廓，不代表建筑占地或三维网格。点击「开始识别」前不会发送或计费。",
-    "vision.readyToStart": "确认后点击「开始识别」；识别期间可随时停止。",
-    "vision.loading": "正在检查模型并识别目标…可随时停止。",
-    "vision.start": "开始识别",
-    "vision.stop": "停止识别",
-    "vision.ready": "请核对近似轮廓；采用前将检查三维表面是否可靠。",
-    "vision.boxReady": "模型返回粗框，请核对范围；这不是精细分割结果。",
-    "vision.imageAlt": "本次识别的固定场景截图与目标轮廓预览",
-    "vision.model": "使用模型：{model}",
-    "vision.accept": "采用近似选区",
-    "vision.retry": "重新取景识别",
-    "vision.manual": "改用手动多边形",
-    "vision.cancel": "取消",
-    "vision.error.unavailable": "当前宿主缺少视觉服务。请更新或启用相关服务，或手动圈选。",
-    "vision.error.model_not_visual": "DSH 默认模型不支持读图，请切换支持图片的模型后重试，或手动圈选。",
-    "vision.error.model_unknown": "无法确认默认模型支持图片，请切换已声明支持读图的模型，或手动圈选。",
-    "vision.error.busy": "视觉服务正在处理其他请求，请稍后重试。",
-    "vision.error.timeout": "本次视觉请求已超时，请重试或手动圈选；不会自动重试。",
-    "vision.error.cancelled": "本次识别已取消，可重新取景或手动圈选。",
-    "vision.error.no_target": "模型未找到清晰的点击目标，请抵近观察后重试，或手动圈选。",
-    "vision.error.invalid_result": "模型返回的轮廓无法通过校验，请重新取景或手动圈选。",
-    "vision.error.model_failed": "视觉调用未完成，请检查模型连接后重试，或手动圈选。",
-    "vision.error.invalid_request": "本次取景无效，请关闭预览，调整视角后重试。",
-    "vision.error.too_large": "截图超出识别大小限制，请缩小面板后重新取景。",
-    "vision.error.not_ready": "目标不在当前可取景范围内，请点击可见目标后重试。",
-    "vision.error.scene_loading": "场景细节尚未加载完成，请等待画面稳定后重试。",
-    "vision.error.scene_changed": "视角、图层或场景细节已变化，旧结果不可套用，请重新取景。",
-    "vision.error.depth_unavailable": "边界缺少可靠的同一模型表面，无法安全生成三维选区；请手动重画。",
-    "vision.selectionApproximate": "AI 可见表面近似范围，不代表建筑占地；面积与分析仅作参考。"
-  },
-  en: {
-    "vision.title": "AI-assisted target selection",
-    "vision.action": "Extract target outline with AI",
-    "vision.actionHint": "Submit the current view to the default DSH vision model. One recognition may incur model charges; review the result before applying.",
-    "vision.pickHint": "Click a scene target first, then choose “Extract target outline with AI” on its card.",
-    "vision.notice": "One recognition call using the default DSH vision model. The current-view screenshot is sent to the model and saved as an attachment; charges may apply. The result is an approximate visible-surface outline, not a building footprint or mesh. Nothing is sent or charged until you click Start.",
-    "vision.readyToStart": "Review the notice, then click Start. You can stop recognition at any time.",
-    "vision.loading": "Checking the model and locating the target… you can stop at any time.",
-    "vision.start": "Start recognition",
-    "vision.stop": "Stop recognition",
-    "vision.ready": "Check the approximate outline. Its 3D surface will be validated before use.",
-    "vision.boxReady": "The model returned a coarse box. Check the extent; this is not precise segmentation.",
-    "vision.imageAlt": "Fixed scene image with the selected target and outline preview",
-    "vision.model": "Model: {model}",
-    "vision.accept": "Use approximate selection",
-    "vision.retry": "Capture and identify again",
-    "vision.manual": "Use manual polygon",
-    "vision.cancel": "Cancel",
-    "vision.error.unavailable": "Vision services are unavailable in this host. Enable or update them, or select manually.",
-    "vision.error.model_not_visual": "The default DSH model does not accept images. Switch to a vision model and retry, or select manually.",
-    "vision.error.model_unknown": "Image support for the default model is unknown. Choose a model with declared vision support, or select manually.",
-    "vision.error.busy": "Other vision requests are running. Try again shortly.",
-    "vision.error.timeout": "The vision request timed out. Retry or select manually; no automatic retry runs.",
-    "vision.error.cancelled": "Selection cancelled. Capture again or select manually.",
-    "vision.error.no_target": "No clear target was found at the click. Move closer and retry, or select manually.",
-    "vision.error.invalid_result": "The model outline failed validation. Capture again or select manually.",
-    "vision.error.model_failed": "The vision call did not complete. Check the model connection and retry, or select manually.",
-    "vision.error.invalid_request": "The captured view is invalid. Close the preview, adjust the view and retry.",
-    "vision.error.too_large": "The image exceeds the vision size limit. Resize the panel and capture again.",
-    "vision.error.not_ready": "The target cannot be captured in this view. Click a visible target and retry.",
-    "vision.error.scene_loading": "Scene details are still loading. Wait for the view to settle and retry.",
-    "vision.error.scene_changed": "The view, layers or scene details changed. Capture again instead of applying an outdated result.",
-    "vision.error.depth_unavailable": "The boundary lacks reliable depth on the same model. A 3D selection cannot be created safely; redraw manually.",
-    "vision.selectionApproximate": "AI approximation of visible surfaces, not a building footprint. Area and analysis are indicative only."
-  }
-};
-
 // src/client/messages-selection.js
 var SELECTION_MESSAGES = {
   zh: {
@@ -381,8 +307,8 @@ var SELECTION_MESSAGES = {
     "question.error.forbidden": "面板连接已失效，请刷新数字地球后重试。",
     "question.error.invalid_request": "选区请求无效，请重新框选。",
     "selection.surfaceUnavailable": "已保留画面选区，可直接提问。部分边界无法可靠定位，暂不提供面积与几何导出；请改用俯视角后重试。",
-    "selection.surfaceApproximate": "可见表面近似范围，面积为水平投影估算；不是单栋建筑的真实轮廓。俯视后框选通常更稳定。",
-    "selection.floodBounds": "按选区的外接矩形估算淹没范围，不是任意多边形内的精确水量。",
+    "selection.surfaceApproximate": "面积按可见表面的水平投影估算。俯视框选可减少边界偏差。",
+    "selection.floodBounds": "淹没范围按选区的外接矩形估算。",
     "selection.coordinates": "坐标",
     "selection.copyCoords": "复制经纬度",
     "selection.copied": "已复制经纬度",
@@ -443,8 +369,8 @@ var SELECTION_MESSAGES = {
     "question.error.forbidden": "The panel connection expired. Reload Digital Earth and retry.",
     "question.error.invalid_request": "Invalid selection request. Select again.",
     "selection.surfaceUnavailable": "The screen selection is saved for questions. Some boundary points cannot be reliably located, so area and geometry export are unavailable. Try a top-down view.",
-    "selection.surfaceApproximate": "Approximate visible-surface region; area estimates its horizontal projection, not an exact building footprint. Selecting from above is usually more stable.",
-    "selection.floodBounds": "Estimates the flooded extent over the selection bounding rectangle, not an exact volume within an arbitrary polygon.",
+    "selection.surfaceApproximate": "Area estimates the horizontal projection of the visible surface. Select from above for a more stable boundary.",
+    "selection.floodBounds": "Flood extent is estimated over the selection’s bounding rectangle.",
     "selection.coordinates": "Coordinates",
     "selection.copyCoords": "Copy lon/lat",
     "selection.copied": "Coordinates copied",
@@ -471,146 +397,300 @@ var SELECTION_MESSAGES = {
 // src/client/messages-parse.js
 var PARSE_MESSAGES = {
   zh: {
-    "tools.parse": "场景解析",
-    "tools.parseHint": "用视觉模型解析当前画面里的建筑、植被、水体、道路，逐条确认后加入标注层",
-    "parse.run": "开始场景解析",
+    "parse.reuse": "复用相同请求",
+    "parse.reuseHint": "15 分钟内，同一会话、模型、影像和指令可以复用已完成的结果。关闭后重新询问模型。",
+    "parse.reusedCount": "已复用 {n} 次请求",
+    "parse.namedLabels": "按类名定位",
+    "parse.locator": "定位方式",
+    "parse.joint": "联合定位",
+    "parse.separate": "逐类搜索",
+    "parse.locatorHint": "联合定位按编号返回；按类名定位使用文字标签；逐类搜索为每类单独请求。",
+    "parse.classProfile": "类别体系",
+    "parse.generalProfile": "通用地物",
+    "parse.sportsProfile": "运动设施",
+    "parse.modelConfigError": "读取或保存模型设置失败。",
+    "parse.loadingModels": "正在读取模型…",
+    "parse.modelTitle": "解译模型",
+    "parse.modelSource": "来源",
+    "parse.mode.dsh-default": "跟随当前对话",
+    "parse.mode.dsh-model": "指定 DSH 模型",
+    "parse.mode.openai-compat": "自定义 API",
+    "parse.chooseProvider": "选择服务商",
+    "parse.modelProvider": "服务商",
+    "parse.modelId": "模型",
+    "parse.chooseModel": "选择模型",
+    "parse.apiUrl": "API 地址",
+    "parse.apiKey": "API 密钥",
+    "parse.keyKept": "已保存，留空沿用",
+    "parse.keyOptional": "按需填写",
+    "parse.applyModel": "应用到插件",
+    "parse.modelUnavailable": "当前配置的模型不可用",
+    "parse.activeModel": "当前使用 {name}",
+    "parse.multiScale": "多尺度搜索",
+    "parse.multiScaleHint": "在相同调用上限内，额外放大分区查找小目标。",
+    "parse.lastModel": "上次提取使用 {name}",
+    "parse.modelChanged": "解译模型已切换，请重新提取。",
+    "parse.savingModel": "正在应用模型设置…",
+    "tools.parse": "AI 提取",
+    "tools.parseHint": "按类别提取地物轮廓，在地图上复核并采纳。",
+    // v1.7.0 v3 simple workbench (ui/parse-workbench.js)
+    "parse.panelTitle": "提取",
+    "parse.tokenUsage": "已回报 {n} tokens（{measured}/{calls} 次调用）",
+    "parse.settings": "提取参数",
+    "parse.settingsHint": "选择解译模型、搜索尺度和查看类别定义",
+    "parse.settingsClasses": "类别定义",
+    "parse.settingsResolution": "正射取景 · 1.2×",
+    "parse.settingsTiling": "分块 768 px · 边缘缓冲 48 px · 最多 80 次调用",
+    "parse.customTag": "自定义",
+    "parse.start": "开始提取",
+    "parse.startHint": "按当前范围与类别提取 2D 实例轮廓",
+    "parse.stop": "停止",
+    "parse.stopHint": "停止当前提取，已有候选保持不变",
+    "parse.rerun": "重新提取",
+    "parse.rerunGo": "确认重提",
+    "parse.rerunConfirm": "重新提取会清空现有 {n} 个候选（其中已采纳 {accepted} 个），且不可撤销。",
     "parse.cancel": "取消",
-    "parse.running": "正在解析 · {stage}",
-    "parse.stage.capture": "截图",
-    "parse.stage.request": "请求模型",
-    "parse.stage.project": "落到地面",
-    "parse.stage.heights": "估算高度",
-    "parse.scopeView": "当前画面",
-    "parse.scopeAoi": "选区范围 AOI",
-    "parse.scopeAoiReady": "裁剪当前地面选区高清画面送视觉解析，适合密集建筑群",
-    "parse.scopeAoiNone": "在地球上框选或多边形圈定目标区域，即可按选区局部高清解析",
-    "parse.drawRect": "框选范围",
-    "parse.drawRectActive": "正在框选（Esc 取消）",
-    "parse.drawPolygon": "多边形范围",
-    "parse.drawPolygonActive": "正在绘制多边形（双击或 Enter 完成）",
-    "parse.drawHint": "矩形直接拖拽；多边形逐点单击，双击或 Enter 完成后即可开始解析",
+    "parse.phaseCapturing": "正射取景…",
+    "parse.phaseSegmenting": "提取进度 {done}/{total}",
+    "parse.phaseWorking": "提取中…",
+    "parse.phaseReview": "候选待复核",
+    "parse.phaseError": "提取失败",
+    "parse.cancelledPartial": "提取已停止，已保留 {n} 个新候选。",
+    "parse.partialFailed": "所有分块都未返回有效结果：检查视觉模型/网络，或缩小范围后重试。",
+    "parse.exportNeedAccept": "还没有采纳的候选：先勾选采纳，或把导出范围切到“全部”。",
+    "parse.idleHint": "选择范围与类别后开始提取。",
+    "parse.progressFound": "已找到 {n} 个 · {failed} 项待重试",
+    "parse.reportComplete": "已提取 {n} 个候选",
+    "parse.reportLine": "{n} 个候选 · {windows} 项任务 · {failed} 项未完成",
+    "parse.scopeLabel": "提取范围",
+    "parse.scopeCurrent": "当前画面",
+    "parse.scopeDraw": "框选 AOI",
+    "parse.scopeDrawHint": "在地球上拖一个矩形，只提取选区内的地物",
+    "parse.aoiDraw": "框选",
+    "parse.aoiRedraw": "重新框选",
     "parse.aoiReadyLabel": "已选区域 · {area}",
     "parse.aoiClear": "清除选区",
-    "parse.targetsLabel": "目标类别",
-    "parse.targetsAll": "全部",
-    "parse.diagAllSkipped": "模型检出 {n} 个目标，但均未落到有效 3D 表面（请拉近视角或确认已加载 Mesh 模型，3DGS 不支持深度落点）",
-    "parse.diagSnapshot": "送检画面（{w}×{h}）",
-    "parse.aoiTag": "AOI 局部",
-    "parse.hint": "仅解析当前可见地物，结果为 AI 近似轮廓，采纳前请核对。",
-    "parse.empty": "没有识别到可用的地物。试着拉近视角、换一个角度，或让画面里的地物更大一些。",
-    "parse.failed": "解析失败：{reason}",
-    "parse.candidates": "识别到 {n} 个候选",
-    "parse.selected": "已选 {n}/{total}",
-    "parse.filterAll": "全部 ({n})",
-    "parse.filterBuildings": "建筑 ({n})",
-    "parse.filterClass": "{label} ({n})",
-    "parse.sortDefault": "默认顺序",
-    "parse.sortHeight": "按高程↓",
-    "parse.sortArea": "按面积↓",
-    "parse.floors": "约{n}层",
-    "parse.extrude3d": "3D 立体拉伸",
-    "parse.buildingsLayerName": "建筑物矢量提取",
-    "parse.adoptBuildings": "提取建筑图层 ({n})",
-    "parse.adoptAll": "全部采纳",
+    "parse.drawing": "绘制中（Esc 取消）",
+    "parse.needAoi": "先框选一个 AOI 再提取",
+    "parse.classesLabel": "提取类别",
+    "parse.classesAll": "全部 {n} 类",
+    "parse.classesNone": "未选类别",
+    "parse.classesOnly": "仅 {label}",
+    "parse.classesCount": "{n} 类地物",
+    "parse.listSeparator": "、",
+    "parse.customClass": "＋自定义",
+    "parse.customHint": "追加一个自定义类别（默认 8 类 + 最多 4 个自定义）",
+    "parse.customInputLabel": "自定义类别名",
+    "parse.customSave": "添加",
+    "parse.customInvalid": "类别名不能为空，且不超过 16 个字符",
+    "parse.classLimit": "类别最多 12 个（默认 8 + 自定义），请先重置或减少自定义类别",
+    "parse.classReset": "重置",
+    "parse.classResetHint": "清除自定义类别并恢复默认 8 类",
+    "parse.needClasses": "至少保留一个类别",
+    "parse.previewOutline": "在地图上查看轮廓",
+    "parse.previewCandidate": "在地图上查看{name}轮廓",
+    "parse.queueLabel": "候选队列",
+    "parse.queueCounts": "候选 {n} · 待审 {pending} · 已采纳 {accepted}",
+    "parse.queueEmpty": "暂无候选",
+    "parse.filterLabel": "筛选候选",
+    "parse.filterAllQueue": "全部",
+    "parse.filterPending": "待审",
+    "parse.filterAccepted": "已采纳",
+    "parse.filterRejected": "已排除",
+    "parse.selectPending": "全选待审",
     "parse.adoptSelected": "采纳选中",
-    "parse.clear": "清空预览",
-    "parse.preview": "预览（未入库）",
-    "parse.adopted": "已加入标注层：{n} 个要素（来源：AI 推断）",
-    "parse.skipped": "{n} 个候选落不到地面，已跳过",
-    "parse.confidence": "置信 {n}%",
-    "parse.confidenceUnknown": "置信未知",
-    "parse.class.building": "建筑",
-    "parse.class.vegetation": "植被",
-    "parse.class.water": "水体",
-    "parse.class.road": "道路",
-    "parse.class.vehicle": "车辆",
+    "parse.rejectSelected": "排除选中",
+    "parse.selectRow": "选择 {name}",
+    "parse.undo": "撤销",
+    "parse.undoHint": "撤销（Ctrl+Z）",
+    "parse.redo": "重做",
+    "parse.redoHint": "重做（Shift+Ctrl+Z）",
+    "parse.adopt": "采纳",
+    "parse.reject": "排除",
+    "parse.restore": "恢复待审",
+    "parse.remove": "删除",
+    "parse.flyTo": "定位",
+    "parse.areaLabel": "投影面积",
+    "parse.clippedTag": "贴边",
+    "parse.clippedHint": "轮廓可能在分块边缘被截断，建议框选后重提或人工核对",
+    "parse.exportDo": "导出 GeoJSON ({n})",
+    "parse.exportScopeLabel": "导出范围",
+    "parse.exportHint": "按当前选择导出 2D GeoJSON 文件",
+    "parse.exportEmpty": "没有可导出的要素",
+    "parse.exported": "已导出 {n} 个要素",
+    "parse.exportBlocked": "没有可导出的要素",
+    "parse.retry": "重试",
+    "parse.candidates": "识别到 {n} 个候选",
+    "parse.candidatesPartial": "识别到 {n} 个候选；{failed} 个分块失败，结果可能不完整",
+    "parse.noInstances": "没有识别到实例，可缩小范围或调整类别后重试",
+    "parse.cancelled": "已停止本次提取，已有候选保持不变。",
+    "parse.adopted": "已采纳 {n} 个要素",
+    "parse.layerName": "AI 提取结果",
+    "parse.restoreTruncated": "队列只恢复了最近 500 条，另有 {n} 条未持久化",
     "parse.class.other": "其他地物",
-    "parse.err.unavailable": "本机没有可用的视觉分析服务",
-    "parse.err.model_not_visual": "当前对话模型不支持图片输入，请换一个多模态模型",
+    "parse.floors": "约{n}层",
+    "parse.err.unavailable": "视觉服务未连接，请在 DSH 设置中检查视觉模型。",
+    "parse.err.model_not_visual": "所选解译模型不支持图片输入，请在提取参数中更换模型",
     "parse.err.model_unknown": "找不到当前对话模型",
-    "parse.err.busy": "上一次解析还没结束，请稍候",
-    "parse.err.timeout": "模型响应超时，请重试或缩小画面范围",
-    "parse.err.cancelled": "解析已取消",
-    "parse.err.no_target": "模型没有找到可以落地物的对象",
-    "parse.err.invalid_result": "模型返回的格式不可用，请重试",
-    "parse.err.model_failed": "模型调用失败，请重试",
     "parse.err.invalid_request": "请求无效，请重试",
-    "parse.err.too_large": "截图太大，请重试",
+    "parse.err.too_large": "截图太大，请缩小画面范围后重试",
     "parse.err.not_ready": "画面还没准备好（瓦片未加载完成）",
-    "parse.err.scene_loading": "画面还在加载，请等瓦片加载完成再解析",
-    "parse.err.scene_changed": "解析过程中视角或窗口发生了变化，请保持画面静止后重试",
-    "parse.err.aoi_offscreen": "当前选区不在屏幕可视范围内，请把选区移回画面后重试"
+    "parse.err.busy": "上一次提取还没结束，请稍候",
+    "parse.err.timeout": "模型响应超时，请重试或缩小画面范围",
+    "parse.err.scene_changed": "提取过程中视角或窗口发生了变化，请保持画面静止后重试",
+    "parse.err.model_failed": "模型调用失败，请重试",
+    "parse.err.antimeridian": "选区跨过了 180° 经线，请缩小到一侧后重画",
+    // Retained for older modules/structural tests that still reference the keys;
+    // the v1.7.0 v3 workbench itself no longer renders these controls.
+    "parse.stage.heights": "估算高度"
   },
   en: {
-    "tools.parse": "Scene parse",
-    "tools.parseHint": "Ask the vision model to outline buildings, vegetation, water and roads in the current view, then confirm what to keep",
-    "parse.run": "Parse scene",
+    "parse.reuse": "Reuse identical requests",
+    "parse.reuseHint": "Reuse completed answers for the same session, model, image and instructions for 15 minutes. Turn off to ask again.",
+    "parse.reusedCount": "Reused {n} requests",
+    "parse.namedLabels": "Locate by class name",
+    "parse.locator": "Localization",
+    "parse.joint": "Joint search",
+    "parse.separate": "Search each class",
+    "parse.locatorHint": "Joint search uses class IDs. Name search uses text labels. Separate search requests one class at a time.",
+    "parse.classProfile": "Class catalog",
+    "parse.generalProfile": "General features",
+    "parse.sportsProfile": "Sports facilities",
+    "parse.modelConfigError": "Could not load or save model settings.",
+    "parse.loadingModels": "Loading models…",
+    "parse.modelTitle": "Interpretation model",
+    "parse.modelSource": "Source",
+    "parse.mode.dsh-default": "Follow this conversation",
+    "parse.mode.dsh-model": "Choose a DSH model",
+    "parse.mode.openai-compat": "Custom API",
+    "parse.chooseProvider": "Choose provider",
+    "parse.modelProvider": "Provider",
+    "parse.modelId": "Model",
+    "parse.chooseModel": "Choose model",
+    "parse.apiUrl": "API URL",
+    "parse.apiKey": "API key",
+    "parse.keyKept": "Saved · leave blank to keep",
+    "parse.keyOptional": "Optional",
+    "parse.applyModel": "Apply to plugin",
+    "parse.modelUnavailable": "Configured model unavailable",
+    "parse.activeModel": "Current · {name}",
+    "parse.multiScale": "Multi-scale search",
+    "parse.multiScaleHint": "Search magnified subregions for small objects within the same call limit.",
+    "parse.lastModel": "Last extraction · {name}",
+    "parse.modelChanged": "The model changed. Start a new extraction.",
+    "parse.savingModel": "Applying model settings…",
+    "tools.parse": "AI extraction",
+    "tools.parseHint": "Extract outlines by class and review them on the map.",
+    // v1.7.0 v3 simple workbench (ui/parse-workbench.js)
+    "parse.previewOutline": "Preview outline on map",
+    "parse.previewCandidate": "Preview {name} outline on map",
+    "parse.panelTitle": "Extract",
+    "parse.tokenUsage": "{n} tokens reported across {measured}/{calls} calls",
+    "parse.settings": "Parameters",
+    "parse.settingsHint": "Choose the model and search scale, and view class definitions",
+    "parse.settingsClasses": "Class definitions",
+    "parse.settingsResolution": "Nadir capture · 1.2×",
+    "parse.settingsTiling": "768 px tiles · 48 px margin · 80 calls per run",
+    "parse.customTag": "custom",
+    "parse.start": "Start extraction",
+    "parse.startHint": "Extract 2D instance outlines with the current extent and classes",
+    "parse.stop": "Stop",
+    "parse.stopHint": "Stop the current extraction; existing candidates are kept",
+    "parse.rerun": "Extract again",
+    "parse.rerunGo": "Run again",
+    "parse.rerunConfirm": "Extracting again clears {n} existing candidates ({accepted} adopted) and cannot be undone.",
     "parse.cancel": "Cancel",
-    "parse.running": "Parsing · {stage}",
-    "parse.stage.capture": "capture",
-    "parse.stage.request": "model",
-    "parse.stage.project": "project",
-    "parse.stage.heights": "heights",
-    "parse.scopeView": "Current view",
-    "parse.scopeAoi": "Selected AOI",
-    "parse.scopeAoiReady": "Crop the active ground selection at full detail for dense buildings",
-    "parse.scopeAoiNone": "Draw a rectangle or polygon AOI on the globe to parse that crop at full detail",
-    "parse.drawRect": "Rect AOI",
-    "parse.drawRectActive": "Drawing rect (Esc)",
-    "parse.drawPolygon": "Polygon AOI",
-    "parse.drawPolygonActive": "Drawing polygon (double-click or Enter)",
-    "parse.drawHint": "Drag for a rectangle, or click each polygon vertex then double-click/Enter; then start parsing when ready",
+    "parse.phaseCapturing": "Framing nadir view…",
+    "parse.phaseSegmenting": "Processing {done}/{total}",
+    "parse.phaseWorking": "Extracting…",
+    "parse.phaseReview": "Candidates ready for review",
+    "parse.phaseError": "Extraction failed",
+    "parse.cancelledPartial": "Stopped; the {n} instance(s) already found were queued.",
+    "parse.partialFailed": "Every tile failed: check the vision model/network, or narrow the extent and retry.",
+    "parse.exportNeedAccept": "No adopted candidate yet: adopt rows first, or switch the export scope to All.",
+    "parse.idleHint": "Pick an extent and classes, then start extracting.",
+    "parse.progressFound": "{n} found · {failed} attempts failed",
+    "parse.reportComplete": "{n} candidates found",
+    "parse.reportLine": "{n} candidates · {windows} tasks · {failed} incomplete",
+    "parse.scopeLabel": "Extraction extent",
+    "parse.scopeCurrent": "Current view",
+    "parse.scopeDraw": "Draw AOI",
+    "parse.scopeDrawHint": "Drag a rectangle on the globe to extract only that area",
+    "parse.aoiDraw": "Draw",
+    "parse.aoiRedraw": "Draw again",
     "parse.aoiReadyLabel": "AOI ready · {area}",
     "parse.aoiClear": "Clear AOI",
-    "parse.targetsLabel": "Target classes",
-    "parse.targetsAll": "All",
-    "parse.diagAllSkipped": "Model found {n} object(s), but none projected onto a 3D surface (zoom closer or check that a Mesh layer is loaded; 3DGS has no depth surface)",
-    "parse.diagSnapshot": "Sent frame ({w}×{h})",
-    "parse.aoiTag": "AOI crop",
-    "parse.hint": "Parses visible objects only. Review AI-inferred outlines before adopting.",
-    "parse.empty": "No usable objects were found. Zoom in, change the angle, or frame larger objects.",
-    "parse.failed": "Parse failed: {reason}",
-    "parse.candidates": "{n} candidate(s)",
-    "parse.selected": "{n}/{total} selected",
-    "parse.filterAll": "All ({n})",
-    "parse.filterBuildings": "Buildings ({n})",
-    "parse.filterClass": "{label} ({n})",
-    "parse.sortDefault": "Default",
-    "parse.sortHeight": "Height ↓",
-    "parse.sortArea": "Area ↓",
-    "parse.floors": "{n}F",
-    "parse.extrude3d": "3D extrusion",
-    "parse.buildingsLayerName": "Extracted buildings",
-    "parse.adoptBuildings": "Extract buildings ({n})",
-    "parse.adoptAll": "Adopt all",
+    "parse.drawing": "Drawing (Esc to cancel)",
+    "parse.needAoi": "Draw an AOI before extracting",
+    "parse.classesLabel": "Classes",
+    "parse.classesAll": "All {n} classes",
+    "parse.classesNone": "No class selected",
+    "parse.classesOnly": "Only {label}",
+    "parse.classesCount": "{n} classes",
+    "parse.listSeparator": ", ",
+    "parse.customClass": "+ Custom",
+    "parse.customHint": "Append a custom class (maximum 12 classes)",
+    "parse.customInputLabel": "Custom class name",
+    "parse.customSave": "Add",
+    "parse.customInvalid": "Enter a class name with at most 16 characters",
+    "parse.classLimit": "At most 12 classes (8 defaults + custom); reset or remove custom classes first",
+    "parse.classReset": "Reset",
+    "parse.classResetHint": "Clear custom classes and restore the default 8",
+    "parse.needClasses": "Keep at least one class selected",
+    "parse.queueLabel": "Candidate queue",
+    "parse.queueCounts": "Candidates {n} · pending {pending} · adopted {accepted}",
+    "parse.queueEmpty": "No candidates yet: start an extraction first.",
+    "parse.filterLabel": "Filter candidates",
+    "parse.filterAllQueue": "All",
+    "parse.filterPending": "Pending",
+    "parse.filterAccepted": "Adopted",
+    "parse.filterRejected": "Rejected",
     "parse.adoptSelected": "Adopt selected",
-    "parse.clear": "Clear preview",
-    "parse.preview": "Preview (not stored)",
+    "parse.rejectSelected": "Reject selected",
+    "parse.selectPending": "Select pending",
+    "parse.selectRow": "Select {name}",
+    "parse.undo": "Undo",
+    "parse.undoHint": "Undo (Ctrl+Z)",
+    "parse.redo": "Redo",
+    "parse.redoHint": "Redo (Shift+Ctrl+Z)",
+    "parse.adopt": "Adopt",
+    "parse.reject": "Reject",
+    "parse.restore": "Restore to pending",
+    "parse.remove": "Delete",
+    "parse.flyTo": "Locate",
+    "parse.areaLabel": "Projected area",
+    "parse.clippedTag": "clipped",
+    "parse.clippedHint": "The outline may be cut at a tile edge; redraw an AOI or check it by hand",
+    "parse.exportDo": "Export GeoJSON ({n})",
+    "parse.exportScopeLabel": "Export scope",
+    "parse.exportHint": "Download the current selection as a 2D GeoJSON file",
+    "parse.exportEmpty": "No feature to export",
+    "parse.exported": "Exported {n} feature(s)",
+    "parse.exportBlocked": "No feature to export",
+    "parse.retry": "Retry",
+    "parse.candidates": "{n} candidate(s)",
+    "parse.candidatesPartial": "{n} candidate(s); {failed} tile(s) failed, the result may be incomplete",
+    "parse.noInstances": "No instance found; narrow the extent or adjust the classes and retry",
+    "parse.cancelled": "Extraction stopped. Existing candidates are unchanged.",
     "parse.adopted": "Added to the annotation layer: {n} feature(s), AI-inferred",
-    "parse.skipped": "{n} candidate(s) could not reach the ground and were skipped",
-    "parse.confidence": "{n}% confidence",
-    "parse.confidenceUnknown": "confidence unknown",
-    "parse.class.building": "Building",
-    "parse.class.vegetation": "Vegetation",
-    "parse.class.water": "Water",
-    "parse.class.road": "Road",
-    "parse.class.vehicle": "Vehicle",
+    "parse.layerName": "AI extraction",
+    "parse.restoreTruncated": "Only the latest 500 queue rows were restored; {n} more were not persisted",
     "parse.class.other": "Object",
-    "parse.err.unavailable": "No vision service is available in this install",
-    "parse.err.model_not_visual": "The current chat model does not accept images; pick a multimodal model",
+    "parse.floors": "{n}F",
+    "parse.err.unavailable": "Vision service unavailable. Check the vision model in DSH settings.",
+    "parse.err.model_not_visual": "The selected model does not accept images. Choose a vision model in extraction settings.",
     "parse.err.model_unknown": "The current chat model could not be resolved",
-    "parse.err.busy": "The previous parse is still running; try again shortly",
-    "parse.err.timeout": "The model timed out; retry or narrow the view",
-    "parse.err.cancelled": "Parse cancelled",
-    "parse.err.no_target": "The model found no object it could outline",
-    "parse.err.invalid_result": "The model returned an unusable format; try again",
-    "parse.err.model_failed": "The model call failed; try again",
     "parse.err.invalid_request": "Invalid request; try again",
-    "parse.err.too_large": "The screenshot was too large; try again",
+    "parse.err.too_large": "The screenshot was too large; narrow the view and try again",
     "parse.err.not_ready": "The view is not ready (tiles still loading)",
-    "parse.err.scene_loading": "The scene is still loading; wait for the tiles, then parse again",
-    "parse.err.scene_changed": "The view or window changed while parsing; keep the camera still and retry",
-    "parse.err.aoi_offscreen": "The active AOI lies outside the viewport; frame it in view and retry"
+    "parse.err.busy": "The previous extraction is still running; try again shortly",
+    "parse.err.timeout": "The model timed out; retry or narrow the view",
+    "parse.err.scene_changed": "The view or window changed while extracting; keep the camera still and retry",
+    "parse.err.model_failed": "The model call failed; try again",
+    "parse.err.antimeridian": "The AOI crosses the 180° meridian; keep it on one side and draw again",
+    // Retained for older modules/structural tests that still reference the keys;
+    // the v1.7.0 v3 workbench itself no longer renders these controls.
+    "parse.stage.heights": "heights"
   }
 };
 
@@ -624,14 +704,11 @@ var UI_MESSAGES = {
     "window.resetDock": "恢复默认停靠位置",
     "window.moved": "{title}已移动至 ({x}, {y})",
     "window.docked": "{title}已恢复默认停靠位置",
-    "tools.independentHint": "打开的工具窗口可各自自由拖动，关闭工具箱不会关闭选择等已打开窗口。",
+    "tools.independentHint": "工具窗口可独立拖动和关闭。",
     "tools.openCount": "已开 {n}",
     "layers.imageryCurrent": "当前底图",
-    "layers.imageryCount": "{n} 项可选",
-    "layers.imageryClickExpand": "点击切换 ▾",
-    "layers.imageryClickFold": "收起 ▴",
     "analysis.redrawProfile": "重画剖面",
-    "analysis.redrawProfileHint": "无需回到工具箱，立即绘制下一条高程纵断面"
+    "analysis.redrawProfileHint": "绘制下一条高程剖面。"
   },
   en: {
     "btn.select": "Select",
@@ -641,14 +718,11 @@ var UI_MESSAGES = {
     "window.resetDock": "Dock back to default position",
     "window.moved": "{title} moved to ({x}, {y})",
     "window.docked": "{title} docked back to default position",
-    "tools.independentHint": "Open tool windows float independently and stay open when Tools closes.",
+    "tools.independentHint": "Move and close each tool window independently.",
     "tools.openCount": "{n} open",
     "layers.imageryCurrent": "Active",
-    "layers.imageryCount": "{n} sources",
-    "layers.imageryClickExpand": "Switch ▾",
-    "layers.imageryClickFold": "Hide ▴",
     "analysis.redrawProfile": "Draw another profile",
-    "analysis.redrawProfileHint": "Start a new elevation profile without returning to Tools"
+    "analysis.redrawProfileHint": "Draw another elevation profile."
   }
 };
 
@@ -719,7 +793,8 @@ var COMPARE_MESSAGES = {
   zh: {
     "tools.compare": "场景对比",
     "tools.compareHint": "3DGS / 倾斜摄影双层分屏对比、网格线框与 LOD 检视、精确机位复现与对比组图导出。",
-    "swipe.toggle": "分屏对比（支持 3D Tiles 网格与 3DGS）",
+    "swipe.toggle": "分屏对比",
+    "swipe.toggleHint": "支持 3D Tiles 与 3DGS",
     "swipe.rightPicker": "右侧对比图层",
     "swipe.rightNone": "无（单层对比）",
     "swipe.swap": "互换左右图层",
@@ -778,7 +853,8 @@ var COMPARE_MESSAGES = {
   en: {
     "tools.compare": "Compare",
     "tools.compareHint": "Side-by-side 3DGS / mesh split comparison, wireframe & LOD inspection, exact camera poses, and comparison figure export.",
-    "swipe.toggle": "Split comparison (supports 3D Tiles meshes and 3DGS)",
+    "swipe.toggle": "Split comparison",
+    "swipe.toggleHint": "3D Tiles or 3DGS",
     "swipe.rightPicker": "Right comparison layer",
     "swipe.rightNone": "None (single layer)",
     "swipe.swap": "Swap left and right layers",
@@ -840,13 +916,11 @@ var COMPARE_MESSAGES = {
 var V18_MESSAGES = {
   zh: {
     ...VECTOR_MESSAGES.zh,
-    ...VISION_MESSAGES.zh,
     ...UI_MESSAGES.zh,
     "menu.recentUrls": "最近地址",
-    "layers.tab.map": "地图",
+    "layers.tab.surface": "地表",
     "layers.tab.3d": "三维",
-    "layers.contentEmpty": "尚未加载 3D Tiles / 3DGS；点上方「＋ 添加」或从「数据」菜单加载。",
-    "layers.add3d": "＋ 添加",
+    "layers.contentEmpty": "还没有三维内容。点分组里的「添加图层」，或从「数据」菜单导入。",
     "layers.openUrl": "粘贴在线 / 本机地址…",
     "scan.foundCount": "发现 {n} 个三维数据集，请选择要叠加到场景的数据：",
     "scan.truncatedHint": "目录文件较多，已达扫描上限（{limit} 项）；若未列出目标数据，请选择更具体的子目录。",
@@ -860,7 +934,9 @@ var V18_MESSAGES = {
     "btn.tools": "工具",
     "btn.toolsShow": "展开工具箱",
     "btn.toolsHide": "收起工具箱",
-    "btn.output": "画面与输出",
+    "btn.panelShow": "展开面板",
+    "btn.panelHide": "收起面板",
+    "btn.output": "输出",
     "layers.appearance": "图层外观",
     "layers.appearance3dgs": "3DGS 点云不支持视觉特效（仅支持 3D Tiles 网格）",
     "layers.more": "更多操作",
@@ -880,7 +956,7 @@ var V18_MESSAGES = {
     "tools.effectsEmpty": "暂无活动特效；打开工作台应用。",
     "tools.select": "选择",
     "tools.askAgentLook": "当前视图发送至 AI",
-    "tools.askAgentLookHint": "将当前视图截图与场景摘要注入当前对话，随后请在对话中提出具体问题；不会自动执行，也不会凭空生成地理坐标。",
+    "tools.askAgentLookHint": "将当前视图和场景摘要附到对话中。",
     "tools.index": "工具入口",
     "tools.selectHint": "点选、矩形或多边形选择地面区域，可量面积、导出 GeoJSON 或交给 AI；把画面发给 AI 请用顶部「问 Agent」按钮。",
     "tools.effectsHint": "按图层应用高度配色、等高线、扫描、水面等预设特效。",
@@ -893,8 +969,8 @@ var V18_MESSAGES = {
     "tools.indexMinimize": "折叠工具索引",
     "tools.indexExpand": "展开工具索引",
     "layers.imageryNone": "无底图",
-    "layers.imageryFold": "收起底图列表",
-    "layers.imageryUnfold": "展开底图列表",
+    "layers.terrainNone": "无地形",
+    "layers.terrainCurrent": "当前地形",
     "resize.width": "拖动调整工作台宽度",
     "resize.height": "拖动调整工作台高度",
     "resize.size": "拖动调整工作台大小",
@@ -1021,7 +1097,7 @@ var V18_MESSAGES = {
     "shaderSync.doneSkipped": "已将特效「{preset}」同步到 {n} 个可见图层（已跳过 {skipped} 个隐藏或 3DGS 图层）",
     "shaderSync.partial": "多图层特效同步完成：成功 {ok} 个，失败 {fail} 个",
     "selection.parseAoi": "解析此选区",
-    "selection.parseAoiHint": "将当前矩形/多边形地面范围局部高清裁剪，交由场景解析提取建筑与地物",
+    "selection.parseAoiHint": "将当前矩形/多边形地面范围局部高清裁剪，交由场景提取建筑与地物",
     "layers.switch3d": "整层切换为 3D 白模拉伸",
     "layers.switch2d": "整层切换为 2D 地表轮廓",
     "layers.layerExtruded3d": "图层已切换为 3D 白模拉伸",
@@ -1033,12 +1109,10 @@ var V18_MESSAGES = {
   },
   en: {
     ...VECTOR_MESSAGES.en,
-    ...VISION_MESSAGES.en,
     "menu.recentUrls": "Recent addresses",
-    "layers.tab.map": "Map",
+    "layers.tab.surface": "Surface",
     "layers.tab.3d": "3D",
-    "layers.contentEmpty": 'No 3D Tiles / 3DGS loaded; click "+ Add" above or use the Data menu.',
-    "layers.add3d": "+ Add",
+    "layers.contentEmpty": 'No 3D content yet. Use "Add layer" in this group, or import from the Data menu.',
     "layers.openUrl": "Paste online / local address…",
     "scan.foundCount": "Found {n} 3D dataset(s); choose one to add to the scene:",
     "scan.truncatedHint": "Scan reached the {limit}-entry limit; if your dataset is missing, open a more specific subfolder.",
@@ -1052,7 +1126,9 @@ var V18_MESSAGES = {
     "btn.tools": "Tools",
     "btn.toolsShow": "Show tools",
     "btn.toolsHide": "Hide tools",
-    "btn.output": "View & output",
+    "btn.panelShow": "Show panel",
+    "btn.panelHide": "Hide panel",
+    "btn.output": "Output",
     "layers.appearance": "Layer appearance",
     "layers.appearance3dgs": "Effects are not available on 3DGS splats (3D Tiles meshes only)",
     "layers.more": "More actions",
@@ -1072,7 +1148,7 @@ var V18_MESSAGES = {
     "tools.effectsEmpty": "No active effect; open the workbench to apply one.",
     "tools.select": "Select",
     "tools.askAgentLook": "Send current view to AI",
-    "tools.askAgentLookHint": "Inject the current-view screenshot and scene summary into this conversation, then ask a specific question; nothing runs automatically and no geographic coordinates are invented.",
+    "tools.askAgentLookHint": "Attach the current view and scene summary to this conversation.",
     "tools.index": "Tool entry points",
     "tools.selectHint": "Point, rectangle or polygon select a ground area, then measure it, export GeoJSON or hand it to the AI; to send the view itself, use the Ask Agent button in the top bar.",
     "tools.effectsHint": "Apply height colouring, contours, scan, water and other presets per layer.",
@@ -1085,8 +1161,8 @@ var V18_MESSAGES = {
     "tools.indexMinimize": "Collapse tool index",
     "tools.indexExpand": "Expand tool index",
     "layers.imageryNone": "No basemap",
-    "layers.imageryFold": "Collapse basemap list",
-    "layers.imageryUnfold": "Expand basemap list",
+    "layers.terrainNone": "No terrain",
+    "layers.terrainCurrent": "Active terrain",
     "resize.width": "Drag to resize the workbench width",
     "resize.height": "Drag to resize the workbench height",
     "resize.size": "Drag to resize the workbench",
@@ -1226,28 +1302,174 @@ var V18_MESSAGES = {
   }
 };
 
+// src/client/messages-scene.js
+var SCENE_MESSAGES = {
+  zh: {
+    "btn.view": "视图",
+    "layers.groupCollapse": "收起分组",
+    "layers.groupExpand": "展开分组",
+    "layers.addLayer": "添加图层",
+    "layers.addTitle": "添加数据",
+    "layers.addBack": "返回类型选择",
+    "layers.addKind3d": "三维内容",
+    "layers.addKind3dHint": "3D Tiles 或 3DGS，本地文件夹或在线地址",
+    "layers.addKindRaster": "栅格图层",
+    "layers.addKindRasterHint": "WMS / XYZ / ArcGIS 在线栅格服务",
+    "layers.addKindVector": "矢量图层",
+    "layers.addKindVectorHint": "GeoJSON 或 Shapefile，导入后可编辑、导出",
+    "layers.add3dHint": "三维内容从本地文件夹（自动查找 tileset.json）或在线 tileset.json 地址加载。",
+    "layers.addVectorHint": "选择 .geojson / .json，或一整套 Shapefile（.shp + .dbf，可选 .prj / .cpg）。",
+    "layers.importFormats": "GeoJSON · Shapefile",
+    "layers.importing": "正在解析…",
+    "layers.annotations": "标注",
+    "layers.measurements": "量测",
+    "layers.emptyAnnotations": "还没有标注。点「绘制」在场景里画点、线、面或文字。",
+    "layers.emptyMeasurements": "还没有量测。用「量测」测量距离、面积或高差。",
+    "layers.emptyVector": "还没有矢量图层。点「导入」选择 GeoJSON 或 Shapefile。",
+    "layers.clearAnnotations": "清空标注",
+    "layers.clearMeasurements": "清空量测",
+    "layers.clearImports": "清空导入的矢量图层",
+    "layers.properties": "属性…",
+    "layers.kindTiles": "3D Tiles",
+    "layers.kindSplats": "3DGS",
+    "layers.propsTab.info": "信息",
+    "layers.propsTab.look": "外观",
+    "layers.propsTab.data": "数据",
+    "layers.propsName": "名称",
+    "layers.propsKind": "类型",
+    "layers.propsSource": "来源",
+    "layers.propsVisible": "显示",
+    "layers.propsShown": "显示中",
+    "layers.propsHidden": "已隐藏",
+    "layers.propsShow": "显示图层",
+    "layers.propsHide": "隐藏图层",
+    "layers.propsShader": "特效",
+    "layers.propsShaderNone": "未应用",
+    "layers.propsFrames": "期次",
+    "layers.propsFeatures": "要素",
+    "layers.propsFeaturesUnit": "个要素",
+    "layers.propsVector": "矢量",
+    "layers.propsEditFeatures": "编辑要素",
+    "layers.propsHealth": "数据体检",
+    "layers.propsCopyUrl": "复制地址",
+    "toast.annotationsCleared": "已清空标注",
+    "toast.overlayRemoved": "已移除该图层",
+    "layers.exportAllOverlays": "导出全部叠加",
+    "btn.resultEmpty": "暂无结果",
+    "confirm.clearAnnotationsTitle": "清空全部标注？",
+    "confirm.clearAnnotationsMessage": "将删除 {n} 个标注、{features} 个要素，操作不可撤销。",
+    "confirm.clearMeasurementsTitle": "清空全部量测？",
+    "confirm.clearMeasurementsMessage": "将删除 {n} 条量测记录，操作不可撤销。",
+    "confirm.clearImportsTitle": "清空导入的矢量图层？",
+    "confirm.clearImportsMessage": "将移除 {n} 个图层、{features} 个要素，操作不可撤销。",
+    "confirm.clear": "清空",
+    "confirm.remove": "移除",
+    "confirm.removeOverlayTitle": "移除该图层？",
+    "confirm.removeOverlayMessage": "该图层含 {features} 个要素，移除后不可恢复。",
+    "layers.overlayExpandFeatures": "展开要素列表",
+    "layers.overlayCollapseFeatures": "收起要素列表",
+    "menu.addGroup": "添加",
+    "menu.addLayer": "添加图层…",
+    "menu.import": "导入矢量…",
+    "menu.loadAddress": "加载地址…",
+    "menu.recent": "最近",
+    "menu.manage": "管理",
+    "menu.bookmarks": "视角书签…",
+    "menu.add3dLocalHint": "本地文件夹里的 3D Tiles",
+    "menu.add3dUrlHint": "在线 tileset.json 地址",
+    "menu.addRasterUrlHint": "支持 {z}/{x}/{y}、{bbox-epsg-3857} 与 {time}",
+    "out.exportVector": "导出矢量 GeoJSON",
+    "out.exportEmpty": "还没有可导出的矢量图层",
+    "rasterTime.badge": "多期"
+  },
+  en: {
+    "btn.view": "View",
+    "layers.groupCollapse": "Collapse group",
+    "layers.groupExpand": "Expand group",
+    "layers.addLayer": "Add layer",
+    "layers.addTitle": "Add data",
+    "layers.addBack": "Back to data types",
+    "layers.addKind3d": "3D content",
+    "layers.addKind3dHint": "3D Tiles or 3DGS, local folder or online URL",
+    "layers.addKindRaster": "Raster layer",
+    "layers.addKindRasterHint": "WMS / XYZ / ArcGIS online raster service",
+    "layers.addKindVector": "Vector layer",
+    "layers.addKindVectorHint": "GeoJSON or Shapefile, editable and exportable",
+    "layers.add3dHint": "Load 3D content from a local folder (tileset.json is found for you) or an online tileset.json.",
+    "layers.addVectorHint": "Pick .geojson / .json, or a full Shapefile set (.shp + .dbf, optional .prj / .cpg).",
+    "layers.importFormats": "GeoJSON · Shapefile",
+    "layers.importing": "Parsing…",
+    "layers.annotations": "Annotations",
+    "layers.measurements": "Measurements",
+    "layers.emptyAnnotations": "No annotations yet. Draw a point, line, area or label with the pen.",
+    "layers.emptyMeasurements": "No measurements yet. Measure distance, area or height.",
+    "layers.emptyVector": "No vector layers yet. Import GeoJSON or Shapefile.",
+    "layers.clearAnnotations": "Clear annotations",
+    "layers.clearMeasurements": "Clear measurements",
+    "layers.clearImports": "Clear imported vector layers",
+    "layers.properties": "Properties…",
+    "layers.kindTiles": "3D Tiles",
+    "layers.kindSplats": "3DGS",
+    "layers.propsTab.info": "Info",
+    "layers.propsTab.look": "Appearance",
+    "layers.propsTab.data": "Data",
+    "layers.propsName": "Name",
+    "layers.propsKind": "Type",
+    "layers.propsSource": "Source",
+    "layers.propsVisible": "Visibility",
+    "layers.propsShown": "Shown",
+    "layers.propsHidden": "Hidden",
+    "layers.propsShow": "Show layer",
+    "layers.propsHide": "Hide layer",
+    "layers.propsShader": "Shader",
+    "layers.propsShaderNone": "None",
+    "layers.propsFrames": "Frames",
+    "layers.propsFeatures": "Features",
+    "layers.propsFeaturesUnit": "features",
+    "layers.propsVector": "Vector",
+    "layers.propsEditFeatures": "Edit features",
+    "layers.propsHealth": "Data health",
+    "layers.propsCopyUrl": "Copy address",
+    "toast.annotationsCleared": "Annotations cleared",
+    "toast.overlayRemoved": "Layer removed",
+    "layers.exportAllOverlays": "Export all overlays",
+    "btn.resultEmpty": "No results yet",
+    "confirm.clearAnnotationsTitle": "Clear all annotations?",
+    "confirm.clearAnnotationsMessage": "Deletes {n} annotation(s) with {features} feature(s); this cannot be undone.",
+    "confirm.clearMeasurementsTitle": "Clear all measurements?",
+    "confirm.clearMeasurementsMessage": "Deletes {n} measurement(s); this cannot be undone.",
+    "confirm.clearImportsTitle": "Clear imported vector layers?",
+    "confirm.clearImportsMessage": "Removes {n} layer(s) with {features} feature(s); this cannot be undone.",
+    "confirm.clear": "Clear",
+    "confirm.remove": "Remove",
+    "confirm.removeOverlayTitle": "Remove this layer?",
+    "confirm.removeOverlayMessage": "This layer has {features} feature(s); removal cannot be undone.",
+    "layers.overlayExpandFeatures": "Expand feature list",
+    "layers.overlayCollapseFeatures": "Collapse feature list",
+    "menu.addGroup": "Add",
+    "menu.addLayer": "Add layer…",
+    "menu.import": "Import vector…",
+    "menu.loadAddress": "Load address…",
+    "menu.recent": "Recent",
+    "menu.manage": "Manage",
+    "menu.bookmarks": "View bookmarks…",
+    "menu.add3dLocalHint": "3D Tiles in a local folder",
+    "menu.add3dUrlHint": "Online tileset.json URL",
+    "menu.addRasterUrlHint": "Supports {z}/{x}/{y}, {bbox-epsg-3857} and {time}",
+    "out.exportVector": "Export vector GeoJSON",
+    "out.exportEmpty": "No vector layer to export",
+    "rasterTime.badge": "Multi-period"
+  }
+};
+
 // src/client/messages-actions.js
 var ACTION_MESSAGES = {
   zh: {
-    "confirm.clearVectorTitle": "清空绘制与量测？",
-    "confirm.clearVectorMessage": "将删除 {drawn} 个标注要素与 {measured} 个量测点。",
-    "confirm.clearVectorIncludesUser": "其中包含本地导入或手绘的标注；此操作不可撤销。",
-    "confirm.clearVectorUndo": "此操作不可撤销。",
-    "confirm.clearAll": "全部清空",
-    "confirm.clearMeasureOnly": "仅清量测",
-    "layers.clearVectorHint": "清空绘制与量测…",
     "toast.vectorCleared": "已清空绘制与量测",
     "toast.measureCleared": "已清空量测",
     "toast.sunReplacesAnalysis": "已结束上一次日照分析并切换到时间轴；其他分析结果保留。"
   },
   en: {
-    "confirm.clearVectorTitle": "Clear drawn features and measurements?",
-    "confirm.clearVectorMessage": "This removes {drawn} drawn feature(s) and {measured} measurement point(s).",
-    "confirm.clearVectorIncludesUser": "Local imports and hand-drawn annotations are included. This cannot be undone.",
-    "confirm.clearVectorUndo": "This cannot be undone.",
-    "confirm.clearAll": "Clear all",
-    "confirm.clearMeasureOnly": "Measurements only",
-    "layers.clearVectorHint": "Clear drawn features and measurements…",
     "toast.vectorCleared": "Drawn features and measurements cleared",
     "toast.measureCleared": "Measurements cleared",
     "toast.sunReplacesAnalysis": "Closed the previous sunlight analysis and switched to the timeline; other results are kept."
@@ -1435,15 +1657,11 @@ var EXPORT_MESSAGES = {
   zh: {
     "layers.exportVector": "导出 GeoJSON",
     "layers.vectorToChat": "发送到对话（附件）",
-    "layers.vectorExportHint": "下载整层矢量叠加（标注 + 量测）为 GeoJSON 文件",
-    "layers.vectorChatHint": "导出矢量 GeoJSON 并作为附件发送到当前对话",
-    "layers.overlayExportHint": "下载该矢量图层的 GeoJSON 文件",
-    "layers.overlayChatHint": "将该矢量图层作为 GeoJSON 附件发送到对话",
+    "layers.vectorExportHint": "导出全部叠加（导入图层 + 标注 + 量测）为 GeoJSON",
     "layers.overlayExpandFeatures": "展开要素列表",
     "layers.overlayCollapseFeatures": "收起要素列表",
     "layers.featureUnnamed": "要素 #{n}",
     "layers.featureSelectHint": "点击选中该要素并编辑属性/顶点",
-    "layers.featureDelete": "删除该要素",
     "vectorExport.empty": "矢量叠加层还没有内容：先导入数据或画一个标注。",
     "vectorExport.too_many_features": "一次最多导出 500 个要素，先删减或分批导出。",
     "vectorExport.too_many_coordinates": "坐标点超过 20000，先精简再导出。",
@@ -1461,15 +1679,11 @@ var EXPORT_MESSAGES = {
   en: {
     "layers.exportVector": "Export GeoJSON",
     "layers.vectorToChat": "Send to chat (attach)",
-    "layers.vectorExportHint": "Download the whole vector overlay (annotations + measurements) as GeoJSON",
-    "layers.vectorChatHint": "Export vector GeoJSON and attach it to the live conversation",
-    "layers.overlayExportHint": "Download this vector overlay as GeoJSON",
-    "layers.overlayChatHint": "Send this vector overlay to chat as a GeoJSON attachment",
+    "layers.vectorExportHint": "Export every overlay (imports + annotations + measurements) as GeoJSON",
     "layers.overlayExpandFeatures": "Expand feature list",
     "layers.overlayCollapseFeatures": "Collapse feature list",
     "layers.featureUnnamed": "Feature #{n}",
     "layers.featureSelectHint": "Click to select and edit this feature",
-    "layers.featureDelete": "Delete feature",
     "vectorExport.empty": "The vector overlay is empty: import data or draw an annotation first.",
     "vectorExport.too_many_features": "At most 500 features can be exported at once; remove some or export in batches.",
     "vectorExport.too_many_coordinates": "More than 20000 coordinates; simplify before exporting.",
@@ -1512,6 +1726,9 @@ var PROFILE_MESSAGES = {
     "profile.netChange": "起终点高差",
     "profile.endpoints": "起终点坐标",
     "profile.hoverChartHint": "悬停曲线或地面剖面线读高程；拖动地面起终点手柄可重算",
+    "profile.clear": "清除剖面",
+    "profile.viewChart": "查看图表",
+    "profile.barSummary": "高程剖面 · {length} · 高差 {relief}",
     "measure.previewSegment": "+{seg} · 总长 {total}",
     "measure.previewArea": "预估面积 {area}",
     "measure.previewHeight": "高差 {height} · 平距 {distance}"
@@ -1540,9 +1757,138 @@ var PROFILE_MESSAGES = {
     "profile.netChange": "Net elevation change",
     "profile.endpoints": "Endpoints",
     "profile.hoverChartHint": "Hover the chart or ground line for height; drag start/end handles to recompute.",
+    "profile.clear": "Clear profile",
+    "profile.viewChart": "View chart",
+    "profile.barSummary": "Elevation profile · {length} · relief {relief}",
     "measure.previewSegment": "+{seg} · Total {total}",
     "measure.previewArea": "Preview area {area}",
     "measure.previewHeight": "Δh {height} · horiz {distance}"
+  }
+};
+
+// src/client/messages-places.js
+var PLACE_MESSAGES = {
+  zh: {
+    "places.title": "地名检索",
+    "places.placeholder": "输入城市、地址或地标",
+    "places.search": "搜索",
+    "places.saveSearch": "保存并搜索",
+    "places.busy": "正在搜索…",
+    "places.empty": "没有匹配的地点，可补充城市名再试。",
+    "places.camera": "地图正在加载，请稍后再定位。",
+    "places.source": "服务商",
+    "places.refine": "在此区域继续查找",
+    "places.changeKey": "更换密钥",
+    "places.policy": "使用政策",
+    "places.attribution": "© OpenStreetMap 贡献者",
+    "places.noneEnabled": "还没有启用任何服务商。请到 设置 → 地名检索 启用后再搜索。",
+    "places.disabled": "「{name}」未启用，可在 设置 → 地名检索 中启用。",
+    "places.keyNeeded": "请先为「{name}」配置服务密钥。",
+    "places.denied": "「{name}」拒绝了请求，请核对密钥与服务权限。",
+    "places.rate": "查询过于频繁或已超出配额，请稍后重试。",
+    "places.rejected": "「{name}」未接受本次查询，请核对检索词与密钥。",
+    "places.failed": "无法连接「{name}」，可在 设置 → 地名检索 测试连通性或改用其他服务商。",
+    "places.provider.tianditu": "天地图",
+    "places.provider.amap": "高德地图",
+    "places.provider.photon": "Photon",
+    "places.provider.nominatim": "OpenStreetMap",
+    "settings.tab.places": "地名检索",
+    "settings.places.hint": "每个服务商自带服务地址与密钥，可像影像底图一样逐条编辑；「启用」决定面板里可选的服务商与默认选择，修改立即生效。也可添加自定义实例（自建、镜像或代理），请求参数由插件按服务类型附加。",
+    "settings.places.defaultNote": "未选择时优先使用已启用且已配置密钥的服务商，否则使用第一个已启用的服务商；内置服务商可停用但不可删除。",
+    "settings.places.add": "添加服务商",
+    "settings.places.edit": "编辑",
+    "settings.places.delete": "删除",
+    "settings.places.builtin": "内置",
+    "settings.places.custom": "自定义",
+    "settings.places.nameLabel": "名称",
+    "settings.places.builtinNameHint": "内置服务商留空即使用默认名称。",
+    "settings.places.typeLabel": "服务类型",
+    "settings.places.urlLabel": "服务地址",
+    "settings.places.urlHint": "填写完整的 http(s) 地址，可指向自建实例、镜像或代理。",
+    "settings.places.restoreUrl": "恢复默认地址",
+    "settings.places.keyOptional": "留空则保留已保存的密钥。",
+    "settings.places.keyWillClear": "保存后将清除已存密钥",
+    "settings.places.customNeedsName": "自定义服务商需要填写名称。",
+    "settings.places.badUrl": "服务地址需要以 http:// 或 https:// 开头。",
+    "settings.places.enableLabel": "启用「{name}」",
+    "settings.places.noKey": "无需密钥",
+    "settings.places.configured": "已配置密钥",
+    "settings.places.notConfigured": "未配置密钥",
+    "settings.places.managed": "由宿主环境变量管理",
+    "settings.places.keyLabel": "服务密钥",
+    "settings.places.clearKey": "清除",
+    "settings.places.saved": "已保存",
+    "settings.places.getKey": "获取密钥",
+    "settings.places.test": "测试",
+    "settings.places.testing": "正在测试…",
+    "settings.places.testOk": "连接正常 · {n} 条结果 · {ms} ms",
+    "settings.places.testFail": "连接失败：{reason}",
+    "settings.places.note.tianditu": "中文地名、行政区与 POI。需申请「服务端」类型的 tk。",
+    "settings.places.note.amap": "地址与 POI 检索。需申请「Web 服务」类型的 key，按服务商配额计费。",
+    "settings.places.note.photon": "无需密钥。数据 © OpenStreetMap 贡献者（ODbL）。",
+    "settings.places.note.nominatim": "无需密钥。公共实例要求全应用 ≤1 次/秒，也可指向自建或代理实例。",
+    "settings.places.thirdParty": "地名检索由第三方地图/地理编码服务提供，服务可用性、数据内容与使用条款由各服务商负责，与本插件开发方无关；使用前请确认并遵守对应服务商的服务条款。"
+  },
+  en: {
+    "places.title": "Place search",
+    "places.placeholder": "City, address or landmark",
+    "places.search": "Search",
+    "places.saveSearch": "Save & search",
+    "places.busy": "Searching…",
+    "places.empty": "No matching places. Try adding the city name.",
+    "places.camera": "The map is loading. Try the location again shortly.",
+    "places.source": "Provider",
+    "places.refine": "Search within this region",
+    "places.changeKey": "Change key",
+    "places.policy": "Usage policy",
+    "places.attribution": "© OpenStreetMap contributors",
+    "places.noneEnabled": "No provider is enabled yet. Enable one in Settings → Place search.",
+    "places.disabled": "{name} is not enabled. Turn it on in Settings → Place search.",
+    "places.keyNeeded": "Configure a service key for {name} first.",
+    "places.denied": "{name} declined the request. Check the key and its service permissions.",
+    "places.rate": "Too many searches or the quota is exhausted. Try again shortly.",
+    "places.rejected": "{name} did not accept this query. Check the place name and key.",
+    "places.failed": "Could not reach {name}. Test it in Settings → Place search or pick another provider.",
+    "places.provider.tianditu": "Tianditu",
+    "places.provider.amap": "Amap",
+    "places.provider.photon": "Photon",
+    "places.provider.nominatim": "OpenStreetMap",
+    "settings.tab.places": "Place search",
+    "settings.places.hint": "Each provider carries its own service URL and key, edited row by row like an imagery source; the Enable switch decides which providers the panel offers and uses by default, and changes apply immediately. Custom instances (own server, mirror or proxy) are supported — the plugin appends the service-specific query parameters.",
+    "settings.places.defaultNote": "With nothing selected, an enabled provider that already has a key wins, otherwise the first enabled provider is used. Built-in providers can be switched off but not removed.",
+    "settings.places.add": "Add provider",
+    "settings.places.edit": "Edit",
+    "settings.places.delete": "Delete",
+    "settings.places.builtin": "Built-in",
+    "settings.places.custom": "Custom",
+    "settings.places.nameLabel": "Name",
+    "settings.places.builtinNameHint": "Leave empty on a built-in provider to use its default name.",
+    "settings.places.typeLabel": "Service type",
+    "settings.places.urlLabel": "Service URL",
+    "settings.places.urlHint": "Enter the full http(s) URL — your own instance, a mirror or a proxy.",
+    "settings.places.restoreUrl": "Reset URL",
+    "settings.places.keyOptional": "Leave empty to keep the stored key.",
+    "settings.places.keyWillClear": "Saving will clear the stored key",
+    "settings.places.customNeedsName": "A custom provider needs a name.",
+    "settings.places.badUrl": "The service URL must start with http:// or https://.",
+    "settings.places.enableLabel": "Enable {name}",
+    "settings.places.noKey": "No key needed",
+    "settings.places.configured": "Key configured",
+    "settings.places.notConfigured": "No key configured",
+    "settings.places.managed": "Managed by a host environment variable",
+    "settings.places.keyLabel": "Service key",
+    "settings.places.clearKey": "Clear",
+    "settings.places.saved": "Saved",
+    "settings.places.getKey": "Get a key",
+    "settings.places.test": "Test",
+    "settings.places.testing": "Testing…",
+    "settings.places.testOk": "Reachable · {n} results · {ms} ms",
+    "settings.places.testFail": "Connection failed: {reason}",
+    "settings.places.note.tianditu": "Chinese place names, admin areas and POIs. Needs a server-side tk.",
+    "settings.places.note.amap": "Address and POI search. Needs a Web service key; the provider's quota applies.",
+    "settings.places.note.photon": "No key needed. Data © OpenStreetMap contributors (ODbL).",
+    "settings.places.note.nominatim": "No key needed. The public instance asks every app to stay at or below 1 request/second; your own or a proxy instance also works.",
+    "settings.places.thirdParty": "Place search is provided by third-party map and geocoding services. Availability, data and terms of use are the responsibility of each provider, not of this plugin's developer; check and follow the provider's terms before use."
   }
 };
 
@@ -1550,11 +1896,11 @@ var PROFILE_MESSAGES = {
 var DOCK_MESSAGES = {
   zh: {
     "dock.title": "工作面板",
-    "dock.tabs": "工作面板页签",
     "dock.unread": "有新的内容",
-    "dock.collapse": "收起面板",
-    "dock.expand": "展开面板",
-    "panel.tab.layers": "图层",
+    "dock.back": "返回工具列表",
+    "dock.hideChrome": "隐藏界面",
+    "dock.showChrome": "显示界面",
+    "panel.tab.layers": "场景",
     "panel.tab.tools": "工具",
     "panel.tab.result": "结果",
     "panel.tab.object": "对象",
@@ -1563,11 +1909,11 @@ var DOCK_MESSAGES = {
   },
   en: {
     "dock.title": "Work panels",
-    "dock.tabs": "Work panel tabs",
     "dock.unread": "New content",
-    "dock.collapse": "Collapse panel",
-    "dock.expand": "Expand panel",
-    "panel.tab.layers": "Layers",
+    "dock.back": "Back to the tool list",
+    "dock.hideChrome": "Hide interface",
+    "dock.showChrome": "Show interface",
+    "panel.tab.layers": "Scene",
     "panel.tab.tools": "Tools",
     "panel.tab.result": "Result",
     "panel.tab.object": "Object",
@@ -1580,33 +1926,27 @@ var DOCK_MESSAGES = {
 var MESSAGES = {
   zh: {
     "panel.title": "数字地球",
+    "panel.description": "在三维地球上叠加 3D Tiles / 3DGS、影像与地形，与对话同屏：量测、标注、空间分析与出图。",
     "panel.status.loading": "正在加载三维引擎…",
-    "panel.status.ready": "就绪",
-    "panel.status.layers": "{n} 个图层",
     "panel.empty.title": "在地球上叠加你的数据",
     "panel.empty.body": "支持 3D Tiles 1.0 / 1.1 与 3DGS（SPZ）。打开本地目录，或粘贴在线 / 本机 tileset.json 地址；加载后可用量测、指认，也可以直接让 Agent 分析这块数据。单击场景对象即可识别属性与高程；也可把 .geojson/.shp 直接拖进画面叠加。",
     "panel.empty.local": "打开本地目录",
     "panel.empty.url": "加载在线地址",
     "panel.empty.dismiss": "关闭提示",
-    "btn.data": "添加数据",
+    "btn.data": "数据",
     "btn.openLocal": "打开本地目录…",
     "btn.openUrl": "加载地址或坐标…",
-    "btn.layers": "图层",
-    "btn.layersShow": "展开图层卡",
-    "btn.layersHide": "收起图层卡",
+    "btn.layers": "场景",
+    "btn.layersShow": "展开场景卡",
+    "btn.layersHide": "收起场景卡",
     "btn.hud": "坐标 HUD",
-    "btn.hudShow": "显示坐标 HUD",
-    "btn.hudHide": "隐藏坐标 HUD",
     "btn.shaderShow": "打开视觉特效",
     "btn.shaderHide": "关闭视觉特效",
-    "btn.basemap": "底图",
-    "btn.terrain": "地形",
     "btn.measure": "量测",
     "btn.screenshot": "截图",
     "btn.askAgent": "问 Agent",
     "btn.reset": "复位",
-    "btn.settings": "数据源与外观",
-    "btn.appearance": "外观",
+    "btn.settings": "设置",
     "btn.close": "关闭",
     "btn.cancel": "取消",
     "btn.retry": "重试",
@@ -1634,16 +1974,14 @@ var MESSAGES = {
     "settings.qualityHint": "均衡（默认）略微降低分辨率与地形 / 瓦片细节，拖动更流畅；高清使用满分辨率与 4× MSAA。抗锯齿档位在重新打开面板后完全生效。",
     "settings.qualityBalanced": "均衡（流畅优先）",
     "settings.qualityHigh": "高清（画质优先）",
-    "layers.title": "图层",
-    "layers.collapse": "收起图层卡",
-    "layers.terrain": "地形（L1）",
-    "layers.imagery": "影像底图（L4）",
-    "layers.raster": "栅格叠加（L3）",
-    "layers.vector": "矢量叠加（L2）",
-    "layers.content": "三维内容层",
-    "layers.addOverlay": "＋ 添加叠加层",
+    "layers.title": "场景",
+    "layers.collapse": "收起场景面板",
+    "layers.terrain": "地形",
+    "layers.imagery": "影像底图",
+    "layers.raster": "栅格图层",
+    "layers.vector": "矢量图层",
+    "layers.content": "三维内容",
     "layers.overlayAdd": "添加",
-    "layers.overlayCancel": "取消",
     "layers.overlayType": "类型",
     "layers.overlayName": "名称",
     "layers.overlayUrl": "服务地址",
@@ -1653,19 +1991,19 @@ var MESSAGES = {
     "layers.overlayUp": "上移一层",
     "layers.overlayDown": "下移一层",
     "layers.overlayInvalid": "请填写类型、服务地址；WMS 还需要图层名。",
-    "layers.emptyRaster": "暂无叠加层",
+    "layers.emptyRaster": "还没有栅格图层：点「添加图层」接入 WMS / XYZ / ArcGIS 服务。",
     "layers.vectorDrawn": "标注要素",
     "layers.vectorMeasured": "量测点",
     "layers.vectorRemove": "移除该叠加",
-    "layers.frameAll": "框全所有可见图层",
+    "layers.removeFromScene": "从场景移除",
+    "layers.frameAll": "缩放至全部图层",
     "layers.analysis": "空间分析",
-    "layers.analysisHint": "点上方「绘制高程纵断面」可在地球上采样起伏与坡度（非三维模型剖切）；下方「日照时间轴」可拖动查看阴影。淹没 / 剖切 / 天际线由对话 Agent 执行；结果会显示在分析卡。",
+    "layers.analysisHint": "用地形/表面高程查看纵断面与日照，淹没/剖切/天际线由对话 Agent 执行。",
     "layers.georefWarning": "缺少世界定位（根 transform / region）：局部坐标会被当成 ECEF，数据会落在地心附近。请让数据提供方重新导出该 tileset，或按 README 用 scripts/georef-osgb.mjs 一次性修复后重新加载。",
     "layers.analysisClear": "清除分析",
     "layers.shader": "视觉特效",
     "layers.shaderEmpty": "暂无视觉特效；在特效面板应用后会显示在这里。",
     "shader.editEntry": "选中并编辑该效果",
-    "shader.removeEntry": "移除该效果",
     "shader.entryTooltip": "{layer} · {presets}｜参数：{params}",
     "shader.entryNoParams": "默认参数",
     "bookmarks.title": "视角收藏",
@@ -1709,7 +2047,6 @@ var MESSAGES = {
     "toast.shaderReset": "已清除图层特效：{layer}",
     "toast.shaderResetAll": "已清除全部图层特效",
     "toast.noSurface": "该位置没有可拾取的表面",
-    "toast.pickNone": "未拾取到对象",
     "measure.start": "左键点击取点，双击结束",
     "measure.distance": "总长 {value} · 双击结束",
     "measure.area": "面积 {value} · 双击结束",
@@ -1734,8 +2071,9 @@ var MESSAGES = {
     "settings.tab.imagery": "影像底图",
     "settings.tab.terrain": "地形",
     "settings.tab.appearance": "外观",
-    "settings.imageryHint": "此处维护「底图」菜单中的影像源；单选按钮切换当前底图。",
-    "settings.terrainHint": "此处维护可选的地形源；单选按钮用于开启或切换地形。",
+    "settings.imageryHint": "此处维护「底图」菜单中的影像源；打开「启用」开关使用该底图，关闭后不加载底图。",
+    "settings.terrainHint": "此处维护可选的地形源；打开「启用」开关使用该地形，关闭后不加载地形。",
+    "settings.sourceEnable": "启用「{name}」",
     "settings.empty": "还没有数据源，点击「添加」新建一个。",
     "settings.field.name": "名称",
     "settings.field.type": "类型",
@@ -1787,6 +2125,7 @@ var MESSAGES = {
     "tool.action.measure": "量测",
     "tool.action.analyze": "分析",
     "tool.action.shader": "视觉特效",
+    "tool.action.extract": "AI 提取",
     "tool.action.clearAgent": "清除标注",
     "tool.action.generic": "三维场景",
     "tool.open": "打开",
@@ -1796,7 +2135,7 @@ var MESSAGES = {
     "settings.autoOpenPanel": "Agent 调用时自动打开数字地球",
     "settings.autoOpenPanelHint": "Agent 调用地球工具（earth_scene / earth_capture / earth_draw / earth_measure / earth_analyze / earth_shader）时，自动在对话右侧打开数字地球面板；关闭后仍可从对话标题栏的地球按钮手动打开。该偏好只保存在本机浏览器。",
     "settings.screenshotHud": "截图时叠加坐标 HUD 与署名",
-    "settings.screenshotHudHint": "默认关闭：截图只保留干净的三维画面，便于分享或交给模型识别。打开后会在图片内叠加光标坐标、相机参数与团队署名（面板工具栏属于网页元素，不会进入图片）。",
+    "settings.screenshotHudHint": "在截图上叠加光标坐标、相机参数和署名。",
     "settings.showLayers": "显示图层卡",
     "settings.showLayersHint": "关闭后图层卡从画布上收起；仍可从工具栏的「图层」按钮重新展开。该偏好会写回数据源配置。",
     "settings.showHud": "显示坐标 HUD",
@@ -1857,9 +2196,7 @@ var MESSAGES = {
     "agent.unknownImagery": "找不到影像源「{name}」，可用：{list}",
     "agent.unknownTerrain": "找不到地形源「{name}」，可用：{list}",
     "agent.badAction": "不支持的操作：{action}",
-    "agent.badGeojson": "标注数据无效：{message}",
     "agent.badMeasure": "量测参数无效：{message}",
-    "agent.measureEmpty": "没有可用的量测结果。",
     "agent.clearedOverlays": "已清除 Agent 绘制内容（{n} 项）",
     "access.title": "授权访问本地数据",
     "access.body": "Agent 想从这个本地路径加载数据。允许后，面板会先把该文件所在目录登记为可读取的本地数据源（仅本页面会话内有效），然后继续操作。",
@@ -1937,6 +2274,7 @@ var MESSAGES = {
     "analysis.end": "终点 {value}",
     "analysis.waterLabel": "水面 {value}",
     "analysis.sunLabel": "太阳 {altitude}° / {azimuth}°",
+    "shader.removeEntry": "移除该效果",
     "shader.title": "视觉特效",
     "shader.close": "关闭视觉特效",
     "shader.layerLabel": "目标图层",
@@ -1980,7 +2318,7 @@ var MESSAGES = {
     "shader.noLayers": "先加载 3D Tiles 图层，再应用视觉特效。",
     "shader.singleHint": "每个图层只保留一个特效；应用后可在图层行查看或清除。",
     "toast.captureSaved": "已生成 {width}×{height} 截图：{path}",
-    "toast.askAgentSent": "截图与场景摘要已发送；请继续输入问题，不会自动执行。",
+    "toast.askAgentSent": "截图与场景摘要已发送，请在对话中输入问题。",
     "toast.askAgentFailed": "发送场景失败：{message}",
     "toast.askAgentNoSession": "请先打开一个会话，再使用「问 Agent」。",
     "toast.reportSaved": "场景报告已保存：{path}",
@@ -1991,45 +2329,41 @@ var MESSAGES = {
     "toast.fullscreenFailed": "全屏失败：{message}",
     "unit.hectare": "公顷",
     ...HUD_MESSAGES.zh,
+    ...PLACE_MESSAGES.zh,
     ...DOCK_MESSAGES.zh,
     // Batch A: destructive-action copy (scoped clears and confirmations).
     ...ACTION_MESSAGES.zh,
     // v1.7 P0 vocabulary (identify card / evidence export / tour bar).
     ...V17_MESSAGES.zh,
     ...V18_MESSAGES.zh,
+    ...SCENE_MESSAGES.zh,
     ...ANNOTATION_MESSAGES.zh,
     ...EXPORT_MESSAGES.zh,
     ...PROFILE_MESSAGES.zh
   },
   en: {
     "panel.title": "Digital Earth",
+    "panel.description": "Overlay 3D Tiles / 3DGS, imagery and terrain on a 3D globe beside the chat — measure, annotate, analyse and export.",
     "panel.status.loading": "Loading 3D engine…",
-    "panel.status.ready": "Ready",
-    "panel.status.layers": "{n} layers",
     "panel.empty.title": "Lay your data over the globe",
     "panel.empty.body": "3D Tiles 1.0 / 1.1 and 3DGS (SPZ) both work. Open a local folder or paste a tileset.json URL / absolute path, then measure, identify, or just ask the Agent to analyse the scene. A single click on any object already identifies its attributes and height; you can also drop a .geojson/.shp onto the globe to overlay it.",
     "panel.empty.local": "Open local folder",
     "panel.empty.url": "Load from URL",
     "panel.empty.dismiss": "Dismiss",
-    "btn.data": "Add data",
+    "btn.data": "Data",
     "btn.openLocal": "Open local folder…",
     "btn.openUrl": "Load address or coordinates…",
-    "btn.layers": "Layers",
-    "btn.layersShow": "Show layer card",
-    "btn.layersHide": "Hide layer card",
+    "btn.layers": "Scene",
+    "btn.layersShow": "Show scene card",
+    "btn.layersHide": "Hide scene card",
     "btn.hud": "Coordinate HUD",
-    "btn.hudShow": "Show coordinate HUD",
-    "btn.hudHide": "Hide coordinate HUD",
     "btn.shaderShow": "Open visual effects",
     "btn.shaderHide": "Close visual effects",
-    "btn.basemap": "Basemap",
-    "btn.terrain": "Terrain",
     "btn.measure": "Measure",
     "btn.screenshot": "Snapshot",
     "btn.askAgent": "Ask Agent",
     "btn.reset": "Reset",
-    "btn.settings": "Sources & appearance",
-    "btn.appearance": "Appearance",
+    "btn.settings": "Settings",
     "btn.close": "Close",
     "btn.cancel": "Cancel",
     "btn.retry": "Retry",
@@ -2057,16 +2391,14 @@ var MESSAGES = {
     "settings.qualityHint": "Balanced (default) trims resolution and terrain / 3D Tiles detail to stay smooth while dragging; High keeps full resolution and 4× MSAA. The anti-aliasing tier applies after the panel is reopened.",
     "settings.qualityBalanced": "Balanced (smoother)",
     "settings.qualityHigh": "High (sharper)",
-    "layers.title": "Layers",
+    "layers.title": "Scene",
     "layers.collapse": "Collapse layer card",
-    "layers.terrain": "Terrain (L1)",
-    "layers.imagery": "Imagery basemap (L4)",
-    "layers.raster": "Raster overlays (L3)",
-    "layers.vector": "Vector overlays (L2)",
-    "layers.content": "3D Tiles layers",
-    "layers.addOverlay": "+ Add overlay",
+    "layers.terrain": "Terrain",
+    "layers.imagery": "Imagery",
+    "layers.raster": "Raster layers",
+    "layers.vector": "Vector layers",
+    "layers.content": "3D content",
     "layers.overlayAdd": "Add",
-    "layers.overlayCancel": "Cancel",
     "layers.overlayType": "Type",
     "layers.overlayName": "Name",
     "layers.overlayUrl": "Service URL",
@@ -2076,19 +2408,19 @@ var MESSAGES = {
     "layers.overlayUp": "Move up",
     "layers.overlayDown": "Move down",
     "layers.overlayInvalid": "Fill in the type and service URL; WMS also needs a layer name.",
-    "layers.emptyRaster": "No overlays yet",
+    "layers.emptyRaster": "No raster overlays yet: use Add layer for WMS / XYZ / ArcGIS.",
     "layers.vectorDrawn": "drawn features",
     "layers.vectorMeasured": "measured points",
     "layers.vectorRemove": "Remove this overlay",
-    "layers.frameAll": "Frame all visible layers",
+    "layers.removeFromScene": "Remove from scene",
+    "layers.frameAll": "Fit all layers",
     "layers.analysis": "Spatial analysis",
-    "layers.analysisHint": 'Use "Draw elevation profile" above to sample terrain/surface heights and slopes (unlike horizontal clipping); the Sun timeline below scrubs shadows. Flood / clip / skyline run via the conversation Agent; results appear on the analysis card.',
+    "layers.analysisHint": "Use terrain/surface heights for profiles and sun shadows; flood/clip/skyline run via the conversation Agent.",
     "layers.georefWarning": "No world placement (root transform / region): local metres are read as ECEF and render near the Earth centre. Re-export the tileset, or repair existing data once with scripts/georef-osgb.mjs (see README) and reload.",
     "layers.analysisClear": "Clear analysis",
     "layers.shader": "Visual effects",
     "layers.shaderEmpty": "No visual effects yet; applying one in the effects panel lists it here.",
     "shader.editEntry": "Select and edit this effect",
-    "shader.removeEntry": "Remove this effect",
     "shader.entryTooltip": "{layer} · {presets} | params: {params}",
     "shader.entryNoParams": "defaults",
     "bookmarks.title": "View bookmarks",
@@ -2132,7 +2464,6 @@ var MESSAGES = {
     "toast.shaderReset": "Effect cleared on layer: {layer}",
     "toast.shaderResetAll": "All layer effects cleared",
     "toast.noSurface": "No pickable surface there",
-    "toast.pickNone": "Nothing picked",
     "measure.start": "Left-click to add points, double-click to finish",
     "measure.distance": "Total {value} · double-click to finish",
     "measure.area": "Area {value} · double-click to finish",
@@ -2157,8 +2488,9 @@ var MESSAGES = {
     "settings.tab.imagery": "Imagery",
     "settings.tab.terrain": "Terrain",
     "settings.tab.appearance": "Appearance",
-    "settings.imageryHint": "Manage the imagery sources offered in the Basemap menu; the radio button picks the active one.",
-    "settings.terrainHint": "Manage the available terrain sources; the radio button enables or switches terrain.",
+    "settings.imageryHint": "Manage the imagery sources offered in the Basemap menu; switch Enable on to use a source, off to load no basemap.",
+    "settings.terrainHint": "Manage the available terrain sources; switch Enable on to use a terrain, off to load none.",
+    "settings.sourceEnable": "Enable {name}",
     "settings.empty": "No sources yet — click Add to create one.",
     "settings.field.name": "Name",
     "settings.field.type": "Type",
@@ -2210,6 +2542,7 @@ var MESSAGES = {
     "tool.action.measure": "Measure",
     "tool.action.analyze": "Analyze",
     "tool.action.shader": "Visual effects",
+    "tool.action.extract": "AI extraction",
     "tool.action.clearAgent": "Clear annotations",
     "tool.action.generic": "3D scene",
     "tool.open": "Open",
@@ -2219,7 +2552,7 @@ var MESSAGES = {
     "settings.autoOpenPanel": "Open Digital Earth automatically on Agent calls",
     "settings.autoOpenPanelHint": "When the Agent calls an earth tool (earth_scene / earth_capture / earth_draw / earth_measure / earth_analyze / earth_shader), open the Digital Earth panel beside the conversation; with this off you can still open it from the globe button in the chat header. The preference is stored in this browser only.",
     "settings.screenshotHud": "Overlay coordinate HUD and credits in snapshots",
-    "settings.screenshotHudHint": "Off by default: snapshots keep only the clean 3D view, which is easier to share or hand to a model. Turn it on to burn the cursor coordinates, camera parameters and team credit into the image (the panel toolbar is DOM chrome and can never be part of the image).",
+    "settings.screenshotHudHint": "Include cursor coordinates, camera settings and the team credit in the snapshot.",
     "settings.showLayers": "Show the layer card",
     "settings.showLayersHint": "When off, the layer card collapses off the canvas; reopen it from the Layers button in the toolbar. The preference is written back to the sources config.",
     "settings.showHud": "Show the coordinate HUD",
@@ -2280,9 +2613,7 @@ var MESSAGES = {
     "agent.unknownImagery": 'No imagery source "{name}". Available: {list}',
     "agent.unknownTerrain": 'No terrain source "{name}". Available: {list}',
     "agent.badAction": "Unsupported action: {action}",
-    "agent.badGeojson": "Invalid annotation data: {message}",
     "agent.badMeasure": "Invalid measurement arguments: {message}",
-    "agent.measureEmpty": "No measurement result was produced.",
     "agent.clearedOverlays": "Cleared Agent overlays ({n} items)",
     "access.title": "Allow local data access",
     "access.body": "The Agent wants to load data from this local path. If you allow it, the panel first registers the containing folder as a readable local data source (for this page session only), then continues the operation.",
@@ -2360,6 +2691,7 @@ var MESSAGES = {
     "analysis.end": "End {value}",
     "analysis.waterLabel": "Water {value}",
     "analysis.sunLabel": "Sun {altitude}° / {azimuth}°",
+    "shader.removeEntry": "Remove this effect",
     "shader.title": "Visual effects",
     "shader.close": "Close visual effects",
     "shader.layerLabel": "Target layer",
@@ -2403,7 +2735,7 @@ var MESSAGES = {
     "shader.noLayers": "Load a 3D Tiles layer before applying a visual effect.",
     "shader.singleHint": "One effect per layer; view or clear it from the layer row after applying.",
     "toast.captureSaved": "Saved {width}×{height} snapshot: {path}",
-    "toast.askAgentSent": "Screenshot and scene summary sent. Type your question next; nothing runs automatically.",
+    "toast.askAgentSent": "Screenshot and scene summary sent. Enter your question in the chat.",
     "toast.askAgentFailed": "Could not send the scene: {message}",
     "toast.askAgentNoSession": "Open a conversation first to use Ask Agent.",
     "toast.reportSaved": "Scene report saved: {path}",
@@ -2414,19 +2746,21 @@ var MESSAGES = {
     "toast.fullscreenFailed": "Fullscreen failed: {message}",
     "unit.hectare": "ha",
     ...HUD_MESSAGES.en,
+    ...PLACE_MESSAGES.en,
     ...DOCK_MESSAGES.en,
     // Batch A: destructive-action copy (scoped clears and confirmations).
     ...ACTION_MESSAGES.en,
     // v1.7 P0 vocabulary (identify card / evidence export / tour bar).
     ...V17_MESSAGES.en,
     ...V18_MESSAGES.en,
+    ...SCENE_MESSAGES.en,
     ...ANNOTATION_MESSAGES.en,
     ...EXPORT_MESSAGES.en,
     ...PROFILE_MESSAGES.en
   }
 };
 var FALLBACK_ABOUT = {
-  version: "1.6.4",
+  version: "1.7.0",
   homepage: "https://github.com/CVEO/dsh-digital-earth",
   teamUrl: "https://www.whu-cveo.com/"
 };
@@ -2551,33 +2885,33 @@ function normalizeRasterEntry(raw, { target, fallbackId, fallbackName, isOverlay
     });
     return null;
   }
-  const entry = {
+  const entry2 = {
     id: cleanId(raw.id, fallbackId),
     name: cleanString(raw.name, 60) || fallbackName,
     type,
     url: urlCheck.url
   };
   const credit = cleanString(raw.credit, 200);
-  if (credit !== "") entry.credit = credit;
+  if (credit !== "") entry2.credit = credit;
   if (typeof raw.maximumLevel === "number" && Number.isFinite(raw.maximumLevel) && raw.maximumLevel >= 0) {
-    entry.maximumLevel = Math.min(24, Math.floor(raw.maximumLevel));
+    entry2.maximumLevel = Math.min(24, Math.floor(raw.maximumLevel));
   }
   if (raw.tilingScheme === "geographic" || raw.tilingScheme === "web-mercator") {
-    entry.tilingScheme = raw.tilingScheme;
+    entry2.tilingScheme = raw.tilingScheme;
   }
-  if (raw.reverseY === true) entry.reverseY = true;
+  if (raw.reverseY === true) entry2.reverseY = true;
   if (Array.isArray(raw.subdomains)) {
     const subdomains = raw.subdomains.map((item) => cleanString(item, 8)).filter(Boolean).slice(0, 8);
-    if (subdomains.length > 0) entry.subdomains = subdomains;
+    if (subdomains.length > 0) entry2.subdomains = subdomains;
   }
   const wmsLayers = cleanString(raw.layers, 200);
-  if (wmsLayers !== "") entry.layers = wmsLayers;
+  if (wmsLayers !== "") entry2.layers = wmsLayers;
   if (isOverlay) {
     const rawOpacity = raw.opacity;
-    entry.opacity = typeof rawOpacity === "number" && Number.isFinite(rawOpacity) ? Math.min(1, Math.max(0, rawOpacity)) : 1;
-    entry.visible = raw.visible !== false;
+    entry2.opacity = typeof rawOpacity === "number" && Number.isFinite(rawOpacity) ? Math.min(1, Math.max(0, rawOpacity)) : 1;
+    entry2.visible = raw.visible !== false;
   }
-  return entry;
+  return entry2;
 }
 function normalizeView(raw, ignored) {
   if (raw === void 0 || raw === null) return null;
@@ -2897,11 +3231,11 @@ function createInitialSceneCoordinator() {
   const viewers = /* @__PURE__ */ new Set();
   function findMountedViewer(sessionId) {
     let fallback = null;
-    for (const entry of viewers) {
-      const currentSession = entry.getSessionId?.() ?? null;
-      if (sessionId !== null && currentSession === sessionId) return entry;
-      if (sessionId === null && currentSession !== null) fallback = entry;
-      else if (fallback === null) fallback = entry;
+    for (const entry2 of viewers) {
+      const currentSession = entry2.getSessionId?.() ?? null;
+      if (sessionId !== null && currentSession === sessionId) return entry2;
+      if (sessionId === null && currentSession !== null) fallback = entry2;
+      else if (fallback === null) fallback = entry2;
     }
     return fallback;
   }
@@ -2994,6 +3328,56 @@ function ViewerIcon({ size = 18 }) {
     h("path", { d: "M48 34l9 5v10l-9 5-9-5V39z", fill: "currentColor", opacity: 0.9 })
   );
 }
+function LayerActionIcon({ kind, size = 16 }) {
+  const stroke = { stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round", strokeLinejoin: "round", fill: "none" };
+  let shapes;
+  if (kind === "visible") {
+    shapes = [
+      h("path", { key: "eye", d: "M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z", ...stroke }),
+      h("circle", { key: "pupil", cx: 12, cy: 12, r: 3, ...stroke })
+    ];
+  } else if (kind === "hidden") {
+    shapes = [
+      h("path", { key: "eye", d: "M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z", ...stroke }),
+      h("path", { key: "slash", d: "M3.5 3.5l17 17", ...stroke })
+    ];
+  } else if (kind === "locate") {
+    shapes = [
+      h("circle", { key: "ring", cx: 12, cy: 12, r: 5.5, ...stroke }),
+      h("path", { key: "ticks", d: "M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3", ...stroke })
+    ];
+  } else if (kind === "inspect") {
+    shapes = [
+      h("circle", { key: "lens", cx: 10.5, cy: 10.5, r: 6, ...stroke }),
+      h("path", { key: "handle", d: "M15 15l5.5 5.5", ...stroke })
+    ];
+  } else if (kind === "more") {
+    shapes = [
+      h("circle", { key: "a", cx: 5.5, cy: 12, r: 1.5, fill: "currentColor" }),
+      h("circle", { key: "b", cx: 12, cy: 12, r: 1.5, fill: "currentColor" }),
+      h("circle", { key: "c", cx: 18.5, cy: 12, r: 1.5, fill: "currentColor" })
+    ];
+  } else if (kind === "up" || kind === "down") {
+    shapes = [
+      h("path", { key: "arrow", d: kind === "up" ? "M12 19V6M6 12l6-6 6 6" : "M12 5v13M6 12l6 6 6-6", ...stroke })
+    ];
+  } else if (kind === "delete") {
+    shapes = [
+      h("path", { key: "lid", d: "M4 7h16M9.5 7V5h5v2", ...stroke }),
+      h("path", { key: "can", d: "M6.5 7l.9 11.5h9.2L17.5 7", ...stroke }),
+      h("path", { key: "lines", d: "M10 11v4.5M14 11v4.5", ...stroke })
+    ];
+  } else if (kind === "shader") {
+    shapes = [
+      h("path", { key: "sliders", d: "M3 7h6.5M13.5 7H21M3 17h4M11 17h10", ...stroke }),
+      h("circle", { key: "k1", cx: 11.5, cy: 7, r: 2.4, ...stroke }),
+      h("circle", { key: "k2", cx: 8.5, cy: 17, r: 2.4, ...stroke })
+    ];
+  } else {
+    shapes = [h("path", { key: "x", d: "M6 6l12 12M18 6L6 18", ...stroke })];
+  }
+  return h("svg", { viewBox: "0 0 24 24", width: size, height: size, "aria-hidden": true, style: { display: "block" } }, shapes);
+}
 function ToolEntryIcon({ kind, size = 16 }) {
   const stroke = { stroke: "currentColor", strokeWidth: 1.7, strokeLinecap: "round", strokeLinejoin: "round", fill: "none" };
   let shapes;
@@ -3034,6 +3418,17 @@ function ToolEntryIcon({ kind, size = 16 }) {
       h("path", { key: "sliders", d: "M3 7h6.5M13.5 7H21M3 17h4M11 17h10", ...stroke }),
       h("circle", { key: "k1", cx: 11.5, cy: 7, r: 2.4, ...stroke }),
       h("circle", { key: "k2", cx: 8.5, cy: 17, r: 2.4, ...stroke })
+    ];
+  } else if (kind === "view") {
+    shapes = [
+      h("path", { key: "eye", d: "M2.5 12s3.6-6.2 9.5-6.2S21.5 12 21.5 12s-3.6 6.2-9.5 6.2S2.5 12 2.5 12z", ...stroke }),
+      h("circle", { key: "pupil", cx: 12, cy: 12, r: 2.9, ...stroke })
+    ];
+  } else if (kind === "effects") {
+    shapes = [
+      h("path", { key: "sliders", d: "M3 7h6.5M13.5 7H21M3 17h4M11 17h10", ...stroke }),
+      h("circle", { key: "a", cx: 11.5, cy: 7, r: 2.4, ...stroke }),
+      h("circle", { key: "b", cx: 8.5, cy: 17, r: 2.4, ...stroke })
     ];
   } else {
     shapes = [
@@ -3078,12 +3473,41 @@ function LayersIcon({ size = 16 }) {
     h("path", { key: "bottom", d: "M3.5 16.5 12 21l8.5-4.5", ...stroke })
   );
 }
+function GlyphIcon({ name, size = 16 }) {
+  const stroke = { stroke: "currentColor", strokeWidth: 1.7, strokeLinecap: "round", strokeLinejoin: "round", fill: "none" };
+  const paths = {
+    add: ["M12 5v14", "M5 12h14"],
+    folder: ["M3.5 6.8h5.6l1.5 2h9.9v9.4h-17z"],
+    link: ["M9.5 14.5 14.5 9.5", "M8 12 6.4 13.6a3.1 3.1 0 0 0 4.4 4.4L12.4 16.4", "M16 12l1.6-1.6a3.1 3.1 0 0 0-4.4-4.4L11.6 7.6"],
+    history: ["M12 4.5a7.5 7.5 0 1 1-7.4 8.8", "M4.5 8.5 4.4 4.4l4.1.1", "M12 8v4.5l3.2 1.9"],
+    import: ["M12 4.5v9", "M8.6 10.4 12 13.8l3.4-3.4", "M4.5 15.5v3h15v-3"],
+    export: ["M12 14.5v-9", "M8.6 8.6 12 5.2l3.4 3.4", "M4.5 15.5v3h15v-3"],
+    terrain: ["M3 18.5 9 8l3.6 6.1 2-3.1 4.4 7.5z"],
+    raster: ["M4 4.5h16v15H4z", "M4 9.5h16M4 14.5h16M9.3 4.5v15M14.7 4.5v15"],
+    vector: ["M12 3.8 19.5 8v8L12 20.2 4.5 16V8z", "M12 3.8v16.4M4.5 8l15 8M19.5 8l-15 8"],
+    pen: ["M4.5 19.5l3.2-.7L19 7.6a1.6 1.6 0 0 0-2.3-2.3L5.2 16.4z", "M15.6 6.9l1.5 1.5"],
+    frame: ["M4 9V5.2h3.8M16.2 5.2H20V9M20 15v3.8h-3.8M7.8 18.8H4V15", "M9.2 9.2h5.6v5.6H9.2z"],
+    ruler: ["M4.4 15.6 15.6 4.4l4 4L8.4 19.6z", "M8.2 11.8l2 2M11 9l2 2M13.8 6.2l2 2"],
+    props: ["M4 8h6M14 8h6M4 16h3M11 16h9", "M12 8a2 2 0 1 0 0-.1z", "M9.5 16a2 2 0 1 0 0-.1z"],
+    scene: ["M12 3.6a8.4 8.4 0 1 0 0 16.8 8.4 8.4 0 0 0 0-16.8z", "M12 3.6c2.5 2.3 3.9 5.1 3.9 8.4s-1.4 6.1-3.9 8.4c-2.5-2.3-3.9-5.1-3.9-8.4s1.4-6.1 3.9-8.4z", "M3.9 12h16.2"],
+    search: ["M16 10a6 6 0 1 1-12 0 6 6 0 0 1 12 0z", "m15 15 5 5"],
+    view: ["M2.5 12s3.6-6.2 9.5-6.2S21.5 12 21.5 12s-3.6 6.2-9.5 6.2S2.5 12 2.5 12z", "M12 9.2a2.8 2.8 0 1 0 0 5.6 2.8 2.8 0 0 0 0-5.6z"],
+    hide: ["M3 12s3.6-6.2 9-6.2 9 6.2 9 6.2-3.6 6.2-9 6.2S3 12 3 12z", "M4.5 4.5l15 15"],
+    output: ["M4.5 6.5h15v13h-15z", "M8 3.8v4M16 3.8v4", "M8 12.5h8M8 15.8h5"],
+    chat: ["M4 5.5h16v10.5H9.5L5 20v-4H4z", "M8.5 9.5h7M8.5 12.5h4.5"]
+  }[name] ?? ["M12 3.6a8.4 8.4 0 1 0 0 16.8 8.4 8.4 0 0 0 0-16.8z", "M3.9 12h16.2"];
+  return h(
+    "svg",
+    { viewBox: "0 0 24 24", width: size, height: size, "aria-hidden": true, style: { display: "block" } },
+    ...paths.map((d, index) => h("path", { key: index, d, ...stroke }))
+  );
+}
 
 // src/client/ui/layout.js
-var import_react46 = __toESM(require("react"), 1);
+var import_react57 = __toESM(require("react"), 1);
 
 // src/client/viewer/ViewerSurface.js
-var import_react45 = __toESM(require("react"), 1);
+var import_react56 = __toESM(require("react"), 1);
 
 // src/client/analysis/height-service.js
 var CACHE_DEGREES = 1e-7;
@@ -3543,7 +3967,7 @@ var collectProfileRefinementFractions = (entries, lengthMeters, remainingBudget,
   const selected = [];
   for (const candidate of candidates) {
     if (selected.length >= budget) break;
-    const nearExisting = entries.some((entry) => Math.abs(entry.fraction - candidate.fraction) <= minFractionGap);
+    const nearExisting = entries.some((entry2) => Math.abs(entry2.fraction - candidate.fraction) <= minFractionGap);
     const nearSelected = selected.some((fraction) => Math.abs(fraction - candidate.fraction) <= minFractionGap);
     if (!nearExisting && !nearSelected) selected.push(candidate.fraction);
   }
@@ -3571,10 +3995,10 @@ var sampleProfileEntries = async ({
     fraction,
     height: initialBatch.values[index] ? initialBatch.values[index].height : null
   }));
-  if (entries.some((entry) => entry.height !== null)) {
+  if (entries.some((entry2) => entry2.height !== null)) {
     const effectiveRounds = heightMode === "terrain" ? Math.min(rounds, 1) : rounds;
     const refineOpts = heightMode === "terrain" ? { minJumpM: 4, minStepM: 5 } : void 0;
-    for (let round2 = 0; round2 < effectiveRounds; round2 += 1) {
+    for (let round3 = 0; round3 < effectiveRounds; round3 += 1) {
       const remaining = maxPoints - entries.length;
       if (remaining <= 0) break;
       const extraFractions = collectProfileRefinementFractions(entries, length, remaining, refineOpts);
@@ -3591,11 +4015,11 @@ var sampleProfileEntries = async ({
     }
   }
   let withData = 0;
-  const points = entries.map((entry) => {
-    if (entry.height !== null) withData += 1;
+  const points = entries.map((entry2) => {
+    if (entry2.height !== null) withData += 1;
     return {
-      distance_m: analysisRound(length * entry.fraction, 2),
-      height_m: entry.height === null ? null : analysisRound(entry.height, 2)
+      distance_m: analysisRound(length * entry2.fraction, 2),
+      height_m: entry2.height === null ? null : analysisRound(entry2.height, 2)
     };
   });
   return { entries, points, withData };
@@ -3846,9 +4270,9 @@ function planarArea(Cesium, points) {
   const local = points.map((point) => Cesium.Matrix4.multiplyByPoint(inverse, point, new Cesium.Cartesian3()));
   let sum = 0;
   for (let index = 0; index < local.length; index += 1) {
-    const current = local[index];
+    const current2 = local[index];
     const next = local[(index + 1) % local.length];
-    sum += current.x * next.y - next.x * current.y;
+    sum += current2.x * next.y - next.x * current2.y;
   }
   return Math.abs(sum) / 2;
 }
@@ -3905,7 +4329,7 @@ function vectorLineMaterial(Cesium, color, outlineWidth = 1.25) {
     outlineWidth
   });
 }
-function styleVectorOptions(Cesium, options) {
+function styleVectorOptions(Cesium, options, extraction = false) {
   const result = { ...options };
   if (options.point) {
     result.point = {
@@ -3920,8 +4344,8 @@ function styleVectorOptions(Cesium, options) {
     const color = line.material;
     result.polyline = {
       ...line,
-      width: 4.5,
-      ...color instanceof Cesium.Color ? { material: vectorLineMaterial(Cesium, color) } : {},
+      width: extraction ? 2 : 4.5,
+      ...color instanceof Cesium.Color ? { material: vectorLineMaterial(Cesium, color, extraction ? 0.45 : 1.25) } : {},
       ...line.clampToGround ? { classificationType: Cesium.ClassificationType.BOTH } : { arcType: Cesium.ArcType.NONE }
     };
     if (line.depthFailMaterial && color instanceof Cesium.Color) {
@@ -3938,7 +4362,7 @@ function styleVectorOptions(Cesium, options) {
       outline: hasElevation ? options.polygon.outline ?? true : false
     };
     if (options.polygon.material instanceof Cesium.Color) {
-      result.polygon.material = options.polygon.material.withAlpha(hasElevation ? 0.34 : 0.16);
+      result.polygon.material = options.polygon.material.withAlpha(hasElevation ? 0.34 : extraction ? 0.09 : 0.16);
     }
     if (!hasElevation) result.polygon.classificationType = Cesium.ClassificationType.BOTH;
   }
@@ -3965,14 +4389,14 @@ var CLIP_OWNER_ANALYSIS = "analysis";
 var registry = /* @__PURE__ */ new WeakMap();
 function liveEntry(tileset) {
   if (!tileset || typeof tileset !== "object") return null;
-  const entry = registry.get(tileset);
-  if (!entry) return null;
-  const destroyed = typeof entry.collection?.isDestroyed === "function" ? entry.collection.isDestroyed() : false;
+  const entry2 = registry.get(tileset);
+  if (!entry2) return null;
+  const destroyed = typeof entry2.collection?.isDestroyed === "function" ? entry2.collection.isDestroyed() : false;
   if (destroyed) {
     registry.delete(tileset);
     return null;
   }
-  return entry;
+  return entry2;
 }
 function setClipPlane(collection, plane) {
   if (!collection || !plane || !plane.normal || !Number.isFinite(plane.distance)) return false;
@@ -3993,9 +4417,9 @@ function setClipPlane(collection, plane) {
   }
 }
 function clipConflictOf(tileset) {
-  const entry = liveEntry(tileset);
-  if (entry && entry.owner !== null && entry.owner !== CLIP_OWNER_ANALYSIS) return "swipe";
-  const registered = entry?.collection ?? null;
+  const entry2 = liveEntry(tileset);
+  if (entry2 && entry2.owner !== null && entry2.owner !== CLIP_OWNER_ANALYSIS) return "swipe";
+  const registered = entry2?.collection ?? null;
   let assigned = null;
   try {
     assigned = tileset?.clippingPlanes ?? null;
@@ -4015,8 +4439,8 @@ function acquireClipCollection(Cesium, tileset, options = {}) {
   if (!plane || !plane.normal || !Number.isFinite(plane.distance)) {
     return { ok: false, reason: "unavailable" };
   }
-  const entry = liveEntry(tileset);
-  const cached = entry?.collection ?? null;
+  const entry2 = liveEntry(tileset);
+  const cached = entry2?.collection ?? null;
   let existing = null;
   try {
     existing = tileset.clippingPlanes ?? null;
@@ -4027,10 +4451,10 @@ function acquireClipCollection(Cesium, tileset, options = {}) {
     existing = null;
   }
   if (existing !== null && existing !== cached) {
-    return { ok: false, reason: "conflict", owner: entry?.owner ?? null };
+    return { ok: false, reason: "conflict", owner: entry2?.owner ?? null };
   }
-  if (entry && entry.owner !== null && entry.owner !== owner) {
-    return { ok: false, reason: "conflict", owner: entry.owner };
+  if (entry2 && entry2.owner !== null && entry2.owner !== owner) {
+    return { ok: false, reason: "conflict", owner: entry2.owner };
   }
   let collection = cached;
   if (collection === null) {
@@ -4056,7 +4480,7 @@ function acquireClipCollection(Cesium, tileset, options = {}) {
     } catch {
       return { ok: false, reason: "unavailable" };
     }
-    entry.owner = owner;
+    entry2.owner = owner;
   }
   if (tileset.clippingPlanes !== collection) {
     try {
@@ -4071,15 +4495,15 @@ function acquireClipCollection(Cesium, tileset, options = {}) {
   return { ok: true, collection, reused: cached !== null };
 }
 function releaseClipCollection(tileset, owner) {
-  const entry = liveEntry(tileset);
-  if (!entry) return false;
-  if (owner !== void 0 && entry.owner !== owner) return false;
+  const entry2 = liveEntry(tileset);
+  if (!entry2) return false;
+  if (owner !== void 0 && entry2.owner !== owner) return false;
   try {
-    entry.collection.enabled = false;
+    entry2.collection.enabled = false;
   } catch {
     return false;
   }
-  entry.owner = null;
+  entry2.owner = null;
   return true;
 }
 
@@ -4419,8 +4843,8 @@ function createAnalysisEngine(deps) {
       throw new Error("analysis: 分析范围过小，无法计算格元面积。next: 扩大 region 后重试。");
     }
     const probes = [];
-    for (let row = 0; row < grid; row += 1) {
-      const lat = region.south + (region.north - region.south) * (row + 0.5) / grid;
+    for (let row2 = 0; row2 < grid; row2 += 1) {
+      const lat = region.south + (region.north - region.south) * (row2 + 0.5) / grid;
       for (let column = 0; column < grid; column += 1) {
         const lon = region.west + (region.east - region.west) * (column + 0.5) / grid;
         probes.push(Cesium.Cartographic.fromDegrees(lon, lat));
@@ -4552,7 +4976,7 @@ function createAnalysisEngine(deps) {
     viewer.clock.currentTime = Cesium.JulianDate.fromDate(date);
     viewer.clock.shouldAnimate = false;
     for (const saved of restore.tilesets) {
-      const item = layersRef.current.find((entry) => entry.id === saved.id);
+      const item = layersRef.current.find((entry2) => entry2.id === saved.id);
       if (item && item.tileset) {
         item.tileset.shadows = Cesium.ShadowMode.ENABLED;
         if (!showShadows) item.tileset.shadows = Cesium.ShadowMode.DISABLED;
@@ -4855,18 +5279,18 @@ function withAnnotationProperties(feature, patch = {}) {
     const previousProps = feature.properties && typeof feature.properties === "object" ? feature.properties : {};
     const parsed = [];
     const seen = /* @__PURE__ */ new Set();
-    for (const entry of patch.attributes) {
-      const key = typeof entry?.key === "string" ? entry.key.replace(/\s+/g, " ").trim().slice(0, ANNOTATION_MAX_ATTR_KEY) : "";
+    for (const entry2 of patch.attributes) {
+      const key = typeof entry2?.key === "string" ? entry2.key.replace(/\s+/g, " ").trim().slice(0, ANNOTATION_MAX_ATTR_KEY) : "";
       if (key === "") return { ok: false, error: "invalid_attribute_key" };
       if (!isCustomAttributeKey(key)) return { ok: false, error: "reserved_attribute_key" };
       if (seen.has(key)) return { ok: false, error: "duplicate_attribute_key" };
       seen.add(key);
       const prevRaw = previousProps[key];
-      if (entry.preserveObject && prevRaw !== null && typeof prevRaw === "object") {
+      if (entry2.preserveObject && prevRaw !== null && typeof prevRaw === "object") {
         parsed.push([key, prevRaw]);
         continue;
       }
-      const rawVal = entry?.value;
+      const rawVal = entry2?.value;
       if (typeof rawVal === "number" && Number.isFinite(rawVal)) {
         parsed.push([key, rawVal]);
       } else if (typeof rawVal === "boolean") {
@@ -4937,11 +5361,11 @@ function annotationBoundsOk(feature) {
 function roundAnnotationGeometry(geometry, digits = ANNOTATION_COORDINATE_DECIMALS) {
   if (geometry === null || typeof geometry !== "object") return geometry;
   const factor = 10 ** digits;
-  const round2 = (value) => Math.round(value * factor) / factor;
+  const round3 = (value) => Math.round(value * factor) / factor;
   const walk = (value) => {
     if (!Array.isArray(value)) return value;
     if (typeof value[0] === "number") {
-      return value.map((part, index) => index < 2 ? round2(part) : part);
+      return value.map((part, index) => index < 2 ? round3(part) : part);
     }
     return value.map(walk);
   };
@@ -5214,7 +5638,8 @@ function buildAgentOverlayList(state) {
       index,
       origin: overlayOriginOf(command),
       label: typeof command?.caption === "string" && command.caption !== "" ? command.caption : `标注 ${index + 1}`,
-      detail: `${count || command?.drawn || 0} 要素`
+      detail: `${count || command?.drawn || 0} 要素`,
+      hidden: command?.hidden === true
     });
   }
   for (let index = 0; index < state.measureCommands.length; index += 1) {
@@ -5225,22 +5650,23 @@ function buildAgentOverlayList(state) {
       index,
       origin: overlayOriginOf(command),
       label: `量测 ${index + 1}`,
-      detail: `${command?.mode ?? "measure"}${measureDetail(command) === "" ? "" : ` · ${measureDetail(command)}`}`
+      detail: `${command?.mode ?? "measure"}${measureDetail(command) === "" ? "" : ` · ${measureDetail(command)}`}`,
+      hidden: command?.hidden === true
     });
   }
   return rows;
 }
 function overlayRowsWithEntities(state) {
   if (!state) return [];
-  return buildAgentOverlayList(state).map((row) => {
-    const command = row.kind === "draw" ? state.drawCommands[row.index] : state.measureCommands[row.index];
+  return buildAgentOverlayList(state).map((row2) => {
+    const command = row2.kind === "draw" ? state.drawCommands[row2.index] : state.measureCommands[row2.index];
     const entities = state.entityGroups?.get(command) ?? [];
-    return { ...row, selectionId: commandId(command), entities, geojson: row.kind === "draw" ? command?.geojson ?? null : null };
+    return { ...row2, selectionId: commandId(command), entities, geojson: row2.kind === "draw" ? command?.geojson ?? null : null };
   });
 }
-function resolveOverlayRows(selected, current) {
-  const ids = new Set((Array.isArray(selected) ? selected : []).map((row) => row?.selectionId).filter(Boolean));
-  return (Array.isArray(current) ? current : []).filter((row) => ids.has(row.selectionId));
+function resolveOverlayRows(selected, current2) {
+  const ids = new Set((Array.isArray(selected) ? selected : []).map((row2) => row2?.selectionId).filter(Boolean));
+  return (Array.isArray(current2) ? current2 : []).filter((row2) => ids.has(row2.selectionId));
 }
 function manualMeasurementRow(entities, label, detail = "") {
   if (!Array.isArray(entities) || entities.length === 0) return null;
@@ -5248,14 +5674,14 @@ function manualMeasurementRow(entities, label, detail = "") {
 }
 function mergeDrawGeoJSON(rows) {
   const features = [];
-  for (const row of Array.isArray(rows) ? rows : []) {
-    if (!row || row.kind !== "draw" || !row.geojson) continue;
-    if (row.geojson.type === "FeatureCollection" && Array.isArray(row.geojson.features)) {
-      features.push(...row.geojson.features);
-    } else if (row.geojson.type === "Feature") {
-      features.push(row.geojson);
-    } else if (typeof row.geojson.type === "string") {
-      features.push({ type: "Feature", properties: {}, geometry: row.geojson });
+  for (const row2 of Array.isArray(rows) ? rows : []) {
+    if (!row2 || row2.kind !== "draw" || !row2.geojson) continue;
+    if (row2.geojson.type === "FeatureCollection" && Array.isArray(row2.geojson.features)) {
+      features.push(...row2.geojson.features);
+    } else if (row2.geojson.type === "Feature") {
+      features.push(row2.geojson);
+    } else if (typeof row2.geojson.type === "string") {
+      features.push({ type: "Feature", properties: {}, geometry: row2.geojson });
     }
   }
   return features.length > 0 ? { type: "FeatureCollection", features } : null;
@@ -5264,12 +5690,29 @@ function removeAgentOverlayRows(state, viewer, rows) {
   const list = resolveOverlayRows(rows, overlayRowsWithEntities(state));
   let removed = 0;
   for (const kind of ["draw", "measure"]) {
-    const indexes = list.filter((row) => row && row.kind === kind && Number.isInteger(row.index)).map((row) => row.index).sort((a, b) => b - a);
+    const indexes = list.filter((row2) => row2 && row2.kind === kind && Number.isInteger(row2.index)).map((row2) => row2.index).sort((a, b) => b - a);
     for (const index of indexes) {
       if (removeAgentOverlay(state, viewer, kind, index)) removed += 1;
     }
   }
   return removed;
+}
+function setAgentOverlayHidden(state, kind, index, hidden) {
+  const list = kind === "draw" ? state?.drawCommands : kind === "measure" ? state?.measureCommands : null;
+  const command = Array.isArray(list) ? list[index] : null;
+  if (!command) return false;
+  if (hidden) command.hidden = true;
+  else delete command.hidden;
+  for (const entity of state.entityGroups?.get(command) ?? []) entity.show = hidden !== true;
+  return true;
+}
+function applyOverlayHidden(state) {
+  for (const list of [state?.drawCommands, state?.measureCommands]) {
+    for (const command of Array.isArray(list) ? list : []) {
+      if (command?.hidden !== true) continue;
+      for (const entity of state.entityGroups?.get(command) ?? []) entity.show = false;
+    }
+  }
 }
 function removeAgentOverlay(state, viewer, kind, index) {
   if (kind === "draw") {
@@ -5387,6 +5830,84 @@ function flyToOverlayFeature(viewer, Cesium, feature) {
   if (!viewer || !Cesium || !feature) return false;
   const bbox = bboxOfNode(feature);
   return bbox ? flyToBbox(viewer, Cesium, bbox) : false;
+}
+
+// src/client/scene/overlay-actions.js
+function createOverlayActions({ t: t2, confirm, showToast, getState, clear, remove, onChanged }) {
+  const rows = () => buildAgentOverlayList(getState());
+  const featureCount = (kind, index) => kind === "draw" ? getState().drawCommands[index]?.drawn ?? 0 : 0;
+  const copy = {
+    annotations: {
+      title: t2("confirm.clearAnnotationsTitle"),
+      message: (params) => t2("confirm.clearAnnotationsMessage", params),
+      toast: t2("toast.annotationsCleared")
+    },
+    measurements: {
+      title: t2("confirm.clearMeasurementsTitle"),
+      message: (params) => t2("confirm.clearMeasurementsMessage", params),
+      toast: t2("toast.measureCleared")
+    },
+    imports: {
+      title: t2("confirm.clearImportsTitle"),
+      message: (params) => t2("confirm.clearImportsMessage", params),
+      toast: t2("toast.vectorCleared")
+    }
+  };
+  const clearScope = async ({ scope, predicate, run }) => {
+    const scoped = rows().filter(predicate);
+    if (scoped.length === 0) return false;
+    const features = scoped.reduce((sum, row2) => sum + featureCount(row2.kind, row2.index), 0);
+    const ok = await confirm({
+      title: copy[scope].title,
+      message: copy[scope].message({ n: scoped.length, features }),
+      confirmLabel: t2("confirm.clear"),
+      cancelLabel: t2("btn.cancel"),
+      danger: true
+    });
+    if (!ok) return false;
+    run();
+    showToast(copy[scope].toast);
+    return true;
+  };
+  return {
+    // 标注: Agent + user drawn annotations, never the imported vector layers.
+    onClearAnnotations: () => clearScope({
+      scope: "annotations",
+      predicate: (row2) => row2.kind === "draw" && row2.origin !== "import",
+      run: () => {
+        clear("draw", { origin: "agent" });
+        clear("draw", { origin: "user" });
+      }
+    }),
+    // 量测: measurements only.
+    onClearMeasurements: () => clearScope({
+      scope: "measurements",
+      predicate: (row2) => row2.kind === "measure",
+      run: () => clear("measure")
+    }),
+    // 矢量图层: imported vector layers only.
+    onClearImports: () => clearScope({
+      scope: "imports",
+      predicate: (row2) => row2.kind === "draw" && row2.origin === "import",
+      run: () => clear("draw", { origin: "import" })
+    }),
+    onRemoveAgentOverlay: async (kind, index) => {
+      const features = featureCount(kind, index);
+      if (features > 0) {
+        const ok = await confirm({
+          title: t2("confirm.removeOverlayTitle"),
+          message: t2("confirm.removeOverlayMessage", { features }),
+          confirmLabel: t2("confirm.remove"),
+          cancelLabel: t2("btn.cancel"),
+          danger: true
+        });
+        if (!ok) return;
+      }
+      if (!remove(kind, index)) return;
+      onChanged();
+      showToast(t2("toast.overlayRemoved"));
+    }
+  };
 }
 
 // src/client/api.js
@@ -5650,7 +6171,7 @@ var isSnapshotLayer = (layer) => layer !== null && typeof layer === "object" && 
 var SNAPSHOT_ANALYSIS_ACTIONS = ["profile", "flood", "sunlight"];
 var SNAPSHOT_EXTRA_ANALYSIS_ACTIONS = ["clip", "skyline"];
 var isSnapshotAnalysis = (analysis) => analysis !== null && typeof analysis === "object" && typeof analysis.action === "string" && (SNAPSHOT_ANALYSIS_ACTIONS.includes(analysis.action) || SNAPSHOT_EXTRA_ANALYSIS_ACTIONS.includes(analysis.action));
-var isSnapshotPresetStack = (preset) => Array.isArray(preset) && preset.length >= 1 && preset.length <= 3 && preset.every((entry) => typeof entry === "string" && entry.trim() !== "");
+var isSnapshotPresetStack = (preset) => Array.isArray(preset) && preset.length >= 1 && preset.length <= 3 && preset.every((entry2) => typeof entry2 === "string" && entry2.trim() !== "");
 var isSnapshotShader = (item) => item !== null && typeof item === "object" && (typeof item.layer === "string" && typeof item.preset === "string" || typeof item.layer === "string" && isSnapshotPresetStack(item.preset));
 var normalizeSnapshotCompaction = (value) => {
   if (value === null || typeof value !== "object") return null;
@@ -5669,18 +6190,18 @@ var normalizeSnapshotRasterFrames = (raw) => {
   if (raw === null || typeof raw !== "object" || Array.isArray(raw)) return {};
   const out = {};
   let count = 0;
-  for (const [id, entry] of Object.entries(raw)) {
+  for (const [id, entry2] of Object.entries(raw)) {
     if (count >= 32) break;
     if (typeof id !== "string" || id.trim() === "" || id.length > 80) continue;
-    if (Number.isInteger(entry) && entry >= 0 && entry < 60) {
-      out[id] = { frame: entry };
+    if (Number.isInteger(entry2) && entry2 >= 0 && entry2 < 60) {
+      out[id] = { frame: entry2 };
       count += 1;
       continue;
     }
-    if (entry !== null && typeof entry === "object" && !Array.isArray(entry)) {
-      const frame = entry.frame;
+    if (entry2 !== null && typeof entry2 === "object" && !Array.isArray(entry2)) {
+      const frame = entry2.frame;
       if (!Number.isInteger(frame) || frame < 0 || frame >= 60) continue;
-      const time = typeof entry.time === "string" && entry.time.trim() !== "" ? entry.time.trim().slice(0, 40) : "";
+      const time = typeof entry2.time === "string" && entry2.time.trim() !== "" ? entry2.time.trim().slice(0, 40) : "";
       out[id] = time !== "" ? { frame, time } : { frame };
       count += 1;
     }
@@ -6002,13 +6523,13 @@ function resolveSourceFrames(source) {
   if (rawFrames && rawFrames.length > 0) {
     const out = [];
     for (let index = 0; index < rawFrames.length; index += 1) {
-      const entry = rawFrames[index];
-      if (!entry || typeof entry !== "object" || typeof entry.url !== "string" || entry.url.trim() === "") continue;
-      const entryTime = cleanTimeString(entry.time);
+      const entry2 = rawFrames[index];
+      if (!entry2 || typeof entry2 !== "object" || typeof entry2.url !== "string" || entry2.url.trim() === "") continue;
+      const entryTime = cleanTimeString(entry2.time);
       const pairedTime = rawTimes && typeof rawTimes[index] === "string" ? cleanTimeString(rawTimes[index]) : "";
       const time = entryTime || pairedTime || null;
-      const url = substituteTime(entry.url.trim(), time);
-      const label = (typeof entry.label === "string" ? entry.label.trim().slice(0, MAX_FRAME_LABEL_LENGTH) : "") || time || `#${index + 1}`;
+      const url = substituteTime(entry2.url.trim(), time);
+      const label = (typeof entry2.label === "string" ? entry2.label.trim().slice(0, MAX_FRAME_LABEL_LENGTH) : "") || time || `#${index + 1}`;
       out.push({ index: out.length, label, url, time });
     }
     return out;
@@ -6196,20 +6717,20 @@ function createOverlayLayers({ Cesium, viewer, providerFactory, onError = () => 
     }
   }
   function removeNow(id) {
-    const entry = entries.get(id);
-    if (!entry) return false;
+    const entry2 = entries.get(id);
+    if (!entry2) return false;
     frameSeqs.delete(id);
-    destroyLayer(entry.layer);
+    destroyLayer(entry2.layer);
     entries.delete(id);
     return true;
   }
-  function needsRebuild(entry, source) {
-    return entry.source.type !== source.type || entry.source.url !== source.url || (entry.source.layers ?? "") !== (source.layers ?? "") || temporalSignature(entry.source) !== temporalSignature(source);
+  function needsRebuild(entry2, source) {
+    return entry2.source.type !== source.type || entry2.source.url !== source.url || (entry2.source.layers ?? "") !== (source.layers ?? "") || temporalSignature(entry2.source) !== temporalSignature(source);
   }
-  function applyStyle(entry) {
-    if (!entry.layer) return;
-    entry.layer.alpha = entry.source.opacity;
-    entry.layer.show = entry.source.visible !== false;
+  function applyStyle(entry2) {
+    if (!entry2.layer) return;
+    entry2.layer.alpha = entry2.source.opacity;
+    entry2.layer.show = entry2.source.visible !== false;
   }
   async function addNow(source, initialFrameIndex = 0) {
     const layers2 = collection();
@@ -6226,16 +6747,16 @@ function createOverlayLayers({ Cesium, viewer, providerFactory, onError = () => 
       return null;
     }
     const layer = layers2.addImageryProvider(provider);
-    const entry = {
+    const entry2 = {
       id: source.id,
       source: { ...source },
       frames,
       frameIndex,
       layer
     };
-    entries.set(source.id, entry);
-    applyStyle(entry);
-    return entry;
+    entries.set(source.id, entry2);
+    applyStyle(entry2);
+    return entry2;
   }
   return {
     /** Add (or replace) one overlay and return its entry, or null on failure. */
@@ -6254,19 +6775,19 @@ function createOverlayLayers({ Cesium, viewer, providerFactory, onError = () => 
     },
     setOpacity(id, opacity) {
       return enqueue(() => {
-        const entry = entries.get(id);
-        if (!entry) return false;
-        entry.source.opacity = Math.min(1, Math.max(0, Number(opacity) || 0));
-        applyStyle(entry);
+        const entry2 = entries.get(id);
+        if (!entry2) return false;
+        entry2.source.opacity = Math.min(1, Math.max(0, Number(opacity) || 0));
+        applyStyle(entry2);
         return true;
       });
     },
     setVisible(id, visible) {
       return enqueue(() => {
-        const entry = entries.get(id);
-        if (!entry) return false;
-        entry.source.visible = visible !== false;
-        applyStyle(entry);
+        const entry2 = entries.get(id);
+        if (!entry2) return false;
+        entry2.source.visible = visible !== false;
+        applyStyle(entry2);
         return true;
       });
     },
@@ -6280,41 +6801,41 @@ function createOverlayLayers({ Cesium, viewer, providerFactory, onError = () => 
       frameSeqs.set(id, seq);
       return enqueue(async () => {
         if (frameSeqs.get(id) !== seq) return { ok: false, stale: true };
-        const entry = entries.get(id);
-        if (!entry || entry.frames.length === 0) return { ok: false, reason: "unavailable" };
-        const targetIndex = clampFrameIndex(nextIndex, entry.frames);
-        if (targetIndex === entry.frameIndex) {
-          return { ok: true, unchanged: true, frameIndex: targetIndex, frame: entry.frames[targetIndex] };
+        const entry2 = entries.get(id);
+        if (!entry2 || entry2.frames.length === 0) return { ok: false, reason: "unavailable" };
+        const targetIndex = clampFrameIndex(nextIndex, entry2.frames);
+        if (targetIndex === entry2.frameIndex) {
+          return { ok: true, unchanged: true, frameIndex: targetIndex, frame: entry2.frames[targetIndex] };
         }
-        const effectiveSource = resolveFrameSource(entry.source, targetIndex);
+        const effectiveSource = resolveFrameSource(entry2.source, targetIndex);
         let provider;
         try {
           provider = await buildProvider(Cesium, effectiveSource);
         } catch (error) {
           if (frameSeqs.get(id) !== seq) return { ok: false, stale: true };
-          onError(error, entry.source);
+          onError(error, entry2.source);
           return { ok: false, error: error instanceof Error ? error.message : String(error) };
         }
-        if (frameSeqs.get(id) !== seq || entries.get(id) !== entry) {
+        if (frameSeqs.get(id) !== seq || entries.get(id) !== entry2) {
           return { ok: false, stale: true };
         }
         const layers2 = collection();
         if (!layers2) return { ok: false, reason: "unavailable" };
-        const oldLayer = entry.layer;
+        const oldLayer = entry2.layer;
         const oldIndex = typeof layers2.indexOf === "function" ? layers2.indexOf(oldLayer) : -1;
         const nextLayer = oldIndex >= 0 ? layers2.addImageryProvider(provider, oldIndex) : layers2.addImageryProvider(provider);
         if (oldLayer && oldLayer.splitDirection !== void 0) {
           nextLayer.splitDirection = oldLayer.splitDirection;
         }
-        entry.layer = nextLayer;
-        entry.frameIndex = targetIndex;
-        applyStyle(entry);
+        entry2.layer = nextLayer;
+        entry2.frameIndex = targetIndex;
+        applyStyle(entry2);
         destroyLayer(oldLayer);
         try {
           viewer?.scene?.requestRender?.();
         } catch {
         }
-        return { ok: true, frameIndex: targetIndex, frame: entry.frames[targetIndex] };
+        return { ok: true, frameIndex: targetIndex, frame: entry2.frames[targetIndex] };
       });
     },
     /** Current 0-based frame index for an overlay (0 for non-temporal or missing). */
@@ -6359,18 +6880,18 @@ function createOverlayLayers({ Cesium, viewer, providerFactory, onError = () => 
         const currentOrder = [...entries.keys()];
         const orderedEntries = [];
         for (const source of next) {
-          const entry = entries.get(source.id);
-          if (entry) orderedEntries.push([source.id, entry]);
+          const entry2 = entries.get(source.id);
+          if (entry2) orderedEntries.push([source.id, entry2]);
         }
         const orderChanged = orderedEntries.length === currentOrder.length && orderedEntries.some(([id], idx) => currentOrder[idx] !== id);
         if (orderChanged) {
           entries.clear();
           const layers2 = collection();
-          for (const [id, entry] of orderedEntries) {
-            entries.set(id, entry);
+          for (const [id, entry2] of orderedEntries) {
+            entries.set(id, entry2);
             try {
-              if (layers2 && entry.layer && typeof layers2.raiseToTop === "function") {
-                layers2.raiseToTop(entry.layer);
+              if (layers2 && entry2.layer && typeof layers2.raiseToTop === "function") {
+                layers2.raiseToTop(entry2.layer);
               }
             } catch {
             }
@@ -6381,16 +6902,16 @@ function createOverlayLayers({ Cesium, viewer, providerFactory, onError = () => 
     },
     /** Live stack in insert order (bottom-most overlay first). */
     list() {
-      return [...entries.values()].map((entry) => {
-        const temporal = describeRasterFrames(entry.source, entry.frameIndex);
-        const activeUrl = entry.frames.length > 0 ? entry.frames[entry.frameIndex]?.url ?? entry.source.url : entry.source.url;
+      return [...entries.values()].map((entry2) => {
+        const temporal = describeRasterFrames(entry2.source, entry2.frameIndex);
+        const activeUrl = entry2.frames.length > 0 ? entry2.frames[entry2.frameIndex]?.url ?? entry2.source.url : entry2.source.url;
         return {
-          id: entry.id,
-          name: entry.source.name,
-          type: entry.source.type,
+          id: entry2.id,
+          name: entry2.source.name,
+          type: entry2.source.type,
           url: activeUrl,
-          opacity: entry.source.opacity,
-          visible: entry.source.visible !== false,
+          opacity: entry2.source.opacity,
+          visible: entry2.source.visible !== false,
           ...temporal ?? {}
         };
       });
@@ -6433,9 +6954,9 @@ function createRasterFrameController({
     return { overlays, activeImagery };
   };
   const updateFrameState = (id, index) => {
-    const current = getFrameMap?.() ?? {};
-    if (current[id] === index) return;
-    setFrameMap?.({ ...current, [id]: index });
+    const current2 = getFrameMap?.() ?? {};
+    if (current2[id] === index) return;
+    setFrameMap?.({ ...current2, [id]: index });
   };
   const findTarget = (token) => {
     const { overlays, activeImagery } = catalogSources();
@@ -6519,12 +7040,12 @@ function createRasterFrameController({
   }
   function snapshotFrames() {
     const { overlays, activeImagery } = catalogSources();
-    const current = getFrameMap?.() ?? {};
+    const current2 = getFrameMap?.() ?? {};
     const out = {};
     const record = (source) => {
       const frames = resolveSourceFrames(source);
       if (frames.length < 2) return;
-      const index = clampFrameIndex(current[source.id] ?? 0, frames);
+      const index = clampFrameIndex(current2[source.id] ?? 0, frames);
       const active = frames[index];
       out[source.id] = active?.time ? { frame: index, time: active.time } : { frame: index };
     };
@@ -6581,7 +7102,7 @@ function createLayerKindProbe({ getMeta, sourceOfLayer: sourceOfLayer2, layerRun
 
 // src/client/scene/motion.js
 var EARTH_RADIUS_M = 63710088e-1;
-var toRad = (degrees) => degrees * Math.PI / 180;
+var toRad = (degrees2) => degrees2 * Math.PI / 180;
 function viewDistanceM(from, to) {
   if (!from || !to) return 0;
   const lat1 = Number(from.lat);
@@ -6729,24 +7250,24 @@ function defaultStorage() {
     return null;
   }
 }
-function loadBookmarks(storage = defaultStorage()) {
-  if (!storage || typeof storage.getItem !== "function") return [];
+function loadBookmarks(storage2 = defaultStorage()) {
+  if (!storage2 || typeof storage2.getItem !== "function") return [];
   try {
-    return normalizeBookmarks(JSON.parse(storage.getItem(BOOKMARK_STORAGE_KEY) ?? "[]"));
+    return normalizeBookmarks(JSON.parse(storage2.getItem(BOOKMARK_STORAGE_KEY) ?? "[]"));
   } catch {
     return [];
   }
 }
-function saveBookmarks(list, storage = defaultStorage()) {
-  if (!storage || typeof storage.setItem !== "function") return false;
+function saveBookmarks(list, storage2 = defaultStorage()) {
+  if (!storage2 || typeof storage2.setItem !== "function") return false;
   const normalized = normalizeBookmarks(list);
   try {
-    storage.setItem(BOOKMARK_STORAGE_KEY, JSON.stringify(normalized));
+    storage2.setItem(BOOKMARK_STORAGE_KEY, JSON.stringify(normalized));
     return true;
   } catch {
     try {
       const compact = normalized.map((item) => ({ ...item, thumb: "" }));
-      storage.setItem(BOOKMARK_STORAGE_KEY, JSON.stringify(compact));
+      storage2.setItem(BOOKMARK_STORAGE_KEY, JSON.stringify(compact));
       return true;
     } catch {
       return false;
@@ -6867,6 +7388,11 @@ function flyToCartographic(viewer, Cesium, carto, duration = 0.8) {
 }
 
 // src/client/scene/fly-target.js
+function placeBounds({ lon, lat, bbox }) {
+  if (bbox) return bbox;
+  const radius = 5e-3;
+  return { west: Math.max(-180, lon - radius), south: Math.max(-90, lat - radius), east: Math.min(180, lon + radius), north: Math.min(90, lat + radius) };
+}
 var MAX_CAMERA_HEIGHT_M = 2e7;
 function parseLonLat(value) {
   if (typeof value !== "string") return null;
@@ -6928,7 +7454,7 @@ function selectionQuestionContext(selection) {
     height_reference: "ellipsoid"
   };
   if (selection.kind === "point") Object.assign(context, { lon: selection.lon, lat: selection.lat, height_m: selection.height });
-  else if (selection.kind === "objects") context.overlays = (selection.rows ?? []).slice(0, 40).map((row) => ({ label: String(row.label ?? "").slice(0, 160), kind: row.kind, id: row.id }));
+  else if (selection.kind === "objects") context.overlays = (selection.rows ?? []).slice(0, 40).map((row2) => ({ label: String(row2.label ?? "").slice(0, 160), kind: row2.kind, id: row2.id }));
   else if (selection.kind !== "screen") Object.assign(context, {
     ring: selection.ring?.slice(0, 129),
     area_m2_approx: selection.area_m2,
@@ -7048,7 +7574,7 @@ function createAskAgent(deps) {
       );
     } else if (selection && selection.kind === "objects" && Array.isArray(selection.rows)) {
       lines.push(
-        `Selected overlays (${selection.rows.length}): ${selection.rows.map((row) => row.label).filter(Boolean).join("; ")}`
+        `Selected overlays (${selection.rows.length}): ${selection.rows.map((row2) => row2.label).filter(Boolean).join("; ")}`
       );
     } else if (selection && Array.isArray(selection.ring) && selection.ring.length >= 4) {
       const rounded = selection.ring.map((point) => [Number(point[0].toFixed(6)), Number(point[1].toFixed(6))]);
@@ -7818,6 +8344,154 @@ function createMeasurePreview({
   return { clear, sync, onMove, dispose: clear };
 }
 
+// src/client/scene/measure-commit.js
+var round = (value, digits = 3) => Math.round(value * 10 ** digits) / 10 ** digits;
+var degrees = (radians) => radians * 180 / Math.PI;
+function measureResultOf(Cesium, mode, points) {
+  if (!Cesium || !Array.isArray(points)) return null;
+  if (mode === "distance" && points.length >= 2) {
+    const distance = geodesicLength(Cesium, points);
+    return {
+      mode,
+      points: points.length,
+      drawn: true,
+      distance_m: round(distance, 1),
+      distance_km: round(distance / 1e3, 4)
+    };
+  }
+  if (mode === "area" && points.length >= 3) {
+    const area = planarArea(Cesium, points);
+    const perimeter = geodesicLength(Cesium, [...points, points[0]]);
+    return {
+      mode,
+      points: points.length,
+      drawn: true,
+      area_m2: round(area, 1),
+      area_km2: round(area / 1e6, 6),
+      perimeter_m: round(perimeter, 1)
+    };
+  }
+  if (mode === "height" && points.length === 2) {
+    const left = Cesium.Cartographic.fromCartesian(points[0]);
+    const right = Cesium.Cartographic.fromCartesian(points[1]);
+    if (!left || !right) return null;
+    const height = right.height - left.height;
+    const horizontal = new Cesium.EllipsoidGeodesic(left, right).surfaceDistance;
+    return {
+      mode,
+      points: 2,
+      drawn: true,
+      height_m: round(height, 2),
+      height_from_m: round(left.height, 2),
+      height_to_m: round(right.height, 2),
+      horizontal_m: round(horizontal, 1),
+      slope_deg: horizontal > 0 ? round(degrees(Math.atan2(height, horizontal)), 1) : null
+    };
+  }
+  return null;
+}
+function measureLonLatHeights(Cesium, points) {
+  if (!Cesium || !Array.isArray(points)) return null;
+  const out = [];
+  for (const position of points) {
+    const carto = position ? Cesium.Cartographic.fromCartesian(position) : null;
+    if (!carto) return null;
+    out.push([round(degrees(carto.longitude), 7), round(degrees(carto.latitude), 7), round(carto.height, 2)]);
+  }
+  return out.length > 0 ? out : null;
+}
+function buildMeasureCommand(Cesium, { mode = null, points = [], result = null, origin = "user" } = {}) {
+  if (!result) return null;
+  const coords = measureLonLatHeights(Cesium, points);
+  if (!coords) return null;
+  return { mode, points: coords, draw: true, result, origin };
+}
+
+// src/client/scene/measure-render.js
+function drawMeasurePreview({ Cesium, viewer, state, mode, t: t2, vector, onInfo }) {
+  if (!Cesium || !viewer || !state) return;
+  for (const entity of state.entities) viewer.entities.remove(entity);
+  state.entities = [];
+  const points = state.points;
+  state.mode = mode;
+  state.result = measureResultOf(Cesium, mode, points);
+  const descriptor = { group: "local-measure", kind: t2("layers.vectorMeasured"), title: t2(`tool.${mode}`), summary: "" };
+  const add = (options) => {
+    const entity = vector.add(options, descriptor);
+    state.entities.push(entity);
+    return entity;
+  };
+  const accent = Cesium.Color.fromCssColorString(VECTOR_COLORS.accent);
+  const label = (position, text) => add({ position, label: vectorLabel(Cesium, text) });
+  for (const position of points) {
+    add({
+      position,
+      point: {
+        pixelSize: 6,
+        color: accent,
+        outlineColor: Cesium.Color.WHITE,
+        outlineWidth: 1,
+        disableDepthTestDistance: Number.POSITIVE_INFINITY
+      }
+    });
+  }
+  if (mode === "distance" && points.length >= 2) {
+    add({ polyline: { positions: points, width: 2, material: accent, depthFailMaterial: accent } });
+    const total = geodesicLength(Cesium, points);
+    label(points[points.length - 1], t2("measure.total", { value: formatDistance(total) }));
+    onInfo?.({ text: t2("measure.distance", { value: formatDistance(total) }) });
+  } else if (mode === "area" && points.length >= 3) {
+    add({
+      polygon: {
+        hierarchy: new Cesium.PolygonHierarchy(points),
+        perPositionHeight: true,
+        material: accent.withAlpha(0.28),
+        outline: true,
+        outlineColor: accent
+      }
+    });
+    add({ polyline: { positions: [...points, points[0]], width: 2.5, material: accent, depthFailMaterial: accent.withAlpha(0.3) } });
+    const area = planarArea(Cesium, points);
+    const center = Cesium.BoundingSphere.fromPoints(points).center;
+    label(center, t2("measure.areaLabel", { value: formatArea(area) }));
+    onInfo?.({ text: t2("measure.area", { value: formatArea(area) }) });
+  } else if (mode === "height" && points.length === 2) {
+    add({
+      polyline: { positions: points, width: 2, material: accent, depthFailMaterial: accent.withAlpha(0.3) }
+    });
+    const left = Cesium.Cartographic.fromCartesian(points[0]);
+    const right = Cesium.Cartographic.fromCartesian(points[1]);
+    const delta = right.height - left.height;
+    const horizontal = new Cesium.EllipsoidGeodesic(left, right).surfaceDistance;
+    const text = t2("measure.height", {
+      value: `${delta >= 0 ? "+" : ""}${delta.toFixed(2)} m`,
+      distance: formatDistance(horizontal)
+    });
+    label(points[1], text);
+    onInfo?.({ text });
+  } else {
+    onInfo?.({ text: t2("measure.start") });
+  }
+  descriptor.summary = state.entities.map((entity) => entity.label?.text?.getValue?.()).filter(Boolean).join(" · ");
+  vector.refresh(descriptor);
+}
+function commitMeasurementToOverlay({ Cesium, state, overlay }) {
+  if (!Cesium || !state || !overlay) return null;
+  const result = state.result ?? measureResultOf(Cesium, state.mode, state.points);
+  const command = buildMeasureCommand(Cesium, { mode: state.mode, points: state.points, result });
+  if (!command) return null;
+  const entities = Array.isArray(state.entities) ? state.entities : [];
+  if (entities.length > 0) overlay.entityGroups.set(command, entities);
+  for (const entity of entities) overlay.measure.push(entity);
+  overlay.measureCommands.push(command);
+  overlay.measuredCount += command.points.length;
+  state.entities = [];
+  state.points = [];
+  state.result = null;
+  state.mode = null;
+  return command;
+}
+
 // src/client/scene/profile-tool.js
 var DRAFT_COLOR = "#2563eb";
 var DRAFT_WIDTH = 2.5;
@@ -7909,12 +8583,12 @@ function createProfileTool({ getCesium, getViewer, pickSurface, setTool, runAnal
     try {
       const handler = new EventHandler(canvas);
       const applyMove = (position) => {
-        const current = sessionFor();
-        if (!current || current.points.length === 0 || current.locked) return;
-        current.lastPickAt = Date.now();
+        const current2 = sessionFor();
+        if (!current2 || current2.points.length === 0 || current2.locked) return;
+        current2.lastPickAt = Date.now();
         const surface = pickSurface?.(position);
         if (!surface) return;
-        current.cursor = surface;
+        current2.cursor = surface;
         try {
           viewer.scene.requestRender?.();
         } catch {
@@ -7923,25 +8597,25 @@ function createProfileTool({ getCesium, getViewer, pickSurface, setTool, runAnal
       handler.setInputAction((event) => {
         const position = event?.endPosition;
         if (!position) return;
-        const current = sessionFor();
-        if (!current || current.points.length === 0 || current.locked) return;
+        const current2 = sessionFor();
+        if (!current2 || current2.points.length === 0 || current2.locked) return;
         const throttleMs = typeof requestAnimationFrame === "function" ? MOVE_THROTTLE_MS : 0;
-        const elapsed = Date.now() - (current.lastPickAt ?? 0);
-        if (throttleMs === 0 || !current.lastPickAt || elapsed >= throttleMs) {
-          if (current.moveTimer) {
-            clearTimeout(current.moveTimer);
-            current.moveTimer = null;
+        const elapsed = Date.now() - (current2.lastPickAt ?? 0);
+        if (throttleMs === 0 || !current2.lastPickAt || elapsed >= throttleMs) {
+          if (current2.moveTimer) {
+            clearTimeout(current2.moveTimer);
+            current2.moveTimer = null;
           }
-          current.pendingMove = null;
+          current2.pendingMove = null;
           applyMove(position);
           return;
         }
-        current.pendingMove = position;
-        if (!current.moveTimer) {
-          current.moveTimer = setTimeout(() => {
-            current.moveTimer = null;
-            const next = current.pendingMove;
-            current.pendingMove = null;
+        current2.pendingMove = position;
+        if (!current2.moveTimer) {
+          current2.moveTimer = setTimeout(() => {
+            current2.moveTimer = null;
+            const next = current2.pendingMove;
+            current2.pendingMove = null;
             if (next) applyMove(next);
           }, throttleMs - elapsed);
         }
@@ -8035,8 +8709,8 @@ function createProfileTool({ getCesium, getViewer, pickSurface, setTool, runAnal
       } catch (error) {
         showToast(t2("profile.failed", { message: error?.message ?? String(error) }));
       } finally {
-        const current = sessionFor();
-        if (current && current.run === runId) {
+        const current2 = sessionFor();
+        if (current2 && current2.run === runId) {
           clear();
           setTool(null);
         }
@@ -8064,7 +8738,7 @@ function createVectorLabels({ Cesium, viewer, root, onHover, onSelect, isInterac
     button.type = "button";
     button.className = "mv-vector-label";
     const styleKey = typeof descriptor?.style === "string" && VECTOR_COLORS[descriptor.style] ? descriptor.style : "";
-    const accent = styleKey ? VECTOR_COLORS[styleKey] : "";
+    const accent = descriptor?.classColor || (styleKey ? VECTOR_COLORS[styleKey] : "");
     const featureKind = typeof descriptor?.featureKind === "string" ? descriptor.featureKind : "";
     if (styleKey) {
       button.dataset.style = styleKey;
@@ -8083,9 +8757,12 @@ function createVectorLabels({ Cesium, viewer, root, onHover, onSelect, isInterac
     });
     layer.append(button);
     entity.label.show = false;
-    const label = { entity, group, options, button, accent, featureKind, text: "", anchor: null, box: null, size: null };
+    const label = { entity, group, options, button, accent, featureKind, contextual: descriptor?.extraction === true, text: "", anchor: null, box: null, size: null };
     labels.set(entity, label);
     refreshAnchors([label]);
+    button.dataset.state = "idle";
+    button.setAttribute("aria-pressed", "false");
+    if (!label.contextual) update(true);
   }
   function refreshAnchors(targets = labels.values()) {
     for (const label of targets) {
@@ -8113,7 +8790,7 @@ function createVectorLabels({ Cesium, viewer, root, onHover, onSelect, isInterac
       const { button, entity, options } = label;
       button.disabled = !isInteractive();
       label.box = null;
-      if (entity.isShowing === false || !label.anchor || visible >= 80 || !occluder.isPointVisible(label.anchor)) {
+      if (label.contextual && label.group !== selected && label.group !== hovered || entity.isShowing === false || !label.anchor || visible >= 80 || !occluder.isPointVisible(label.anchor)) {
         button.hidden = true;
         continue;
       }
@@ -8156,6 +8833,7 @@ function createVectorLabels({ Cesium, viewer, root, onHover, onSelect, isInterac
     }
   }
   function setState(nextHovered, nextSelected) {
+    if (hovered === nextHovered && selected === nextSelected) return;
     hovered = nextHovered;
     selected = nextSelected;
     for (const label of labels.values()) {
@@ -8226,15 +8904,15 @@ function createVectorInteraction({ Cesium, viewer, root, getTool, onSelect }) {
   const enabled = () => !moving && (!getTool() || getTool() === "pick" || getTool() === "identify");
   const labels = createVectorLabels({ Cesium, viewer, root, onHover: setHover, onSelect: select, isInteractive: enabled });
   function applyEntityState(entity, group) {
-    const entry = entries.get(entity);
-    if (!entry) return;
+    const entry2 = entries.get(entity);
+    if (!entry2) return;
     const active = group === selected || group === hovered;
-    for (const [graphic, property, original] of entry.originals) graphic[property] = original;
+    for (const [graphic, property, original] of entry2.originals) graphic[property] = original;
     if (!active) return;
     if (entity.polyline) {
       const isSelected = group === selected;
-      entity.polyline.width = valueOf(entry.width) + (isSelected ? 2.5 : 1.5);
-      const material = entry.options.polyline.material;
+      entity.polyline.width = valueOf(entry2.width) + (isSelected ? 2.5 : 1.5);
+      const material = entry2.options.polyline.material;
       if (material instanceof Cesium.PolylineOutlineMaterialProperty) {
         const color = Cesium.Color.lerp(valueOf(material.color), Cesium.Color.WHITE, isSelected ? 0.4 : 0.2, new Cesium.Color());
         entity.polyline.material = vectorLineMaterial(Cesium, color, isSelected ? 1.75 : 1.5);
@@ -8243,7 +8921,7 @@ function createVectorInteraction({ Cesium, viewer, root, getTool, onSelect }) {
     if (entity.point) entity.point.pixelSize = 11;
     for (const kind of ["polygon", "rectangle"]) {
       const graphic = entity[kind];
-      const color = entry.options[kind]?.material;
+      const color = entry2.options[kind]?.material;
       if (graphic && color instanceof Cesium.Color) graphic.material = color.withAlpha(group === selected ? 0.3 : 0.23);
     }
   }
@@ -8296,7 +8974,7 @@ function createVectorInteraction({ Cesium, viewer, root, getTool, onSelect }) {
     let closest = 6;
     let found = null;
     const occluder = new Cesium.EllipsoidalOccluder(scene.globe.ellipsoid, viewer.camera.positionWC);
-    for (const [entity, entry] of entries) {
+    for (const [entity, entry2] of entries) {
       if (!entity.polyline || valueOf(entity.polyline.clampToGround) || entity.isShowing === false || budget <= 0) continue;
       const positions = valueOf(entity.polyline.positions) ?? [];
       let previous = null;
@@ -8307,7 +8985,7 @@ function createVectorInteraction({ Cesium, viewer, root, getTool, onSelect }) {
           const distance = segmentDistance(position, previous, point);
           if (distance < closest) {
             closest = distance;
-            found = entry.group;
+            found = entry2.group;
           }
         }
         previous = point;
@@ -8336,16 +9014,16 @@ function createVectorInteraction({ Cesium, viewer, root, getTool, onSelect }) {
   }
   function removed(collection, added, removedEntities) {
     for (const entity of removedEntities) {
-      const entry = entries.get(entity);
-      if (!entry) continue;
+      const entry2 = entries.get(entity);
+      if (!entry2) continue;
       labels.remove(entity);
       entries.delete(entity);
-      const record = groups.get(entry.group);
+      const record = groups.get(entry2.group);
       record.entities.delete(entity);
       if (record.entities.size > 0) continue;
-      if (hovered === entry.group) setHover(null);
-      if (selected === entry.group) select(null);
-      groups.delete(entry.group);
+      if (hovered === entry2.group) setHover(null);
+      if (selected === entry2.group) select(null);
+      groups.delete(entry2.group);
     }
   }
   function onKey(event) {
@@ -8374,7 +9052,7 @@ function createVectorInteraction({ Cesium, viewer, root, getTool, onSelect }) {
   viewer.scene.postRender.addEventListener(onFrame);
   viewer.entities.collectionChanged.addEventListener(removed);
   function add(options, descriptor) {
-    const styled = styleVectorOptions(Cesium, options);
+    const styled = styleVectorOptions(Cesium, options, descriptor?.extraction === true);
     const entity = viewer.entities.add(styled);
     const group = descriptor.group;
     const record = groups.get(group) ?? { descriptor, entities: /* @__PURE__ */ new Set() };
@@ -8530,10 +9208,10 @@ function summarizeHeights(values) {
 function normalizeIdentity(raw) {
   const kind = typeof raw?.kind === "string" ? raw.kind : "scene";
   const featureId = typeof raw?.featureId === "number" && Number.isFinite(raw.featureId) ? raw.featureId : null;
-  const properties = (Array.isArray(raw?.properties) ? raw.properties : []).filter((entry) => entry && typeof entry.name === "string").slice(0, SELECTION_MAX_PROPERTIES).map((entry) => ({ name: entry.name.slice(0, 60), value: String(entry.value ?? "").slice(0, 160) }));
+  const properties = (Array.isArray(raw?.properties) ? raw.properties : []).filter((entry2) => entry2 && typeof entry2.name === "string").slice(0, SELECTION_MAX_PROPERTIES).map((entry2) => ({ name: entry2.name.slice(0, 60), value: String(entry2.value ?? "").slice(0, 160) }));
   let name = typeof raw?.name === "string" && raw.name.trim() !== "" ? raw.name.trim().slice(0, 80) : null;
   if (name === null) {
-    const found = properties.find((entry) => IDENTITY_KEYS.includes(entry.name));
+    const found = properties.find((entry2) => IDENTITY_KEYS.includes(entry2.name));
     if (found && found.value.trim() !== "") name = found.value.trim().slice(0, 80);
   }
   return {
@@ -8922,10 +9600,10 @@ function polygonAreaSquareMeters(ring) {
   const scale = Math.PI / 180 * EARTH_RADIUS_M2;
   let area = 0;
   for (let index = 0; index < unique.length; index += 1) {
-    const current = unique[index];
+    const current2 = unique[index];
     const next = unique[(index + 1) % unique.length];
-    const x1 = (current[0] - first[0]) * scale * cosLat;
-    const y1 = (current[1] - first[1]) * scale;
+    const x1 = (current2[0] - first[0]) * scale * cosLat;
+    const y1 = (current2[1] - first[1]) * scale;
     const x2 = (next[0] - first[0]) * scale * cosLat;
     const y2 = (next[1] - first[1]) * scale;
     area += x1 * y2 - x2 * y1;
@@ -9076,11 +9754,11 @@ function entityIntersectsScreenBox(Cesium, viewer, entity, box) {
 function rowsInScreenBox(Cesium, viewer, rows, rect) {
   const box = { left: Math.min(rect.x1, rect.x2), right: Math.max(rect.x1, rect.x2), top: Math.min(rect.y1, rect.y2), bottom: Math.max(rect.y1, rect.y2) };
   const hits = /* @__PURE__ */ new WeakMap();
-  return (Array.isArray(rows) ? rows : []).filter((row) => (row.entities ?? []).some((entity) => {
+  return (Array.isArray(rows) ? rows : []).filter((row2) => (row2.entities ?? []).some((entity) => {
     if (!entity || typeof entity !== "object") return false;
     if (!hits.has(entity)) hits.set(entity, entityIntersectsScreenBox(Cesium, viewer, entity, box));
     return hits.get(entity);
-  })).map((row) => ({ selectionId: row.selectionId, kind: row.kind, index: row.index, label: row.label, detail: row.detail }));
+  })).map((row2) => ({ selectionId: row2.selectionId, kind: row2.kind, index: row2.index, label: row2.label, detail: row2.detail }));
 }
 
 // src/client/scene/selection-frame.js
@@ -9723,15 +10401,15 @@ function createSelectionSession(viewer) {
             ...point ? {
               lon: selection.lon,
               lat: selection.lat,
-              height_m: round2(selection.height)
+              height_m: round3(selection.height)
             } : {
               area_m2: Math.round(selection.area_m2),
               perimeter_m: Math.round(selection.perimeter_m),
               verts: Math.max(0, selection.ring.length - 1)
             },
-            height_min_m: selection.heightRange ? round2(selection.heightRange.min) : null,
-            height_max_m: selection.heightRange ? round2(selection.heightRange.max) : null,
-            height_mean_m: selection.heightRange ? round2(selection.heightRange.mean) : null,
+            height_min_m: selection.heightRange ? round3(selection.heightRange.min) : null,
+            height_max_m: selection.heightRange ? round3(selection.heightRange.max) : null,
+            height_mean_m: selection.heightRange ? round3(selection.heightRange.mean) : null,
             complete: selection.complete,
             ...typeof selection.misses === "number" && selection.misses > 0 ? { misses: selection.misses, miss_ratio: selection.miss_ratio ?? 0 } : {},
             ...selection.depth_source ? { depth_source: selection.depth_source } : {},
@@ -9745,7 +10423,7 @@ function createSelectionSession(viewer) {
       ]
     };
   }
-  const round2 = (value) => Number.isFinite(value) ? Math.round(value * 10) / 10 : null;
+  const round3 = (value) => Number.isFinite(value) ? Math.round(value * 10) / 10 : null;
   function dispose() {
     cancel();
     clearSelection();
@@ -9827,6 +10505,1596 @@ function installCanvasInput({
     Cesium.ScreenSpaceEventType.RIGHT_CLICK
   );
   return handler;
+}
+
+// src/shared/taxonomy.js
+var MAX_CLASSES = 12;
+var MAX_LABEL = 16;
+var entry = (id, key, name, nameEn, color, definition, definitionEn) => Object.freeze({ id, key, name, nameEn, color, definition, definitionEn });
+var DEFAULT_CLASSES = Object.freeze([
+  entry(
+    1,
+    "building",
+    "建筑",
+    "Building",
+    "#f59e0b",
+    "单栋建筑屋顶外轮廓，不含立面、阴影、道路和相邻建筑；相邻建筑分成独立实例。",
+    "One building roof footprint. Exclude facades, shadows, roads and adjacent buildings; keep adjacent buildings as separate instances."
+  ),
+  entry(
+    2,
+    "water",
+    "水体",
+    "Water",
+    "#38bdf8",
+    "湖泊、池塘、河流等独立水面；堤埂内的水域按可见水面整体。",
+    "One lake, pond or river surface. Treat the water body inside its banks as one visible surface."
+  ),
+  entry(
+    3,
+    "vegetation",
+    "植被",
+    "Vegetation",
+    "#4ade80",
+    "林地、树冠、绿化带等植被覆盖区域；道路与建筑之间的独立绿化也按实例输出。",
+    "Woodland, tree crowns or green belts; also output standalone greenery between roads and buildings as its own instance."
+  ),
+  entry(
+    4,
+    "road",
+    "道路",
+    "Road",
+    "#94a3b8",
+    "可见道路路面或道路中心带；被建筑/植被遮挡处断开，不推测被遮挡部分。",
+    "Visible road surface or carriageway band. Break where buildings or vegetation cover it; never infer occluded parts."
+  ),
+  entry(
+    5,
+    "vehicle",
+    "车辆",
+    "Vehicle",
+    "#f87272",
+    "单辆汽车、卡车等车辆；只输出可见车体，不含阴影。",
+    "One car or truck. Draw the visible body only, without its shadow."
+  ),
+  entry(
+    6,
+    "sports_field",
+    "运动场",
+    "Sports field",
+    "#a78bfa",
+    "跑道、球场等运动场地：跑道与场芯作为一个整体实例，不含周边草地与看台。",
+    "Running tracks and courts as one instance each: keep the track and its infield together, exclude surrounding grass and stands."
+  ),
+  entry(
+    7,
+    "farmland",
+    "农田",
+    "Farmland",
+    "#facc15",
+    "耕地、农田地块；按田埂/道路分隔的独立田块输出。",
+    "Cultivated plots, split at ridges or roads into separate instances."
+  ),
+  entry(
+    8,
+    "other",
+    "其他地物",
+    "Other feature",
+    "#c084fc",
+    "清晰可见但不属于以上类别的地物，按独立可见图斑输出。",
+    "Clearly visible features outside the other classes, one visible patch per instance."
+  )
+]);
+var SPORTS_CLASSES = Object.freeze([
+  entry(
+    21,
+    "tennis",
+    "网球场",
+    "Tennis court",
+    "#84cc16",
+    "沿双打边线逐片描绘网球场。",
+    "One tennis court. Follow the outer doubles playing lines. Exclude the surrounding runoff."
+  ),
+  entry(
+    22,
+    "pool",
+    "游泳池",
+    "Swimming pool",
+    "#38bdf8",
+    "沿池水边缘描绘，每个独立池体单独提取。",
+    "One outdoor swimming pool. Trace the water edge, excluding the deck. Separate adjacent basins."
+  ),
+  entry(
+    23,
+    "track",
+    "田径场",
+    "Athletics track",
+    "#ef795d",
+    "沿最外圈跑道描绘，场芯计入整座田径场。",
+    "One oval running track complex. Trace the outer lane boundary as a filled footprint including the infield."
+  ),
+  entry(
+    24,
+    "pitch",
+    "足球场",
+    "Football pitch",
+    "#4ade80",
+    "按可辨认的边线与底线描绘足球比赛区。",
+    "One football playing pitch with identifiable markings. Follow its touchlines and goal lines."
+  )
+]);
+function sanitizeCustomLabel(raw) {
+  if (typeof raw !== "string") return "";
+  const clean = raw.replace(/[\u0000-\u001f\u007f]+/g, " ").replace(/["'`]/g, "").replace(/\s+/g, " ").trim();
+  return [...clean].length > MAX_LABEL ? [...clean].slice(0, MAX_LABEL).join("") : clean;
+}
+var HASH_COLORS = ["#fb7185", "#f59e0b", "#34d399", "#38bdf8", "#a78bfa", "#f472b6", "#facc15", "#94a3b8"];
+function customColor(label) {
+  let hash = 0;
+  for (const ch of String(label)) hash = hash * 31 + ch.codePointAt(0) >>> 0;
+  return HASH_COLORS[hash % HASH_COLORS.length];
+}
+function customClass(label, language = "zh") {
+  const clean = sanitizeCustomLabel(label);
+  if (clean === "") return null;
+  return {
+    key: `custom:${clean}`,
+    name: clean,
+    color: customColor(clean),
+    definition: language === "en" ? `User-defined class: ${clean}. Output only this class as separate visible patches, without surrounding features.` : `用户自定义类别：${clean}。只输出该类别的独立可见图斑，不要包含周边其他地物。`,
+    custom: true
+  };
+}
+function buildClassCatalog(customLabels = [], presets = DEFAULT_CLASSES, language = "zh") {
+  const english = language === "en";
+  const catalog = presets.map((item) => ({
+    id: item.id,
+    key: item.key,
+    name: english ? item.nameEn : item.name,
+    color: item.color,
+    definition: english ? item.definitionEn : item.definition,
+    custom: false
+  }));
+  const seen = new Set(catalog.map((item) => item.name));
+  let nextId = Math.max(...catalog.map((item) => item.id)) + 1;
+  for (const raw of Array.isArray(customLabels) ? customLabels : []) {
+    if (catalog.length >= MAX_CLASSES) break;
+    const custom = customClass(raw, language);
+    if (!custom || seen.has(custom.name)) continue;
+    seen.add(custom.name);
+    catalog.push({ ...custom, id: nextId });
+    nextId += 1;
+  }
+  return catalog;
+}
+var TAXONOMY_LIMITS = Object.freeze({ maxClasses: MAX_CLASSES, maxLabelLength: MAX_LABEL });
+
+// src/client/scene/annotation-scheme.js
+var PRESET_CLASS_KEYS = Object.freeze(["building", "vegetation", "water", "road", "vehicle", "other"]);
+var MAX_CLASS_LABEL = 16;
+var PRESET_SET = new Set(PRESET_CLASS_KEYS);
+var SYNONYMS = /* @__PURE__ */ new Map([
+  ["建筑", "building"],
+  ["建筑物", "building"],
+  ["房屋", "building"],
+  ["楼房", "building"],
+  ["楼", "building"],
+  ["住宅", "building"],
+  ["厂房", "building"],
+  ["building", "building"],
+  ["buildings", "building"],
+  ["植被", "vegetation"],
+  ["树", "vegetation"],
+  ["树木", "vegetation"],
+  ["林地", "vegetation"],
+  ["草地", "vegetation"],
+  ["绿化", "vegetation"],
+  ["vegetation", "vegetation"],
+  ["trees", "vegetation"],
+  ["tree", "vegetation"],
+  ["水", "water"],
+  ["水体", "water"],
+  ["河流", "water"],
+  ["河", "water"],
+  ["湖", "water"],
+  ["水面", "water"],
+  ["水域", "water"],
+  ["water", "water"],
+  ["道路", "road"],
+  ["路", "road"],
+  ["公路", "road"],
+  ["街道", "road"],
+  ["路面", "road"],
+  ["road", "road"],
+  ["roads", "road"],
+  ["车辆", "vehicle"],
+  ["车", "vehicle"],
+  ["汽车", "vehicle"],
+  ["卡车", "vehicle"],
+  ["货车", "vehicle"],
+  ["vehicle", "vehicle"],
+  ["vehicles", "vehicle"],
+  ["cars", "vehicle"],
+  ["car", "vehicle"],
+  ["其他", "other"],
+  ["其它", "other"],
+  ["other", "other"]
+]);
+var CUSTOM_PALETTE = Object.freeze([
+  VECTOR_COLORS.accent,
+  VECTOR_COLORS.warm,
+  VECTOR_COLORS.success,
+  VECTOR_COLORS.alert,
+  VECTOR_COLORS.violet
+]);
+var CONTROL_CHARS = /[\u0000-\u001f\u007f\u200b-\u200f\u2028\u2029]/;
+var STRIP_CHARS = /["'`<>{}[\]\\|]/g;
+function sanitizeClassLabel(raw) {
+  if (typeof raw !== "string") return null;
+  if (CONTROL_CHARS.test(raw)) return null;
+  const collapsed = raw.replace(STRIP_CHARS, " ").replace(/\s+/g, " ").trim();
+  if (!collapsed) return null;
+  if ([...collapsed].length > MAX_CLASS_LABEL) return null;
+  return collapsed;
+}
+function classKeyOf(label) {
+  const clean = sanitizeClassLabel(label);
+  if (!clean) return null;
+  const lower = clean.toLowerCase();
+  if (PRESET_SET.has(lower)) return lower;
+  return SYNONYMS.get(clean) ?? SYNONYMS.get(lower) ?? `custom:${clean}`;
+}
+function classHex(labelOrKey) {
+  const key = String(labelOrKey ?? "");
+  if (PRESET_SET.has(key)) return parseClassColor(key).hex;
+  const label = key.startsWith("custom:") ? key.slice(7) : key;
+  let hash = 0;
+  for (const character of label) hash = (hash * 31 + character.codePointAt(0)) % 997;
+  return CUSTOM_PALETTE[hash % CUSTOM_PALETTE.length];
+}
+
+// src/client/scene/ring-area.js
+var EARTH_RADIUS_M3 = 63710088e-1;
+function ringAreaSquareMeters(ring) {
+  if (!Array.isArray(ring) || ring.length < 3) return 0;
+  const open = ring.slice();
+  const first = open[0];
+  const last = open[open.length - 1];
+  if (Array.isArray(first) && Array.isArray(last) && first[0] === last[0] && first[1] === last[1]) open.pop();
+  if (open.length < 3) return 0;
+  const meanLat = open.reduce((sum, point) => sum + point[1], 0) / open.length;
+  const cosLat = Math.cos(meanLat * Math.PI / 180);
+  const scale = Math.PI / 180 * EARTH_RADIUS_M3;
+  let area = 0;
+  for (let index = 0; index < open.length; index += 1) {
+    const current2 = open[index];
+    const next = open[(index + 1) % open.length];
+    const x1 = (current2[0] - first[0]) * scale * cosLat;
+    const y1 = (current2[1] - first[1]) * scale;
+    const x2 = (next[0] - first[0]) * scale * cosLat;
+    const y2 = (next[1] - first[1]) * scale;
+    area += x1 * y2 - x2 * y1;
+  }
+  return Math.abs(area) / 2;
+}
+
+// src/client/scene/vision-geometry.js
+var visionError = (code, extra = null) => Object.assign(new Error(code), { code }, extra && typeof extra === "object" ? extra : {});
+var cross = (start, end, point) => (end[0] - start[0]) * (point[1] - start[1]) - (end[1] - start[1]) * (point[0] - start[0]);
+function onSegment(start, end, point) {
+  return Math.abs(cross(start, end, point)) < 1e-10 && point[0] >= Math.min(start[0], end[0]) - 1e-10 && point[0] <= Math.max(start[0], end[0]) + 1e-10 && point[1] >= Math.min(start[1], end[1]) - 1e-10 && point[1] <= Math.max(start[1], end[1]) + 1e-10;
+}
+function ringCrossesItself(polygon) {
+  for (let i = 0; i < polygon.length; i++) {
+    const start = polygon[i], end = polygon[(i + 1) % polygon.length];
+    for (let j = i + 2; j < polygon.length; j++) {
+      if (i === 0 && j === polygon.length - 1) continue;
+      const from = polygon[j], to = polygon[(j + 1) % polygon.length];
+      if (cross(start, end, from) * cross(start, end, to) < 0 && cross(from, to, start) * cross(from, to, end) < 0 || onSegment(start, end, from) || onSegment(start, end, to) || onSegment(from, to, start) || onSegment(from, to, end)) return true;
+    }
+  }
+  return false;
+}
+function polygonLooksLikeBox(polygon, tolerance = 4e-3) {
+  if (!Array.isArray(polygon) || polygon.length !== 4) return false;
+  const xs = [];
+  const ys = [];
+  for (const vertex of polygon) {
+    if (!Array.isArray(vertex) || vertex.length < 2) return false;
+    if (!Number.isFinite(vertex[0]) || !Number.isFinite(vertex[1])) return false;
+    if (!xs.some((value) => Math.abs(value - vertex[0]) <= tolerance)) xs.push(vertex[0]);
+    if (!ys.some((value) => Math.abs(value - vertex[1]) <= tolerance)) ys.push(vertex[1]);
+  }
+  return xs.length === 2 && ys.length === 2;
+}
+
+// src/client/scene/instance-crops.js
+function classWindows(windows, classes, separateClasses = false) {
+  if (separateClasses && classes.length > 1) return windows.flatMap((w) => classes.map((c) => ({
+    ...w,
+    id: w.id + "/class" + c.id,
+    classIds: [c.id]
+  })));
+  if (classes.length <= 4) return windows;
+  const groups = [
+    classes.filter((c) => c.key === "building"),
+    classes.filter((c) => c.key === "road"),
+    classes.filter((c) => c.key !== "building" && c.key !== "road")
+  ].filter((group) => group.length);
+  if (groups.length === 1) return windows;
+  return windows.flatMap((window2) => groups.map((group, i) => ({
+    ...window2,
+    id: window2.id + "/c" + (i + 1),
+    classIds: group.map((c) => c.id)
+  })));
+}
+function traceWindows(boxes, window2, width, height, classes) {
+  const tasks = [];
+  for (const [i, item] of boxes.entries()) {
+    const cls = classes.get(String(item.classId)), b = item.box;
+    if (!cls || !Array.isArray(b) || b.length !== 4 || !b.every((n) => Number.isFinite(n) && n >= 0 && n <= 1e3)) continue;
+    const { rect, core } = window2;
+    const x = rect.left + rect.width * (b[0] + b[2]) / 2e3;
+    const y = rect.top + rect.height * (b[1] + b[3]) / 2e3;
+    const w = rect.width * (b[2] - b[0]) / 1e3;
+    const h52 = rect.height * (b[3] - b[1]) / 1e3;
+    if (w < 2 || h52 < 2 || x < core.left || x >= core.left + core.width || y < core.top || y >= core.top + core.height) continue;
+    const dx = Math.min(511, Math.max(5, w * 0.78)), dy = Math.min(511, Math.max(5, h52 * 0.78));
+    const left = Math.max(0, Math.floor(x - dx)), top = Math.max(0, Math.floor(y - dy));
+    const right = Math.min(width, Math.ceil(x + dx)), bottom = Math.min(height, Math.ceil(y + dy));
+    const targetRect = { left, top, width: right - left, height: bottom - top };
+    tasks.push({
+      id: `${window2.id}/o${i + 1}`,
+      depth: window2.depth,
+      rect: targetRect,
+      core,
+      mode: "trace",
+      classId: item.classId,
+      proposal: { left: x - w / 2, top: y - h52 / 2, width: w, height: h52 }
+    });
+  }
+  const byClass = /* @__PURE__ */ new Map();
+  for (const task of tasks) {
+    if (!byClass.has(task.classId)) byClass.set(task.classId, []);
+    byClass.get(task.classId).push(task);
+  }
+  const ordered = [];
+  for (let i = 0; ordered.length < tasks.length; i++) {
+    for (const group of byClass.values()) if (group[i]) ordered.push(group[i]);
+  }
+  return ordered;
+}
+var TRACE_ANGLE = Math.PI / 7;
+function unrotateOutline(points) {
+  const cos = Math.cos(TRACE_ANGLE), sin = Math.sin(TRACE_ANGLE);
+  const ring = [];
+  for (const [x, y] of points) {
+    const px = 500 + (x - 500) * cos + (y - 500) * sin;
+    const py = 500 - (x - 500) * sin + (y - 500) * cos;
+    if (px < -8 || px > 1008 || py < -8 || py > 1008) return null;
+    ring.push([px, py].map((n) => Math.round(Math.max(0, Math.min(1e3, n)))));
+  }
+  return ring;
+}
+function agreesWithProposal(candidate, window2) {
+  const a = candidate.bbox, b = window2.proposal;
+  if (candidate.areaPx >= window2.rect.width * window2.rect.height * 0.94) return false;
+  const overlap = Math.max(0, Math.min(a.right, b.left + b.width) - Math.max(a.left, b.left)) * Math.max(0, Math.min(a.bottom, b.top + b.height) - Math.max(a.top, b.top));
+  const union = a.width * a.height + b.width * b.height - overlap;
+  return union > 0 && overlap / union >= 0.28;
+}
+
+// src/client/scene/instance-overlap.js
+function intervals(ring, y) {
+  const xs = [];
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const [x1, y1] = ring[j], [x2, y2] = ring[i];
+    if (y1 > y !== y2 > y) xs.push(x1 + (x2 - x1) * (y - y1) / (y2 - y1));
+  }
+  return xs.sort((a, b) => a - b);
+}
+function sameFootprint(a, b, minimumOverlap) {
+  const minArea = Math.min(a.areaPx, b.areaPx);
+  const maxArea = Math.max(a.areaPx, b.areaPx);
+  const nearSeam = a.windowId !== b.windowId && (a.clipped || b.clipped);
+  if (!nearSeam && minArea < maxArea * 0.55) return false;
+  const top = Math.max(a.bbox.top, b.bbox.top);
+  const bottom = Math.min(a.bbox.bottom, b.bbox.bottom);
+  const step = (bottom - top) / 24;
+  let area = 0;
+  for (let row2 = 0; row2 < 24; row2++) {
+    const y = top + (row2 + 0.5) * step;
+    const left = intervals(a.pixels, y), right = intervals(b.pixels, y);
+    let i = 0, j = 0;
+    while (i + 1 < left.length && j + 1 < right.length) {
+      area += step * Math.max(0, Math.min(left[i + 1], right[j + 1]) - Math.max(left[i], right[j]));
+      if (left[i + 1] < right[j + 1]) i += 2;
+      else j += 2;
+    }
+  }
+  return area > minArea * (a.windowId === b.windowId ? 0.9 : minimumOverlap);
+}
+
+// src/client/scene/viewer-input-lock.js
+var cameraFlags = ["enableInputs", "enableRotate", "enableTranslate", "enableZoom", "enableTilt", "enableLook"];
+var viewerInputLocks = /* @__PURE__ */ new WeakMap();
+function lockViewerInput(viewer) {
+  const control = viewer?.scene?.screenSpaceCameraController;
+  if (!control || typeof control !== "object") return { restore() {
+  } };
+  let lock = viewerInputLocks.get(control);
+  if (!lock) {
+    lock = { count: 0, saved: {} };
+    viewerInputLocks.set(control, lock);
+  }
+  if (lock.count === 0) {
+    lock.saved = Object.fromEntries(
+      cameraFlags.filter((key) => typeof control[key] === "boolean").map((key) => [key, control[key]])
+    );
+    for (const key of Object.keys(lock.saved)) {
+      try {
+        control[key] = false;
+      } catch {
+      }
+    }
+  }
+  lock.count += 1;
+  let restored = false;
+  return {
+    restore() {
+      if (restored) return;
+      restored = true;
+      lock.count = Math.max(0, lock.count - 1);
+      if (lock.count > 0) return;
+      viewerInputLocks.delete(control);
+      if (viewer?.isDestroyed?.()) return;
+      for (const [key, value] of Object.entries(lock.saved)) {
+        try {
+          control[key] = value;
+        } catch {
+        }
+      }
+      try {
+        viewer.scene?.requestRender?.();
+      } catch {
+      }
+    }
+  };
+}
+
+// src/client/scene/ortho-capture.js
+var MIN_CANVAS_EDGE = 32;
+var MAX_READ_EDGE = 1024;
+var DEFAULT_RESOLUTION_SCALE = 1.2;
+var JPEG_QUALITY = 0.85;
+var MAX_DATA_URL_CHARS = 2e6;
+var MIN_CAMERA_HEIGHT = 80;
+var MAX_CAMERA_HEIGHT = 6e3;
+var DIAGONAL_FILL = 1.08;
+var DEFAULT_FOV = Math.PI / 3;
+var EARTH_RADIUS_M4 = 6378137;
+var METERS_PER_DEGREE = Math.PI / 180 * EARTH_RADIUS_M4;
+var isNumber = (value) => typeof value === "number" && Number.isFinite(value);
+var clamp = (value, low, high) => value < low ? low : value > high ? high : value;
+var toDegrees = (radians) => radians * 180 / Math.PI;
+function cartographicOf(cartesian, Cesium) {
+  if (!cartesian || typeof Cesium?.Cartographic?.fromCartesian !== "function") return null;
+  let carto = null;
+  try {
+    carto = Cesium.Cartographic.fromCartesian(cartesian);
+  } catch {
+    return null;
+  }
+  if (!carto || !isNumber(carto.longitude) || !isNumber(carto.latitude)) return null;
+  return carto;
+}
+function groundCartographic(viewer, Cesium, position, allowDepth) {
+  const scene = viewer?.scene;
+  if (allowDepth && scene?.pickPositionSupported === true && typeof scene.pickPosition === "function") {
+    try {
+      const carto = cartographicOf(scene.pickPosition(position), Cesium);
+      if (carto) return carto;
+    } catch {
+    }
+  }
+  try {
+    const ray = viewer?.camera?.getPickRay?.(position);
+    if (ray && typeof scene?.globe?.pick === "function") {
+      const carto = cartographicOf(scene.globe.pick(ray, scene), Cesium);
+      if (carto) return carto;
+    }
+  } catch {
+  }
+  try {
+    if (typeof viewer?.camera?.pickEllipsoid === "function") {
+      const hit = viewer.camera.pickEllipsoid(position, scene?.globe?.ellipsoid);
+      const carto = cartographicOf(hit, Cesium);
+      if (carto) return carto;
+    }
+  } catch {
+  }
+  return null;
+}
+function viewHalfTangents(camera, cssWidth, cssHeight) {
+  const frustum = camera?.frustum;
+  const fov = isNumber(frustum?.fov) && frustum.fov > 0.1 && frustum.fov < Math.PI - 0.1 ? frustum.fov : DEFAULT_FOV;
+  const aspect = isNumber(frustum?.aspectRatio) && frustum.aspectRatio > 0 ? frustum.aspectRatio : cssHeight > 0 ? cssWidth / cssHeight : 1;
+  const half = fov / 2;
+  if (aspect > 1) return { tanX: Math.tan(half), tanY: Math.tan(half) / aspect };
+  return { tanX: Math.tan(half) * aspect, tanY: Math.tan(half) };
+}
+function bboxSpansMeters(bbox) {
+  const meanLat = (bbox.south + bbox.north) / 2;
+  const widthM = (bbox.east - bbox.west) * METERS_PER_DEGREE * Math.cos(meanLat * Math.PI / 180);
+  const heightM = (bbox.north - bbox.south) * METERS_PER_DEGREE;
+  return { widthM, heightM };
+}
+function fitNadirHeight(bbox, camera, cssWidth, cssHeight) {
+  const { widthM, heightM } = bboxSpansMeters(bbox);
+  const diagonalM = Math.hypot(widthM, heightM);
+  const { tanX, tanY } = viewHalfTangents(camera, cssWidth, cssHeight);
+  const halfTan = Math.max(1e-9, Math.min(tanX, tanY));
+  const raw = diagonalM * DIAGONAL_FILL / (2 * halfTan);
+  if (!isNumber(raw)) return MIN_CAMERA_HEIGHT;
+  return clamp(Math.round(raw), MIN_CAMERA_HEIGHT, MAX_CAMERA_HEIGHT);
+}
+function validateBbox(bbox) {
+  if (bbox == null) return null;
+  if (typeof bbox !== "object") throw visionError("invalid_request", { stage: "ortho_capture", detail: "bbox must be an object." });
+  const { west, south, east, north } = bbox;
+  if (![west, south, east, north].every(isNumber)) {
+    throw visionError("invalid_request", { stage: "ortho_capture", detail: "bbox corners must be finite numbers." });
+  }
+  if (!(west < east) || !(south < north)) {
+    throw visionError("invalid_request", { stage: "ortho_capture", detail: "bbox must satisfy west < east and south < north." });
+  }
+  if (west < -180 || east > 180 || south < -90 || north > 90) {
+    throw visionError("invalid_request", { stage: "ortho_capture", detail: "bbox must be inside WGS84 degrees (antimeridian AOIs are not supported)." });
+  }
+  return { west, south, east, north };
+}
+function saveCameraView(camera, Cesium) {
+  const position = camera.position;
+  let snapshot = position;
+  try {
+    if (position && typeof position.clone === "function") snapshot = position.clone();
+    else if (Cesium?.Cartesian3?.clone) snapshot = Cesium.Cartesian3.clone(position);
+  } catch {
+    snapshot = position;
+  }
+  return {
+    position: snapshot ?? null,
+    heading: camera.heading,
+    pitch: camera.pitch,
+    roll: camera.roll
+  };
+}
+function applyCameraView(camera, view) {
+  if (!view || !view.position) return;
+  const orientation = { heading: view.heading, pitch: view.pitch, roll: view.roll };
+  if (typeof camera.setView === "function") {
+    camera.setView({ destination: view.position, orientation });
+    return;
+  }
+  camera.position = view.position;
+  if (isNumber(orientation.heading)) camera.heading = orientation.heading;
+  if (isNumber(orientation.pitch)) camera.pitch = orientation.pitch;
+  if (isNumber(orientation.roll)) camera.roll = orientation.roll;
+}
+function currentNadirTarget(viewer, Cesium, canvas) {
+  const cssWidth = Math.max(1, canvas.clientWidth || canvas.width);
+  const cssHeight = Math.max(1, canvas.clientHeight || canvas.height);
+  const carto = viewer.camera?.positionCartographic;
+  const fallbackAltitude = isNumber(carto?.height) ? carto.height : MIN_CAMERA_HEIGHT;
+  const ground = groundCartographic(viewer, Cesium, new Cesium.Cartesian2(cssWidth / 2, cssHeight / 2), true);
+  if (ground) {
+    return { lon: toDegrees(ground.longitude), lat: toDegrees(ground.latitude), altitude: fallbackAltitude };
+  }
+  if (isNumber(carto?.longitude) && isNumber(carto?.latitude)) {
+    return { lon: toDegrees(carto.longitude), lat: toDegrees(carto.latitude), altitude: fallbackAltitude };
+  }
+  return null;
+}
+async function settleFrames(viewer, frames = 2) {
+  const schedule = typeof globalThis.requestAnimationFrame === "function" ? globalThis.requestAnimationFrame.bind(globalThis) : (callback) => setTimeout(callback, 0);
+  for (let index = 0; index < frames; index += 1) {
+    viewer.render();
+    await new Promise((resolve) => {
+      schedule(resolve);
+    });
+  }
+}
+function normalizeDeviceRect(rect, width, height) {
+  if (!rect || typeof rect !== "object") {
+    throw visionError("invalid_request", { stage: "ortho_read", detail: "read(rect) requires pixel rect." });
+  }
+  const left = Math.round(Number(rect.left));
+  const top = Math.round(Number(rect.top));
+  const rectWidth = Math.round(Number(rect.width));
+  const rectHeight = Math.round(Number(rect.height));
+  if (![left, top, rectWidth, rectHeight].every(isNumber) || rectWidth < 1 || rectHeight < 1) {
+    throw visionError("invalid_request", { stage: "ortho_read", detail: "read(rect) requires positive integer bounds." });
+  }
+  const safeLeft = clamp(left, 0, width - 1);
+  const safeTop = clamp(top, 0, height - 1);
+  const safeWidth = Math.min(rectWidth, width - safeLeft);
+  const safeHeight = Math.min(rectHeight, height - safeTop);
+  if (!(safeWidth > 0) || !(safeHeight > 0)) {
+    throw visionError("invalid_request", { stage: "ortho_read", detail: "read(rect) lies outside the captured canvas." });
+  }
+  return { left: safeLeft, top: safeTop, width: safeWidth, height: safeHeight };
+}
+function cameraSignature(viewer, camera) {
+  const position = camera.positionWC ?? camera.position;
+  return [
+    viewer.canvas.width,
+    viewer.canvas.height,
+    viewer.canvas.clientWidth,
+    viewer.canvas.clientHeight,
+    viewer.resolutionScale,
+    viewer.scene?.mode,
+    viewer.scene?.morphTime,
+    camera.heading,
+    camera.pitch,
+    camera.roll,
+    position?.x,
+    position?.y,
+    position?.z,
+    position?.lon,
+    position?.lat,
+    position?.height
+  ];
+}
+function sameSignature(left, right) {
+  if (!Array.isArray(left) || !Array.isArray(right) || left.length !== right.length) return false;
+  return left.every((value, index) => {
+    const other = right[index];
+    if (Object.is(value, other)) return true;
+    if (isNumber(value) && isNumber(other)) return Math.abs(value - other) <= 1e-9;
+    return false;
+  });
+}
+function framingBbox(source) {
+  const lastX = Math.max(0, source.width - 1);
+  const lastY = Math.max(0, source.height - 1);
+  const corners = [[0, 0], [lastX, 0], [lastX, lastY], [0, lastY]];
+  const points = [];
+  for (const [x, y] of corners) {
+    const point = source.lonLat(x, y);
+    if (!point) return null;
+    points.push(point);
+  }
+  return {
+    west: Math.min(...points.map((point) => point.lon)),
+    south: Math.min(...points.map((point) => point.lat)),
+    east: Math.max(...points.map((point) => point.lon)),
+    north: Math.max(...points.map((point) => point.lat))
+  };
+}
+async function captureOrtho({ viewer, Cesium, bbox = null, resolutionScale = DEFAULT_RESOLUTION_SCALE, signal } = {}) {
+  const scene = viewer?.scene;
+  const canvas = viewer?.canvas;
+  if (!viewer || !scene || !canvas || viewer.isDestroyed?.()) throw visionError("not_ready", { stage: "ortho_capture" });
+  if (typeof document === "undefined" || typeof document.createElement !== "function") throw visionError("not_ready", { stage: "ortho_capture" });
+  if (document.visibilityState === "hidden") throw visionError("not_ready", { stage: "ortho_capture", detail: "Page is hidden; pixels would be stale." });
+  if (!Cesium || typeof Cesium.Cartesian2 !== "function" || typeof Cesium.Cartographic?.fromCartesian !== "function") {
+    throw visionError("not_ready", { stage: "ortho_capture", detail: "Cesium namespace is incomplete." });
+  }
+  if (typeof Cesium.Cartesian3?.fromDegrees !== "function" || typeof Cesium.Math?.toDegrees !== "function") {
+    throw visionError("not_ready", { stage: "ortho_capture", detail: "Cesium projection helpers are missing." });
+  }
+  const camera = viewer.camera;
+  if (!camera || typeof viewer.render !== "function") throw visionError("not_ready", { stage: "ortho_capture" });
+  const cssWidth = Math.max(1, canvas.clientWidth || 0);
+  const cssHeight = Math.max(1, canvas.clientHeight || 0);
+  if (canvas.clientWidth > 0 && canvas.clientHeight > 0 && (canvas.clientWidth < MIN_CANVAS_EDGE || canvas.clientHeight < MIN_CANVAS_EDGE)) {
+    throw visionError("not_ready", { stage: "ortho_capture", detail: "Viewport is too small for a capture." });
+  }
+  const requestedBbox = validateBbox(bbox);
+  try {
+    camera.cancelFlight?.();
+  } catch {
+  }
+  const savedView = saveCameraView(camera, Cesium);
+  const savedResolutionScale = viewer.resolutionScale;
+  const inputLock = lockViewerInput(viewer);
+  let restored = false;
+  let offscreen = null;
+  let width = 0;
+  let height = 0;
+  let cameraHeight = MIN_CAMERA_HEIGHT;
+  const restore = () => {
+    if (restored) return;
+    restored = true;
+    try {
+      if (savedResolutionScale !== void 0) viewer.resolutionScale = savedResolutionScale;
+    } catch {
+    }
+    try {
+      applyCameraView(camera, savedView);
+    } catch {
+    }
+    try {
+      inputLock.restore();
+    } catch {
+    }
+    try {
+      viewer.scene?.requestRender?.();
+    } catch {
+    }
+  };
+  try {
+    const scale = isNumber(resolutionScale) && resolutionScale > 0 ? Math.max(1, resolutionScale) : DEFAULT_RESOLUTION_SCALE;
+    let target = null;
+    if (requestedBbox) {
+      cameraHeight = fitNadirHeight(requestedBbox, camera, cssWidth, cssHeight);
+      target = {
+        lon: (requestedBbox.west + requestedBbox.east) / 2,
+        lat: (requestedBbox.south + requestedBbox.north) / 2,
+        altitude: cameraHeight
+      };
+    } else {
+      const centre = currentNadirTarget(viewer, Cesium, canvas);
+      if (!centre) throw visionError("not_ready", { stage: "ortho_capture", detail: "Camera centre cannot be resolved on the globe." });
+      cameraHeight = isNumber(centre.altitude) && centre.altitude > 0 ? centre.altitude : MIN_CAMERA_HEIGHT;
+      target = { lon: centre.lon, lat: centre.lat, altitude: cameraHeight };
+    }
+    viewer.resolutionScale = scale;
+    try {
+      if (typeof viewer.resize === "function") viewer.resize();
+    } catch {
+    }
+    applyCameraView(camera, {
+      position: Cesium.Cartesian3.fromDegrees(target.lon, target.lat, target.altitude),
+      heading: 0,
+      pitch: -Math.PI / 2,
+      roll: 0
+    });
+    await settleFrames(viewer, 2);
+    const deadline = Date.now() + 8e3;
+    while (scene.globe?.tilesLoaded === false) {
+      if (signal?.aborted) throw visionError("cancelled");
+      if (Date.now() >= deadline || document.visibilityState === "hidden") {
+        throw visionError("not_ready", { stage: "ortho_capture", detail: "Imagery has not finished loading." });
+      }
+      await settleFrames(viewer, 1);
+    }
+    if (!(canvas.width >= MIN_CANVAS_EDGE) || !(canvas.height >= MIN_CANVAS_EDGE)) {
+      throw visionError("not_ready", { stage: "ortho_capture", detail: "Drawing buffer is too small after render." });
+    }
+    width = canvas.width;
+    height = canvas.height;
+    const cssScaleX = cssWidth / width;
+    const cssScaleY = cssHeight / height;
+    offscreen = document.createElement("canvas");
+    offscreen.width = width;
+    offscreen.height = height;
+    const context = offscreen.getContext("2d");
+    if (!context || typeof context.drawImage !== "function") {
+      throw visionError("not_ready", { stage: "ortho_capture", detail: "2D canvas context is unavailable." });
+    }
+    const entities = viewer.entities;
+    const wasVisible = entities?.show === true;
+    try {
+      if (wasVisible) entities.show = false;
+      viewer.render();
+      context.drawImage(canvas, 0, 0);
+    } finally {
+      if (wasVisible) entities.show = true;
+    }
+    const initialSignature = cameraSignature(viewer, camera);
+    const source = {
+      width,
+      height,
+      bbox: null,
+      cameraLocked: true,
+      /** False once restored, the camera/view moved, or the viewport resized. */
+      isValid() {
+        if (restored) return false;
+        try {
+          return sameSignature(initialSignature, cameraSignature(viewer, camera));
+        } catch {
+          return false;
+        }
+      },
+      /**
+       * Crop one device-pixel rect out of the frozen frame as a JPEG data URL.
+       * The host accepts images up to 1024 px and ~1.5 MB decoded, so the rect
+       * edge (MAX_READ_EDGE) and the data URL length are guarded here.
+       */
+      read(rect, minLongEdge = 0) {
+        if (restored) {
+          throw visionError("not_ready", { stage: "ortho_read", detail: "Capture was restored; read() is no longer valid." });
+        }
+        const crop = normalizeDeviceRect(rect, width, height);
+        if (crop.width > MAX_READ_EDGE || crop.height > MAX_READ_EDGE) {
+          throw visionError("too_large", {
+            stage: "ortho_read",
+            detail: `Crop ${crop.width}x${crop.height} exceeds the ${MAX_READ_EDGE}px instance limit.`
+          });
+        }
+        const panel = document.createElement("canvas");
+        const scale2 = Math.max(1, Math.min(MAX_READ_EDGE, minLongEdge) / Math.max(crop.width, crop.height));
+        panel.width = Math.max(1, Math.round(crop.width * scale2));
+        panel.height = Math.max(1, Math.round(crop.height * scale2));
+        const panelContext = panel.getContext("2d");
+        if (!panelContext || typeof panelContext.drawImage !== "function") {
+          throw visionError("not_ready", { stage: "ortho_read", detail: "2D canvas context is unavailable." });
+        }
+        panelContext.drawImage(offscreen, crop.left, crop.top, crop.width, crop.height, 0, 0, panel.width, panel.height);
+        let dataUrl = null;
+        try {
+          dataUrl = panel.toDataURL("image/jpeg", JPEG_QUALITY);
+        } catch {
+          throw visionError("not_ready", { stage: "ortho_read", detail: "Canvas could not be encoded (tainted or too large)." });
+        }
+        if (typeof dataUrl !== "string" || !dataUrl.startsWith("data:image/jpeg")) {
+          throw visionError("not_ready", { stage: "ortho_read", detail: "Canvas could not encode a JPEG." });
+        }
+        if (dataUrl.length > MAX_DATA_URL_CHARS) {
+          throw visionError("too_large", { stage: "ortho_read", detail: "JPEG data URL is larger than 2 MB." });
+        }
+        return dataUrl;
+      },
+      readTurned(rect, angle) {
+        const panel = document.createElement("canvas");
+        panel.width = panel.height = 384;
+        const ctx = panel.getContext("2d");
+        ctx.fillStyle = "#222";
+        ctx.fillRect(0, 0, 384, 384);
+        ctx.translate(192, 192);
+        ctx.rotate(angle);
+        ctx.drawImage(offscreen, rect.left, rect.top, rect.width, rect.height, -192, -192, 384, 384);
+        return panel.toDataURL("image/jpeg", JPEG_QUALITY);
+      },
+      readSheet(tasks) {
+        const sheet = document.createElement("canvas");
+        sheet.width = sheet.height = 576;
+        const ctx = sheet.getContext("2d");
+        ctx.fillStyle = "#222";
+        ctx.fillRect(0, 0, 576, 576);
+        for (const [i, task] of tasks.entries()) {
+          const { left, top, width: width2, height: height2 } = task.rect;
+          const x = i % 2 * 288, y = Math.floor(i / 2) * 288;
+          ctx.drawImage(offscreen, left, top, width2, height2, x, y, 288, 288);
+          ctx.fillStyle = "#182024";
+          ctx.fillRect(x, y, 21, 21);
+          ctx.fillStyle = "#fff";
+          ctx.font = "bold 15px sans-serif";
+          ctx.fillText(String(i + 1), x + 6, y + 16);
+        }
+        return sheet.toDataURL("image/jpeg", JPEG_QUALITY);
+      },
+      /** Device pixel → WGS84 ground point; null when the pixel has no surface. */
+      lonLat(px, py) {
+        if (restored || !isNumber(px) || !isNumber(py)) return null;
+        if (px < -1 || py < -1 || px > width + 1 || py > height + 1) return null;
+        const cssX = clamp(px, 0, width - 1e-6) * cssScaleX;
+        const cssY = clamp(py, 0, height - 1e-6) * cssScaleY;
+        const carto = groundCartographic(viewer, Cesium, new Cesium.Cartesian2(cssX, cssY), true);
+        if (!carto) return null;
+        return { lon: toDegrees(carto.longitude), lat: toDegrees(carto.latitude) };
+      },
+      restore
+    };
+    const bboxOut = framingBbox(source);
+    source.bbox = bboxOut;
+    return { source, restore, width, height, bbox: bboxOut, cameraHeight };
+  } catch (error) {
+    restore();
+    throw error;
+  }
+}
+
+// src/client/scene/instance-segment.js
+var INSTANCE_LIMITS = Object.freeze({
+  tileSize: 768,
+  halo: 48,
+  maxDepth: 1,
+  maxCalls: 80,
+  resolutionScale: 1.2,
+  maxClasses: 12,
+  maxClassNameChars: 16,
+  maxClassDefinitionChars: 120,
+  minCoreRetryEdge: 128,
+  minPolygonPixels: 4,
+  duplicateOverlap: 0.55,
+  cutTolerancePx: 1.5
+});
+var ABORT_CODES = /* @__PURE__ */ new Set(["unavailable", "model_not_visual", "model_unknown", "invalid_request", "not_ready", "busy", "model_changed"]);
+var CUSTOM_DEFINITION_PREFIX = "用户自定义：";
+var isNumber2 = (value) => typeof value === "number" && Number.isFinite(value);
+var clamp2 = (value, low, high) => value < low ? low : value > high ? high : value;
+var round7 = (value) => Math.round(value * 1e7) / 1e7;
+var round12 = (value) => Math.round(value * 10) / 10;
+function invalidRequest(stage, detail) {
+  return visionError("invalid_request", { stage, detail });
+}
+function cleanClassText(raw) {
+  if (typeof raw !== "string") return "";
+  return raw.replace(/[\u0000-\u001f\u007f-\u009f]+/g, " ").replace(/["'`\u201c\u201d\u2018\u2019]+/g, "").replace(/\s+/g, " ").trim();
+}
+function normalizeClasses(classes) {
+  if (!Array.isArray(classes) || classes.length === 0) {
+    throw invalidRequest("classes", "At least one class is required.");
+  }
+  if (classes.length > INSTANCE_LIMITS.maxClasses) {
+    throw invalidRequest("classes", `At most ${INSTANCE_LIMITS.maxClasses} classes are supported.`);
+  }
+  const normalized = [];
+  const seen = /* @__PURE__ */ new Set();
+  for (const entry2 of classes) {
+    if (!entry2 || typeof entry2 !== "object") throw invalidRequest("classes", "Every class must be an object.");
+    const rawId = entry2.id;
+    if (!Number.isSafeInteger(rawId) || rawId <= 0) {
+      throw invalidRequest("classes", "Every class id must be a positive integer.");
+    }
+    if (seen.has(rawId)) throw invalidRequest("classes", `Duplicate class id ${rawId}.`);
+    seen.add(rawId);
+    const name = cleanClassText(entry2.name);
+    if (!name) throw invalidRequest("classes", "Every class needs a non-empty name.");
+    if ([...name].length > INSTANCE_LIMITS.maxClassNameChars) {
+      throw invalidRequest("classes", `Class name must be at most ${INSTANCE_LIMITS.maxClassNameChars} characters.`);
+    }
+    const providedDefinition = cleanClassText(entry2.definition);
+    const definition = providedDefinition !== "" ? providedDefinition : `${CUSTOM_DEFINITION_PREFIX}${name}`;
+    if ([...definition].length > INSTANCE_LIMITS.maxClassDefinitionChars) {
+      throw invalidRequest("classes", `Class definition must be at most ${INSTANCE_LIMITS.maxClassDefinitionChars} characters.`);
+    }
+    const key = typeof entry2.key === "string" && entry2.key.trim() !== "" ? entry2.key.trim() : classKeyOf(name) ?? name;
+    const color = typeof entry2.color === "string" && entry2.color.trim() !== "" ? entry2.color.trim() : classHex(name);
+    normalized.push({ id: rawId, idKey: String(rawId), name, definition, key, color });
+  }
+  return normalized;
+}
+function normalizeInteger(value, low, high, name) {
+  const number = Math.round(Number(value));
+  if (!Number.isFinite(number) || number < low || number > high) {
+    throw invalidRequest("options", `${name} must be an integer ${low}..${high}.`);
+  }
+  return number;
+}
+function normalizeTiling(tileSize, halo) {
+  const size = normalizeInteger(tileSize, 64, 1024, "tileSize");
+  const margin = normalizeInteger(halo, 0, 256, "halo");
+  if (size - 2 * margin < 64) {
+    throw invalidRequest("options", "halo leaves less than 64 px of core window; lower halo or raise tileSize.");
+  }
+  return { tileSize: size, halo: margin };
+}
+function normalizeBBoxFilter(bbox) {
+  if (bbox == null) return null;
+  if (typeof bbox !== "object") throw invalidRequest("bbox", "bbox must be an object.");
+  const { west, south, east, north } = bbox;
+  if (![west, south, east, north].every(isNumber2)) throw invalidRequest("bbox", "bbox corners must be finite numbers.");
+  if (!(west < east) || !(south < north)) throw invalidRequest("bbox", "bbox must satisfy west < east and south < north.");
+  return { west, south, east, north };
+}
+function expandRect(core, margin, width, height) {
+  const left = Math.max(0, core.left - margin);
+  const top = Math.max(0, core.top - margin);
+  const right = Math.min(width, core.left + core.width + margin);
+  const bottom = Math.min(height, core.top + core.height + margin);
+  return { left, top, width: right - left, height: bottom - top };
+}
+function planTileWindows({ width, height, tileSize = INSTANCE_LIMITS.tileSize, halo = INSTANCE_LIMITS.halo } = {}) {
+  const widthPx = Math.round(Number(width));
+  const heightPx = Math.round(Number(height));
+  if (!(widthPx >= 32) || !(heightPx >= 32)) throw invalidRequest("image", "Captured frame must be at least 32x32 device pixels.");
+  const tiling = normalizeTiling(tileSize, halo);
+  const step = tiling.tileSize - 2 * tiling.halo;
+  const singleWindow = widthPx <= tiling.tileSize && heightPx <= tiling.tileSize;
+  const columns = singleWindow ? 1 : Math.ceil(widthPx / step);
+  const rows = singleWindow ? 1 : Math.ceil(heightPx / step);
+  const coreWidth = Math.ceil(widthPx / columns);
+  const coreHeight = Math.ceil(heightPx / rows);
+  const windows = [];
+  for (let row2 = 0; row2 < rows; row2 += 1) {
+    for (let column = 0; column < columns; column += 1) {
+      const core = {
+        left: column * coreWidth,
+        top: row2 * coreHeight,
+        width: Math.min(coreWidth, widthPx - column * coreWidth),
+        height: Math.min(coreHeight, heightPx - row2 * coreHeight)
+      };
+      const rect = expandRect(core, tiling.halo, widthPx, heightPx);
+      if (rect.width > 1024 || rect.height > 1024) {
+        throw visionError("too_large", { stage: "tiling", detail: `Window ${rect.width}x${rect.height} exceeds 1024 px.` });
+      }
+      windows.push({ id: `w${windows.length + 1}`, depth: 0, core, rect });
+    }
+  }
+  return windows;
+}
+function quarterWindow(window2, width, height, margin) {
+  const core = window2.core;
+  const halfWidth = Math.ceil(core.width / 2);
+  const halfHeight = Math.ceil(core.height / 2);
+  const cells = [
+    { left: core.left, top: core.top, width: halfWidth, height: halfHeight },
+    { left: core.left + halfWidth, top: core.top, width: core.width - halfWidth, height: halfHeight },
+    { left: core.left, top: core.top + halfHeight, width: halfWidth, height: core.height - halfHeight },
+    { left: core.left + halfWidth, top: core.top + halfHeight, width: core.width - halfWidth, height: core.height - halfHeight }
+  ];
+  return cells.filter((cell) => cell.width > 0 && cell.height > 0).map((cell, index) => ({
+    id: `${window2.id}.${index + 1}`,
+    depth: window2.depth + 1,
+    core: cell,
+    rect: expandRect(cell, margin, width, height)
+  }));
+}
+function pixelBBox(points) {
+  if (!Array.isArray(points) || points.length < 3) return null;
+  let left = Infinity;
+  let top = Infinity;
+  let right = -Infinity;
+  let bottom = -Infinity;
+  for (const [x, y] of points) {
+    if (x < left) left = x;
+    if (x > right) right = x;
+    if (y < top) top = y;
+    if (y > bottom) bottom = y;
+  }
+  if (![left, top, right, bottom].every(isNumber2)) return null;
+  return { left, top, right, bottom, width: right - left, height: bottom - top };
+}
+function shoelaceArea(points) {
+  let sum = 0;
+  for (let index = 0; index < points.length; index += 1) {
+    const current2 = points[index];
+    const next = points[(index + 1) % points.length];
+    sum += current2[0] * next[1] - next[0] * current2[1];
+  }
+  return Math.abs(sum) / 2;
+}
+function boxesIntersect(a, b) {
+  if (!a || !b) return false;
+  return a.left < b.left + b.width && b.left < a.left + a.width && a.top < b.top + b.height && b.top < a.top + a.height;
+}
+function nearlySameProposal(a, b) {
+  const width = Math.max(0, Math.min(a.left + a.width, b.left + b.width) - Math.max(a.left, b.left));
+  const height = Math.max(0, Math.min(a.top + a.height, b.top + b.height) - Math.max(a.top, b.top));
+  const intersection = width * height;
+  return intersection >= 0.65 * (a.width * a.height + b.width * b.height - intersection);
+}
+function pointInBBox(point, bbox) {
+  return point.lon >= bbox.west && point.lon <= bbox.east && point.lat >= bbox.south && point.lat <= bbox.north;
+}
+function buildCandidate(raw, window2, classesById, source) {
+  const entry2 = classesById.get(String(raw?.classId));
+  if (!entry2) return null;
+  if (!Array.isArray(raw.polygon) || raw.polygon.length < 3 || raw.polygon.length > 2e3) return null;
+  const normalized = [];
+  for (const vertex of raw.polygon) {
+    if (!Array.isArray(vertex) || vertex.length < 2) return null;
+    const x = Number(vertex[0]);
+    const y = Number(vertex[1]);
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
+    if (x < -10 || x > 1010 || y < -10 || y > 1010) return null;
+    const point = [clamp2(x, 0, 1e3), clamp2(y, 0, 1e3)];
+    if (normalized.at(-1)?.[0] !== point[0] || normalized.at(-1)?.[1] !== point[1]) normalized.push(point);
+  }
+  if (normalized.length && normalized[0][0] === normalized.at(-1)[0] && normalized[0][1] === normalized.at(-1)[1]) normalized.pop();
+  if (normalized.length < 3 || ringCrossesItself(normalized)) return null;
+  const rect = window2.rect;
+  const pixels = normalized.map(([x, y]) => [rect.left + x / 1e3 * rect.width, rect.top + y / 1e3 * rect.height]);
+  const bbox = pixelBBox(pixels);
+  if (!bbox) return null;
+  if (bbox.width < 2 || bbox.height < 2) return null;
+  const areaPx = shoelaceArea(pixels);
+  if (!(areaPx >= INSTANCE_LIMITS.minPolygonPixels)) return null;
+  const ring = [];
+  let sumLon = 0;
+  let sumLat = 0;
+  for (const [x, y] of pixels) {
+    const point = source.lonLat(x, y);
+    if (!point || !isNumber2(point.lon) || !isNumber2(point.lat)) return null;
+    ring.push([point.lon, point.lat]);
+    sumLon += point.lon;
+    sumLat += point.lat;
+  }
+  if (ring.length < 3) return null;
+  return {
+    classId: entry2.id,
+    classKey: entry2.key,
+    className: entry2.name,
+    color: entry2.color,
+    pixels,
+    bbox,
+    areaPx,
+    ring,
+    centroid: { lon: sumLon / ring.length, lat: sumLat / ring.length },
+    clipped: bbox.left <= rect.left + INSTANCE_LIMITS.cutTolerancePx || bbox.top <= rect.top + INSTANCE_LIMITS.cutTolerancePx || bbox.right >= rect.left + rect.width - INSTANCE_LIMITS.cutTolerancePx || bbox.bottom >= rect.top + rect.height - INSTANCE_LIMITS.cutTolerancePx,
+    windowId: window2.id
+  };
+}
+function keepCandidate(kept, candidate) {
+  let duplicateIndex = -1;
+  for (let index = 0; index < kept.length; index += 1) {
+    const existing2 = kept[index];
+    if (existing2.classKey !== candidate.classKey) continue;
+    if (boxesIntersect(existing2.bbox, candidate.bbox) && sameFootprint(existing2, candidate, INSTANCE_LIMITS.duplicateOverlap)) {
+      duplicateIndex = index;
+      break;
+    }
+  }
+  if (duplicateIndex < 0) {
+    kept.push(candidate);
+    return "kept";
+  }
+  const existing = kept[duplicateIndex];
+  const replace = existing.clipped === true && candidate.clipped !== true || existing.clipped === candidate.clipped && candidate.areaPx > existing.areaPx;
+  if (replace) kept[duplicateIndex] = candidate;
+  return "duplicate";
+}
+function buildFeature(candidate) {
+  const ring = candidate.ring.map(([lon, lat]) => [round7(lon), round7(lat)]);
+  ring.push(ring[0].slice());
+  const area = ringAreaSquareMeters(ring);
+  if (!(area > 0)) return null;
+  return {
+    type: "Feature",
+    properties: {
+      class_id: candidate.classId,
+      class_key: candidate.classKey,
+      class_name: candidate.className,
+      color: candidate.color,
+      area_m2: round12(area),
+      ...candidate.clipped ? { clippedAtTileEdge: true } : {}
+    },
+    geometry: { type: "Polygon", coordinates: [ring] }
+  };
+}
+async function postWindow({ url, image, classes, fetchImpl, signal, mode, slots, sessionId, modelRoute, namedLabels, reuse }) {
+  let response = null;
+  try {
+    response = await fetchImpl(url, {
+      method: "POST",
+      credentials: "same-origin",
+      signal,
+      headers: {
+        "content-type": "application/json",
+        "x-dsh-panel": "vision-instances",
+        ...reuse ? { "x-dsh-reuse": "1" } : {},
+        ...sessionId ? { "x-dsh-session": sessionId } : {},
+        ...modelRoute ? { "x-dsh-model-route": modelRoute } : {}
+      },
+      body: JSON.stringify({ image, classes, mode, slots, ...mode === "locate" && namedLabels ? { namedLabels: true } : {} })
+    });
+  } catch (error) {
+    if (error?.name === "AbortError") throw error;
+    return { error: typeof error?.code === "string" ? error.code : "network" };
+  }
+  if (!response || response.ok !== true) {
+    let payload2 = null;
+    try {
+      payload2 = await response.json();
+    } catch {
+      payload2 = null;
+    }
+    if (typeof payload2?.code === "string") return { error: payload2.code, usage: payload2.usage };
+    const status = Number(response?.status);
+    return { error: Number.isFinite(status) && status > 0 ? `http_${status}` : "http_error" };
+  }
+  let payload = null;
+  try {
+    payload = await response.json();
+  } catch {
+    return { error: "invalid_json" };
+  }
+  if (!payload || payload.ok !== true || !Array.isArray(mode === "locate" ? payload.boxes : payload.instances)) {
+    return { error: typeof payload?.code === "string" ? payload.code : "invalid_result" };
+  }
+  return { payload };
+}
+function isAbort(error, signal) {
+  return signal?.aborted === true || error?.name === "AbortError";
+}
+async function segmentInstances({
+  viewer,
+  Cesium,
+  meta,
+  bbox = null,
+  classes,
+  resolutionScale = INSTANCE_LIMITS.resolutionScale,
+  tileSize = INSTANCE_LIMITS.tileSize,
+  halo = INSTANCE_LIMITS.halo,
+  sessionId = null,
+  multiScale = false,
+  namedLabels = false,
+  separateClasses = false,
+  reuse = false,
+  maxDepth = INSTANCE_LIMITS.maxDepth,
+  maxCalls = INSTANCE_LIMITS.maxCalls,
+  signal = null,
+  onProgress,
+  fetchImpl = globalThis.fetch,
+  captureFrame = captureOrtho
+} = {}) {
+  const normalizedClasses = normalizeClasses(classes);
+  const classesById = new Map(normalizedClasses.map((entry2) => [entry2.idKey, entry2]));
+  const requestClasses = normalizedClasses.map(({ id, name, definition }) => ({ id, name, definition }));
+  const url = typeof meta?.visionInstancesUrl === "string" ? meta.visionInstancesUrl.trim() : "";
+  if (!url) throw visionError("unavailable", { stage: "instance_segment", detail: "meta.visionInstancesUrl is missing." });
+  if (typeof fetchImpl !== "function") throw visionError("unavailable", { stage: "instance_segment", detail: "fetch is unavailable." });
+  const tiling = normalizeTiling(tileSize, halo);
+  const depthLimit = normalizeInteger(maxDepth, 0, 3, "maxDepth");
+  const callLimit = normalizeInteger(maxCalls, 1, 500, "maxCalls");
+  const filterBBox = normalizeBBoxFilter(bbox);
+  const emit = typeof onProgress === "function" ? onProgress : () => {
+  };
+  const startedAt = Date.now();
+  const kept = [];
+  const errors = [];
+  const failedWindows = [];
+  let modelRoute = null;
+  let modelUsed = null;
+  let calls = 0;
+  let reusedCalls = 0;
+  let measuredCalls = 0;
+  let totalTokens = 0;
+  let windows = 0;
+  let cancelled = false;
+  let capture = null;
+  const finish = () => {
+    const features = [];
+    for (const candidate of kept) {
+      const feature = buildFeature(candidate);
+      if (feature) features.push(feature);
+    }
+    return {
+      collection: { type: "FeatureCollection", features },
+      cancelled,
+      report: {
+        calls,
+        reusedCalls,
+        modelUsed,
+        multiScale,
+        usage: measuredCalls ? { totalTokens, measuredCalls } : null,
+        windows,
+        failedWindows,
+        complete: failedWindows.length === 0 && !cancelled,
+        instances: features.length,
+        durationMs: Date.now() - startedAt,
+        source: capture ? { width: capture.width, height: capture.height, bbox: capture.bbox } : { width: 0, height: 0, bbox: null },
+        errors
+      }
+    };
+  };
+  if (signal?.aborted) {
+    cancelled = true;
+    return finish();
+  }
+  try {
+    capture = await captureFrame({ viewer, Cesium, bbox: filterBBox, resolutionScale, signal });
+  } catch (error) {
+    if (signal?.aborted) {
+      cancelled = true;
+      return finish();
+    }
+    throw error;
+  }
+  try {
+    if (signal?.aborted) {
+      cancelled = true;
+      return finish();
+    }
+    const baseWindows = planTileWindows({ width: capture.width, height: capture.height, tileSize: tiling.tileSize, halo: tiling.halo });
+    const seenProposals = /* @__PURE__ */ new Map();
+    const queue = meta.visionGroundedInstances === true ? classWindows(baseWindows, normalizedClasses, separateClasses) : baseWindows;
+    const assertSceneStillValid = () => {
+      if (typeof capture.source.isValid === "function" && !capture.source.isValid()) {
+        throw visionError("scene_changed", {
+          stage: "instance_segment",
+          detail: "Camera or viewport moved while the instance run was in flight."
+        });
+      }
+    };
+    const progress = (windowId, error) => {
+      const event = {
+        phase: "window",
+        done: windows,
+        total: windows + queue.length,
+        found: kept.length,
+        windowId,
+        ...error ? { error } : {}
+      };
+      try {
+        emit(event);
+      } catch {
+      }
+    };
+    const ingest = (payload, window2) => {
+      let usable = 0;
+      let invalid = 0;
+      for (const raw of payload.instances) {
+        if (window2.classId && raw?.classId !== window2.classId) {
+          invalid++;
+          continue;
+        }
+        const candidate = buildCandidate(raw, window2, classesById, capture.source);
+        if (!candidate || window2.proposal && !agreesWithProposal(candidate, window2)) {
+          invalid += 1;
+          continue;
+        }
+        if (!boxesIntersect(candidate.bbox, window2.core)) continue;
+        usable += 1;
+        if (filterBBox && !pointInBBox(candidate.centroid, filterBBox)) continue;
+        keepCandidate(kept, candidate);
+      }
+      return { usable, invalid };
+    };
+    while (queue.length > 0) {
+      if (signal?.aborted) {
+        cancelled = true;
+        break;
+      }
+      assertSceneStillValid();
+      const window2 = queue.shift();
+      windows += 1;
+      if (calls >= callLimit) {
+        failedWindows.push({ windowId: window2.id, depth: window2.depth, reason: "max_calls" });
+        progress(window2.id, "max_calls");
+        continue;
+      }
+      const group = [window2];
+      if (window2.mode === "trace" && !window2.single && capture.source.readSheet) {
+        while (group.length < 4 && queue[0]?.mode === "trace" && !queue[0].single) group.push(queue.shift());
+      }
+      windows += group.length - 1;
+      const mode = group.length > 1 ? "trace_batch" : window2.mode ?? (meta.visionGroundedInstances === true ? "locate" : "polygon");
+      const slots = group.length > 1 ? group.map((task) => task.classId) : void 0;
+      const image = window2.turned ? capture.source.readTurned(window2.rect, TRACE_ANGLE) : slots ? capture.source.readSheet(group) : capture.source.read(window2.rect, mode === "locate" ? 640 : mode === "trace" ? 384 : 0);
+      const tileClasses = window2.mode === "trace" ? requestClasses.filter((cls) => group.some((task) => task.classId === cls.id)) : window2.classIds ? requestClasses.filter((cls) => window2.classIds.includes(cls.id)) : requestClasses;
+      calls += 1;
+      let outcome;
+      try {
+        outcome = await postWindow({ url, image, classes: tileClasses, fetchImpl, signal, mode, slots, sessionId, modelRoute, namedLabels, reuse });
+      } catch (error) {
+        if (isAbort(error, signal)) {
+          cancelled = true;
+          break;
+        }
+        outcome = { error: typeof error?.code === "string" ? error.code : "network" };
+      }
+      if (signal?.aborted) {
+        cancelled = true;
+        break;
+      }
+      assertSceneStillValid();
+      if (outcome.payload?.reused) reusedCalls++;
+      if (outcome.payload?.modelRoute) modelRoute = outcome.payload.modelRoute;
+      if (outcome.payload?.model) modelUsed = outcome.payload.model;
+      const tokens = (outcome.payload?.usage ?? outcome.usage)?.total_tokens;
+      if (Number.isSafeInteger(tokens) && tokens >= 0) {
+        totalTokens += tokens;
+        measuredCalls++;
+      }
+      if (slots && !ABORT_CODES.has(outcome.error)) {
+        const verify = /* @__PURE__ */ new Set();
+        const retry = new Set(outcome.error ? slots.map((_, i) => i + 1) : outcome.payload.retrySlots);
+        for (const raw of outcome.payload?.instances ?? []) {
+          const task = group[raw.slot - 1];
+          if (!task || raw.classId !== task.classId) continue;
+          if (capture.source.readTurned && polygonLooksLikeBox(raw.polygon, 5)) {
+            verify.add(raw.slot);
+            retry.add(raw.slot);
+            continue;
+          }
+          if (ingest({ instances: [raw] }, task).invalid) retry.add(raw.slot);
+        }
+        for (const slot of retry) {
+          const task = group[slot - 1];
+          if (task) queue.push({ ...task, single: true, turned: verify.has(slot) });
+        }
+        if (outcome.error) errors.push({ windowId: window2.id, reason: outcome.error, depth: window2.depth });
+        progress(window2.id);
+        continue;
+      }
+      if (!outcome.error && mode === "locate") {
+        let tasks = traceWindows(outcome.payload.boxes, window2, capture.width, capture.height, classesById);
+        if (multiScale && !window2.classProbe) {
+          if (window2.depth === 0 && Math.min(window2.core.width, window2.core.height) >= 128) {
+            const margin = Math.min(tiling.halo, Math.ceil(Math.min(window2.core.width, window2.core.height) / 8));
+            queue.push(...quarterWindow(window2, capture.width, capture.height, margin).map((child) => ({
+              ...child,
+              detail: true,
+              classIds: window2.classIds
+            })));
+          }
+          tasks = tasks.filter((task) => {
+            const previous = seenProposals.get(task.classId) ?? [];
+            const box = task.proposal;
+            if (window2.detail && previous.some((b) => nearlySameProposal(b, box))) return false;
+            previous.push(box);
+            seenProposals.set(task.classId, previous);
+            return true;
+          });
+        }
+        if (window2.classProbe) for (const task of tasks) task.single = true;
+        const probes = [];
+        if (tileClasses.length > 1 && tasks.length > Math.max(16, (callLimit - calls) / 2)) {
+          const counts = /* @__PURE__ */ new Map();
+          for (const task of tasks) counts.set(task.classId, (counts.get(task.classId) ?? 0) + 1);
+          for (const cls of tileClasses) {
+            if (counts.get(cls.id) === 1 && probes.length < 3) {
+              probes.push({ ...window2, id: window2.id + "/check" + cls.id, classIds: [cls.id], classProbe: true });
+            }
+          }
+        }
+        const first = tasks.splice(0, window2.classProbe ? tasks.length : capture.source.readSheet ? 4 : 1);
+        queue.unshift(...probes, ...first);
+        queue.push(...tasks);
+        progress(window2.id);
+        continue;
+      }
+      if (!outcome.error && mode === "trace" && outcome.payload.instances.length === 1 && capture.source.readTurned) {
+        const raw = outcome.payload.instances[0];
+        const isBox = polygonLooksLikeBox(raw.polygon, 5);
+        if (window2.turned) {
+          const ring = !isBox && unrotateOutline(raw.polygon);
+          if (!ring) outcome = { error: "unverified_outline" };
+          else outcome.payload.instances = [{ ...raw, polygon: ring }];
+        } else if (isBox) {
+          queue.push({ ...window2, single: true, turned: true });
+          progress(window2.id);
+          continue;
+        }
+      }
+      if (!outcome.error) {
+        const parsed = ingest(outcome.payload, window2);
+        if (outcome.payload.instances.length > 0 && parsed.usable === 0 && parsed.invalid > 0) {
+          outcome = { error: "invalid_instances" };
+        } else {
+          progress(window2.id);
+          continue;
+        }
+      }
+      if (ABORT_CODES.has(outcome.error)) {
+        throw visionError(outcome.error, {
+          stage: "instance_segment",
+          detail: "The host vision route rejects the instance request."
+        });
+      }
+      errors.push({ windowId: window2.id, depth: window2.depth, reason: outcome.error });
+      const canRetry = mode !== "trace" && window2.depth < depthLimit && Math.min(window2.core.width, window2.core.height) >= INSTANCE_LIMITS.minCoreRetryEdge;
+      if (canRetry) {
+        const children = quarterWindow(window2, capture.width, capture.height, tiling.halo);
+        queue.unshift(...children.map((child) => ({ ...child, classIds: window2.classIds })));
+      } else {
+        failedWindows.push({ windowId: window2.id, depth: window2.depth, reason: outcome.error });
+      }
+      progress(window2.id, outcome.error);
+    }
+    return finish();
+  } finally {
+    try {
+      capture?.restore?.();
+    } catch {
+    }
+  }
+}
+
+// src/client/scene/agent-extract.js
+var AGENT_EXTRACT_CAPTION = "AI 提取";
+function clearExtractionOverlay({ state, viewer } = {}) {
+  const commands = Array.isArray(state?.drawCommands) ? state.drawCommands : [];
+  let removed = 0;
+  for (let index = commands.length - 1; index >= 0; index -= 1) {
+    if (commands[index]?.caption !== AGENT_EXTRACT_CAPTION) continue;
+    if (removeAgentOverlay(state, viewer, "draw", index)) removed += 1;
+  }
+  return { removed };
+}
+var AGENT_MAX_FEATURES = 60;
+function resolveAgentClasses(rawClasses) {
+  const catalog = buildClassCatalog([]);
+  const requested = Array.isArray(rawClasses) ? rawClasses : [];
+  const names = requested.filter((value) => typeof value === "string" && value.trim() !== "").map((value) => value.trim());
+  if (names.length === 0) return catalog;
+  const selected = [];
+  let nextCustomId = Math.max(...catalog.map((entry2) => entry2.id)) + 1;
+  for (const name of names) {
+    const lower = name.toLowerCase();
+    const preset = [...catalog, ...SPORTS_CLASSES].find((entry3) => entry3.name.toLowerCase() === lower || entry3.key.toLowerCase() === lower);
+    const entry2 = preset ?? customClass(name);
+    if (!entry2 || selected.some((item) => item.key === entry2.key)) continue;
+    selected.push(preset ?? { ...entry2, id: nextCustomId++ });
+    if (selected.length === TAXONOMY_LIMITS.maxClasses) break;
+  }
+  return selected.length > 0 ? selected : catalog;
+}
+function compactExtractionCollection(collection, maxFeatures = AGENT_MAX_FEATURES) {
+  const features = Array.isArray(collection?.features) ? collection.features : [];
+  const cap = Math.max(1, Math.min(AGENT_MAX_FEATURES, Math.floor(maxFeatures) || AGENT_MAX_FEATURES));
+  return {
+    collection: { type: "FeatureCollection", features: features.slice(0, cap) },
+    truncated: features.length > cap,
+    count: features.length
+  };
+}
+async function runAgentExtraction({
+  viewer,
+  Cesium,
+  meta,
+  bbox = null,
+  classes = null,
+  maxFeatures = AGENT_MAX_FEATURES,
+  maxCalls = 16,
+  sessionId = null,
+  multiScale = false,
+  namedLabels = false,
+  separateClasses = false,
+  reuse = true,
+  label = AGENT_EXTRACT_CAPTION,
+  draw,
+  clearAgent,
+  clear = false,
+  signal,
+  onProgress,
+  fetchImpl
+} = {}) {
+  if (!viewer || !Cesium) throw new Error("extract: the digital earth panel is not ready. next: open the panel and retry.");
+  if (clear) {
+    const outcome = typeof clearAgent === "function" ? clearAgent() : { removed: 0 };
+    return {
+      cleared: true,
+      removed: Number(outcome?.removed) || 0,
+      count: 0,
+      truncated: false,
+      bbox: null,
+      classes: [],
+      report: { cleared: Number(outcome?.removed) || 0 },
+      geojson: { type: "FeatureCollection", features: [] }
+    };
+  }
+  const catalog = resolveAgentClasses(classes);
+  const result = await segmentInstances({
+    viewer,
+    Cesium,
+    meta,
+    bbox: bbox ?? null,
+    classes: catalog,
+    multiScale,
+    namedLabels,
+    separateClasses,
+    reuse,
+    sessionId,
+    resolutionScale: 1.2,
+    maxCalls: Math.max(1, Math.min(40, Math.round(Number(maxCalls) || 16))),
+    signal,
+    onProgress,
+    fetchImpl
+  });
+  if (result.cancelled) {
+    return {
+      count: 0,
+      truncated: false,
+      bbox: bbox ?? null,
+      classes: catalog.map((entry2) => entry2.name),
+      report: result.report,
+      geojson: { type: "FeatureCollection", features: [] }
+    };
+  }
+  const { collection, truncated, count } = compactExtractionCollection(result.collection, maxFeatures);
+  if (count > 0 && typeof draw === "function") {
+    draw(Cesium, viewer, result.collection, "violet", AGENT_EXTRACT_CAPTION, "agent");
+  }
+  const byClass = {};
+  for (const feature of collection.features) {
+    const props = feature?.properties ?? {};
+    const label2 = props.class_name ?? props.class ?? props.class_key ?? "other";
+    byClass[label2] = (byClass[label2] ?? 0) + 1;
+  }
+  return {
+    count,
+    truncated,
+    by_class: byClass,
+    bbox: bbox ?? result.report?.source?.bbox ?? null,
+    classes: catalog.map((entry2) => entry2.name),
+    report: result.report,
+    geojson: collection
+  };
 }
 
 // src/client/scene/command-bridge.js
@@ -10071,6 +12339,36 @@ function createCommandBridge(deps) {
       await delay(1400);
       return { view: (await collectSceneStatus()).view };
     }
+    if (action === "extract") {
+      const abort = new AbortController();
+      const timer = setTimeout(() => abort.abort(), 23e4);
+      try {
+        return await runAgentExtraction({
+          viewer,
+          Cesium,
+          meta: metaRef.current,
+          bbox: args.bbox ?? null,
+          classes: args.classes ?? null,
+          sessionId: deps.getSession?.(),
+          separateClasses: args.separate_classes === true,
+          reuse: args.reuse !== false,
+          namedLabels: args.named_labels === true,
+          multiScale: args.multi_scale === true,
+          maxFeatures: args.max_features,
+          maxCalls: args.max_calls,
+          label: typeof args.label === "string" ? args.label : void 0,
+          clear: args.clear === true,
+          clearAgent: () => clearExtractionOverlay({ state: agentOverlayRef.current, viewer }),
+          signal: abort.signal,
+          draw: drawAgentOverlay
+        });
+      } catch (error) {
+        const text = message2(error);
+        throw new Error(text.includes("next:") ? text : `${text} next: 检查面板是否已打开、视觉模型是否可用，或缩小范围后重试。`);
+      } finally {
+        clearTimeout(timer);
+      }
+    }
     if (action === "pick") {
       const position = new Cesium.Cartesian2(
         Math.round(viewer.canvas.clientWidth / 2),
@@ -10282,7 +12580,7 @@ function createSceneReport(deps) {
       if (layerRows.length === 0) lines.push(`- ${L.none}`);
       else {
         lines.push(`| ${L.name} | ${L.visibility} |`, "| --- | --- |");
-        for (const row of layerRows) lines.push(`| ${row.name} | ${row.visible} |`);
+        for (const row2 of layerRows) lines.push(`| ${row2.name} | ${row2.visible} |`);
       }
       lines.push("", `## ${L.imagery} / ${L.terrain}`, "", `- ${environment}`, "", `## ${L.overlays}`, "", `- ${overlayLine}`, "");
       if (measurements.length > 0) lines.push(`## ${L.measurements}`, "", ...measurements.map((line) => `- ${line}`), "");
@@ -10292,7 +12590,7 @@ function createSceneReport(deps) {
       lines.push("---", L.generatedBy);
       content = lines.join("\n");
     } else {
-      const table = layerRows.length === 0 ? `<p>${escapeHtml2(L.none)}</p>` : `<table><thead><tr><th>${escapeHtml2(L.name)}</th><th>${escapeHtml2(L.visibility)}</th></tr></thead><tbody>${layerRows.map((row) => `<tr><td>${escapeHtml2(row.name)}</td><td>${escapeHtml2(row.visible)}</td></tr>`).join("")}</tbody></table>`;
+      const table = layerRows.length === 0 ? `<p>${escapeHtml2(L.none)}</p>` : `<table><thead><tr><th>${escapeHtml2(L.name)}</th><th>${escapeHtml2(L.visibility)}</th></tr></thead><tbody>${layerRows.map((row2) => `<tr><td>${escapeHtml2(row2.name)}</td><td>${escapeHtml2(row2.visible)}</td></tr>`).join("")}</tbody></table>`;
       const image = capture !== null && capture.base64 !== "" ? `<img alt="${escapeHtml2(L.snapshot)}" src="data:${escapeHtml2(capture.mime)};base64,${capture.base64}">` : capture !== null && capture.path !== "" ? `<p>${escapeHtml2(capture.path)}</p>` : "";
       const list = (items) => items.map((item) => `<li>${escapeHtml2(item)}</li>`).join("");
       content = `<!doctype html>
@@ -10371,14 +12669,14 @@ function createSceneStatus(deps) {
     const config = sourcesRef.current ?? { imagery: [], terrain: [], settings: {} };
     const imagery = config.imagery.find((item) => item.id === config.settings.imagery) ?? null;
     const terrain = config.terrain.find((item) => item.id === config.settings.terrain) ?? null;
-    const round2 = (value) => Math.round(value * 1e6) / 1e6;
+    const round3 = (value) => Math.round(value * 1e6) / 1e6;
     const rasterFrames = getRasterFrames?.() ?? {};
     const imageryTemporal = imagery ? describeRasterFrames(imagery, rasterFrames[imagery.id] ?? 0) : null;
     return {
       ready: true,
       view: {
-        lon: round2(Cesium.Math.toDegrees(carto.longitude)),
-        lat: round2(Cesium.Math.toDegrees(carto.latitude)),
+        lon: round3(Cesium.Math.toDegrees(carto.longitude)),
+        lat: round3(Cesium.Math.toDegrees(carto.latitude)),
         height: Math.round(carto.height),
         heading: Math.round(Cesium.Math.toDegrees(viewer.camera.heading ?? 0)),
         pitch: Math.round(Cesium.Math.toDegrees(viewer.camera.pitch ?? 0))
@@ -10629,8 +12927,8 @@ var baselineByTileset = /* @__PURE__ */ new WeakMap();
 var pausedBoundsByTileset = /* @__PURE__ */ new WeakMap();
 var clayStateByTileset = /* @__PURE__ */ new WeakMap();
 function isClayActive(tileset) {
-  const entry = clayStateByTileset.get(tileset);
-  return Boolean(entry && tileset?.customShader === entry.shader);
+  const entry2 = clayStateByTileset.get(tileset);
+  return Boolean(entry2 && tileset?.customShader === entry2.shader);
 }
 function createClayCustomShader(Cesium) {
   if (!Cesium || typeof Cesium.CustomShader !== "function") return null;
@@ -10650,10 +12948,10 @@ function setClayMode(tileset, enabled, Cesium) {
     tileset.customShader = shader;
     return true;
   }
-  const entry = clayStateByTileset.get(tileset);
+  const entry2 = clayStateByTileset.get(tileset);
   clayStateByTileset.delete(tileset);
-  if (entry && tileset.customShader === entry.shader) {
-    tileset.customShader = entry.previous ?? void 0;
+  if (entry2 && tileset.customShader === entry2.shader) {
+    tileset.customShader = entry2.previous ?? void 0;
   }
   return true;
 }
@@ -11315,7 +13613,7 @@ function createShaderEngine(deps) {
   const shaderActiveList = () => {
     pruneShaderEntries();
     const order = new Map(layersRef.current.map((layer, index) => [layer.id, index]));
-    return [...shaderEntriesRef.current.values()].sort((left, right) => (order.get(left.layer.id) ?? 0) - (order.get(right.layer.id) ?? 0)).map((entry) => ({ layer: entry.layerName, layerId: entry.layer.id, preset: entry.preset, params: { ...entry.params } }));
+    return [...shaderEntriesRef.current.values()].sort((left, right) => (order.get(left.layer.id) ?? 0) - (order.get(right.layer.id) ?? 0)).map((entry2) => ({ layer: entry2.layerName, layerId: entry2.layer.id, preset: entry2.preset, params: { ...entry2.params } }));
   };
   const refreshShaderActive = () => (setShaderActive(shaderActiveList()), viewerRef.current?.scene?.requestRender?.());
   function ensureShaderTick() {
@@ -11324,8 +13622,8 @@ function createShaderEngine(deps) {
     const tick = () => {
       const seconds = (typeof performance !== "undefined" ? performance.now() : Date.now()) / 1e3;
       let animated = false;
-      for (const entry of shaderEntriesRef.current.values()) {
-        const shader = entry.shader;
+      for (const entry2 of shaderEntriesRef.current.values()) {
+        const shader = entry2.shader;
         if (!shader || !shader.uniforms || !("u_time" in shader.uniforms)) continue;
         try {
           shader.setUniform("u_time", seconds);
@@ -11353,17 +13651,17 @@ function createShaderEngine(deps) {
   }
   function pruneShaderEntries() {
     let pruned = false;
-    for (const entry of [...shaderEntriesRef.current.values()]) {
-      const layer = layersRef.current.find((item) => item.id === entry.layer.id);
+    for (const entry2 of [...shaderEntriesRef.current.values()]) {
+      const layer = layersRef.current.find((item) => item.id === entry2.layer.id);
       if (layer && layer.visible !== false) {
-        entry.layer = layer;
-        entry.layerName = layer.name;
+        entry2.layer = layer;
+        entry2.layerName = layer.name;
         continue;
       }
       pruned = true;
-      shaderEntriesRef.current.delete(entry.layer.id);
-      comparisons.delete(entry.layer.id);
-      if (layer) restoreShaderEntry(entry);
+      shaderEntriesRef.current.delete(entry2.layer.id);
+      comparisons.delete(entry2.layer.id);
+      if (layer) restoreShaderEntry(entry2);
     }
     if (pruned) {
       if (shaderEntriesRef.current.size === 0) releaseShaderTick();
@@ -11374,18 +13672,18 @@ function createShaderEngine(deps) {
   function finishCompare(layerId) {
     if (!comparisons.has(layerId)) return false;
     comparisons.delete(layerId);
-    const entry = shaderEntriesRef.current.get(layerId);
-    if (entry && entry.layer && entry.layer.tileset) {
+    const entry2 = shaderEntriesRef.current.get(layerId);
+    if (entry2 && entry2.layer && entry2.layer.tileset) {
       try {
-        entry.layer.tileset.customShader = entry.shader;
+        entry2.layer.tileset.customShader = entry2.shader;
       } catch {
       }
     }
     return true;
   }
-  function restoreShaderEntry(entry) {
+  function restoreShaderEntry(entry2) {
     try {
-      entry.layer.tileset.customShader = entry.previous ?? void 0;
+      entry2.layer.tileset.customShader = entry2.previous ?? void 0;
       return null;
     } catch (error) {
       return error;
@@ -11393,11 +13691,11 @@ function createShaderEngine(deps) {
   }
   function detachShaderForLayer(id, restore) {
     const entries = shaderEntriesRef.current;
-    const entry = entries.get(id);
-    if (!entry) return false;
+    const entry2 = entries.get(id);
+    if (!entry2) return false;
     entries.delete(id);
     finishCompare(id);
-    if (restore) restoreShaderEntry(entry);
+    if (restore) restoreShaderEntry(entry2);
     refreshShaderActive();
     if (entries.size === 0) releaseShaderTick();
     return true;
@@ -11530,16 +13828,16 @@ function createShaderEngine(deps) {
         throw shaderFail(`未找到图层 "${layerToken}"。`, "用 earth_scene 的 list 动作查看当前图层名。");
       }
       targetLayerName = layer.name;
-      const entry = entries.get(layer.id);
-      if (entry) targets = [entry];
+      const entry2 = entries.get(layer.id);
+      if (entry2) targets = [entry2];
     } else {
       targets = [...entries.values()];
     }
     let failure = null;
-    for (const entry of targets) {
-      finishCompare(entry.layer.id);
-      entries.delete(entry.layer.id);
-      const error = restoreShaderEntry(entry);
+    for (const entry2 of targets) {
+      finishCompare(entry2.layer.id);
+      entries.delete(entry2.layer.id);
+      const error = restoreShaderEntry(entry2);
       if (error && !failure) failure = error;
     }
     comparisons.clear();
@@ -11552,15 +13850,15 @@ function createShaderEngine(deps) {
   }
   function compareShader(layerToken, enabled) {
     const layer = resolveShaderLayer(layerToken);
-    const entry = shaderEntriesRef.current.get(layer.id);
+    const entry2 = shaderEntriesRef.current.get(layer.id);
     if (enabled) {
-      if (!entry) {
+      if (!entry2) {
         throw shaderFail("当前图层还没有应用着色器，无法对比。", "先应用一个预设，再点「原图对比」。");
       }
       if (!comparisons.has(layer.id)) {
-        comparisons.set(layer.id, { original: entry.previous ?? null });
+        comparisons.set(layer.id, { original: entry2.previous ?? null });
         try {
-          layer.tileset.customShader = entry.previous ?? void 0;
+          layer.tileset.customShader = entry2.previous ?? void 0;
         } catch (error) {
           comparisons.delete(layer.id);
           throw shaderFail(`原图对比失败（${message(error)}）。`, "重试，或先重置该图层再对比。");
@@ -11838,15 +14136,15 @@ var csvNumber = (value) => finite2(value) ? Number(value).toFixed(2) : "";
 function profileCsv(metrics) {
   if (metrics?.include_design === false) {
     const rows2 = ["distance_m,height_m,slope_pct"];
-    for (const row of metrics?.series ?? []) {
-      rows2.push([csvNumber(row.distance_m), csvNumber(row.height_m), csvNumber(row.slope_pct)].join(","));
+    for (const row2 of metrics?.series ?? []) {
+      rows2.push([csvNumber(row2.distance_m), csvNumber(row2.height_m), csvNumber(row2.slope_pct)].join(","));
     }
     return `${rows2.join("\r\n")}\r
 `;
   }
   const rows = ["distance_m,terrain_m,design_m,delta_m,slope_pct"];
-  for (const row of metrics?.series ?? []) {
-    rows.push([csvNumber(row.distance_m), csvNumber(row.height_m), csvNumber(row.design_m), csvNumber(row.delta_m), csvNumber(row.slope_pct)].join(","));
+  for (const row2 of metrics?.series ?? []) {
+    rows.push([csvNumber(row2.distance_m), csvNumber(row2.height_m), csvNumber(row2.design_m), csvNumber(row2.delta_m), csvNumber(row2.slope_pct)].join(","));
   }
   return `${rows.join("\r\n")}\r
 `;
@@ -11857,13 +14155,13 @@ function profileSvg(metrics, labels = {}) {
   const height = 400;
   const pad = { left: 58, right: 18, top: 58, bottom: 78 };
   const series = Array.isArray(metrics?.series) ? metrics.series : [];
-  const valid = series.filter((row) => finite2(row.height_m));
+  const valid = series.filter((row2) => finite2(row2.height_m));
   if (valid.length < 2) return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 360"></svg>';
   const showDesign = metrics?.include_design !== false;
-  const designRows = showDesign ? series.filter((row) => finite2(row.height_m) && finite2(row.design_m)) : [];
-  const distances = series.map((row) => row.distance_m);
+  const designRows = showDesign ? series.filter((row2) => finite2(row2.height_m) && finite2(row2.design_m)) : [];
+  const distances = series.map((row2) => row2.distance_m);
   const maxDistance = Math.max(...distances, 1);
-  const values = [...valid.map((row) => row.height_m), ...designRows.map((row) => row.design_m)];
+  const values = [...valid.map((row2) => row2.height_m), ...designRows.map((row2) => row2.design_m)];
   let minValue = Math.min(...values);
   let maxValue = Math.max(...values);
   const valueRange = maxValue - minValue || 1;
@@ -11874,26 +14172,26 @@ function profileSvg(metrics, labels = {}) {
   const y = (value) => floorY - (height - pad.top - pad.bottom) * ((value - minValue) / (maxValue - minValue));
   const segments = [];
   const areaPolygons = [];
-  let current = [];
+  let current2 = [];
   let currentCoords = [];
   const flushSegment = () => {
-    if (current.length === 0) return;
-    segments.push(current.join(" "));
+    if (current2.length === 0) return;
+    segments.push(current2.join(" "));
     if (!showDesign && currentCoords.length >= 2) {
       const firstPx = currentCoords[0].px;
       const lastPx = currentCoords[currentCoords.length - 1].px;
       areaPolygons.push(
-        `<polygon points="${firstPx},${floorY.toFixed(1)} ${current.join(" ")} ${lastPx},${floorY.toFixed(1)}" fill="#dbeafe" fill-opacity="0.72"/>`
+        `<polygon points="${firstPx},${floorY.toFixed(1)} ${current2.join(" ")} ${lastPx},${floorY.toFixed(1)}" fill="#dbeafe" fill-opacity="0.72"/>`
       );
     }
-    current = [];
+    current2 = [];
     currentCoords = [];
   };
-  for (const row of series) {
-    if (finite2(row.height_m)) {
-      const px = x(row.distance_m).toFixed(1);
-      const py = y(row.height_m).toFixed(1);
-      current.push(`${px},${py}`);
+  for (const row2 of series) {
+    if (finite2(row2.height_m)) {
+      const px = x(row2.distance_m).toFixed(1);
+      const py = y(row2.height_m).toFixed(1);
+      current2.push(`${px},${py}`);
       currentCoords.push({ px, py });
     } else {
       flushSegment();
@@ -11987,8 +14285,8 @@ function nearestProfileIndex(points, ratio) {
 
 // src/client/ui/workbench-wiring.js
 function toggleShaderPreset(form, preset) {
-  const current = Array.isArray(form.preset) ? form.preset : [form.preset];
-  const next = current.includes(preset) ? current.filter((item) => item !== preset) : current.length >= 3 ? current : [...current, preset];
+  const current2 = Array.isArray(form.preset) ? form.preset : [form.preset];
+  const next = current2.includes(preset) ? current2.filter((item) => item !== preset) : current2.length >= 3 ? current2 : [...current2, preset];
   if (next.length === 0) return form;
   return { ...form, preset: next.length === 1 ? next[0] : next };
 }
@@ -12027,13 +14325,13 @@ function buildShaderFormArgs(form) {
   return args;
 }
 function moveShaderPreset(form, preset, delta) {
-  const current = Array.isArray(form.preset) ? [...form.preset] : [form.preset];
-  const from = current.indexOf(preset);
+  const current2 = Array.isArray(form.preset) ? [...form.preset] : [form.preset];
+  const from = current2.indexOf(preset);
   const to = from + delta;
-  if (from < 0 || to < 0 || to >= current.length) return form;
-  current.splice(from, 1);
-  current.splice(to, 0, preset);
-  return { ...form, preset: current.length === 1 ? current[0] : current };
+  if (from < 0 || to < 0 || to >= current2.length) return form;
+  current2.splice(from, 1);
+  current2.splice(to, 0, preset);
+  return { ...form, preset: current2.length === 1 ? current2[0] : current2 };
 }
 function resolveWorkbenchTarget(layers2, form) {
   const list = Array.isArray(layers2) ? layers2 : [];
@@ -12119,27 +14417,27 @@ var SHADER_FORM_DEFAULTS = {
   waterHeight: "",
   depthMax: ""
 };
-function formFromShaderEntry(entry) {
-  const selected = Array.isArray(entry?.preset) ? [...entry.preset] : entry?.preset ? [entry.preset] : [];
+function formFromShaderEntry(entry2) {
+  const selected = Array.isArray(entry2?.preset) ? [...entry2.preset] : entry2?.preset ? [entry2.preset] : [];
   const preset = selected.length > 0 ? selected.length === 1 ? selected[0] : selected : SHADER_FORM_DEFAULTS.preset;
-  const form = { ...SHADER_FORM_DEFAULTS, layerId: typeof entry?.layerId === "string" ? entry.layerId : "", preset };
+  const form = { ...SHADER_FORM_DEFAULTS, layerId: typeof entry2?.layerId === "string" ? entry2.layerId : "", preset };
   for (const [param, key] of Object.entries(SHADER_PARAM_FORM_KEYS)) {
-    const value = entry?.params?.[param];
+    const value = entry2?.params?.[param];
     if (typeof value === "number" && Number.isFinite(value)) form[key] = String(value);
   }
   return form;
 }
-function shaderEntrySummary(t2, entry) {
-  const presets = Array.isArray(entry?.preset) ? entry.preset : entry?.preset ? [entry.preset] : [];
+function shaderEntrySummary(t2, entry2) {
+  const presets = Array.isArray(entry2?.preset) ? entry2.preset : entry2?.preset ? [entry2.preset] : [];
   const parts = [];
   for (const [param, key] of Object.entries(SHADER_PARAM_FORM_KEYS)) {
-    const value = entry?.params?.[param];
+    const value = entry2?.params?.[param];
     if (typeof value !== "number" || !Number.isFinite(value)) continue;
     parts.push(`${t2(`shader.param.${key}`)} ${value}`);
   }
   const presetText = presets.map((item) => t2(`shader.preset.${item}`)).join(" + ");
   return t2("shader.entryTooltip", {
-    layer: entry?.layer ?? "",
+    layer: entry2?.layer ?? "",
     presets: presetText,
     params: parts.join(" · ") || t2("shader.entryNoParams")
   });
@@ -12237,7 +14535,7 @@ function createWorkbenchWiring({
     /** The layer the card should show under "automatic selection". */
     target,
     /** Load an applied shader row into the form (edit-in-place). */
-    loadEntry: (entry) => setShaderForm(formFromShaderEntry(entry)),
+    loadEntry: (entry2) => setShaderForm(formFromShaderEntry(entry2)),
     /** Apply the current workbench stack (or an explicit form) to all visible mesh layers. */
     async applyAll(overrideForm = null) {
       if (disposed) return { applied: [], skippedHidden: 0, skippedGaussian: 0, failed: [] };
@@ -12248,9 +14546,9 @@ function createWorkbenchWiring({
       return await applyAllInternal(overrideForm);
     },
     /** Load an existing active layer effect into the workbench and sync it to all visible mesh layers. */
-    async syncEntryToAll(entry) {
-      if (!entry || disposed) return null;
-      const nextForm = formFromShaderEntry(entry);
+    async syncEntryToAll(entry2) {
+      if (!entry2 || disposed) return null;
+      const nextForm = formFromShaderEntry(entry2);
       setShaderForm(nextForm);
       if (applyTimer !== null) {
         clearTimeout(applyTimer);
@@ -12404,10 +14702,10 @@ function createLocalDirectoryWiring({
       const data = await response.json();
       const list = Array.isArray(data?.directories) ? data.directories : [];
       const entries = [];
-      for (const entry of list) {
-        const dir = typeof entry === "string" ? entry : entry?.path;
+      for (const entry2 of list) {
+        const dir = typeof entry2 === "string" ? entry2 : entry2?.path;
         if (typeof dir !== "string" || dir === "") continue;
-        entries.push({ dir, name: typeof entry?.name === "string" && entry.name !== "" ? entry.name : folderName2(dir) });
+        entries.push({ dir, name: typeof entry2?.name === "string" && entry2.name !== "" ? entry2.name : folderName2(dir) });
         if (entries.length >= 5) break;
       }
       setRecentDirs(entries);
@@ -12660,26 +14958,26 @@ function AnalysisProfileChart({ points, t: t2, hoverIndex = null, onHover }) {
   const y = (value) => floorY - (height - padY * 2) * ((value - minimum) / range);
   const segments = [];
   const areas = [];
-  let current = [];
+  let current2 = [];
   let peak = valid[0];
   for (const point of valid) {
     if (point.height_m > peak.height_m) peak = point;
   }
   const flushRun = () => {
-    if (current.length === 0) return;
-    segments.push(current.join(" "));
-    if (current.length >= 2) {
-      const firstX = current[0].split(",")[0];
-      const lastX = current[current.length - 1].split(",")[0];
-      areas.push(`${firstX},${floorY} ${current.join(" ")} ${lastX},${floorY}`);
+    if (current2.length === 0) return;
+    segments.push(current2.join(" "));
+    if (current2.length >= 2) {
+      const firstX = current2[0].split(",")[0];
+      const lastX = current2[current2.length - 1].split(",")[0];
+      areas.push(`${firstX},${floorY} ${current2.join(" ")} ${lastX},${floorY}`);
     }
-    current = [];
+    current2 = [];
   };
   for (const point of points) {
     const heightValue = point ? point.height_m : null;
     if (typeof heightValue === "number" && Number.isFinite(heightValue)) {
       const distance = Number(point.distance_m) || 0;
-      current.push(`${x(distance).toFixed(1)},${y(heightValue).toFixed(1)}`);
+      current2.push(`${x(distance).toFixed(1)},${y(heightValue).toFixed(1)}`);
     } else {
       flushRun();
     }
@@ -12795,8 +15093,12 @@ function viewportBounds(maxWidth, maxHeight) {
     maxHeight: Math.max(120, Math.min(maxHeight, height - 24))
   };
 }
+function boundsHost(element) {
+  if (!element) return null;
+  return element.closest?.(".mv-root") ?? element.parentElement ?? null;
+}
 function containerBounds(element, maxWidth, maxHeight) {
-  const parent = element?.parentElement;
+  const parent = boundsHost(element);
   const width = Number(parent?.clientWidth) || Number(globalThis.innerWidth) || 1280;
   const height = Number(parent?.clientHeight) || Number(globalThis.innerHeight) || 800;
   return {
@@ -12827,17 +15129,17 @@ function usePanelResize({
   import_react6.default.useEffect(() => {
     const clampToContainer = () => {
       const bounds = containerBounds(ref.current, maxWidth, maxHeight);
-      setSize((current) => {
-        const width = Number.isFinite(current.width) ? clampSize(current.width, minWidth, bounds.maxWidth) : current.width;
-        const height = Number.isFinite(current.height) ? clampSize(current.height, minHeight, bounds.maxHeight) : current.height;
-        if (width === current.width && height === current.height) return current;
-        const next = { ...current, width, height };
+      setSize((current2) => {
+        const width = Number.isFinite(current2.width) ? clampSize(current2.width, minWidth, bounds.maxWidth) : current2.width;
+        const height = Number.isFinite(current2.height) ? clampSize(current2.height, minHeight, bounds.maxHeight) : current2.height;
+        if (width === current2.width && height === current2.height) return current2;
+        const next = { ...current2, width, height };
         sizeRef.current = next;
         return next;
       });
     };
     clampToContainer();
-    const parent = ref.current?.parentElement;
+    const parent = boundsHost(ref.current);
     const Observer = globalThis.ResizeObserver;
     if (!parent || typeof Observer !== "function") return void 0;
     const observer = new Observer(clampToContainer);
@@ -12847,8 +15149,8 @@ function usePanelResize({
   const sizeRef = import_react6.default.useRef(size);
   sizeRef.current = size;
   const finish = import_react6.default.useCallback(() => {
-    const current = sizeRef.current;
-    if (Number.isFinite(current.width) || Number.isFinite(current.height)) savePanelSize(storageKey, current);
+    const current2 = sizeRef.current;
+    if (Number.isFinite(current2.width) || Number.isFinite(current2.height)) savePanelSize(storageKey, current2);
   }, [storageKey]);
   const start = import_react6.default.useCallback(
     (axis) => (event) => {
@@ -12869,8 +15171,8 @@ function usePanelResize({
         const bounds = containerBounds(element, maxWidth, maxHeight);
         const dx = (moveEvent.clientX ?? startX) - startX;
         const dy = (moveEvent.clientY ?? startY) - startY;
-        setSize((current) => {
-          const next = { ...current };
+        setSize((current2) => {
+          const next = { ...current2 };
           if (axis === "width" || axis === "corner") {
             next.width = clampSize(widthDirection === "right" ? startWidth + dx : startWidth - dx, minWidth, bounds.maxWidth);
           }
@@ -12898,18 +15200,18 @@ function usePanelResize({
   const keyboard = import_react6.default.useCallback(
     (axis) => (event) => {
       const delta = event.shiftKey ? STEP * 3 : STEP;
-      const current = sizeRef.current;
+      const current2 = sizeRef.current;
       const bounds = containerBounds(ref.current, maxWidth, maxHeight);
-      const next = { ...current };
+      const next = { ...current2 };
       let handled = true;
       if (axis === "width") {
         const grow = widthDirection === "right" ? event.key === "ArrowRight" ? 1 : event.key === "ArrowLeft" ? -1 : 0 : event.key === "ArrowLeft" ? 1 : event.key === "ArrowRight" ? -1 : 0;
-        if (grow !== 0) next.width = clampSize((current.width ?? minWidth) + grow * delta, minWidth, bounds.maxWidth);
+        if (grow !== 0) next.width = clampSize((current2.width ?? minWidth) + grow * delta, minWidth, bounds.maxWidth);
         else if (event.key === "Home") next.width = minWidth;
         else if (event.key === "End") next.width = bounds.maxWidth;
         else handled = false;
-      } else if (event.key === "ArrowUp") next.height = clampSize((current.height ?? minHeight) - delta, minHeight, bounds.maxHeight);
-      else if (event.key === "ArrowDown") next.height = clampSize((current.height ?? minHeight) + delta, minHeight, bounds.maxHeight);
+      } else if (event.key === "ArrowUp") next.height = clampSize((current2.height ?? minHeight) - delta, minHeight, bounds.maxHeight);
+      else if (event.key === "ArrowDown") next.height = clampSize((current2.height ?? minHeight) + delta, minHeight, bounds.maxHeight);
       else if (event.key === "Home") next.height = minHeight;
       else if (event.key === "End") next.height = bounds.maxHeight;
       else handled = false;
@@ -13002,10 +15304,10 @@ function readAllSavedPositions() {
 }
 function readSavedPos(storageKey) {
   if (!storageKey) return null;
-  const entry = readAllSavedPositions()[storageKey];
-  if (!entry || !Number.isFinite(entry.x) || !Number.isFinite(entry.y)) return null;
-  const result = { x: Math.round(entry.x), y: Math.round(entry.y) };
-  if (Number.isFinite(entry.width) && entry.width > 0) result.width = Math.round(entry.width);
+  const entry2 = readAllSavedPositions()[storageKey];
+  if (!entry2 || !Number.isFinite(entry2.x) || !Number.isFinite(entry2.y)) return null;
+  const result = { x: Math.round(entry2.x), y: Math.round(entry2.y) };
+  if (Number.isFinite(entry2.width) && entry2.width > 0) result.width = Math.round(entry2.width);
   return result;
 }
 function writeSavedPos(storageKey, pos) {
@@ -13396,61 +15698,61 @@ function AnalysisCard({ state, t: t2, onClose, hoverIndex = null, onHover, onSta
     h6("span", { className: "profile-chart-hint" }, t2("profile.expandChart"))
   ) : h6(AnalysisProfileChart, { points: result.points, t: t2, hoverIndex, onHover }) : null;
   const rows = [];
-  const row = (key, label, value) => rows.push(h6("div", { key, className: "stat" }, h6("span", null, label), h6("b", null, value)));
+  const row2 = (key, label, value) => rows.push(h6("div", { key, className: "stat" }, h6("span", null, label), h6("b", null, value)));
   if (operation === "profile") {
     const stats = result.stats ?? {};
-    row("length", t2("analysis.length"), formatDistance(result.length_m ?? 0));
+    row2("length", t2("analysis.length"), formatDistance(result.length_m ?? 0));
     if (showProfile) {
-      row("surfaceLength", t2("profile.surfaceLength"), formatDistance(profile.length_3d_m));
-      row("startEnd", t2("profile.startEndHeight"), `${formatHeight(profile.start_height_m)} → ${formatHeight(profile.end_height_m)}`);
+      row2("surfaceLength", t2("profile.surfaceLength"), formatDistance(profile.length_3d_m));
+      row2("startEnd", t2("profile.startEndHeight"), `${formatHeight(profile.start_height_m)} → ${formatHeight(profile.end_height_m)}`);
       const net = profile.net_elevation_m ?? 0;
-      row("netChange", t2("profile.netChange"), `${net >= 0 ? "+" : ""}${formatHeight(net)}`);
+      row2("netChange", t2("profile.netChange"), `${net >= 0 ? "+" : ""}${formatHeight(net)}`);
     }
-    row("min", t2("analysis.minHeight"), formatHeight(stats.min_height ?? 0));
-    row("max", t2("analysis.maxHeight"), formatHeight(stats.max_height ?? 0));
-    row("relief", t2("analysis.relief"), formatHeight(stats.relief_m ?? 0));
-    row("gain", t2("analysis.gain"), formatHeight(stats.gain_m ?? 0));
-    row("loss", t2("analysis.loss"), formatHeight(stats.loss_m ?? 0));
+    row2("min", t2("analysis.minHeight"), formatHeight(stats.min_height ?? 0));
+    row2("max", t2("analysis.maxHeight"), formatHeight(stats.max_height ?? 0));
+    row2("relief", t2("analysis.relief"), formatHeight(stats.relief_m ?? 0));
+    row2("gain", t2("analysis.gain"), formatHeight(stats.gain_m ?? 0));
+    row2("loss", t2("analysis.loss"), formatHeight(stats.loss_m ?? 0));
     if (showProfile) {
-      row("slopeMean", t2("profile.slopeMean"), `${analysisMetric(profile.slope.mean_abs_pct)}%`);
-      row(
+      row2("slopeMean", t2("profile.slopeMean"), `${analysisMetric(profile.slope.mean_abs_pct)}%`);
+      row2(
         "slopeMax",
         t2("profile.slopeMax"),
         `${analysisMetric(profile.slope.max_abs_pct)}% · ${formatDistance(profile.slope.max_at_m ?? 0)}`
       );
     }
-    row("samples", t2("analysis.samples"), `${result.samples ?? 0}`);
+    row2("samples", t2("analysis.samples"), `${result.samples ?? 0}`);
     if (Array.isArray(result.from) && Array.isArray(result.to) && result.from.length >= 2 && result.to.length >= 2) {
-      row(
+      row2(
         "endpoints",
         t2("profile.endpoints"),
         `${Number(result.from[0]).toFixed(4)}, ${Number(result.from[1]).toFixed(4)} → ${Number(result.to[0]).toFixed(4)}, ${Number(result.to[1]).toFixed(4)}`
       );
     }
   } else if (operation === "flood") {
-    row("water", t2("analysis.waterHeight"), formatHeight(result.water_height ?? 0));
-    row("area", t2("analysis.area"), `${analysisMetric(result.area_km2, 3)} km²`);
-    row("inundated", t2("analysis.inundated"), `${analysisMetric(result.inundated_km2, 3)} km²`);
-    row("ratio", t2("analysis.inundatedRatio"), `${analysisMetric((result.inundated_ratio ?? 0) * 100, 1)}%`);
-    row("depthMax", t2("analysis.depthMax"), formatHeight(result.depth_max_m ?? 0));
-    row("depthMean", t2("analysis.depthMean"), formatHeight(result.depth_mean_m ?? 0));
-    row(
+    row2("water", t2("analysis.waterHeight"), formatHeight(result.water_height ?? 0));
+    row2("area", t2("analysis.area"), `${analysisMetric(result.area_km2, 3)} km²`);
+    row2("inundated", t2("analysis.inundated"), `${analysisMetric(result.inundated_km2, 3)} km²`);
+    row2("ratio", t2("analysis.inundatedRatio"), `${analysisMetric((result.inundated_ratio ?? 0) * 100, 1)}%`);
+    row2("depthMax", t2("analysis.depthMax"), formatHeight(result.depth_max_m ?? 0));
+    row2("depthMean", t2("analysis.depthMean"), formatHeight(result.depth_mean_m ?? 0));
+    row2(
       "samples",
       t2("analysis.inundatedSamples"),
       `${result.samples_inundated ?? 0} / ${result.samples_with_data ?? 0}`
     );
     if (typeof result.coverage_ratio === "number") {
-      row(
+      row2(
         "coverage",
         t2("flood.coverage"),
         `${analysisMetric(result.coverage_ratio * 100, 1)}% (${result.samples_with_data ?? 0}/${result.samples_total ?? result.samples_with_data ?? 0})`
       );
     }
     if (typeof result.unknown_km2 === "number" && result.unknown_km2 > 0) {
-      row("unknownArea", t2("flood.unknownArea"), `${analysisMetric(result.unknown_km2, 3)} km²`);
+      row2("unknownArea", t2("flood.unknownArea"), `${analysisMetric(result.unknown_km2, 3)} km²`);
     }
     const region = result.region ?? {};
-    row(
+    row2(
       "region",
       t2("analysis.region"),
       `${analysisMetric(region.west, 2)}, ${analysisMetric(region.south, 2)} – ${analysisMetric(region.east, 2)}, ${analysisMetric(region.north, 2)}`
@@ -13461,24 +15763,24 @@ function AnalysisCard({ state, t: t2, onClose, hoverIndex = null, onHover, onSta
       dateText = new Date(result.datetime).toLocaleString();
     } catch {
     }
-    row("datetime", t2("analysis.datetime"), dateText);
-    row("altitude", t2("analysis.altitude"), `${analysisMetric(result.sun?.altitude_deg, 2)}°`);
-    row("azimuth", t2("analysis.azimuth"), `${analysisMetric(result.sun?.azimuth_deg, 2)}°`);
-    row("shadows", t2("analysis.shadows"), result.shadows_enabled ? t2("analysis.shadowsOn") : t2("analysis.shadowsOff"));
-    row("daylight", t2("analysis.daylight"), result.night ? t2("analysis.night") : t2("analysis.day"));
+    row2("datetime", t2("analysis.datetime"), dateText);
+    row2("altitude", t2("analysis.altitude"), `${analysisMetric(result.sun?.altitude_deg, 2)}°`);
+    row2("azimuth", t2("analysis.azimuth"), `${analysisMetric(result.sun?.azimuth_deg, 2)}°`);
+    row2("shadows", t2("analysis.shadows"), result.shadows_enabled ? t2("analysis.shadowsOn") : t2("analysis.shadowsOff"));
+    row2("daylight", t2("analysis.daylight"), result.night ? t2("analysis.night") : t2("analysis.day"));
   } else if (operation === "skyline") {
-    row("angle", t2("analysis.skylineAngle"), `${analysisMetric(result.max_angle_deg, 2)}°`);
-    row("distance", t2("analysis.skylineDistance"), formatDistance(result.max_distance_m ?? 0));
-    row("eye", t2("analysis.skylineEye"), formatHeight(result.eye_height_m ?? 0));
-    row("samples", t2("analysis.samples"), `${result.samples ?? 0}`);
+    row2("angle", t2("analysis.skylineAngle"), `${analysisMetric(result.max_angle_deg, 2)}°`);
+    row2("distance", t2("analysis.skylineDistance"), formatDistance(result.max_distance_m ?? 0));
+    row2("eye", t2("analysis.skylineEye"), formatHeight(result.eye_height_m ?? 0));
+    row2("samples", t2("analysis.samples"), `${result.samples ?? 0}`);
   } else if (operation === "clip") {
-    row("height", t2("analysis.clipHeight"), formatHeight(result.height ?? 0));
-    row(
+    row2("height", t2("analysis.clipHeight"), formatHeight(result.height ?? 0));
+    row2(
       "keep",
       t2("analysis.clipKeep"),
       result.keep === "above" ? t2("analysis.clipKeepAbove") : t2("analysis.clipKeepBelow")
     );
-    row("planes", t2("analysis.clipPlanes"), `${result.planes ?? 1}`);
+    row2("planes", t2("analysis.clipPlanes"), `${result.planes ?? 1}`);
   }
   return h6(
     "div",
@@ -13569,9 +15871,32 @@ function AnalysisCard({ state, t: t2, onClose, hoverIndex = null, onHover, onSta
               onClick: () => onStartProfile()
             },
             t2("analysis.redrawProfile")
+          ) : null,
+          typeof onClose === "function" ? h6(
+            "button",
+            {
+              type: "button",
+              className: "mv-cta danger",
+              title: t2("profile.clear"),
+              onClick: onClose
+            },
+            t2("profile.clear")
           ) : null
         ),
         h6("p", { className: "profile-note" }, t2("profile.hoverChartHint"))
+      ) : embedded && typeof onClose === "function" ? h6(
+        "div",
+        { key: "analysis-actions", className: "mv-analysis-actions" },
+        h6(
+          "button",
+          {
+            type: "button",
+            className: "mv-cta danger",
+            title: t2("layers.analysisClear"),
+            onClick: onClose
+          },
+          t2("layers.analysisClear")
+        )
       ) : null,
       h6("p", { className: "hint" }, t2("analysis.hint"))
     ) : null,
@@ -13695,9 +16020,9 @@ function ShaderWorkbench({
     stopCompare();
     onApplyAll?.();
   };
-  const runSyncEntry = (entry) => {
+  const runSyncEntry = (entry2) => {
     stopCompare();
-    onSyncEntry?.(entry);
+    onSyncEntry?.(entry2);
   };
   const runResetEntry = (token) => {
     stopCompare();
@@ -14032,21 +16357,21 @@ function ShaderWorkbench({
         { className: "active" },
         h6("b", null, t2("shader.active")),
         active.length === 0 ? h6("span", { className: "empty" }, t2("shader.activeEmpty")) : active.map(
-          (entry) => h6(
+          (entry2) => h6(
             "div",
-            { key: entry.layer, className: "item" },
+            { key: entry2.layer, className: "item" },
             onLoadEntry ? h6(
               "button",
               {
                 type: "button",
                 className: "mv-shader-load",
-                title: t2("shaderSync.loadRow", { name: entry.layer }),
-                onClick: () => onLoadEntry(entry)
+                title: t2("shaderSync.loadRow", { name: entry2.layer }),
+                onClick: () => onLoadEntry(entry2)
               },
-              h6("span", null, entry.layer)
-            ) : h6("span", { title: entry.layer }, entry.layer),
+              h6("span", null, entry2.layer)
+            ) : h6("span", { title: entry2.layer }, entry2.layer),
             h6("span", { className: "applied-tag" }, t2("shader.appliedTag")),
-            h6("em", { title: presetLabel(entry.preset) }, presetLabel(entry.preset)),
+            h6("em", { title: presetLabel(entry2.preset) }, presetLabel(entry2.preset)),
             onSyncEntry && eligibleCount > 1 ? h6(
               "button",
               {
@@ -14054,7 +16379,7 @@ function ShaderWorkbench({
                 className: "mv-icon-btn",
                 title: t2("shaderSync.syncRow"),
                 "aria-label": t2("shaderSync.syncRow"),
-                onClick: () => runSyncEntry(entry)
+                onClick: () => runSyncEntry(entry2)
               },
               "⇄"
             ) : null,
@@ -14065,7 +16390,7 @@ function ShaderWorkbench({
                 className: "mv-icon-btn",
                 title: t2("shader.resetLayer"),
                 "aria-label": t2("shader.resetLayer"),
-                onClick: () => runResetEntry(entry.layerId ?? entry.layer)
+                onClick: () => runResetEntry(entry2.layerId ?? entry2.layer)
               },
               "✕"
             ) : null
@@ -14203,16 +16528,29 @@ var VISION_CSS = `
 .mv-vision-screen{position:absolute;inset:0;z-index:40;display:flex;align-items:center;justify-content:center;padding:12px;background:var(--mv-scrim);box-sizing:border-box;pointer-events:auto}
 .mv-vision{box-sizing:border-box;display:flex;flex-direction:column;gap:10px;width:min(560px,100%);max-height:100%;overflow:auto;overscroll-behavior:contain;padding:16px;border-radius:14px;background:var(--mv-glass-strong);border:1px solid var(--mv-line);box-shadow:var(--mv-shadow);color:var(--mv-text);outline:none;animation:mv-fade .16s ease-out}
 .mv-vision>*{flex-shrink:0;min-width:0}
-.mv-vision header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.mv-vision header{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.mv-vision-head-actions{display:flex;align-items:center;gap:6px}
 .mv-vision h3{margin:0;font-size:15px;line-height:1.4}
 .mv-vision p{margin:0;overflow-wrap:anywhere}
 .mv-vision-note{font-size:12px;line-height:1.6;color:var(--mv-dim)}
-.mv-vision-image{position:relative;width:100%;overflow:hidden;border-radius:8px;background:#0b111a}
+.mv-vision-image{position:relative;width:100%;overflow:hidden;border-radius:8px;background:#0b111a;touch-action:none}
 .mv-vision-image img,.mv-vision-image svg{position:absolute;inset:0;width:100%;height:100%;display:block}
 .mv-vision-image polygon{fill:#39b7ff30;stroke:#70d8ff;stroke-width:3;stroke-linejoin:round;filter:drop-shadow(0 1px 2px #000)}
 .mv-vision-image circle{fill:#fff;stroke:#092638;stroke-width:2}
+.mv-vision-image circle.mv-vision-handle{fill:#70d8ff;stroke:#092638;stroke-width:2;cursor:grab}
+.mv-vision-image circle.mv-vision-handle:active{cursor:grabbing;fill:#fff}
+.mv-vision-busy-badge{position:absolute;left:10px;bottom:10px;display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;background:var(--mv-glass-strong);color:var(--mv-text);border:1px solid var(--mv-line);font-size:11px;line-height:1.4;backdrop-filter:blur(6px);pointer-events:none}
+.mv-vision-busy-dot{width:7px;height:7px;border-radius:50%;background:#70d8ff;animation:mv-pulse 1.1s ease-in-out infinite}
+@keyframes mv-pulse{0%,100%{opacity:.35;transform:scale(.85)}50%{opacity:1;transform:scale(1.15)}}
 .mv-vision-status{font-size:13px;line-height:1.5}
 .mv-vision-error{font-size:13px;line-height:1.5;color:light-dark(#a52f37,#ffadb4)}
+.mv-vision-diag{font-size:11px;line-height:1.5;color:var(--mv-dim);padding:6px 10px;border-radius:8px;border:1px solid var(--mv-line);background:color-mix(in srgb,var(--mv-glass) 70%,transparent)}
+.mv-vision-diag summary{cursor:pointer;font-weight:500;color:var(--mv-text)}
+.mv-vision-diag pre{margin:6px 0 0;white-space:pre-wrap;word-break:break-word;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.mv-vision-cfg{display:flex;flex-direction:column;gap:8px;padding:10px;border-radius:10px;border:1px solid var(--mv-line);background:color-mix(in srgb,var(--mv-glass) 75%,transparent)}
+.mv-vision-cfg label{display:flex;flex-direction:column;gap:4px;font-size:11px;color:var(--mv-dim)}
+.mv-vision-cfg input,.mv-vision-cfg select{box-sizing:border-box;width:100%;padding:6px 8px;border-radius:7px;border:1px solid var(--mv-line);background:var(--mv-bg,transparent);color:var(--mv-text);font-size:12px}
+.mv-vision-cfg-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .mv-vision-actions{display:flex;flex-wrap:wrap;gap:8px}
 .mv-vision-actions .mv-cta{flex:1 1 120px;min-height:38px;font-size:12px}
 .mv-root:has(.mv-vision-screen) :is(.mv-top,.mv-right,.mv-shader,.mv-tour,.mv-scene-details,.mv-floating,.mv-toolwin){visibility:hidden;pointer-events:none}
@@ -14245,53 +16583,78 @@ var SELECTION_QUESTION_CSS = `
 
 // src/client/ui/parse-css.js
 var PARSE_CSS = `
-.mv-parse{flex:1 1 auto;display:flex;flex-direction:column;gap:8px;min-height:0}
-.mv-parse-scope{display:grid;grid-template-columns:1fr 1fr;gap:4px}
-.mv-parse-scope-btn{appearance:none;min-block-size:28px;padding:4px 8px;border-radius:7px;border:1px solid var(--mv-line);background:transparent;color:var(--mv-dim);font:inherit;font-size:11.5px;cursor:pointer;transition:background .12s,border-color .12s,color .12s}
-.mv-parse-scope-btn.on{background:color-mix(in srgb,var(--mv-accent) 18%,transparent);border-color:color-mix(in srgb,var(--mv-accent) 55%,transparent);color:var(--mv-fg);font-weight:600}
-.mv-parse-scope-btn:disabled{opacity:.45;cursor:not-allowed}
-.mv-parse-scope-btn:focus-visible,.mv-parse-filter:focus-visible,.mv-parse-sort-btn:focus-visible,.mv-parse-target:focus-visible{outline:2px solid var(--mv-accent);outline-offset:2px}
-.mv-parse-aoi-box{display:flex;flex-direction:column;gap:6px;padding:8px;border-radius:8px;border:.5px solid var(--mv-line);background:color-mix(in srgb,var(--mv-lift) 45%,transparent)}
-.mv-parse-aoi-bar{display:flex;align-items:center;justify-content:space-between;gap:6px;flex-wrap:wrap;padding:6px 8px;border-radius:8px;border:.5px solid color-mix(in srgb,var(--mv-accent) 36%,var(--mv-line));background:color-mix(in srgb,var(--mv-accent) 10%,transparent);font-size:11px;color:var(--mv-text)}
-.mv-parse-aoi-bar-info{display:inline-flex;align-items:center;gap:6px;font-weight:500;font-variant-numeric:tabular-nums}
-.mv-parse-aoi-bar-dot{width:7px;height:7px;border-radius:50%;background:var(--mv-accent);flex:none}
-.mv-parse-aoi-bar-actions{display:inline-flex;align-items:center;gap:4px}
-.mv-parse-mini-btn{appearance:none;border:.5px solid var(--mv-line);background:var(--mv-lift);color:var(--mv-text);border-radius:6px;padding:2px 7px;font:inherit;font-size:10.5px;cursor:pointer}
-.mv-parse-mini-btn:hover{border-color:var(--mv-accent)}
-.mv-parse-targets{display:flex;flex-direction:column;gap:5px}
+.mv-parse{display:flex;flex-direction:column;gap:6px;min-width:0;min-height:0;flex:1 1 auto}
+.mv-parse-workbench{container-type:inline-size;gap:8px}
+.mv-parse-head{display:flex;align-items:center;justify-content:space-between;gap:6px;min-width:0}
+.mv-parse-title{font-size:11.5px;font-weight:600;color:var(--mv-text);white-space:nowrap}
+.mv-parse-model{margin:0;padding:6px 8px;border:1px solid var(--mv-line);border-radius:7px;min-width:0;display:grid;gap:5px;color:var(--mv-text)}
+.mv-parse-model legend{padding:0 4px;font-weight:600}
+.mv-parse-model-field{display:grid;grid-template-columns:minmax(50px,auto) minmax(0,1fr);gap:7px;align-items:center;color:var(--mv-dim);font-size:11px}
+.mv-parse-model-field input,.mv-parse-model-field select{box-sizing:border-box;width:100%;min-width:0;max-inline-size:none;min-height:26px;border-radius:5px}
+.mv-parse-model-field select{appearance:auto}
+.mv-parse-model-apply,.mv-parse-scale{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.mv-parse-sec{display:flex;flex-direction:column;gap:4px;min-width:0}
 .mv-parse-sec-label{font-size:10.5px;font-weight:600;color:var(--mv-dim)}
-.mv-parse-target-row{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
-.mv-parse-target{appearance:none;display:inline-flex;align-items:center;gap:4px;min-block-size:24px;padding:3px 8px;border-radius:999px;border:.5px solid var(--mv-line);background:transparent;color:var(--mv-dim);font:inherit;font-size:11px;cursor:pointer}
-.mv-parse-target.on{background:color-mix(in srgb,var(--mv-accent) 16%,transparent);border-color:color-mix(in srgb,var(--mv-accent) 50%,transparent);color:var(--mv-fg);font-weight:600}
-.mv-parse-run-row{display:flex;align-items:center;gap:6px}
-.mv-parse-run-row>.mv-cta.primary{flex:1}
-.mv-parse-diag{display:flex;flex-direction:column;gap:6px;padding:8px 9px;border-radius:8px;border:.5px solid color-mix(in srgb,#f0b84b 42%,var(--mv-line));background:color-mix(in srgb,#f0b84b 10%,transparent);font-size:11px;line-height:1.45;color:var(--mv-text)}
-.mv-parse-diag-thumb{display:flex;flex-direction:column;gap:3px}
-.mv-parse-diag-thumb img{display:block;width:100%;max-height:110px;object-fit:contain;border-radius:6px;border:.5px solid var(--mv-line);background:#0a1018}
-.mv-parse-diag-thumb span{font-size:10px;color:var(--mv-dim);font-variant-numeric:tabular-nums}
-.mv-parse-foot{margin:auto 0 0;padding-top:6px;font-size:10.5px;line-height:1.45;color:var(--mv-dim)}
-.mv-parse-head{display:flex;align-items:baseline;justify-content:space-between;gap:8px;font-size:11px;color:var(--mv-dim);flex-wrap:wrap}
-.mv-parse-aoi-tag{padding:1px 6px;border-radius:999px;border:1px solid color-mix(in srgb,var(--mv-accent) 45%,transparent);background:color-mix(in srgb,var(--mv-accent) 14%,transparent);color:var(--mv-fg);font-size:10px}
-.mv-parse-controls{display:flex;align-items:center;justify-content:space-between;gap:6px;flex-wrap:wrap}
-.mv-parse-filters,.mv-parse-sort{display:inline-flex;align-items:center;gap:4px;flex-wrap:wrap}
-.mv-parse-filter,.mv-parse-sort-btn{appearance:none;display:inline-flex;align-items:center;gap:4px;min-block-size:24px;padding:3px 7px;border-radius:999px;border:.5px solid var(--mv-line);background:transparent;color:var(--mv-dim);font:inherit;font-size:10.5px;cursor:pointer}
-.mv-parse-filter.on,.mv-parse-sort-btn.on{background:color-mix(in srgb,#c084fc 18%,transparent);border-color:color-mix(in srgb,#c084fc 45%,transparent);color:var(--mv-fg);font-weight:600}
-.mv-parse-toggle{display:inline-flex;align-items:center;gap:5px;min-block-size:24px;font-size:11px;color:var(--mv-dim);cursor:pointer;user-select:none}
-.mv-parse-toggle input{accent-color:#c084fc;margin:0}
-.mv-parse-count{font-weight:600;color:var(--mv-fg)}
-.mv-parse-list{display:flex;flex-direction:column;gap:2px;max-height:180px;overflow:auto;padding:2px;border-radius:8px;background:rgba(148,163,184,.08)}
-.mv-parse-row{display:flex;align-items:center;gap:6px;min-block-size:26px;padding:5px 7px;border-radius:6px;font-size:12px;cursor:pointer}
-.mv-parse-row:hover{background:rgba(148,163,184,.14)}
-.mv-parse-row.on{background:color-mix(in srgb,#c084fc 16%,transparent)}
-.mv-parse-row input{accent-color:#c084fc;margin:0}
-.mv-parse-dot{width:8px;height:8px;border-radius:999px;flex:0 0 auto;border:1px solid rgba(255,255,255,.35)}
-.mv-parse-class{font-size:10px;color:var(--mv-dim);padding:1px 5px;border-radius:4px;border:1px solid var(--mv-line);white-space:nowrap;flex:0 0 auto}
-.mv-parse-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.mv-parse-metrics{font-size:10px;color:var(--mv-accent);font-variant-numeric:tabular-nums;white-space:nowrap}
-.mv-parse-conf{font-size:11px;color:var(--mv-dim);font-variant-numeric:tabular-nums;white-space:nowrap}
-.mv-parse .mv-actions{display:flex;gap:6px;flex-wrap:wrap}
-.mv-parse .mv-warn{margin:0}
-@media(forced-colors:active){.mv-parse-scope-btn.on,.mv-parse-filter.on,.mv-parse-sort-btn.on,.mv-parse-target.on{border:2px solid Highlight;color:HighlightText;background:Highlight}}
+.mv-parse-note{font-size:10.5px;line-height:1.4;color:var(--mv-dim);overflow-wrap:anywhere}
+.mv-parse-invalid{font-size:10.5px;color:var(--mv-danger)}
+.mv-parse-mini-btn{appearance:none;border:.5px solid var(--mv-line);background:var(--mv-lift);color:var(--mv-text);border-radius:6px;padding:2px 7px;min-block-size:24px;font:inherit;font-size:10.5px;cursor:pointer;white-space:nowrap}
+.mv-parse-mini-btn:hover{border-color:var(--mv-accent)}
+.mv-parse-mini-btn:disabled{opacity:.45;cursor:not-allowed}
+.mv-parse-seg{display:flex;align-items:center;gap:4px;flex-wrap:wrap;min-width:0}
+.mv-parse-seg-btn{appearance:none;flex:1 1 96px;min-width:0;min-block-size:26px;padding:3px 8px;border-radius:7px;border:.5px solid var(--mv-line);background:transparent;color:var(--mv-dim);font:inherit;font-size:11px;cursor:pointer;transition:background .12s,border-color .12s,color .12s}
+.mv-parse-seg-btn.on{background:color-mix(in srgb,var(--mv-accent) 16%,transparent);border-color:color-mix(in srgb,var(--mv-accent) 52%,transparent);color:var(--mv-text);font-weight:600}
+.mv-parse-seg-btn:disabled{opacity:.45;cursor:not-allowed}
+.mv-parse-aoi{display:flex;align-items:center;gap:4px;flex-wrap:wrap;min-width:0}
+.mv-parse-aoi .mv-parse-note{flex:1 1 120px;min-width:0}
+.mv-parse-run{display:flex;flex-direction:column;gap:3px;min-width:0}
+.mv-parse-run-btn{width:100%;min-width:0}
+.mv-parse-confirm{display:flex;align-items:center;gap:6px;flex-wrap:wrap;min-width:0}
+.mv-parse-confirm-text{flex:1 1 100%;font-size:10.5px;line-height:1.35;color:var(--mv-dim)}
+.mv-parse-reason{font-size:10.5px;line-height:1.4;color:var(--mv-dim)}
+.mv-parse-chips{display:flex;align-items:center;gap:4px;flex-wrap:wrap;padding:1px 0;min-block-size:26px;min-width:0}
+.mv-parse-chip{appearance:none;display:inline-flex;align-items:center;gap:4px;flex:0 1 auto;max-inline-size:100%;min-block-size:24px;padding:3px 8px;border-radius:999px;border:.5px solid var(--mv-line);background:transparent;color:var(--mv-dim);font:inherit;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+.mv-parse-chip.on{background:color-mix(in srgb,var(--mv-accent) 16%,transparent);border-color:color-mix(in srgb,var(--mv-accent) 50%,transparent);color:var(--mv-text);font-weight:600}
+.mv-parse-chip:disabled{opacity:.45;cursor:not-allowed}
+.mv-parse-chip-add{border-style:dashed}
+.mv-parse-dot{--mv-dot:var(--mv-accent);background:var(--mv-dot);width:8px;height:8px;border-radius:999px;flex:0 0 auto;border:1px solid var(--mv-line)}
+.mv-parse-inline-input{appearance:none;flex:0 0 auto;min-block-size:24px;max-inline-size:132px;padding:2px 8px;border-radius:999px;border:.5px solid var(--mv-line);background:var(--mv-input);color:var(--mv-text);font:inherit;font-size:11px}
+.mv-parse-status{font-size:10.5px;line-height:1.4;color:var(--mv-dim);min-block-size:14px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.mv-parse-error{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:7px 8px;border-radius:8px;border:.5px solid color-mix(in srgb,var(--mv-danger) 42%,var(--mv-line));background:color-mix(in srgb,var(--mv-danger) 9%,transparent);font-size:11px;line-height:1.45;color:var(--mv-text)}
+.mv-parse-error-msg{flex:1 1 120px;min-width:0}
+.mv-parse-settings{display:flex;flex-direction:column;gap:4px;padding:7px 8px;border-radius:8px;border:.5px solid var(--mv-line);background:color-mix(in srgb,var(--mv-lift) 55%,transparent)}
+.mv-parse-profile{display:flex;gap:8px;align-items:center;color:var(--mv-dim)}
+.mv-parse-profile select{appearance:auto;max-inline-size:none}
+.mv-parse-definitions summary{cursor:pointer;color:var(--mv-dim);padding-block:3px}
+.mv-parse-defs{display:flex;flex-direction:column;gap:3px;max-block-size:180px;overflow:auto}
+.mv-parse-def{display:flex;flex-direction:column;gap:0;font-size:10.5px;line-height:1.4}
+.mv-parse-def-name{color:var(--mv-text);font-weight:600}
+.mv-parse-def-text{color:var(--mv-dim);overflow-wrap:anywhere}
+.mv-parse-queue{display:flex;flex-direction:column;gap:4px;min-width:0;min-height:0}
+.mv-parse-queue-head{display:flex;align-items:center;justify-content:space-between;gap:6px;flex-wrap:wrap;min-width:0}
+.mv-parse-queue-counts{font-size:10.5px;color:var(--mv-dim);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.mv-parse-queue-tools{display:inline-flex;align-items:center;gap:4px;flex-wrap:wrap;min-width:0}
+.mv-parse-select{appearance:none;min-block-size:24px;max-inline-size:96px;padding:2px 6px;border-radius:6px;border:.5px solid var(--mv-line);background:var(--mv-lift);color:var(--mv-text);font:inherit;font-size:10.5px;cursor:pointer}
+.mv-parse-rows{display:flex;flex-direction:column;gap:2px;max-block-size:240px;overflow:auto;padding:2px;border-radius:8px;background:color-mix(in srgb,var(--mv-lift) 55%,transparent);min-width:0}
+.mv-parse-item-wrap{display:flex;flex-direction:column;gap:2px;min-width:0}
+.mv-parse-row{display:flex;align-items:center;gap:4px;min-width:0;min-block-size:28px;padding:2px 5px;border-radius:6px;border:1px solid transparent;font-size:11.5px;cursor:pointer}
+.mv-parse-row:hover{background:color-mix(in srgb,var(--mv-accent) 8%,transparent)}
+.mv-parse-row.on{background:color-mix(in srgb,var(--mv-accent) 10%,transparent);border-color:color-mix(in srgb,var(--mv-accent) 26%,transparent)}
+.mv-parse-row.active{box-shadow:inset 2px 0 0 var(--mv-accent)}
+.mv-parse-check{flex:0 0 auto;inline-size:12px;block-size:12px;margin:0;accent-color:var(--mv-accent)}
+.mv-parse-item-class{border:0;background:transparent;color:inherit;font:inherit;text-align:start;padding:0;cursor:pointer;flex:1 1 auto;min-width:0;max-inline-size:96px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--mv-text)}
+.mv-parse-item-area{flex:0 0 auto;font-size:10px;color:var(--mv-dim);font-variant-numeric:tabular-nums;white-space:nowrap;max-inline-size:72px;overflow:hidden;text-overflow:ellipsis}
+.mv-parse-item-tag{flex:0 0 auto;padding:0 4px;border-radius:4px;border:.5px solid var(--mv-line);color:var(--mv-dim);font-size:9.5px;line-height:15px;white-space:nowrap}
+.mv-parse-item-actions{display:inline-flex;align-items:center;gap:1px;flex:0 0 auto}
+.mv-parse-icon-btn{appearance:none;display:inline-flex;align-items:center;justify-content:center;min-inline-size:22px;min-block-size:22px;padding:0;border-radius:6px;border:.5px solid transparent;background:transparent;color:var(--mv-dim);font:inherit;font-size:12px;line-height:1;cursor:pointer}
+.mv-parse-icon-btn:hover{border-color:var(--mv-line);background:var(--mv-lift);color:var(--mv-text)}
+.mv-parse-icon-btn:disabled{opacity:.4;cursor:not-allowed}
+.mv-parse-empty{padding:10px 8px;font-size:11px;color:var(--mv-dim);text-align:center}
+.mv-parse-export{display:flex;flex-direction:column;gap:4px;margin-top:auto;padding-top:4px;min-width:0}
+.mv-parse-export-row{display:flex;align-items:center;gap:4px;flex-wrap:wrap;min-width:0}
+.mv-parse-export-do{flex:1 1 120px;min-width:0}
+.mv-parse-row:focus-visible,.mv-parse-chip:focus-visible,.mv-parse-seg-btn:focus-visible,.mv-parse-icon-btn:focus-visible,.mv-parse-mini-btn:focus-visible,.mv-parse-inline-input:focus-visible,.mv-parse-select:focus-visible{outline:2px solid var(--mv-accent);outline-offset:2px}
+@container (max-width:340px){.mv-parse-item-class{max-inline-size:64px}.mv-parse-item-area{max-inline-size:56px}.mv-parse-chip{font-size:10.5px}}
+@media(forced-colors:active){.mv-parse-seg-btn.on,.mv-parse-chip.on{border:2px solid Highlight;color:HighlightText;background:Highlight}}
 `;
 
 // src/client/ui/raster-timeline-css.js
@@ -14366,9 +16729,78 @@ var COMPARE_CSS = `
 .mv-compare-warn{margin:0;font-size:10.5px;line-height:1.45;color:color-mix(in srgb,#f0b84b 72%,var(--mv-text))}
 `;
 
+// src/client/ui/layers-css.js
+var LAYERS_CSS = `
+/* ---- scene secondary segmented control (三维 / 地表) ---- */
+.mv-layers .mv-layer-tabs{display:flex;gap:2px;margin:8px 10px 4px;padding:2px;border-radius:8px;border:.5px solid color-mix(in srgb,var(--mv-line) 75%,transparent);background:color-mix(in srgb,var(--mv-lift) 80%,transparent)}
+.mv-layers .mv-layer-tab{padding:4px 10px;border-radius:6px;font-size:11.5px;font-weight:500;line-height:1.4;color:var(--mv-dim);transition:background-color .14s ease,color .14s ease,box-shadow .14s ease}
+.mv-layers .mv-layer-tab:hover{color:var(--mv-text)}
+.mv-layers .mv-layer-tab.on{background:var(--mv-glass-strong);color:var(--mv-text);font-weight:600;box-shadow:0 1px 2px rgba(15,23,42,.08)}
+/* ---- group header: clean transparent section divider, vertically centred ---- */
+.mv-lgroup{gap:2px}
+.mv-group{padding:6px 6px 4px 4px;gap:4px}
+.mv-lgroup>.mv-group{position:static;padding:7px 6px 5px 4px;margin-top:8px;border-top:.5px solid color-mix(in srgb,var(--mv-line) 75%,transparent);background:transparent;border-radius:0}
+.mv-lgroup:first-child>.mv-group{border-top:0;margin-top:0;padding-top:4px;border-radius:0}
+.mv-group-toggle{flex:1 1 auto;align-self:stretch;min-width:0;min-height:24px;justify-content:flex-start;padding:2px 6px 2px 4px;margin-left:-4px;gap:6px;border-radius:6px}
+.mv-group-chevron{width:12px;display:inline-flex;align-items:center;justify-content:center;font-size:10px;color:var(--mv-dim)}
+.mv-group-toggle:hover .mv-group-chevron{color:var(--mv-text)}
+.mv-group-title{font-size:11.5px;font-weight:600;letter-spacing:.01em;color:color-mix(in srgb,var(--mv-text) 82%,var(--mv-dim));white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mv-group-count{font-size:11px;font-weight:500;color:color-mix(in srgb,var(--mv-dim) 82%,transparent)}
+.mv-group-actions{gap:2px}
+.mv-layers .mv-group-actions .mv-cta{min-height:22px;padding:2px 8px;font-size:11px}
+.mv-layers .mv-group-actions .mv-cta:focus-visible{outline:2px solid var(--mv-accent);outline-offset:1px}
+.mv-layers .mv-group-actions .mv-icon-btn{width:24px;height:24px;border-radius:6px;color:var(--mv-dim)}
+.mv-layers .mv-group-actions .mv-icon-btn:hover{color:var(--mv-text);background:color-mix(in srgb,var(--mv-lift) 82%,transparent)}
+.mv-layers .mv-group-actions .mv-icon-btn:disabled{opacity:.32;cursor:default}
+/* ---- rows: optically balanced height, actions flush with group header right edge ---- */
+.mv-layers .mv-layer{min-height:32px;padding:5px 6px;gap:4px;border-radius:8px;align-items:center;transition:background-color .12s ease}
+.mv-layer .mv-row-name{font-size:12px;font-weight:500;line-height:1.4}
+.mv-layer .mv-row-meta{font-size:10.5px;line-height:1.35}
+.mv-layer .mv-icon-btn{width:24px;height:24px;border-radius:6px;font-size:12px;color:var(--mv-dim)}
+.mv-layer .mv-icon-btn:hover{color:var(--mv-text);background:color-mix(in srgb,var(--mv-lift) 85%,transparent)}
+.mv-layer .mv-icon-btn:disabled{color:var(--mv-dim);opacity:.32}
+.mv-layer .mv-row-more{color:var(--mv-dim)}
+.mv-layer .mv-row-more:hover{color:var(--mv-text)}
+.mv-icon-btn.is-off{color:var(--mv-dim);background:transparent;opacity:.65}
+/* Hidden rows stay legible: dimmed name, no strike-through (that reads as deleted). */
+.mv-layer.off .name{color:var(--mv-dim)}
+.mv-layer.off .mv-row-name{text-decoration:none;color:color-mix(in srgb,var(--mv-text) 62%,transparent)}
+.mv-layer.off .mv-row-dot{opacity:.45}
+/* ---- overflow menu: bounded by the dock, long labels take a hint slot ---- */
+.mv-row-menu{min-width:160px;width:max-content;max-width:min(244px,calc(100% - 6px))}
+.mv-row-menu .mv-menu-item{padding:7px 9px}
+.mv-row-menu .mv-menu-label{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mv-row-menu .mv-menu-hint{flex:none;margin-left:auto;padding-left:10px;font-size:10.5px;color:var(--mv-dim);white-space:nowrap}
+.mv-row-menu .mv-menu-item.is-disabled{opacity:.55}
+.mv-row-menu .mv-menu-item.is-disabled .mv-menu-hint{opacity:.9}
+/* ---- feature sub-rows hang from the parent dot, not from the eye ---- */
+.mv-overlay-features{margin-left:40px;padding-left:8px;border-left:1px solid color-mix(in srgb,var(--mv-line) 90%,transparent)}
+.mv-overlay-feature-name{font-size:12px}
+/* ---- empty state: full-width quiet inset note, aligned flush with rows ---- */
+.mv-layers .mv-none{margin:2px 0 4px;padding:7px 10px;border-radius:7px;background:color-mix(in srgb,var(--mv-lift) 52%,transparent);font-size:11px;line-height:1.5;color:var(--mv-dim)}
+.mv-layers .mv-none.mv-imagery-hint{background:transparent;padding:2px 8px 4px 18px}
+.mv-lgroup-hint{margin:0 0 4px 18px;font-size:11px}
+/* ---- list padding: crisp left/right symmetry without dead scrollbar gutter ---- */
+.mv-layer-list{padding:2px 10px 12px;scrollbar-gutter:auto}
+/* ---- active shader: a dot in the meta line, so colour is not the only cue ---- */
+.mv-layer.has-shader .mv-row-meta::before{content:'';display:inline-block;width:5px;height:5px;margin-right:4px;border-radius:50%;background:#3ddc97;vertical-align:1px}
+/* ---- row menus read as actions, not as secondary notes ---- */
+.mv-row-menu .mv-menu-item{color:var(--mv-text)}
+.mv-row-menu .mv-menu-item .mv-menu-label{font-weight:500}
+/* ---- touch: the group toggle and row actions get real hit areas ---- */
+@media(pointer:coarse){
+  .mv-layer{flex-wrap:nowrap}
+  .mv-group-toggle{min-height:40px}
+  .mv-layers .mv-group-actions .mv-icon-btn{width:36px;height:36px}
+  .mv-layer .mv-icon-btn{width:36px;height:36px}
+  .mv-overlay-feature-act{width:32px;height:32px}
+  .mv-row-menu .mv-menu-item{min-height:44px}
+}
+`;
+
 // src/client/ui/css.js
 var CSS = `
-.mv-root{position:relative;flex:1 1 0;min-height:0;overflow:hidden;background:var(--mv-bg);color:var(--mv-text);font:12px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;--mv-z-rail:9;--mv-z-popover:40;--mv-z-toast:60;--mv-z-modal:100;--mv-bg:var(--dsw-alias-bg-base,#fff);--mv-text:var(--dsw-alias-label-primary,#0f1115);--mv-dim:var(--dsw-alias-label-secondary,#5b6068);--mv-line:var(--dsw-alias-border-l2,#0000001a);--mv-accent:var(--dsw-alias-state-business-primary,#4176e6);--mv-profile-line:#1d4ed8;--mv-profile-design:#c2610a;--mv-lift:var(--dsw-alias-interactive-bg-hover,#2631480f);--mv-glass:color-mix(in srgb,var(--dsw-alias-bg-layer-1,#fff) 88%,transparent);--mv-glass-strong:var(--dsw-alias-bg-layer-1,#fff);--mv-input:var(--dsw-alias-interactive-bg-hover,#2631480f);--mv-shadow:0 8px 28px rgba(15,23,42,.18);--mv-danger:var(--dsw-alias-state-error-primary,#d33b3b);--mv-fg:var(--mv-text);--mv-surface-hi:var(--dsw-alias-bg-layer-2,#0f172a);--mv-line-strong:var(--dsw-alias-border-l1,#7dd3fc);--mv-attrib:rgba(255,255,255,.62);--mv-attrib-shadow:0 1px 2px rgba(0,0,0,.6);--mv-overlay:transparent;--mv-scrim:rgba(24,34,50,.28)}
+.mv-root{position:relative;flex:1 1 0;min-height:0;overflow:hidden;background:var(--mv-bg);color:var(--mv-text);font:12px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;--mv-z-rail:9;--mv-z-popover:40;--mv-z-toast:60;--mv-z-modal:100;--mv-console-top:10px;--mv-console-right:10px;--mv-console-gap:4px;--mv-console-width:max-content;--mv-bg:var(--dsw-alias-bg-base,#fff);--mv-text:var(--dsw-alias-label-primary,#0f1115);--mv-dim:var(--dsw-alias-label-secondary,#5b6068);--mv-line:var(--dsw-alias-border-l2,#0000001a);--mv-accent:var(--dsw-alias-state-business-primary,#4176e6);--mv-profile-line:#1d4ed8;--mv-profile-design:#c2610a;--mv-lift:var(--dsw-alias-interactive-bg-hover,#2631480f);--mv-glass:color-mix(in srgb,var(--dsw-alias-bg-layer-1,#fff) 88%,transparent);--mv-glass-strong:var(--dsw-alias-bg-layer-1,#fff);--mv-input:var(--dsw-alias-interactive-bg-hover,#2631480f);--mv-shadow:0 8px 28px rgba(15,23,42,.18);--mv-danger:var(--dsw-alias-state-error-primary,#d33b3b);--mv-fg:var(--mv-text);--mv-surface-hi:var(--dsw-alias-bg-layer-2,#0f172a);--mv-line-strong:var(--dsw-alias-border-l1,#7dd3fc);--mv-attrib:rgba(255,255,255,.62);--mv-attrib-shadow:0 1px 2px rgba(0,0,0,.6);--mv-overlay:transparent;--mv-scrim:rgba(24,34,50,.28)}
 .mv-root[data-mv-scheme="dark"]{--mv-attrib:rgba(255,255,255,.62);--mv-attrib-shadow:0 1px 2px rgba(0,0,0,.6);--mv-overlay:transparent;--mv-scrim:rgba(3,7,13,.62);color-scheme:dark}
 .mv-root[data-mv-scheme="light"]{color-scheme:light;--mv-scrim:rgba(24,34,50,.28)}
 /* Confirmation dialog: narrow, explains the scope, safe default focused. */
@@ -14393,13 +16825,83 @@ var CSS = `
 .mv-compass:focus-visible{outline:2px solid var(--mv-accent);outline-offset:2px}
 @media (max-width:420px){.mv-compass{width:50px;height:50px;right:8px;bottom:36px}}
 .mv-glass{background:var(--mv-glass);border:.5px solid var(--mv-line);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);box-shadow:var(--mv-shadow)}
-.mv-top{position:absolute;top:10px;left:10px;right:10px;display:flex;align-items:flex-start;justify-content:space-between;gap:10px;z-index:10;pointer-events:none}
+.mv-chrome{box-sizing:border-box;position:absolute;top:var(--mv-console-top,10px);right:var(--mv-console-right,10px);display:flex;flex-direction:column;align-items:stretch;width:var(--mv-console-width,max-content);max-width:calc(100% - 20px);max-height:calc(100% - 20px);z-index:12;pointer-events:none;background:var(--mv-glass);border:.5px solid var(--mv-line);border-radius:14px;box-shadow:var(--mv-shadow);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);transition:opacity .18s ease,transform .18s ease}
+.mv-chrome.is-hidden{opacity:0;transform:translateY(-8px);pointer-events:none}
+/* The restore handle sits exactly where the hide button was: same offsets, same
+   26px hit area as .mv-top .mv-btn.icon, so hiding the console does not move the
+   control the user is about to click again. */
+.mv-chrome-reveal{position:absolute;top:calc(var(--mv-console-top,10px) + var(--mv-console-gap,4px));right:calc(var(--mv-console-right,10px) + var(--mv-console-gap,4px));z-index:13;display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;padding:0;border-radius:7px;background:var(--mv-glass);color:var(--mv-text);border:.5px solid var(--mv-line);font:inherit;font-size:11.5px;cursor:pointer;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:var(--mv-shadow)}
+.mv-chrome-reveal svg{color:var(--mv-accent)}
+.mv-top{box-sizing:border-box;position:relative;display:flex;justify-content:flex-end;align-items:center;flex:none;width:100%;min-width:0;min-height:42px;z-index:10;pointer-events:auto;border-bottom:.5px solid var(--mv-line)}
+/* 地名检索 panel body: a rail panel, not a popover, so it keeps the same
+   padding rhythm and scrolling as the layers/tools panels. */
+.mv-places{display:flex;flex-direction:column;gap:10px;padding:10px 12px 12px;overflow:auto;overscroll-behavior:contain;min-height:0;flex:1 1 auto}
+.mv-places form,.mv-places-row{display:grid;gap:8px}
+.mv-places-query{display:flex;align-items:center;gap:6px}
+.mv-places input[type=text],.mv-places input[type=search],.mv-places input[type=password],.mv-places select{box-sizing:border-box;min-width:0;border:.5px solid var(--mv-line);border-radius:8px;padding:0 9px;height:32px;background:var(--mv-input);color:var(--mv-text);font:inherit;font-size:12px;transition:border-color .14s ease,background-color .14s ease,box-shadow .14s ease}
+.mv-places input[type=text],.mv-places input[type=search],.mv-places input[type=password]{width:100%}
+.mv-places input[type=text]:focus,.mv-places input[type=search]:focus,.mv-places input[type=password]:focus,.mv-places select:focus{outline:none;border-color:var(--mv-accent);background:var(--mv-glass-strong);box-shadow:0 0 0 2px color-mix(in srgb,var(--mv-accent) 16%,transparent)}
+.mv-places-submit{flex:none;height:32px;border:0;border-radius:8px;padding:0 12px;background:var(--mv-accent);color:#fff;cursor:pointer;font:inherit;font-size:12px;font-weight:500;white-space:nowrap;transition:opacity .14s ease,filter .14s ease}
+.mv-places-submit:hover:not(:disabled){filter:brightness(1.06)}
+.mv-places-submit:disabled{opacity:.42;cursor:default}
+.mv-places-source{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11.5px;color:var(--mv-dim)}
+.mv-places-source label{display:flex;align-items:center;gap:8px;flex:1;min-width:0;white-space:nowrap}
+.mv-places-source select{flex:1;height:28px;border-radius:7px;padding:0 8px;font-size:11.5px}
+.mv-places-status,.mv-places footer{font-size:11px;color:var(--mv-dim)}
+.mv-places select option{color:var(--mv-text);background:var(--mv-glass-strong)}
+.mv-places-key{display:flex;flex-direction:column;gap:7px;padding:9px 10px;border-radius:9px;border:.5px solid color-mix(in srgb,var(--mv-line) 85%,transparent);background:color-mix(in srgb,var(--mv-lift) 48%,transparent)}
+.mv-places-key-head{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11.5px}
+.mv-places-key-head strong{font-weight:600;color:var(--mv-text);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mv-places-key input[type=password]{height:30px;border-radius:7px;background:var(--mv-glass-strong)}
+.mv-place-link{cursor:pointer;background:none;border:0;font:inherit;font-size:11.5px;font-weight:500;padding:2px 4px;border-radius:5px;color:var(--mv-accent);white-space:nowrap}
+.mv-place-link:hover{background:color-mix(in srgb,var(--mv-accent) 10%,transparent)}
+.mv-places a{color:var(--mv-accent);text-decoration:none;font-size:11px;font-weight:500;white-space:nowrap}
+.mv-places a:hover{text-decoration:underline}
+.mv-places :focus-visible{outline:2px solid var(--mv-accent);outline-offset:1px}
+.mv-places-status:not(:empty){padding:7px 10px;border-radius:8px;background:color-mix(in srgb,var(--mv-lift) 55%,transparent);line-height:1.5}
+.mv-places-status.is-error:not(:empty){border-left:2.5px solid var(--mv-danger);background:color-mix(in srgb,var(--mv-danger) 7%,transparent);color:color-mix(in srgb,var(--mv-danger) 72%,var(--mv-text))}
+.mv-places footer{display:flex;align-items:center;gap:10px;padding-top:6px;border-top:.5px solid var(--mv-line);font-size:10.5px}
+.mv-places ul{list-style:none;margin:0;padding:6px 0 0;border-top:.5px solid var(--mv-line);display:flex;flex-direction:column;gap:2px}
+.mv-places-row{gap:2px;width:100%;text-align:left;padding:7px 8px;color:inherit;background:none;border:0;border-radius:8px;font:inherit;cursor:pointer;overflow-wrap:anywhere;transition:background-color .12s ease}
+.mv-places-row strong{font-size:12px;font-weight:500;color:var(--mv-text)}
+.mv-places-row:hover,.mv-places-row:focus-visible{background:var(--mv-lift)}
+.mv-places-row span{font-size:11px;color:var(--mv-dim)}
+/* Settings → 地名检索: one card per provider, same rhythm as the source rows. */
+.mv-providers{display:grid;gap:9px}
+.mv-src.mv-provider.on{border-color:color-mix(in srgb,var(--mv-accent) 46%,var(--mv-line))}
+.mv-provider .meta span[title]{font-variant-numeric:tabular-nums}
+.mv-provider-form{display:grid;gap:9px;padding:10px;border:.5px solid var(--mv-line);border-radius:9px;background:color-mix(in srgb,var(--mv-bg) 55%,transparent)}
+.mv-provider-form .mv-field-hint{font-size:10.5px;line-height:1.45;color:var(--mv-dim);font-style:normal}
+.mv-provider-foot{display:flex;align-items:center;flex-wrap:wrap;gap:8px}
+.mv-provider-foot .mv-field-hint{flex:1 1 auto}
+.mv-provider-actions{display:flex;gap:8px;justify-content:flex-end}
+.mv-provider-state{font-size:11px;color:var(--mv-dim);margin:0}
+.mv-provider-state.danger{color:var(--mv-danger)}
+.mv-providers-add{justify-self:start}
+.mv-switch{appearance:none;-webkit-appearance:none;position:relative;flex:none;width:32px;height:18px;margin:0;border:.5px solid var(--mv-line);border-radius:9px;background:color-mix(in srgb,var(--mv-dim) 26%,transparent);cursor:pointer;transition:background .15s ease,border-color .15s ease}
+.mv-switch::after{content:"";position:absolute;top:1.5px;left:1.5px;width:13px;height:13px;border-radius:50%;background:var(--mv-text);transition:transform .15s ease}
+.mv-switch:checked{background:var(--mv-accent);border-color:var(--mv-accent)}
+.mv-switch:checked::after{transform:translateX(14px);background:#fff}
+.mv-switch:disabled{opacity:.45;cursor:default}
+.mv-switch:focus-visible{outline:2px solid var(--mv-accent);outline-offset:2px}
+.mv-disclaimer{opacity:.85}
 .mv-top.menu-open{z-index:26}
-.mv-brand{display:flex;align-items:center;gap:8px;padding:7px 12px;border-radius:11px;pointer-events:auto}
-.mv-brand b{font-size:13px;font-weight:600;letter-spacing:.01em}
-.mv-brand span{font-size:11px;color:var(--mv-dim)}
-.mv-brand b,.mv-brand span{white-space:nowrap}
-.mv-actions{position:relative;display:flex;align-items:center;gap:2px;padding:4px;border-radius:11px;pointer-events:auto;flex-wrap:wrap;justify-content:flex-end}
+.mv-top .mv-btn,.mv-top .mv-btn.icon{width:26px;height:26px;padding:0;justify-content:center;gap:0;flex:none}
+.mv-top .mv-btn-icon{margin:0}
+.mv-top .mv-btn-label{display:none}
+/* Destination name lives here now (it used to be a second row inside the dock),
+   so the console has one title and the panel body starts right under it. */
+.mv-top-head{display:flex;align-items:center;gap:5px;flex:0 1 auto;min-width:0;padding:0 6px 0 12px;overflow:hidden}
+.mv-top-title{font-size:12.5px;font-weight:600;letter-spacing:-.01em;line-height:1.2;color:var(--mv-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:110px}
+.mv-top-detail{font-size:11.5px;line-height:1.2;color:var(--mv-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:128px}
+.mv-top-back,.mv-top-close{appearance:none;display:inline-flex;align-items:center;justify-content:center;flex:none;width:22px;height:22px;padding:0;border:0;border-radius:6px;background:transparent;color:var(--mv-dim);font:inherit;font-size:15px;line-height:1;cursor:pointer}
+.mv-top-close{font-size:12px}
+.mv-top-back:hover,.mv-top-close:hover{background:var(--mv-lift);color:var(--mv-text)}
+.mv-top-close.danger:hover{background:color-mix(in srgb,var(--mv-danger) 14%,transparent);color:var(--mv-danger)}
+.mv-top .mv-sep{margin:0 2px}
+.mv-top .mv-icon-btn{width:26px;height:26px}
+.mv-chrome-hide{margin-left:1px}
+.mv-actions{position:relative;display:flex;align-items:center;gap:2px;padding:4px 4px 4px 6px;border-radius:0;pointer-events:auto;flex:1 1 auto;flex-wrap:nowrap;justify-content:flex-end;min-width:0;row-gap:2px}
 .mv-btn{appearance:none;border:0;background:transparent;color:var(--mv-dim);font:inherit;font-size:12px;line-height:1;padding:7px 9px;border-radius:7px;cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;gap:6px}
 .mv-btn:hover{background:color-mix(in srgb,var(--mv-lift) 72%,transparent);color:var(--mv-text)}
 .mv-btn.on{background:color-mix(in srgb,var(--mv-accent) 26%,transparent);color:var(--mv-text)}
@@ -14408,15 +16910,35 @@ var CSS = `
 .mv-btn-label{display:inline-block}
 .mv-btn:focus-visible{outline:2px solid var(--mv-accent);outline-offset:1px}
 .mv-sep{width:1px;height:17px;background:var(--mv-line);margin:0 3px}
+.mv-btn-dot{width:5px;height:5px;border-radius:999px;background:var(--mv-accent);flex:none;margin-left:1px;box-shadow:0 0 0 2px color-mix(in srgb,var(--mv-accent) 22%,transparent)}
 .mv-menu{position:relative;display:inline-flex}
+.mv-menu.mv-data-menu{position:static}
 .mv-menu-panel{position:absolute;top:calc(100% + 6px);right:0;min-width:206px;padding:4px;border-radius:11px;z-index:26;display:flex;flex-direction:column;gap:1px;background:color-mix(in srgb,var(--mv-glass-strong) 96%,transparent)}
-.mv-data-menu .mv-menu-panel{left:0;right:auto;box-sizing:border-box;width:min(260px,calc(100vw - 24px));min-width:0;max-height:min(360px,55vh);overflow:auto;overscroll-behavior:contain}
+.mv-data-menu .mv-menu-panel{left:auto;right:4px;box-sizing:border-box;width:min(260px,calc(100vw - 24px));min-width:0;max-height:min(360px,55vh);overflow:auto;overscroll-behavior:contain}
 .mv-data-menu .mv-menu-panel>*{flex-shrink:0}
-.mv-menu-item{appearance:none;border:0;background:transparent;color:var(--mv-text);font:inherit;font-size:12px;text-align:left;padding:8px 10px;border-radius:7px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px;white-space:nowrap}
+.mv-menu-item{appearance:none;border:0;background:transparent;color:var(--mv-text);font:inherit;font-size:12.5px;line-height:1.55;text-align:left;padding:8px 10px;border-radius:7px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px;white-space:nowrap}
 .mv-menu-item:hover{background:color-mix(in srgb,var(--mv-lift) 80%,transparent)}
 .mv-menu-item:disabled{opacity:.42;cursor:default}
 .mv-menu-item:disabled:hover{background:transparent}
-.mv-menu-label{padding:4px 10px 2px;font-size:10.5px;line-height:1.4;letter-spacing:.04em;color:var(--mv-dim);white-space:nowrap}
+.mv-menu-section{padding:4px 10px 2px;font-size:10.5px;line-height:1.4;letter-spacing:.04em;color:var(--mv-dim);white-space:nowrap}
+/* v1.8 menu rows: displaced check, leading icon, trailing hint, danger tone.
+   One slot order for every menu in the panel (数据 / 视图 / 输出 / row ⋯). */
+.mv-menu-item>.mv-menu-check{flex:none;width:11px;font-size:11px;line-height:1;color:var(--mv-accent);text-align:center}
+.mv-menu-item>.mv-menu-icon{flex:none;display:inline-flex;align-items:center;color:var(--mv-dim)}
+.mv-menu-item:hover>.mv-menu-icon{color:var(--mv-text)}
+.mv-menu-item>.mv-menu-label{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--mv-text)}
+.mv-menu-item>.mv-menu-hint{margin-left:auto;font-size:11px;color:var(--mv-dim);font-variant-numeric:tabular-nums}
+.mv-menu-item.is-danger{color:var(--mv-danger)}
+.mv-menu-item.is-danger>.mv-menu-label{color:var(--mv-danger)}
+.mv-menu-item.is-danger>.mv-menu-icon{color:var(--mv-danger)}
+.mv-menu-item.is-danger:hover{background:color-mix(in srgb,var(--mv-danger) 12%,transparent)}
+.mv-actions .mv-btn-icon{display:inline-flex;align-items:center;color:var(--mv-dim);margin-right:2px}
+.mv-actions .mv-btn.on .mv-btn-icon{color:var(--mv-text)}
+.mv-quick{display:inline-flex;align-items:center;gap:1px;padding:2px;border-radius:8px;border:.5px solid color-mix(in srgb,var(--mv-line) 70%,transparent);background:color-mix(in srgb,var(--mv-lift) 75%,transparent)}
+.mv-quick .mv-btn{border-radius:6px;transition:background-color .14s ease,color .14s ease,box-shadow .14s ease}
+.mv-quick .mv-btn.on{background:var(--mv-glass-strong);color:var(--mv-accent);box-shadow:0 1px 2px rgba(15,23,42,.08)}
+.mv-quick .mv-btn.on .mv-btn-icon{color:var(--mv-accent)}
+
 .mv-menu-item .ellipsis{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mv-urlbar{position:absolute;top:58px;left:0;right:0;margin:0 auto;display:flex;align-items:center;gap:6px;padding:6px;border-radius:11px;z-index:12;width:min(640px,82%)}
 .mv-urlbar input{flex:1;min-width:0;background:var(--mv-input);border:.5px solid var(--mv-line);color:var(--mv-text);border-radius:7px;padding:7px 9px;font:inherit;font-size:12px;outline:none}
@@ -14427,32 +16949,15 @@ var CSS = `
 .mv-urlbar .mv-urlbar-close:hover{background:color-mix(in srgb,var(--mv-lift) 80%,transparent);color:var(--mv-text)}
 /* Right-hand floating column: the analysis card (Agent result) and the layer
    card share one stack so a new analysis never overlaps the layers list. */
-.mv-right{position:absolute;top:60px;right:10px;width:min(300px,calc(100% - 20px));max-height:calc(100% - 150px);display:flex;flex-direction:column;gap:10px;z-index:auto;pointer-events:none;overflow:visible}
+.mv-right{box-sizing:border-box;position:relative;display:flex;flex-direction:column;gap:0;min-height:0;max-height:none;flex:1 1 auto;align-self:stretch;width:min(300px,calc(100% - 20px));z-index:auto;pointer-events:auto;overflow:visible;background:transparent;border:0;border-radius:0}
+.mv-chrome .mv-right{max-width:100%}
 .mv-right>*{pointer-events:auto;box-sizing:border-box;max-width:100%;z-index:var(--mv-z-rail);min-height:0;flex:0 1 auto}
 /* v1.6.2 Batch D: single-active right dock.  One tab strip, one visible panel;
    every other panel stays mounted but hidden so drafts/scroll survive a switch. */
 .mv-dock{padding:0;gap:0;overflow:visible}
-.mv-dock.is-collapsed{padding:0;border:0;background:none;backdrop-filter:none;box-shadow:none;display:flex;flex-direction:row;justify-content:flex-end}
-/* v1.6.3: collapsed dock keeps panels mounted (drafts/scroll survive) but hides
-   the whole body; the pill is the only visible surface. */
-.mv-dock.is-collapsed .mv-dock-body{display:none}
-.mv-dock.is-collapsed .mv-dock-tabs{border:0;padding:0;background:none}
-.mv-dock-pill{display:inline-flex;align-items:center;gap:7px;padding:7px 10px;border-radius:999px;border:.5px solid var(--mv-line);background:var(--mv-glass);color:var(--mv-text);font-size:12px;cursor:pointer;box-shadow:var(--mv-shadow);backdrop-filter:blur(12px)}
-.mv-dock-pill:hover{background:var(--mv-glass-strong)}
-.mv-dock-pill-icon{display:inline-flex;color:var(--mv-accent)}
-.mv-dock-badge{min-width:16px;height:16px;padding:0 4px;border-radius:999px;background:color-mix(in srgb,var(--mv-accent) 18%,transparent);color:var(--mv-accent);font-size:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center}
-.mv-dock-pill-arrow{color:var(--mv-dim);font-size:10px}
-.mv-dock-tabs{display:flex;align-items:center;gap:4px;padding:5px 6px 4px;border-bottom:.5px solid var(--mv-line);flex-shrink:0;min-width:0}
-.mv-dock-tablist{display:flex;align-items:center;gap:2px;min-width:0;overflow-x:auto;scrollbar-width:none;flex:1 1 auto}
-.mv-dock-tablist::-webkit-scrollbar{display:none}
-.mv-dock-tabitem{display:inline-flex;align-items:center;min-width:0;flex:0 1 auto;position:relative;border-radius:8px}
-.mv-dock-tabitem.on{background:color-mix(in srgb,var(--mv-accent) 12%,transparent)}
-.mv-dock-tab{display:inline-flex;align-items:center;justify-content:center;border:0;background:none;color:var(--mv-dim);font:inherit;font-size:12px;padding:6px 9px;border-radius:8px;cursor:pointer;min-width:30px;max-width:132px}
-.mv-dock-tab:hover{color:var(--mv-text)}
-.mv-dock-tab.on{color:var(--mv-text);font-weight:600}
-.mv-dock-tab.on::after{content:"";position:absolute;left:8px;right:8px;bottom:-5px;height:2px;border-radius:2px;background:var(--mv-accent)}
-.mv-dock-tab-icon{display:inline-flex;flex:none;opacity:.85}
-.mv-dock-dot{width:6px;height:6px;border-radius:999px;background:var(--mv-accent);flex:none;box-shadow:0 0 0 2px color-mix(in srgb,var(--mv-accent) 25%,transparent)}
+/* A collapsed dock has no visible tray: the console header is the only thing
+   left, and clicking a destination reopens the panel. Panels stay mounted. */
+.mv-dock.is-collapsed{display:none}
 .mv-dock-actions{display:inline-flex;align-items:center;gap:2px;flex:none;margin-left:2px}
 .mv-dock-actions .mv-icon-btn{width:24px;height:24px;font-size:12px}
 .mv-dock-body{display:flex;flex-direction:column;flex:1 1 auto;min-height:0;min-width:0;padding:0}
@@ -14462,7 +16967,7 @@ var CSS = `
 .mv-report-preview-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px;border-bottom:.5px solid var(--mv-line);flex:none}
 .mv-report-preview-title{font-size:12px;font-weight:600;color:var(--mv-text);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mv-report-preview-frame{flex:1 1 auto;min-height:0;width:100%;border:0;background:#fff}
-.mv-dock-panel .in-dock{height:100%;max-height:none!important;width:100%;flex:1 1 auto;min-height:0;border-radius:0;border:0;box-shadow:none;background:transparent!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;position:relative}
+.mv-dock-panel .in-dock{height:100%;max-height:none!important;width:100%;flex:1 1 auto;min-height:0;border-radius:0;border:0;box-shadow:none;background:transparent!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;position:relative;inset:auto;top:auto;right:auto;bottom:auto;left:auto;z-index:auto}
 .mv-dock-panel .in-dock>header{display:none!important}
 .mv-dock-panel .in-dock>.mv-resize-handle{display:none!important}
 .mv-dock-panel .in-dock.mv-analysis>.body{flex:1 1 auto;min-height:0}
@@ -14471,8 +16976,6 @@ var CSS = `
 .mv-dock-panel .in-dock.mv-tools .mv-tool-index{overflow:visible}
 .mv-dock-panel .in-dock.mv-toolwin>.mv-toolwin-body{flex:1 1 auto;min-height:0;overflow:auto;padding-bottom:12px}
 .mv-panel-detail{display:flex;flex-direction:column;flex:1 1 auto;min-height:0;min-width:0}
-.mv-panel-back{appearance:none;align-self:flex-start;display:inline-flex;align-items:center;gap:4px;margin:6px 8px 2px;padding:5px 8px;border:.5px solid var(--mv-line);border-radius:7px;background:var(--mv-lift);color:var(--mv-dim);font:inherit;font-size:11.5px;cursor:pointer}
-.mv-panel-back:hover{color:var(--mv-text);border-color:var(--mv-accent)}
 .mv-panel-empty{display:flex;flex-direction:column;gap:6px;padding:18px 16px;color:var(--mv-dim)}
 .mv-panel-empty h3{margin:0;font-size:13px;color:var(--mv-text)}
 .mv-panel-empty p{margin:0;font-size:12px;line-height:1.55}
@@ -14622,12 +17125,12 @@ var CSS = `
 .mv-shader .hint{margin:0;color:var(--mv-dim);font-size:10.5px;line-height:1.5}
 .mv-layers>header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;font-size:13px;font-weight:600;letter-spacing:0;color:var(--mv-text);border-bottom:.5px solid var(--mv-line)}
 .mv-layers>header .mv-icon-btn{width:26px;height:26px;font-size:13px}
-.mv-layer-list{overflow:auto;padding:4px 10px 12px;min-height:0;overscroll-behavior:contain;scrollbar-width:thin}
+.mv-layer-list{flex:1 1 auto;min-height:0;overflow:auto;padding:4px 10px 12px;overscroll-behavior:contain;scrollbar-width:thin}
 .mv-layer{display:flex;align-items:center;gap:2px;padding:5px 6px;border-radius:8px}
 .mv-layer:hover{background:color-mix(in srgb,var(--mv-lift) 64%,transparent)}
 .mv-layer .mv-warn{flex:none;color:#f0b84b;font-size:12px;line-height:1;cursor:help;padding:0 2px}
 .mv-layer .name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;cursor:pointer}
-.mv-layer.off .name{color:var(--mv-dim);text-decoration:line-through}
+.mv-layer.off .name{color:var(--mv-dim);text-decoration:none}
 .mv-layer.has-shader{border-left:2px solid color-mix(in srgb,#3ddc97 70%,transparent);box-sizing:border-box}
 .mv-layer.has-shader:hover{background:color-mix(in srgb,#3ddc97 8%,transparent)}
 .mv-layer{position:relative}
@@ -14636,23 +17139,98 @@ var CSS = `
 .mv-layer .mv-shader-edit:disabled{opacity:.34;cursor:default;color:var(--mv-dim)}
 .mv-layer .mv-shader-edit:disabled:hover{background:transparent;color:var(--mv-dim)}
 .mv-row-more.on{background:color-mix(in srgb,var(--mv-accent) 26%,transparent);color:var(--mv-text)}
-.mv-row-menu{position:absolute;top:calc(100% + 3px);right:6px;z-index:31;min-width:170px;padding:4px;border-radius:10px;display:flex;flex-direction:column;gap:1px}
+.mv-row-menu{position:absolute;top:calc(100% + 4px);right:4px;z-index:31;min-width:192px;padding:5px;border-radius:10px;display:flex;flex-direction:column;gap:1px;box-shadow:var(--mv-shadow);max-height:min(420px,60vh);overflow:auto;overscroll-behavior:contain}
+.mv-row-menu{background:var(--mv-glass-strong)}
+.mv-row-menu.up{top:auto;bottom:calc(100% + 4px)}
 .mv-row-menu .mv-sep{width:auto;height:.5px;margin:4px 6px;background:var(--mv-line)}
 .mv-layer .mv-shader-edit:hover{background:color-mix(in srgb,#3ddc97 18%,transparent);color:#7ff0c4}
 .mv-icon-btn{appearance:none;border:0;background:transparent;color:var(--mv-dim);width:26px;height:26px;border-radius:7px;cursor:pointer;font:inherit;font-size:14px;line-height:1;display:inline-flex;align-items:center;justify-content:center;flex:none}
-.mv-layer{gap:3px;padding:5px 7px}
-.mv-layer .mv-icon-btn{font-size:15px}
+.mv-layer{gap:3px;padding:5px 7px;align-items:center}
+.mv-layer .mv-icon-btn{font-size:14px;color:color-mix(in srgb,var(--mv-text) 66%,transparent)}
+.mv-layer .mv-icon-btn:hover{color:var(--mv-text)}
 /* Layer panel v1.6: four groups (L1 terrain / L2 vector / L3 raster / L4 imagery)
    plus the 3D Tiles list. The imagery group folds because one source is normally in use. */
 .mv-group{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:13px 4px 5px;margin-top:3px;border-top:.5px solid var(--mv-line)}
 .mv-group-actions{display:inline-flex;align-items:center;gap:4px;flex:none}
-.mv-group-subactions{display:flex;align-items:center;gap:6px;padding:2px 4px 6px}
-.mv-group-subactions .mv-cta{flex:1;min-width:0;justify-content:center;font-size:11px;padding:5px 8px;border:.5px solid var(--mv-line);border-radius:8px;background:color-mix(in srgb,var(--mv-lift) 45%,transparent)}
-.mv-group-subactions .mv-cta:hover{background:color-mix(in srgb,var(--mv-lift) 82%,transparent);border-color:color-mix(in srgb,var(--mv-accent) 28%,var(--mv-line))}
 .mv-add3d-menu .mv-cta{text-align:left;width:100%}
 .mv-group:first-child{border-top:0;margin-top:0;padding-top:9px}
-.mv-group-title{min-width:0;font-size:11px;line-height:1.4;font-weight:600;letter-spacing:0;color:var(--mv-dim)}
+.mv-group-title{min-width:0;font-size:11.5px;line-height:1.4;font-weight:600;letter-spacing:0;color:var(--mv-text)}
 .mv-layers .mv-layer{min-height:30px;box-sizing:border-box;padding:5px 8px}
+/* v1.8 scene card: LayerGroup header + generic LayerRow shell.
+   Every group uses the same chevron/title/count/actions rhythm so the eye scans
+   one column of headers instead of six bespoke blocks. */
+.mv-lgroup{display:flex;flex-direction:column;gap:1px}
+.mv-lgroup>.mv-group{padding:11px 4px 5px;border-top:.5px solid color-mix(in srgb,var(--mv-line) 85%,transparent);margin-top:5px}
+.mv-lgroup:first-child>.mv-group{border-top:0;margin-top:0;padding-top:4px}
+.mv-lgroup-items,.mv-lgroup-body{display:flex;flex-direction:column;gap:1px}
+/* One list row can own a nested feature list (imported layer, annotation); the
+   wrapper keeps the row and its children in one column so the row's own flex
+   line never swallows the features. */
+.mv-lgroup-item{display:flex;flex-direction:column;gap:1px;min-width:0}
+.mv-lgroup-item>.mv-layer{width:100%;box-sizing:border-box}
+.mv-overlay-feature-act{width:22px;height:22px;font-size:12px;opacity:0}
+.mv-overlay-feature:hover .mv-overlay-feature-act,.mv-overlay-feature-act:focus-visible{opacity:1}
+@media(pointer:coarse){.mv-overlay-feature-act{opacity:1}}
+.mv-icon-btn:disabled{opacity:.4;cursor:default}
+.mv-btn:disabled{opacity:.45;cursor:default}
+.mv-group-toggle{appearance:none;border:0;background:transparent;color:inherit;font:inherit;display:inline-flex;align-items:center;gap:5px;min-width:0;padding:2px 5px 2px 3px;border-radius:6px;cursor:pointer}
+.mv-group-toggle:hover{background:color-mix(in srgb,var(--mv-lift) 70%,transparent)}
+.mv-group-toggle:focus-visible{outline:2px solid var(--mv-accent);outline-offset:1px}
+.mv-group-chevron{flex:none;display:inline-block;font-size:10px;line-height:1;color:var(--mv-dim);transition:transform .12s ease;transform:rotate(0)}
+.mv-group-chevron.open{transform:rotate(90deg)}
+.mv-group-count{flex:none;font-size:11px;color:var(--mv-dim);font-variant-numeric:tabular-nums}
+.mv-lgroup-hint{margin:0 0 3px 14px}
+.mv-layers .mv-group-actions .mv-cta{padding:2px 8px;font-size:10.5px;line-height:1.6}
+.mv-layers .mv-group-actions .mv-icon-btn{width:22px;height:22px;font-size:12px}
+.mv-layer .name{display:flex;flex-direction:column;align-items:flex-start;gap:1px;cursor:pointer}
+.mv-layer .mv-row-name{display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:top}
+.mv-layer .mv-row-meta{display:block;font-size:10px;line-height:1.35;color:var(--mv-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-variant-numeric:tabular-nums}
+.mv-layer.off .mv-row-name{text-decoration:line-through}
+.mv-layer.off .name{text-decoration:none}
+.mv-layer.selected{background:color-mix(in srgb,var(--mv-accent) 14%,transparent)}
+.mv-layer.menu-open{background:color-mix(in srgb,var(--mv-lift) 70%,transparent)}
+.mv-row-dot{flex:none;width:8px;height:8px;border-radius:50%;margin:0 3px 0 1px;box-shadow:0 0 0 1.5px color-mix(in srgb,#fff 70%,transparent)}
+.mv-overlay-toggle{width:20px;height:20px;font-size:11px;color:var(--mv-dim)}
+.mv-layer-dim-btn{width:24px;font-size:10px;font-weight:600;letter-spacing:.02em;color:var(--mv-dim)}
+.mv-layer-dim-btn.on{color:var(--mv-text);background:color-mix(in srgb,var(--mv-accent) 18%,transparent)}
+.mv-none.mv-imagery-hint{font-size:10.5px;line-height:1.5;padding-top:2px}
+.mv-terrain-error{display:flex;align-items:center;gap:6px;color:var(--mv-danger)}
+/* AddLayerDialog: "what kind of data is this?" first, then one form. */
+.mv-add-layer{width:min(520px,calc(100vw - 32px));max-height:min(78vh,720px);display:flex;flex-direction:column}
+.mv-add-layer>header{display:flex;align-items:center;gap:8px}
+.mv-add-layer>header>b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mv-add-layer>.body{overflow:auto;display:flex;flex-direction:column;gap:9px;padding-top:2px}
+.mv-add-kinds{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.mv-add-kind{appearance:none;display:flex;flex-direction:column;align-items:flex-start;gap:6px;padding:12px 11px;border-radius:11px;border:.5px solid var(--mv-line);background:color-mix(in srgb,var(--mv-lift) 40%,transparent);color:var(--mv-text);font:inherit;cursor:pointer;text-align:left}
+.mv-add-kind:hover{border-color:color-mix(in srgb,var(--mv-accent) 42%,var(--mv-line));background:color-mix(in srgb,var(--mv-lift) 78%,transparent)}
+.mv-add-kind:focus-visible{outline:2px solid var(--mv-accent);outline-offset:1px}
+.mv-add-kind-icon{color:var(--mv-accent)}
+.mv-add-kind b{font-size:12.5px;font-weight:600}
+.mv-add-kind-hint{font-size:10.5px;line-height:1.45;color:var(--mv-dim)}
+.mv-add-routes{display:flex;flex-direction:column;gap:6px}
+.mv-add-route{appearance:none;display:flex;align-items:center;gap:9px;padding:10px 11px;border-radius:10px;border:.5px solid var(--mv-line);background:color-mix(in srgb,var(--mv-lift) 40%,transparent);color:var(--mv-text);font:inherit;cursor:pointer;text-align:left}
+.mv-add-route:hover{border-color:color-mix(in srgb,var(--mv-accent) 42%,var(--mv-line))}
+.mv-add-route:disabled{opacity:.5;cursor:default}
+.mv-add-route>span{display:flex;flex-direction:column;gap:1px;min-width:0}
+.mv-add-route b{font-size:12px;font-weight:600}
+.mv-add-route em{font-style:normal;font-size:10.5px;color:var(--mv-dim)}
+.mv-add-recents{display:flex;flex-direction:column;gap:1px}
+.mv-add-recents .mv-menu-section{padding-left:2px}
+.mv-add-recent{appearance:none;display:flex;align-items:center;gap:7px;padding:6px 8px;border:0;border-radius:7px;background:transparent;color:var(--mv-text);font:inherit;font-size:11.5px;cursor:pointer;text-align:left;min-width:0}
+.mv-add-recent:hover{background:color-mix(in srgb,var(--mv-lift) 75%,transparent)}
+.mv-add-recent .ellipsis{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mv-dialog-back{font-size:16px}
+/* LayerProperties: identical 信息 / 外观 / 数据 tabs for every layer kind. */
+.mv-props{width:min(460px,calc(100vw - 32px));max-height:min(70vh,620px);display:flex;flex-direction:column}
+.mv-props>header{display:flex;align-items:center;gap:8px}
+.mv-props>header>b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mv-prop-body{display:flex;flex-direction:column;gap:7px;padding:12px 14px;overflow:auto;min-height:0}
+.mv-prop-row{display:flex;align-items:flex-start;gap:10px;font-size:11.5px;line-height:1.5}
+.mv-prop-label{flex:none;width:64px;color:var(--mv-dim)}
+.mv-prop-value{flex:1;min-width:0;overflow-wrap:anywhere}
+.mv-field-hint{display:block;font-style:normal;font-size:10.5px;line-height:1.45;color:var(--mv-dim)}
+.mv-note.mv-danger{color:var(--mv-danger)}
+
 .mv-layers .mv-layer .name{font-size:12px;line-height:1.45;font-weight:400}
 .mv-choice{appearance:none;width:100%;text-align:left;border:1px solid transparent;background:transparent;color:var(--mv-text);font:inherit;cursor:pointer}
 .mv-choice .tick{color:var(--mv-accent);font-size:12px;font-weight:600;flex:none}
@@ -14661,27 +17239,10 @@ var CSS = `
 .mv-choice:focus-visible,.mv-layers .mv-cta:focus-visible,.mv-layers .mv-icon-btn:focus-visible{outline:2px solid var(--mv-accent);outline-offset:1px}
 .mv-group .mv-cta{flex:none;font-size:11px;padding:5px 8px}
 /* Collapsible card-within-card box for the long imagery basemap selector. */
-.mv-fold-box{margin-top:10px;border:1px solid color-mix(in srgb,var(--mv-accent) 26%,var(--mv-line));border-radius:10px;background:color-mix(in srgb,var(--mv-lift) 52%,transparent);overflow:hidden;transition:border-color .15s,background .15s}
-.mv-fold-box:hover{border-color:color-mix(in srgb,var(--mv-accent) 52%,var(--mv-line))}
-.mv-fold-box.open{background:color-mix(in srgb,var(--mv-lift) 68%,transparent);border-color:color-mix(in srgb,var(--mv-accent) 48%,var(--mv-line))}
-.mv-fold-box>.mv-group{margin-top:0;border-top:0;padding:9px 10px}
-.mv-fold-box.open>.mv-group{border-bottom:.5px solid var(--mv-line)}
-.mv-fold-body{display:flex;flex-direction:column;gap:2px;padding:6px 6px 8px}
 .mv-imagery-hint{margin:2px 2px 0;padding:4px 6px 2px;font-size:10.5px;line-height:1.45;opacity:.88}
 /* Foldable group header (unmistakable disclosure chevron + active basemap chip). */
-.mv-group-toggle{appearance:none;width:100%;display:flex;flex-direction:column;align-items:stretch;gap:6px;background:transparent;border:0;padding:0;margin:0;font:inherit;color:inherit;cursor:pointer;text-align:left}
-.mv-fold-top{display:flex;align-items:center;justify-content:space-between;gap:6px;width:100%}
-.mv-fold-heading{display:inline-flex;align-items:center;gap:5px;min-width:0}
-.mv-group-toggle .mv-group-title{flex:none;color:var(--mv-text);font-weight:600}
-.mv-fold-count{flex:none;font-size:10px;padding:1px 6px;border-radius:999px;background:color-mix(in srgb,var(--mv-line) 55%,transparent);color:var(--mv-dim);white-space:nowrap}
-.mv-fold-state{flex:none;font-size:10.5px;font-weight:500;padding:2px 7px;border-radius:999px;background:color-mix(in srgb,var(--mv-accent) 14%,transparent);color:var(--mv-accent);white-space:nowrap}
-.mv-fold-summary{display:flex;align-items:center;gap:6px;padding:5px 8px;border-radius:7px;background:color-mix(in srgb,var(--mv-bg) 58%,var(--mv-lift));border:.5px solid color-mix(in srgb,var(--mv-line) 75%,transparent);min-width:0}
-.mv-fold-dot{width:6px;height:6px;border-radius:50%;background:var(--mv-accent);flex:none}
-.mv-fold-label{font-size:10.5px;color:var(--mv-dim);flex:none}
-.mv-group-current{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11.5px;font-weight:500;color:var(--mv-text)}
 .mv-group-chevron{flex:none;color:var(--mv-accent);font-size:12px;line-height:1;transform:rotate(0deg);transition:transform 160ms cubic-bezier(0.16,1,0.3,1)}
 .mv-group-chevron.open{transform:rotate(90deg)}
-.mv-group-toggle:hover .mv-fold-state{background:color-mix(in srgb,var(--mv-accent) 22%,transparent)}
 .mv-group-toggle:focus-visible{outline:2px solid var(--mv-accent);outline-offset:2px;border-radius:6px}
 .mv-opacity{width:64px;flex:none;accent-color:var(--mv-accent)}
 .mv-overlay-row{gap:2px}
@@ -14707,6 +17268,11 @@ var CSS = `
 .mv-measure{position:absolute;left:0;right:0;margin:0 auto;width:max-content;bottom:16px;z-index:11;padding:7px 14px;border-radius:999px;font-size:12px;font-weight:500;line-height:1.35;color:var(--mv-text);white-space:nowrap;pointer-events:none;display:flex;align-items:center;gap:10px;font-variant-numeric:tabular-nums;background:color-mix(in srgb,var(--mv-glass-strong) 94%,transparent);border:.5px solid color-mix(in srgb,var(--mv-line) 80%,transparent);box-shadow:0 6px 18px rgba(0,0,0,.22);backdrop-filter:none;-webkit-backdrop-filter:none}
 .mv-measure-end{pointer-events:auto;appearance:none;border:.5px solid var(--mv-line);background:var(--mv-lift);color:var(--mv-text);font:inherit;font-size:11px;padding:3px 10px;border-radius:999px;cursor:pointer}
 .mv-measure-end:hover{border-color:var(--mv-accent);background:color-mix(in srgb,var(--mv-accent) 20%,transparent)}
+.mv-measure-end.danger{border-color:color-mix(in srgb,var(--mv-danger) 42%,var(--mv-line));color:var(--mv-danger)}
+.mv-measure-end.danger:hover{border-color:var(--mv-danger);background:color-mix(in srgb,var(--mv-danger) 18%,transparent)}
+.mv-measure-actions{display:inline-flex;align-items:center;gap:5px;pointer-events:auto}
+.mv-analysis-actions{display:flex;gap:6px;border-top:.5px solid var(--mv-line);padding-top:7px;margin-top:3px}
+.mv-analysis-actions .mv-cta{flex:1;padding:6px 8px;font-size:11px}
 .mv-toast{position:absolute;left:0;right:0;margin:0 auto;width:max-content;bottom:64px;z-index:var(--mv-z-toast);background:var(--mv-glass-strong);border:.5px solid var(--mv-line);color:var(--mv-text);padding:8px 14px;border-radius:9px;font-size:12px;max-width:72%;word-break:break-all;box-shadow:var(--mv-shadow)}
 .mv-overlay{position:absolute;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;padding:24px;background:var(--mv-overlay);pointer-events:none}
 .mv-overlay.dim{background:var(--mv-scrim)}
@@ -14741,9 +17307,6 @@ var CSS = `
 .mv-dialog .body{padding:12px 14px;overflow:auto;display:flex;flex-direction:column;gap:8px}
 .mv-note{margin:0 0 2px;color:var(--mv-dim);font-size:11px;line-height:1.65}
 .mv-src{display:flex;align-items:center;gap:8px;padding:8px 10px;border:.5px solid var(--mv-line);border-radius:9px;background:color-mix(in srgb,var(--mv-bg) 55%,transparent)}
-.mv-src .radio{width:16px;height:16px;flex:none;border-radius:50%;border:1.5px solid var(--mv-line);cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
-.mv-src .radio.on{border-color:var(--mv-accent)}
-.mv-src .radio.on::after{content:"";width:8px;height:8px;border-radius:50%;background:var(--mv-accent)}
 .mv-src .meta{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
 .mv-src .meta b{font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mv-src .meta span{font-size:10.5px;color:var(--mv-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -14768,45 +17331,35 @@ var CSS = `
 /* The host already draws the tab strip right above this body, so the floating
    toolbar keeps a visible gap instead of hugging it; the layer card follows the
    same offset so the two never collide when the action row wraps. */
-.mv-root.mv-docked{container-type:inline-size;margin-top:9px}
-.mv-root.mv-docked .mv-top{top:20px;left:20px;right:20px;gap:8px}
-.mv-root.mv-docked .mv-brand{padding:6px 10px;flex:none;gap:6px}
-.mv-root.mv-docked .mv-actions{gap:0;padding:3px;flex:0 1 auto;max-width:100%;margin-left:auto;min-width:0;row-gap:2px}
-.mv-root.mv-docked .mv-right{top:96px;right:20px;width:min(300px,calc(100% - 40px));max-height:calc(100% - 250px)}
+.mv-root.mv-docked{container-type:inline-size;margin-top:9px;--mv-console-top:16px;--mv-console-right:16px;--mv-console-gap:3px}
+.mv-root.mv-docked .mv-chrome{max-height:calc(100% - 32px)}
+.mv-root.mv-docked .mv-actions{gap:0;padding:3px 3px 3px 5px;max-width:100%;min-width:0;row-gap:2px}
 .mv-root.mv-docked .mv-shader{top:96px;left:20px;width:min(320px,calc(100% - 40px));max-height:calc(100% - 250px)}
 .mv-root.mv-docked .mv-dialog{width:min(680px,96%)}
-/* Narrow docked panes: the host tab already shows the panel title, so drop the
-   duplicated brand title, then the status text, then the whole brand, keeping
-   the action row on one line as long as possible. */
-@container (max-width: 900px){
-  .mv-root.mv-docked .mv-brand b{display:none}
-}
+/* Narrow docked panes: shrink labels, then separators, before the action row
+   is allowed to wrap; the dock follows the wrapped height through flex flow. */
 @container (max-width: 760px){
   .mv-root.mv-docked .mv-actions .mv-btn{padding:6px 8px}
   .mv-root.mv-docked .mv-actions .mv-sep{margin:0 1px}
   .mv-root.mv-docked .mv-actions .mv-btn.icon{padding:7px 6px}
 }
-@container (max-width: 640px){
-  .mv-root.mv-docked .mv-brand span{display:none}
-  .mv-root.mv-docked .mv-brand{padding:6px 8px}
-}
 @container (max-width: 620px){
   .mv-root.mv-docked .mv-actions .mv-btn-label{display:none}
-  .mv-root.mv-docked .mv-actions .mv-btn{ padding:7px 8px}
+  .mv-root.mv-docked .mv-actions .mv-btn{padding:7px 8px}
 }
 @container (max-width: 540px){
-  .mv-root.mv-docked .mv-brand{display:none}
   .mv-root.mv-docked .mv-actions{justify-content:flex-end}
 }
 /* 320px-wide docks: drop the separators and extra padding so the action row
    wraps cleanly instead of overflowing the pane. */
 @container (max-width: 420px){
-  .mv-root.mv-docked .mv-top{left:12px;right:12px;gap:6px}
+  .mv-root.mv-docked{--mv-console-top:12px;--mv-console-right:12px;--mv-console-gap:2px}
+  .mv-root.mv-docked .mv-chrome{max-height:calc(100% - 24px)}
   .mv-root.mv-docked .mv-actions .mv-btn{padding:6px 7px}
   .mv-root.mv-docked .mv-actions .mv-sep{display:none}
   .mv-root.mv-docked .mv-actions .mv-btn.icon{padding:7px 6px}
   .mv-root.mv-docked .mv-layers{top:92px;right:12px;width:min(284px,calc(100% - 24px))}
-  .mv-root.mv-docked .mv-right{top:92px;right:12px;width:min(300px,calc(100% - 24px));max-height:calc(100% - 236px)}
+  .mv-root.mv-docked .mv-right{width:min(300px,calc(100% - 24px))}
   .mv-root.mv-docked .mv-right .mv-layers{position:static;top:auto;right:auto;width:100%;max-height:none}
   .mv-root.mv-docked .mv-right .mv-analysis{max-width:100%}
   .mv-root.mv-docked .mv-tools{max-height:min(48%,360px)}
@@ -15065,8 +17618,11 @@ ${SELECTION_QUESTION_CSS}
 ${PARSE_CSS}
 ${RASTER_TIMELINE_CSS}
 ${COMPARE_CSS}
+${LAYERS_CSS}
 @container (max-width:480px){
-  .mv-root.mv-docked .mv-right{left:12px;right:12px;width:auto;max-height:calc(100% - 132px)}
+  .mv-root.mv-docked{--mv-console-top:12px;--mv-console-right:12px;--mv-console-gap:2px}
+  .mv-root.mv-docked .mv-chrome{left:12px;right:12px;width:auto;max-width:none;max-height:calc(100% - 24px)}
+  .mv-root.mv-docked .mv-right{width:100%!important;max-width:none;max-height:calc(100% - 132px)}
   .mv-root.mv-docked .mv-shader{box-sizing:border-box;left:12px;right:12px;width:auto;max-height:calc(100% - 132px)}
   .mv-root.mv-docked .mv-tools{max-height:none}
   .mv-root .mv-select{left:12px;right:12px;width:auto;margin:0;bottom:16px;max-height:calc(100% - 132px)}
@@ -15117,7 +17673,7 @@ function revealPanel() {
 }
 
 // src/client/ui/dialogs.js
-var import_react10 = __toESM(require("react"), 1);
+var import_react11 = __toESM(require("react"), 1);
 
 // src/client/ui/use-dialog-a11y.js
 var import_react9 = __toESM(require("react"), 1);
@@ -15160,8 +17716,302 @@ function useDialogA11y({ open = true, onEscape, restoreFocus = true } = {}) {
   return dialogRef;
 }
 
-// src/client/ui/dialogs.js
+// src/client/ui/place-providers.js
+var import_react10 = __toESM(require("react"), 1);
 var h7 = import_react10.default.createElement;
+var PLACE_TYPES = Object.freeze(["tianditu", "amap", "photon", "nominatim"]);
+var PLACE_TYPE_META = Object.freeze({
+  tianditu: { needsKey: true, help: "https://cloudcenter.tianditu.gov.cn/", url: "https://api.tianditu.gov.cn/v2/search" },
+  amap: { needsKey: true, help: "https://console.amap.com/dev/key/app", url: "https://restapi.amap.com/v3/place/text" },
+  photon: { needsKey: false, osm: true, url: "https://photon.komoot.io/api/" },
+  nominatim: { needsKey: false, osm: true, policy: "https://operations.osmfoundation.org/policies/nominatim/", url: "https://nominatim.openstreetmap.org/search" }
+});
+var placeTypeMeta = (type) => PLACE_TYPE_META[type] ?? PLACE_TYPE_META.photon;
+var placeProvider = (config, id) => config?.providers?.find((entry2) => entry2.id === id) ?? null;
+function providerLabel(t2, entry2) {
+  const item = typeof entry2 === "string" ? { id: entry2, type: entry2, name: "" } : entry2 ?? {};
+  const name = typeof item.name === "string" ? item.name.trim() : "";
+  return name || t2(`places.provider.${item.type ?? item.id ?? "photon"}`);
+}
+var isHttpUrl = (value) => /^https?:\/\/\S+$/i.test(String(value ?? "").trim());
+async function placeRequest(url, method, body, signal) {
+  if (!url) throw new Error("provider");
+  const response = await fetch(url, {
+    method,
+    signal,
+    credentials: "same-origin",
+    headers: { "x-dsh-panel": "1", "content-type": "application/json" },
+    body: body ? JSON.stringify(body) : void 0
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.error || "provider");
+  return data;
+}
+function placeErrorMessage(t2, code, entry2) {
+  const name = providerLabel(t2, entry2);
+  const key = {
+    key: "places.keyNeeded",
+    denied: "places.denied",
+    rate: "places.rate",
+    rejected: "places.rejected",
+    input: "places.rejected",
+    disabled: "places.disabled",
+    camera: "places.camera",
+    provider: "places.failed"
+  }[code] ?? "places.failed";
+  return t2(key, { name });
+}
+function PlaceProvidersPanel({ t: t2, url, askConfirm }) {
+  const [config, setConfig] = import_react10.default.useState(null);
+  const [loadError, setLoadError] = import_react10.default.useState("");
+  const [editing, setEditing] = import_react10.default.useState(null);
+  const [form, setForm] = import_react10.default.useState(null);
+  const [busy, setBusy] = import_react10.default.useState("");
+  const [status, setStatus] = import_react10.default.useState(null);
+  const language = isChinese() ? "zh" : "en";
+  const list = config?.providers ?? [];
+  import_react10.default.useEffect(() => {
+    const controller = new AbortController();
+    placeRequest(url, "GET", null, controller.signal).then((data) => {
+      if (!controller.signal.aborted) setConfig(data);
+    }).catch((err) => {
+      if (!controller.signal.aborted) setLoadError(err.message);
+    });
+    return () => controller.abort();
+  }, [url]);
+  async function commit(nextList, id) {
+    setBusy(id ?? "list");
+    setStatus(null);
+    try {
+      setConfig(await placeRequest(url, "PUT", { providers: nextList }));
+      if (id) setStatus({ kind: "ok", text: t2("settings.places.saved") });
+      return true;
+    } catch (err) {
+      setStatus({ kind: "fail", text: placeErrorMessage(t2, err.message, id) });
+      return false;
+    } finally {
+      setBusy("");
+    }
+  }
+  const toggle = (entry2, on) => commit(list.map((item) => item.id === entry2.id ? { ...item, enabled: on } : item), entry2.id);
+  function startEdit(entry2) {
+    setStatus(null);
+    setEditing({ mode: "edit", builtin: entry2.builtin === true });
+    setForm({ id: entry2.id, name: entry2.name, type: entry2.type, url: entry2.url, key: "", clearKey: false });
+  }
+  function startAdd() {
+    const type = "photon";
+    setStatus(null);
+    setEditing({ mode: "add", builtin: false });
+    setForm({ id: `place-${Date.now().toString(36)}`, name: "", type, url: placeTypeMeta(type).url, key: "", clearKey: false });
+  }
+  function cancelForm() {
+    setEditing(null);
+    setForm(null);
+  }
+  async function saveForm() {
+    const name = form.name.trim();
+    const meta = placeTypeMeta(form.type);
+    if (!editing.builtin && !name) {
+      setStatus({ kind: "fail", text: t2("settings.places.customNeedsName") });
+      return;
+    }
+    if (!isHttpUrl(form.url)) {
+      setStatus({ kind: "fail", text: t2("settings.places.badUrl") });
+      return;
+    }
+    const previous = placeProvider(config, form.id);
+    const entry2 = {
+      id: form.id,
+      name,
+      type: form.type,
+      url: form.url.trim(),
+      enabled: previous?.enabled ?? true
+    };
+    if (meta.needsKey && form.key.trim()) entry2.key = form.key.trim();
+    else if (meta.needsKey && form.clearKey) entry2.key = "";
+    const exists = list.some((item) => item.id === form.id);
+    const nextList = exists ? list.map((item) => item.id === form.id ? { ...item, ...entry2 } : item) : [...list, entry2];
+    if (await commit(nextList, form.id)) cancelForm();
+  }
+  async function remove(entry2) {
+    const accepted = await askConfirm?.({
+      title: t2("settings.confirmDeleteTitle"),
+      message: t2("settings.deleteConfirm", { name: providerLabel(t2, entry2) }),
+      confirmLabel: t2("btn.delete"),
+      cancelLabel: t2("btn.cancel"),
+      danger: true
+    });
+    if (accepted) await commit(list.filter((item) => item.id !== entry2.id), "");
+  }
+  async function runTest(entry2) {
+    const started = typeof performance !== "undefined" ? performance.now() : Date.now();
+    setBusy(entry2.id);
+    setStatus({ kind: "busy", text: t2("settings.places.testing") });
+    try {
+      const data = await placeRequest(url, "POST", { provider: entry2.id, query: isChinese() ? "武汉" : "Paris", language });
+      const ms = Math.round((typeof performance !== "undefined" ? performance.now() : Date.now()) - started);
+      setStatus({ kind: "ok", text: t2("settings.places.testOk", { n: data?.results?.length ?? 0, ms }) });
+    } catch (err) {
+      setStatus({ kind: "fail", text: t2("settings.places.testFail", { reason: placeErrorMessage(t2, err.message, entry2) }) });
+    } finally {
+      setBusy("");
+    }
+  }
+  const link = (href, text) => h7("a", { className: "mv-place-link", href, target: "_blank", rel: "noreferrer" }, text);
+  const field = (label, input, hint) => h7(
+    "div",
+    { className: "mv-field" },
+    h7("label", null, label),
+    input,
+    hint ? h7("small", { className: "mv-field-hint" }, hint) : null
+  );
+  const change = (patch) => setForm((current2) => ({ ...current2, ...patch }));
+  function formView() {
+    const meta = placeTypeMeta(form.type);
+    const previous = placeProvider(config, form.id);
+    const managed = previous?.managed === true;
+    const keyState = managed ? t2("settings.places.managed") : previous?.configured ? t2("settings.places.configured") : t2("settings.places.notConfigured");
+    return h7(
+      "div",
+      { className: "mv-provider-form", key: form.id },
+      field(
+        t2("settings.places.nameLabel"),
+        h7("input", {
+          type: "text",
+          maxLength: 120,
+          value: form.name,
+          placeholder: t2(`places.provider.${form.type}`),
+          onChange: (event) => change({ name: event.target.value })
+        }),
+        editing.builtin ? t2("settings.places.builtinNameHint") : null
+      ),
+      field(
+        t2("settings.places.typeLabel"),
+        h7("select", {
+          value: form.type,
+          disabled: editing.builtin,
+          onChange: (event) => {
+            const type = event.target.value;
+            change({ type, url: placeTypeMeta(type).url, key: "", clearKey: false });
+          }
+        }, PLACE_TYPES.map((type) => h7("option", { key: type, value: type }, t2(`places.provider.${type}`)))),
+        t2(`settings.places.note.${form.type}`)
+      ),
+      field(
+        t2("settings.places.urlLabel"),
+        h7("input", {
+          type: "text",
+          maxLength: 400,
+          spellCheck: false,
+          value: form.url,
+          placeholder: meta.url,
+          onChange: (event) => change({ url: event.target.value })
+        }),
+        t2("settings.places.urlHint")
+      ),
+      meta.needsKey && !managed ? h7(
+        "div",
+        { className: "mv-field" },
+        h7("label", null, `${t2("settings.places.keyLabel")} · ${keyState}`),
+        h7("input", {
+          type: "password",
+          autoComplete: "off",
+          maxLength: 128,
+          value: form.key,
+          placeholder: previous?.configured ? "••••••••" : t2("settings.places.keyLabel"),
+          onChange: (event) => change({ key: event.target.value, clearKey: false })
+        }),
+        h7(
+          "div",
+          { className: "mv-provider-foot" },
+          h7("small", { className: "mv-field-hint" }, t2("settings.places.keyOptional")),
+          form.clearKey ? h7("small", { className: "mv-provider-state danger" }, t2("settings.places.keyWillClear")) : null,
+          previous?.configured ? h7("button", { type: "button", className: "mv-place-link", onClick: () => change({ key: "", clearKey: true }) }, t2("settings.places.clearKey")) : null
+        )
+      ) : null,
+      h7(
+        "div",
+        { className: "mv-provider-foot" },
+        meta.help ? link(meta.help, `${t2("settings.places.getKey")} ↗`) : null,
+        meta.policy ? link(meta.policy, t2("places.policy")) : null,
+        form.url.trim() !== meta.url ? h7("button", { type: "button", className: "mv-place-link", onClick: () => change({ url: meta.url }) }, t2("settings.places.restoreUrl")) : null
+      ),
+      h7(
+        "div",
+        { className: "mv-provider-actions" },
+        h7("button", { type: "button", className: "mv-cta", onClick: cancelForm }, t2("btn.cancel")),
+        h7("button", { type: "button", className: "mv-cta primary", disabled: busy === form.id, onClick: () => void saveForm() }, t2("btn.save"))
+      )
+    );
+  }
+  function row2(entry2) {
+    const meta = placeTypeMeta(entry2.type);
+    const on = entry2.enabled === true;
+    const keyState = entry2.managed ? t2("settings.places.managed") : entry2.needsKey ? entry2.configured ? t2("settings.places.configured") : t2("settings.places.notConfigured") : t2("settings.places.noKey");
+    const testable = on && (!entry2.needsKey || entry2.configured);
+    return h7(
+      "div",
+      { key: entry2.id, className: `mv-src mv-provider${on ? " on" : ""}` },
+      h7("input", {
+        type: "checkbox",
+        role: "switch",
+        className: "mv-switch",
+        checked: on,
+        disabled: busy === entry2.id,
+        "aria-label": t2("settings.places.enableLabel", { name: providerLabel(t2, entry2) }),
+        onChange: (event) => void toggle(entry2, event.target.checked)
+      }),
+      h7(
+        "div",
+        { className: "meta" },
+        h7("b", null, providerLabel(t2, entry2)),
+        h7("span", { title: entry2.url }, entry2.url),
+        h7("span", null, `${t2(`places.provider.${entry2.type}`)} · ${keyState}`)
+      ),
+      h7("span", { className: "badge" }, entry2.builtin ? t2("settings.places.builtin") : t2("settings.places.custom")),
+      h7("button", {
+        type: "button",
+        className: "mv-icon-btn",
+        title: t2("settings.places.test"),
+        "aria-label": `${t2("settings.places.test")} · ${providerLabel(t2, entry2)}`,
+        disabled: !testable || busy === entry2.id,
+        onClick: () => void runTest(entry2)
+      }, "⟳"),
+      h7("button", {
+        type: "button",
+        className: "mv-icon-btn",
+        title: t2("settings.places.edit"),
+        "aria-label": `${t2("settings.places.edit")} · ${providerLabel(t2, entry2)}`,
+        onClick: () => startEdit(entry2)
+      }, "✎"),
+      entry2.builtin ? null : h7("button", {
+        type: "button",
+        className: "mv-icon-btn",
+        title: t2("settings.places.delete"),
+        "aria-label": `${t2("settings.places.delete")} · ${providerLabel(t2, entry2)}`,
+        onClick: () => void remove(entry2)
+      }, "✕")
+    );
+  }
+  if (!config) {
+    return h7("div", null, h7("p", { className: "mv-note" }, loadError ? placeErrorMessage(t2, loadError, "photon") : t2("toast.loadingData")));
+  }
+  const statusLine = status ? h7("p", { className: `mv-provider-state${status.kind === "fail" ? " danger" : ""}`, role: "status" }, status.text) : null;
+  return h7(
+    "div",
+    { className: "mv-providers" },
+    h7("p", { className: "mv-note" }, t2("settings.places.hint")),
+    list.map((entry2) => editing?.mode === "edit" && form && entry2.id === form.id ? formView() : row2(entry2)),
+    editing?.mode === "add" && form ? formView() : h7("button", { type: "button", className: "mv-cta mv-providers-add", onClick: startAdd, disabled: busy !== "" }, `+ ${t2("settings.places.add")}`),
+    statusLine,
+    h7("p", { className: "mv-note" }, t2("settings.places.defaultNote")),
+    h7("p", { className: "mv-note mv-disclaimer" }, t2("settings.places.thirdParty"))
+  );
+}
+
+// src/client/ui/dialogs.js
+var h8 = import_react11.default.createElement;
 var sourceFrameCount = (source) => Array.isArray(source?.frames) && source.frames.length > 0 ? source.frames.length : Array.isArray(source?.times) && source.times.length > 0 ? source.times.length : 0;
 var SOURCE_TYPES = {
   imagery: ["xyz", "arcgis", "wms"],
@@ -15182,42 +18032,42 @@ var emptySource = (kind) => ({
 });
 function SourceForm({ kind, source, onPickLocal, onChange, onCancel, t: t2 }) {
   const set = (patch) => onChange({ ...source, ...patch });
-  const field = (label, input) => h7("div", { className: "mv-field" }, h7("label", null, label), input);
+  const field = (label, input) => h8("div", { className: "mv-field" }, h8("label", null, label), input);
   const pickTiles = async () => {
     if (typeof onPickLocal !== "function") return;
     const url = await onPickLocal();
     if (url) set({ type: "xyz", url, maximumLevel: source.maximumLevel ?? 18 });
   };
-  const text = (key, value, placeholder) => h7("input", {
+  const text = (key, value, placeholder) => h8("input", {
     key,
     value: value ?? "",
     placeholder: placeholder ?? "",
     onChange: (event) => set({ [key]: event.target.value })
   });
-  return h7(
+  return h8(
     "div",
     { className: "mv-form" },
-    h7(
+    h8(
       "div",
       { className: "grid" },
       field(t2("settings.field.name"), text("name", source.name)),
       field(
         t2("settings.field.type"),
-        h7(
+        h8(
           "select",
           { value: source.type, onChange: (event) => set({ type: event.target.value }) },
-          SOURCE_TYPES[kind].map((type) => h7("option", { key: type, value: type }, t2(SOURCE_TYPE_KEY[type])))
+          SOURCE_TYPES[kind].map((type) => h8("option", { key: type, value: type }, t2(SOURCE_TYPE_KEY[type])))
         )
       )
     ),
     field(t2("settings.field.url"), text("url", source.url, kind === "imagery" ? "https://…/{z}/{x}/{y}.png" : "https://…")),
     field(t2("settings.field.credit"), text("credit", source.credit)),
-    kind === "imagery" && source.type === "xyz" ? h7(
+    kind === "imagery" && source.type === "xyz" ? h8(
       "div",
       { className: "grid" },
       field(
         t2("settings.field.maxLevel"),
-        h7("input", {
+        h8("input", {
           type: "number",
           min: 0,
           max: 25,
@@ -15227,19 +18077,19 @@ function SourceForm({ kind, source, onPickLocal, onChange, onCancel, t: t2 }) {
       ),
       field(
         t2("settings.field.tilingScheme"),
-        h7(
+        h8(
           "select",
           {
             value: source.tilingScheme ?? "web-mercator",
             onChange: (event) => set({ tilingScheme: event.target.value })
           },
-          h7("option", { value: "web-mercator" }, t2("settings.tiling.webMercator")),
-          h7("option", { value: "geographic" }, t2("settings.tiling.geographic"))
+          h8("option", { value: "web-mercator" }, t2("settings.tiling.webMercator")),
+          h8("option", { value: "geographic" }, t2("settings.tiling.geographic"))
         )
       ),
       field(
         t2("settings.field.subdomains"),
-        h7("input", {
+        h8("input", {
           value: (source.subdomains ?? []).join(","),
           onChange: (event) => set({
             subdomains: event.target.value.split(",").map((item) => item.trim()).filter((item) => item !== "")
@@ -15247,24 +18097,24 @@ function SourceForm({ kind, source, onPickLocal, onChange, onCancel, t: t2 }) {
         })
       )
     ) : null,
-    kind === "imagery" && source.type === "xyz" ? h7(
+    kind === "imagery" && source.type === "xyz" ? h8(
       "div",
       { className: "grid" },
-      h7(
+      h8(
         "div",
         { className: "mv-field check" },
-        h7("input", {
+        h8("input", {
           id: "mv-reverse-y",
           type: "checkbox",
           checked: source.reverseY === true,
           onChange: (event) => set({ reverseY: event.target.checked })
         }),
-        h7("label", { htmlFor: "mv-reverse-y" }, t2("settings.field.tms"))
+        h8("label", { htmlFor: "mv-reverse-y" }, t2("settings.field.tms"))
       ),
-      h7(
+      h8(
         "div",
         { className: "mv-field" },
-        h7(
+        h8(
           "button",
           { type: "button", className: "mv-cta", onClick: pickTiles },
           t2("settings.field.localTiles")
@@ -15272,52 +18122,52 @@ function SourceForm({ kind, source, onPickLocal, onChange, onCancel, t: t2 }) {
       )
     ) : null,
     kind === "imagery" && source.type === "wms" ? field(t2("settings.field.layers"), text("layers", source.layers)) : null,
-    kind === "terrain" ? h7(
+    kind === "terrain" ? h8(
       "div",
       { className: "grid" },
-      h7(
+      h8(
         "div",
         { className: "mv-field check" },
-        h7("input", {
+        h8("input", {
           id: "mv-normals",
           type: "checkbox",
           checked: source.requestVertexNormals === true,
           onChange: (event) => set({ requestVertexNormals: event.target.checked })
         }),
-        h7("label", { htmlFor: "mv-normals" }, t2("settings.field.normals"))
+        h8("label", { htmlFor: "mv-normals" }, t2("settings.field.normals"))
       ),
-      h7(
+      h8(
         "div",
         { className: "mv-field check" },
-        h7("input", {
+        h8("input", {
           id: "mv-water",
           type: "checkbox",
           checked: source.requestWaterMask === true,
           onChange: (event) => set({ requestWaterMask: event.target.checked })
         }),
-        h7("label", { htmlFor: "mv-water" }, t2("settings.field.waterMask"))
+        h8("label", { htmlFor: "mv-water" }, t2("settings.field.waterMask"))
       )
     ) : null,
-    h7(
+    h8(
       "div",
       { style: { display: "flex", justifyContent: "flex-end", gap: "8px" } },
-      h7("button", { type: "button", className: "mv-cta", onClick: onCancel }, t2("btn.cancel"))
+      h8("button", { type: "button", className: "mv-cta", onClick: onCancel }, t2("btn.cancel"))
     )
   );
 }
 function SourcesDialog({ config, defaults, environmentDark, themeMode, onPickLocal, onSave, onClose, messages, meta, bridgeOn, bridgeReload, askConfirm, notify }) {
   const t2 = messages;
   const dialogRef = useDialogA11y({ open: true, onEscape: onClose });
-  const [draft, setDraft] = import_react10.default.useState(() => clone(config));
-  const [tab, setTab] = import_react10.default.useState("imagery");
-  const [editing, setEditing] = import_react10.default.useState(null);
-  const field = (label, input) => h7("div", { className: "mv-field" }, h7("label", null, label), input);
-  const [autoOpen, setAutoOpen] = import_react10.default.useState(readAutoOpen);
+  const [draft, setDraft] = import_react11.default.useState(() => clone(config));
+  const [tab, setTab] = import_react11.default.useState("imagery");
+  const [editing, setEditing] = import_react11.default.useState(null);
+  const field = (label, input) => h8("div", { className: "mv-field" }, h8("label", null, label), input);
+  const [autoOpen, setAutoOpen] = import_react11.default.useState(readAutoOpen);
   const activeId = (kind) => kind === "imagery" ? draft.settings.imagery : draft.settings.terrain;
-  const setSources = (kind, list) => setDraft((current) => ({ ...current, [kind]: list }));
-  const selectSource = (kind, id) => setDraft((current) => ({
-    ...current,
-    settings: { ...current.settings, [kind]: id }
+  const setSources = (kind, list) => setDraft((current2) => ({ ...current2, [kind]: list }));
+  const selectSource = (kind, id) => setDraft((current2) => ({
+    ...current2,
+    settings: { ...current2.settings, [kind]: id }
   }));
   const addSource = (kind) => {
     const source = emptySource(kind);
@@ -15365,7 +18215,7 @@ function SourcesDialog({ config, defaults, environmentDark, themeMode, onPickLoc
     ["dark", "theme.dark"]
   ];
   const rowsFor = (kind) => draft[kind].map(
-    (source) => editing?.kind === kind && editing.id === source.id ? h7(SourceForm, {
+    (source) => editing?.kind === kind && editing.id === source.id ? h8(SourceForm, {
       key: source.id,
       kind,
       source,
@@ -15373,28 +18223,30 @@ function SourcesDialog({ config, defaults, environmentDark, themeMode, onPickLoc
       onPickLocal,
       onChange: (next) => updateSource(kind, next),
       onCancel: () => setEditing(null)
-    }) : h7(
+    }) : h8(
       "div",
       { key: source.id, className: "mv-src" },
-      h7("span", {
-        className: `radio${activeId(kind) === source.id ? " on" : ""}`,
-        role: "radio",
-        "aria-checked": activeId(kind) === source.id,
-        tabIndex: 0,
-        onClick: () => selectSource(kind, activeId(kind) === source.id ? null : source.id),
-        onKeyDown: (event) => {
-          if (event.key === "Enter" || event.key === " ") selectSource(kind, source.id);
-        }
+      // Enable switch, same control as the 地名检索 tab: on = this source is
+      // the one in use, off = nothing of this kind is loaded. Picking another
+      // row moves the switch, because only one source per kind can be active.
+      h8("input", {
+        type: "checkbox",
+        role: "switch",
+        className: "mv-switch",
+        checked: activeId(kind) === source.id,
+        disabled: source.name.trim() === "",
+        "aria-label": t2("settings.sourceEnable", { name: source.name }),
+        onChange: (event) => selectSource(kind, event.target.checked ? source.id : null)
       }),
-      h7(
+      h8(
         "div",
         { className: "meta" },
-        h7("b", null, source.name),
-        h7("span", null, source.url)
+        h8("b", null, source.name),
+        h8("span", null, source.url)
       ),
-      h7("span", { className: "badge" }, t2(SOURCE_TYPE_KEY[source.type] ?? source.type)),
-      kind === "imagery" && sourceFrameCount(source) >= 2 ? h7("span", { className: "badge" }, t2("rasterTime.frameCount", { n: sourceFrameCount(source) })) : null,
-      h7(
+      h8("span", { className: "badge" }, t2(SOURCE_TYPE_KEY[source.type] ?? source.type)),
+      kind === "imagery" && sourceFrameCount(source) >= 2 ? h8("span", { className: "badge" }, t2("rasterTime.frameCount", { n: sourceFrameCount(source) })) : null,
+      h8(
         "button",
         {
           type: "button",
@@ -15404,7 +18256,7 @@ function SourcesDialog({ config, defaults, environmentDark, themeMode, onPickLoc
         },
         "✎"
       ),
-      h7(
+      h8(
         "button",
         {
           type: "button",
@@ -15425,15 +18277,15 @@ function SourcesDialog({ config, defaults, environmentDark, themeMode, onPickLoc
       )
     )
   );
-  const appearance = h7(
+  const appearance = h8(
     "div",
     { style: { display: "flex", flexDirection: "column", gap: "10px" } },
-    h7("p", { className: "mv-note" }, t2("theme.appearanceHint")),
-    h7(
+    h8("p", { className: "mv-note" }, t2("theme.appearanceHint")),
+    h8(
       "div",
       { className: "mv-seg", role: "radiogroup" },
       segments.map(
-        ([value, key]) => h7(
+        ([value, key]) => h8(
           "button",
           {
             key: value,
@@ -15441,23 +18293,23 @@ function SourcesDialog({ config, defaults, environmentDark, themeMode, onPickLoc
             className: themeMode === value ? "on" : "",
             role: "radio",
             "aria-checked": themeMode === value,
-            onClick: () => setDraft((current) => ({ ...current, settings: { ...current.settings, theme: value } }))
+            onClick: () => setDraft((current2) => ({ ...current2, settings: { ...current2.settings, theme: value } }))
           },
           t2(key)
         )
       )
     ),
-    h7("p", { className: "mv-note" }, `${t2("theme.auto")} · ${environmentDark ? t2("theme.dark") : t2("theme.light")}`),
-    h7(
+    h8("p", { className: "mv-note" }, `${t2("theme.auto")} · ${environmentDark ? t2("theme.dark") : t2("theme.light")}`),
+    h8(
       "label",
       { className: "mv-toggle" },
-      h7(
+      h8(
         "span",
         { className: "text" },
-        h7("b", null, t2("settings.autoOpenPanel")),
-        h7("span", null, t2("settings.autoOpenPanelHint"))
+        h8("b", null, t2("settings.autoOpenPanel")),
+        h8("span", null, t2("settings.autoOpenPanelHint"))
       ),
-      h7("input", {
+      h8("input", {
         type: "checkbox",
         checked: autoOpen,
         onChange: (event) => {
@@ -15466,112 +18318,112 @@ function SourcesDialog({ config, defaults, environmentDark, themeMode, onPickLoc
         }
       })
     ),
-    h7(
+    h8(
       "label",
       { className: "mv-toggle" },
-      h7(
+      h8(
         "span",
         { className: "text" },
-        h7("b", null, t2("settings.screenshotHud")),
-        h7("span", null, t2("settings.screenshotHudHint"))
+        h8("b", null, t2("settings.screenshotHud")),
+        h8("span", null, t2("settings.screenshotHudHint"))
       ),
-      h7("input", {
+      h8("input", {
         type: "checkbox",
         checked: draft.settings.screenshotHud === true,
-        onChange: (event) => setDraft((current) => ({
-          ...current,
-          settings: { ...current.settings, screenshotHud: event.target.checked }
+        onChange: (event) => setDraft((current2) => ({
+          ...current2,
+          settings: { ...current2.settings, screenshotHud: event.target.checked }
         }))
       })
     ),
     field(
       t2("settings.quality"),
-      h7(
+      h8(
         "select",
         {
           value: draft.settings.quality === "high" ? "high" : "balanced",
-          onChange: (event) => setDraft((current) => ({
-            ...current,
-            settings: { ...current.settings, quality: event.target.value }
+          onChange: (event) => setDraft((current2) => ({
+            ...current2,
+            settings: { ...current2.settings, quality: event.target.value }
           }))
         },
-        h7("option", { value: "balanced" }, t2("settings.qualityBalanced")),
-        h7("option", { value: "high" }, t2("settings.qualityHigh"))
+        h8("option", { value: "balanced" }, t2("settings.qualityBalanced")),
+        h8("option", { value: "high" }, t2("settings.qualityHigh"))
       )
     ),
-    h7("p", { className: "mv-note" }, t2("settings.qualityHint")),
-    h7(
+    h8("p", { className: "mv-note" }, t2("settings.qualityHint")),
+    h8(
       "label",
       { className: "mv-toggle" },
-      h7(
+      h8(
         "span",
         { className: "text" },
-        h7("b", null, t2("settings.terrainDepthTest")),
-        h7("span", null, t2("settings.terrainDepthTestHint"))
+        h8("b", null, t2("settings.terrainDepthTest")),
+        h8("span", null, t2("settings.terrainDepthTestHint"))
       ),
-      h7("input", {
+      h8("input", {
         type: "checkbox",
         // Missing/false = off: underground content stays visible, matching the
         // Cesium default and the documented behaviour before v1.5.
         checked: draft.settings.terrainDepthTest === true,
-        onChange: (event) => setDraft((current) => ({
-          ...current,
-          settings: { ...current.settings, terrainDepthTest: event.target.checked }
+        onChange: (event) => setDraft((current2) => ({
+          ...current2,
+          settings: { ...current2.settings, terrainDepthTest: event.target.checked }
         }))
       })
     ),
-    h7(
+    h8(
       "label",
       { className: "mv-toggle" },
-      h7(
+      h8(
         "span",
         { className: "text" },
-        h7("b", null, t2("settings.showLayers")),
-        h7("span", null, t2("settings.showLayersHint"))
+        h8("b", null, t2("settings.showLayers")),
+        h8("span", null, t2("settings.showLayersHint"))
       ),
-      h7("input", {
+      h8("input", {
         type: "checkbox",
         checked: draft.settings.showLayers !== false,
-        onChange: (event) => setDraft((current) => ({
-          ...current,
-          settings: { ...current.settings, showLayers: event.target.checked }
+        onChange: (event) => setDraft((current2) => ({
+          ...current2,
+          settings: { ...current2.settings, showLayers: event.target.checked }
         }))
       })
     ),
-    h7(
+    h8(
       "label",
       { className: "mv-toggle" },
-      h7(
+      h8(
         "span",
         { className: "text" },
-        h7("b", null, t2("settings.showHud")),
-        h7("span", null, t2("settings.showHudHint"))
+        h8("b", null, t2("settings.showHud")),
+        h8("span", null, t2("settings.showHudHint"))
       ),
-      h7("input", {
+      h8("input", {
         type: "checkbox",
         checked: draft.settings.showHud !== false,
-        onChange: (event) => setDraft((current) => ({
-          ...current,
-          settings: { ...current.settings, showHud: event.target.checked }
+        onChange: (event) => setDraft((current2) => ({
+          ...current2,
+          settings: { ...current2.settings, showHud: event.target.checked }
         }))
       })
     ),
-    h7(
+    h8(
       "label",
       { className: "mv-toggle" },
-      h7(
+      h8(
         "span",
         { className: "text" },
-        h7("b", null, t2("settings.hudDetailed")),
-        h7("span", null, t2("settings.hudDetailedHint"))
+        h8("b", null, t2("settings.hudDetailed")),
+        h8("span", null, t2("settings.hudDetailedHint"))
       ),
-      h7("input", {
+      h8("input", {
         type: "checkbox",
         // Off by default: the instrument keeps five numbers unless asked.
         checked: draft.settings.hudDetailed === true,
-        onChange: (event) => setDraft((current) => ({
-          ...current,
-          settings: { ...current.settings, hudDetailed: event.target.checked }
+        onChange: (event) => setDraft((current2) => ({
+          ...current2,
+          settings: { ...current2.settings, hudDetailed: event.target.checked }
         }))
       })
     )
@@ -15579,69 +18431,69 @@ function SourcesDialog({ config, defaults, environmentDark, themeMode, onPickLoc
   const homepage = meta?.homepage ?? FALLBACK_ABOUT.homepage;
   const issuesUrl = meta?.issues ?? `${String(homepage).replace(/\/+$/, "")}/issues`;
   const teamUrl = meta?.team?.url ?? FALLBACK_ABOUT.teamUrl;
-  const about = h7(
+  const about = h8(
     "div",
     { className: "mv-about" },
-    h7("p", { className: "intro" }, t2("about.intro")),
-    h7(
+    h8("p", { className: "intro" }, t2("about.intro")),
+    h8(
       "div",
       { className: "row" },
-      h7("span", { className: "key" }, t2("about.version")),
-      h7("span", null, meta?.version ?? FALLBACK_ABOUT.version)
+      h8("span", { className: "key" }, t2("about.version")),
+      h8("span", null, meta?.version ?? FALLBACK_ABOUT.version)
     ),
-    h7(
+    h8(
       "div",
       { className: "row" },
-      h7("span", { className: "key" }, t2("about.homepage")),
-      h7("a", { href: homepage, target: "_blank", rel: "noopener noreferrer" }, homepage)
+      h8("span", { className: "key" }, t2("about.homepage")),
+      h8("a", { href: homepage, target: "_blank", rel: "noopener noreferrer" }, homepage)
     ),
-    h7(
+    h8(
       "div",
       { className: "row" },
-      h7("span", { className: "key" }, t2("about.issues")),
-      h7("a", { href: issuesUrl, target: "_blank", rel: "noopener noreferrer" }, "GitHub Issues")
+      h8("span", { className: "key" }, t2("about.issues")),
+      h8("a", { href: issuesUrl, target: "_blank", rel: "noopener noreferrer" }, "GitHub Issues")
     ),
-    h7(
+    h8(
       "div",
       { className: "row" },
-      h7("span", { className: "key" }, t2("about.team")),
-      h7(
+      h8("span", { className: "key" }, t2("about.team")),
+      h8(
         "div",
         { className: "team" },
-        h7("a", { href: teamUrl, target: "_blank", rel: "noopener noreferrer" }, meta?.team?.name ?? t2("about.teamName")),
-        h7("small", null, teamUrl)
+        h8("a", { href: teamUrl, target: "_blank", rel: "noopener noreferrer" }, meta?.team?.name ?? t2("about.teamName")),
+        h8("small", null, teamUrl)
       )
     ),
-    h7(
+    h8(
       "div",
       { className: "row" },
-      h7("span", { className: "key" }, t2("about.agent")),
-      h7("span", null, bridgeReload ? t2("about.agent.stale") : bridgeOn ? t2("about.agent.on") : t2("about.agent.off"))
+      h8("span", { className: "key" }, t2("about.agent")),
+      h8("span", null, bridgeReload ? t2("about.agent.stale") : bridgeOn ? t2("about.agent.on") : t2("about.agent.off"))
     ),
-    h7(
+    h8(
       "div",
       { className: "row" },
-      h7("span", { className: "key" }, t2("about.licenseLabel")),
-      h7("span", null, t2("about.license"))
+      h8("span", { className: "key" }, t2("about.licenseLabel")),
+      h8("span", null, t2("about.license"))
     )
   );
-  return h7(
+  return h8(
     "div",
     { className: "mv-modal", onPointerDown: (event) => event.target === event.currentTarget && onClose() },
-    h7(
+    h8(
       "div",
       { ref: dialogRef, className: "mv-dialog", role: "dialog", "aria-modal": true },
-      h7(
+      h8(
         "header",
         null,
-        h7("b", null, t2("settings.title")),
-        h7("button", { type: "button", className: "mv-icon-btn", onClick: onClose, title: t2("btn.close") }, "✕")
+        h8("b", null, t2("settings.title")),
+        h8("button", { type: "button", className: "mv-icon-btn", onClick: onClose, title: t2("btn.close") }, "✕")
       ),
-      h7(
+      h8(
         "div",
         { className: "mv-tabs" },
-        [["imagery", "settings.tab.imagery"], ["terrain", "settings.tab.terrain"], ["appearance", "settings.tab.appearance"], ["about", "settings.tab.about"]].map(
-          ([value, key]) => h7(
+        [["imagery", "settings.tab.imagery"], ["terrain", "settings.tab.terrain"], ["places", "settings.tab.places"], ["appearance", "settings.tab.appearance"], ["about", "settings.tab.about"]].map(
+          ([value, key]) => h8(
             "button",
             {
               key: value,
@@ -15653,35 +18505,36 @@ function SourcesDialog({ config, defaults, environmentDark, themeMode, onPickLoc
           )
         )
       ),
-      h7(
+      h8(
         "div",
         { className: "body" },
-        tab === "about" ? about : tab === "appearance" ? appearance : h7(
-          import_react10.default.Fragment,
+        tab === "about" ? about : tab === "appearance" ? appearance : tab === "places" ? h8(PlaceProvidersPanel, { t: t2, url: meta?.placesUrl, askConfirm }) : h8(
+          import_react11.default.Fragment,
           null,
-          h7("p", { className: "mv-note" }, t2(tab === "imagery" ? "settings.imageryHint" : "settings.terrainHint")),
+          h8("p", { className: "mv-note" }, t2(tab === "imagery" ? "settings.imageryHint" : "settings.terrainHint")),
           rowsFor(tab),
-          draft[tab].length === 0 && editing === null ? h7("p", { className: "mv-note" }, t2("settings.empty")) : null,
-          h7(
+          draft[tab].length === 0 && editing === null ? h8("p", { className: "mv-note" }, t2("settings.empty")) : null,
+          h8(
             "div",
             { style: { display: "flex", justifyContent: "flex-start" } },
-            h7("button", { type: "button", className: "mv-cta", onClick: () => addSource(tab) }, `+ ${t2("btn.add")}`)
+            h8("button", { type: "button", className: "mv-cta", onClick: () => addSource(tab) }, `+ ${t2("btn.add")}`)
           )
         )
       ),
-      h7(
+      h8(
         "div",
         { className: "footer" },
-        h7(
+        h8(
           "div",
           { style: { display: "flex", alignItems: "center", gap: "10px", minWidth: 0 } },
-          h7("button", { type: "button", className: "mv-cta", onClick: restore }, t2("btn.restore"))
+          // The places tab saves on its own, so source restore/save do not apply there.
+          tab === "places" ? null : h8("button", { type: "button", className: "mv-cta", onClick: restore }, t2("btn.restore"))
         ),
-        h7(
+        h8(
           "div",
           { className: "right" },
-          h7("button", { type: "button", className: "mv-cta", onClick: onClose }, t2("btn.cancel")),
-          h7("button", { type: "button", className: "mv-cta primary", onClick: save }, t2("btn.save"))
+          h8("button", { type: "button", className: "mv-cta", onClick: onClose }, t2("btn.cancel")),
+          tab === "places" ? null : h8("button", { type: "button", className: "mv-cta primary", onClick: save }, t2("btn.save"))
         )
       )
     )
@@ -15704,120 +18557,120 @@ function HealthDialog({ state, messages: t2, onClose, onCopy }) {
   ] : [];
   const runtime = report?.runtime ?? null;
   const reportPath = state?.reportPath ?? report?.reportPath ?? "";
-  const body = state?.loading ? h7(
+  const body = state?.loading ? h8(
     "div",
     { className: "mv-health-loading" },
-    h7("div", { className: "mv-spinner" }),
-    h7("p", { className: "mv-note" }, t2("health.loading"))
-  ) : state?.error ? h7("p", { className: "mv-note" }, t2("health.failed", { message: state.error })) : report ? h7(
+    h8("div", { className: "mv-spinner" }),
+    h8("p", { className: "mv-note" }, t2("health.loading"))
+  ) : state?.error ? h8("p", { className: "mv-note" }, t2("health.failed", { message: state.error })) : report ? h8(
     "div",
     { className: "mv-health-body" },
-    h7(
+    h8(
       "div",
       { className: "mv-health-rows" },
       rows.map(
-        ([key, value]) => h7(
+        ([key, value]) => h8(
           "div",
           { className: "row", key },
-          h7("span", { className: "key" }, t2(key)),
-          h7("span", { className: "value" }, value)
+          h8("span", { className: "key" }, t2(key)),
+          h8("span", { className: "value" }, value)
         )
       )
     ),
-    h7(
+    h8(
       "div",
       { className: "mv-health-section" },
-      h7("b", null, `${t2("health.issues")} · ${issues.length}`),
-      issues.length > 0 ? h7(
+      h8("b", null, `${t2("health.issues")} · ${issues.length}`),
+      issues.length > 0 ? h8(
         "ul",
         { className: "issues" },
         issues.map(
-          (issue, index) => h7(
+          (issue, index) => h8(
             "li",
             { key: `${issue.code}-${index}`, className: `lvl-${issue.level}` },
-            h7("span", { className: "badge" }, t2(`health.level.${issue.level}`)),
-            h7("code", null, issue.code),
-            h7("span", { className: "msg" }, issue.message)
+            h8("span", { className: "badge" }, t2(`health.level.${issue.level}`)),
+            h8("code", null, issue.code),
+            h8("span", { className: "msg" }, issue.message)
           )
         )
-      ) : h7("p", { className: "mv-note" }, t2("health.noIssues"))
+      ) : h8("p", { className: "mv-note" }, t2("health.noIssues"))
     ),
-    runtime ? h7(
+    runtime ? h8(
       "div",
       { className: "mv-health-section" },
-      h7("b", null, t2("health.runtime")),
-      h7(
+      h8("b", null, t2("health.runtime")),
+      h8(
         "div",
         { className: "mv-health-runtime" },
         `${t2("hud.tiles")} ${runtime.tiles ?? 0} · ${t2("hud.pending")} ${runtime.pending ?? 0} · ${t2("hud.triangles")} ${runtime.triangles ?? 0}`
       )
     ) : null,
-    h7(
+    h8(
       "div",
       { className: "mv-health-path" },
-      h7("span", { className: "key" }, t2("health.reportPath")),
-      h7("code", { title: reportPath }, reportPath || t2("health.unknown")),
-      reportPath ? h7("button", { type: "button", className: "mv-cta", onClick: onCopy }, t2("health.copy")) : null
+      h8("span", { className: "key" }, t2("health.reportPath")),
+      h8("code", { title: reportPath }, reportPath || t2("health.unknown")),
+      reportPath ? h8("button", { type: "button", className: "mv-cta", onClick: onCopy }, t2("health.copy")) : null
     )
   ) : null;
-  return h7(
+  return h8(
     "div",
     { className: "mv-modal", onPointerDown: (event) => event.target === event.currentTarget && onClose() },
-    h7(
+    h8(
       "div",
       { ref: dialogRef, className: "mv-dialog mv-health", role: "dialog", "aria-modal": true },
-      h7(
+      h8(
         "header",
         null,
-        h7("b", null, state?.layer ? `${t2("health.title")} · ${state.layer}` : t2("health.title")),
-        h7("button", { type: "button", className: "mv-icon-btn", onClick: onClose, title: t2("btn.close") }, "✕")
+        h8("b", null, state?.layer ? `${t2("health.title")} · ${state.layer}` : t2("health.title")),
+        h8("button", { type: "button", className: "mv-icon-btn", onClick: onClose, title: t2("btn.close") }, "✕")
       ),
-      h7("div", { className: "body" }, body)
+      h8("div", { className: "body" }, body)
     )
   );
 }
 function PathAccessDialog({ request, busy, t: t2, onAllow, onDeny }) {
-  const denyRef = import_react10.default.useRef(null);
+  const denyRef = import_react11.default.useRef(null);
   const dialogRef = useDialogA11y({ open: true, onEscape: onDeny });
-  import_react10.default.useEffect(() => {
+  import_react11.default.useEffect(() => {
     denyRef.current?.focus?.();
   }, []);
   const action = request.request === "load" ? t2("access.request.load") : request.request === "inspect" ? t2("access.request.inspect") : t2("access.request.generic");
-  const row = (key, value) => value ? h7("div", { key, className: "row" }, h7("span", { className: "key" }, t2(key)), h7("code", { title: value }, value)) : null;
-  return h7(
+  const row2 = (key, value) => value ? h8("div", { key, className: "row" }, h8("span", { className: "key" }, t2(key)), h8("code", { title: value }, value)) : null;
+  return h8(
     "div",
     { className: "mv-modal", onPointerDown: (event) => event.target === event.currentTarget && !busy && onDeny() },
-    h7(
+    h8(
       "div",
       { ref: dialogRef, className: "mv-dialog mv-access", role: "dialog", "aria-modal": true, "aria-labelledby": "mv-access-title" },
-      h7(
+      h8(
         "header",
         null,
-        h7("b", { id: "mv-access-title" }, `${t2("access.title")} · ${action}`),
-        h7("button", { type: "button", className: "mv-icon-btn", onClick: onDeny, disabled: busy, title: t2("btn.close") }, "✕")
+        h8("b", { id: "mv-access-title" }, `${t2("access.title")} · ${action}`),
+        h8("button", { type: "button", className: "mv-icon-btn", onClick: onDeny, disabled: busy, title: t2("btn.close") }, "✕")
       ),
-      h7(
+      h8(
         "div",
         { className: "body" },
-        h7("p", { className: "mv-note" }, t2("access.body")),
-        h7(
+        h8("p", { className: "mv-note" }, t2("access.body")),
+        h8(
           "div",
           { className: "mv-access-path" },
-          row("access.path", request.path),
-          row("access.dir", request.directory),
-          request.resolved ? row("access.target", request.target) : null
+          row2("access.path", request.path),
+          row2("access.dir", request.directory),
+          request.resolved ? row2("access.target", request.target) : null
         ),
-        request.kind === "missing" ? h7("p", { className: "mv-note" }, t2("access.missing")) : null,
-        request.resolved ? h7("p", { className: "mv-note" }, t2("access.resolved")) : null
+        request.kind === "missing" ? h8("p", { className: "mv-note" }, t2("access.missing")) : null,
+        request.resolved ? h8("p", { className: "mv-note" }, t2("access.resolved")) : null
       ),
-      h7(
+      h8(
         "div",
         { className: "footer" },
-        h7(
+        h8(
           "div",
           { className: "right" },
-          h7("button", { ref: denyRef, type: "button", className: "mv-cta", onClick: onDeny, disabled: busy }, t2("access.cancel")),
-          h7(
+          h8("button", { ref: denyRef, type: "button", className: "mv-cta", onClick: onDeny, disabled: busy }, t2("access.cancel")),
+          h8(
             "button",
             { type: "button", className: "mv-cta primary", onClick: onAllow, disabled: busy },
             busy ? t2("access.allowing") : t2("access.allow")
@@ -15831,26 +18684,26 @@ function ScanDialog({ scan, t: t2, onSelect, onClose }) {
   const dialogRef = useDialogA11y({ open: Boolean(scan), onEscape: onClose });
   if (!scan) return null;
   const items = Array.isArray(scan.items) ? scan.items : [];
-  return h7(
+  return h8(
     "div",
     { className: "mv-modal", onPointerDown: (event) => event.target === event.currentTarget && onClose() },
-    h7(
+    h8(
       "div",
       { ref: dialogRef, className: "mv-dialog", role: "dialog", "aria-modal": true },
-      h7(
+      h8(
         "header",
         null,
-        h7("b", null, t2("layers.title")),
-        h7("span", { className: "path", style: { fontWeight: 400, color: "var(--mv-dim)" } }, scan.dir),
-        h7("button", { type: "button", className: "mv-icon-btn", onClick: onClose, title: t2("btn.close") }, "✕")
+        h8("b", null, t2("layers.title")),
+        h8("span", { className: "path", style: { fontWeight: 400, color: "var(--mv-dim)" } }, scan.dir),
+        h8("button", { type: "button", className: "mv-icon-btn", onClick: onClose, title: t2("btn.close") }, "✕")
       ),
-      h7(
+      h8(
         "div",
         { className: "body" },
-        h7("p", { className: "mv-note" }, t2("scan.foundCount", { n: items.length })),
-        scan.truncated ? h7("p", { className: "mv-note" }, t2("scan.truncatedHint", { limit: scan.limit ?? 200 })) : null,
+        h8("p", { className: "mv-note" }, t2("scan.foundCount", { n: items.length })),
+        scan.truncated ? h8("p", { className: "mv-note" }, t2("scan.truncatedHint", { limit: scan.limit ?? 200 })) : null,
         items.map(
-          (item) => h7(
+          (item) => h8(
             "button",
             {
               key: item.url,
@@ -15859,7 +18712,7 @@ function ScanDialog({ scan, t: t2, onSelect, onClose }) {
               style: { textAlign: "left", display: "flex", flexDirection: "column", gap: "2px" },
               onClick: () => onSelect(item)
             },
-            h7("span", null, item.name)
+            h8("span", null, item.name)
           )
         )
       )
@@ -15868,16 +18721,16 @@ function ScanDialog({ scan, t: t2, onSelect, onClose }) {
 }
 
 // src/client/ui/url-bar.js
-var import_react11 = __toESM(require("react"), 1);
-var h8 = import_react11.default.createElement;
+var import_react12 = __toESM(require("react"), 1);
+var h9 = import_react12.default.createElement;
 var WINDOW_KEY = "urlbar";
 function UrlBar({ value, placeholder, submitLabel, closeLabel = "Close", onChange, onSubmit, onClose }) {
   const zIndex = useFloatingZIndex(WINDOW_KEY);
   const focus = () => focusFloatingWindow(WINDOW_KEY);
-  return h8(
+  return h9(
     "div",
     { className: "mv-urlbar mv-glass", style: { zIndex }, onPointerDownCapture: focus, onFocusCapture: focus },
-    h8("input", {
+    h9("input", {
       autoFocus: true,
       value,
       placeholder,
@@ -15887,8 +18740,8 @@ function UrlBar({ value, placeholder, submitLabel, closeLabel = "Close", onChang
         if (event.key === "Escape") onClose();
       }
     }),
-    h8("button", { type: "button", onClick: onSubmit }, submitLabel),
-    h8(
+    h9("button", { type: "button", onClick: onSubmit }, submitLabel),
+    h9(
       "button",
       {
         type: "button",
@@ -15903,17 +18756,17 @@ function UrlBar({ value, placeholder, submitLabel, closeLabel = "Close", onChang
 }
 
 // src/client/ui/compass.js
-var import_react12 = __toESM(require("react"), 1);
+var import_react13 = __toESM(require("react"), 1);
 
 // src/client/scene/heading.js
 function headingDegrees(heading) {
   if (typeof heading !== "number" || !Number.isFinite(heading)) return 0;
-  const degrees = heading * 180 / Math.PI;
-  return (degrees % 360 + 360) % 360;
+  const degrees2 = heading * 180 / Math.PI;
+  return (degrees2 % 360 + 360) % 360;
 }
 
 // src/client/ui/compass.js
-var h9 = import_react12.default.createElement;
+var h10 = import_react13.default.createElement;
 var TICKS = Array.from({ length: 24 }, (_, index) => {
   const angle = index * 15 * Math.PI / 180;
   const major = index % 6 === 0;
@@ -15929,9 +18782,9 @@ var TICKS = Array.from({ length: 24 }, (_, index) => {
   };
 });
 function Compass({ getViewer, t: t2 }) {
-  const needleRef = import_react12.default.useRef(null);
-  const viewerRef = import_react12.default.useRef(null);
-  import_react12.default.useEffect(() => {
+  const needleRef = import_react13.default.useRef(null);
+  const viewerRef = import_react13.default.useRef(null);
+  import_react13.default.useEffect(() => {
     const viewer = getViewer?.();
     viewerRef.current = viewer;
     if (!viewer) return void 0;
@@ -15960,7 +18813,7 @@ function Compass({ getViewer, t: t2 }) {
       duration: 0.5
     });
   };
-  return h9(
+  return h10(
     "button",
     {
       type: "button",
@@ -15969,13 +18822,13 @@ function Compass({ getViewer, t: t2 }) {
       "aria-label": t2("compass.reset"),
       onClick: resetNorth
     },
-    h9(
+    h10(
       "svg",
       { viewBox: "0 0 56 56", width: 56, height: 56, "aria-hidden": true },
-      h9("circle", { cx: 28, cy: 28, r: 26, fill: "none", stroke: "currentColor", strokeWidth: 0.8, opacity: 0.4 }),
-      h9("circle", { cx: 28, cy: 28, r: 20.8, fill: "none", stroke: "currentColor", strokeWidth: 0.55, opacity: 0.28 }),
+      h10("circle", { cx: 28, cy: 28, r: 26, fill: "none", stroke: "currentColor", strokeWidth: 0.8, opacity: 0.4 }),
+      h10("circle", { cx: 28, cy: 28, r: 20.8, fill: "none", stroke: "currentColor", strokeWidth: 0.55, opacity: 0.28 }),
       ...TICKS.map(
-        (tick) => h9("line", {
+        (tick) => h10("line", {
           key: tick.key,
           x1: tick.x1,
           y1: tick.y1,
@@ -15986,27 +18839,27 @@ function Compass({ getViewer, t: t2 }) {
           opacity: tick.opacity
         })
       ),
-      h9("text", { x: 28, y: 10.6, textAnchor: "middle", fontSize: 7, fontWeight: 700, fill: "var(--mv-accent)" }, "N"),
-      h9("text", { x: 46.8, y: 30.4, textAnchor: "middle", fontSize: 6, fontWeight: 600, fill: "currentColor", opacity: 0.66 }, "E"),
-      h9("text", { x: 28, y: 49.8, textAnchor: "middle", fontSize: 6, fontWeight: 600, fill: "currentColor", opacity: 0.66 }, "S"),
-      h9("text", { x: 9.2, y: 30.4, textAnchor: "middle", fontSize: 6, fontWeight: 600, fill: "currentColor", opacity: 0.66 }, "W"),
-      h9(
+      h10("text", { x: 28, y: 10.6, textAnchor: "middle", fontSize: 7, fontWeight: 700, fill: "var(--mv-accent)" }, "N"),
+      h10("text", { x: 46.8, y: 30.4, textAnchor: "middle", fontSize: 6, fontWeight: 600, fill: "currentColor", opacity: 0.66 }, "E"),
+      h10("text", { x: 28, y: 49.8, textAnchor: "middle", fontSize: 6, fontWeight: 600, fill: "currentColor", opacity: 0.66 }, "S"),
+      h10("text", { x: 9.2, y: 30.4, textAnchor: "middle", fontSize: 6, fontWeight: 600, fill: "currentColor", opacity: 0.66 }, "W"),
+      h10(
         "g",
         { ref: needleRef, className: "mv-compass-rose" },
-        h9("path", { d: "M28 13 32.2 28 28 26.2 23.8 28Z", fill: "#e5484d" }),
-        h9("path", { d: "M28 43 23.8 28 28 29.8 32.2 28Z", fill: "currentColor", opacity: 0.52 }),
-        h9("circle", { cx: 28, cy: 28, r: 2.1, fill: "var(--mv-glass-strong, #fff)", stroke: "currentColor", strokeWidth: 0.6, opacity: 0.95 })
+        h10("path", { d: "M28 13 32.2 28 28 26.2 23.8 28Z", fill: "#e5484d" }),
+        h10("path", { d: "M28 43 23.8 28 28 29.8 32.2 28Z", fill: "currentColor", opacity: 0.52 }),
+        h10("circle", { cx: 28, cy: 28, r: 2.1, fill: "var(--mv-glass-strong, #fff)", stroke: "currentColor", strokeWidth: 0.6, opacity: 0.95 })
       )
     )
   );
 }
 
 // src/client/ui/hud.js
-var import_react13 = __toESM(require("react"), 1);
-var h10 = import_react13.default.createElement;
+var import_react14 = __toESM(require("react"), 1);
+var h11 = import_react14.default.createElement;
 function StatusHud({ fps, stats, viewerRef, cesiumRef, labels, readoutRef, detailed = false }) {
-  const cursorRef = import_react13.default.useRef(null);
-  import_react13.default.useEffect(() => {
+  const cursorRef = import_react14.default.useRef(null);
+  import_react14.default.useEffect(() => {
     const viewer = viewerRef.current;
     const Cesium = cesiumRef.current;
     if (!viewer || !Cesium) return void 0;
@@ -16085,65 +18938,375 @@ function StatusHud({ fps, stats, viewerRef, cesiumRef, labels, readoutRef, detai
       if (readoutRef) readoutRef.current = null;
     };
   }, []);
-  return h10(
+  return h11(
     "div",
     { className: "mv-hud mv-glass" },
-    h10(
+    h11(
       "div",
       { className: "row mv-hud-primary" },
       // fps is null while the scene is idle (no render pass for 2 s); a dash is
       // honest, a 0 would suggest the scene renders nothing while idling.
-      h10("span", { className: "mv-hud-fps", title: t("hud.fpsTitle") }, "FPS ", h10("b", null, fps === null ? "—" : fps)),
-      h10("span", { className: "mv-hud-cursor" }, `${labels.pointer} `, h10("b", { ref: cursorRef }, t("hud.empty"))),
-      h10("span", { className: "mv-hud-camera" }, `${labels.camera} `, h10("b", null, stats.height)),
-      detailed ? h10("span", { className: "mv-hud-heading" }, `${labels.heading} `, h10("b", null, `${stats.heading} / ${stats.pitch}`)) : null
+      h11("span", { className: "mv-hud-fps", title: t("hud.fpsTitle") }, "FPS ", h11("b", null, fps === null ? "—" : fps)),
+      h11("span", { className: "mv-hud-cursor" }, `${labels.pointer} `, h11("b", { ref: cursorRef }, t("hud.empty"))),
+      h11("span", { className: "mv-hud-camera" }, `${labels.camera} `, h11("b", null, stats.height)),
+      detailed ? h11("span", { className: "mv-hud-heading" }, `${labels.heading} `, h11("b", null, `${stats.heading} / ${stats.pitch}`)) : null
     ),
     detailed ? (stats.layers ?? []).map(
-      (row) => h10(
+      (row2) => h11(
         "div",
-        { key: row.id, className: "row mv-hud-layer" },
-        h10("b", null, row.name),
-        h10("span", null, `${labels.tiles} `, h10("b", null, formatCount(row.tiles))),
-        h10("span", null, `${labels.pending} `, h10("b", null, formatCount(row.pending))),
-        h10("span", null, `${labels.triangles} `, h10("b", null, formatCount(row.triangles))),
-        h10("span", null, `${labels.cache} `, h10("b", null, formatBytes(row.memory)))
+        { key: row2.id, className: "row mv-hud-layer" },
+        h11("b", null, row2.name),
+        h11("span", null, `${labels.tiles} `, h11("b", null, formatCount(row2.tiles))),
+        h11("span", null, `${labels.pending} `, h11("b", null, formatCount(row2.pending))),
+        h11("span", null, `${labels.triangles} `, h11("b", null, formatCount(row2.triangles))),
+        h11("span", null, `${labels.cache} `, h11("b", null, formatBytes(row2.memory)))
       )
     ) : null
   );
 }
 
+// src/client/ui/topbar.js
+var import_react18 = __toESM(require("react"), 1);
+
+// src/client/ui/menu-item.js
+var import_react15 = __toESM(require("react"), 1);
+var MENU_SEP = { width: "auto", height: ".5px", margin: "4px 8px" };
+var h12 = import_react15.default.createElement;
+function MenuItem({
+  onClick,
+  children,
+  title,
+  disabled = false,
+  danger = false,
+  checked,
+  icon = null,
+  hint = "",
+  role
+}) {
+  const isCheck = checked !== void 0;
+  const classes = [
+    "mv-menu-item",
+    disabled ? "is-disabled" : "",
+    danger ? "is-danger" : "",
+    icon ? "has-icon" : "",
+    isCheck ? "is-check" : ""
+  ].filter(Boolean).join(" ");
+  return h12(
+    "button",
+    {
+      type: "button",
+      className: classes,
+      role: role ?? (isCheck ? "menuitemcheckbox" : "menuitem"),
+      ...isCheck ? { "aria-checked": Boolean(checked) } : {},
+      onClick: disabled ? void 0 : onClick,
+      title: title ?? (typeof children === "string" ? children : void 0),
+      disabled
+    },
+    h12("span", { className: "mv-menu-check", "aria-hidden": true }, isCheck && checked ? "✓" : ""),
+    icon ? h12("span", { className: "mv-menu-icon", "aria-hidden": true }, icon) : null,
+    h12("span", { className: "mv-menu-label" }, children),
+    hint ? h12("span", { className: "mv-menu-hint" }, hint) : null
+  );
+}
+
+// src/client/ui/recent-urls.js
+var RECENT_URLS_KEY = "dsh.digital-earth.recentUrls";
+var RECENT_URLS_LIMIT = 8;
+var RECENT_URL_MAX_LENGTH = 2048;
+var RECENT_URL_LABEL_MAX = 72;
+function storageOf(storage2) {
+  if (storage2 !== void 0) return storage2;
+  try {
+    return globalThis.localStorage ?? null;
+  } catch {
+    return null;
+  }
+}
+function sanitizeRecentUrl(value) {
+  if (typeof value !== "string") return null;
+  const url = value.trim();
+  if (!/^https?:\/\/[^\s]+$/i.test(url)) return null;
+  if (url.length > RECENT_URL_MAX_LENGTH) return null;
+  return url;
+}
+function recentUrlLabel(url) {
+  const clean = sanitizeRecentUrl(url);
+  if (clean === null) return "";
+  try {
+    const parsed = new URL(clean);
+    const segments = parsed.pathname.split("/").filter(Boolean);
+    const tail = segments.length > 0 ? segments[segments.length - 1] : "";
+    const folder = tail === "tileset.json" ? segments.length > 1 ? segments[segments.length - 2] : "" : tail;
+    const label = folder !== "" ? `${parsed.hostname}/${folder}` : parsed.hostname;
+    return label.length > RECENT_URL_LABEL_MAX ? `${label.slice(0, RECENT_URL_LABEL_MAX - 1)}…` : label;
+  } catch {
+    return clean.slice(0, RECENT_URL_LABEL_MAX);
+  }
+}
+function sanitizeRecentUrls(list) {
+  const clean = [];
+  const seen = /* @__PURE__ */ new Set();
+  for (const item of Array.isArray(list) ? list : []) {
+    const raw = typeof item === "string" ? item : item?.url;
+    const url = sanitizeRecentUrl(raw);
+    if (url === null || seen.has(url)) continue;
+    seen.add(url);
+    clean.push({ url, at: typeof item?.at === "string" ? item.at : "" });
+    if (clean.length >= RECENT_URLS_LIMIT) break;
+  }
+  return clean;
+}
+function readRecentUrls(storage2) {
+  const target = storageOf(storage2);
+  if (target === null) return [];
+  try {
+    const text = target.getItem(RECENT_URLS_KEY);
+    if (typeof text !== "string" || text === "") return [];
+    return sanitizeRecentUrls(JSON.parse(text));
+  } catch {
+    return [];
+  }
+}
+function rememberRecentUrl(list, url, at = (/* @__PURE__ */ new Date()).toISOString()) {
+  const clean = sanitizeRecentUrl(url);
+  const previous = sanitizeRecentUrls(list);
+  if (clean === null) return previous;
+  return sanitizeRecentUrls([{ url: clean, at }, ...previous.filter((entry2) => entry2.url !== clean)]);
+}
+function writeRecentUrls(list, storage2) {
+  const target = storageOf(storage2);
+  if (target === null) return false;
+  try {
+    target.setItem(RECENT_URLS_KEY, JSON.stringify(sanitizeRecentUrls(list)));
+    return true;
+  } catch {
+    return false;
+  }
+}
+function recordRecentTilesetUrl(list, source, { restored = false, storage: storage2 } = {}) {
+  const url = source?.kind === "remote" ? sanitizeRecentUrl(source.url) : null;
+  if (url === null) return list;
+  const previous = sanitizeRecentUrls([...readRecentUrls(storage2), ...list]);
+  const next = restored ? sanitizeRecentUrls([...previous, { url, at: "" }]) : rememberRecentUrl(previous, url);
+  writeRecentUrls(next, storage2);
+  return next;
+}
+
+// src/client/ui/data-menu.js
+function dataMenuItems({
+  h: h52,
+  MenuItem: MenuItem2,
+  t: t2,
+  recentDirs,
+  recentUrls,
+  agentOverlayCount,
+  closeMenu,
+  onAddLayer,
+  onImportVector,
+  onOpenLocal,
+  onOpenRecentDirectory,
+  onOpenRecentUrl,
+  onClearAgent,
+  onToggleUrlBar
+}) {
+  const run = (action) => () => {
+    if (typeof closeMenu === "function") closeMenu();
+    action();
+  };
+  const icon = (name) => h52(GlyphIcon, { name });
+  const items = [];
+  if (typeof onAddLayer === "function") {
+    items.push(h52("span", { key: "add-label", className: "mv-menu-section" }, t2("menu.addGroup")));
+    items.push(h52(MenuItem2, { key: "add", icon: icon("add"), onClick: run(() => onAddLayer(null)) }, t2("menu.addLayer")));
+  }
+  if (typeof onImportVector === "function") {
+    items.push(
+      h52(MenuItem2, { key: "import", icon: icon("import"), onClick: run(() => onImportVector()) }, t2("menu.import"))
+    );
+  }
+  items.push(h52(MenuItem2, { key: "local", icon: icon("folder"), onClick: run(onOpenLocal) }, t2("btn.openLocal")));
+  items.push(h52(MenuItem2, { key: "url", icon: icon("link"), onClick: run(onToggleUrlBar) }, t2("menu.loadAddress")));
+  const recent = [];
+  if (Array.isArray(recentUrls) && recentUrls.length > 0) {
+    for (const entry2 of recentUrls) {
+      recent.push(
+        h52(
+          MenuItem2,
+          { key: `url:${entry2.url}`, title: entry2.url, icon: icon("history"), onClick: run(() => onOpenRecentUrl(entry2.url)) },
+          h52("span", { className: "ellipsis" }, recentUrlLabel(entry2.url))
+        )
+      );
+    }
+  }
+  if (Array.isArray(recentDirs) && recentDirs.length > 0) {
+    for (const entry2 of recentDirs) {
+      recent.push(
+        h52(
+          MenuItem2,
+          { key: `dir:${entry2.dir}`, title: entry2.dir, icon: icon("history"), onClick: run(() => onOpenRecentDirectory(entry2.dir)) },
+          h52("span", { className: "ellipsis" }, entry2.name)
+        )
+      );
+    }
+  }
+  if (recent.length > 0) {
+    items.push(h52("span", { key: "recent-label", className: "mv-menu-section" }, t2("menu.recent")));
+    items.push(...recent);
+  }
+  items.push(h52("i", { key: "sep", className: "mv-sep", style: MENU_SEP }));
+  items.push(h52("span", { key: "manage-label", className: "mv-menu-section" }, t2("menu.manage")));
+  items.push(
+    h52(
+      MenuItem2,
+      { key: "clearAgent", danger: true, disabled: !(agentOverlayCount > 0), onClick: run(onClearAgent) },
+      t2("menu.clearAgent")
+    )
+  );
+  return items;
+}
+
+// src/client/ui/toolbar-output.js
+function outputMenuItems({
+  h: h52,
+  MenuItem: MenuItem2,
+  t: t2,
+  sessionId = null,
+  docked = false,
+  canExportVector = false,
+  closeMenu,
+  onScreenshot,
+  onReport,
+  onExportVector,
+  onAskAgent,
+  onOpenBeside
+}) {
+  const run = (action) => () => {
+    if (typeof closeMenu === "function") closeMenu();
+    action();
+  };
+  const icon = (name) => h52(GlyphIcon, { name });
+  const items = [
+    h52(MenuItem2, { key: "screenshot", icon: icon("output"), onClick: run(onScreenshot) }, t2("btn.screenshot")),
+    h52(MenuItem2, { key: "report", icon: icon("export"), onClick: run(onReport) }, t2("menu.report")),
+    h52(
+      MenuItem2,
+      {
+        key: "vector",
+        icon: icon("export"),
+        disabled: !canExportVector,
+        title: canExportVector ? t2("layers.vectorExportHint") : t2("out.exportEmpty"),
+        onClick: run(onExportVector)
+      },
+      t2("out.exportVector")
+    )
+  ];
+  if (sessionId || typeof onOpenBeside === "function") {
+    items.push(h52("i", { key: "sep2", className: "mv-sep", style: MENU_SEP }));
+  }
+  if (sessionId) {
+    items.push(h52(MenuItem2, { key: "ask", icon: icon("chat"), onClick: run(onAskAgent) }, t2("btn.askAgent")));
+  }
+  if (!docked && typeof onOpenBeside === "function") {
+    items.push(h52(MenuItem2, { key: "beside", icon: icon("chat"), onClick: run(onOpenBeside) }, t2("btn.beside")));
+  }
+  return items;
+}
+
+// src/client/ui/toolbar-view.js
+function viewMenuItems({
+  h: h52,
+  MenuItem: MenuItem2,
+  t: t2,
+  showHud = false,
+  fullscreen = false,
+  closeMenu,
+  onResetView,
+  onToggleHud,
+  onToggleFullscreen,
+  onOpenBookmarks,
+  onShowSceneDetails,
+  onToggleChrome
+}) {
+  const run = (action) => () => {
+    if (typeof closeMenu === "function") closeMenu();
+    action();
+  };
+  const icon = (name) => h52(GlyphIcon, { name });
+  const items = [
+    h52(MenuItem2, { key: "reset", icon: icon("view"), onClick: run(onResetView) }, t2("btn.reset")),
+    h52(
+      MenuItem2,
+      { key: "hud", icon: h52(GlyphIcon, { name: "props" }), checked: showHud, onClick: run(onToggleHud) },
+      t2("btn.hud")
+    ),
+    h52(
+      MenuItem2,
+      { key: "fullscreen", icon: h52(GlyphIcon, { name: "scene" }), checked: fullscreen, onClick: run(onToggleFullscreen) },
+      fullscreen ? t2("btn.fullscreenExit") : t2("btn.fullscreenTitle")
+    )
+  ];
+  if (typeof onOpenBookmarks === "function" || typeof onShowSceneDetails === "function") {
+    items.push(h52("i", { key: "sep", className: "mv-sep", style: MENU_SEP }));
+  }
+  if (typeof onOpenBookmarks === "function") {
+    items.push(h52(MenuItem2, { key: "bookmarks", icon: icon("history"), onClick: run(onOpenBookmarks) }, t2("menu.bookmarks")));
+  }
+  if (typeof onShowSceneDetails === "function") {
+    items.push(
+      h52(MenuItem2, { key: "details", icon: icon("output"), onClick: run(onShowSceneDetails) }, t2("sceneDetails.title"))
+    );
+  }
+  if (typeof onToggleChrome === "function") {
+    items.push(h52("i", { key: "chrome-sep", className: "mv-sep", style: MENU_SEP }));
+    items.push(
+      h52(
+        MenuItem2,
+        { key: "hideChrome", icon: icon("hide"), hint: "H", onClick: run(onToggleChrome) },
+        t2("dock.hideChrome")
+      )
+    );
+  }
+  return items;
+}
+
 // src/client/ui/toolbar-quick.js
-var import_react14 = __toESM(require("react"), 1);
-var h11 = import_react14.default.createElement;
-function ToolbarQuick({ t: t2, showLayers, showTools, showResult, onToggleLayers, onToggleTools, onOpenResult }) {
-  const entry = (key, icon, label, onClick, active, title = label) => h11(
+var import_react16 = __toESM(require("react"), 1);
+var h13 = import_react16.default.createElement;
+function ToolbarQuick({ t: t2, showLayers, showTools, showPlaces, showResult, resultDisabled = false, resultUnread = false, onToggleLayers, onToggleTools, onTogglePlaces, onOpenResult }) {
+  const entry2 = (key, icon, label, onClick, active, title = label, disabled = false, unread = false) => h13(
     "button",
     {
       key,
       type: "button",
       className: `mv-btn${active ? " on" : ""}`,
       title,
-      "aria-label": label,
+      // The unread dot lives on this entry now that the dock has no title row;
+      // the extra words keep it perceivable without relying on colour.
+      "aria-label": unread ? `${label} · ${t2("dock.unread")}` : label,
       "aria-pressed": Boolean(active),
-      onClick
+      disabled,
+      onClick: disabled ? void 0 : onClick
     },
-    h11("span", { className: "mv-btn-icon", "aria-hidden": true }, icon),
-    h11("span", { className: "mv-btn-label" }, label)
+    h13("span", { className: "mv-btn-icon", "aria-hidden": true }, icon),
+    h13("span", { className: "mv-btn-label" }, label),
+    unread ? h13("span", { className: "mv-btn-dot", "aria-hidden": true }) : null
   );
-  return h11(
-    import_react14.default.Fragment,
+  return h13(
+    import_react16.default.Fragment,
     null,
-    entry("layers", h11(LayersIcon), t2("btn.layers"), onToggleLayers, showLayers, showLayers ? t2("btn.layersHide") : t2("btn.layersShow")),
-    entry("tools", h11(ToolsIcon), t2("btn.tools"), onToggleTools, showTools, showTools ? t2("btn.toolsHide") : t2("btn.toolsShow")),
-    entry("result", h11(ToolEntryIcon, { kind: "analysis" }), t2("panel.tab.result"), onOpenResult, showResult)
+    entry2("layers", h13(LayersIcon), t2("btn.layers"), onToggleLayers, showLayers, showLayers ? t2("btn.layersHide") : t2("btn.layersShow")),
+    entry2("tools", h13(ToolsIcon), t2("btn.tools"), onToggleTools, showTools, showTools ? t2("btn.toolsHide") : t2("btn.toolsShow")),
+    entry2("places", h13(GlyphIcon, { name: "search" }), t2("places.title"), onTogglePlaces, showPlaces, showPlaces ? t2("btn.panelHide") : t2("btn.panelShow")),
+    // D8: with nothing in the result tab the destination stays inert.
+    entry2("result", h13(ToolEntryIcon, { kind: "analysis" }), t2("panel.tab.result"), onOpenResult, showResult, resultDisabled ? t2("btn.resultEmpty") : t2("panel.tab.result"), resultDisabled, resultUnread && !resultDisabled)
   );
 }
 
 // src/client/ui/toolbar-settings.js
-var import_react15 = __toESM(require("react"), 1);
-var h12 = import_react15.default.createElement;
+var import_react17 = __toESM(require("react"), 1);
+var h14 = import_react17.default.createElement;
 function ToolbarSettings({ t: t2, setSettingsOpen }) {
-  return h12(
+  return h14(
     "button",
     {
       type: "button",
@@ -16152,14 +19315,14 @@ function ToolbarSettings({ t: t2, setSettingsOpen }) {
       "aria-label": t2("btn.settings"),
       onClick: () => setSettingsOpen(true)
     },
-    h12(
+    h14(
       "svg",
-      { viewBox: "0 0 24 24", width: 16, height: 16, "aria-hidden": true, style: { display: "block" } },
-      h12(
+      { viewBox: "0 0 24 24", width: 15, height: 15, "aria-hidden": true, style: { display: "block" } },
+      h14(
         "g",
-        { stroke: "currentColor", strokeWidth: 1.7, fill: "none", strokeLinecap: "round" },
-        h12("circle", { cx: 12, cy: 12, r: 3.2 }),
-        h12("path", {
+        { stroke: "currentColor", strokeWidth: 1.55, fill: "none", strokeLinecap: "round" },
+        h14("circle", { cx: 12, cy: 12, r: 3.2 }),
+        h14("path", {
           d: "M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.2a1.6 1.6 0 0 0-1-1.5 1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.2a1.6 1.6 0 0 0 1.5-1 1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.2a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.2a1.6 1.6 0 0 0-1.4 1z"
         })
       )
@@ -16167,389 +19330,116 @@ function ToolbarSettings({ t: t2, setSettingsOpen }) {
   );
 }
 
-// src/client/ui/toolbar-output.js
-var MENU_SEP = { width: "auto", height: ".5px", margin: "4px 8px" };
-function outputMenuItems({
-  h: h42,
-  MenuItem: MenuItem2,
-  t: t2,
-  showHud = false,
-  fullscreen = false,
-  sessionId = null,
-  docked = false,
-  closeMenu,
-  onScreenshot,
-  onReport,
-  onToggleHud,
-  onResetView,
-  onToggleFullscreen,
-  onAskAgent,
-  onOpenBeside
-}) {
-  const run = (action) => () => {
-    if (typeof closeMenu === "function") closeMenu();
-    action();
-  };
-  const items = [
-    h42(MenuItem2, { key: "screenshot", onClick: run(onScreenshot) }, t2("btn.screenshot")),
-    h42(MenuItem2, { key: "report", onClick: run(onReport) }, t2("menu.report")),
-    h42("i", { key: "sep1", className: "mv-sep", style: MENU_SEP }),
-    h42(
-      MenuItem2,
-      { key: "hud", onClick: run(onToggleHud) },
-      showHud ? t2("btn.hudHide") : t2("btn.hudShow")
-    ),
-    h42(MenuItem2, { key: "reset", onClick: run(onResetView) }, t2("btn.reset")),
-    h42(
-      MenuItem2,
-      { key: "fullscreen", onClick: run(onToggleFullscreen) },
-      fullscreen ? t2("btn.fullscreenExit") : t2("btn.fullscreenTitle")
-    )
-  ];
-  if (sessionId) {
-    items.push(h42("i", { key: "sep2", className: "mv-sep", style: MENU_SEP }));
-    items.push(h42(MenuItem2, { key: "ask", onClick: run(onAskAgent) }, t2("btn.askAgent")));
-  }
-  if (!docked && typeof onOpenBeside === "function") {
-    items.push(h42(MenuItem2, { key: "beside", onClick: run(onOpenBeside) }, t2("btn.beside")));
-  }
-  return items;
-}
-
-// src/client/ui/right-stack.js
-var import_react34 = __toESM(require("react"), 1);
-
-// src/client/ui/layers-panel.js
-var import_react21 = __toESM(require("react"), 1);
-
-// src/client/ui/layers-3d.js
-var import_react18 = __toESM(require("react"), 1);
-
-// src/client/ui/layer-row.js
-var import_react17 = __toESM(require("react"), 1);
-
-// src/client/ui/menu-item.js
-var import_react16 = __toESM(require("react"), 1);
-var h13 = import_react16.default.createElement;
-function MenuItem({ onClick, children, title, disabled = false }) {
-  return h13(
-    "button",
-    {
-      type: "button",
-      className: `mv-menu-item${disabled ? " is-disabled" : ""}`,
-      onClick: disabled ? void 0 : onClick,
-      title,
-      disabled
-    },
-    children
-  );
-}
-
-// src/client/ui/layer-row.js
-var h14 = import_react17.default.createElement;
-function LayerRow({
-  t: t2,
-  layer,
-  shader,
-  swipeActive,
-  menuOpen = false,
-  onMenuToggle,
-  onFlyLayer,
-  onToggleLayer,
-  onInspectLayer,
-  onRemoveLayer,
-  onEditShader,
-  onShowSceneDetails,
-  onSwipeLayer
-}) {
-  const stop = (event) => event.stopPropagation();
-  const summary = shader ? shaderEntrySummary(t2, shader) : "";
-  const openShader = () => onEditShader(layer, shader);
-  const is3dgs = layer.kind === "3dgs";
-  const action = (key, label, handler, options = {}) => h14(
-    MenuItem,
-    {
-      key,
-      disabled: Boolean(options.disabled),
-      title: options.title,
-      active: Boolean(options.active),
-      onClick: options.disabled ? void 0 : () => {
-        onMenuToggle?.(null);
-        handler();
-      }
-    },
-    label
-  );
-  return h14(
-    "div",
-    { className: `mv-layer${layer.visible ? "" : " off"}${shader ? " has-shader" : ""}${menuOpen ? " menu-open" : ""}`, title: summary ? `${layer.name} — ${summary}` : layer.name },
-    layer.georefIssue ? h14("span", { className: "mv-warn", title: t2("layers.georefWarning"), "aria-label": t2("layers.georefWarning") }, "⚠") : null,
-    h14(
-      "span",
-      {
-        className: "name",
-        title: layer.name,
-        onClick: (event) => {
-          stop(event);
-          onFlyLayer(layer.id);
-        }
-      },
-      layer.name
-    ),
-    // Appearance entry: a layer's effects belong to the layer itself (audit
-    // §3.3), so ✦ is the single visual-effects door — also when none is active.
-    // 3DGS splats have no sampleable surface for the presets, so the entry is
-    // disabled with the reason instead of opening a workbench that would fail.
-    h14(
-      "button",
-      {
-        type: "button",
-        className: `mv-icon-btn mv-shader-edit${shader ? " on" : ""}`,
-        title: is3dgs ? t2("layers.appearance3dgs") : summary ? `${t2("shader.editEntry")} · ${summary}` : t2("layers.appearance"),
-        "aria-label": is3dgs ? t2("layers.appearance3dgs") : summary ? t2("shader.editEntry") : t2("layers.appearance"),
-        disabled: is3dgs,
-        onClick: (event) => {
-          stop(event);
-          if (is3dgs) return;
-          openShader();
-        }
-      },
-      "✦"
-    ),
-    h14(
-      "button",
-      {
-        type: "button",
-        className: `mv-icon-btn${layer.visible ? "" : " on"}`,
-        title: layer.visible ? t2("btn.hidden") : t2("btn.visible"),
-        "aria-label": layer.visible ? t2("btn.hidden") : t2("btn.visible"),
-        onClick: (event) => {
-          stop(event);
-          onToggleLayer(layer.id);
-        }
-      },
-      h14(EyeIcon, { size: 15, off: !layer.visible })
-    ),
-    h14(
-      "button",
-      {
-        type: "button",
-        className: `mv-icon-btn mv-row-more${menuOpen ? " on" : ""}`,
-        title: t2("layers.more"),
-        "aria-label": t2("layers.more"),
-        "aria-haspopup": "menu",
-        "aria-expanded": menuOpen,
-        onClick: (event) => {
-          stop(event);
-          onMenuToggle?.(menuOpen ? null : layer.id);
-        }
-      },
-      "⋯"
-    ),
-    menuOpen ? h14(
-      "div",
-      { className: "mv-row-menu mv-glass", role: "menu", "aria-label": t2("layers.more") },
-      action("fly", t2("btn.flyTo"), () => onFlyLayer(layer.id)),
-      action("health", t2("btn.health"), () => onInspectLayer(layer.id)),
-      action("details", t2("sceneDetails.openLayerHint"), () => onShowSceneDetails?.(layer.id)),
-      onSwipeLayer ? action("swipe", t2("swipe.toggle"), () => onSwipeLayer(layer.id), {
-        disabled: !layer.visible,
-        active: Boolean(swipeActive)
-      }) : null,
-      h14("i", { key: "sep", className: "mv-sep" }),
-      action("remove", t2("btn.delete"), () => onRemoveLayer(layer.id))
-    ) : null
-  );
-}
-
-// src/client/ui/layers-3d.js
+// src/client/ui/topbar.js
 var h15 = import_react18.default.createElement;
-function Layers3D({
+function TopBar({
   t: t2,
-  config,
-  settings,
-  layers: layers2,
-  terrainError,
-  onSelectTerrain,
-  onRetryTerrain,
-  terrainActive,
-  shaderActive,
-  onFlyLayer,
-  onFrameAll,
-  onToggleLayer,
-  onInspectLayer,
-  onRemoveLayer,
-  onEditLayerShader,
-  onShowSceneDetails,
-  swipeState,
-  onSwipeLayer,
-  onOpenLocal,
-  onOpenUrl,
-  recentDirs,
-  onOpenRecent
+  menuRef,
+  openMenu,
+  setOpenMenu,
+  data,
+  view,
+  output,
+  quick,
+  panelLabel = "",
+  panelDetail = null,
+  onBack = null,
+  onClosePanel = null,
+  closePanelLabel = "",
+  closePanelDanger = false,
+  onOpenSettings,
+  onToggleChrome
 }) {
-  const [addOpen, setAddOpen] = import_react18.default.useState(false);
-  const [rowMenu, setRowMenu] = import_react18.default.useState(null);
-  const addBtnRef = import_react18.default.useRef(null);
-  const addMenuRef = import_react18.default.useRef(null);
-  import_react18.default.useEffect(() => {
-    if (!addOpen || typeof document === "undefined") return void 0;
-    const onKey = (event) => {
-      if (event.key !== "Escape") return;
-      event.stopPropagation();
-      setAddOpen(false);
-    };
-    const onPointerDown = (event) => {
-      if (addMenuRef.current?.contains?.(event.target) || addBtnRef.current?.contains?.(event.target)) return;
-      setAddOpen(false);
-    };
-    document.addEventListener("keydown", onKey, true);
-    document.addEventListener("pointerdown", onPointerDown, true);
-    return () => {
-      document.removeEventListener("keydown", onKey, true);
-      document.removeEventListener("pointerdown", onPointerDown, true);
-    };
-  }, [addOpen]);
-  import_react18.default.useEffect(() => {
-    if (rowMenu === null || typeof document === "undefined") return void 0;
-    const onKey = (event) => {
-      if (event.key !== "Escape") return;
-      event.stopPropagation();
-      setRowMenu(null);
-    };
-    const onPointerDown = (event) => {
-      if (event.target?.closest?.(".mv-row-menu, .mv-row-more")) return;
-      setRowMenu(null);
-    };
-    document.addEventListener("keydown", onKey, true);
-    document.addEventListener("pointerdown", onPointerDown, true);
-    return () => {
-      document.removeEventListener("keydown", onKey, true);
-      document.removeEventListener("pointerdown", onPointerDown, true);
-    };
-  }, [rowMenu]);
-  const recents = Array.isArray(recentDirs) ? recentDirs : [];
-  const radioRow = (key, label, active, onClick) => h15(
-    "button",
-    { key, type: "button", className: `mv-layer mv-choice${active ? " on" : ""}`, "aria-pressed": active, onClick },
-    h15("span", { className: "name" }, label),
-    h15("span", { className: "tick", "aria-hidden": true }, active ? "✓" : "")
+  const closeMenu = () => setOpenMenu(null);
+  const menu = (id, label, items, icon) => h15(
+    "div",
+    { key: id, className: `mv-menu mv-data-menu${openMenu === id ? " open" : ""}` },
+    h15(
+      "button",
+      {
+        type: "button",
+        className: `mv-btn${openMenu === id ? " on" : ""}`,
+        "data-mv-menu": id,
+        "aria-haspopup": "menu",
+        "aria-expanded": openMenu === id,
+        "aria-label": label,
+        title: label,
+        onClick: () => setOpenMenu(openMenu === id ? null : id)
+      },
+      icon ? h15("span", { className: "mv-btn-icon", "aria-hidden": true }, icon) : null,
+      h15("span", { className: "mv-btn-label" }, `${label} ▾`)
+    ),
+    openMenu === id ? h15("div", { className: "mv-menu-panel mv-glass", role: "menu", "aria-label": label }, items) : null
   );
-  const shaderFor = (layer) => (shaderActive ?? []).find(
-    (entry) => entry.layerId === layer.id || entry.layerId === void 0 && entry.layer === layer.name
-  ) ?? null;
   return h15(
     "div",
-    { key: "list-3d", className: "mv-layer-list" },
-    // ---- L1 terrain -----------------------------------------------------------
-    h15("div", { key: "g1", className: "mv-group" }, h15("div", { className: "mv-group-title" }, t2("layers.terrain"))),
-    radioRow("t-off", t2("menu.terrainOff"), terrainActive === null, () => onSelectTerrain(null)),
-    ...(config?.terrain ?? []).map(
-      (source) => radioRow(`t-${source.id}`, source.name, settings?.terrain === source.id, () => onSelectTerrain(source.id))
-    ),
-    terrainError ? h15(
-      "div",
-      { key: "terrain-error", className: "mv-none mv-terrain-error" },
-      h15("span", null, terrainError),
-      h15("button", { type: "button", className: "mv-icon-btn", title: t2("terrain.retry"), "aria-label": t2("terrain.retry"), onClick: onRetryTerrain }, "↻")
-    ) : null,
-    // ---- 3D content -----------------------------------------------------------
+    { key: "top", className: `mv-top${openMenu ? " menu-open" : ""}` },
     h15(
       "div",
-      { key: "g6", className: "mv-group" },
-      h15("div", { className: "mv-group-title" }, `${t2("layers.content")} · ${layers2.length}`),
-      h15(
-        "div",
-        { className: "mv-group-actions" },
-        layers2.length > 0 ? h15("button", { type: "button", className: "mv-cta", onClick: onFrameAll }, t2("layers.frameAll")) : null,
-        h15(
-          "button",
-          {
-            ref: addBtnRef,
-            type: "button",
-            className: `mv-cta${addOpen ? " primary" : ""}`,
-            "aria-expanded": addOpen,
-            "aria-haspopup": "menu",
-            "aria-controls": "mv-add-3d-menu",
-            onClick: () => setAddOpen((value) => !value)
-          },
-          addOpen ? t2("layers.overlayCancel") : t2("layers.add3d")
-        )
-      )
+      { key: "head", className: "mv-top-head" },
+      panelDetail && typeof onBack === "function" ? h15(
+        "button",
+        {
+          type: "button",
+          className: "mv-top-back",
+          title: t2("dock.back"),
+          "aria-label": t2("dock.back"),
+          onClick: onBack
+        },
+        "‹"
+      ) : null,
+      h15("span", { key: "title", className: "mv-top-title", title: panelLabel }, panelLabel),
+      panelDetail ? h15("span", { key: "detail", className: "mv-top-detail", title: panelDetail }, `· ${panelDetail}`) : null,
+      typeof onClosePanel === "function" ? h15(
+        "button",
+        {
+          key: "close",
+          type: "button",
+          className: `mv-top-close${closePanelDanger ? " danger" : ""}`,
+          title: closePanelLabel || t2("btn.close"),
+          "aria-label": closePanelLabel || t2("btn.close"),
+          onClick: onClosePanel
+        },
+        "✕"
+      ) : null
     ),
-    addOpen ? h15(
+    h15(
       "div",
-      { id: "mv-add-3d-menu", ref: addMenuRef, key: "add-3d-menu", className: "mv-overlay-form mv-add3d-menu", role: "menu" },
+      { ref: menuRef, className: "mv-actions" },
+      menu(
+        "data",
+        t2("btn.data"),
+        dataMenuItems({ h: h15, MenuItem, t: t2, closeMenu, ...data }),
+        h15(GlyphIcon, { name: "folder" })
+      ),
+      menu("view", t2("btn.view"), viewMenuItems({ h: h15, MenuItem, t: t2, closeMenu, ...view }), h15(GlyphIcon, { name: "view" })),
+      menu("output", t2("btn.output"), outputMenuItems({ h: h15, MenuItem, t: t2, closeMenu, ...output }), h15(GlyphIcon, { name: "export" })),
+      h15("i", { key: "s1", className: "mv-sep" }),
+      h15("div", { key: "quick", className: "mv-quick", role: "group", "aria-label": t2("panel.title") }, h15(ToolbarQuick, { t: t2, ...quick })),
+      h15("i", { key: "s2", className: "mv-sep" }),
+      h15(ToolbarSettings, { t: t2, setSettingsOpen: onOpenSettings }),
       h15(
         "button",
         {
-          key: "add-local",
+          key: "hide-chrome",
           type: "button",
-          role: "menuitem",
-          className: "mv-cta primary",
-          onClick: () => {
-            setAddOpen(false);
-            onOpenLocal?.();
-          }
+          className: "mv-icon-btn mv-chrome-hide",
+          title: `${t2("dock.hideChrome")} (H)`,
+          "aria-label": t2("dock.hideChrome"),
+          "aria-keyshortcuts": "H",
+          onClick: onToggleChrome
         },
-        t2("btn.openLocal")
-      ),
-      h15(
-        "button",
-        {
-          key: "add-url",
-          type: "button",
-          role: "menuitem",
-          className: "mv-cta",
-          onClick: () => {
-            setAddOpen(false);
-            onOpenUrl?.();
-          }
-        },
-        t2("layers.openUrl")
-      ),
-      recents.length > 0 ? h15("span", { key: "recent-label", className: "mv-menu-label" }, t2("menu.recentDirs")) : null,
-      ...recents.map(
-        (entry) => h15(
-          "button",
-          {
-            key: entry.dir,
-            type: "button",
-            role: "menuitem",
-            className: "mv-cta",
-            title: entry.dir,
-            onClick: () => {
-              setAddOpen(false);
-              onOpenRecent?.(entry.dir);
-            }
-          },
-          entry.name
-        )
+        h15(GlyphIcon, { name: "hide" })
       )
-    ) : null,
-    layers2.length === 0 ? h15("div", { key: "no-3d", className: "mv-none" }, t2("layers.contentEmpty")) : layers2.map(
-      (layer) => h15(LayerRow, {
-        key: layer.id,
-        t: t2,
-        layer,
-        shader: shaderFor(layer),
-        swipeActive: (swipeState?.kind === "3d" || swipeState?.kind === "split") && swipeState?.id === layer.id || swipeState?.kind === "pair" && (swipeState?.leftId === layer.id || swipeState?.rightId === layer.id),
-        menuOpen: rowMenu === layer.id,
-        onMenuToggle: setRowMenu,
-        onFlyLayer,
-        onToggleLayer,
-        onInspectLayer,
-        onRemoveLayer,
-        onEditShader: onEditLayerShader,
-        onShowSceneDetails,
-        onSwipeLayer
-      })
     )
   );
 }
 
-// src/client/ui/layers-map.js
-var import_react20 = __toESM(require("react"), 1);
+// src/client/ui/scene-dialogs.js
+var import_react21 = __toESM(require("react"), 1);
+
+// src/client/ui/add-layer-dialog.js
+var import_react19 = __toESM(require("react"), 1);
 
 // src/client/scene/vector-errors.js
 function vectorError(message2) {
@@ -16765,7 +19655,7 @@ var lineTypes = /* @__PURE__ */ new Set([SHAPE_POLYLINE, SHAPE_POLYLINE_Z, SHAPE
 var polygonTypes = /* @__PURE__ */ new Set([SHAPE_POLYGON, SHAPE_POLYGON_Z, SHAPE_POLYGON_M]);
 var pointTypes = /* @__PURE__ */ new Set([SHAPE_POINT, SHAPE_POINT_Z, SHAPE_POINT_M]);
 var multiPointTypes = /* @__PURE__ */ new Set([SHAPE_MULTIPOINT, SHAPE_MULTIPOINT_Z, SHAPE_MULTIPOINT_M]);
-var round = (value) => Math.round(value * 1e7) / 1e7;
+var round2 = (value) => Math.round(value * 1e7) / 1e7;
 function dataViewOf(buffer) {
   if (buffer instanceof ArrayBuffer) return new DataView(buffer);
   if (ArrayBuffer.isView(buffer)) return new DataView(buffer.buffer, buffer.byteOffset, buffer.byteLength);
@@ -16858,14 +19748,14 @@ function validateRecord(view, type) {
   if (!multi && (parts === 0 || view.getInt32(44, true) !== 0)) throw shapeError("parts 首索引必须为零");
 }
 function readPoint(view, offset) {
-  return { type: "Point", coordinates: [round(view.getFloat64(offset, true)), round(view.getFloat64(offset + 8, true))] };
+  return { type: "Point", coordinates: [round2(view.getFloat64(offset, true)), round2(view.getFloat64(offset + 8, true))] };
 }
 function readMultiPoint(view, offset) {
   const count = view.getInt32(offset + 36, true);
   const points = [];
   for (let index = 0; index < count; index += 1) {
     const at = offset + 40 + index * 16;
-    points.push([round(view.getFloat64(at, true)), round(view.getFloat64(at + 8, true))]);
+    points.push([round2(view.getFloat64(at, true)), round2(view.getFloat64(at + 8, true))]);
   }
   return { type: "MultiPoint", coordinates: points };
 }
@@ -16887,7 +19777,7 @@ function readParts(view, offset) {
     const points = [];
     for (let pointIndex = start; pointIndex < end; pointIndex += 1) {
       const at = pointsAt + pointIndex * 16;
-      points.push([round(view.getFloat64(at, true)), round(view.getFloat64(at + 8, true))]);
+      points.push([round2(view.getFloat64(at, true)), round2(view.getFloat64(at + 8, true))]);
     }
     segments.push(points);
   }
@@ -16941,22 +19831,22 @@ function parseDbf(buffer, encoding = "utf-8") {
       rows.push(null);
       continue;
     }
-    const row = {};
+    const row2 = {};
     let at = recordAt + 1;
     for (const field of fields) {
       const slice = new Uint8Array(view.buffer, view.byteOffset + at, field.length);
       const text = decoder.decode(slice).trim();
       if (field.type === "N" || field.type === "F") {
         const number = Number(text);
-        row[field.name] = text === "" || !Number.isFinite(number) ? null : number;
+        row2[field.name] = text === "" || !Number.isFinite(number) ? null : number;
       } else if (field.type === "L") {
-        row[field.name] = /^[yt]$/i.test(text) ? true : /^[nf]$/i.test(text) ? false : null;
+        row2[field.name] = /^[yt]$/i.test(text) ? true : /^[nf]$/i.test(text) ? false : null;
       } else {
-        row[field.name] = text;
+        row2[field.name] = text;
       }
       at += field.length;
     }
-    rows.push(row);
+    rows.push(row2);
   }
   return rows;
 }
@@ -17106,237 +19996,55 @@ function isVectorDrag(dataTransfer) {
   return Array.from(dataTransfer?.types ?? []).includes("Files") || hasVectorFile(dataTransfer?.files);
 }
 
-// src/client/ui/panel-prefs.js
-var STORAGE_PREFIX = "mv.pref.";
-function readPanelFlag(key, fallback = false) {
-  try {
-    const raw = globalThis.localStorage?.getItem(STORAGE_PREFIX + key);
-    if (raw === "1") return true;
-    if (raw === "0") return false;
-    return fallback;
-  } catch {
-    return fallback;
-  }
-}
-function writePanelFlag(key, value) {
-  try {
-    globalThis.localStorage?.setItem(STORAGE_PREFIX + key, value ? "1" : "0");
-  } catch {
-  }
-}
-var IMAGERY_OPEN_KEY = "layers.imagery.open";
-var TOOLS_MINIMIZED_KEY = "tools.index.minimized";
-
-// src/client/ui/raster-timeline.js
-var import_react19 = __toESM(require("react"), 1);
+// src/client/ui/add-layer-dialog.js
 var h16 = import_react19.default.createElement;
-var PLAYBACK_SPEEDS = [
-  { label: "0.5×", ms: 2e3 },
-  { label: "1×", ms: 1e3 },
-  { label: "2×", ms: 500 }
-];
-function RasterTimeline({ t: t2, source, frameIndex = 0, disabled = false, onSelectFrame }) {
-  const frames = import_react19.default.useMemo(() => resolveSourceFrames(source), [source]);
-  const [playing, setPlaying] = import_react19.default.useState(false);
-  const [speedIdx, setSpeedIdx] = import_react19.default.useState(1);
-  const current = clampFrameIndex(frameIndex, frames);
-  const currentRef = import_react19.default.useRef(current);
-  currentRef.current = current;
-  const selectRef = import_react19.default.useRef(onSelectFrame);
-  selectRef.current = onSelectFrame;
-  import_react19.default.useEffect(() => {
-    if ((disabled || frames.length < 2) && playing) setPlaying(false);
-  }, [disabled, frames.length, playing]);
-  import_react19.default.useEffect(() => {
-    if (!playing || disabled || frames.length < 2) return void 0;
-    const intervalMs = PLAYBACK_SPEEDS[speedIdx]?.ms ?? 1e3;
-    const timer = setInterval(() => {
-      const next = (currentRef.current + 1) % frames.length;
-      selectRef.current?.(source.id, next);
-    }, intervalMs);
-    return () => clearInterval(timer);
-  }, [playing, disabled, frames.length, speedIdx, source?.id]);
-  if (frames.length < 2) return null;
-  const active = frames[current];
-  const first = frames[0];
-  const last = frames[frames.length - 1];
-  const showDate = Boolean(active.time && active.time !== active.label);
-  const valueText = showDate ? `${active.label} · ${active.time} (${current + 1}/${frames.length})` : `${active.label} (${current + 1}/${frames.length})`;
-  const stepBy = (delta) => {
-    setPlaying(false);
-    const next = (current + delta + frames.length) % frames.length;
-    onSelectFrame?.(source.id, next);
-  };
-  return h16(
-    "div",
-    {
-      className: `mv-rtime${disabled ? " dim" : ""}`,
-      "data-raster-timeline": source.id,
-      role: "region",
-      "aria-label": t2("rasterTime.sliderLabel", { name: source.name })
-    },
-    h16(
-      "div",
-      { className: "mv-rtime-head" },
-      h16("span", { className: "mv-rtime-tag" }, t2("rasterTime.title")),
-      h16(
-        "span",
-        { className: "mv-rtime-current", title: valueText },
-        h16("span", { className: "mv-rtime-label" }, active.label),
-        showDate ? h16("span", { className: "mv-rtime-date" }, active.time) : null
-      ),
-      h16("span", { className: "mv-rtime-count" }, `${current + 1}/${frames.length}`)
-    ),
-    h16("input", {
-      type: "range",
-      className: "mv-rtime-range",
-      min: 0,
-      max: frames.length - 1,
-      step: 1,
-      value: current,
-      "aria-label": t2("rasterTime.sliderLabel", { name: source.name }),
-      "aria-valuetext": valueText,
-      style: {
-        "--attr-min": 0,
-        "--attr-max": frames.length - 1,
-        "--control-value": current
-      },
-      onChange: (event) => {
-        setPlaying(false);
-        onSelectFrame?.(source.id, Number(event.target.value));
-      }
-    }),
-    h16(
-      "div",
-      { className: "mv-rtime-bounds", "aria-hidden": true },
-      h16("span", null, first.time || first.label),
-      h16("span", null, last.time || last.label)
-    ),
-    h16(
-      "div",
-      { className: "mv-rtime-controls" },
-      h16(
-        "button",
-        {
-          type: "button",
-          className: "mv-rtime-btn",
-          title: t2("rasterTime.prev"),
-          "aria-label": t2("rasterTime.prev"),
-          onClick: () => stepBy(-1)
-        },
-        "⏮"
-      ),
-      h16(
-        "button",
-        {
-          type: "button",
-          className: `mv-rtime-btn play${playing ? " on" : ""}`,
-          disabled,
-          "aria-pressed": playing,
-          onClick: () => setPlaying((prev) => !prev)
-        },
-        playing ? `⏸ ${t2("rasterTime.pause")}` : `▶ ${t2("rasterTime.play")}`
-      ),
-      h16(
-        "button",
-        {
-          type: "button",
-          className: "mv-rtime-btn",
-          title: t2("rasterTime.next"),
-          "aria-label": t2("rasterTime.next"),
-          onClick: () => stepBy(1)
-        },
-        "⏭"
-      ),
-      h16(
-        "button",
-        {
-          type: "button",
-          className: "mv-rtime-btn speed",
-          title: t2("rasterTime.speed"),
-          "aria-label": t2("rasterTime.speed"),
-          onClick: () => setSpeedIdx((prev) => (prev + 1) % PLAYBACK_SPEEDS.length)
-        },
-        PLAYBACK_SPEEDS[speedIdx].label
-      )
-    )
-  );
-}
-
-// src/client/ui/layers-map.js
-var h17 = import_react20.default.createElement;
 var OVERLAY_TYPES2 = ["wms", "xyz", "arcgis"];
-function imagerySummary(t2, config, settings) {
-  const sources = Array.isArray(config?.imagery) ? config.imagery : [];
-  if (settings?.imagery == null) return t2("layers.imageryNone");
-  const active = sources.find((source) => source.id === settings.imagery);
-  return active?.name ?? String(settings.imagery);
-}
-function LayersMap({
+var EMPTY_DRAFT = {
+  type: "wms",
+  name: "",
+  url: "",
+  layers: "",
+  opacity: 0.7,
+  timeMode: "none",
+  timesText: "",
+  framesText: ""
+};
+var KINDS = [
+  { id: "3d", glyph: "scene", title: (t2) => t2("layers.addKind3d"), hint: (t2) => t2("layers.addKind3dHint") },
+  { id: "raster", glyph: "raster", title: (t2) => t2("layers.addKindRaster"), hint: (t2) => t2("layers.addKindRasterHint") },
+  { id: "vector", glyph: "vector", title: (t2) => t2("layers.addKindVector"), hint: (t2) => t2("layers.addKindVectorHint") }
+];
+function AddLayerDialog({
   t: t2,
-  config,
-  settings,
-  onSelectImagery,
-  onOverlayAdd,
-  onOverlayRemove,
-  onOverlayOpacity,
-  onOverlayVisible,
-  onOverlayMove,
-  agentOverlays,
-  overlayExtrusions,
-  onToggleOverlayExtrude,
-  annotations,
-  onClearVector,
-  onRemoveAgentOverlay,
-  onFlyAgentOverlay,
-  overlayDetails,
-  onQuickAnnotate,
-  onSelectAgentFeature,
-  onFlyAgentFeature,
-  onRemoveAgentFeature,
-  onImportVector,
+  request,
+  onClose,
+  onOpenLocal,
+  onOpenUrl,
+  recentDirs,
+  onOpenRecent,
   onPickLocalTiles,
-  swipeState,
-  onOverlaySwipe,
-  vectorExport,
-  rasterFrames,
-  onSelectRasterFrame
+  onOverlayAdd,
+  onImportVector
 }) {
-  const [adding, setAdding] = import_react20.default.useState(false);
-  const [draft, setDraft] = import_react20.default.useState({
-    type: "wms",
-    name: "",
-    url: "",
-    layers: "",
-    opacity: 0.7,
-    timeMode: "none",
-    timesText: "",
-    framesText: ""
-  });
-  const [error, setError] = import_react20.default.useState("");
-  const [vectorError2, setVectorError] = import_react20.default.useState("");
-  const [imageryOpen, setImageryOpen] = import_react20.default.useState(() => readPanelFlag(IMAGERY_OPEN_KEY, false));
-  const [expandedOverlays, setExpandedOverlays] = import_react20.default.useState(() => ({}));
-  const fileRef = import_react20.default.useRef(null);
-  const toggleOverlay = (id) => setExpandedOverlays((prev) => ({ ...prev, [id]: !prev[id] }));
-  const overlays = Array.isArray(config?.rasterOverlays) ? config.rasterOverlays : [];
-  const activeImagerySource = settings?.imagery != null && Array.isArray(config?.imagery) ? config.imagery.find((source) => source.id === settings.imagery) ?? null : null;
-  const drawn = annotations?.drawn_features ?? 0;
-  const measured = annotations?.measured_points ?? 0;
-  const field = (label, input) => h17("div", { className: "mv-field" }, h17("label", null, label), input);
-  const radioRow = (key, label, active, onClick) => h17(
-    "button",
-    { key, type: "button", className: `mv-layer mv-choice${active ? " on" : ""}`, "aria-pressed": active, onClick },
-    h17("span", { className: "name" }, label),
-    h17("span", { className: "tick", "aria-hidden": true }, active ? "✓" : "")
-  );
-  const toggleImagery = () => {
-    setImageryOpen((value) => {
-      const next = !value;
-      writePanelFlag(IMAGERY_OPEN_KEY, next);
-      return next;
-    });
-  };
+  const open = Boolean(request);
+  const [kind, setKind] = import_react19.default.useState(request?.kind ?? null);
+  const [draft, setDraft] = import_react19.default.useState(EMPTY_DRAFT);
+  const [error, setError] = import_react19.default.useState("");
+  const [vectorError2, setVectorError] = import_react19.default.useState("");
+  const [busy, setBusy] = import_react19.default.useState(false);
+  const fileRef = import_react19.default.useRef(null);
+  const requestClose = () => onClose?.();
+  const dialogRef = useDialogA11y({ open, onEscape: requestClose });
+  import_react19.default.useEffect(() => {
+    if (!open) return;
+    setKind(request?.kind ?? null);
+    setDraft(EMPTY_DRAFT);
+    setError("");
+    setVectorError("");
+  }, [open, request?.kind, request?.token]);
+  if (!open) return null;
+  const titleId = "mv-add-layer-title";
+  const patch = (next) => setDraft((current2) => ({ ...current2, ...next }));
   const draftErrorText = () => {
     if (draft.timeMode !== "none") {
       const parsed = parseTemporalDraft({
@@ -17355,449 +20063,1764 @@ function LayersMap({
     }
     return t2("layers.overlayInvalid");
   };
-  const submitDraft = () => {
+  const submitRaster = () => {
     const next = normalizeOverlayDraft(draft);
     if (next === null) {
       setError(draftErrorText());
       return;
     }
-    onOverlayAdd(next);
-    setAdding(false);
+    onOverlayAdd?.(next);
+    setDraft(EMPTY_DRAFT);
     setError("");
-    setDraft({
-      type: "wms",
-      name: "",
-      url: "",
-      layers: "",
-      opacity: 0.7,
-      timeMode: "none",
-      timesText: "",
-      framesText: ""
-    });
+    onClose?.();
   };
-  return h17(
+  const submitVector = async (files) => {
+    if (!files || files.length === 0) return;
+    setBusy(true);
+    setVectorError("");
+    try {
+      const { parsed, name } = await readVectorFiles(files);
+      onImportVector?.(parsed, name);
+      onClose?.();
+    } catch (failure) {
+      const reason = failure?.message === "vector_file_unsupported" ? t2("layers.importNeedFile") : vectorErrorText(failure, t2);
+      setVectorError(t2("layers.importFailed", { message: reason }));
+    } finally {
+      setBusy(false);
+    }
+  };
+  const field = (label, control, hint) => h16(
+    "label",
+    { className: "mv-field" },
+    h16("span", null, label),
+    control,
+    hint ? h16("em", { className: "mv-field-hint" }, hint) : null
+  );
+  const back = () => kind === null ? null : h16(
+    "button",
+    {
+      type: "button",
+      className: "mv-icon-btn mv-dialog-back",
+      title: t2("layers.addBack"),
+      "aria-label": t2("layers.addBack"),
+      onClick: () => setKind(null)
+    },
+    "‹"
+  );
+  const kindChooser = () => h16(
     "div",
-    { key: "list-map", className: "mv-layer-list" },
-    // ---- L2 vector overlays (2D data, not a 3D layer) --------------------------
-    h17(
+    { className: "mv-add-kinds" },
+    ...KINDS.map(
+      (entry2) => h16(
+        "button",
+        { key: entry2.id, type: "button", className: "mv-add-kind", onClick: () => setKind(entry2.id) },
+        h16("span", { className: "mv-add-kind-icon", "aria-hidden": true }, h16(GlyphIcon, { name: entry2.glyph, size: 20 })),
+        h16("b", null, entry2.title(t2)),
+        h16("span", { className: "mv-add-kind-hint" }, entry2.hint(t2))
+      )
+    )
+  );
+  const body3d = () => h16(
+    import_react19.default.Fragment,
+    null,
+    h16("p", { className: "mv-note" }, t2("layers.add3dHint")),
+    h16(
       "div",
-      { key: "g2", className: "mv-group" },
-      h17("div", { className: "mv-group-title" }, `${t2("layers.vector")}${drawn + measured > 0 ? ` · ${drawn + measured}` : ""}`),
-      h17(
-        "div",
-        { className: "mv-group-actions" },
-        h17("button", { type: "button", className: "mv-icon-btn", title: t2("layers.vectorExportHint"), "aria-label": t2("layers.exportVector"), disabled: !vectorExport, onClick: () => vectorExport?.download() }, "⤓"),
-        h17("button", { type: "button", className: "mv-icon-btn", title: t2("layers.vectorChatHint"), "aria-label": t2("layers.vectorToChat"), disabled: !vectorExport?.canSend?.(), onClick: () => {
-          void vectorExport?.send();
-        } }, "➤")
+      { className: "mv-add-routes" },
+      h16(
+        "button",
+        { type: "button", className: "mv-add-route", onClick: () => {
+          onClose?.();
+          onOpenLocal?.();
+        } },
+        h16(GlyphIcon, { name: "folder", size: 18 }),
+        h16("span", null, h16("b", null, t2("btn.openLocal")), h16("em", null, t2("menu.add3dLocalHint")))
+      ),
+      h16(
+        "button",
+        { type: "button", className: "mv-add-route", onClick: () => {
+          onClose?.();
+          onOpenUrl?.();
+        } },
+        h16(GlyphIcon, { name: "link", size: 18 }),
+        h16("span", null, h16("b", null, t2("btn.openUrl")), h16("em", null, t2("menu.add3dUrlHint")))
       )
     ),
-    h17(
+    Array.isArray(recentDirs) && recentDirs.length > 0 ? h16(
       "div",
-      { key: "g2-actions", className: "mv-group-subactions" },
-      h17("button", { type: "button", className: "mv-cta", onClick: () => fileRef.current?.click() }, t2("layers.importVector")),
-      typeof onQuickAnnotate === "function" ? h17("button", { type: "button", className: "mv-cta", onClick: onQuickAnnotate }, t2("annotation.quickDraw")) : null
+      { className: "mv-add-recents" },
+      h16("p", { className: "mv-menu-section" }, t2("menu.recentDirs")),
+      ...recentDirs.map(
+        (entry2) => h16(
+          "button",
+          {
+            key: entry2.dir,
+            type: "button",
+            className: "mv-add-recent",
+            title: entry2.dir,
+            onClick: () => {
+              onClose?.();
+              onOpenRecent?.(entry2.dir);
+            }
+          },
+          h16(GlyphIcon, { name: "history", size: 14 }),
+          h16("span", { className: "ellipsis" }, entry2.name)
+        )
+      )
+    ) : null
+  );
+  const bodyRasterOnline = () => h16(
+    import_react19.default.Fragment,
+    null,
+    field(
+      t2("layers.overlayType"),
+      h16(
+        "select",
+        { value: draft.type, onChange: (event) => patch({ type: event.target.value }) },
+        ...OVERLAY_TYPES2.map((type) => h16("option", { key: type, value: type }, type.toUpperCase()))
+      )
     ),
-    h17("input", {
-      key: "import-vector-input",
+    field(
+      t2("layers.overlayName"),
+      h16("input", { value: draft.name, onChange: (event) => patch({ name: event.target.value }) })
+    ),
+    field(
+      t2("layers.overlayUrl"),
+      h16("input", { value: draft.url, placeholder: "https://…", onChange: (event) => patch({ url: event.target.value }) }),
+      t2("menu.addRasterUrlHint")
+    ),
+    onPickLocalTiles ? h16(
+      "button",
+      {
+        type: "button",
+        className: "mv-cta",
+        onClick: () => {
+          void (async () => {
+            const picked = await onPickLocalTiles();
+            if (!picked) return;
+            const url = typeof picked === "string" ? picked : picked.url;
+            const name = typeof picked === "object" && picked.name ? picked.name : "";
+            if (!url) return;
+            patch({ type: "xyz", url, name: draft.name.trim() !== "" ? draft.name : name });
+            setError("");
+          })();
+        }
+      },
+      t2("settings.field.localTiles")
+    ) : null,
+    draft.type === "wms" ? field(
+      t2("layers.overlayLayers"),
+      h16("input", { value: draft.layers, placeholder: "flood:risk", onChange: (event) => patch({ layers: event.target.value }) })
+    ) : null,
+    field(
+      t2("layers.overlayOpacity"),
+      h16("input", {
+        type: "range",
+        min: 0,
+        max: 100,
+        value: Math.round(draft.opacity * 100),
+        onChange: (event) => patch({ opacity: Number(event.target.value) / 100 })
+      })
+    ),
+    field(
+      t2("rasterTime.modeLabel"),
+      h16(
+        "select",
+        {
+          value: draft.timeMode,
+          onChange: (event) => {
+            patch({ timeMode: event.target.value });
+            setError("");
+          }
+        },
+        h16("option", { value: "none" }, t2("rasterTime.modeNone")),
+        h16("option", { value: "times" }, t2("rasterTime.modeTimes")),
+        h16("option", { value: "frames" }, t2("rasterTime.modeFrames"))
+      )
+    ),
+    draft.timeMode === "times" ? field(
+      t2("rasterTime.timesLabel"),
+      h16("textarea", {
+        value: draft.timesText,
+        placeholder: t2("rasterTime.timesPlaceholder"),
+        onChange: (event) => patch({ timesText: event.target.value })
+      }),
+      t2("rasterTime.timesHint")
+    ) : null,
+    draft.timeMode === "frames" ? field(
+      t2("rasterTime.framesLabel"),
+      h16("textarea", {
+        value: draft.framesText,
+        placeholder: t2("rasterTime.framesPlaceholder"),
+        onChange: (event) => patch({ framesText: event.target.value })
+      })
+    ) : null,
+    error ? h16("p", { className: "mv-note mv-danger" }, error) : null
+  );
+  const bodyVector = () => h16(
+    import_react19.default.Fragment,
+    null,
+    h16("p", { className: "mv-note" }, t2("layers.addVectorHint")),
+    h16("input", {
       ref: fileRef,
       type: "file",
+      accept: ".geojson,.json,.shp,.dbf,.prj,.cpg",
       multiple: true,
-      accept: ".geojson,.json,.shp,.dbf,.prj,.cpg,application/geo+json,application/json",
       hidden: true,
       onChange: (event) => {
-        const files = Array.from(event.target.files ?? []);
+        void submitVector(event.target.files);
         event.target.value = "";
-        if (files.length === 0) return;
-        void (async () => {
-          try {
-            const { parsed, name } = await readVectorFiles(files);
-            setVectorError("");
-            onImportVector?.(parsed, name);
-          } catch (failure) {
-            const reason = failure?.message === "vector_file_unsupported" ? t2("layers.importNeedFile") : vectorErrorText(failure, t2);
-            setVectorError(t2("layers.importFailed", { message: reason }));
-          }
-        })();
       }
     }),
-    vectorError2 !== "" ? h17("p", { key: "vector-error", className: "mv-note" }, vectorError2) : null,
-    h17(
+    h16(
+      "button",
+      {
+        type: "button",
+        className: "mv-add-route",
+        disabled: busy,
+        onClick: () => fileRef.current?.click()
+      },
+      h16(GlyphIcon, { name: "import", size: 18 }),
+      h16("span", null, h16("b", null, busy ? t2("layers.importing") : t2("layers.importVector")), h16("em", null, t2("layers.importFormats")))
+    ),
+    vectorError2 ? h16("p", { className: "mv-note mv-danger" }, vectorError2) : null
+  );
+  const footer = kind === "raster" ? h16(
+    "div",
+    { className: "footer" },
+    h16("div", null),
+    h16(
       "div",
-      { key: "vector-row", className: "mv-layer" },
-      h17("span", { className: "name" }, `${t2("layers.vectorDrawn")} ${drawn} · ${t2("layers.vectorMeasured")} ${measured}`),
-      // The old label promised "clear measurements" while the handler swept every
-      // overlay including local imports. The hint now says what happens and the
-      // action asks for confirmation with the real counts (audit A1).
+      { className: "mv-dialog-actions" },
+      h16("button", { type: "button", className: "mv-cta", onClick: onClose }, t2("btn.cancel")),
+      h16("button", { type: "button", className: "mv-cta primary", onClick: submitRaster }, t2("layers.overlayAdd"))
+    )
+  ) : null;
+  return h16(
+    "div",
+    {
+      className: "mv-modal mv-add-layer-modal",
+      onPointerDown: (event) => {
+        if (event.target === event.currentTarget) requestClose();
+      }
+    },
+    h16(
+      "div",
+      { ref: dialogRef, className: "mv-dialog mv-add-layer", role: "dialog", "aria-modal": "true", "aria-labelledby": titleId },
+      h16(
+        "header",
+        null,
+        back(),
+        h16("b", { id: titleId }, kind === null ? t2("layers.addTitle") : KINDS.find((entry2) => entry2.id === kind).title(t2)),
+        h16(
+          "button",
+          {
+            type: "button",
+            className: "mv-icon-btn",
+            title: t2("btn.close"),
+            "aria-label": t2("btn.close"),
+            onClick: requestClose
+          },
+          "✕"
+        )
+      ),
+      h16(
+        "div",
+        { className: "body" },
+        kind === null ? kindChooser() : kind === "3d" ? body3d() : kind === "raster" ? bodyRasterOnline() : bodyVector()
+      ),
+      footer
+    )
+  );
+}
+
+// src/client/ui/layer-properties.js
+var import_react20 = __toESM(require("react"), 1);
+var h17 = import_react20.default.createElement;
+var TABS = ["info", "look", "data"];
+function row(label, value) {
+  if (value === null || value === void 0 || value === "") return null;
+  return h17(
+    "div",
+    { key: label, className: "mv-prop-row" },
+    h17("span", { className: "mv-prop-label" }, label),
+    h17("span", { className: "mv-prop-value", title: String(value) }, String(value))
+  );
+}
+function LayerProperties({
+  t: t2,
+  selection,
+  layers: layers2,
+  config,
+  agentOverlays,
+  overlayDetails,
+  settings,
+  shaderActive,
+  onClose,
+  onFlyLayer,
+  onFlyAgentOverlay,
+  onToggleLayer,
+  onInspectLayer,
+  onOverlayOpacity,
+  onOverlayVisible,
+  onEditLayerShader,
+  onSelectAgentFeature,
+  onExportOverlay
+}) {
+  const open = Boolean(selection);
+  const dialogRef = useDialogA11y({ open, onEscape: onClose });
+  const [tab, setTab] = import_react20.default.useState("info");
+  const propTabLabel = {
+    info: t2("layers.propsTab.info"),
+    look: t2("layers.propsTab.look"),
+    data: t2("layers.propsTab.data")
+  };
+  import_react20.default.useEffect(() => {
+    if (open) setTab("info");
+  }, [open, selection?.kind, selection?.id, selection?.index]);
+  if (!open) return null;
+  const kind = selection.kind;
+  let name = "";
+  let kindLabel = "";
+  let source = "";
+  let tint = "";
+  if (kind === "3d") {
+    const layer = (layers2 ?? []).find((entry2) => entry2.id === selection.id);
+    if (!layer) return null;
+    const shader = (shaderActive ?? []).find((entry2) => entry2.layerId === layer.id) ?? null;
+    name = layer.name;
+    kindLabel = layer.kind === "3dgs" ? t2("layers.kindSplats") : t2("layers.kindTiles");
+    source = layer.url || layer.path || "";
+    tint = shader ? shaderEntrySummary(t2, shader) : "";
+    const titleId2 = "mv-prop-title";
+    const tabs = TABS.map(
+      (entry2) => h17(
+        "button",
+        {
+          key: entry2,
+          type: "button",
+          role: "tab",
+          className: `mv-tab${tab === entry2 ? " on" : ""}`,
+          "aria-selected": tab === entry2,
+          onClick: () => setTab(entry2)
+        },
+        propTabLabel[entry2]
+      )
+    );
+    const body2 = tab === "info" ? h17(
+      "div",
+      { className: "mv-prop-body" },
+      row(t2("layers.propsName"), name),
+      row(t2("layers.propsKind"), kindLabel),
+      row(t2("layers.propsSource"), source),
+      row(t2("layers.propsShader"), tint || t2("layers.propsShaderNone")),
+      row(t2("layers.propsVisible"), layer.visible ? t2("layers.propsShown") : t2("layers.propsHidden"))
+    ) : tab === "look" ? h17(
+      "div",
+      { className: "mv-prop-body" },
+      h17(
+        "button",
+        { type: "button", className: "mv-cta", onClick: () => onToggleLayer?.(layer.id) },
+        layer.visible ? t2("layers.propsHide") : t2("layers.propsShow")
+      ),
       h17(
         "button",
         {
           type: "button",
-          className: "mv-icon-btn",
-          title: t2("layers.clearVectorHint"),
-          "aria-label": t2("layers.clearVectorHint"),
-          disabled: drawn + measured === 0,
-          onClick: drawn + measured === 0 ? void 0 : onClearVector
+          className: "mv-cta",
+          disabled: layer.kind === "3dgs",
+          title: layer.kind === "3dgs" ? t2("layers.appearance3dgs") : "",
+          onClick: () => {
+            onClose?.();
+            onEditLayerShader?.(layer, shader);
+          }
         },
-        "✕"
+        t2("layers.appearance")
       )
-    ),
-    ...(Array.isArray(agentOverlays) ? agentOverlays : []).map((row) => {
-      const features = row.kind === "draw" && Array.isArray(overlayDetails?.[row.index]) ? overlayDetails[row.index] : [];
-      const canExpand = row.kind === "draw" && features.length > 0;
-      const expanded = canExpand && Boolean(expandedOverlays[row.id]);
-      return h17(
-        import_react20.default.Fragment,
-        { key: row.id },
-        h17(
-          "div",
-          { className: "mv-layer" },
-          canExpand ? h17(
-            "button",
-            {
-              type: "button",
-              className: "mv-icon-btn mv-overlay-toggle",
-              title: t2(expanded ? "layers.overlayCollapseFeatures" : "layers.overlayExpandFeatures"),
-              "aria-label": t2(expanded ? "layers.overlayCollapseFeatures" : "layers.overlayExpandFeatures"),
-              "aria-expanded": expanded,
-              onClick: () => toggleOverlay(row.id)
-            },
-            expanded ? "▾" : "▸"
-          ) : null,
-          h17("span", { className: "name", title: `${row.label} · ${row.detail}` }, `${row.label} · ${row.detail}`),
-          row.kind === "draw" && overlayExtrusions?.[row.index]?.canExtrude && typeof onToggleOverlayExtrude === "function" ? (() => {
-            const is3d = Boolean(overlayExtrusions[row.index].extruded);
-            const label = t2(is3d ? "layers.switch2d" : "layers.switch3d");
-            return h17(
-              "button",
-              {
-                type: "button",
-                className: `mv-icon-btn mv-layer-dim-btn${is3d ? " on" : ""}`,
-                "aria-pressed": is3d,
-                title: label,
-                "aria-label": label,
-                onClick: () => onToggleOverlayExtrude(row.index)
-              },
-              is3d ? "3D" : "2D"
-            );
-          })() : null,
-          row.kind === "draw" && typeof vectorExport?.downloadOverlay === "function" ? h17(
-            "button",
-            {
-              type: "button",
-              className: "mv-icon-btn",
-              title: t2("layers.overlayExportHint"),
-              "aria-label": t2("layers.overlayExportHint"),
-              onClick: () => vectorExport.downloadOverlay(row.index)
-            },
-            "⤓"
-          ) : null,
-          row.kind === "draw" && typeof vectorExport?.sendOverlay === "function" ? h17(
-            "button",
-            {
-              type: "button",
-              className: "mv-icon-btn",
-              title: t2("layers.overlayChatHint"),
-              "aria-label": t2("layers.overlayChatHint"),
-              disabled: !vectorExport.canSend?.(),
-              onClick: () => {
-                void vectorExport.sendOverlay(row.index);
-              }
-            },
-            "➤"
-          ) : null,
-          typeof onFlyAgentOverlay === "function" ? h17(
-            "button",
-            {
-              type: "button",
-              className: "mv-icon-btn",
-              title: t2("btn.flyTo"),
-              "aria-label": t2("btn.flyTo"),
-              onClick: () => onFlyAgentOverlay(row.kind, row.index)
-            },
-            "◎"
-          ) : null,
-          h17(
-            "button",
-            { type: "button", className: "mv-icon-btn", title: t2("layers.vectorRemove"), "aria-label": t2("layers.vectorRemove"), onClick: () => onRemoveAgentOverlay(row.kind, row.index) },
-            "✕"
-          )
-        ),
-        expanded ? h17(
-          "div",
-          { className: "mv-overlay-features" },
-          ...features.map(
-            (feat) => h17(
-              "div",
-              { key: feat.featureId || `${row.id}-${feat.featureIndex}`, className: "mv-overlay-feature" },
-              h17(
-                "button",
-                {
-                  type: "button",
-                  className: "mv-overlay-feature-pick",
-                  title: t2("layers.featureSelectHint"),
-                  onClick: () => onSelectAgentFeature?.(row.index, feat.featureIndex)
-                },
-                h17("span", {
-                  className: "mv-overlay-feature-dot",
-                  "aria-hidden": true,
-                  style: { background: VECTOR_COLORS[feat.style] ?? VECTOR_COLORS.accent }
-                }),
-                h17("span", { className: "mv-overlay-feature-name" }, feat.name ?? t2("layers.featureUnnamed", { n: feat.featureIndex + 1 })),
-                feat.heightM != null ? h17(
-                  "span",
-                  { className: "mv-overlay-feature-meta" },
-                  `≈${Math.round(feat.heightM)}m${feat.estFloors != null ? `/${t2("parse.floors", { n: feat.estFloors })}` : ""}`
-                ) : null,
-                h17("span", { className: "mv-overlay-feature-tag" }, feat.geometryType)
-              ),
-              typeof onFlyAgentFeature === "function" ? h17(
-                "button",
-                {
-                  type: "button",
-                  className: "mv-icon-btn",
-                  title: t2("btn.flyTo"),
-                  "aria-label": t2("btn.flyTo"),
-                  onClick: () => onFlyAgentFeature(row.index, feat.featureIndex)
-                },
-                "◎"
-              ) : null,
-              typeof onRemoveAgentFeature === "function" ? h17(
-                "button",
-                {
-                  type: "button",
-                  className: "mv-icon-btn",
-                  title: t2("layers.featureDelete"),
-                  "aria-label": t2("layers.featureDelete"),
-                  onClick: () => onRemoveAgentFeature(row.index, feat.featureIndex)
-                },
-                "✕"
-              ) : null
-            )
-          )
-        ) : null
-      );
-    }),
-    // ---- L3 raster overlays ---------------------------------------------------
-    h17(
+    ) : h17(
       "div",
-      { key: "g3", className: "mv-group" },
-      h17("div", { className: "mv-group-title" }, `${t2("layers.raster")}${overlays.length ? ` · ${overlays.length}` : ""}`),
-      h17("button", { type: "button", className: "mv-cta", onClick: () => setAdding((value) => !value) }, adding ? t2("layers.overlayCancel") : t2("layers.addOverlay"))
-    ),
-    adding ? h17(
-      "div",
-      { key: "add-form", className: "mv-overlay-form" },
-      field(
-        t2("layers.overlayType"),
-        h17(
-          "select",
-          { value: draft.type, onChange: (event) => setDraft((current) => ({ ...current, type: event.target.value })) },
-          OVERLAY_TYPES2.map((type) => h17("option", { key: type, value: type }, type.toUpperCase()))
-        )
-      ),
-      field(t2("layers.overlayName"), h17("input", { value: draft.name, onChange: (event) => setDraft((current) => ({ ...current, name: event.target.value })) })),
-      field(t2("layers.overlayUrl"), h17("input", { value: draft.url, placeholder: "https://…", onChange: (event) => setDraft((current) => ({ ...current, url: event.target.value })) })),
-      typeof onPickLocalTiles === "function" ? h17(
+      { className: "mv-prop-body" },
+      h17("button", { type: "button", className: "mv-cta", onClick: () => onFlyLayer?.(layer.id) }, t2("btn.flyTo")),
+      h17(
         "button",
         {
           type: "button",
           className: "mv-cta",
           onClick: () => {
-            void (async () => {
-              const picked = await onPickLocalTiles();
-              if (!picked) return;
-              const url = typeof picked === "string" ? picked : picked.url;
-              const name = typeof picked === "object" && picked.name ? picked.name : "";
-              if (!url) return;
-              setDraft((current) => ({
-                ...current,
-                type: "xyz",
-                url,
-                name: current.name.trim() !== "" ? current.name : name
-              }));
-              setError("");
-            })();
+            onClose?.();
+            onInspectLayer?.(layer.id);
           }
         },
-        t2("settings.field.localTiles")
-      ) : null,
-      draft.type === "wms" ? field(t2("layers.overlayLayers"), h17("input", { value: draft.layers, placeholder: "flood:risk", onChange: (event) => setDraft((current) => ({ ...current, layers: event.target.value })) })) : null,
-      field(
-        t2("layers.overlayOpacity"),
+        t2("layers.propsHealth")
+      )
+    );
+    return h17(
+      "div",
+      { className: "mv-modal mv-prop-modal", onPointerDown: (event) => event.target === event.currentTarget && onClose?.() },
+      h17(
+        "div",
+        { ref: dialogRef, className: "mv-dialog mv-props", role: "dialog", "aria-modal": "true", "aria-labelledby": titleId2 },
+        h17(
+          "header",
+          null,
+          h17("b", { id: titleId2 }, `${t2("layers.properties")} · ${name}`),
+          h17("button", { type: "button", className: "mv-icon-btn", title: t2("btn.close"), "aria-label": t2("btn.close"), onClick: onClose }, "✕")
+        ),
+        h17("div", { className: "mv-tabs", role: "tablist" }, ...tabs),
+        body2
+      )
+    );
+  }
+  if (kind === "raster") {
+    const overlay = [...settings?.overlays ?? [], ...config?.rasterOverlays ?? []].find(
+      (entry2) => entry2.id === selection.id
+    );
+    if (!overlay) return null;
+    const titleId2 = "mv-prop-title";
+    const frames = hasRasterTimeline(overlay) ? resolveSourceFrames(overlay) : [];
+    const tabs = TABS.map(
+      (entry2) => h17(
+        "button",
+        {
+          key: entry2,
+          type: "button",
+          role: "tab",
+          className: `mv-tab${tab === entry2 ? " on" : ""}`,
+          "aria-selected": tab === entry2,
+          onClick: () => setTab(entry2)
+        },
+        propTabLabel[entry2]
+      )
+    );
+    const body2 = tab === "info" ? h17(
+      "div",
+      { className: "mv-prop-body" },
+      row(t2("layers.propsName"), overlay.name),
+      row(t2("layers.propsKind"), String(overlay.type).toUpperCase()),
+      row(t2("layers.propsSource"), overlay.url),
+      row(t2("layers.propsFrames"), frames.length > 0 ? String(frames.length) : ""),
+      row(t2("layers.propsVisible"), overlay.visible === false ? t2("layers.propsHidden") : t2("layers.propsShown"))
+    ) : tab === "look" ? h17(
+      "div",
+      { className: "mv-prop-body" },
+      h17(
+        "label",
+        { className: "mv-field" },
+        h17("span", null, t2("layers.overlayOpacity")),
         h17("input", {
           type: "range",
           min: 0,
           max: 100,
-          value: Math.round(draft.opacity * 100),
-          onChange: (event) => setDraft((current) => ({ ...current, opacity: Number(event.target.value) / 100 }))
+          value: Math.round((overlay.opacity ?? 1) * 100),
+          onChange: (event) => onOverlayOpacity?.(overlay.id, Number(event.target.value) / 100)
         })
       ),
-      field(
-        t2("rasterTime.modeLabel"),
-        h17(
-          "select",
-          {
-            value: draft.timeMode,
-            onChange: (event) => {
-              setDraft((current) => ({ ...current, timeMode: event.target.value }));
-              setError("");
-            }
-          },
-          h17("option", { value: "none" }, t2("rasterTime.modeNone")),
-          h17("option", { value: "times" }, t2("rasterTime.modeTimes")),
-          h17("option", { value: "frames" }, t2("rasterTime.modeFrames"))
-        )
-      ),
-      draft.timeMode === "times" ? h17(
-        import_react20.default.Fragment,
-        null,
-        field(
-          t2("rasterTime.timesLabel"),
-          h17("textarea", {
-            value: draft.timesText,
-            placeholder: t2("rasterTime.timesPlaceholder"),
-            onChange: (event) => setDraft((current) => ({ ...current, timesText: event.target.value }))
-          })
-        ),
-        h17("p", { className: "mv-note" }, t2("rasterTime.timesHint"))
-      ) : null,
-      draft.timeMode === "frames" ? field(
-        t2("rasterTime.framesLabel"),
-        h17("textarea", {
-          value: draft.framesText,
-          placeholder: t2("rasterTime.framesPlaceholder"),
-          onChange: (event) => setDraft((current) => ({ ...current, framesText: event.target.value }))
-        })
-      ) : null,
-      error ? h17("p", { className: "mv-note" }, error) : null,
-      h17("button", { type: "button", className: "mv-cta primary", onClick: submitDraft }, t2("layers.overlayAdd"))
-    ) : null,
-    overlays.length === 0 && !adding ? h17("div", { key: "no-overlay", className: "mv-none" }, t2("layers.emptyRaster")) : overlays.map(
-      (overlay, index) => h17(
-        "div",
-        { key: overlay.id, className: "mv-overlay-item" },
-        h17(
-          "div",
-          { className: `mv-layer mv-overlay-row${overlay.visible === false ? " off" : ""}` },
-          h17("span", { className: "name", title: overlay.url }, overlay.name),
-          h17("input", {
-            className: "mv-opacity",
-            type: "range",
-            min: 0,
-            max: 100,
-            title: t2("layers.overlayOpacity"),
-            "aria-label": t2("layers.overlayOpacity"),
-            value: Math.round((overlay.opacity ?? 1) * 100),
-            onChange: (event) => onOverlayOpacity(overlay.id, Number(event.target.value) / 100)
-          }),
-          h17(
-            "button",
-            {
-              type: "button",
-              className: `mv-icon-btn${overlay.visible === false ? " on" : ""}`,
-              title: overlay.visible === false ? t2("btn.visible") : t2("btn.hidden"),
-              "aria-label": overlay.visible === false ? t2("btn.visible") : t2("btn.hidden"),
-              onClick: () => onOverlayVisible(overlay.id, overlay.visible === false)
-            },
-            h17(EyeIcon, { size: 15, off: overlay.visible === false })
-          ),
-          onOverlaySwipe ? h17(
-            "button",
-            {
-              type: "button",
-              className: `mv-icon-btn${swipeState?.kind === "raster" && swipeState?.id === overlay.id ? " on" : ""}`,
-              disabled: overlay.visible === false,
-              title: t2("swipe.toggle"),
-              "aria-label": t2("swipe.toggle"),
-              "aria-pressed": Boolean(swipeState?.kind === "raster" && swipeState?.id === overlay.id),
-              onClick: () => onOverlaySwipe(overlay.id)
-            },
-            "◧"
-          ) : null,
-          h17("button", { type: "button", className: "mv-icon-btn", title: t2("layers.overlayDown"), "aria-label": t2("layers.overlayDown"), disabled: index === 0, onClick: () => onOverlayMove(overlay.id, -1) }, "↑"),
-          h17("button", { type: "button", className: "mv-icon-btn", title: t2("layers.overlayUp"), "aria-label": t2("layers.overlayUp"), disabled: index === overlays.length - 1, onClick: () => onOverlayMove(overlay.id, 1) }, "↓"),
-          h17("button", { type: "button", className: "mv-icon-btn", title: t2("layers.overlayRemove"), "aria-label": t2("layers.overlayRemove"), onClick: () => onOverlayRemove(overlay.id) }, "✕")
-        ),
-        hasRasterTimeline(overlay) ? h17(RasterTimeline, {
-          t: t2,
-          source: overlay,
-          frameIndex: rasterFrames?.[overlay.id] ?? 0,
-          disabled: overlay.visible === false,
-          onSelectFrame: onSelectRasterFrame
-        }) : null
+      h17(
+        "button",
+        {
+          type: "button",
+          className: "mv-cta",
+          onClick: () => onOverlayVisible?.(overlay.id, overlay.visible === false)
+        },
+        overlay.visible === false ? t2("layers.propsShow") : t2("layers.propsHide")
       )
-    ),
-    // ---- L4 imagery basemap (folded box: one source is normally in use) --------
-    h17(
+    ) : h17(
       "div",
-      { key: "g4-box", className: `mv-fold-box${imageryOpen ? " open" : ""}` },
+      { className: "mv-prop-body" },
+      row(t2("layers.propsSource"), overlay.url),
+      h17(
+        "button",
+        {
+          type: "button",
+          className: "mv-cta",
+          onClick: () => {
+            void navigator.clipboard?.writeText?.(overlay.url ?? "");
+          }
+        },
+        t2("layers.propsCopyUrl")
+      )
+    );
+    return h17(
+      "div",
+      { className: "mv-modal mv-prop-modal", onPointerDown: (event) => event.target === event.currentTarget && onClose?.() },
       h17(
         "div",
-        { key: "g4", className: "mv-group" },
+        { ref: dialogRef, className: "mv-dialog mv-props", role: "dialog", "aria-modal": "true", "aria-labelledby": titleId2 },
         h17(
-          "button",
-          {
-            type: "button",
-            className: "mv-group-toggle",
-            "aria-expanded": imageryOpen,
-            title: imageryOpen ? t2("layers.imageryFold") : t2("layers.imageryUnfold"),
-            onClick: toggleImagery
-          },
-          h17(
-            "div",
-            { className: "mv-fold-top" },
-            h17(
-              "span",
-              { className: "mv-fold-heading" },
-              h17("span", { className: `mv-group-chevron${imageryOpen ? " open" : ""}`, "aria-hidden": true }, "▸"),
-              h17("span", { className: "mv-group-title" }, t2("layers.imagery")),
-              h17("span", { className: "mv-fold-count" }, t2("layers.imageryCount", { n: (config?.imagery?.length ?? 0) + 1 }))
-            ),
-            h17(
-              "span",
-              { className: "mv-fold-state" },
-              imageryOpen ? t2("layers.imageryClickFold") : t2("layers.imageryClickExpand")
-            )
-          ),
-          h17(
-            "div",
-            { className: "mv-fold-summary" },
-            h17("span", { className: "mv-fold-dot", "aria-hidden": true }),
-            h17("span", { className: "mv-fold-label" }, t2("layers.imageryCurrent")),
-            h17("span", { className: "mv-group-current" }, imagerySummary(t2, config, settings))
-          )
-        )
-      ),
-      activeImagerySource && hasRasterTimeline(activeImagerySource) ? h17(RasterTimeline, {
-        key: `basemap-rtime-${activeImagerySource.id}`,
-        t: t2,
-        source: activeImagerySource,
-        frameIndex: rasterFrames?.[activeImagerySource.id] ?? 0,
-        onSelectFrame: onSelectRasterFrame
-      }) : null,
-      imageryOpen ? h17(
-        "div",
-        { key: "g4-body", className: "mv-fold-body" },
-        radioRow("i-off", t2("menu.none"), settings?.imagery == null, () => onSelectImagery(null)),
-        (config?.imagery ?? []).map(
-          (source) => radioRow(`i-${source.id}`, source.name, settings?.imagery === source.id, () => onSelectImagery(source.id))
+          "header",
+          null,
+          h17("b", { id: titleId2 }, `${t2("layers.properties")} · ${overlay.name}`),
+          h17("button", { type: "button", className: "mv-icon-btn", title: t2("btn.close"), "aria-label": t2("btn.close"), onClick: onClose }, "✕")
         ),
-        h17("p", { key: "imagery-hint", className: "mv-none mv-imagery-hint" }, t2("layers.imageryCoverageHint"))
-      ) : null
+        h17("div", { className: "mv-tabs", role: "tablist" }, ...tabs),
+        body2
+      )
+    );
+  }
+  const overlayRow = (agentOverlays ?? []).find((entry2) => entry2.index === selection.index);
+  if (!overlayRow) return null;
+  const features = Array.isArray(overlayDetails?.[selection.index]) ? overlayDetails[selection.index] : [];
+  const titleId = "mv-prop-title-vector";
+  const body = h17(
+    "div",
+    { className: "mv-prop-body" },
+    row(t2("layers.propsName"), overlayRow.label),
+    row(t2("layers.propsKind"), t2("layers.propsVector")),
+    row(t2("layers.propsFeatures"), String(features.length)),
+    h17(
+      "button",
+      {
+        type: "button",
+        className: "mv-cta",
+        onClick: () => {
+          onClose?.();
+          onFlyAgentOverlay?.(overlayRow.kind, selection.index);
+        }
+      },
+      t2("btn.flyTo")
+    ),
+    features.length > 0 && onSelectAgentFeature ? h17(
+      "button",
+      {
+        type: "button",
+        className: "mv-cta",
+        onClick: () => {
+          onClose?.();
+          onSelectAgentFeature(selection.index, features[0]?.featureIndex ?? 0);
+        }
+      },
+      t2("layers.propsEditFeatures")
+    ) : null,
+    onExportOverlay ? h17(
+      "button",
+      { type: "button", className: "mv-cta", onClick: () => onExportOverlay(selection.index) },
+      t2("layers.exportVector")
+    ) : null
+  );
+  return h17(
+    "div",
+    { className: "mv-modal mv-prop-modal", onPointerDown: (event) => event.target === event.currentTarget && onClose?.() },
+    h17(
+      "div",
+      { ref: dialogRef, className: "mv-dialog mv-props", role: "dialog", "aria-modal": "true", "aria-labelledby": titleId },
+      h17(
+        "header",
+        null,
+        h17("b", { id: titleId }, `${t2("layers.properties")} · ${overlayRow.label}`),
+        h17("button", { type: "button", className: "mv-icon-btn", title: t2("btn.close"), "aria-label": t2("btn.close"), onClick: onClose }, "✕")
+      ),
+      body
     )
   );
 }
 
-// src/client/ui/layers-panel.js
+// src/client/ui/scene-dialogs.js
 var h18 = import_react21.default.createElement;
+function SceneDialogs({
+  t: t2,
+  request,
+  selection,
+  layers: layers2,
+  config,
+  settings,
+  agentOverlays,
+  overlayDetails,
+  shaderActive,
+  workbench,
+  recentDirs,
+  onCloseAdd,
+  onCloseProps,
+  onOverlayAdd,
+  onImportVector,
+  onFlyLayer,
+  onToggleLayer,
+  onInspectLayer,
+  onOverlayOpacity,
+  onOverlayVisible,
+  onEditLayerShader,
+  onSelectAgentFeature,
+  onExportOverlay,
+  onFlyAgentOverlay
+}) {
+  return h18(
+    import_react21.default.Fragment,
+    null,
+    h18(AddLayerDialog, {
+      key: "add-layer",
+      t: t2,
+      request,
+      onClose: onCloseAdd,
+      onOpenLocal: workbench?.openLocal,
+      onOpenUrl: workbench?.openUrl,
+      recentDirs,
+      onOpenRecent: workbench?.openRecent,
+      onPickLocalTiles: () => workbench?.pickLocalTiles?.({ withMeta: true }),
+      onOverlayAdd,
+      onImportVector
+    }),
+    selection ? h18(LayerProperties, {
+      key: "layer-props",
+      t: t2,
+      selection,
+      layers: layers2,
+      config,
+      settings,
+      agentOverlays,
+      overlayDetails,
+      shaderActive,
+      onClose: onCloseProps,
+      onFlyLayer,
+      onToggleLayer,
+      onInspectLayer,
+      onOverlayOpacity,
+      onOverlayVisible,
+      onEditLayerShader,
+      onSelectAgentFeature,
+      onExportOverlay,
+      onFlyAgentOverlay
+    }) : null
+  );
+}
+
+// src/client/ui/right-stack.js
+var import_react44 = __toESM(require("react"), 1);
+
+// src/client/ui/layers-panel.js
+var import_react28 = __toESM(require("react"), 1);
+
+// src/client/ui/layers-entities.js
+var import_react25 = __toESM(require("react"), 1);
+
+// src/client/ui/layer-row.js
+var import_react22 = __toESM(require("react"), 1);
+var h19 = import_react22.default.createElement;
+function RowEye({ t: t2, visible, onToggle }) {
+  return h19(
+    "button",
+    {
+      type: "button",
+      className: `mv-icon-btn${visible ? "" : " is-off"}`,
+      title: visible ? t2("btn.hidden") : t2("btn.visible"),
+      "aria-label": visible ? t2("btn.hidden") : t2("btn.visible"),
+      "aria-pressed": !visible,
+      onClick: onToggle
+    },
+    h19(EyeIcon, { size: 15, off: !visible })
+  );
+}
+function RowDot({ color }) {
+  return h19("span", { className: "mv-row-dot", "aria-hidden": true, style: { background: color } });
+}
+function LayerRow({
+  t: t2,
+  id,
+  name,
+  meta = "",
+  title = "",
+  warn = false,
+  warnTitle = "",
+  off = false,
+  selected = false,
+  className = "",
+  lead = null,
+  trail = null,
+  menu = null,
+  menuOpen = false,
+  onMenuToggle,
+  onNameClick,
+  onNameDoubleClick,
+  children = null
+}) {
+  const label = title || name;
+  const moreRef = import_react22.default.useRef?.(null) ?? { current: null };
+  const [up, setUp] = import_react22.default.useState(false);
+  import_react22.default.useLayoutEffect?.(() => {
+    if (!menuOpen) {
+      setUp(false);
+      return;
+    }
+    const button = moreRef.current;
+    const list = button?.closest?.(".mv-layer-list");
+    if (!button || !list) return;
+    const rect = button.getBoundingClientRect();
+    const listRect = list.getBoundingClientRect();
+    const needed = 44 + (menu?.length ?? 0) * 34;
+    setUp(listRect.bottom - rect.bottom < needed);
+  }, [menuOpen, menu]);
+  return h19(
+    "div",
+    {
+      className: `mv-layer${off ? " off" : ""}${selected ? " selected" : ""}${menuOpen ? " menu-open" : ""}${className ? ` ${className}` : ""}`,
+      title: label,
+      // Esc closes the overflow menu wherever focus sits inside the row; the
+      // menu is parent-controlled, so this is the only keyboard dismiss path.
+      onKeyDown: menuOpen && onMenuToggle ? (event) => {
+        if (event.key !== "Escape") return;
+        event.stopPropagation();
+        onMenuToggle(null);
+      } : void 0
+    },
+    warn ? h19("span", { className: "mv-warn", title: warnTitle, "aria-label": warnTitle }, "⚠") : null,
+    lead,
+    h19(
+      "span",
+      {
+        className: "name",
+        onClick: onNameClick ? (event) => {
+          event.stopPropagation();
+          onNameClick();
+        } : void 0,
+        onDoubleClick: onNameDoubleClick ? (event) => {
+          event.stopPropagation();
+          onNameDoubleClick();
+        } : void 0
+      },
+      h19("span", { className: "mv-row-name" }, name),
+      meta ? h19("span", { className: "mv-row-meta" }, meta) : null
+    ),
+    trail,
+    menu && menu.length > 0 ? h19(
+      "button",
+      {
+        type: "button",
+        ref: (node) => {
+          moreRef.current = node;
+        },
+        className: `mv-icon-btn mv-row-more${menuOpen ? " on" : ""}`,
+        title: t2("layers.more"),
+        "aria-label": t2("layers.more"),
+        "aria-haspopup": "menu",
+        "aria-expanded": menuOpen,
+        onClick: (event) => {
+          event.stopPropagation();
+          onMenuToggle?.(menuOpen ? null : id);
+        }
+      },
+      h19(LayerActionIcon, { kind: "more", size: 15 })
+    ) : null,
+    menu && menuOpen ? h19(
+      "div",
+      { className: `mv-row-menu mv-glass${up ? " up" : ""}`, role: "menu", "aria-label": t2("layers.more") },
+      menu.map(
+        (item, index) => item?.sep ? h19("i", { key: item.key ?? `sep-${index}`, className: "mv-sep" }) : h19(
+          MenuItem,
+          {
+            key: item.key ?? `item-${index}`,
+            disabled: Boolean(item.disabled),
+            danger: Boolean(item.danger),
+            checked: item.checked,
+            hint: item.hint ?? "",
+            title: item.title,
+            onClick: () => {
+              onMenuToggle?.(null);
+              item.onClick?.();
+            }
+          },
+          item.label
+        )
+      )
+    ) : null,
+    children
+  );
+}
+
+// src/client/ui/use-row-menu.js
+var import_react23 = __toESM(require("react"), 1);
+function useRowMenu() {
+  const [openId, setOpenId] = import_react23.default.useState(null);
+  const ref = import_react23.default.useRef(null);
+  import_react23.default.useEffect(() => {
+    if (openId === null || typeof document === "undefined") return void 0;
+    const close = (event) => {
+      if (!ref.current?.contains(event.target)) setOpenId(null);
+    };
+    document.addEventListener("pointerdown", close, true);
+    return () => document.removeEventListener?.("pointerdown", close, true);
+  }, [openId]);
+  return { openId, setOpenId, ref };
+}
+
+// src/client/ui/layer-group.js
+var import_react24 = __toESM(require("react"), 1);
+
+// src/client/ui/panel-prefs.js
+var STORAGE_PREFIX = "mv.pref.";
+function readPanelFlag(key, fallback = false) {
+  try {
+    const raw = globalThis.localStorage?.getItem(STORAGE_PREFIX + key);
+    if (raw === "1") return true;
+    if (raw === "0") return false;
+    return fallback;
+  } catch {
+    return fallback;
+  }
+}
+function writePanelFlag(key, value) {
+  try {
+    globalThis.localStorage?.setItem(STORAGE_PREFIX + key, value ? "1" : "0");
+  } catch {
+  }
+}
+var TOOLS_MINIMIZED_KEY = "tools.index.minimized";
+function groupOpenKey(id) {
+  return `lgroup.${id}.open`;
+}
+
+// src/client/ui/layer-group.js
+var h20 = import_react24.default.createElement;
+function useGroupOpen(id, fallback = true) {
+  const [open, setOpen] = import_react24.default.useState(() => readPanelFlag(groupOpenKey(id), fallback));
+  const toggle = import_react24.default.useCallback(() => {
+    setOpen((value) => {
+      writePanelFlag(groupOpenKey(id), !value);
+      return !value;
+    });
+  }, [id]);
+  return [open, toggle];
+}
+function groupCount(rows) {
+  const total = rows.length;
+  const hidden = rows.filter((row2) => row2?.visible === false || row2?.hidden === true).length;
+  return hidden > 0 ? `${total - hidden}/${total}` : String(total);
+}
+function LayerGroup({ t: t2, id, title, count, open, onToggle, actions, empty, hint, children }) {
+  const body = children ?? (empty ? h20("p", { className: "mv-none" }, empty) : null);
+  const toggleLabel = open ? t2("layers.groupCollapse") : t2("layers.groupExpand");
+  return h20(
+    "div",
+    { className: `mv-lgroup${open ? " open" : ""}`, "data-group": id },
+    h20(
+      "div",
+      { className: "mv-group" },
+      h20(
+        "button",
+        {
+          type: "button",
+          className: "mv-group-toggle",
+          "aria-expanded": open,
+          // The body only exists while open, so the reference must not either.
+          ...open ? { "aria-controls": `mv-lgroup-body-${id}` } : {},
+          title: toggleLabel,
+          onClick: onToggle
+        },
+        h20("span", { className: `mv-group-chevron${open ? " open" : ""}`, "aria-hidden": true }, "▸"),
+        h20("span", { className: "mv-group-title" }, title),
+        count === void 0 || count === null ? null : h20("span", { className: "mv-group-count" }, `· ${count}`)
+      ),
+      actions ? h20("div", { className: "mv-group-actions" }, actions) : null
+    ),
+    hint ? h20("p", { className: "mv-note mv-lgroup-hint" }, hint) : null,
+    open ? h20("div", { id: `mv-lgroup-body-${id}`, className: "mv-lgroup-body" }, body) : null
+  );
+}
+
+// src/client/ui/layers-entities.js
+var h21 = import_react25.default.createElement;
+function splitEntityRows(agentOverlays) {
+  const rows = Array.isArray(agentOverlays) ? agentOverlays : [];
+  return {
+    annotations: rows.filter((row2) => row2.kind === "draw" && row2.origin !== "import"),
+    measurements: rows.filter((row2) => row2.kind === "measure"),
+    imports: rows.filter((row2) => row2.kind === "draw" && row2.origin === "import")
+  };
+}
+function LayersEntities({
+  t: t2,
+  layers: layers2,
+  shaderActive,
+  agentOverlays,
+  overlayDetails,
+  overlayExtrusions,
+  onFlyLayer,
+  onFrameAll,
+  onToggleLayer,
+  onRemoveLayer,
+  onEditLayerShader,
+  onOpenLayerProperties,
+  swipeState,
+  onSwipeLayer,
+  onAddLayer,
+  onQuickAnnotate,
+  onOpenMeasure,
+  onFlyAgentOverlay,
+  onRemoveAgentOverlay,
+  onToggleOverlayExtrude,
+  onSelectAgentFeature,
+  onExportOverlay,
+  onSendOverlay,
+  onFlyAgentFeature,
+  onRemoveAgentFeature,
+  canSend,
+  onClearAnnotations,
+  onClearMeasurements,
+  onToggleOverlayVisible
+}) {
+  const rowMenu = useRowMenu();
+  const [expanded, setExpanded] = import_react25.default.useState({});
+  const [openAnnotations, toggleAnnotations] = useGroupOpen("annotations");
+  const [openMeasurements, toggleMeasurements] = useGroupOpen("measurements");
+  const [openContent, toggleContent] = useGroupOpen("content");
+  const { annotations, measurements } = splitEntityRows(agentOverlays);
+  const shaderFor = (layer) => (shaderActive ?? []).find(
+    (entry2) => entry2.layerId === layer.id || entry2.layerId === void 0 && entry2.layer === layer.name
+  ) ?? null;
+  const featureList = (row2) => row2.kind === "draw" && Array.isArray(overlayDetails?.[row2.index]) ? overlayDetails[row2.index] : [];
+  const dotColor = (row2) => {
+    const first = featureList(row2)[0];
+    return VECTOR_COLORS[first?.style] ?? VECTOR_COLORS.accent;
+  };
+  const rowId = (row2) => `entity-${row2.id}`;
+  const shaderPresetLabel = (shader) => {
+    const presets = Array.isArray(shader?.preset) ? shader.preset : shader?.preset ? [shader.preset] : [];
+    return presets.map((preset) => t2(`shader.preset.${preset}`)).join(" + ");
+  };
+  const flyButton = (row2) => onFlyAgentOverlay ? h21(
+    "button",
+    {
+      type: "button",
+      className: "mv-icon-btn mv-row-fly",
+      title: t2("btn.flyTo"),
+      "aria-label": t2("btn.flyTo"),
+      onClick: () => onFlyAgentOverlay(row2.kind, row2.index)
+    },
+    h21(LayerActionIcon, { kind: "locate", size: 15 })
+  ) : null;
+  const rowEye = (row2) => onToggleOverlayVisible ? h21(RowEye, {
+    t: t2,
+    visible: row2.hidden !== true,
+    onToggle: () => onToggleOverlayVisible(row2.kind, row2.index, row2.hidden === true)
+  }) : null;
+  const clearButton = (label, count, disabled, onClick) => h21(
+    "button",
+    {
+      type: "button",
+      className: "mv-icon-btn",
+      title: `${label}${count > 0 ? ` · ${count}` : ""}`,
+      "aria-label": label,
+      disabled,
+      onClick: disabled ? void 0 : onClick
+    },
+    h21(LayerActionIcon, { kind: "delete", size: 15 })
+  );
+  const action = (icon, label, onClick, disabled = false) => h21(
+    "button",
+    { type: "button", className: "mv-icon-btn", title: label, "aria-label": label, disabled, onClick: disabled ? void 0 : onClick },
+    h21(GlyphIcon, { name: icon, size: 15 })
+  );
+  const annotationRow = (row2) => {
+    const features = featureList(row2);
+    const hasFeatures = features.length > 0;
+    const canExtrude = overlayExtrusions?.[row2.index]?.canExtrude === true;
+    const isOpen = Boolean(expanded[row2.id]);
+    const is3d = Boolean(overlayExtrusions?.[row2.index]?.extruded);
+    const menu = [
+      { key: "fly", label: t2("btn.flyTo"), onClick: () => onFlyAgentOverlay?.(row2.kind, row2.index) },
+      { key: "props", label: t2("layers.properties"), onClick: () => onOpenLayerProperties?.({ kind: "vector", index: row2.index }) },
+      features.length > 0 ? {
+        key: "edit",
+        label: t2("layers.propsEditFeatures"),
+        onClick: () => onSelectAgentFeature?.(row2.index, features[0]?.featureIndex ?? 0)
+      } : null,
+      onExportOverlay ? { key: "export", label: t2("layers.exportVector"), onClick: () => onExportOverlay(row2.index) } : null,
+      onSendOverlay ? {
+        key: "send",
+        label: t2("layers.vectorToChat"),
+        disabled: canSend === false,
+        onClick: () => onSendOverlay(row2.index)
+      } : null,
+      onToggleOverlayVisible ? {
+        key: "visible",
+        label: t2("btn.visible"),
+        checked: row2.hidden !== true,
+        onClick: () => onToggleOverlayVisible(row2.kind, row2.index, row2.hidden === true)
+      } : null,
+      { key: "sep", sep: true },
+      { key: "remove", label: t2("layers.removeFromScene"), danger: true, onClick: () => onRemoveAgentOverlay?.(row2.kind, row2.index) }
+    ].filter(Boolean);
+    return h21(
+      "div",
+      { key: row2.id, className: "mv-lgroup-item" },
+      h21(LayerRow, {
+        t: t2,
+        id: rowId(row2),
+        name: row2.label,
+        meta: row2.detail,
+        off: row2.hidden === true,
+        lead: h21(
+          import_react25.default.Fragment,
+          null,
+          rowEye(row2),
+          hasFeatures ? h21(
+            "button",
+            {
+              type: "button",
+              className: "mv-icon-btn mv-overlay-toggle",
+              title: isOpen ? t2("layers.overlayCollapseFeatures") : t2("layers.overlayExpandFeatures"),
+              "aria-label": isOpen ? t2("layers.overlayCollapseFeatures") : t2("layers.overlayExpandFeatures"),
+              "aria-expanded": isOpen,
+              onClick: () => setExpanded((prev) => ({ ...prev, [row2.id]: !prev[row2.id] }))
+            },
+            isOpen ? "▾" : "▸"
+          ) : null,
+          h21(RowDot, { color: dotColor(row2) })
+        ),
+        trail: h21(
+          import_react25.default.Fragment,
+          null,
+          canExtrude ? h21(
+            "button",
+            {
+              type: "button",
+              className: `mv-icon-btn mv-layer-dim-btn${is3d ? " on" : ""}`,
+              "aria-pressed": is3d,
+              title: is3d ? t2("layers.switch2d") : t2("layers.switch3d"),
+              "aria-label": is3d ? t2("layers.switch2d") : t2("layers.switch3d"),
+              onClick: () => onToggleOverlayExtrude?.(row2.index)
+            },
+            is3d ? "3D" : "2D"
+          ) : null,
+          flyButton(row2)
+        ),
+        menu,
+        menuOpen: rowMenu.openId === rowId(row2),
+        onMenuToggle: rowMenu.setOpenId,
+        onNameClick: () => onFlyAgentOverlay?.(row2.kind, row2.index)
+      }),
+      features.length > 0 && isOpen ? h21(
+        "div",
+        { className: "mv-overlay-features" },
+        ...features.map(
+          (feat) => h21(
+            "div",
+            { key: feat.featureId || `${row2.id}-${feat.featureIndex}`, className: "mv-overlay-feature" },
+            h21(
+              "button",
+              {
+                type: "button",
+                className: "mv-overlay-feature-pick",
+                title: t2("layers.featureSelectHint"),
+                onClick: () => onSelectAgentFeature?.(row2.index, feat.featureIndex)
+              },
+              h21("span", {
+                className: "mv-overlay-feature-dot",
+                "aria-hidden": true,
+                style: { background: VECTOR_COLORS[feat.style] ?? VECTOR_COLORS.accent }
+              }),
+              h21("span", { className: "mv-overlay-feature-name" }, feat.name ?? t2("layers.featureUnnamed", { n: feat.featureIndex + 1 })),
+              feat.heightM != null ? h21(
+                "span",
+                { className: "mv-overlay-feature-meta" },
+                `≈${Math.round(feat.heightM)}m${feat.estFloors != null ? `/${t2("parse.floors", { n: feat.estFloors })}` : ""}`
+              ) : null,
+              h21("span", { className: "mv-overlay-feature-tag" }, feat.geometryType)
+            ),
+            onFlyAgentFeature ? h21(
+              "button",
+              {
+                type: "button",
+                className: "mv-icon-btn mv-overlay-feature-act",
+                title: t2("btn.flyTo"),
+                "aria-label": t2("btn.flyTo"),
+                onClick: () => onFlyAgentFeature(row2.index, feat.featureIndex)
+              },
+              h21(LayerActionIcon, { kind: "locate", size: 15 })
+            ) : null,
+            onRemoveAgentFeature ? h21(
+              "button",
+              {
+                type: "button",
+                className: "mv-icon-btn mv-overlay-feature-act",
+                title: t2("btn.delete"),
+                "aria-label": t2("btn.delete"),
+                onClick: () => onRemoveAgentFeature(row2.index, feat.featureIndex)
+              },
+              h21(LayerActionIcon, { kind: "delete", size: 15 })
+            ) : null
+          )
+        )
+      ) : null
+    );
+  };
+  const measureRow = (row2) => h21(LayerRow, {
+    key: row2.id,
+    t: t2,
+    id: rowId(row2),
+    name: row2.label,
+    meta: row2.detail,
+    lead: h21(
+      import_react25.default.Fragment,
+      null,
+      rowEye(row2),
+      h21(RowDot, { color: VECTOR_COLORS.accent })
+    ),
+    trail: flyButton(row2),
+    menu: [
+      { key: "fly", label: t2("btn.flyTo"), onClick: () => onFlyAgentOverlay?.(row2.kind, row2.index) },
+      { key: "sep", sep: true },
+      { key: "remove", label: t2("layers.removeFromScene"), danger: true, onClick: () => onRemoveAgentOverlay?.(row2.kind, row2.index) }
+    ],
+    menuOpen: rowMenu.openId === rowId(row2),
+    onMenuToggle: rowMenu.setOpenId,
+    onNameClick: () => onFlyAgentOverlay?.(row2.kind, row2.index),
+    onNameDoubleClick: () => onOpenLayerProperties?.({ kind: "vector", index: row2.index })
+  });
+  const contentRow = (layer) => {
+    const shader = shaderFor(layer);
+    const is3dgs = layer.kind === "3dgs";
+    const summary = shader ? shaderEntrySummary(t2, shader) : "";
+    const swipeOn = (swipeState?.kind === "3d" || swipeState?.kind === "split") && swipeState?.id === layer.id || swipeState?.kind === "pair" && (swipeState?.leftId === layer.id || swipeState?.rightId === layer.id);
+    return h21(LayerRow, {
+      key: layer.id,
+      t: t2,
+      id: `layer-${layer.id}`,
+      name: layer.name,
+      meta: [is3dgs ? t2("layers.kindSplats") : t2("layers.kindTiles"), shader ? shaderPresetLabel(shader) : ""].filter(Boolean).join(" · "),
+      title: summary ? `${layer.name} — ${summary}` : layer.name,
+      warn: Boolean(layer.georefIssue),
+      warnTitle: t2("layers.georefWarning"),
+      off: !layer.visible,
+      className: shader ? "has-shader" : "",
+      lead: h21(RowEye, {
+        t: t2,
+        visible: layer.visible,
+        onToggle: () => onToggleLayer(layer.id)
+      }),
+      trail: h21(
+        import_react25.default.Fragment,
+        null,
+        h21(
+          "button",
+          {
+            type: "button",
+            className: `mv-icon-btn mv-shader-edit${shader ? " on" : ""}`,
+            title: is3dgs ? t2("layers.appearance3dgs") : summary ? `${t2("shader.editEntry")} · ${summary}` : t2("layers.appearance"),
+            "aria-label": is3dgs ? t2("layers.appearance3dgs") : summary ? t2("shader.editEntry") : t2("layers.appearance"),
+            disabled: is3dgs,
+            onClick: () => {
+              if (is3dgs) return;
+              onEditLayerShader(layer, shader);
+            }
+          },
+          h21(LayerActionIcon, { kind: "shader", size: 15 })
+        ),
+        h21(
+          "button",
+          {
+            type: "button",
+            className: "mv-icon-btn mv-row-fly",
+            title: t2("btn.flyTo"),
+            "aria-label": t2("btn.flyTo"),
+            onClick: () => onFlyLayer(layer.id)
+          },
+          h21(LayerActionIcon, { kind: "locate", size: 15 })
+        )
+      ),
+      menu: [
+        { key: "fly", label: t2("btn.flyTo"), onClick: () => onFlyLayer(layer.id) },
+        { key: "props", label: t2("layers.properties"), onClick: () => onOpenLayerProperties?.({ kind: "3d", id: layer.id }) },
+        onSwipeLayer ? {
+          key: "swipe",
+          label: t2("swipe.toggle"),
+          hint: t2("swipe.toggleHint"),
+          disabled: !layer.visible,
+          checked: swipeOn,
+          onClick: () => onSwipeLayer(layer.id)
+        } : null,
+        { key: "sep", sep: true },
+        { key: "remove", label: t2("layers.removeFromScene"), danger: true, onClick: () => onRemoveLayer(layer.id) }
+      ].filter(Boolean),
+      menuOpen: rowMenu.openId === `layer-${layer.id}`,
+      onMenuToggle: rowMenu.setOpenId,
+      onNameClick: () => onFlyLayer(layer.id),
+      onNameDoubleClick: () => onOpenLayerProperties?.({ kind: "3d", id: layer.id })
+    });
+  };
+  return h21(
+    "div",
+    { key: "list-3d", className: "mv-layer-list", ref: rowMenu.ref },
+    h21(
+      LayerGroup,
+      {
+        t: t2,
+        id: "annotations",
+        title: t2("layers.annotations"),
+        count: groupCount(annotations),
+        open: openAnnotations,
+        onToggle: toggleAnnotations,
+        actions: h21(
+          import_react25.default.Fragment,
+          null,
+          onQuickAnnotate ? action("pen", t2("annotation.quickDraw"), onQuickAnnotate) : null,
+          clearButton(t2("layers.clearAnnotations"), annotations.length, annotations.length === 0, onClearAnnotations)
+        ),
+        empty: t2("layers.emptyAnnotations")
+      },
+      annotations.length > 0 ? annotations.map(annotationRow) : null
+    ),
+    h21(
+      LayerGroup,
+      {
+        t: t2,
+        id: "measurements",
+        title: t2("layers.measurements"),
+        count: groupCount(measurements),
+        open: openMeasurements,
+        onToggle: toggleMeasurements,
+        actions: h21(
+          import_react25.default.Fragment,
+          null,
+          onOpenMeasure ? action("ruler", t2("btn.measure"), onOpenMeasure) : null,
+          clearButton(t2("layers.clearMeasurements"), measurements.length, measurements.length === 0, onClearMeasurements)
+        ),
+        empty: t2("layers.emptyMeasurements")
+      },
+      measurements.length > 0 ? measurements.map(measureRow) : null
+    ),
+    h21(
+      LayerGroup,
+      {
+        t: t2,
+        id: "content",
+        title: t2("layers.content"),
+        count: groupCount(layers2),
+        open: openContent,
+        onToggle: toggleContent,
+        actions: h21(
+          import_react25.default.Fragment,
+          null,
+          layers2.length > 0 ? action("frame", t2("layers.frameAll"), onFrameAll) : null,
+          action("add", t2("layers.addLayer"), () => onAddLayer?.("3d"))
+        ),
+        empty: t2("layers.contentEmpty")
+      },
+      layers2.length > 0 ? layers2.map(contentRow) : null
+    )
+  );
+}
+
+// src/client/ui/layers-surface.js
+var import_react27 = __toESM(require("react"), 1);
+
+// src/client/ui/raster-timeline.js
+var import_react26 = __toESM(require("react"), 1);
+var h22 = import_react26.default.createElement;
+var PLAYBACK_SPEEDS = [
+  { label: "0.5×", ms: 2e3 },
+  { label: "1×", ms: 1e3 },
+  { label: "2×", ms: 500 }
+];
+function RasterTimeline({ t: t2, source, frameIndex = 0, disabled = false, onSelectFrame }) {
+  const frames = import_react26.default.useMemo(() => resolveSourceFrames(source), [source]);
+  const [playing, setPlaying] = import_react26.default.useState(false);
+  const [speedIdx, setSpeedIdx] = import_react26.default.useState(1);
+  const current2 = clampFrameIndex(frameIndex, frames);
+  const currentRef = import_react26.default.useRef(current2);
+  currentRef.current = current2;
+  const selectRef = import_react26.default.useRef(onSelectFrame);
+  selectRef.current = onSelectFrame;
+  import_react26.default.useEffect(() => {
+    if ((disabled || frames.length < 2) && playing) setPlaying(false);
+  }, [disabled, frames.length, playing]);
+  import_react26.default.useEffect(() => {
+    if (!playing || disabled || frames.length < 2) return void 0;
+    const intervalMs = PLAYBACK_SPEEDS[speedIdx]?.ms ?? 1e3;
+    const timer = setInterval(() => {
+      const next = (currentRef.current + 1) % frames.length;
+      selectRef.current?.(source.id, next);
+    }, intervalMs);
+    return () => clearInterval(timer);
+  }, [playing, disabled, frames.length, speedIdx, source?.id]);
+  if (frames.length < 2) return null;
+  const active = frames[current2];
+  const first = frames[0];
+  const last = frames[frames.length - 1];
+  const showDate = Boolean(active.time && active.time !== active.label);
+  const valueText = showDate ? `${active.label} · ${active.time} (${current2 + 1}/${frames.length})` : `${active.label} (${current2 + 1}/${frames.length})`;
+  const stepBy = (delta) => {
+    setPlaying(false);
+    const next = (current2 + delta + frames.length) % frames.length;
+    onSelectFrame?.(source.id, next);
+  };
+  return h22(
+    "div",
+    {
+      className: `mv-rtime${disabled ? " dim" : ""}`,
+      "data-raster-timeline": source.id,
+      role: "region",
+      "aria-label": t2("rasterTime.sliderLabel", { name: source.name })
+    },
+    h22(
+      "div",
+      { className: "mv-rtime-head" },
+      h22("span", { className: "mv-rtime-tag" }, t2("rasterTime.title")),
+      h22(
+        "span",
+        { className: "mv-rtime-current", title: valueText },
+        h22("span", { className: "mv-rtime-label" }, active.label),
+        showDate ? h22("span", { className: "mv-rtime-date" }, active.time) : null
+      ),
+      h22("span", { className: "mv-rtime-count" }, `${current2 + 1}/${frames.length}`)
+    ),
+    h22("input", {
+      type: "range",
+      className: "mv-rtime-range",
+      min: 0,
+      max: frames.length - 1,
+      step: 1,
+      value: current2,
+      "aria-label": t2("rasterTime.sliderLabel", { name: source.name }),
+      "aria-valuetext": valueText,
+      style: {
+        "--attr-min": 0,
+        "--attr-max": frames.length - 1,
+        "--control-value": current2
+      },
+      onChange: (event) => {
+        setPlaying(false);
+        onSelectFrame?.(source.id, Number(event.target.value));
+      }
+    }),
+    h22(
+      "div",
+      { className: "mv-rtime-bounds", "aria-hidden": true },
+      h22("span", null, first.time || first.label),
+      h22("span", null, last.time || last.label)
+    ),
+    h22(
+      "div",
+      { className: "mv-rtime-controls" },
+      h22(
+        "button",
+        {
+          type: "button",
+          className: "mv-rtime-btn",
+          title: t2("rasterTime.prev"),
+          "aria-label": t2("rasterTime.prev"),
+          onClick: () => stepBy(-1)
+        },
+        "⏮"
+      ),
+      h22(
+        "button",
+        {
+          type: "button",
+          className: `mv-rtime-btn play${playing ? " on" : ""}`,
+          disabled,
+          "aria-pressed": playing,
+          onClick: () => setPlaying((prev) => !prev)
+        },
+        playing ? `⏸ ${t2("rasterTime.pause")}` : `▶ ${t2("rasterTime.play")}`
+      ),
+      h22(
+        "button",
+        {
+          type: "button",
+          className: "mv-rtime-btn",
+          title: t2("rasterTime.next"),
+          "aria-label": t2("rasterTime.next"),
+          onClick: () => stepBy(1)
+        },
+        "⏭"
+      ),
+      h22(
+        "button",
+        {
+          type: "button",
+          className: "mv-rtime-btn speed",
+          title: t2("rasterTime.speed"),
+          "aria-label": t2("rasterTime.speed"),
+          onClick: () => setSpeedIdx((prev) => (prev + 1) % PLAYBACK_SPEEDS.length)
+        },
+        PLAYBACK_SPEEDS[speedIdx].label
+      )
+    )
+  );
+}
+
+// src/client/ui/layers-surface.js
+var h23 = import_react27.default.createElement;
+var OVERLAY_KIND_LABEL = { wms: "WMS", xyz: "XYZ", arcgis: "ArcGIS" };
+function LayersSurface({
+  t: t2,
+  config,
+  settings,
+  terrainActive,
+  terrainError,
+  onSelectTerrain,
+  onRetryTerrain,
+  onSelectImagery,
+  onOverlayAdd,
+  onOverlayRemove,
+  onOverlayOpacity,
+  onOverlayVisible,
+  onOverlayMove,
+  onOverlaySwipe,
+  onOpenLayerProperties,
+  swipeState,
+  vectorExport,
+  rasterFrames,
+  onSelectRasterFrame,
+  importedOverlays,
+  overlayDetails,
+  onFlyAgentOverlay,
+  onFlyAgentFeature,
+  onRemoveAgentFeature,
+  onSelectAgentFeature,
+  onRemoveAgentOverlay,
+  onExportOverlay,
+  onSendOverlay,
+  canSend,
+  onToggleOverlayVisible,
+  onClearImports,
+  onAddLayer
+}) {
+  const rowMenu = useRowMenu();
+  const [expanded, setExpanded] = import_react27.default.useState({});
+  const [openVector, toggleVector] = useGroupOpen("vector");
+  const [openRaster, toggleRaster] = useGroupOpen("raster");
+  const [openImagery, toggleImagery] = useGroupOpen("imagery", false);
+  const [openTerrain, toggleTerrain] = useGroupOpen("terrain");
+  const overlays = Array.isArray(config?.rasterOverlays) ? config.rasterOverlays : [];
+  const imports = Array.isArray(importedOverlays) ? importedOverlays : [];
+  const imagerySources = Array.isArray(config?.imagery) ? config.imagery : [];
+  const terrainSources = Array.isArray(config?.terrain) ? config.terrain : [];
+  const activeImagerySource = settings?.imagery != null ? imagerySources.find((source) => source.id === settings.imagery) ?? null : null;
+  const imagerySummary = settings?.imagery == null ? t2("layers.imageryNone") : activeImagerySource?.name ?? String(settings.imagery);
+  const activeTerrainSource = terrainActive == null ? null : terrainSources.find((source) => source.id === terrainActive) ?? null;
+  const terrainSummary = terrainActive == null ? t2("layers.terrainNone") : activeTerrainSource?.name ?? String(terrainActive);
+  const radioRow = (key, label, active, onClick) => h23(
+    "button",
+    { key, type: "button", className: `mv-layer mv-choice${active ? " on" : ""}`, "aria-pressed": active, onClick },
+    h23("span", { className: "name" }, h23("span", { className: "mv-row-name" }, label)),
+    h23("span", { className: "tick", "aria-hidden": true }, active ? "✓" : "")
+  );
+  const action = (icon, label, onClick, disabled = false) => h23(
+    "button",
+    { type: "button", className: "mv-icon-btn", title: label, "aria-label": label, disabled, onClick: disabled ? void 0 : onClick },
+    h23(GlyphIcon, { name: icon, size: 15 })
+  );
+  const clearButton = (label, count, onClick) => h23(
+    "button",
+    {
+      type: "button",
+      className: "mv-icon-btn",
+      title: `${label}${count > 0 ? ` · ${count}` : ""}`,
+      "aria-label": label,
+      disabled: count === 0,
+      onClick: count === 0 ? void 0 : onClick
+    },
+    h23(LayerActionIcon, { kind: "delete", size: 15 })
+  );
+  const featureCount = (row2) => {
+    const features = Array.isArray(overlayDetails?.[row2.index]) ? overlayDetails[row2.index] : [];
+    return features.length;
+  };
+  const featureRow = (row2, feat) => h23(
+    "div",
+    { key: feat.featureId || `${row2.id}-${feat.featureIndex}`, className: "mv-overlay-feature" },
+    h23(
+      "button",
+      {
+        type: "button",
+        className: "mv-overlay-feature-pick",
+        title: t2("layers.featureSelectHint"),
+        onClick: () => onSelectAgentFeature?.(row2.index, feat.featureIndex)
+      },
+      h23("span", {
+        className: "mv-overlay-feature-dot",
+        "aria-hidden": true,
+        style: { background: VECTOR_COLORS[feat.style] ?? VECTOR_COLORS.accent }
+      }),
+      h23("span", { className: "mv-overlay-feature-name" }, feat.name ?? t2("layers.featureUnnamed", { n: feat.featureIndex + 1 })),
+      h23("span", { className: "mv-overlay-feature-tag" }, feat.geometryType)
+    ),
+    onFlyAgentFeature ? h23(
+      "button",
+      {
+        type: "button",
+        className: "mv-icon-btn mv-overlay-feature-act",
+        title: t2("btn.flyTo"),
+        "aria-label": t2("btn.flyTo"),
+        onClick: () => onFlyAgentFeature(row2.index, feat.featureIndex)
+      },
+      h23(LayerActionIcon, { kind: "locate", size: 15 })
+    ) : null,
+    onRemoveAgentFeature ? h23(
+      "button",
+      {
+        type: "button",
+        className: "mv-icon-btn mv-overlay-feature-act",
+        title: t2("btn.delete"),
+        "aria-label": t2("btn.delete"),
+        onClick: () => onRemoveAgentFeature(row2.index, feat.featureIndex)
+      },
+      h23(LayerActionIcon, { kind: "delete", size: 15 })
+    ) : null
+  );
+  const importRow = (row2) => {
+    const features = Array.isArray(overlayDetails?.[row2.index]) ? overlayDetails[row2.index] : [];
+    const count = featureCount(row2);
+    const isOpen = Boolean(expanded[`import-${row2.id}`]);
+    const color = VECTOR_COLORS[features[0]?.style] ?? VECTOR_COLORS.accent;
+    const rowId = `import-${row2.id}`;
+    return h23(
+      "div",
+      { key: row2.id, className: "mv-lgroup-item" },
+      h23(LayerRow, {
+        t: t2,
+        id: rowId,
+        name: row2.label,
+        meta: count > 0 ? `${count} ${t2("layers.propsFeaturesUnit")}` : row2.detail,
+        off: row2.hidden === true,
+        lead: h23(
+          import_react27.default.Fragment,
+          null,
+          h23(RowEye, {
+            t: t2,
+            visible: row2.hidden !== true,
+            onToggle: () => onToggleOverlayVisible?.(row2.kind, row2.index, row2.hidden === true)
+          }),
+          features.length > 0 ? h23(
+            "button",
+            {
+              type: "button",
+              className: "mv-icon-btn mv-overlay-toggle",
+              title: isOpen ? t2("layers.overlayCollapseFeatures") : t2("layers.overlayExpandFeatures"),
+              "aria-label": isOpen ? t2("layers.overlayCollapseFeatures") : t2("layers.overlayExpandFeatures"),
+              "aria-expanded": isOpen,
+              onClick: () => setExpanded((prev) => ({ ...prev, [rowId]: !prev[rowId] }))
+            },
+            isOpen ? "▾" : "▸"
+          ) : null,
+          h23(RowDot, { color })
+        ),
+        trail: onFlyAgentOverlay ? h23(
+          "button",
+          {
+            type: "button",
+            className: "mv-icon-btn mv-row-fly",
+            title: t2("btn.flyTo"),
+            "aria-label": t2("btn.flyTo"),
+            onClick: () => onFlyAgentOverlay?.(row2.kind, row2.index)
+          },
+          h23(LayerActionIcon, { kind: "locate", size: 15 })
+        ) : null,
+        menu: [
+          { key: "fly", label: t2("btn.flyTo"), onClick: () => onFlyAgentOverlay?.(row2.kind, row2.index) },
+          { key: "props", label: t2("layers.properties"), onClick: () => onOpenLayerProperties?.({ kind: "vector", index: row2.index }) },
+          onExportOverlay ? { key: "export", label: t2("layers.exportVector"), onClick: () => onExportOverlay(row2.index) } : null,
+          onSendOverlay ? {
+            key: "send",
+            label: t2("layers.vectorToChat"),
+            disabled: canSend === false,
+            onClick: () => onSendOverlay(row2.index)
+          } : null,
+          { key: "sep", sep: true },
+          { key: "remove", label: t2("layers.vectorRemove"), danger: true, onClick: () => onRemoveAgentOverlay?.(row2.kind, row2.index) }
+        ].filter(Boolean),
+        menuOpen: rowMenu.openId === rowId,
+        onMenuToggle: rowMenu.setOpenId,
+        onNameClick: () => onFlyAgentOverlay?.(row2.kind, row2.index),
+        onNameDoubleClick: () => onOpenLayerProperties?.({ kind: "vector", index: row2.index })
+      }),
+      features.length > 0 && isOpen ? h23(
+        "div",
+        { className: "mv-overlay-features" },
+        ...features.map((feat) => featureRow(row2, feat))
+      ) : null
+    );
+  };
+  const overlayRow = (overlay, index) => {
+    const percent = Math.round((overlay.opacity ?? 1) * 100);
+    const swipeOn = swipeState?.kind === "raster" && swipeState?.id === overlay.id;
+    const kid = `raster-${overlay.id}`;
+    return h23(
+      "div",
+      { key: overlay.id, className: "mv-lgroup-item" },
+      h23(LayerRow, {
+        t: t2,
+        id: kid,
+        name: overlay.name,
+        meta: `${OVERLAY_KIND_LABEL[overlay.type] ?? String(overlay.type).toUpperCase()} · ${percent}%${hasRasterTimeline(overlay) ? ` · ${t2("rasterTime.badge")}` : ""}`,
+        title: overlay.url,
+        off: overlay.visible === false,
+        lead: h23(RowEye, {
+          t: t2,
+          visible: overlay.visible !== false,
+          onToggle: () => onOverlayVisible?.(overlay.id, overlay.visible === false)
+        }),
+        trail: h23(
+          import_react27.default.Fragment,
+          null,
+          h23(
+            "button",
+            {
+              type: "button",
+              className: "mv-icon-btn mv-row-order",
+              title: t2("layers.overlayUp"),
+              "aria-label": t2("layers.overlayUp"),
+              disabled: index === 0,
+              onClick: index === 0 ? void 0 : () => onOverlayMove?.(overlay.id, -1)
+            },
+            h23(LayerActionIcon, { kind: "up", size: 14 })
+          ),
+          h23(
+            "button",
+            {
+              type: "button",
+              className: "mv-icon-btn mv-row-order",
+              title: t2("layers.overlayDown"),
+              "aria-label": t2("layers.overlayDown"),
+              disabled: index === overlays.length - 1,
+              onClick: index === overlays.length - 1 ? void 0 : () => onOverlayMove?.(overlay.id, 1)
+            },
+            h23(LayerActionIcon, { kind: "down", size: 14 })
+          )
+        ),
+        menu: [
+          { key: "props", label: t2("layers.properties"), onClick: () => onOpenLayerProperties?.({ kind: "raster", id: overlay.id }) },
+          { key: "up", label: t2("layers.overlayUp"), disabled: index === 0, onClick: () => onOverlayMove?.(overlay.id, -1) },
+          { key: "down", label: t2("layers.overlayDown"), disabled: index === overlays.length - 1, onClick: () => onOverlayMove?.(overlay.id, 1) },
+          onOverlaySwipe ? {
+            key: "swipe",
+            label: t2("swipe.toggle"),
+            disabled: overlay.visible === false,
+            checked: swipeOn,
+            onClick: () => onOverlaySwipe(overlay.id)
+          } : null,
+          { key: "sep", sep: true },
+          { key: "remove", label: t2("layers.overlayRemove"), danger: true, onClick: () => onOverlayRemove?.(overlay.id) }
+        ].filter(Boolean),
+        menuOpen: rowMenu.openId === kid,
+        onMenuToggle: rowMenu.setOpenId
+      }),
+      hasRasterTimeline(overlay) ? h23(RasterTimeline, {
+        t: t2,
+        source: overlay,
+        frameIndex: rasterFrames?.[overlay.id] ?? 0,
+        disabled: overlay.visible === false,
+        onSelectFrame: onSelectRasterFrame
+      }) : null
+    );
+  };
+  return h23(
+    "div",
+    { key: "list-surface", className: "mv-layer-list", ref: rowMenu.ref },
+    h23(
+      LayerGroup,
+      {
+        t: t2,
+        id: "vector",
+        title: t2("layers.vector"),
+        count: groupCount(imports),
+        open: openVector,
+        onToggle: toggleVector,
+        actions: h23(
+          import_react27.default.Fragment,
+          null,
+          onAddLayer ? action("import", t2("layers.importVector"), () => onAddLayer("vector")) : null,
+          vectorExport ? h23(
+            "button",
+            {
+              type: "button",
+              className: "mv-icon-btn",
+              title: t2("layers.vectorExportHint"),
+              "aria-label": t2("layers.exportAllOverlays"),
+              disabled: !vectorExport,
+              onClick: () => vectorExport?.download()
+            },
+            "↓"
+          ) : null,
+          clearButton(t2("layers.clearImports"), imports.length, onClearImports)
+        ),
+        empty: t2("layers.emptyVector")
+      },
+      imports.length > 0 ? imports.map(importRow) : null
+    ),
+    h23(
+      LayerGroup,
+      {
+        t: t2,
+        id: "raster",
+        title: t2("layers.raster"),
+        count: groupCount(overlays),
+        open: openRaster,
+        onToggle: toggleRaster,
+        actions: onAddLayer ? action("add", t2("layers.addLayer"), () => onAddLayer("raster")) : null,
+        empty: t2("layers.emptyRaster")
+      },
+      overlays.length > 0 ? overlays.map(overlayRow) : null
+    ),
+    h23(
+      LayerGroup,
+      {
+        t: t2,
+        id: "imagery",
+        title: t2("layers.imagery"),
+        count: groupCount(imagerySources),
+        open: openImagery,
+        onToggle: toggleImagery,
+        hint: openImagery ? null : `${t2("layers.imageryCurrent")} ${imagerySummary}`
+      },
+      h23(
+        import_react27.default.Fragment,
+        null,
+        radioRow("i-off", t2("menu.none"), settings?.imagery == null, () => onSelectImagery(null)),
+        imagerySources.map(
+          (source) => radioRow(`i-${source.id}`, source.name, settings?.imagery === source.id, () => onSelectImagery(source.id))
+        ),
+        h23("p", { className: "mv-none mv-imagery-hint" }, t2("layers.imageryCoverageHint"))
+      )
+    ),
+    // The active multi-period basemap keeps its timeline outside the fold: frame
+    // switching is the reason the layer exists, not a detail of its group.
+    activeImagerySource && hasRasterTimeline(activeImagerySource) ? h23(RasterTimeline, {
+      t: t2,
+      source: activeImagerySource,
+      frameIndex: rasterFrames?.[activeImagerySource.id] ?? 0,
+      onSelectFrame: onSelectRasterFrame
+    }) : null,
+    h23(
+      LayerGroup,
+      {
+        t: t2,
+        id: "terrain",
+        title: t2("layers.terrain"),
+        open: openTerrain,
+        onToggle: toggleTerrain,
+        hint: openTerrain ? null : `${t2("layers.terrainCurrent")} ${terrainSummary}`
+      },
+      h23(
+        import_react27.default.Fragment,
+        null,
+        radioRow("t-off", t2("menu.terrainOff"), terrainActive === null, () => onSelectTerrain(null)),
+        terrainSources.map(
+          (source) => radioRow(`t-${source.id}`, source.name, settings?.terrain === source.id, () => onSelectTerrain(source.id))
+        )
+      )
+    ),
+    terrainError ? h23(
+      "div",
+      { className: "mv-none mv-terrain-error" },
+      h23("span", null, terrainError),
+      h23(
+        "button",
+        { type: "button", className: "mv-icon-btn", title: t2("terrain.retry"), "aria-label": t2("terrain.retry"), onClick: onRetryTerrain },
+        "↻"
+      )
+    ) : null
+  );
+}
+
+// src/client/ui/layers-panel.js
+var h24 = import_react28.default.createElement;
 var nextTabsId = 0;
+var TAB_KEY = "layers.tab.surface";
 function LayersPanel({
   t: t2,
   config,
   settings,
   layers: layers2,
-  annotations,
   onCollapse,
   onSelectTerrain,
   onSelectImagery,
@@ -17806,27 +21829,32 @@ function LayersPanel({
   onFlyLayer,
   onFrameAll,
   onToggleLayer,
-  onInspectLayer,
   onRemoveLayer,
   shaderActive,
   onEditLayerShader,
-  onOverlayAdd,
+  onOpenLayerProperties,
+  onAddLayer,
   onOverlayRemove,
-  onOverlayOpacity,
   onOverlayVisible,
   onOverlayMove,
-  onClearVector,
   agentOverlays,
+  overlayDetails,
   overlayExtrusions,
   onToggleOverlayExtrude,
+  onToggleOverlayVisible,
   onRemoveAgentOverlay,
   onFlyAgentOverlay,
-  onImportVector,
-  onPickLocalTiles,
-  onOpenLocal,
-  onOpenUrl,
-  recentDirs,
-  onOpenRecent,
+  onFlyAgentFeature,
+  onRemoveAgentFeature,
+  onClearAnnotations,
+  onClearMeasurements,
+  onClearImports,
+  onSelectAgentFeature,
+  onExportOverlay,
+  onSendOverlay,
+  canSend,
+  onQuickAnnotate,
+  onOpenMeasure,
   onShowSceneDetails,
   swipeState,
   onSwipeLayer,
@@ -17838,7 +21866,11 @@ function LayersPanel({
   forceFloat = false,
   onFloatingChange
 }) {
-  const [tab, setTab] = import_react21.default.useState("3d");
+  const [tab, setTab] = import_react28.default.useState(() => readPanelFlag(TAB_KEY, false) ? "surface" : "3d");
+  const selectTab = import_react28.default.useCallback((next) => {
+    setTab(next);
+    writePanelFlag(TAB_KEY, next === "surface");
+  }, []);
   const resize = usePanelResize({
     storageKey: "layers",
     widthDirection: "right",
@@ -17857,22 +21889,41 @@ function LayersPanel({
     restoreSaved: false,
     hasExplicitWidth: Boolean(resize.size.width)
   });
-  import_react21.default.useEffect(() => {
+  import_react28.default.useEffect(() => {
     onFloatingChange?.(floating.moved);
   }, [floating.moved, onFloatingChange]);
-  const tabsId = import_react21.default.useMemo(() => `mv-data-${++nextTabsId}`, []);
-  const tabsRef = import_react21.default.useRef(null);
+  const tabsId = import_react28.default.useMemo(() => `mv-data-${++nextTabsId}`, []);
+  const tabsRef = import_react28.default.useRef(null);
   const onTabKey = (event) => {
     if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
     event.preventDefault();
-    const next = event.key === "Home" ? "3d" : event.key === "End" ? "map" : tab === "3d" ? "map" : "3d";
-    setTab(next);
+    const next = event.key === "Home" ? "3d" : event.key === "End" ? "surface" : tab === "3d" ? "surface" : "3d";
+    selectTab(next);
     tabsRef.current?.querySelector(`[data-tab="${next}"]`)?.focus();
   };
   const sourceName = (list, id) => list?.find((item) => item.id === id)?.name ?? null;
   const terrainActive = sourceName(config?.terrain, settings?.terrain);
+  const { annotations, measurements, imports } = splitEntityRows(agentOverlays);
+  const overlayCount = Array.isArray(config?.rasterOverlays) ? config.rasterOverlays.length : 0;
+  const entitiesCount = layers2.length + annotations.length + measurements.length;
+  const surfaceCount = imports.length + overlayCount;
   const panelStyle = embedded ? void 0 : floating.moved ? { ...floating.style, ...resize.style } : { ...floating.style, height: resize.style?.height, maxHeight: resize.style?.maxHeight };
-  return h18(
+  const tabButton = (value, label, count) => h24(
+    "button",
+    {
+      type: "button",
+      id: `${tabsId}-${value}`,
+      "data-tab": value,
+      role: "tab",
+      tabIndex: tab === value ? 0 : -1,
+      "aria-controls": `${tabsId}-panel`,
+      "aria-selected": tab === value,
+      className: `mv-layer-tab${tab === value ? " on" : ""}`,
+      onClick: () => selectTab(value)
+    },
+    `${label}${count > 0 ? ` · ${count}` : ""}`
+  );
+  return h24(
     "div",
     {
       className: `mv-layers mv-glass ${floating.className}${embedded ? " in-dock" : ""}`,
@@ -17880,91 +21931,131 @@ function LayersPanel({
       style: panelStyle,
       ...floating.panelProps
     },
-    h18(
+    h24(
       "header",
       floating.headerProps,
       floating.dragHandle,
-      h18("span", { className: "title" }, t2("layers.title")),
-      h18(
+      h24("span", { className: "title" }, t2("layers.title")),
+      h24(
         "div",
         { className: "mv-head-actions" },
         floating.resetButton,
-        h18(
+        h24(
           "button",
-          { type: "button", className: "mv-icon-btn", title: t2("sceneDetails.openHint"), "aria-label": t2("sceneDetails.openHint"), onClick: () => onShowSceneDetails?.() },
+          {
+            type: "button",
+            className: "mv-icon-btn mv-head-add",
+            title: t2("layers.addLayer"),
+            "aria-label": t2("layers.addLayer"),
+            onClick: () => onAddLayer?.(null)
+          },
+          "＋"
+        ),
+        h24(
+          "button",
+          {
+            type: "button",
+            className: "mv-icon-btn",
+            title: t2("sceneDetails.openHint"),
+            "aria-label": t2("sceneDetails.openHint"),
+            onClick: () => onShowSceneDetails?.()
+          },
           "ⓘ"
         ),
-        h18(
+        h24(
           "button",
-          { type: "button", className: "mv-icon-btn", title: t2("layers.collapse"), "aria-label": t2("layers.collapse"), onClick: onCollapse },
+          {
+            type: "button",
+            className: "mv-icon-btn",
+            title: t2("layers.collapse"),
+            "aria-label": t2("layers.collapse"),
+            onClick: onCollapse
+          },
           "✕"
         )
       )
     ),
     floating.liveRegion,
-    h18(
+    h24(
       "div",
-      { key: "layer-tabs", ref: tabsRef, className: "mv-layer-tabs", role: "tablist", "aria-label": t2("layers.title"), onKeyDown: onTabKey },
-      h18(
-        "button",
-        { type: "button", id: `${tabsId}-3d`, "data-tab": "3d", role: "tab", tabIndex: tab === "3d" ? 0 : -1, "aria-controls": `${tabsId}-panel`, "aria-selected": tab === "3d", className: `mv-layer-tab${tab === "3d" ? " on" : ""}`, onClick: () => setTab("3d") },
-        `${t2("layers.tab.3d")}${layers2.length ? ` · ${layers2.length}` : ""}`
-      ),
-      h18(
-        "button",
-        { type: "button", id: `${tabsId}-map`, "data-tab": "map", role: "tab", tabIndex: tab === "map" ? 0 : -1, "aria-controls": `${tabsId}-panel`, "aria-selected": tab === "map", className: `mv-layer-tab${tab === "map" ? " on" : ""}`, onClick: () => setTab("map") },
-        t2("layers.tab.map")
-      )
+      {
+        key: "layer-tabs",
+        ref: tabsRef,
+        className: "mv-layer-tabs",
+        role: "tablist",
+        "aria-label": t2("layers.title"),
+        onKeyDown: onTabKey
+      },
+      tabButton("3d", t2("layers.tab.3d"), entitiesCount),
+      tabButton("surface", t2("layers.tab.surface"), surfaceCount)
     ),
-    h18("div", { id: `${tabsId}-panel`, role: "tabpanel", "aria-labelledby": `${tabsId}-${tab}`, className: "mv-data-panel" }, tab === "3d" ? h18(Layers3D, {
-      t: t2,
-      config,
-      settings,
-      layers: layers2,
-      terrainActive,
-      terrainError,
-      onSelectTerrain,
-      onRetryTerrain,
-      onFlyLayer,
-      onFrameAll,
-      onToggleLayer,
-      onInspectLayer,
-      onRemoveLayer,
-      shaderActive,
-      onEditLayerShader,
-      onShowSceneDetails,
-      swipeState,
-      onSwipeLayer,
-      onOpenLocal,
-      onOpenUrl,
-      recentDirs,
-      onOpenRecent
-    }) : h18(LayersMap, {
-      t: t2,
-      config,
-      settings,
-      onSelectImagery,
-      onOverlayAdd,
-      onOverlayRemove,
-      onOverlayOpacity,
-      onOverlayVisible,
-      onOverlayMove,
-      annotations,
-      agentOverlays,
-      overlayExtrusions,
-      onToggleOverlayExtrude,
-      onClearVector,
-      onRemoveAgentOverlay,
-      onFlyAgentOverlay,
-      onImportVector,
-      onPickLocalTiles,
-      swipeState,
-      onOverlaySwipe,
-      vectorExport,
-      rasterFrames,
-      onSelectRasterFrame
-    })),
-    h18(ResizeHandle, {
+    h24(
+      "div",
+      { id: `${tabsId}-panel`, role: "tabpanel", "aria-labelledby": `${tabsId}-${tab}`, className: "mv-data-panel" },
+      tab === "3d" ? h24(LayersEntities, {
+        t: t2,
+        layers: layers2,
+        shaderActive,
+        agentOverlays,
+        overlayDetails,
+        overlayExtrusions,
+        onFlyLayer,
+        onFrameAll,
+        onToggleLayer,
+        onRemoveLayer,
+        onEditLayerShader,
+        onOpenLayerProperties,
+        swipeState,
+        onSwipeLayer,
+        onAddLayer,
+        onQuickAnnotate,
+        onOpenMeasure,
+        onFlyAgentOverlay,
+        onFlyAgentFeature,
+        onRemoveAgentFeature,
+        onRemoveAgentOverlay,
+        onToggleOverlayExtrude,
+        onToggleOverlayVisible,
+        onSelectAgentFeature,
+        onExportOverlay,
+        onSendOverlay,
+        canSend,
+        onClearAnnotations,
+        onClearMeasurements
+      }) : h24(LayersSurface, {
+        t: t2,
+        config,
+        settings,
+        terrainActive,
+        terrainError,
+        onSelectTerrain,
+        onRetryTerrain,
+        onSelectImagery,
+        onOverlayRemove,
+        onOverlayVisible,
+        onOverlayMove,
+        onOverlaySwipe,
+        onOpenLayerProperties,
+        swipeState,
+        vectorExport,
+        rasterFrames,
+        onSelectRasterFrame,
+        importedOverlays: imports,
+        overlayDetails,
+        onFlyAgentOverlay,
+        onFlyAgentFeature,
+        onRemoveAgentFeature,
+        onRemoveAgentOverlay,
+        onSelectAgentFeature,
+        onExportOverlay,
+        onSendOverlay,
+        canSend,
+        onToggleOverlayVisible,
+        onClearImports,
+        onAddLayer
+      })
+    ),
+    h24(ResizeHandle, {
       axis: "height",
       edge: "bottom",
       label: t2("resize.height"),
@@ -17974,7 +22065,7 @@ function LayersPanel({
       min: resize.minHeight,
       max: resize.maxHeight
     }),
-    floating.moved ? h18(ResizeHandle, {
+    floating.moved ? h24(ResizeHandle, {
       axis: "corner",
       edge: "corner",
       label: t2("resize.size"),
@@ -17987,8 +22078,170 @@ function LayersPanel({
   );
 }
 
+// src/client/ui/place-search.js
+var import_react29 = __toESM(require("react"), 1);
+var h25 = import_react29.default.createElement;
+var pref = "dsh-digital-earth.place-provider";
+function preferred() {
+  try {
+    return localStorage.getItem(pref) || "";
+  } catch {
+    return "";
+  }
+}
+function remember(id) {
+  try {
+    localStorage.setItem(pref, id);
+  } catch {
+  }
+}
+function PlaceSearchPanel({ t: t2, url, onFly }) {
+  const [config, setConfig] = import_react29.default.useState(null);
+  const [provider, setProvider] = import_react29.default.useState(preferred);
+  const [query, setQuery] = import_react29.default.useState("");
+  const [key, setKey] = import_react29.default.useState("");
+  const [editing, setEditing] = import_react29.default.useState(false);
+  const [busy, setBusy] = import_react29.default.useState(false);
+  const [error, setError] = import_react29.default.useState("");
+  const [results, setResults] = import_react29.default.useState(null);
+  const active = import_react29.default.useRef(null);
+  const enabled = (config?.providers ?? []).filter((entry3) => entry3.enabled);
+  const usable = enabled.some((entry3) => entry3.id === provider) ? provider : enabled[0]?.id ?? "";
+  const entry2 = placeProvider(config, usable);
+  const meta = placeTypeMeta(entry2?.type);
+  const configured = entry2?.configured === true;
+  const managed = entry2?.managed === true;
+  const keyField = Boolean(usable) && meta.needsKey && !managed && (editing || !configured);
+  const link = (href, text) => h25("a", { href, target: "_blank", rel: "noreferrer" }, text);
+  import_react29.default.useEffect(() => () => active.current?.abort(), []);
+  import_react29.default.useEffect(() => {
+    const controller = new AbortController();
+    placeRequest(url, "GET", null, controller.signal).then((data) => {
+      if (controller.signal.aborted) return;
+      setConfig(data);
+      const next = data.selected || data.provider;
+      if (next) {
+        setProvider(next);
+        remember(next);
+      }
+    }).catch(() => {
+      if (!controller.signal.aborted) setError("provider");
+    });
+    return () => controller.abort();
+  }, [url]);
+  import_react29.default.useEffect(() => {
+    if (config && usable && usable !== provider) {
+      setProvider(usable);
+      remember(usable);
+    }
+  }, [config, usable, provider]);
+  function reset() {
+    active.current?.abort();
+    setResults(null);
+    setBusy(false);
+    setError("");
+  }
+  function changeProvider(event) {
+    reset();
+    const next = event.target.value;
+    setProvider(next);
+    setEditing(false);
+    setKey("");
+    remember(next);
+    void placeRequest(url, "PUT", { selected: next }).then(setConfig).catch(() => {
+    });
+  }
+  async function search(region) {
+    reset();
+    const controller = new AbortController();
+    active.current = controller;
+    setBusy(true);
+    try {
+      if (keyField && key.trim()) {
+        setConfig(await placeRequest(url, "PUT", { keys: { [usable]: key.trim() } }, controller.signal));
+        if (controller.signal.aborted) return;
+        setEditing(false);
+        setKey("");
+      }
+      const data = await placeRequest(url, "POST", { provider: usable, query, region, language: isChinese() ? "zh" : "en" }, controller.signal);
+      if (!controller.signal.aborted) setResults(data.results);
+    } catch (err) {
+      if (!controller.signal.aborted) {
+        setError(err.message);
+        if (err.message === "key") setEditing(true);
+      }
+    } finally {
+      if (!controller.signal.aborted) setBusy(false);
+    }
+  }
+  const status = !usable ? t2("places.noneEnabled") : busy ? t2("places.busy") : error ? placeErrorMessage(t2, error, entry2) : results?.length === 0 ? t2("places.empty") : "";
+  return h25(
+    "div",
+    { className: "mv-places", "aria-label": t2("places.title") },
+    h25(
+      "form",
+      { onSubmit: (event) => {
+        event.preventDefault();
+        if (!busy && usable && query.trim()) void search();
+      } },
+      h25(
+        "div",
+        { className: "mv-places-query" },
+        h25("input", { type: "search", maxLength: 160, value: query, placeholder: t2("places.placeholder"), "aria-label": t2("places.title"), disabled: !usable, onChange: (event) => {
+          reset();
+          setQuery(event.target.value);
+        } }),
+        h25("button", { type: "submit", className: "mv-places-submit", disabled: busy || !usable || !query.trim() || keyField && !key.trim() }, keyField ? t2("places.saveSearch") : t2("places.search"))
+      ),
+      usable ? h25(
+        "div",
+        { className: "mv-places-source" },
+        h25("label", null, t2("places.source"), h25("select", { value: usable, onChange: changeProvider }, enabled.map((item) => h25("option", { key: item.id, value: item.id }, providerLabel(t2, item))))),
+        keyField ? null : configured && !managed && meta.needsKey ? h25("button", { type: "button", className: "mv-place-link", onClick: () => {
+          reset();
+          setEditing(!editing);
+          setKey("");
+        } }, editing ? t2("btn.cancel") : t2("places.changeKey")) : null
+      ) : null,
+      keyField ? h25(
+        "label",
+        { className: "mv-places-key" },
+        h25(
+          "span",
+          { className: "mv-places-key-head" },
+          h25("strong", null, `${providerLabel(t2, entry2)} · ${t2("settings.places.keyLabel")}`),
+          meta.help ? link(meta.help, `${t2("settings.places.getKey")} ↗`) : null
+        ),
+        h25("input", { type: "password", autoComplete: "off", maxLength: 128, value: key, placeholder: managed ? t2("settings.places.managed") : t2("settings.places.keyLabel"), "aria-label": `${providerLabel(t2, entry2)} · ${t2("settings.places.keyLabel")}`, onChange: (event) => setKey(event.target.value) })
+      ) : null
+    ),
+    h25("div", { role: "status", "aria-live": "polite", className: `mv-places-status${error ? " is-error" : ""}` }, status),
+    results?.length ? h25("ul", null, results.map((row2, i) => h25(
+      "li",
+      { key: i },
+      // A result flies the camera and keeps the panel open, so several places
+      // can be compared without reopening the search.
+      h25(
+        "button",
+        { type: "button", className: "mv-places-row", onClick: () => {
+          if (row2.region) void search(row2.region);
+          else if (!onFly(row2)) setError("camera");
+        } },
+        h25("strong", null, row2.name),
+        h25("span", null, row2.region ? t2("places.refine") : row2.detail || [row2.lon, row2.lat].map((n) => n.toFixed(4)).join(", "))
+      )
+    ))) : null,
+    meta.osm && usable ? h25(
+      "footer",
+      null,
+      link("https://www.openstreetmap.org/copyright", t2("places.attribution")),
+      meta.policy ? link(meta.policy, t2("places.policy")) : null
+    ) : null
+  );
+}
+
 // src/client/ui/tools-panel.js
-var import_react22 = __toESM(require("react"), 1);
+var import_react30 = __toESM(require("react"), 1);
 
 // src/client/ui/tool-catalog.js
 var TOOL_ENTRIES = [
@@ -18001,7 +22254,7 @@ var TOOL_ENTRIES = [
   { id: "effects", labelKey: "tools.effects", hintKey: "tools.effectsHint", icon: "effects" },
   { id: "view", labelKey: "tools.view", hintKey: "tools.viewHint", icon: "view" }
 ];
-var TOOL_IDS = TOOL_ENTRIES.map((entry) => entry.id);
+var TOOL_IDS = TOOL_ENTRIES.map((entry2) => entry2.id);
 var TOOL_GROUPS = [
   { titleKey: "tools.group.measure", ids: ["measure", "select", "annotation", "parse"] },
   { titleKey: "tools.group.analysis", ids: ["analysis", "compare"] },
@@ -18014,11 +22267,11 @@ function toolGroups() {
   })).filter((group) => group.entries.length > 0);
 }
 function toolEntry(id) {
-  return TOOL_ENTRIES.find((entry) => entry.id === id) ?? null;
+  return TOOL_ENTRIES.find((entry2) => entry2.id === id) ?? null;
 }
 
 // src/client/ui/tools-panel.js
-var h19 = import_react22.default.createElement;
+var h26 = import_react30.default.createElement;
 function ToolsPanel({
   t: t2,
   openWindows = [],
@@ -18048,10 +22301,10 @@ function ToolsPanel({
     restoreSaved: false,
     hasExplicitWidth: Boolean(resize.size.width)
   });
-  import_react22.default.useEffect(() => {
+  import_react30.default.useEffect(() => {
     onFloatingChange?.(floating.moved);
   }, [floating.moved, onFloatingChange]);
-  const [indexMinimizedState, setIndexMinimized] = import_react22.default.useState(() => readPanelFlag(TOOLS_MINIMIZED_KEY, false));
+  const [indexMinimizedState, setIndexMinimized] = import_react30.default.useState(() => readPanelFlag(TOOLS_MINIMIZED_KEY, false));
   const indexMinimized = embedded ? false : indexMinimizedState;
   const activeEntries = (Array.isArray(openWindows) ? openWindows : []).map((win) => toolEntry(typeof win === "string" ? win : win?.id)).filter(Boolean);
   const openSet = new Set(activeEntries.map((item) => item.id));
@@ -18062,9 +22315,9 @@ function ToolsPanel({
       return next;
     });
   };
-  const row = (item) => {
+  const row2 = (item) => {
     const active = openSet.has(item.id);
-    return h19(
+    return h26(
       "button",
       {
         key: item.id,
@@ -18083,13 +22336,13 @@ function ToolsPanel({
           onSelectTool?.(item.id);
         }
       },
-      h19("span", { className: "mv-tool-entry-icon" }, h19(ToolEntryIcon, { kind: item.icon })),
-      h19("span", { className: "mv-tool-entry-name" }, t2(item.labelKey)),
-      active ? h19("span", { className: "mv-tool-entry-dot", "aria-hidden": true }) : null
+      h26("span", { className: "mv-tool-entry-icon" }, h26(ToolEntryIcon, { kind: item.icon })),
+      h26("span", { className: "mv-tool-entry-name" }, t2(item.labelKey)),
+      active ? h26("span", { className: "mv-tool-entry-dot", "aria-hidden": true }) : null
     );
   };
   const panelStyle = embedded ? void 0 : indexMinimized ? floating.moved ? floating.style : { zIndex: floating.zIndex } : floating.moved ? { ...floating.style, ...resize.style } : { ...floating.style, height: resize.style?.height, maxHeight: resize.style?.maxHeight };
-  return h19(
+  return h26(
     "div",
     {
       className: `mv-tools mv-glass ${floating.className}${indexMinimized ? " minimized" : ""}${embedded ? " in-dock" : ""}`,
@@ -18097,33 +22350,33 @@ function ToolsPanel({
       style: panelStyle,
       ...floating.panelProps
     },
-    h19(
+    h26(
       "header",
       floating.headerProps,
       floating.dragHandle,
-      h19(
+      h26(
         "span",
         { className: "mv-tools-title" },
-        h19("span", null, t2("tools.title")),
-        activeEntries.length > 0 && !indexMinimized ? h19("span", { className: "mv-tools-count" }, t2("tools.openCount", { n: activeEntries.length })) : null,
+        h26("span", null, t2("tools.title")),
+        activeEntries.length > 0 && !indexMinimized ? h26("span", { className: "mv-tools-count" }, t2("tools.openCount", { n: activeEntries.length })) : null,
         indexMinimized ? activeEntries.map(
-          (entry) => h19(
+          (entry2) => h26(
             "button",
             {
-              key: entry.id,
+              key: entry2.id,
               type: "button",
               className: "mv-tools-active-pill",
-              onClick: () => onSelectTool?.(entry.id)
+              onClick: () => onSelectTool?.(entry2.id)
             },
-            t2(entry.labelKey)
+            t2(entry2.labelKey)
           )
         ) : null
       ),
-      h19(
+      h26(
         "div",
         { className: "mv-head-actions" },
         floating.resetButton,
-        h19(
+        h26(
           "button",
           {
             type: "button",
@@ -18135,24 +22388,24 @@ function ToolsPanel({
           },
           indexMinimized ? "▸" : "▾"
         ),
-        h19("button", { type: "button", className: "mv-icon-btn", title: t2("tools.collapse"), "aria-label": t2("tools.collapse"), onClick: onCollapse }, "✕")
+        h26("button", { type: "button", className: "mv-icon-btn", title: t2("tools.collapse"), "aria-label": t2("tools.collapse"), onClick: onCollapse }, "✕")
       )
     ),
     floating.liveRegion,
-    indexMinimized ? null : h19(
+    indexMinimized ? null : h26(
       "div",
       { className: "mv-tool-index-wrap" },
-      h19(
+      h26(
         "div",
         { className: "mv-tool-index", role: "navigation", "aria-label": t2("tools.index") },
         ...toolGroups().flatMap((group) => [
-          h19("div", { key: `group:${group.titleKey}`, className: "mv-tool-group-title" }, t2(group.titleKey)),
-          ...group.entries.map(row)
+          h26("div", { key: `group:${group.titleKey}`, className: "mv-tool-group-title" }, t2(group.titleKey)),
+          ...group.entries.map(row2)
         ])
       ),
-      h19("p", { className: "mv-tools-hint" }, t2("tools.independentHint"))
+      h26("p", { className: "mv-tools-hint" }, t2("tools.independentHint"))
     ),
-    indexMinimized ? null : h19(ResizeHandle, {
+    indexMinimized ? null : h26(ResizeHandle, {
       axis: "height",
       edge: "bottom",
       label: t2("resize.height"),
@@ -18162,7 +22415,7 @@ function ToolsPanel({
       min: resize.minHeight,
       max: resize.maxHeight
     }),
-    indexMinimized || !floating.moved ? null : h19(ResizeHandle, {
+    indexMinimized || !floating.moved ? null : h26(ResizeHandle, {
       axis: "corner",
       edge: "corner",
       label: t2("resize.size"),
@@ -18176,11 +22429,11 @@ function ToolsPanel({
 }
 
 // src/client/ui/tool-window.js
-var import_react23 = __toESM(require("react"), 1);
-var h20 = import_react23.default.createElement;
+var import_react31 = __toESM(require("react"), 1);
+var h27 = import_react31.default.createElement;
 function ToolWindow({
   t: t2,
-  entry,
+  entry: entry2,
   minimized = false,
   expanded = false,
   autoFloat = false,
@@ -18204,9 +22457,9 @@ function ToolWindow({
     minHeight: 150,
     maxHeight: 560
   });
-  const label = entry ? t2(entry.labelKey) : "";
+  const label = entry2 ? t2(entry2.labelKey) : "";
   const floating = useFloatingWindow({
-    storageKey: entry ? `toolwin.${entry.id}` : "toolwin.none",
+    storageKey: entry2 ? `toolwin.${entry2.id}` : "toolwin.none",
     title: label,
     t: t2,
     autoFloat,
@@ -18216,16 +22469,16 @@ function ToolWindow({
     restoreSaved: false,
     hasExplicitWidth: Boolean(resize.size.width)
   });
-  import_react23.default.useEffect(() => {
+  import_react31.default.useEffect(() => {
     onFloatingChange?.(floating.moved);
   }, [floating.moved, onFloatingChange]);
-  if (!entry) return null;
+  if (!entry2) return null;
   const toggleLabel = minimized ? t2("tools.windowExpand") : t2("tools.windowMinimize");
   const zoomLabel = expanded ? t2("tools.windowRestore") : t2("tools.windowZoom");
   const dockedResize = { height: resize.style?.height, maxHeight: resize.style?.maxHeight };
   const baseStyle = floating.moved ? { ...floating.style, ...resize.style } : { ...floating.style, ...dockedResize };
   const bodyStyle = embedded ? void 0 : minimized ? floating.moved ? floating.style : void 0 : expanded ? { ...baseStyle, height: "min(480px, 60vh)", maxHeight: "none", flex: "0 0 auto" } : baseStyle;
-  return h20(
+  return h27(
     "section",
     {
       className: `mv-toolwin mv-glass ${floating.className}${minimized ? " minimized" : ""}${expanded && !minimized ? " expanded" : ""}${embedded ? " in-dock" : ""}`,
@@ -18234,21 +22487,21 @@ function ToolWindow({
       "aria-label": label,
       ...floating.panelProps
     },
-    h20(
+    h27(
       "header",
       floating.headerProps,
       floating.dragHandle,
-      h20(
+      h27(
         "span",
         { className: "mv-toolwin-title" },
-        h20("span", { className: "mv-toolwin-badge" }, h20(ToolEntryIcon, { kind: entry.icon, size: 14 })),
-        h20("span", null, label)
+        h27("span", { className: "mv-toolwin-badge" }, h27(ToolEntryIcon, { kind: entry2.icon, size: 14 })),
+        h27("span", null, label)
       ),
-      h20(
+      h27(
         "div",
         { className: "mv-head-actions" },
         floating.resetButton,
-        typeof onToggleExpand === "function" ? h20(
+        typeof onToggleExpand === "function" ? h27(
           "button",
           {
             type: "button",
@@ -18260,7 +22513,7 @@ function ToolWindow({
           },
           expanded && !minimized ? "⤡" : "⤢"
         ) : null,
-        h20(
+        h27(
           "button",
           {
             type: "button",
@@ -18272,7 +22525,7 @@ function ToolWindow({
           },
           minimized ? "▸" : "▾"
         ),
-        h20(
+        h27(
           "button",
           {
             type: "button",
@@ -18286,8 +22539,8 @@ function ToolWindow({
       )
     ),
     floating.liveRegion,
-    minimized && !embedded ? null : h20("div", { className: "mv-toolwin-body" }, children),
-    minimized || expanded ? null : h20(ResizeHandle, {
+    minimized && !embedded ? null : h27("div", { className: "mv-toolwin-body" }, children),
+    minimized || expanded ? null : h27(ResizeHandle, {
       axis: "height",
       edge: "bottom",
       label: t2("resize.height"),
@@ -18297,7 +22550,7 @@ function ToolWindow({
       min: resize.minHeight,
       max: resize.maxHeight
     }),
-    minimized || expanded || !floating.moved ? null : h20(ResizeHandle, {
+    minimized || expanded || !floating.moved ? null : h27(ResizeHandle, {
       axis: "corner",
       edge: "corner",
       label: t2("resize.size"),
@@ -18311,10 +22564,10 @@ function ToolWindow({
 }
 
 // src/client/ui/tool-windows.js
-var import_react30 = __toESM(require("react"), 1);
+var import_react40 = __toESM(require("react"), 1);
 
 // src/client/ui/sun-timeline.js
-var import_react24 = __toESM(require("react"), 1);
+var import_react32 = __toESM(require("react"), 1);
 
 // src/client/scene/sun-sky-fx.js
 var SUN_SKY_STAGE_NAME = "czm_dsh_sun_sky_fx";
@@ -19013,7 +23266,7 @@ function createSunTimeline({ getCesium, getViewer, getLayers }) {
 }
 
 // src/client/ui/sun-timeline.js
-var h21 = import_react24.default.createElement;
+var h28 = import_react32.default.createElement;
 var ZONE_MODES = ["scene", "browser", "utc"];
 var PLAYBACK_SPEEDS2 = [15, 60, 180];
 function translate(t2, key, vars) {
@@ -19025,19 +23278,19 @@ function translate(t2, key, vars) {
   }
 }
 function SunTimeline({ t: t2, getCesium, getViewer, getLayers, onBeforeEnable, active }) {
-  const [enabled, setEnabled] = import_react24.default.useState(false);
-  const [zoneMode, setZoneMode] = import_react24.default.useState("scene");
-  const [day, setDay] = import_react24.default.useState(sunTodayInput);
-  const [minutes, setMinutes] = import_react24.default.useState(10 * 60);
-  const [shadows, setShadows] = import_react24.default.useState(true);
-  const [effects, setEffects] = import_react24.default.useState(true);
-  const [playing, setPlaying] = import_react24.default.useState(false);
-  const [speed, setSpeed] = import_react24.default.useState(60);
-  const [readout, setReadout] = import_react24.default.useState(null);
-  const [failed, setFailed] = import_react24.default.useState(null);
-  const sunRef = import_react24.default.useRef(null);
-  const exactMinutesRef = import_react24.default.useRef(10 * 60);
-  const layersRef = import_react24.default.useRef(getLayers);
+  const [enabled, setEnabled] = import_react32.default.useState(false);
+  const [zoneMode, setZoneMode] = import_react32.default.useState("scene");
+  const [day, setDay] = import_react32.default.useState(sunTodayInput);
+  const [minutes, setMinutes] = import_react32.default.useState(10 * 60);
+  const [shadows, setShadows] = import_react32.default.useState(true);
+  const [effects, setEffects] = import_react32.default.useState(true);
+  const [playing, setPlaying] = import_react32.default.useState(false);
+  const [speed, setSpeed] = import_react32.default.useState(60);
+  const [readout, setReadout] = import_react32.default.useState(null);
+  const [failed, setFailed] = import_react32.default.useState(null);
+  const sunRef = import_react32.default.useRef(null);
+  const exactMinutesRef = import_react32.default.useRef(10 * 60);
+  const layersRef = import_react32.default.useRef(getLayers);
   layersRef.current = getLayers;
   if (!sunRef.current) {
     sunRef.current = createSunTimeline({ getCesium, getViewer, getLayers: () => layersRef.current?.() });
@@ -19105,7 +23358,7 @@ function SunTimeline({ t: t2, getCesium, getViewer, getLayers, onBeforeEnable, a
     setZoneMode(next);
     if (enabled) apply2(day, exactMinutesRef.current, shadows, next, effects);
   };
-  import_react24.default.useEffect(() => {
+  import_react32.default.useEffect(() => {
     if (!enabled || !playing || typeof requestAnimationFrame !== "function") return void 0;
     let frameId = 0;
     let lastTime = performance.now();
@@ -19134,7 +23387,7 @@ function SunTimeline({ t: t2, getCesium, getViewer, getLayers, onBeforeEnable, a
     frameId = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frameId);
   }, [enabled, playing, speed, day, zoneMode, shadows, effects]);
-  import_react24.default.useEffect(() => {
+  import_react32.default.useEffect(() => {
     if (active !== false || !enabled) return;
     setPlaying(false);
     sunRef.current.restore();
@@ -19142,7 +23395,7 @@ function SunTimeline({ t: t2, getCesium, getViewer, getLayers, onBeforeEnable, a
     setReadout(null);
     setFailed(null);
   }, [active, enabled]);
-  import_react24.default.useEffect(
+  import_react32.default.useEffect(
     () => () => {
       sunRef.current?.restore();
     },
@@ -19159,39 +23412,39 @@ function SunTimeline({ t: t2, getCesium, getViewer, getLayers, onBeforeEnable, a
   };
   const notes = [];
   if (failed) {
-    notes.push(h21("p", { key: "failed", className: "mv-sun-note mv-sun-alert" }, failureText()));
+    notes.push(h28("p", { key: "failed", className: "mv-sun-note mv-sun-alert" }, failureText()));
   } else if (readout?.night) {
-    notes.push(h21("p", { key: "night", className: "mv-sun-note mv-sun-night" }, translate(t2, "sun.nightHint")));
+    notes.push(h28("p", { key: "night", className: "mv-sun-note mv-sun-night" }, translate(t2, "sun.nightHint")));
   }
-  notes.push(h21("p", { key: "tz", className: "mv-sun-note" }, translate(t2, "sun.timezoneHint")));
+  notes.push(h28("p", { key: "tz", className: "mv-sun-note" }, translate(t2, "sun.timezoneHint")));
   if (readout) {
-    notes.push(h21("p", { key: "sky", className: "mv-sun-note" }, translate(t2, effects ? "sun.fxHint" : "sun.skyHint")));
+    notes.push(h28("p", { key: "sky", className: "mv-sun-note" }, translate(t2, effects ? "sun.fxHint" : "sun.skyHint")));
   }
-  return h21(
+  return h28(
     "div",
     { className: "mv-sun" },
-    h21(
+    h28(
       "div",
       { className: "mv-sun-head" },
-      h21("b", null, t2("sun.title")),
-      h21(
+      h28("b", null, t2("sun.title")),
+      h28(
         "label",
         { className: "mv-sun-toggle" },
-        h21("input", { type: "checkbox", checked: enabled, onChange: (event) => toggle(event.target.checked) }),
+        h28("input", { type: "checkbox", checked: enabled, onChange: (event) => toggle(event.target.checked) }),
         t2("sun.enable")
       )
     ),
-    enabled ? h21(
-      import_react24.default.Fragment,
+    enabled ? h28(
+      import_react32.default.Fragment,
       null,
-      h21(
+      h28(
         "div",
         { className: "mv-sun-row" },
-        h21("span", null, t2("sun.date")),
-        h21("input", { type: "date", value: day, "aria-label": t2("sun.date"), onChange: (event) => changeDay(event.target.value) }),
-        h21("span", { className: "mv-sun-clock" }, sunClockLabel(minutes))
+        h28("span", null, t2("sun.date")),
+        h28("input", { type: "date", value: day, "aria-label": t2("sun.date"), onChange: (event) => changeDay(event.target.value) }),
+        h28("span", { className: "mv-sun-clock" }, sunClockLabel(minutes))
       ),
-      h21("input", {
+      h28("input", {
         className: "mv-sun-range",
         type: "range",
         min: 0,
@@ -19201,10 +23454,10 @@ function SunTimeline({ t: t2, getCesium, getViewer, getLayers, onBeforeEnable, a
         "aria-label": t2("sun.time"),
         onChange: (event) => changeMinutes(Number(event.target.value))
       }),
-      h21(
+      h28(
         "div",
         { className: "mv-sun-playback" },
-        h21(
+        h28(
           "button",
           {
             type: "button",
@@ -19213,11 +23466,11 @@ function SunTimeline({ t: t2, getCesium, getViewer, getLayers, onBeforeEnable, a
           },
           playing ? `⏸ ${translate(t2, "sun.pause") || "Pause"}` : `▶ ${translate(t2, "sun.play") || "Play"}`
         ),
-        h21(
+        h28(
           "div",
           { className: "mv-sun-speeds" },
           ...PLAYBACK_SPEEDS2.map(
-            (value) => h21(
+            (value) => h28(
               "button",
               {
                 key: value,
@@ -19230,53 +23483,53 @@ function SunTimeline({ t: t2, getCesium, getViewer, getLayers, onBeforeEnable, a
           )
         )
       ),
-      h21(
+      h28(
         "div",
         { className: "mv-sun-row" },
-        h21("span", null, t2("sun.zone")),
-        h21(
+        h28("span", null, t2("sun.zone")),
+        h28(
           "select",
           { value: zoneMode, "aria-label": t2("sun.zone"), onChange: (event) => changeZone(event.target.value) },
-          ...ZONE_MODES.map((mode) => h21("option", { key: mode, value: mode }, translate(t2, `sun.zone.${mode}`)))
+          ...ZONE_MODES.map((mode) => h28("option", { key: mode, value: mode }, translate(t2, `sun.zone.${mode}`)))
         )
       ),
-      h21("div", { className: "mv-sun-zone" }, zoneLabel),
-      h21(
+      h28("div", { className: "mv-sun-zone" }, zoneLabel),
+      h28(
         "div",
         { className: "mv-sun-readout" },
-        h21("span", null, `${t2("sun.altitude")} ${readout ? `${readout.altitude.toFixed(1)}°` : "—"}`),
-        h21("span", null, `${t2("sun.azimuth")} ${readout ? `${readout.azimuth.toFixed(1)}°` : "—"}`)
+        h28("span", null, `${t2("sun.altitude")} ${readout ? `${readout.altitude.toFixed(1)}°` : "—"}`),
+        h28("span", null, `${t2("sun.azimuth")} ${readout ? `${readout.azimuth.toFixed(1)}°` : "—"}`)
       ),
-      h21(
+      h28(
         "div",
         { className: "mv-sun-checks" },
-        h21(
+        h28(
           "label",
           { className: "mv-sun-check" },
-          h21("input", { type: "checkbox", checked: shadows, onChange: (event) => changeShadows(event.target.checked) }),
+          h28("input", { type: "checkbox", checked: shadows, onChange: (event) => changeShadows(event.target.checked) }),
           t2("sun.shadows")
         ),
-        h21(
+        h28(
           "label",
           { className: "mv-sun-check" },
-          h21("input", { type: "checkbox", checked: effects, onChange: (event) => changeEffects(event.target.checked) }),
+          h28("input", { type: "checkbox", checked: effects, onChange: (event) => changeEffects(event.target.checked) }),
           translate(t2, "sun.effects") || "Sky & sun FX"
         )
       ),
       notes
-    ) : h21("p", { className: "mv-none" }, t2("sun.hint"))
+    ) : h28("p", { className: "mv-none" }, t2("sun.hint"))
   );
 }
 
 // src/client/ui/tools-bookmarks.js
-var import_react25 = __toESM(require("react"), 1);
-var h22 = import_react25.default.createElement;
+var import_react33 = __toESM(require("react"), 1);
+var h29 = import_react33.default.createElement;
 function ToolsBookmarks({ t: t2, getCurrentView, getViewer, onFlyView, onStartTour, showToast }) {
-  const [bookmarks, setBookmarks] = import_react25.default.useState(() => loadBookmarks());
-  const [notice, setNotice] = import_react25.default.useState("");
-  const [activeId, setActiveId] = import_react25.default.useState(null);
-  const [editingId, setEditingId] = import_react25.default.useState(null);
-  const [draftName, setDraftName] = import_react25.default.useState("");
+  const [bookmarks, setBookmarks] = import_react33.default.useState(() => loadBookmarks());
+  const [notice, setNotice] = import_react33.default.useState("");
+  const [activeId, setActiveId] = import_react33.default.useState(null);
+  const [editingId, setEditingId] = import_react33.default.useState(null);
+  const [draftName, setDraftName] = import_react33.default.useState("");
   const persist = (next) => {
     setBookmarks(next);
     setNotice(saveBookmarks(next) ? "" : t2("bookmarks.saveFailed"));
@@ -19338,14 +23591,14 @@ function ToolsBookmarks({ t: t2, getCurrentView, getViewer, onFlyView, onStartTo
     setBookmarks(next);
     saveBookmarks(next);
   };
-  return h22(
-    import_react25.default.Fragment,
+  return h29(
+    import_react33.default.Fragment,
     null,
-    h22(
+    h29(
       "div",
       { className: "mv-group-actions" },
-      h22("button", { type: "button", className: "mv-cta", onClick: saveCurrent }, t2("bookmarks.save")),
-      h22(
+      h29("button", { type: "button", className: "mv-cta", onClick: saveCurrent }, t2("bookmarks.save")),
+      h29(
         "button",
         {
           type: "button",
@@ -19359,31 +23612,31 @@ function ToolsBookmarks({ t: t2, getCurrentView, getViewer, onFlyView, onStartTo
         t2("tour.start")
       )
     ),
-    bookmarks.length >= 2 ? h22(
+    bookmarks.length >= 2 ? h29(
       "div",
       { className: "mv-bm-bar" },
-      h22("span", { className: "mv-bm-bar-text" }, t2("bookmarks.tourOrder", { n: bookmarks.length })),
-      h22(
+      h29("span", { className: "mv-bm-bar-text" }, t2("bookmarks.tourOrder", { n: bookmarks.length })),
+      h29(
         "button",
         { type: "button", className: "mv-bm-bar-btn", title: t2("bookmarks.reverseHint"), onClick: reverseAll },
         t2("bookmarks.reverse")
       )
     ) : null,
-    notice !== "" ? h22("div", { className: "mv-none" }, notice) : null,
-    bookmarks.length === 0 ? h22("div", { className: "mv-none" }, t2("bookmarks.empty")) : h22(
+    notice !== "" ? h29("div", { className: "mv-none" }, notice) : null,
+    bookmarks.length === 0 ? h29("div", { className: "mv-none" }, t2("bookmarks.empty")) : h29(
       "div",
       { className: "mv-bm-list" },
       ...bookmarks.map((item, index) => {
         const meta = formatBookmarkMeta(item.view);
         const isEditing = editingId === item.id;
         const isActive = activeId === item.id;
-        return h22(
+        return h29(
           "div",
           { key: item.id, className: `mv-bookmark${isActive ? " active" : ""}` },
-          h22(
+          h29(
             "div",
             { className: "mv-bm-main" },
-            h22(
+            h29(
               "button",
               {
                 type: "button",
@@ -19391,21 +23644,21 @@ function ToolsBookmarks({ t: t2, getCurrentView, getViewer, onFlyView, onStartTo
                 title: t2("bookmarks.flyHint"),
                 onClick: () => flyTo(item)
               },
-              item.thumb ? h22("img", { src: item.thumb, alt: item.name }) : h22(
+              item.thumb ? h29("img", { src: item.thumb, alt: item.name }) : h29(
                 "span",
                 { className: "mv-bm-thumb-ph" },
-                h22("strong", null, meta?.alt ?? "3D"),
-                h22("small", null, meta ? `${meta.compass}` : "")
+                h29("strong", null, meta?.alt ?? "3D"),
+                h29("small", null, meta ? `${meta.compass}` : "")
               ),
-              h22("span", { className: "mv-bm-index" }, String(index + 1))
+              h29("span", { className: "mv-bm-index" }, String(index + 1))
             ),
-            h22(
+            h29(
               "div",
               { className: "mv-bm-info" },
-              h22(
+              h29(
                 "div",
                 { className: "mv-bm-title-row" },
-                isEditing ? h22("input", {
+                isEditing ? h29("input", {
                   className: "mv-bm-rename",
                   value: draftName,
                   maxLength: 60,
@@ -19417,7 +23670,7 @@ function ToolsBookmarks({ t: t2, getCurrentView, getViewer, onFlyView, onStartTo
                     if (event.key === "Enter") commitRename(item.id);
                     else if (event.key === "Escape") setEditingId(null);
                   }
-                }) : h22(
+                }) : h29(
                   "button",
                   {
                     type: "button",
@@ -19428,10 +23681,10 @@ function ToolsBookmarks({ t: t2, getCurrentView, getViewer, onFlyView, onStartTo
                   },
                   item.name
                 ),
-                h22(
+                h29(
                   "div",
                   { className: "mv-bm-ops" },
-                  h22(
+                  h29(
                     "button",
                     {
                       type: "button",
@@ -19443,7 +23696,7 @@ function ToolsBookmarks({ t: t2, getCurrentView, getViewer, onFlyView, onStartTo
                     },
                     "↑"
                   ),
-                  h22(
+                  h29(
                     "button",
                     {
                       type: "button",
@@ -19455,7 +23708,7 @@ function ToolsBookmarks({ t: t2, getCurrentView, getViewer, onFlyView, onStartTo
                     },
                     "↓"
                   ),
-                  h22(
+                  h29(
                     "button",
                     {
                       type: "button",
@@ -19466,7 +23719,7 @@ function ToolsBookmarks({ t: t2, getCurrentView, getViewer, onFlyView, onStartTo
                     },
                     "✎"
                   ),
-                  h22(
+                  h29(
                     "button",
                     {
                       type: "button",
@@ -19477,7 +23730,7 @@ function ToolsBookmarks({ t: t2, getCurrentView, getViewer, onFlyView, onStartTo
                     },
                     "↻"
                   ),
-                  h22(
+                  h29(
                     "button",
                     {
                       type: "button",
@@ -19490,7 +23743,7 @@ function ToolsBookmarks({ t: t2, getCurrentView, getViewer, onFlyView, onStartTo
                   )
                 )
               ),
-              meta ? h22(
+              meta ? h29(
                 "div",
                 { className: "mv-bm-meta", title: meta.coords },
                 t2("bookmarks.metaLine", {
@@ -19500,10 +23753,10 @@ function ToolsBookmarks({ t: t2, getCurrentView, getViewer, onFlyView, onStartTo
                   compass: meta.compass
                 })
               ) : null,
-              meta ? h22("div", { className: "mv-bm-coords" }, meta.coords) : null
+              meta ? h29("div", { className: "mv-bm-coords" }, meta.coords) : null
             )
           ),
-          h22("input", {
+          h29("input", {
             className: "mv-caption",
             value: item.caption ?? "",
             placeholder: t2("bookmarks.captionPlaceholder"),
@@ -19522,28 +23775,28 @@ function ToolsBookmarks({ t: t2, getCurrentView, getViewer, onFlyView, onStartTo
 }
 
 // src/client/ui/selection-tool.js
-var import_react27 = __toESM(require("react"), 1);
+var import_react35 = __toESM(require("react"), 1);
 
 // src/client/ui/selection-question.js
-var import_react26 = __toESM(require("react"), 1);
-var h23 = import_react26.default.createElement;
+var import_react34 = __toESM(require("react"), 1);
+var h30 = import_react34.default.createElement;
 function SelectionQuestion({ selection, t: t2, onAskSelection, showToast }) {
-  const [open, setOpen] = import_react26.default.useState(true);
-  const [question, setQuestion] = import_react26.default.useState("");
-  const [includeImage, setIncludeImage] = import_react26.default.useState(Boolean(selection.frame?.image));
-  const [status, setStatus] = import_react26.default.useState("idle");
-  const [error, setError] = import_react26.default.useState("");
-  const inputRef = import_react26.default.useRef(null);
-  const requestRef = import_react26.default.useRef(null);
-  const busyRef = import_react26.default.useRef(false);
-  const aliveRef = import_react26.default.useRef(true);
-  import_react26.default.useEffect(() => {
+  const [open, setOpen] = import_react34.default.useState(true);
+  const [question, setQuestion] = import_react34.default.useState("");
+  const [includeImage, setIncludeImage] = import_react34.default.useState(Boolean(selection.frame?.image));
+  const [status, setStatus] = import_react34.default.useState("idle");
+  const [error, setError] = import_react34.default.useState("");
+  const inputRef = import_react34.default.useRef(null);
+  const requestRef = import_react34.default.useRef(null);
+  const busyRef = import_react34.default.useRef(false);
+  const aliveRef = import_react34.default.useRef(true);
+  import_react34.default.useEffect(() => {
     aliveRef.current = true;
     return () => {
       aliveRef.current = false;
     };
   }, []);
-  import_react26.default.useEffect(() => {
+  import_react34.default.useEffect(() => {
     if (open) {
       inputRef.current?.scrollIntoView?.({ block: "nearest", behavior: "auto" });
     }
@@ -19590,25 +23843,25 @@ ${JSON.stringify(selectionQuestionContext(selection))}`);
       showToast?.(t2("selection.copyFailed"));
     }
   };
-  if (!open) return h23("button", { type: "button", className: "mv-cta primary", onClick: () => setOpen(true) }, t2("question.open"));
+  if (!open) return h30("button", { type: "button", className: "mv-cta primary", onClick: () => setOpen(true) }, t2("question.open"));
   const sending = status === "sending";
   const noContext = selection.kind === "screen" && (!includeImage || !selection.frame?.image);
-  return h23(
+  return h30(
     "form",
     { className: "mv-selection-question", onSubmit: submit, "aria-label": t2("question.title"), "aria-busy": sending },
-    h23(
+    h30(
       "div",
       { className: "mv-question-head" },
-      h23("strong", null, t2("question.title")),
-      h23("button", { type: "button", className: "mv-icon-btn", disabled: sending, "aria-label": t2("question.close"), onClick: () => setOpen(false) }, "✕")
+      h30("strong", null, t2("question.title")),
+      h30("button", { type: "button", className: "mv-icon-btn", disabled: sending, "aria-label": t2("question.close"), onClick: () => setOpen(false) }, "✕")
     ),
-    h23("p", { className: "mv-question-note" }, t2("question.hint")),
-    selection.frame?.image ? h23("img", { className: "mv-question-preview", src: selection.frame.image, alt: t2("question.imageAlt") }) : h23("p", { className: "mv-question-note" }, t2(selection.kind === "screen" ? "question.error.screen_requires_image" : "question.noImage")),
-    h23(
+    h30("p", { className: "mv-question-note" }, t2("question.hint")),
+    selection.frame?.image ? h30("img", { className: "mv-question-preview", src: selection.frame.image, alt: t2("question.imageAlt") }) : h30("p", { className: "mv-question-note" }, t2(selection.kind === "screen" ? "question.error.screen_requires_image" : "question.noImage")),
+    h30(
       "label",
       { className: "mv-question-label" },
       t2("question.label"),
-      h23("textarea", {
+      h30("textarea", {
         ref: inputRef,
         value: question,
         rows: 3,
@@ -19621,7 +23874,7 @@ ${JSON.stringify(selectionQuestionContext(selection))}`);
         }
       })
     ),
-    h23("div", { className: "mv-question-prompts" }, ...["describe", "compare", "next"].map((key) => h23("button", {
+    h30("div", { className: "mv-question-prompts" }, ...["describe", "compare", "next"].map((key) => h30("button", {
       type: "button",
       key,
       disabled: sending,
@@ -19630,10 +23883,10 @@ ${JSON.stringify(selectionQuestionContext(selection))}`);
         inputRef.current?.focus?.({ preventScroll: true });
       }
     }, t2(`question.quick.${key}`)))),
-    selection.frame?.image ? h23(
+    selection.frame?.image ? h30(
       "label",
       { className: "mv-question-image" },
-      h23("input", { type: "checkbox", checked: includeImage, disabled: sending, onChange: (event) => {
+      h30("input", { type: "checkbox", checked: includeImage, disabled: sending, onChange: (event) => {
         setIncludeImage(event.target.checked);
         requestRef.current = null;
         setStatus("idle");
@@ -19641,24 +23894,24 @@ ${JSON.stringify(selectionQuestionContext(selection))}`);
       } }),
       t2("question.includeImage")
     ) : null,
-    h23(
+    h30(
       "div",
       { className: "mv-question-actions" },
-      h23("button", { type: "submit", className: "mv-cta primary", disabled: sending || status === "sent" || noContext || !question.trim() || typeof onAskSelection !== "function" }, t2(sending ? "question.sending" : "question.send")),
-      h23("button", { type: "button", className: "mv-cta", onClick: () => void copy() }, t2("question.copy"))
+      h30("button", { type: "submit", className: "mv-cta primary", disabled: sending || status === "sent" || noContext || !question.trim() || typeof onAskSelection !== "function" }, t2(sending ? "question.sending" : "question.send")),
+      h30("button", { type: "button", className: "mv-cta", onClick: () => void copy() }, t2("question.copy"))
     ),
-    status === "sent" ? h23("p", { className: "mv-question-status", role: "status" }, t2("question.sent")) : null,
-    error ? h23("p", { className: "mv-question-error", role: "alert" }, t2(`question.error.${error}`)) : null,
-    noContext && selection.frame?.image ? h23("p", { className: "mv-question-note" }, t2("question.error.screen_requires_image")) : null
+    status === "sent" ? h30("p", { className: "mv-question-status", role: "status" }, t2("question.sent")) : null,
+    error ? h30("p", { className: "mv-question-error", role: "alert" }, t2(`question.error.${error}`)) : null,
+    noContext && selection.frame?.image ? h30("p", { className: "mv-question-note" }, t2("question.error.screen_requires_image")) : null
   );
 }
 
 // src/client/ui/selection-tool.js
-var h24 = import_react27.default.createElement;
+var h31 = import_react35.default.createElement;
 function summaryText(t2, selection) {
   if (selection.kind === "screen") return t2("selection.surfaceUnavailable");
   if (selection.kind === "objects") {
-    return (selection.rows ?? []).map((row) => row.label).join("; ");
+    return (selection.rows ?? []).map((row2) => row2.label).join("; ");
   }
   if (selection.kind === "point") {
     return `${t2("selection.lon")}: ${selection.lon}; ${t2("selection.lat")}: ${selection.lat}; ${t2("selection.height")}: ${selection.height === null ? "—" : `${selection.height} m`}`;
@@ -19669,9 +23922,9 @@ function summaryText(t2, selection) {
   return `${t2("selection.area")}: ${area}; ${t2("selection.perimeter")}: ${perimeter}; ${t2("selection.vertices")}: ${verts}`;
 }
 function SelectionTool({ t: t2, getCesium, getViewer, showToast, runAnalysis, getTerrainActive, getOverlayRows, onRemoveOverlayRows, onActivateSelection, onAskSelection, onParseSelection }) {
-  const [selection, setSelection] = import_react27.default.useState(null);
-  const [activeMode, setActiveMode] = import_react27.default.useState(null);
-  const toolRef = import_react27.default.useRef(null);
+  const [selection, setSelection] = import_react35.default.useState(null);
+  const [activeMode, setActiveMode] = import_react35.default.useState(null);
+  const toolRef = import_react35.default.useRef(null);
   const viewer = typeof getViewer === "function" ? getViewer() : null;
   const commit = () => {
     setSelection(toolRef.current?.getSelection() ?? null);
@@ -19692,11 +23945,11 @@ function SelectionTool({ t: t2, getCesium, getViewer, showToast, runAnalysis, ge
       }
     });
   }
-  import_react27.default.useEffect(() => {
+  import_react35.default.useEffect(() => {
     setSelection(toolRef.current?.getSelection() ?? null);
     setActiveMode(toolRef.current?.isActive() ? toolRef.current?.getMode?.() ?? null : null);
   }, [viewer]);
-  import_react27.default.useEffect(() => {
+  import_react35.default.useEffect(() => {
     const session = toolRef.current;
     return () => session?.cancel();
   }, [viewer]);
@@ -19798,1757 +24051,2315 @@ function SelectionTool({ t: t2, getCesium, getViewer, showToast, runAnalysis, ge
   if (isObjects) {
     const rows = Array.isArray(selection.rows) ? selection.rows : [];
     stats.push(
-      h24("div", { key: "count", className: "stat" }, h24("span", null, t2("selection.objectsSelected")), h24("b", null, String(rows.length))),
+      h31("div", { key: "count", className: "stat" }, h31("span", null, t2("selection.objectsSelected")), h31("b", null, String(rows.length))),
       ...rows.slice(0, 8).map(
-        (row, index) => h24(
+        (row2, index) => h31(
           "div",
-          { key: `row-${index}-${row.kind}-${row.index}`, className: "stat" },
-          h24("span", null, row.label ?? `${row.kind} ${row.index + 1}`),
-          h24("b", null, row.detail ?? "")
+          { key: `row-${index}-${row2.kind}-${row2.index}`, className: "stat" },
+          h31("span", null, row2.label ?? `${row2.kind} ${row2.index + 1}`),
+          h31("b", null, row2.detail ?? "")
         )
       )
     );
   } else if (selection?.kind === "point") {
     stats.push(
-      h24("div", { key: "lon", className: "stat" }, h24("span", null, t2("selection.lon")), h24("b", null, selection.lon.toFixed(6))),
-      h24("div", { key: "lat", className: "stat" }, h24("span", null, t2("selection.lat")), h24("b", null, selection.lat.toFixed(6))),
-      h24(
+      h31("div", { key: "lon", className: "stat" }, h31("span", null, t2("selection.lon")), h31("b", null, selection.lon.toFixed(6))),
+      h31("div", { key: "lat", className: "stat" }, h31("span", null, t2("selection.lat")), h31("b", null, selection.lat.toFixed(6))),
+      h31(
         "div",
         { key: "height", className: "stat" },
-        h24("span", null, t2("selection.height")),
-        h24("b", null, selection.height === null ? "—" : formatHeight(selection.height))
+        h31("span", null, t2("selection.height")),
+        h31("b", null, selection.height === null ? "—" : formatHeight(selection.height))
       )
     );
   } else if (selection && !isScreen) {
     stats.push(
-      h24("div", { key: "area", className: "stat" }, h24("span", null, t2("selection.area")), h24("b", null, formatArea(selection.area_m2))),
-      h24("div", { key: "perimeter", className: "stat" }, h24("span", null, t2("selection.perimeter")), h24("b", null, formatDistance(selection.perimeter_m))),
-      selection.heightRange ? h24(
+      h31("div", { key: "area", className: "stat" }, h31("span", null, t2("selection.area")), h31("b", null, formatArea(selection.area_m2))),
+      h31("div", { key: "perimeter", className: "stat" }, h31("span", null, t2("selection.perimeter")), h31("b", null, formatDistance(selection.perimeter_m))),
+      selection.heightRange ? h31(
         "div",
         { key: "height", className: "stat" },
-        h24("span", null, t2("selection.heightRange")),
-        h24("b", null, `${formatHeight(selection.heightRange.min)} – ${formatHeight(selection.heightRange.max)}`)
+        h31("span", null, t2("selection.heightRange")),
+        h31("b", null, `${formatHeight(selection.heightRange.min)} – ${formatHeight(selection.heightRange.max)}`)
       ) : null,
-      h24("div", { key: "verts", className: "stat" }, h24("span", null, t2("selection.vertices")), h24("b", null, `${Math.max(0, selection.ring.length - 1)}`))
+      h31("div", { key: "verts", className: "stat" }, h31("span", null, t2("selection.vertices")), h31("b", null, `${Math.max(0, selection.ring.length - 1)}`))
     );
   }
-  return h24(
+  return h31(
     "div",
     { className: "mv-selection" },
-    h24(
+    h31(
       "div",
       { className: "mv-selection-actions mv-selection-modes" },
-      h24(
+      h31(
         "button",
         { type: "button", className: `mv-cta${activeMode === "point" ? " primary" : ""}`, "aria-pressed": activeMode === "point", onClick: () => start("point") },
         t2(activeMode === "point" ? "selection.pointActive" : "selection.point")
       ),
-      h24(
+      h31(
         "button",
         { type: "button", className: `mv-cta${activeMode === "polygon" ? " primary" : ""}`, "aria-pressed": activeMode === "polygon", onClick: () => start("polygon") },
         t2(activeMode === "polygon" ? "selection.polygonActive" : "selection.polygon")
       ),
-      h24(
+      h31(
         "button",
         { type: "button", className: `mv-cta${activeMode === "rect" ? " primary" : ""}`, "aria-pressed": activeMode === "rect", onClick: () => start("rect") },
         t2(activeMode === "rect" ? "selection.rectActive" : "selection.rect")
       ),
-      h24(
+      h31(
         "button",
         { type: "button", className: `mv-cta${activeMode === "objects" ? " primary" : ""}`, "aria-pressed": activeMode === "objects", onClick: () => start("objects") },
         t2(activeMode === "objects" ? "selection.objectsActive" : "selection.objects")
       )
     ),
-    h24(
+    h31(
       "p",
       { className: "mv-none" },
       t2(
         activeMode === "point" ? "selection.pointHint" : activeMode === "polygon" ? "selection.polygonHint" : activeMode === "objects" ? "selection.objectsHint" : activeMode === "rect" ? "selection.dragHint" : "selection.hint"
       )
     ),
-    selection ? h24(
-      import_react27.default.Fragment,
+    selection ? h31(
+      import_react35.default.Fragment,
       null,
-      h24(SelectionQuestion, { key: `${selection.created_at}-${selection.kind}`, selection, t: t2, onAskSelection, showToast }),
+      h31(SelectionQuestion, { key: `${selection.created_at}-${selection.kind}`, selection, t: t2, onAskSelection, showToast }),
       ...stats,
-      selection.approximate && !isScreen ? h24("p", { key: "approx", className: "mv-none" }, t2(selection.kind === "vision" ? "vision.selectionApproximate" : selection.source === "screen-visible-surface" ? "selection.surfaceApproximate" : "selection.approximate")) : null,
-      selection.complete ? null : h24("p", { key: "partial", className: "mv-none" }, t2(isScreen ? "selection.surfaceUnavailable" : "selection.partial")),
-      isScreen ? null : isObjects ? h24(
+      selection.approximate && !isScreen ? h31("p", { key: "approx", className: "mv-none" }, t2(selection.kind === "vision" ? "vision.selectionApproximate" : selection.source === "screen-visible-surface" ? "selection.surfaceApproximate" : "selection.approximate")) : null,
+      selection.complete ? null : h31("p", { key: "partial", className: "mv-none" }, t2(isScreen ? "selection.surfaceUnavailable" : "selection.partial")),
+      isScreen ? null : isObjects ? h31(
         "div",
         { className: "mv-selection-actions" },
-        h24("button", { type: "button", className: "mv-cta", onClick: removeObjects }, t2("selection.objectsRemove")),
-        h24("button", { type: "button", className: "mv-cta", onClick: exportObjects }, t2("selection.objectsExport")),
-        h24("button", { type: "button", className: "mv-cta", onClick: copySummary }, t2("selection.objectsCopy"))
-      ) : isPoint ? h24(
+        h31("button", { type: "button", className: "mv-cta", onClick: removeObjects }, t2("selection.objectsRemove")),
+        h31("button", { type: "button", className: "mv-cta", onClick: exportObjects }, t2("selection.objectsExport")),
+        h31("button", { type: "button", className: "mv-cta", onClick: copySummary }, t2("selection.objectsCopy"))
+      ) : isPoint ? h31(
         "div",
         { className: "mv-selection-actions" },
-        h24("button", { type: "button", className: "mv-cta", onClick: () => void skyline() }, t2("selection.skyline")),
-        h24("button", { type: "button", className: "mv-cta", onClick: exportGeoJSON }, t2("selection.export"))
-      ) : h24(
+        h31("button", { type: "button", className: "mv-cta", onClick: () => void skyline() }, t2("selection.skyline")),
+        h31("button", { type: "button", className: "mv-cta", onClick: exportGeoJSON }, t2("selection.export"))
+      ) : h31(
         "div",
         { className: "mv-selection-actions" },
-        typeof onParseSelection === "function" ? h24("button", { type: "button", className: "mv-cta", title: t2("selection.parseAoiHint"), onClick: () => onParseSelection(selection) }, t2("selection.parseAoi")) : null,
-        h24("button", { type: "button", className: "mv-cta", title: t2("selection.floodBounds"), onClick: () => void flood() }, t2("selection.flood")),
-        h24("button", { type: "button", className: "mv-cta", onClick: exportGeoJSON }, t2("selection.export"))
+        typeof onParseSelection === "function" ? h31("button", { type: "button", className: "mv-cta", title: t2("selection.parseAoiHint"), onClick: () => onParseSelection(selection) }, t2("selection.parseAoi")) : null,
+        h31("button", { type: "button", className: "mv-cta", title: t2("selection.floodBounds"), onClick: () => void flood() }, t2("selection.flood")),
+        h31("button", { type: "button", className: "mv-cta", onClick: exportGeoJSON }, t2("selection.export"))
       ),
-      h24(
+      h31(
         "div",
         { className: "mv-selection-actions" },
-        isObjects ? null : h24("button", { type: "button", className: "mv-cta", onClick: copySummary }, t2("selection.copy")),
-        h24("button", { type: "button", className: "mv-cta", onClick: clear }, t2("selection.clear"))
+        isObjects ? null : h31("button", { type: "button", className: "mv-cta", onClick: copySummary }, t2("selection.copy")),
+        h31("button", { type: "button", className: "mv-cta", onClick: clear }, t2("selection.clear"))
       )
     ) : null
   );
 }
 
-// src/client/ui/parse-review.js
-var import_react28 = __toESM(require("react"), 1);
+// src/client/ui/parse-panel.js
+var import_react38 = __toESM(require("react"), 1);
 
-// src/client/scene/vision-geometry.js
-var visionError = (code) => Object.assign(new Error(code), { code });
-var cross = (start, end, point) => (end[0] - start[0]) * (point[1] - start[1]) - (end[1] - start[1]) * (point[0] - start[0]);
-function onSegment(start, end, point) {
-  return Math.abs(cross(start, end, point)) < 1e-10 && point[0] >= Math.min(start[0], end[0]) - 1e-10 && point[0] <= Math.max(start[0], end[0]) + 1e-10 && point[1] >= Math.min(start[1], end[1]) - 1e-10 && point[1] <= Math.max(start[1], end[1]) + 1e-10;
-}
-function containsVisionPoint(polygon, point) {
-  let inside2 = false;
-  for (let index = 0, previous = polygon.length - 1; index < polygon.length; previous = index++) {
-    const start = polygon[index], end = polygon[previous];
-    if (onSegment(start, end, point)) return true;
-    if (start[1] > point[1] !== end[1] > point[1] && point[0] < (end[0] - start[0]) * (point[1] - start[1]) / (end[1] - start[1]) + start[0]) inside2 = !inside2;
-  }
-  return inside2;
-}
-function pointSegmentDistance(point, start, end) {
-  const dx = end[0] - start[0], dy = end[1] - start[1];
-  const length = dx * dx + dy * dy;
-  if (length === 0) return Math.hypot(point[0] - start[0], point[1] - start[1]);
-  const ratio = Math.max(0, Math.min(1, ((point[0] - start[0]) * dx + (point[1] - start[1]) * dy) / length));
-  return Math.hypot(point[0] - (start[0] + ratio * dx), point[1] - (start[1] + ratio * dy));
-}
-function distanceToPolygon(polygon, point) {
-  let minimum = Infinity;
-  for (let index = 0; index < polygon.length; index += 1) {
-    minimum = Math.min(minimum, pointSegmentDistance(point, polygon[index], polygon[(index + 1) % polygon.length]));
-  }
-  return minimum;
-}
-function normalizeVertices(polygon, options) {
-  let vertices = polygon.map((vertex) => {
-    const raw = Array.isArray(vertex) ? vertex : vertex && typeof vertex === "object" ? [vertex.x, vertex.y] : null;
-    if (!raw || raw.length !== 2) throw visionError("invalid_result");
-    const x = Number(raw[0]), y = Number(raw[1]);
-    if (!Number.isFinite(x) || !Number.isFinite(y)) throw visionError("invalid_result");
-    return [x, y];
+// src/client/ui/parse-workbench.js
+var import_react37 = __toESM(require("react"), 1);
+
+// src/client/ui/parse-model-settings.js
+var import_react36 = __toESM(require("react"), 1);
+var h32 = import_react36.default.createElement;
+var modeLabels = { "dsh-default": "parse.mode.dsh-default", "dsh-model": "parse.mode.dsh-model", "openai-compat": "parse.mode.openai-compat" };
+async function requestConfig(url, session, signal, config) {
+  const headers = { "x-dsh-panel": "vision-config" };
+  if (session) headers["x-dsh-session"] = session;
+  if (config) headers["content-type"] = "application/json";
+  const response = await fetch(url, {
+    method: config ? "PUT" : "GET",
+    headers,
+    credentials: "same-origin",
+    signal,
+    ...config ? { body: JSON.stringify(config) } : {}
   });
-  const width = Number(options?.width), height = Number(options?.height);
-  const maximum = Math.max(0, ...vertices.flatMap((vertex) => vertex));
-  if (maximum > 1) {
-    const isPixel = Number.isFinite(width) && Number.isFinite(height) && width > 1 && height > 1 && maximum <= Math.max(width, height) * 1.02 && vertices.every(([x, y]) => x >= 0 && x <= width * 1.02 && y >= 0 && y <= height * 1.02) && (maximum > 100 || Math.max(width, height) <= 100);
-    const divisor = isPixel ? [width, height] : maximum <= 100 ? [100, 100] : null;
-    if (!divisor) throw visionError("invalid_result");
-    vertices = vertices.map(([x, y]) => [x / divisor[0], y / divisor[1]]);
-  }
-  if (!vertices.every(([x, y]) => x >= 0 && x <= 1 && y >= 0 && y <= 1)) throw visionError("invalid_result");
-  return vertices;
+  if (!response.ok) throw Error("vision_config");
+  const result = await response.json();
+  if (!result.ok || !result.config) throw Error("vision_config");
+  return result;
 }
-function simplifyPolygon(polygon) {
-  const unique = [];
-  for (const vertex of polygon) {
-    const previous = unique[unique.length - 1];
-    if (!previous || previous[0] !== vertex[0] || previous[1] !== vertex[1]) unique.push(vertex);
+function ParseModelSettings({ t: t2, url, sessionId, busy, actions }) {
+  const [saved, setSaved] = import_react36.default.useState(null);
+  const [draft, setDraft] = import_react36.default.useState(null);
+  const [directory, setDirectory] = import_react36.default.useState(null);
+  const [error, setError] = import_react36.default.useState(false);
+  const [writing, setWriting] = import_react36.default.useState(false);
+  const [reload, setReload] = import_react36.default.useState(0);
+  const controller = import_react36.default.useRef(null);
+  import_react36.default.useEffect(() => {
+    const gate = new AbortController();
+    controller.current = gate;
+    setSaved(null);
+    setDraft(null);
+    setDirectory(null);
+    setError(false);
+    requestConfig(url, sessionId, gate.signal).then((result) => {
+      if (!gate.signal.aborted) {
+        setSaved(result);
+        setDraft(result.config);
+      }
+    }).catch(() => {
+      if (!gate.signal.aborted) setError(true);
+    });
+    return () => gate.abort();
+  }, [url, sessionId, reload]);
+  const mode = draft?.mode;
+  import_react36.default.useEffect(() => {
+    if (mode !== "dsh-model" || directory !== null) return;
+    const gate = new AbortController();
+    fetch(url, { credentials: "same-origin", headers: { "x-dsh-panel": "vision-model-directory" }, signal: gate.signal }).then(async (response) => {
+      if (!response.ok) throw Error("model_directory");
+      const result = await response.json();
+      if (!gate.signal.aborted) setDirectory(result.directory ?? []);
+    }).catch(() => {
+      if (!gate.signal.aborted) setDirectory([]);
+    });
+    return () => gate.abort();
+  }, [mode, directory, url]);
+  const status = error ? h32("div", { role: "alert", className: "mv-parse-invalid" }, [
+    t2("parse.modelConfigError"),
+    " ",
+    h32("button", {
+      key: "retry",
+      type: "button",
+      className: "mv-parse-mini-btn",
+      onClick: () => setReload((n) => n + 1),
+      disabled: busy || writing
+    }, t2("parse.retry"))
+  ]) : null;
+  if (!draft) return status || h32("span", { role: "status", className: "mv-parse-note" }, t2("parse.loadingModels"));
+  const dsh = draft.dshModel, api = draft.openaiCompat;
+  const update = (key, value) => setDraft((old) => ({ ...old, [key]: value }));
+  const field = (label, input2) => h32("label", { key: label, className: "mv-parse-model-field" }, [h32("span", { key: "label" }, t2(label)), import_react36.default.cloneElement(input2, { "aria-label": t2(label) })]);
+  const select = (value, onChange, opts) => h32("select", {
+    key: "input",
+    className: "mv-parse-select",
+    value,
+    onChange: (e) => onChange(e.target.value)
+  }, opts);
+  const option = (id, label) => h32("option", { key: id, value: id }, label);
+  const input = (value, onChange, type = "text", placeholder) => h32("input", {
+    key: "input",
+    className: "mv-parse-inline-input",
+    value: value || "",
+    type,
+    placeholder,
+    autoComplete: "off",
+    spellCheck: false,
+    onChange: (e) => onChange(e.target.value)
+  });
+  const ds = draft.mode === "dsh-model", external = draft.mode === "openai-compat";
+  const active = saved.probe?.model || saved.config[saved.config.mode === "openai-compat" ? "openaiCompat" : "dshModel"]?.model;
+  const fields = [
+    h32("legend", { key: "legend" }, t2("parse.modelTitle")),
+    field("parse.modelSource", select(draft.mode, (v) => update("mode", v), Object.entries(modeLabels).map(([id, key]) => option(id, t2(key)))))
+  ];
+  if (ds) {
+    const groupsAvailable = directory ?? [];
+    const models = groupsAvailable.find((group) => group.id === dsh.provider)?.models ?? [];
+    const setProvider = (provider) => update("dshModel", { provider, model: groupsAvailable.find((g) => g.id === provider)?.models[0]?.id || "" });
+    if (directory === null) {
+      fields.push(h32("span", { key: "catalog-loading", role: "status", className: "mv-parse-note" }, t2("parse.loadingModels")));
+    } else if (directory.length) {
+      const groups = directory.map((g) => option(g.id, g.name || g.id));
+      if (!directory.some((g) => g.id === dsh.provider)) groups.unshift(option(dsh.provider, dsh.provider || t2("parse.chooseProvider")));
+      fields.push(field("parse.modelProvider", select(dsh.provider, setProvider, groups)));
+    } else fields.push(field("parse.modelProvider", input(dsh.provider, setProvider)));
+    const setModel = (model) => update("dshModel", { ...dsh, model });
+    if (directory !== null && models.length) {
+      const options = models.map((m) => option(m.id, m.name || m.id));
+      if (!models.some((m) => m.id === dsh.model)) options.unshift(option(dsh.model, dsh.model || t2("parse.chooseModel")));
+      fields.push(field("parse.modelId", select(dsh.model, setModel, options)));
+    } else if (directory !== null) fields.push(field("parse.modelId", input(dsh.model, setModel)));
   }
-  const cleaned = [];
-  for (let index = 0; index < unique.length; index += 1) {
-    const previous = unique[(index - 1 + unique.length) % unique.length];
-    const current = unique[index];
-    const next = unique[(index + 1) % unique.length];
-    if (Math.abs(cross(previous, current, next)) > 1e-8) cleaned.push(current);
+  if (external) {
+    const setApi = (key, value) => update("openaiCompat", { ...api, [key]: value });
+    fields.push(
+      field("parse.apiUrl", input(api.baseUrl, (v) => setApi("baseUrl", v), "url", "https://…/v1")),
+      field("parse.modelId", input(api.model, (v) => setApi("model", v))),
+      field("parse.apiKey", input(
+        api.apiKey,
+        (v) => setApi("apiKey", v),
+        "password",
+        api.hasApiKey && api.baseUrl === saved.config.openaiCompat.baseUrl ? t2("parse.keyKept") : t2("parse.keyOptional")
+      ))
+    );
   }
-  return cleaned.length >= 3 ? cleaned : unique;
-}
-function validateVisionPolygon(value, point, options = {}) {
-  let polygon = value?.polygon ?? value?.points ?? value?.vertices ?? (Array.isArray(value) ? value : value?.coordinates);
-  const shape = Array.isArray(polygon) ? "polygon" : "box";
-  const bbox = Array.isArray(value?.bbox) ? value.bbox : Array.isArray(value?.box) ? value.box : value?.bbox && typeof value.bbox === "object" ? [value.bbox.left, value.bbox.top, value.bbox.right, value.bbox.bottom] : null;
-  if (!polygon && Array.isArray(bbox) && bbox.length === 4) {
-    const [left, top, right, bottom] = bbox.map(Number);
-    if (!(right > left && bottom > top)) throw visionError("invalid_result");
-    polygon = [[left, top], [right, top], [right, bottom], [left, bottom]];
-  }
-  if (!Array.isArray(polygon)) throw visionError(value?.polygon === null ? "no_target" : "invalid_result");
-  polygon = normalizeVertices(polygon, options);
-  if (polygon.length > 1 && polygon[0].every((number, index) => number === polygon.at(-1)[index])) polygon.pop();
-  polygon = simplifyPolygon(polygon);
-  if (polygon.length < 3 || polygon.length > 32 || new Set(polygon.map((vertex) => vertex.join(","))).size !== polygon.length) throw visionError("invalid_result");
-  let area = 0;
-  for (let index = 0; index < polygon.length; index += 1) {
-    const start = polygon[index], end = polygon[(index + 1) % polygon.length];
-    area += start[0] * end[1] - end[0] * start[1];
-    for (let other = index + 1; other < polygon.length; other += 1) {
-      if (other === index + 1 || index === 0 && other === polygon.length - 1) continue;
-      const from = polygon[other], to = polygon[(other + 1) % polygon.length];
-      if (cross(start, end, from) * cross(start, end, to) < 0 && cross(from, to, start) * cross(from, to, end) < 0 || onSegment(start, end, from) || onSegment(start, end, to) || onSegment(from, to, start) || onSegment(from, to, end)) throw visionError("invalid_result");
+  async function save() {
+    const gate = controller.current;
+    if (!gate || gate.signal.aborted || busy || writing) return;
+    setWriting(true);
+    setError(false);
+    actions?.setModelSaving?.(true);
+    try {
+      const result = await requestConfig(url, sessionId, gate.signal, draft);
+      if (!gate.signal.aborted) {
+        setSaved(result);
+        setDraft(result.config);
+      }
+    } catch {
+      if (!gate.signal.aborted) setError(true);
+    } finally {
+      if (!gate.signal.aborted) setWriting(false);
+      actions?.setModelSaving?.(false);
     }
   }
-  if (Math.abs(area) / 2 < 1e-5 || Math.abs(area) / 2 > 0.85) throw visionError("invalid_result");
-  if (point && !containsVisionPoint(polygon, point) && distanceToPolygon(polygon, point) > 0.08) throw visionError("invalid_result");
-  return { polygon, shape, approximate: true };
+  const valid = ds ? dsh.provider.trim() && dsh.model.trim() : !external || /^https?:\/\//i.test(api.baseUrl) && api.model.trim();
+  fields.push(h32("div", { key: "save", className: "mv-parse-model-apply" }, [
+    h32("button", {
+      key: "apply",
+      type: "button",
+      className: "mv-parse-mini-btn",
+      "data-model-apply": "1",
+      disabled: !valid || JSON.stringify(saved.config) === JSON.stringify(draft),
+      onClick: save
+    }, t2("parse.applyModel")),
+    h32(
+      "span",
+      { key: "current", className: "mv-parse-note", role: "status" },
+      saved.probe?.code === "model_not_visual" ? t2("parse.err.model_not_visual") : saved.probe?.ok === false ? t2("parse.modelUnavailable") : t2("parse.activeModel", { name: active || t2("parse.mode.dsh-default") })
+    )
+  ]), status);
+  return h32("fieldset", { className: "mv-parse-model", disabled: busy || writing }, fields);
 }
 
-// src/client/scene/vision-frame.js
-var cameraFlags = ["enableInputs", "enableRotate", "enableTranslate", "enableZoom", "enableTilt", "enableLook"];
-function isSceneStillLoading(scene, getLayers) {
-  const visibleLayers = (typeof getLayers === "function" ? getLayers() : []).filter((layer) => layer?.visible !== false && layer?.tileset);
-  if (visibleLayers.length > 0) {
-    return visibleLayers.some((layer) => {
-      if (layer.tileset.tilesLoaded !== false) return false;
-      const stats = layer.tileset.statistics;
-      if (!stats) return true;
-      return !(Number(stats.numberOfTilesWithContentReady ?? stats.numberOfTilesLoaded ?? 0) > 0 || Number(stats.numberOfTrianglesSelected ?? 0) > 0);
-    });
+// src/client/ui/parse-workbench.js
+var h33 = import_react37.default.createElement;
+function filterCandidates(candidates, filter) {
+  const list = Array.isArray(candidates) ? candidates : [];
+  if (filter === "pending" || filter === "accepted" || filter === "rejected") {
+    return list.filter((candidate) => candidate?.status === filter);
   }
-  if (scene?.globe?.tilesLoaded !== false) return false;
-  const renderedGlobeTiles = scene.globe?._surface?._tilesToRender?.length;
-  return !(typeof renderedGlobeTiles === "number" && renderedGlobeTiles > 0);
+  return list.slice();
 }
-function captureVisionFrame({ viewer, Cesium, anchor, getLayers = () => [], getViewer = () => viewer }) {
-  if (!viewer?.scene || !anchor || viewer.isDestroyed?.()) throw visionError("not_ready");
-  const canvas = viewer.canvas, scene = viewer.scene;
-  if (typeof document === "undefined" || !canvas?.clientWidth || !canvas?.clientHeight || document.visibilityState === "hidden") throw visionError("not_ready");
-  if (isSceneStillLoading(scene, getLayers)) throw visionError("scene_loading");
-  viewer.camera.cancelFlight?.();
-  const position = Cesium.SceneTransforms.worldToWindowCoordinates(scene, anchor);
-  if (!position || !Number.isFinite(position.x) || !Number.isFinite(position.y)) throw visionError("not_ready");
-  const cssWidth = canvas.clientWidth, cssHeight = canvas.clientHeight;
-  const side = Math.max(192, Math.min(768, Math.round(Math.min(cssWidth, cssHeight) * 0.45)));
-  const crop = {
-    left: Math.max(0, Math.min(cssWidth - side, position.x - side / 2)),
-    top: Math.max(0, Math.min(cssHeight - side, position.y - side / 2)),
-    width: Math.min(side, cssWidth),
-    height: Math.min(side, cssHeight)
-  };
-  const point = [(position.x - crop.left) / crop.width, (position.y - crop.top) / crop.height];
-  if (!point.every((number) => Number.isFinite(number) && number >= 0 && number <= 1)) throw visionError("not_ready");
-  const control = scene.screenSpaceCameraController;
-  const saved = Object.fromEntries(cameraFlags.filter((key) => typeof control?.[key] === "boolean").map((key) => [key, control[key]]));
-  const cleanups = [];
-  let dirty = false, released = false;
-  const watch = (event) => {
-    if (typeof event?.addEventListener !== "function") return;
-    const mark = () => {
-      dirty = true;
-    };
-    const remove = event.addEventListener(mark);
-    cleanups.push(typeof remove === "function" ? remove : () => event.removeEventListener?.(mark));
-  };
-  const signature = () => {
-    const imagery = scene.imageryLayers ?? viewer.imageryLayers;
-    const images = [];
-    for (let index = 0; index < (imagery?.length ?? 0); index++) {
-      const image = imagery.get(index);
-      images.push([image, image.show, image.alpha, image.brightness, image.contrast, image.imageryProvider]);
+function visibleCandidates(state) {
+  return filterCandidates(state?.candidates, state?.filter);
+}
+function exportCount(state, scope) {
+  if (scope === "all") {
+    const total = state?.counts?.total;
+    return typeof total === "number" ? total : Array.isArray(state?.candidates) ? state.candidates.length : 0;
+  }
+  const accepted = state?.counts?.accepted;
+  return typeof accepted === "number" ? accepted : filterCandidates(state?.candidates, "accepted").length;
+}
+function statusText(t2, state) {
+  if (state?.busy === true) {
+    if (state?.phase === "segmenting") {
+      const done = Number(state?.progress?.done) || 0;
+      const total = Number(state?.progress?.total) || 0;
+      const found = Number(state?.report?.instances) || 0;
+      const failed = Number(state?.report?.failedWindows) || 0;
+      return `${t2("parse.phaseSegmenting", { done, total })} · ${t2("parse.progressFound", { n: found, failed })}`;
     }
-    return [
-      getViewer(),
-      canvas.width,
-      canvas.height,
-      canvas.clientWidth,
-      canvas.clientHeight,
-      scene.mode,
-      scene.morphTime,
-      viewer.terrainProvider,
-      scene.primitives?.length,
-      ...["fov", "aspectRatio", "near", "far", "width", "left", "right", "top", "bottom", "xOffset", "yOffset"].map((key) => viewer.camera.frustum?.[key]),
-      ...Array.from(viewer.camera.viewMatrix ?? []),
-      ...getLayers().flatMap((layer) => [layer.id, layer.visible, layer.tileset, layer.tileset?.show, layer.tileset?.style, layer.tileset?.customShader, ...Array.from(layer.tileset?.modelMatrix ?? [])]),
-      ...images.flat(),
-      ...Object.values(scene.globe?.show === void 0 ? {} : { show: scene.globe.show, depth: scene.globe.depthTestAgainstTerrain })
-    ];
-  };
-  const release = () => {
-    if (released) return;
-    released = true;
-    for (const cleanup of cleanups) {
-      try {
-        cleanup();
-      } catch {
+    if (state?.phase === "capturing") return t2("parse.phaseCapturing");
+    return t2("parse.phaseWorking");
+  }
+  if (state?.phase === "error") return t2("parse.phaseError");
+  if (state?.phase === "review") {
+    const report = state?.report;
+    if (report) {
+      return t2(report.failedWindows ? "parse.reportLine" : "parse.reportComplete", {
+        n: Number(report.instances) || 0,
+        windows: Number(report.windows) || 0,
+        failed: Number(report.failedWindows) || 0
+      });
+    }
+    return t2("parse.phaseReview");
+  }
+  return t2("parse.idleHint");
+}
+var dotStyle = (color) => typeof color === "string" && color !== "" ? { "--mv-dot": color } : null;
+function areaText(value) {
+  return typeof value === "number" && Number.isFinite(value) ? formatArea(value) : "—";
+}
+function press(event, run) {
+  event?.stopPropagation?.();
+  run();
+}
+function filterEntries(t2) {
+  return [
+    { id: "all", label: t2("parse.filterAllQueue") },
+    { id: "pending", label: t2("parse.filterPending") },
+    { id: "accepted", label: t2("parse.filterAccepted") },
+    { id: "rejected", label: t2("parse.filterRejected") }
+  ];
+}
+function renderHeader(t2, state, ui) {
+  return h33("div", { className: "mv-parse-head", "data-row": "head" }, [
+    h33("span", { key: "title", className: "mv-parse-title" }, t2("parse.panelTitle")),
+    h33("button", {
+      key: "settings",
+      type: "button",
+      className: "mv-parse-mini-btn",
+      "data-action": "settings-toggle",
+      title: t2("parse.settingsHint"),
+      "aria-expanded": ui.settingsOpen === true,
+      onClick: () => ui.toggleSettings()
+    }, `${t2("parse.settings")} ${ui.settingsOpen ? "▴" : "▾"}`)
+  ]);
+}
+function renderSettings(t2, state, actions) {
+  const catalog = Array.isArray(state?.classes?.catalog) ? state.classes.catalog : [];
+  return h33("div", { className: "mv-parse-settings", "data-row": "settings" }, [
+    state?.visionConfigUrl ? h33(ParseModelSettings, {
+      key: "model",
+      t: t2,
+      url: state.visionConfigUrl,
+      sessionId: state.sessionId,
+      busy: state.busy,
+      actions
+    }) : null,
+    h33("label", { key: "scale", className: "mv-parse-scale" }, [
+      h33("input", {
+        key: "toggle",
+        type: "checkbox",
+        checked: state?.multiScale === true,
+        disabled: state?.busy,
+        onChange: (event) => actions?.setMultiScale?.(event.target.checked)
+      }),
+      t2("parse.multiScale")
+    ]),
+    h33("span", { key: "scale-detail", className: "mv-parse-note" }, t2("parse.multiScaleHint")),
+    h33("label", { key: "locator", className: "mv-parse-profile", title: t2("parse.locatorHint") }, [
+      t2("parse.locator"),
+      h33("select", {
+        key: "select",
+        className: "mv-parse-select",
+        value: state?.locator ?? "joint",
+        disabled: state?.busy,
+        "aria-label": t2("parse.locator"),
+        onChange: (e) => actions?.setLocator?.(e.target.value)
+      }, [
+        h33("option", { key: "joint", value: "joint" }, t2("parse.joint")),
+        h33("option", { key: "names", value: "names" }, t2("parse.namedLabels")),
+        h33("option", { key: "separate", value: "separate" }, t2("parse.separate"))
+      ])
+    ]),
+    h33("label", { key: "reuse", className: "mv-parse-scale", title: t2("parse.reuseHint") }, [
+      h33("input", {
+        key: "toggle",
+        type: "checkbox",
+        checked: state?.reuse !== false,
+        disabled: state?.busy,
+        onChange: (event) => actions?.setReuse?.(event.target.checked)
+      }),
+      t2("parse.reuse")
+    ]),
+    state?.report?.reusedCalls > 0 ? h33("span", { key: "reused", className: "mv-parse-note" }, t2("parse.reusedCount", { n: state.report.reusedCalls })) : null,
+    state?.report?.modelUsed ? h33("span", { key: "used", className: "mv-parse-note" }, t2("parse.lastModel", { name: state.report.modelUsed })) : null,
+    h33(
+      "details",
+      { key: "definitions", className: "mv-parse-definitions" },
+      h33("summary", null, t2("parse.settingsClasses")),
+      h33("div", { key: "defs", className: "mv-parse-defs" }, catalog.map((entry2) => h33("div", {
+        key: entry2.key,
+        className: "mv-parse-def"
+      }, [
+        h33("span", { key: "name", className: "mv-parse-def-name" }, entry2.custom ? `${entry2.name} · ${t2("parse.customTag")}` : entry2.name),
+        h33("span", { key: "text", className: "mv-parse-def-text" }, entry2.definition)
+      ])))
+    ),
+    h33("div", { key: "resolution", className: "mv-parse-note" }, t2("parse.settingsResolution")),
+    h33("div", { key: "tiling", className: "mv-parse-note" }, t2("parse.settingsTiling")),
+    state?.report?.usage ? h33("div", { key: "tokens", className: "mv-parse-note" }, t2("parse.tokenUsage", {
+      n: state.report.usage.totalTokens,
+      measured: state.report.usage.measuredCalls,
+      calls: state.report.calls - (state.report.reusedCalls || 0)
+    })) : null
+  ]);
+}
+function renderRun(t2, state, actions) {
+  const busy = state?.busy === true;
+  const rows = [];
+  if (busy) {
+    rows.push(h33("button", {
+      key: "stop",
+      type: "button",
+      className: "mv-cta danger mv-parse-run-btn",
+      "data-action": "stop",
+      title: t2("parse.stopHint"),
+      onClick: () => actions?.stop?.()
+    }, t2("parse.stop")));
+  } else if (state?.confirmRerun === true) {
+    const rerun = state?.rerun ?? {};
+    rows.push(h33("div", {
+      key: "confirm",
+      className: "mv-parse-confirm",
+      role: "group",
+      "aria-label": t2("parse.rerunConfirm", { n: rerun.total ?? 0, accepted: rerun.accepted ?? 0 })
+    }, [
+      h33("span", { key: "text", className: "mv-parse-confirm-text" }, t2("parse.rerunConfirm", {
+        n: rerun.total ?? 0,
+        accepted: rerun.accepted ?? 0
+      })),
+      h33("button", {
+        key: "go",
+        type: "button",
+        className: "mv-cta primary mv-parse-run-btn",
+        "data-action": "confirm-rerun",
+        title: t2("parse.rerunGo"),
+        onClick: () => actions?.confirmRun?.()
+      }, t2("parse.rerunGo")),
+      h33("button", {
+        key: "no",
+        type: "button",
+        className: "mv-parse-mini-btn",
+        "data-action": "cancel-rerun",
+        title: t2("parse.cancel"),
+        onClick: () => actions?.cancelRerun?.()
+      }, t2("parse.cancel"))
+    ]));
+  } else {
+    const canRun = state?.canRun === true;
+    const label = typeof state?.primaryLabel === "string" && state.primaryLabel !== "" ? state.primaryLabel : t2("parse.start");
+    rows.push(h33("button", {
+      key: "run",
+      type: "button",
+      className: "mv-cta primary mv-parse-run-btn",
+      "data-action": "run",
+      disabled: !canRun,
+      title: state?.reason ?? t2("parse.startHint"),
+      onClick: () => {
+        if (canRun) actions?.run?.();
       }
-    }
-    if (!viewer.isDestroyed?.() && control) {
-      for (const [key, value] of Object.entries(saved)) {
-        try {
-          control[key] = value;
-        } catch {
+    }, label));
+  }
+  if (!busy && typeof state?.reason === "string" && state.reason !== "") {
+    rows.push(h33("div", { key: "reason", className: "mv-parse-reason" }, state.reason));
+  }
+  return h33("div", { className: "mv-parse-run", "data-row": "run" }, rows);
+}
+function renderStatus(t2, state) {
+  return h33("div", {
+    className: "mv-parse-status",
+    role: "status",
+    "aria-live": "polite",
+    "data-row": "status"
+  }, statusText(t2, state));
+}
+function renderError(t2, state, actions) {
+  const error = state?.error;
+  if (!error) return null;
+  const message2 = typeof error.message === "string" && error.message !== "" ? error.message : t2("parse.err.model_failed");
+  return h33("div", { className: "mv-parse-error", "data-error": error.code ?? "error", role: "alert" }, [
+    h33("div", { key: "msg", className: "mv-parse-error-msg" }, message2),
+    h33("button", {
+      key: "retry",
+      type: "button",
+      className: "mv-parse-mini-btn",
+      "data-action": "retry",
+      title: t2("parse.retry"),
+      onClick: () => actions?.run?.()
+    }, t2("parse.retry"))
+  ]);
+}
+function renderScope(t2, state, actions) {
+  const busy = state?.busy === true;
+  const scope = state?.scope ?? "view";
+  const aoi = state?.aoi ?? {};
+  const drawing = aoi.drawing === true;
+  const rows = [h33("div", {
+    key: "seg",
+    className: "mv-parse-seg",
+    role: "group",
+    "aria-label": t2("parse.scopeLabel")
+  }, [
+    h33("button", {
+      key: "view",
+      type: "button",
+      "data-scope": "view",
+      "aria-pressed": scope === "view",
+      className: `mv-parse-seg-btn${scope === "view" ? " on" : ""}`,
+      disabled: busy,
+      title: t2("parse.scopeCurrent"),
+      onClick: () => actions?.setScope?.("view")
+    }, t2("parse.scopeCurrent")),
+    h33("button", {
+      key: "aoi",
+      type: "button",
+      "data-scope": "aoi",
+      "aria-pressed": scope === "aoi",
+      className: `mv-parse-seg-btn${scope === "aoi" ? " on" : ""}`,
+      disabled: busy,
+      title: t2("parse.scopeDrawHint"),
+      onClick: () => {
+        actions?.setScope?.("aoi");
+        if (aoi.ready !== true && drawing !== true) actions?.startDrawAoi?.("rect");
+      }
+    }, t2("parse.scopeDraw"))
+  ])];
+  if (scope === "aoi") {
+    const drawEntries = [{ id: "rect", label: aoi.ready === true ? t2("parse.aoiRedraw") : t2("parse.aoiDraw") }];
+    rows.push(h33("div", { key: "aoi", className: "mv-parse-aoi" }, [
+      ...drawEntries.map(({ id, label }) => h33("button", {
+        key: id,
+        type: "button",
+        className: "mv-parse-mini-btn",
+        "data-draw": id,
+        disabled: busy,
+        title: drawing ? t2("parse.drawing") : label,
+        onClick: () => actions?.startDrawAoi?.(id)
+      }, drawing ? t2("parse.drawing") : label)),
+      aoi.ready === true ? h33("button", {
+        key: "clear",
+        type: "button",
+        className: "mv-parse-mini-btn",
+        "data-aoi-clear": "1",
+        disabled: busy,
+        title: t2("parse.aoiClear"),
+        onClick: () => actions?.clearAoi?.()
+      }, t2("parse.aoiClear")) : null,
+      h33("span", { key: "note", className: "mv-parse-note" }, aoi.ready === true ? t2("parse.aoiReadyLabel", { area: Number.isFinite(aoi.area_m2) ? formatArea(aoi.area_m2) : "—" }) : t2("parse.needAoi"))
+    ]));
+  }
+  return h33("div", { className: "mv-parse-sec", "data-row": "scope" }, rows);
+}
+function renderClasses(t2, state, actions, ui) {
+  const busy = state?.busy === true;
+  const catalog = Array.isArray(state?.classes?.catalog) ? state.classes.catalog : [];
+  const chips = catalog.map((entry2) => h33("button", {
+    key: entry2.key,
+    type: "button",
+    "data-class": entry2.key,
+    "aria-pressed": entry2.on === true,
+    className: `mv-parse-chip${entry2.on === true ? " on" : ""}`,
+    disabled: busy,
+    title: entry2.definition ? `${entry2.name} · ${entry2.definition}` : entry2.name,
+    onClick: () => actions?.toggleClass?.(entry2.key)
+  }, [
+    h33("span", { key: "dot", className: "mv-parse-dot", style: dotStyle(entry2.color), "aria-hidden": true }),
+    entry2.name
+  ]));
+  if (ui.customOpen) {
+    chips.push(h33("input", {
+      key: "custom-input",
+      type: "text",
+      className: "mv-parse-inline-input",
+      value: ui.customDraft,
+      placeholder: t2("parse.customClass"),
+      "aria-label": t2("parse.customInputLabel"),
+      title: t2("parse.customInputLabel"),
+      disabled: busy,
+      onChange: (event) => ui.setCustomDraft(event?.target?.value ?? ""),
+      onKeyDown: (event) => {
+        if (event?.key === "Enter") {
+          event.preventDefault?.();
+          ui.submitCustom();
+        } else if (event?.key === "Escape") {
+          event.preventDefault?.();
+          ui.closeCustom();
         }
       }
-      try {
-        scene.requestRender?.();
-      } catch {
-      }
-    }
-  };
-  try {
-    for (const key of Object.keys(saved)) control[key] = false;
-    viewer.render();
-    if (canvas.width < 32 || canvas.height < 32) throw visionError("not_ready");
-    if (isSceneStillLoading(scene, getLayers)) throw visionError("scene_loading");
-    const scaleX = canvas.width / cssWidth, scaleY = canvas.height / cssHeight;
-    const sourceWidth = Math.max(1, Math.round(crop.width * scaleX));
-    const sourceHeight = Math.max(1, Math.round(crop.height * scaleY));
-    const scale = Math.min(1, 1024 / Math.max(sourceWidth, sourceHeight));
-    const image = document.createElement("canvas");
-    image.width = Math.max(32, Math.round(sourceWidth * scale));
-    image.height = Math.max(32, Math.round(sourceHeight * scale));
-    const context = image.getContext("2d");
-    if (!context) throw visionError("not_ready");
-    context.drawImage(
-      canvas,
-      Math.round(crop.left * scaleX),
-      Math.round(crop.top * scaleY),
-      sourceWidth,
-      sourceHeight,
-      0,
-      0,
-      image.width,
-      image.height
+    }));
+    chips.push(h33("button", {
+      key: "custom-save",
+      type: "button",
+      className: "mv-parse-mini-btn",
+      "data-custom-save": "1",
+      disabled: busy,
+      title: t2("parse.customSave"),
+      onClick: () => ui.submitCustom()
+    }, t2("parse.customSave")));
+    chips.push(h33("button", {
+      key: "custom-cancel",
+      type: "button",
+      className: "mv-parse-mini-btn",
+      disabled: busy,
+      title: t2("parse.cancel"),
+      onClick: () => ui.closeCustom()
+    }, t2("parse.cancel")));
+  } else {
+    chips.push(h33("button", {
+      key: "custom-add",
+      type: "button",
+      className: "mv-parse-chip mv-parse-chip-add",
+      "data-class-add": "1",
+      disabled: busy,
+      title: t2("parse.customHint"),
+      onClick: () => ui.openCustom()
+    }, t2("parse.customClass")));
+  }
+  chips.push(h33("button", {
+    key: "reset",
+    type: "button",
+    className: "mv-parse-mini-btn",
+    "data-action": "reset-classes",
+    disabled: busy,
+    title: t2("parse.classResetHint"),
+    onClick: () => actions?.resetClasses?.()
+  }, t2("parse.classReset")));
+  return h33("div", { className: "mv-parse-sec", "data-row": "classes" }, [
+    h33("label", { key: "profile", className: "mv-parse-profile" }, [
+      t2("parse.classProfile"),
+      h33("select", {
+        key: "choice",
+        className: "mv-parse-select",
+        disabled: busy,
+        value: state?.classes?.profile ?? "general",
+        "aria-label": t2("parse.classProfile"),
+        onChange: (e) => actions?.setClassProfile?.(e.target.value)
+      }, [
+        h33("option", { key: "general", value: "general" }, t2("parse.generalProfile")),
+        h33("option", { key: "sports", value: "sports" }, t2("parse.sportsProfile"))
+      ])
+    ]),
+    h33("div", { key: "chips", className: "mv-parse-chips", role: "group", "aria-label": t2("parse.classesLabel") }, chips),
+    ui.customError ? h33("div", { key: "invalid", className: "mv-parse-invalid", role: "alert" }, t2("parse.customInvalid")) : null,
+    h33("div", { key: "summary", className: "mv-parse-note" }, state?.classes?.summary ?? "")
+  ]);
+}
+function renderRow(t2, state, actions, candidate) {
+  const id = candidate?.id;
+  const busy = state?.busy === true;
+  const selected = Array.isArray(state?.selected) && state.selected.includes(id);
+  const active = state?.activeId === id;
+  const status = candidate?.status ?? "pending";
+  const classText = candidate?.className || candidate?.classKey || t2("parse.class.other");
+  const icon = (key, action, glyph, label, run) => h33("button", {
+    key,
+    type: "button",
+    className: "mv-parse-icon-btn",
+    "data-id": id,
+    "data-row-action": action,
+    disabled: busy,
+    title: label,
+    "aria-label": label,
+    onClick: (event) => press(event, run)
+  }, glyph);
+  const buttons = [];
+  if (status === "pending") {
+    buttons.push(
+      icon("adopt", "adopt", "✓", t2("parse.adopt"), () => actions?.adopt?.([id])),
+      icon("reject", "reject", "✕", t2("parse.reject"), () => actions?.reject?.([id]))
     );
-    if (typeof context.beginPath === "function") {
-      const cx = point[0] * image.width, cy = point[1] * image.height;
-      const arm = Math.max(5, Math.round(image.width * 0.012));
-      context.beginPath();
-      context.moveTo(cx - arm, cy);
-      context.lineTo(cx + arm, cy);
-      context.moveTo(cx, cy - arm);
-      context.lineTo(cx, cy + arm);
-      context.strokeStyle = "rgba(255,45,85,.95)";
-      context.lineWidth = Math.max(2, Math.round(image.width * 4e-3));
-      context.stroke();
-    }
-    const dataUrl = image.toDataURL("image/jpeg", 0.85);
-    if (dataUrl.length > 2e6) throw visionError("too_large");
-    const initial = signature();
-    for (const layer of getLayers()) {
-      watch(layer.tileset?.tileLoad);
-      watch(layer.tileset?.tileUnload);
-    }
-    watch(viewer.entities?.collectionChanged);
-    const imagery = scene.imageryLayers ?? viewer.imageryLayers;
-    watch(imagery?.layerAdded);
-    watch(imagery?.layerRemoved);
-    watch(imagery?.layerMoved);
-    const selected = scene.pick(new Cesium.Cartesian2(position.x, position.y));
-    const target = selected?.primitive ?? selected?.tileset ?? null;
-    return {
-      id: globalThis.crypto?.randomUUID?.() ?? `frame-${Date.now()}`,
-      dataUrl,
-      point,
-      width: image.width,
-      height: image.height,
-      crop,
-      cssWidth: canvas.clientWidth,
-      cssHeight: canvas.clientHeight,
-      viewer,
-      Cesium,
-      target,
-      isValid() {
-        if (released || dirty || viewer.isDestroyed?.()) return false;
-        try {
-          const current = signature();
-          return current.length === initial.length && current.every((value, index) => Object.is(value, initial[index]));
-        } catch {
-          return false;
-        }
-      },
-      release
-    };
-  } catch (error) {
-    release();
-    throw error;
+  } else if (status === "accepted") {
+    buttons.push(
+      icon("restore", "restore", "↺", t2("parse.restore"), () => actions?.restore?.([id])),
+      icon("reject", "reject", "✕", t2("parse.reject"), () => actions?.reject?.([id]))
+    );
+  } else {
+    buttons.push(
+      icon("adopt", "adopt", "✓", t2("parse.adopt"), () => actions?.adopt?.([id])),
+      icon("restore", "restore", "↺", t2("parse.restore"), () => actions?.restore?.([id]))
+    );
   }
+  buttons.push(
+    icon("remove", "remove", "⌫", t2("parse.remove"), () => actions?.remove?.([id])),
+    icon("fly", "fly", "⌖", t2("parse.flyTo"), () => actions?.flyTo?.(id))
+  );
+  return h33("div", { key: id, role: "listitem", className: "mv-parse-item-wrap", "data-id": id }, h33("div", {
+    className: `mv-parse-row mv-parse-item${selected ? " on" : ""}${active ? " active" : ""}`,
+    "data-item-id": id,
+    onClick: () => {
+      if (!busy) actions?.activate?.(id);
+    }
+  }, [
+    h33("input", {
+      key: "select",
+      type: "checkbox",
+      className: "mv-parse-check",
+      checked: selected,
+      "data-select": String(id),
+      "aria-label": t2("parse.selectRow", { name: classText }),
+      title: t2("parse.selectRow", { name: classText }),
+      onClick: (event) => event?.stopPropagation?.(),
+      onChange: () => {
+        const current2 = Array.isArray(state?.selected) ? state.selected : [];
+        const next = current2.includes(id) ? current2.filter((value) => value !== id) : [...current2, id];
+        actions?.select?.(next);
+      }
+    }),
+    h33("span", { key: "dot", className: "mv-parse-dot", style: dotStyle(candidate?.color), "aria-hidden": true }),
+    h33("button", {
+      key: "class",
+      type: "button",
+      className: "mv-parse-item-class",
+      disabled: busy,
+      title: t2("parse.previewOutline"),
+      "aria-label": t2("parse.previewCandidate", { name: classText }),
+      onClick: (event) => press(event, () => actions?.activate?.(id))
+    }, classText),
+    candidate?.clippedAtTileEdge === true ? h33("span", { key: "clipped", className: "mv-parse-item-tag", title: t2("parse.clippedHint") }, t2("parse.clippedTag")) : null,
+    h33("span", { key: "area", className: "mv-parse-item-area", title: t2("parse.areaLabel") }, areaText(candidate?.area_m2)),
+    h33("span", { key: "actions", className: "mv-parse-item-actions" }, buttons)
+  ]));
 }
-function groundPick(viewer, position) {
-  try {
-    const ray = viewer.camera?.getPickRay?.(position);
-    if (ray && typeof viewer.scene?.globe?.pick === "function") {
-      const hit = viewer.scene.globe.pick(ray, viewer.scene);
-      if (hit) return hit;
+function renderQueue(t2, state, actions) {
+  const busy = state?.busy === true;
+  const rows = visibleCandidates(state);
+  const counts = state?.counts ?? {};
+  const pending = Number(counts.pending) || 0;
+  return h33("div", { className: "mv-parse-queue", "data-row": "queue" }, [
+    h33("div", { key: "head", className: "mv-parse-queue-head" }, [
+      h33("span", { key: "counts", className: "mv-parse-queue-counts" }, t2("parse.queueCounts", {
+        n: Number(counts.total) || 0,
+        pending,
+        accepted: Number(counts.accepted) || 0
+      })),
+      h33("span", { key: "tools", className: "mv-parse-queue-tools", role: "group", "aria-label": t2("parse.filterLabel") }, [
+        h33("select", {
+          key: "filter",
+          className: "mv-parse-select",
+          "data-filter-select": "1",
+          value: state?.filter ?? "all",
+          "aria-label": t2("parse.filterLabel"),
+          title: t2("parse.filterLabel"),
+          disabled: busy,
+          onChange: (event) => actions?.setFilter?.(event?.target?.value ?? "all")
+        }, filterEntries(t2).map((entry2) => h33("option", { key: entry2.id, value: entry2.id }, entry2.label))),
+        h33("button", {
+          key: "pending",
+          type: "button",
+          className: "mv-parse-mini-btn",
+          "data-queue-action": "select-pending",
+          disabled: busy || pending === 0,
+          title: t2("parse.selectPending"),
+          onClick: () => actions?.select?.(
+            (state?.candidates ?? []).filter((candidate) => candidate?.status === "pending").map((candidate) => candidate.id)
+          )
+        }, t2("parse.selectPending")),
+        h33("button", {
+          key: "adopt-selected",
+          type: "button",
+          className: "mv-parse-mini-btn",
+          "data-queue-action": "adopt-selected",
+          disabled: busy || !Array.isArray(state?.selected) || state.selected.length === 0,
+          title: t2("parse.adoptSelected"),
+          onClick: () => actions?.adopt?.(state?.selected ?? [])
+        }, t2("parse.adoptSelected")),
+        h33("button", {
+          key: "reject-selected",
+          type: "button",
+          className: "mv-parse-mini-btn",
+          "data-queue-action": "reject-selected",
+          disabled: busy || !Array.isArray(state?.selected) || state.selected.length === 0,
+          title: t2("parse.rejectSelected"),
+          onClick: () => actions?.reject?.(state?.selected ?? [])
+        }, t2("parse.rejectSelected")),
+        h33("button", {
+          key: "undo",
+          type: "button",
+          className: "mv-parse-icon-btn",
+          "data-action": "undo",
+          disabled: busy,
+          title: t2("parse.undoHint"),
+          "aria-label": t2("parse.undo"),
+          onClick: () => actions?.undo?.()
+        }, "↶"),
+        h33("button", {
+          key: "redo",
+          type: "button",
+          className: "mv-parse-icon-btn",
+          "data-action": "redo",
+          disabled: busy,
+          title: t2("parse.redoHint"),
+          "aria-label": t2("parse.redo"),
+          onClick: () => actions?.redo?.()
+        }, "↷")
+      ])
+    ]),
+    h33("div", { key: "rows", className: "mv-parse-rows", role: "list", "aria-label": t2("parse.queueLabel") }, rows.length > 0 ? rows.map((candidate) => renderRow(t2, state, actions, candidate)) : h33("div", { role: "listitem", className: "mv-parse-empty" }, t2("parse.queueEmpty")))
+  ]);
+}
+function renderExport(t2, state, actions, ui) {
+  const busy = state?.busy === true;
+  const scope = ui.exportScope === "all" ? "all" : "accepted";
+  const count = exportCount(state, scope);
+  const disabled = busy || count === 0;
+  return h33("div", { className: "mv-parse-export", "data-row": "export" }, [
+    h33("div", { key: "scope", className: "mv-parse-export-row", role: "group", "aria-label": t2("parse.exportScopeLabel") }, [
+      h33("button", {
+        key: "accepted",
+        type: "button",
+        "data-export-scope": "accepted",
+        "aria-pressed": scope === "accepted",
+        className: `mv-parse-chip${scope === "accepted" ? " on" : ""}`,
+        disabled: busy,
+        title: t2("parse.filterAccepted"),
+        onClick: () => ui.setExportScope("accepted")
+      }, t2("parse.filterAccepted")),
+      h33("button", {
+        key: "all",
+        type: "button",
+        "data-export-scope": "all",
+        "aria-pressed": scope === "all",
+        className: `mv-parse-chip${scope === "all" ? " on" : ""}`,
+        disabled: busy,
+        title: t2("parse.filterAllQueue"),
+        onClick: () => ui.setExportScope("all")
+      }, t2("parse.filterAllQueue"))
+    ]),
+    count === 0 && Number(state?.counts?.total) > 0 ? h33("div", { key: "need", className: "mv-parse-note" }, t2("parse.exportNeedAccept")) : null,
+    h33("div", { key: "do", className: "mv-parse-export-row" }, h33("button", {
+      key: "export",
+      type: "button",
+      className: "mv-cta primary mv-parse-export-do",
+      "data-action": "export",
+      disabled,
+      title: disabled ? t2("parse.exportBlocked") : t2("parse.exportHint"),
+      onClick: () => {
+        if (!disabled) actions?.exportGeoJson?.(scope);
+      }
+    }, t2("parse.exportDo", { n: count })))
+  ]);
+}
+function useWorkbenchUi(t2, state, actions) {
+  const [settingsOpen, setSettingsOpen] = import_react37.default.useState(false);
+  const [customOpen, setCustomOpen] = import_react37.default.useState(false);
+  const [customDraft, setCustomDraft] = import_react37.default.useState("");
+  const [customError, setCustomError] = import_react37.default.useState(false);
+  const [exportScope, setExportScope] = import_react37.default.useState("accepted");
+  const toggleSettings = () => setSettingsOpen((open) => !open);
+  const openCustom = () => {
+    setCustomOpen(true);
+    setCustomError(false);
+  };
+  const closeCustom = () => {
+    setCustomOpen(false);
+    setCustomDraft("");
+    setCustomError(false);
+  };
+  const submitCustom = () => {
+    const label = String(customDraft ?? "").trim();
+    if (label === "") {
+      setCustomError(true);
+      return;
     }
-    if (typeof viewer.camera?.pickEllipsoid === "function") {
-      return viewer.camera.pickEllipsoid(position, viewer.scene?.globe?.ellipsoid);
+    actions?.addCustomClass?.(label);
+    setCustomDraft("");
+    setCustomError(false);
+    setCustomOpen(false);
+  };
+  return {
+    settingsOpen,
+    toggleSettings,
+    customOpen,
+    customDraft,
+    customError,
+    setCustomDraft,
+    openCustom,
+    closeCustom,
+    submitCustom,
+    exportScope,
+    setExportScope
+  };
+}
+function ParseWorkbench({ t: t2, state, actions }) {
+  const translate2 = typeof t2 === "function" ? t2 : (key) => key;
+  const ui = useWorkbenchUi(translate2, state, actions);
+  return h33("div", { className: "mv-parse mv-parse-workbench" }, [
+    renderHeader(translate2, state, ui),
+    ui.settingsOpen ? renderSettings(translate2, state, actions) : null,
+    renderScope(translate2, state, actions),
+    renderClasses(translate2, state, actions, ui),
+    renderRun(translate2, state, actions),
+    renderStatus(translate2, state),
+    renderError(translate2, state, actions),
+    renderQueue(translate2, state, actions),
+    renderExport(translate2, state, actions, ui)
+  ]);
+}
+
+// src/client/scene/annotation-export.js
+var EXPORT_PROPERTY_ORDER = Object.freeze([
+  "id",
+  "class",
+  "class_key",
+  "class_name",
+  "color",
+  "clippedAtTileEdge",
+  "status",
+  "method",
+  "source",
+  "source_kind",
+  "shape",
+  "confidence",
+  "area_m2",
+  "run_id",
+  "rev"
+]);
+var EXPORT_DEFAULT_DECIMALS = 7;
+var STRING_KEYS = /* @__PURE__ */ new Set([
+  "id",
+  "class",
+  "class_key",
+  "class_name",
+  "color",
+  "status",
+  "method",
+  "source",
+  "source_kind",
+  "shape",
+  "run_id"
+]);
+var NUMBER_KEYS = /* @__PURE__ */ new Set(["confidence", "area_m2", "rev"]);
+var isObject = (value) => value !== null && typeof value === "object" && !Array.isArray(value);
+var finiteNumber2 = (value) => typeof value === "number" && Number.isFinite(value) ? value : null;
+function decimalsOf(value, fallback) {
+  if (typeof value !== "number" || !Number.isFinite(value)) return fallback;
+  return Math.min(15, Math.max(0, Math.trunc(value)));
+}
+function roundTo(value, decimals) {
+  const factor = 10 ** decimals;
+  return Math.round(value * factor) / factor;
+}
+function outerRings(geometry) {
+  if (!isObject(geometry)) return null;
+  if (geometry.type === "Polygon") {
+    const ring = Array.isArray(geometry.coordinates) ? geometry.coordinates[0] : null;
+    return Array.isArray(ring) ? [ring] : null;
+  }
+  if (geometry.type === "MultiPolygon") {
+    if (!Array.isArray(geometry.coordinates)) return null;
+    const rings = [];
+    for (const polygon of geometry.coordinates) {
+      if (!Array.isArray(polygon)) continue;
+      if (!Array.isArray(polygon[0])) continue;
+      rings.push(polygon[0]);
     }
-  } catch {
+    return rings.length > 0 ? rings : null;
   }
   return null;
 }
-function projectVisionPolygon(frame, result) {
-  if (!frame.isValid()) throw visionError("scene_changed");
-  const { polygon } = validateVisionPolygon(result, frame.point);
-  const { viewer, Cesium } = frame;
-  const crop = frame.crop ?? { left: 0, top: 0, width: frame.cssWidth, height: frame.cssHeight };
-  if (!viewer.scene.pickPositionSupported) throw visionError("depth_unavailable");
-  viewer.render();
-  if (!frame.isValid()) throw visionError("scene_changed");
-  const rawPoints = [];
-  let misses = 0;
-  let fallback = 0;
-  for (let index = 0; index < polygon.length; index += 1) {
-    const start = polygon[index], end = polygon[(index + 1) % polygon.length];
-    for (let step = 0; step < 2; step += 1) {
-      const x = start[0] + (end[0] - start[0]) * step / 2;
-      const y = start[1] + (end[1] - start[1]) * step / 2;
-      const position = new Cesium.Cartesian2(crop.left + x * crop.width, crop.top + y * crop.height);
-      let cartesian = viewer.scene.pickPosition(position);
-      let isFallback = false;
-      if (!cartesian) {
-        cartesian = groundPick(viewer, position);
-        if (cartesian) {
-          fallback += 1;
-          isFallback = true;
-        }
-      }
-      const cartographic = cartesian && Cesium.Cartographic.fromCartesian(cartesian);
-      if (!cartographic || ![cartographic.longitude, cartographic.latitude, cartographic.height].every(Number.isFinite)) {
-        misses += 1;
+function exportProperties(properties) {
+  const source = isObject(properties) ? properties : {};
+  const out = {};
+  for (const key of EXPORT_PROPERTY_ORDER) {
+    const value = source[key];
+    if (STRING_KEYS.has(key)) out[key] = typeof value === "string" ? value : null;
+    else if (NUMBER_KEYS.has(key)) out[key] = finiteNumber2(value);
+    else out[key] = value === true ? true : null;
+  }
+  return out;
+}
+function buildRing(ring, decimals) {
+  if (!Array.isArray(ring) || ring.length < 3) return null;
+  const out = [];
+  for (const position of ring) {
+    if (!Array.isArray(position) || position.length < 2) return null;
+    const lon = finiteNumber2(position[0]);
+    const lat = finiteNumber2(position[1]);
+    if (lon === null || lat === null) return null;
+    out.push([roundTo(lon, decimals), roundTo(lat, decimals)]);
+  }
+  const first = out[0];
+  const last = out[out.length - 1];
+  if (first[0] !== last[0] || first[1] !== last[1]) out.push([...first]);
+  return out;
+}
+function buildGeoJsonExport(features, options = {}) {
+  const list = Array.isArray(features) ? features : [];
+  const decimals = decimalsOf(options.round, EXPORT_DEFAULT_DECIMALS);
+  const collection = { type: "FeatureCollection", features: [] };
+  let skipped = 0;
+  for (const feature of list) {
+    if (!isObject(feature)) {
+      skipped += 1;
+      continue;
+    }
+    const rings = outerRings(feature.geometry);
+    if (rings === null) {
+      skipped += 1;
+      continue;
+    }
+    const properties = exportProperties(feature.properties);
+    for (const ring of rings) {
+      const coordinates = buildRing(ring, decimals);
+      if (coordinates === null) {
+        skipped += 1;
         continue;
       }
-      rawPoints.push({
-        cartesian,
-        lon: Cesium.Math.toDegrees(cartographic.longitude),
-        lat: Cesium.Math.toDegrees(cartographic.latitude),
-        height: cartographic.height,
-        isFallback
+      collection.features.push({
+        type: "Feature",
+        properties: { ...properties },
+        geometry: { type: "Polygon", coordinates: [coordinates] }
       });
     }
   }
-  const depthHeights = rawPoints.filter((pt) => !pt.isFallback).map((pt) => pt.height).sort((a, b) => a - b);
-  let kept = rawPoints;
-  if (depthHeights.length >= 3 && fallback > 0) {
-    const medianDepthH = depthHeights[Math.floor(depthHeights.length / 2)];
-    const filtered = [];
-    for (const pt of rawPoints) {
-      if (pt.isFallback && Math.abs(pt.height - medianDepthH) > 30) {
-        misses += 1;
-        fallback -= 1;
-        continue;
-      }
-      filtered.push(pt);
+  return { collection, count: collection.features.length, skipped };
+}
+function suggestedFilename({ date = /* @__PURE__ */ new Date() } = {}) {
+  const when = date instanceof Date && !Number.isNaN(date.getTime()) ? date : /* @__PURE__ */ new Date();
+  const year = String(when.getFullYear());
+  const month = String(when.getMonth() + 1).padStart(2, "0");
+  const day = String(when.getDate()).padStart(2, "0");
+  return `extract-${year}${month}${day}.geojson`;
+}
+
+// src/client/scene/annotation-store.js
+var ANNOTATION_STATUSES = Object.freeze(["pending", "accepted", "rejected"]);
+var ANNOTATION_UNDO_LIMIT = 50;
+var ANNOTATION_PATCHABLE_KEYS = Object.freeze([
+  "name",
+  "class",
+  "class_key",
+  "area_m2"
+]);
+var ANNOTATION_CARRIED_KEYS = Object.freeze([
+  "class",
+  "class_key",
+  "class_name",
+  "color",
+  "clippedAtTileEdge",
+  // Provenance: which model label came back, and which source produced the row
+  // (ortho / manual). The row itself is always a flat 2D footprint.
+  "class_raw",
+  "source_kind",
+  "shape",
+  "confidence",
+  "area_m2",
+  "name",
+  "hex"
+]);
+var STATUS_SET = new Set(ANNOTATION_STATUSES);
+var isObject2 = (value) => value !== null && typeof value === "object" && !Array.isArray(value);
+var hasOwn = (object, key) => Object.prototype.hasOwnProperty.call(object, key);
+var clone2 = (value) => value === void 0 ? void 0 : JSON.parse(JSON.stringify(value));
+function normalizeIds(ids) {
+  if (typeof ids === "string") return ids === "" ? [] : [ids];
+  if (!Array.isArray(ids)) return [];
+  return ids.filter((id) => typeof id === "string" && id !== "");
+}
+function createAnnotationStore({ now = Date.now, idPrefix = "A" } = {}) {
+  const clock = typeof now === "function" ? now : Date.now;
+  const prefix = typeof idPrefix === "string" && idPrefix !== "" ? idPrefix : "A";
+  const stamp = () => {
+    const value = clock();
+    return typeof value === "number" && Number.isFinite(value) ? value : Date.now();
+  };
+  let features = [];
+  let sequence = 0;
+  let run = null;
+  let createdAt = stamp();
+  const undoStack = [];
+  const redoStack = [];
+  const listeners = /* @__PURE__ */ new Set();
+  function countsOf() {
+    const out = { total: features.length, pending: 0, accepted: 0, rejected: 0 };
+    for (const feature of features) {
+      const status = feature.properties.status;
+      if (status === "accepted") out.accepted += 1;
+      else if (status === "rejected") out.rejected += 1;
+      else out.pending += 1;
     }
-    if (filtered.length >= 3) kept = filtered;
+    return out;
   }
-  const points = kept.map(({ cartesian, lon, lat, height }) => ({ cartesian, lon, lat, height }));
-  if (points.length < 3) throw visionError("depth_unavailable");
-  if (!frame.isValid()) throw visionError("scene_changed");
-  const totalSamples = polygon.length * 2;
-  const missRatio = totalSamples > 0 ? Math.round(misses / totalSamples * 1e3) / 1e3 : 0;
-  const depthSource = fallback === 0 ? "scene_depth" : fallback < points.length ? "mixed_ground_fallback" : "ground_fallback";
-  const warnings = [];
-  if (fallback > 0) warnings.push("depth_fallback");
-  if (misses > 0) warnings.push("depth_partial");
-  const ring = points.map((point) => [point.lon, point.lat]);
-  ring.push(ring[0].slice());
+  function getState() {
+    return {
+      run_id: run === null ? null : run.run_id,
+      created_at: createdAt,
+      candidates: features.map((feature) => clone2(feature)),
+      counts: countsOf()
+    };
+  }
+  function notify() {
+    if (listeners.size === 0) return;
+    const state = getState();
+    for (const listener of [...listeners]) {
+      try {
+        listener(state);
+      } catch {
+      }
+    }
+  }
+  function subscribe(listener) {
+    if (typeof listener !== "function") return () => {
+    };
+    listeners.add(listener);
+    return () => {
+      listeners.delete(listener);
+    };
+  }
+  function commit(label, next) {
+    undoStack.push({ label, features });
+    if (undoStack.length > ANNOTATION_UNDO_LIMIT) undoStack.shift();
+    redoStack.length = 0;
+    features = next;
+    notify();
+  }
+  function nextRunId() {
+    return `R-${stamp()}`;
+  }
+  function startRun({ mode = "auto", source = "3d", scope = "view", classes = [] } = {}) {
+    createdAt = stamp();
+    run = {
+      run_id: nextRunId(),
+      created_at: createdAt,
+      mode: typeof mode === "string" && mode !== "" ? mode : "auto",
+      source: typeof source === "string" && source !== "" ? source : "3d",
+      scope: typeof scope === "string" && scope !== "" ? scope : "view",
+      classes: clone2(Array.isArray(classes) ? classes : [])
+    };
+    features = [];
+    sequence = 0;
+    undoStack.length = 0;
+    redoStack.length = 0;
+    notify();
+    return clone2(run);
+  }
+  function addCandidates(incoming) {
+    const list = Array.isArray(incoming) ? incoming : [];
+    const next = features.slice();
+    const added = [];
+    for (const raw of list) {
+      if (!isObject2(raw)) continue;
+      const input = clone2(raw);
+      const sourceProps = isObject2(input.properties) ? input.properties : {};
+      const properties = {};
+      for (const key of ANNOTATION_CARRIED_KEYS) {
+        if (!hasOwn(sourceProps, key)) continue;
+        const value = sourceProps[key];
+        if (value === void 0) continue;
+        properties[key] = clone2(value);
+      }
+      const taken = new Set(next.map((feature) => feature.properties.id));
+      let id = "";
+      do {
+        sequence += 1;
+        id = `${prefix}-${String(sequence).padStart(2, "0")}`;
+      } while (taken.has(id));
+      properties.id = id;
+      properties.status = "pending";
+      properties.method = typeof sourceProps.method === "string" && sourceProps.method !== "" ? sourceProps.method : "auto";
+      properties.source = typeof sourceProps.source === "string" && sourceProps.source !== "" ? sourceProps.source : typeof sourceProps.source_kind === "string" && sourceProps.source_kind !== "" ? sourceProps.source_kind : "3d";
+      properties.run_id = run === null ? null : run.run_id;
+      properties.rev = 1;
+      next.push({
+        type: "Feature",
+        geometry: input.geometry === void 0 ? null : clone2(input.geometry),
+        properties
+      });
+      added.push(id);
+    }
+    if (added.length > 0) commit(`add ${added.length}`, next);
+    return added;
+  }
+  function setStatus(ids, status) {
+    if (typeof status !== "string" || !STATUS_SET.has(status)) return 0;
+    const wanted = new Set(normalizeIds(ids));
+    if (wanted.size === 0) return 0;
+    let changed = 0;
+    const next = features.map((feature) => {
+      if (!wanted.has(feature.properties.id)) return feature;
+      if (feature.properties.status === status) return feature;
+      changed += 1;
+      return { ...feature, properties: { ...feature.properties, status } };
+    });
+    if (changed === 0) return 0;
+    commit(`${status} ${changed}`, next);
+    return changed;
+  }
+  function patch(id, rawPatch) {
+    if (typeof id !== "string" || id === "" || !isObject2(rawPatch)) return false;
+    const index = features.findIndex((feature) => feature.properties.id === id);
+    if (index < 0) return false;
+    const properties = { ...features[index].properties };
+    let touched = false;
+    for (const key of ANNOTATION_PATCHABLE_KEYS) {
+      if (!hasOwn(rawPatch, key)) continue;
+      if (rawPatch[key] === void 0) continue;
+      properties[key] = clone2(rawPatch[key]);
+      touched = true;
+    }
+    if (!touched) return false;
+    const rev = typeof properties.rev === "number" && Number.isFinite(properties.rev) ? properties.rev : 0;
+    properties.rev = rev + 1;
+    const next = features.slice();
+    next[index] = { ...features[index], properties };
+    commit(`patch ${id}`, next);
+    return true;
+  }
+  function hydrate(rawFeatures) {
+    const list = Array.isArray(rawFeatures) ? rawFeatures.slice(0, 500) : [];
+    const next = [];
+    const seen = /* @__PURE__ */ new Set();
+    for (const raw of list) {
+      if (!isObject2(raw)) continue;
+      const properties = isObject2(raw.properties) ? clone2(raw.properties) : {};
+      const geometry = isObject2(raw.geometry) ? clone2(raw.geometry) : null;
+      let id = typeof properties.id === "string" && properties.id !== "" ? properties.id : "";
+      if (id === "" || seen.has(id)) {
+        let seq = next.length + 1;
+        while (seen.has(`P-${String(seq).padStart(2, "0")}`)) seq += 1;
+        id = `P-${String(seq).padStart(2, "0")}`;
+      }
+      seen.add(id);
+      properties.id = id;
+      properties.status = STATUS_SET.has(properties.status) ? properties.status : "pending";
+      properties.rev = typeof properties.rev === "number" && Number.isFinite(properties.rev) ? properties.rev : 1;
+      properties.method = typeof properties.method === "string" && properties.method !== "" ? properties.method : "auto";
+      properties.source = typeof properties.source === "string" && properties.source !== "" ? properties.source : "3d";
+      properties.run_id = typeof properties.run_id === "string" ? properties.run_id : null;
+      next.push({ type: "Feature", geometry, properties });
+    }
+    if (next.length === 0) return 0;
+    for (const feature of next) {
+      const match = new RegExp(`^${prefix}-(\\d+)$`).exec(feature.properties.id);
+      if (match) sequence = Math.max(sequence, Number(match[1]) || 0);
+    }
+    features = next;
+    undoStack.length = 0;
+    redoStack.length = 0;
+    notify();
+    return next.length;
+  }
+  function remove(ids) {
+    const wanted = new Set(normalizeIds(ids));
+    if (wanted.size === 0) return 0;
+    const next = features.filter((feature) => !wanted.has(feature.properties.id));
+    const removed = features.length - next.length;
+    if (removed === 0) return 0;
+    commit(`remove ${removed}`, next);
+    return removed;
+  }
+  function undo() {
+    const entry2 = undoStack.pop();
+    if (entry2 === void 0) return { ok: false, label: null };
+    redoStack.push({ label: entry2.label, features });
+    features = entry2.features;
+    notify();
+    return { ok: true, label: entry2.label };
+  }
+  function redo() {
+    const entry2 = redoStack.pop();
+    if (entry2 === void 0) return { ok: false, label: null };
+    undoStack.push({ label: entry2.label, features });
+    if (undoStack.length > ANNOTATION_UNDO_LIMIT) undoStack.shift();
+    features = entry2.features;
+    notify();
+    return { ok: true, label: entry2.label };
+  }
+  function stats() {
+    const out = { total: 0, pending: 0, accepted: 0, rejected: 0, byClass: [] };
+    const groups = /* @__PURE__ */ new Map();
+    for (const feature of features) {
+      const properties = feature.properties;
+      const status = properties.status;
+      out.total += 1;
+      if (status === "accepted") out.accepted += 1;
+      else if (status === "rejected") out.rejected += 1;
+      else out.pending += 1;
+      const label = typeof properties.class === "string" && properties.class !== "" ? properties.class : "";
+      const key = typeof properties.class_key === "string" && properties.class_key !== "" ? properties.class_key : label !== "" ? label : "other";
+      let group = groups.get(key);
+      if (group === void 0) {
+        group = { key, label, count: 0, accepted: 0 };
+        groups.set(key, group);
+      } else if (group.label === "" && label !== "") {
+        group.label = label;
+      }
+      group.count += 1;
+      if (status === "accepted") group.accepted += 1;
+    }
+    out.byClass = [...groups.values()];
+    return out;
+  }
+  function accepted() {
+    return features.filter((feature) => feature.properties.status === "accepted").map((feature) => clone2(feature));
+  }
+  function all() {
+    return features.map((feature) => clone2(feature));
+  }
+  function history() {
+    return { undo: undoStack.length, redo: redoStack.length };
+  }
   return {
-    points,
-    ring,
-    complete: misses === 0,
-    misses,
-    missRatio,
-    depth_source: depthSource,
-    heightRange: heightRange(points.map((point) => point.height)),
-    approximate: true,
-    warnings
+    getState,
+    subscribe,
+    startRun,
+    addCandidates,
+    setStatus,
+    patch,
+    remove,
+    hydrate,
+    undo,
+    redo,
+    history,
+    stats,
+    accepted,
+    all
   };
 }
 
-// src/client/scene/vision-batch.js
-var round12 = (value) => Math.round(value * 10) / 10;
-var PARSE_DEDUPE_IOU = 0.5;
-var PARSE_CLASSES = ["building", "vegetation", "water", "road", "vehicle", "other"];
-var PARSE_FLOOR_HEIGHT_M = 3;
-var AOI_SELECTION_KINDS = /* @__PURE__ */ new Set(["rectangle", "polygon", "lasso", "area", "vision"]);
-var CAMERA_LOCK_FLAGS = ["enableInputs", "enableRotate", "enableTranslate", "enableZoom", "enableTilt", "enableLook"];
-var EXTRUDABLE_CLASSES = /* @__PURE__ */ new Set(["building"]);
-var EXTERIOR_RING_RADII_M = [6, 14];
-var BATCH_NAME_KEYS = /* @__PURE__ */ new Set(["name", "label", "building_name", "bldg_name", "title", "名称", "建筑名称"]);
-var BATCH_HEIGHT_KEYS = /* @__PURE__ */ new Set(["height", "height_m", "building_height", "bldg_height", "h", "建筑高度", "高度"]);
-var BATCH_FLOOR_KEYS = /* @__PURE__ */ new Set(["floors", "floor", "levels", "num_floors", "stories", "storeys", "楼层", "层数", "地上层数"]);
-function hasReadyTilesetContent(tileset) {
-  if (!tileset) return false;
-  if (tileset.tilesLoaded === true) return true;
-  const stats = tileset.statistics;
-  if (!stats) return false;
-  return Number(stats.numberOfTilesWithContentReady ?? stats.numberOfTilesLoaded ?? 0) > 0 || Number(stats.numberOfTrianglesSelected ?? 0) > 0;
-}
-function sceneLoading(scene, getLayers) {
-  const visibleLayers = (typeof getLayers === "function" ? getLayers() : []).filter((layer) => layer?.visible !== false && layer?.tileset);
-  if (visibleLayers.length > 0) {
-    return visibleLayers.some((layer) => layer.tileset.tilesLoaded === false && !hasReadyTilesetContent(layer.tileset));
+// src/client/scene/instance-preview.js
+function createInstancePreview() {
+  let entity, owner;
+  function clear() {
+    if (entity && !owner?.isDestroyed?.()) {
+      owner.entities.remove(entity);
+      owner.scene?.requestRender?.();
+    }
+    entity = owner = null;
   }
-  if (scene?.globe?.tilesLoaded !== false) return false;
-  const renderedGlobeTiles = scene.globe?._surface?._tilesToRender?.length;
-  return !(typeof renderedGlobeTiles === "number" && renderedGlobeTiles > 0);
+  function show(viewer, Cesium, feature) {
+    clear();
+    const ring = feature?.geometry?.coordinates?.[0];
+    if (!viewer?.entities?.add || feature?.geometry?.type !== "Polygon" || !ring?.length) return;
+    const hex = feature.properties?.color;
+    const color = Cesium.Color.fromCssColorString(/^#[0-9a-f]{6}$/i.test(hex) ? hex : "#38bdf8");
+    const positions = Cesium.Cartesian3.fromDegreesArray(ring.flatMap(([x, y]) => [x, y]));
+    owner = viewer;
+    entity = viewer.entities.add({
+      polygon: { hierarchy: new Cesium.PolygonHierarchy(positions), material: color.withAlpha(0.12) },
+      polyline: { positions, width: 3, clampToGround: true, material: color }
+    });
+    viewer.scene?.requestRender?.();
+  }
+  return { show, clear };
 }
+
+// src/client/scene/aoi.js
+var AOI_KINDS = /* @__PURE__ */ new Set(["rectangle", "polygon", "lasso", "area", "vision"]);
 function isAoiSelectionCapable(selection) {
-  if (!selection || !AOI_SELECTION_KINDS.has(selection.kind)) return false;
+  if (!selection || !AOI_KINDS.has(selection.kind)) return false;
   const hasPositions = Array.isArray(selection.positions) && selection.positions.length >= 3;
   const hasRing = Array.isArray(selection.ring) && selection.ring.length >= 3;
   return hasPositions || hasRing;
 }
-function computeSelectionScreenCrop(viewer, Cesium, selection, { padPx = 14, minSizePx = 32 } = {}) {
-  const canvas = viewer?.canvas ?? viewer?.scene?.canvas;
-  const cssWidth = Number(canvas?.clientWidth ?? canvas?.width ?? 0);
-  const cssHeight = Number(canvas?.clientHeight ?? canvas?.height ?? 0);
-  if (!viewer?.scene || !(cssWidth > 0) || !(cssHeight > 0)) {
-    return { ok: false, reason: "not_ready", crop: null };
-  }
-  if (!isAoiSelectionCapable(selection)) {
-    return { ok: false, reason: "no_selection", crop: null };
-  }
-  const toScreen = Cesium?.SceneTransforms?.worldToWindowCoordinates;
-  if (typeof toScreen !== "function") {
-    return { ok: false, reason: "not_ready", crop: null };
-  }
-  let worldPoints = Array.isArray(selection.positions) && selection.positions.length >= 3 ? selection.positions : null;
-  if (!worldPoints && Array.isArray(selection.ring) && typeof Cesium?.Cartesian3?.fromDegrees === "function") {
-    const z = Number.isFinite(selection.heightRange?.mean) ? selection.heightRange.mean : Number.isFinite(selection.heightRange?.min) ? selection.heightRange.min : 0;
-    worldPoints = selection.ring.map(([lon, lat]) => Cesium.Cartesian3.fromDegrees(lon, lat, z));
-  }
-  if (!Array.isArray(worldPoints) || worldPoints.length < 3) {
-    return { ok: false, reason: "no_selection", crop: null };
-  }
-  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity, projectedCount = 0;
-  for (const cartesian of worldPoints) {
-    let pt = null;
-    try {
-      pt = toScreen.call(Cesium.SceneTransforms, viewer.scene, cartesian);
-    } catch {
-      pt = null;
-    }
-    if (!pt || !Number.isFinite(pt.x) || !Number.isFinite(pt.y)) continue;
-    projectedCount += 1;
-    if (pt.x < minX) minX = pt.x;
-    if (pt.y < minY) minY = pt.y;
-    if (pt.x > maxX) maxX = pt.x;
-    if (pt.y > maxY) maxY = pt.y;
-  }
-  if (projectedCount < 2 || maxX <= 0 || maxY <= 0 || minX >= cssWidth || minY >= cssHeight) {
-    return { ok: false, reason: "aoi_offscreen", crop: null };
-  }
-  const left = Math.max(0, Math.floor(minX - padPx));
-  const top = Math.max(0, Math.floor(minY - padPx));
-  const right = Math.min(cssWidth, Math.ceil(maxX + padPx));
-  const bottom = Math.min(cssHeight, Math.ceil(maxY + padPx));
-  const width = Math.max(0, right - left);
-  const height = Math.max(0, bottom - top);
-  if (width < minSizePx || height < minSizePx) {
-    return { ok: false, reason: "aoi_offscreen", crop: null };
-  }
+
+// src/client/ui/parse-snapshot.js
+var PARSE_SNAPSHOT_LIMIT = 500;
+function buildParseSnapshot(store, counts) {
+  if (!store || typeof store.all !== "function") return null;
+  const rows = store.all();
+  const candidates = rows.slice(0, PARSE_SNAPSHOT_LIMIT);
   return {
-    ok: true,
-    crop: { left, top, width, height },
-    kind: selection.kind,
-    area_m2: Number.isFinite(selection.area_m2) ? selection.area_m2 : null,
-    cssWidth,
-    cssHeight
+    version: 2,
+    savedAt: Date.now(),
+    counts: counts ?? null,
+    candidates,
+    truncated: Math.max(0, rows.length - candidates.length)
   };
 }
-function captureViewSignature(viewer) {
-  const canvas = viewer?.canvas;
-  const scene = viewer?.scene;
-  const camera = viewer?.camera;
-  const frustum = camera?.frustum;
-  return [
-    canvas?.width,
-    canvas?.height,
-    canvas?.clientWidth,
-    canvas?.clientHeight,
-    scene?.mode,
-    ...["fov", "aspectRatio", "near", "far", "width", "left", "right", "top", "bottom", "xOffset", "yOffset"].map(
-      (key) => frustum?.[key]
-    ),
-    ...Array.from(camera?.viewMatrix ?? [])
-  ];
+function restoreParseSnapshot(store, payload) {
+  if (!store || typeof store.hydrate !== "function") return 0;
+  const candidates = Array.isArray(payload?.candidates) ? payload.candidates : [];
+  if (candidates.length === 0) return 0;
+  return store.hydrate(candidates);
 }
-function sameViewSignature(initial, current) {
-  if (initial.length !== current.length) return false;
-  for (let i = 0; i < initial.length; i += 1) {
-    const a = initial[i];
-    const b = current[i];
-    if (Object.is(a, b)) continue;
-    if (typeof a === "number" && typeof b === "number" && Math.abs(a - b) <= 1e-5) continue;
-    return false;
-  }
-  return true;
-}
-function selectionLonLatRing(selection, Cesium) {
-  if (Array.isArray(selection?.ring) && selection.ring.length >= 3) return selection.ring;
-  if (!Array.isArray(selection?.positions) || selection.positions.length < 3) return null;
-  if (typeof Cesium?.Cartographic?.fromCartesian !== "function" || typeof Cesium?.Math?.toDegrees !== "function") return null;
-  const ring = [];
-  for (const cartesian of selection.positions) {
-    try {
-      const carto = Cesium.Cartographic.fromCartesian(cartesian);
-      if (!carto || !Number.isFinite(carto.longitude) || !Number.isFinite(carto.latitude)) continue;
-      ring.push([Cesium.Math.toDegrees(carto.longitude), Cesium.Math.toDegrees(carto.latitude)]);
-    } catch {
-    }
-  }
-  return ring.length >= 3 ? ring : null;
-}
-function openRing(ring) {
-  if (!Array.isArray(ring) || ring.length < 3) return [];
-  const last = ring[ring.length - 1];
-  if (ring.length > 3 && last && ring[0] && last[0] === ring[0][0] && last[1] === ring[0][1]) {
-    return ring.slice(0, -1);
-  }
-  return ring;
-}
-function isFeatureInsideAoi(ring, aoiRing) {
-  const openAoi = openRing(aoiRing);
-  const open = openRing(ring);
-  if (openAoi.length < 3) return true;
-  if (open.length < 3) return false;
-  let cx = 0;
-  let cy = 0;
-  let insideCount = 0;
-  for (const pt of open) {
-    if (!Array.isArray(pt) || !Number.isFinite(pt[0]) || !Number.isFinite(pt[1])) continue;
-    cx += pt[0];
-    cy += pt[1];
-    if (containsVisionPoint(openAoi, pt)) insideCount += 1;
-  }
-  cx /= open.length;
-  cy /= open.length;
-  return containsVisionPoint(openAoi, [cx, cy]) || insideCount / open.length >= 0.4;
-}
-function isExtrudableClass(kind) {
-  return !kind || EXTRUDABLE_CLASSES.has(kind);
-}
-function captureSceneFrame({ viewer, Cesium, getLayers = () => [], selection = null, scope = "view" }) {
-  if (!viewer?.scene || viewer.isDestroyed?.()) throw visionError("not_ready");
-  const canvas = viewer.canvas, scene = viewer.scene;
-  if (typeof document === "undefined" || !canvas?.clientWidth || !canvas?.clientHeight || document.visibilityState === "hidden") throw visionError("not_ready");
-  if (sceneLoading(scene, getLayers)) throw visionError("scene_loading");
-  const cssWidth = canvas.clientWidth, cssHeight = canvas.clientHeight;
-  const effectiveScope = scope === "aoi" ? "aoi" : "view";
-  let crop = { left: 0, top: 0, width: cssWidth, height: cssHeight };
-  let aoi = null;
-  if (effectiveScope === "aoi") {
-    const aoiBounds = computeSelectionScreenCrop(viewer, Cesium, selection);
-    if (!aoiBounds.ok) throw visionError(aoiBounds.reason === "no_selection" ? "no_selection" : "aoi_offscreen");
-    crop = aoiBounds.crop;
-    aoi = { kind: aoiBounds.kind, area_m2: aoiBounds.area_m2, crop, ring: selectionLonLatRing(selection, Cesium) };
-  }
-  const control = scene.screenSpaceCameraController;
-  const savedCamera = control ? Object.fromEntries(CAMERA_LOCK_FLAGS.filter((key) => typeof control[key] === "boolean").map((key) => [key, control[key]])) : {};
-  let released = false;
-  const release = () => {
-    if (released) return;
-    released = true;
-    if (!viewer.isDestroyed?.() && control) {
-      for (const [key, value] of Object.entries(savedCamera)) {
-        try {
-          control[key] = value;
-        } catch {
-        }
-      }
-      try {
-        scene.requestRender?.();
-      } catch {
-      }
+function bindParseSnapshot({ store, getCounts, onRestored }) {
+  return {
+    snapshotPayload() {
+      return buildParseSnapshot(store, getCounts?.());
+    },
+    restoreSnapshot(payload) {
+      const count = restoreParseSnapshot(store, payload);
+      if (count === 0) return false;
+      const first = store.getState().candidates[0];
+      onRestored?.(first?.properties?.id ?? null);
+      return true;
     }
   };
+}
+
+// src/client/ui/parse-controller.js
+var FILTERS = /* @__PURE__ */ new Set(["all", "pending", "accepted", "rejected"]);
+var EXPORT_SCOPES = /* @__PURE__ */ new Set(["accepted", "all"]);
+var isNumber3 = (value) => typeof value === "number" && Number.isFinite(value);
+var round13 = (value) => Math.round(value * 10) / 10;
+function reportOf(report) {
+  if (!report || typeof report !== "object") return null;
+  return {
+    reusedCalls: Number(report.reusedCalls) || 0,
+    modelUsed: report.modelUsed ?? null,
+    calls: Number(report.calls) || 0,
+    usage: report.usage ?? null,
+    windows: Number(report.windows) || 0,
+    failedWindows: Array.isArray(report.failedWindows) ? report.failedWindows.length : Number(report.failedWindows) || 0,
+    complete: report.complete === true,
+    instances: Number(report.instances) || 0,
+    durationMs: Number(report.durationMs) || 0
+  };
+}
+function failText(t2, code) {
+  switch (code) {
+    case "unavailable":
+      return t2("parse.err.unavailable");
+    case "model_not_visual":
+      return t2("parse.err.model_not_visual");
+    case "model_changed":
+      return t2("parse.modelChanged");
+    case "model_unknown":
+      return t2("parse.err.model_unknown");
+    case "invalid_request":
+      return t2("parse.err.invalid_request");
+    case "too_large":
+      return t2("parse.err.too_large");
+    case "not_ready":
+      return t2("parse.err.not_ready");
+    case "busy":
+      return t2("parse.err.busy");
+    case "timeout":
+      return t2("parse.err.timeout");
+    case "scene_changed":
+      return t2("parse.err.scene_changed");
+    default:
+      return t2("parse.err.model_failed");
+  }
+}
+function ringOf(selection, Cesium) {
+  if (Array.isArray(selection?.ring) && selection.ring.length >= 3) {
+    const ring = selection.ring.filter((point) => Array.isArray(point) && isNumber3(point[0]) && isNumber3(point[1])).map((point) => [point[0], point[1]]);
+    return ring.length >= 3 ? ring : null;
+  }
+  const positions = Array.isArray(selection?.positions) ? selection.positions : [];
+  if (positions.length < 3 || typeof Cesium?.Cartographic?.fromCartesian !== "function") return null;
   try {
-    for (const key of Object.keys(savedCamera)) control[key] = false;
-    viewer.camera.cancelFlight?.();
-    viewer.render();
-    const scaleX = canvas.width / cssWidth, scaleY = canvas.height / cssHeight;
-    const srcX = Math.max(0, Math.round(crop.left * scaleX));
-    const srcY = Math.max(0, Math.round(crop.top * scaleY));
-    const sourceWidth = Math.max(1, Math.min(canvas.width - srcX, Math.round(crop.width * scaleX)));
-    const sourceHeight = Math.max(1, Math.min(canvas.height - srcY, Math.round(crop.height * scaleY)));
-    const exactCrop = scaleX > 0 && scaleY > 0 ? { left: srcX / scaleX, top: srcY / scaleY, width: sourceWidth / scaleX, height: sourceHeight / scaleY } : crop;
-    if (aoi) aoi.crop = exactCrop;
-    const scale = Math.min(1, 1024 / Math.max(sourceWidth, sourceHeight));
-    const image = document.createElement("canvas");
-    image.width = Math.max(32, Math.round(sourceWidth * scale));
-    image.height = Math.max(32, Math.round(sourceHeight * scale));
-    const context = image.getContext("2d");
-    if (!context) throw visionError("not_ready");
-    context.drawImage(canvas, srcX, srcY, sourceWidth, sourceHeight, 0, 0, image.width, image.height);
-    const dataUrl = image.toDataURL("image/jpeg", 0.82);
-    if (dataUrl.length > 2e6) throw visionError("too_large");
-    const initialSignature = captureViewSignature(viewer);
-    return {
-      id: globalThis.crypto?.randomUUID?.() ?? `frame-${Date.now()}`,
-      dataUrl,
-      width: image.width,
-      height: image.height,
-      crop: exactCrop,
-      scope: effectiveScope,
-      aoi,
-      cssWidth,
-      cssHeight,
-      viewer,
-      Cesium,
-      point: [0.5, 0.5],
-      isValid: () => {
-        if (released || viewer.isDestroyed?.()) return false;
-        try {
-          return sameViewSignature(initialSignature, captureViewSignature(viewer));
-        } catch {
-          return false;
-        }
-      },
-      release
-    };
-  } catch (error) {
-    release();
-    throw error;
+    const ring = positions.map((position) => {
+      const carto = Cesium.Cartographic.fromCartesian(position);
+      if (!carto || !isNumber3(carto.longitude) || !isNumber3(carto.latitude)) throw new Error("no ground point");
+      return [Cesium.Math.toDegrees(carto.longitude), Cesium.Math.toDegrees(carto.latitude)];
+    });
+    return ring.length >= 3 ? ring : null;
+  } catch {
+    return null;
   }
 }
-async function requestSceneParse(url, { frame, classes = null, signal, fetchImpl = globalThis.fetch } = {}) {
-  if (typeof url !== "string" || !url) throw visionError("unavailable");
-  if (typeof fetchImpl !== "function") throw visionError("unavailable");
-  const body = { frameId: frame.id, image: frame.dataUrl, scope: frame.scope === "aoi" ? "aoi" : "view" };
-  if (Array.isArray(classes) && classes.length > 0) body.classes = classes;
-  const response = await fetchImpl(url, {
-    method: "POST",
-    credentials: "same-origin",
-    headers: { "content-type": "application/json", "x-dsh-panel": "vision-batch" },
-    body: JSON.stringify(body),
-    signal
-  });
-  const payload = await response.json().catch(() => null);
-  if (!response.ok || !payload?.ok) throw visionError(payload?.code ?? "model_failed", { next: payload?.next });
-  if (!Array.isArray(payload.objects)) throw visionError("invalid_result");
-  return payload;
-}
-function batchPolygonCenter(polygon) {
-  if (!Array.isArray(polygon) || polygon.length === 0) return null;
-  let x = 0, y = 0;
-  for (const [px, py] of polygon) {
-    x += px;
-    y += py;
-  }
-  const point = [x / polygon.length, y / polygon.length];
-  if (!point.every((number) => Number.isFinite(number) && number >= 0 && number <= 1)) return null;
-  return [Math.min(0.999, Math.max(1e-3, point[0])), Math.min(0.999, Math.max(1e-3, point[1]))];
-}
-function classLabel(t2, kind) {
-  const key = `parse.class.${kind}`;
-  const label = typeof t2 === "function" ? t2(key) : key;
-  return typeof label === "string" && label !== key ? label : kind;
-}
-var ANCHOR_GRID = 9;
-var ANCHOR_ROUNDS = 4;
-function batchPolygonAnchor(polygon) {
-  const fallback = batchPolygonCenter(polygon);
-  if (!Array.isArray(polygon) || polygon.length < 3) return fallback;
+function bboxOf(ring) {
+  if (!Array.isArray(ring) || ring.length < 3) return null;
   let west = Infinity;
   let south = Infinity;
   let east = -Infinity;
   let north = -Infinity;
-  for (const vertex of polygon) {
-    const [x, y] = Array.isArray(vertex) ? vertex : [];
-    if (!Number.isFinite(x) || !Number.isFinite(y)) return fallback;
-    west = Math.min(west, x);
-    east = Math.max(east, x);
-    south = Math.min(south, y);
-    north = Math.max(north, y);
-  }
-  if (!(east > west && north > south)) return fallback;
-  let best = null;
-  let bestDistance = -1;
-  let left = west;
-  let right = east;
-  let top = south;
-  let bottom = north;
-  for (let round2 = 0; round2 < ANCHOR_ROUNDS; round2 += 1) {
-    const stepX = (right - left) / (ANCHOR_GRID - 1);
-    const stepY = (bottom - top) / (ANCHOR_GRID - 1);
-    for (let row = 0; row < ANCHOR_GRID; row += 1) {
-      for (let column = 0; column < ANCHOR_GRID; column += 1) {
-        const point = [left + column * stepX, top + row * stepY];
-        if (!containsVisionPoint(polygon, point)) continue;
-        const distance = distanceToPolygon(polygon, point);
-        if (distance > bestDistance) {
-          best = point;
-          bestDistance = distance;
-        }
-      }
-    }
-    if (best !== null) {
-      left = best[0] - stepX;
-      right = best[0] + stepX;
-      top = best[1] - stepY;
-      bottom = best[1] + stepY;
-    }
-  }
-  if (best === null) return fallback;
-  return [Math.min(0.999, Math.max(1e-3, best[0])), Math.min(0.999, Math.max(1e-3, best[1]))];
-}
-function sampleAnchorHeight(frame, center) {
-  const { viewer, Cesium } = frame ?? {};
-  if (!viewer?.scene?.pickPositionSupported || typeof viewer.scene?.pickPosition !== "function" || !Cesium) return null;
-  if (!Array.isArray(center) || center.length < 2) return null;
-  const crop = frame.crop ?? { left: 0, top: 0, width: frame.cssWidth, height: frame.cssHeight };
-  if (!(crop?.width > 0) || !(crop?.height > 0)) return null;
-  try {
-    const position = new Cesium.Cartesian2(crop.left + center[0] * crop.width, crop.top + center[1] * crop.height);
-    const cartesian = viewer.scene.pickPosition(position);
-    const carto = cartesian && Cesium.Cartographic.fromCartesian(cartesian);
-    return carto && Number.isFinite(carto.height) ? carto.height : null;
-  } catch {
-    return null;
-  }
-}
-function estimateCandidateMetrics(projected, interiorHeight = null) {
-  const rawArea = polygonAreaSquareMeters(projected?.ring);
-  const area_m2 = Number.isFinite(rawArea) && rawArea > 0 ? round12(rawArea) : null;
-  const minEdge = projected?.heightRange?.min;
-  const maxEdge = projected?.heightRange?.max;
-  const roofRaw = Number.isFinite(interiorHeight) ? Number.isFinite(maxEdge) ? Math.max(maxEdge, interiorHeight) : interiorHeight : Number.isFinite(maxEdge) ? maxEdge : null;
-  const ground_height_m = Number.isFinite(minEdge) ? round12(minEdge) : null;
-  const roof_height_m = roofRaw !== null ? round12(roofRaw) : null;
-  const delta = ground_height_m !== null && roof_height_m !== null ? round12(roof_height_m - ground_height_m) : null;
-  const height_m = delta !== null && delta >= 0.5 ? delta : null;
-  return { area_m2, ground_height_m, roof_height_m, height_m };
-}
-function buildingFloorEstimate(heightM, { floorHeightM = PARSE_FLOOR_HEIGHT_M } = {}) {
-  if (typeof heightM !== "number" || !Number.isFinite(heightM) || heightM < 2.2) return null;
-  return Math.max(1, Math.round(heightM / floorHeightM));
-}
-function parsePositiveNumber(raw, max = 5e3) {
-  if (typeof raw === "number") return Number.isFinite(raw) && raw > 0 && raw <= max ? raw : null;
-  if (typeof raw !== "string") return null;
-  const match = raw.trim().match(/^(\d+(?:\.\d+)?)\s*(?:m|层|f)?$/i);
-  if (!match) return null;
-  const num = Number(match[1]);
-  return Number.isFinite(num) && num > 0 && num <= max ? num : null;
-}
-function readPickedPropertyPairs(picked, viewer) {
-  const pairs = [];
-  if (!picked || typeof picked !== "object") return pairs;
-  if (typeof picked.getPropertyIds === "function" && typeof picked.getProperty === "function") {
-    try {
-      for (const id of picked.getPropertyIds()) {
-        if (pairs.length >= 32) break;
-        pairs.push([String(id), picked.getProperty(id)]);
-      }
-    } catch {
-    }
-    return pairs;
-  }
-  const bag = picked?.id?.properties;
-  const names = Array.isArray(bag?.propertyNames) ? bag.propertyNames : [];
-  const currentTime = viewer?.clock?.currentTime;
-  for (const key of names) {
-    if (pairs.length >= 32) break;
-    try {
-      const prop = bag[key];
-      const value = typeof prop?.getValue === "function" ? prop.getValue(currentTime) : prop;
-      pairs.push([String(key), value]);
-    } catch {
-    }
-  }
-  return pairs;
-}
-function extractFeatureMetadataAtAnchor(frame, center) {
-  const { viewer, Cesium } = frame ?? {};
-  if (typeof viewer?.scene?.pick !== "function" || !Cesium || !Array.isArray(center) || center.length < 2) return null;
-  const crop = frame.crop ?? { left: 0, top: 0, width: frame.cssWidth, height: frame.cssHeight };
-  if (!(crop?.width > 0) || !(crop?.height > 0)) return null;
-  let picked = null;
-  try {
-    const position = new Cesium.Cartesian2(crop.left + center[0] * crop.width, crop.top + center[1] * crop.height);
-    picked = viewer.scene.pick(position);
-  } catch {
-    return null;
-  }
-  const pairs = readPickedPropertyPairs(picked, viewer);
-  if (pairs.length === 0) return null;
-  let name = null, heightM = null, floors = null;
-  for (const [rawKey, rawValue] of pairs) {
-    const key = rawKey.trim().toLowerCase();
-    if (name === null && BATCH_NAME_KEYS.has(key) && typeof rawValue === "string" && rawValue.trim() !== "") {
-      name = rawValue.trim().slice(0, 80);
-    } else if (heightM === null && BATCH_HEIGHT_KEYS.has(key)) {
-      const h42 = parsePositiveNumber(rawValue, 2e3);
-      if (h42 !== null) heightM = round12(h42);
-    } else if (floors === null && BATCH_FLOOR_KEYS.has(key)) {
-      const f = parsePositiveNumber(rawValue, 300);
-      if (f !== null) floors = Math.max(1, Math.round(f));
-    }
-  }
-  if (name === null && heightM === null && floors === null) return null;
-  return { name, height_m: heightM, floors };
-}
-function projectBatchObjects(frame, objects, { t: t2 } = {}) {
-  if (typeof frame?.isValid === "function" && !frame.isValid()) throw visionError("scene_changed");
-  const features = [];
-  let skipped = 0;
-  const aoiRing = frame?.scope === "aoi" && Array.isArray(frame?.aoi?.ring) ? frame.aoi.ring : null;
-  for (const object of Array.isArray(objects) ? objects : []) {
-    if (!Array.isArray(object.polygon) || object.polygon.length < 3) {
-      skipped += 1;
-      continue;
-    }
-    const center = batchPolygonAnchor(object.polygon);
-    if (!center) {
-      skipped += 1;
-      continue;
-    }
-    const subframe = Object.create(frame);
-    subframe.point = center;
-    let projected;
-    try {
-      projected = projectVisionPolygon(subframe, { polygon: object.polygon });
-    } catch (error) {
-      if (error?.code === "scene_changed") throw error;
-      skipped += 1;
-      continue;
-    }
-    const ring = projected.ring;
-    if (!Array.isArray(ring) || ring.length < 4) {
-      skipped += 1;
-      continue;
-    }
-    if (aoiRing && !isFeatureInsideAoi(ring, aoiRing)) {
-      skipped += 1;
-      continue;
-    }
-    const kind = PARSE_CLASSES.includes(object.class) ? object.class : "other";
-    const index = features.length + 1;
-    const metrics = estimateCandidateMetrics(projected, sampleAnchorHeight(frame, center));
-    const batchMeta = extractFeatureMetadataAtAnchor(frame, center);
-    const { styleKey } = parseClassColor(kind);
-    const finalHeightM = batchMeta?.height_m > 0 ? batchMeta.height_m : metrics.height_m;
-    const finalRoofM = batchMeta?.height_m > 0 && metrics.ground_height_m !== null ? round12(metrics.ground_height_m + batchMeta.height_m) : metrics.roof_height_m;
-    const estFloors = kind === "building" ? batchMeta?.floors ?? buildingFloorEstimate(finalHeightM) : null;
-    features.push({
-      type: "Feature",
-      properties: {
-        name: batchMeta?.name ?? `${classLabel(t2, kind)} ${index}`,
-        kind: "area",
-        class: kind,
-        style: styleKey,
-        confidence: object.confidence ?? null,
-        source: "vision_model",
-        basis: "inferred",
-        approximate: true,
-        depth_source: projected.depth_source,
-        ...batchMeta?.height_m ? { height_source: "batch_table", batch_height_m: batchMeta.height_m } : {},
-        ...batchMeta?.floors ? { batch_floors: batchMeta.floors } : {},
-        ...metrics.area_m2 !== null ? { area_m2: metrics.area_m2 } : {},
-        ...metrics.ground_height_m !== null ? { ground_height_m: metrics.ground_height_m } : {},
-        ...finalRoofM !== null ? { roof_height_m: finalRoofM } : {},
-        ...finalHeightM !== null ? { height_m: finalHeightM } : {},
-        ...estFloors !== null ? { est_floors: estFloors } : {}
-      },
-      geometry: { type: "Polygon", coordinates: [ring] }
-    });
-  }
-  return { features, skipped };
-}
-function toCartographic(Cesium, lon, lat, height = 0) {
-  if (typeof Cesium?.Cartographic?.fromDegrees === "function") {
-    return Cesium.Cartographic.fromDegrees(lon, lat, height);
-  }
-  const rad = Math.PI / 180;
-  return { longitude: lon * rad, latitude: lat * rad, height };
-}
-function quantile(sorted, ratio) {
-  if (!sorted.length) return null;
-  const idx = Math.min(sorted.length - 1, Math.max(0, Math.floor((sorted.length - 1) * ratio)));
-  return sorted[idx];
-}
-function buildMetricSamplePlan(ring) {
-  const open = (Array.isArray(ring) ? ring.slice(0, -1) : []).filter(
-    (pt) => Array.isArray(pt) && Number.isFinite(pt[0]) && Number.isFinite(pt[1])
-  );
-  if (open.length < 3) return null;
-  let cx = 0, cy = 0;
-  for (const [lon, lat] of open) {
-    cx += lon;
-    cy += lat;
-  }
-  cx /= open.length;
-  cy /= open.length;
-  const interior = [];
-  if (containsVisionPoint(open, [cx, cy])) interior.push([cx, cy]);
-  const step = Math.max(1, Math.floor(open.length / 4));
-  for (let i = 0; i < open.length && interior.length < 4; i += step) {
-    const [vx, vy] = open[i];
-    const probe = [cx + (vx - cx) * 0.45, cy + (vy - cy) * 0.45];
-    if (containsVisionPoint(open, probe)) interior.push(probe);
-  }
-  if (interior.length === 0) interior.push([cx, cy]);
-  const exterior = [];
-  const cosLat = Math.max(0.02, Math.cos(cy * Math.PI / 180));
-  for (let i = 0; i < open.length && exterior.length < 8; i += step) {
-    const [vx, vy] = open[i];
-    const east = (vx - cx) * cosLat;
-    const north = vy - cy;
-    const bearingDeg = (Math.atan2(east, north) * 180 / Math.PI + 360) % 360;
-    for (const radius of EXTERIOR_RING_RADII_M) {
-      const displaced = offsetCartographic(vx, vy, bearingDeg, radius);
-      if (displaced && !containsVisionPoint(open, [displaced.lon, displaced.lat])) {
-        exterior.push([displaced.lon, displaced.lat]);
-      }
-    }
-  }
-  return { interior, exterior, center: [cx, cy] };
-}
-async function refineBatchMetricsWithHeightService(frame, features, { getLayers = () => [] } = {}) {
-  const list = Array.isArray(features) ? features : [];
-  const viewer = frame?.viewer;
-  const Cesium = frame?.Cesium;
-  if (!viewer?.scene || !Cesium || list.length === 0) {
-    return { features: list, refined: 0, height_source: "scene_depth" };
-  }
-  const layers2 = typeof getLayers === "function" ? getLayers() : [];
-  const layer = (Array.isArray(layers2) ? layers2 : []).find((item) => item && item.visible !== false && item.tileset) ?? null;
-  const heightService = createHeightService({ Cesium, viewer, layer });
-  const canSampleTiles = typeof layer?.tileset?.getHeight === "function";
-  const canSampleTerrain = heightService.hasRealTerrain();
-  if (!canSampleTiles && !canSampleTerrain) {
-    return { features: list, refined: 0, height_source: "scene_depth" };
-  }
-  const plans = list.map((feature) => buildMetricSamplePlan(feature?.geometry?.coordinates?.[0]));
-  const cartos = [];
-  const refs = [];
-  plans.forEach((plan, index) => {
-    if (!plan) return;
-    if (canSampleTiles) {
-      for (const [lon, lat] of plan.interior) {
-        refs.push({ index, role: "interior" });
-        cartos.push(toCartographic(Cesium, lon, lat));
-      }
-    }
-    const groundPts = plan.exterior.length > 0 ? plan.exterior : [plan.center];
-    for (const [lon, lat] of groundPts) {
-      refs.push({ index, role: "exterior" });
-      cartos.push(toCartographic(Cesium, lon, lat));
-    }
-  });
-  if (cartos.length === 0) {
-    return { features: list, refined: 0, height_source: "scene_depth" };
-  }
-  const primaryMode = canSampleTiles ? "tiles" : "terrain";
-  const run = await heightService.sampleMany(cartos, { mode: primaryMode, detailed: false });
-  const buckets = list.map(() => ({ interior: [], exterior: [] }));
-  for (let i = 0; i < (run.values?.length ?? 0); i += 1) {
-    const sample = run.values[i];
-    if (!sample || !Number.isFinite(sample.height)) continue;
-    buckets[refs[i].index][refs[i].role].push(sample.height);
-  }
-  if (canSampleTiles && canSampleTerrain) {
-    const terrainCartos = [];
-    const terrainFeatureIdx = [];
-    buckets.forEach((bucket, index) => {
-      const plan = plans[index];
-      if (!plan || bucket.exterior.length > 0) return;
-      for (const [lon, lat] of plan.exterior.length > 0 ? plan.exterior : [plan.center]) {
-        terrainFeatureIdx.push(index);
-        terrainCartos.push(toCartographic(Cesium, lon, lat));
-      }
-    });
-    if (terrainCartos.length > 0) {
-      const terrainRun = await heightService.sampleMany(terrainCartos, { mode: "terrain" });
-      for (let i = 0; i < (terrainRun.values?.length ?? 0); i += 1) {
-        const sample = terrainRun.values[i];
-        if (sample && Number.isFinite(sample.height)) buckets[terrainFeatureIdx[i]].exterior.push(sample.height);
-      }
-    }
-  }
-  let refined = 0;
-  const nextFeatures = list.map((feature, index) => {
-    const props = feature?.properties;
-    if (!props) return feature;
-    const bucket = buckets[index];
-    const extSorted = [...bucket.exterior].sort((a, b) => a - b);
-    const intSorted = [...bucket.interior].sort((a, b) => a - b);
-    const sampledGround = extSorted.length > 0 ? round12(quantile(extSorted, 0.2)) : null;
-    const sampledRoof = intSorted.length > 0 ? round12(intSorted[intSorted.length - 1]) : null;
-    if (sampledGround === null && sampledRoof === null) return feature;
-    refined += 1;
-    const nextProps = { ...props };
-    const ground = sampledGround ?? (typeof props.ground_height_m === "number" ? props.ground_height_m : null);
-    const explicitHeight = typeof props.batch_height_m === "number" && props.batch_height_m > 0 ? props.batch_height_m : null;
-    let roof = sampledRoof ?? (typeof props.roof_height_m === "number" ? props.roof_height_m : null);
-    let heightM = explicitHeight;
-    if (explicitHeight !== null && ground !== null) {
-      roof = round12(ground + explicitHeight);
-    } else if (explicitHeight === null) {
-      const delta = ground !== null && roof !== null ? round12(roof - ground) : null;
-      heightM = delta !== null && delta >= 0.5 ? delta : null;
-    }
-    if (ground !== null) nextProps.ground_height_m = ground;
-    if (roof !== null) nextProps.roof_height_m = roof;
-    if (heightM !== null) nextProps.height_m = heightM;
-    else delete nextProps.height_m;
-    if (props.class === "building") {
-      const floors = typeof props.batch_floors === "number" ? props.batch_floors : buildingFloorEstimate(heightM);
-      if (floors !== null) nextProps.est_floors = floors;
-    }
-    nextProps.height_source = explicitHeight !== null ? "batch_table" : canSampleTiles && (sampledRoof !== null || sampledGround !== null) ? "tiles_height_service" : "terrain_height_service";
-    return { ...feature, properties: nextProps };
-  });
-  return { features: nextFeatures, refined, height_source: run.height_source };
-}
-function compareBatchFeatures(a, b, sortBy = "default") {
-  if (sortBy === "height") {
-    const ah = typeof a?.properties?.height_m === "number" ? a.properties.height_m : -1;
-    const bh = typeof b?.properties?.height_m === "number" ? b.properties.height_m : -1;
-    return bh - ah;
-  }
-  if (sortBy === "area") {
-    const aa = typeof a?.properties?.area_m2 === "number" ? a.properties.area_m2 : -1;
-    const ba = typeof b?.properties?.area_m2 === "number" ? b.properties.area_m2 : -1;
-    return ba - aa;
-  }
-  return 0;
-}
-function featureBox(feature) {
-  const ring = feature?.geometry?.coordinates?.[0];
-  if (!Array.isArray(ring) || ring.length < 3) return null;
-  let minLon = Infinity, minLat = Infinity, maxLon = -Infinity, maxLat = -Infinity;
   for (const point of ring) {
-    const [lon, lat] = Array.isArray(point) ? point : [];
-    if (![lon, lat].every((number) => Number.isFinite(number))) return null;
-    if (lon < minLon) minLon = lon;
-    if (lon > maxLon) maxLon = lon;
-    if (lat < minLat) minLat = lat;
-    if (lat > maxLat) maxLat = lat;
+    const lon = Array.isArray(point) ? point[0] : NaN;
+    const lat = Array.isArray(point) ? point[1] : NaN;
+    if (!isNumber3(lon) || !isNumber3(lat) || lon < -180 || lon > 180 || lat < -90 || lat > 90) return null;
+    west = Math.min(west, lon);
+    east = Math.max(east, lon);
+    south = Math.min(south, lat);
+    north = Math.max(north, lat);
   }
-  return [minLon, minLat, maxLon, maxLat];
+  if (!(west < east) || !(south < north) || east - west > 180) return null;
+  return { west, south, east, north };
 }
-function batchBoxIoU(a, b) {
-  if (!a || !b) return 0;
-  const width = Math.min(a[2], b[2]) - Math.max(a[0], b[0]);
-  const height = Math.min(a[3], b[3]) - Math.max(a[1], b[1]);
-  if (width <= 0 || height <= 0) return 0;
-  const overlap = width * height;
-  const areaA = Math.max(0, a[2] - a[0]) * Math.max(0, a[3] - a[1]);
-  const areaB = Math.max(0, b[2] - b[0]) * Math.max(0, b[3] - b[1]);
-  const union = areaA + areaB - overlap;
-  return union > 0 ? overlap / union : 0;
-}
-function dedupeBatchFeatures(features, { threshold = PARSE_DEDUPE_IOU } = {}) {
-  const kept = [];
-  for (const feature of Array.isArray(features) ? features : []) {
-    const box = featureBox(feature);
-    if (!box) continue;
-    const duplicate = kept.find((item) => item.properties.class === feature.properties.class && batchBoxIoU(box, featureBox(item)) > threshold);
-    if (!duplicate) {
-      kept.push(feature);
-      continue;
-    }
-    if ((feature.properties.confidence ?? 0) > (duplicate.properties.confidence ?? 0)) {
-      kept[kept.indexOf(duplicate)] = feature;
-    }
-  }
-  return kept;
-}
-function batchClassCounts(features) {
-  const counts = {};
-  for (const feature of Array.isArray(features) ? features : []) {
-    const kind = feature?.properties?.class;
-    if (typeof kind !== "string") continue;
-    counts[kind] = (counts[kind] ?? 0) + 1;
-  }
-  return counts;
-}
-function filterBatchFeatures(features, filter = "all") {
-  const list = Array.isArray(features) ? features : [];
-  if (filter === "all" || !filter) return list;
-  return list.filter((feature) => feature?.properties?.class === filter);
-}
-function applyExtrusionToFeatures(features, extrude = false) {
-  return (Array.isArray(features) ? features : []).map((feature) => {
-    if (!feature || typeof feature !== "object") return feature;
-    const props = feature.properties && typeof feature.properties === "object" ? { ...feature.properties } : {};
-    const base = typeof props.ground_height_m === "number" && Number.isFinite(props.ground_height_m) ? props.ground_height_m : null;
-    const roof = typeof props.roof_height_m === "number" && Number.isFinite(props.roof_height_m) ? props.roof_height_m : null;
-    const rel = typeof props.height_m === "number" && Number.isFinite(props.height_m) ? props.height_m : null;
-    if (extrude && isExtrudableClass(props.class) && (roof !== null && base !== null && roof > base || rel !== null && rel > 0)) {
-      props.extruded = true;
-      props.extruded_height_m = roof !== null && base !== null && roof > base ? roof : (base ?? 0) + rel;
-    } else {
-      props.extruded = false;
-      delete props.extruded_height_m;
-    }
-    return { ...feature, properties: props };
-  });
-}
-function drawBatchPreview(Cesium, viewer, features, { extrude = false } = {}) {
-  const entities = [];
-  for (const feature of Array.isArray(features) ? features : []) {
-    const ring = feature?.geometry?.coordinates?.[0];
-    if (!Array.isArray(ring) || ring.length < 4) continue;
-    const props = feature?.properties ?? {};
-    const { hex, outlineHex } = parseClassColor(props.class, props.style);
-    const base = typeof props.ground_height_m === "number" && Number.isFinite(props.ground_height_m) ? props.ground_height_m : 0;
-    const rel = typeof props.height_m === "number" && Number.isFinite(props.height_m) ? props.height_m : 0;
-    const roof = typeof props.roof_height_m === "number" && Number.isFinite(props.roof_height_m) ? props.roof_height_m : base + rel;
-    const is3d = extrude && isExtrudableClass(props.class) && roof > base && typeof Cesium?.PolygonHierarchy === "function";
-    const outlineHeight = is3d ? roof : 0;
-    const positions = ring.map(([lon, lat]) => Cesium.Cartesian3.fromDegrees(lon, lat, outlineHeight));
+function createParseController(ctx) {
+  let context = ctx;
+  const store = createAnnotationStore();
+  const preview = createInstancePreview();
+  const listeners = /* @__PURE__ */ new Set();
+  const t2 = (key, vars) => typeof context.t === "function" ? context.t(key, vars) : key;
+  const toast = (message2) => {
     try {
-      entities.push(viewer.entities.add({
-        polyline: {
-          positions,
-          width: 2,
-          clampToGround: !is3d,
-          ...is3d ? {} : { classificationType: Cesium.ClassificationType?.BOTH },
-          material: Cesium.Color.fromCssColorString(hex).withAlpha(0.95)
-        }
-      }));
-      if (is3d) {
-        const hierarchy = new Cesium.PolygonHierarchy(ring.slice(0, -1).map(([lon, lat]) => Cesium.Cartesian3.fromDegrees(lon, lat)));
-        entities.push(viewer.entities.add({
-          polygon: {
-            hierarchy,
-            height: base,
-            extrudedHeight: roof,
-            material: Cesium.Color.fromCssColorString(hex).withAlpha(0.28),
-            outline: true,
-            outlineColor: Cesium.Color.fromCssColorString(outlineHex).withAlpha(0.9)
-          }
-        }));
-      } else if (typeof Cesium?.PolygonHierarchy === "function") {
-        const hierarchy = new Cesium.PolygonHierarchy(ring.slice(0, -1).map(([lon, lat]) => Cesium.Cartesian3.fromDegrees(lon, lat)));
-        entities.push(viewer.entities.add({
-          polygon: {
-            hierarchy,
-            material: Cesium.Color.fromCssColorString(hex).withAlpha(0.2),
-            classificationType: Cesium.ClassificationType?.BOTH
-          }
-        }));
-      }
+      context.showToast?.(message2);
     } catch {
     }
-  }
-  viewer.scene?.requestRender?.();
-  return entities;
-}
-function clearBatchPreview(viewer, entities) {
-  for (const entity of Array.isArray(entities) ? entities : []) {
-    try {
-      viewer.entities.remove(entity);
-    } catch {
-    }
-  }
-  if (Array.isArray(entities)) entities.length = 0;
-  viewer?.scene?.requestRender?.();
-}
-function batchFeatureCollection(features, name) {
-  return { type: "FeatureCollection", ...name ? { name } : {}, features: Array.isArray(features) ? features : [] };
-}
-
-// src/client/ui/parse-review.js
-var h25 = import_react28.default.createElement;
-var TARGET_CLASSES = ["building", "road", "vegetation", "water", "vehicle"];
-function candidateMetricText(properties, t2) {
-  const parts = [];
-  const height = properties?.height_m;
-  const floors = properties?.est_floors;
-  const area = properties?.area_m2;
-  if (typeof height === "number" && Number.isFinite(height) && height >= 0.5) {
-    parts.push(`≈${Math.round(height)}m`);
-  }
-  if (typeof floors === "number" && Number.isFinite(floors) && floors >= 1 && typeof t2 === "function") {
-    parts.push(t2("parse.floors", { n: floors }));
-  }
-  if (typeof area === "number" && Number.isFinite(area) && area > 0) {
-    parts.push(area >= 1e4 ? `${(area / 1e4).toFixed(2)}ha` : `${Math.round(area)}m²`);
-  }
-  return parts.join(" · ");
-}
-function errorText(t2, code) {
-  const text = t2(`parse.err.${code}`);
-  return text === `parse.err.${code}` ? code : text;
-}
-function confidenceText(t2, value) {
-  return typeof value === "number" && Number.isFinite(value) ? t2("parse.confidence", { n: Math.round(value * 100) }) : t2("parse.confidenceUnknown");
-}
-function ParseBody({ t: t2, getCesium, getViewer, getLayers, showToast, onAdoptParse, openRequest, getSelection, onActivateSelection }) {
-  const [stage, setStage] = import_react28.default.useState(null);
-  const [scope, setScope] = import_react28.default.useState(() => (openRequest?.aoiSeq ?? 0) > 0 ? "aoi" : "view");
-  const [parsedScope, setParsedScope] = import_react28.default.useState("view");
-  const [drawMode, setDrawMode] = import_react28.default.useState(null);
-  const [selectionTick, setSelectionTick] = import_react28.default.useState(0);
-  const [targets, setTargets] = import_react28.default.useState(() => /* @__PURE__ */ new Set());
-  const [candidates, setCandidates] = import_react28.default.useState([]);
-  const [selected, setSelected] = import_react28.default.useState(() => /* @__PURE__ */ new Set());
-  const [filter, setFilter] = import_react28.default.useState("all");
-  const [sortBy, setSortBy] = import_react28.default.useState("default");
-  const [extrude3d, setExtrude3d] = import_react28.default.useState(true);
-  const [skipped, setSkipped] = import_react28.default.useState(0);
-  const [error, setError] = import_react28.default.useState(null);
-  const [diag, setDiag] = import_react28.default.useState(null);
-  const [hasRun, setHasRun] = import_react28.default.useState(false);
-  const previewRef = import_react28.default.useRef([]);
-  const aliveRef = import_react28.default.useRef(true);
-  const abortRef = import_react28.default.useRef(null);
-  const lastAoiSeqRef = import_react28.default.useRef(openRequest?.aoiSeq ?? 0);
-  const viewer = getViewer?.();
-  import_react28.default.useEffect(() => {
-    const seq = openRequest?.aoiSeq ?? 0;
-    if (seq > 0 && seq !== lastAoiSeqRef.current) {
-      lastAoiSeqRef.current = seq;
-      setScope("aoi");
-      setSelectionTick((n) => n + 1);
-    }
-  }, [openRequest?.aoiSeq]);
-  import_react28.default.useEffect(() => {
-    if (!viewer) return void 0;
-    return subscribeSelection(viewer, ({ type, selection }) => {
-      if (!aliveRef.current) return;
-      setSelectionTick((n) => n + 1);
-      if (type === "commit") {
-        setDrawMode(null);
-        if (isAoiSelectionCapable(selection)) setScope("aoi");
-      } else if (type === "cancel") {
-        setDrawMode(null);
-      } else if (type === "clear") {
-        setDrawMode(null);
-      }
-    });
-  }, [viewer]);
-  import_react28.default.useEffect(() => () => {
-    aliveRef.current = false;
-    abortRef.current?.abort?.();
-    abortRef.current = null;
-    clearBatchPreview(getViewer(), previewRef.current);
-  }, []);
-  void selectionTick;
-  const activeSelection = (typeof getSelection === "function" ? getSelection() : null) ?? peekSelection(viewer);
-  const aoiReady = isAoiSelectionCapable(activeSelection);
-  const effectiveScope = scope === "aoi" && aoiReady ? "aoi" : "view";
-  const bus = typeof stage === "string";
-  const stageText = stage ? t2(`parse.stage.${stage}`) : "";
-  const startDrawAoi = (mode) => {
-    const currentViewer = getViewer?.();
-    if (!currentViewer) {
-      showToast?.(t2("agent.notReady"));
-      return;
-    }
-    const tool = getSelectionTool(currentViewer, {
-      getCesium,
-      t: t2,
-      showToast,
-      onActivate: onActivateSelection
-    });
-    if (!tool) return;
-    if (drawMode !== null) {
-      tool.cancel();
-      setDrawMode(null);
-      if (drawMode === mode) return;
-    }
-    setScope("aoi");
-    if (tool.start(mode)) setDrawMode(mode);
   };
-  const clearAoi = () => {
-    const currentViewer = getViewer?.();
-    if (currentViewer) getSelectionTool(currentViewer, {})?.clear();
-    setDrawMode(null);
-    setSelectionTick((n) => n + 1);
-  };
-  const toggleTarget = (kind) => {
-    if (kind === "all") {
-      setTargets(/* @__PURE__ */ new Set());
-      return;
-    }
-    setTargets((current) => {
-      const next = new Set(current);
-      if (next.has(kind)) next.delete(kind);
-      else next.add(kind);
-      if (next.size >= TARGET_CLASSES.length) return /* @__PURE__ */ new Set();
-      return next;
-    });
-  };
-  const redrawPreview = (items, nextExtrude) => {
-    const Cesium = getCesium();
-    const currentViewer = getViewer();
-    if (!currentViewer) return;
-    clearBatchPreview(currentViewer, previewRef.current);
-    if (Cesium && items.length > 0) {
-      previewRef.current = drawBatchPreview(Cesium, currentViewer, items, { extrude: nextExtrude });
-    }
-  };
-  const resetPreview = () => {
-    clearBatchPreview(getViewer(), previewRef.current);
-    setCandidates([]);
-    setSelected(/* @__PURE__ */ new Set());
-    setFilter("all");
-    setSortBy("default");
-    setSkipped(0);
-    setError(null);
-    setDiag(null);
-    setHasRun(false);
-  };
-  const cancelParse = () => {
-    abortRef.current?.abort?.();
-  };
-  const parse = async () => {
-    if (bus) return;
-    if (scope === "aoi" && !aoiReady) {
-      showToast?.(t2("parse.scopeAoiNone"));
-      return;
-    }
-    const Cesium = getCesium();
-    const currentViewer = getViewer();
-    if (!Cesium || !currentViewer) {
-      setError("not_ready");
-      return;
-    }
-    resetPreview();
-    setHasRun(true);
-    let frame = null;
-    const controller = typeof AbortController === "function" ? new AbortController() : null;
-    abortRef.current = controller;
-    const targetList = targets.size > 0 ? [...targets] : null;
-    try {
-      setStage("capture");
-      frame = captureSceneFrame({
-        viewer: currentViewer,
-        Cesium,
-        getLayers: typeof getLayers === "function" ? getLayers : () => [],
-        selection: activeSelection,
-        scope: effectiveScope
-      });
-      setStage("request");
-      const meta = await loadMeta();
-      if (!aliveRef.current || controller?.signal?.aborted) throw Object.assign(new Error("cancelled"), { code: "cancelled" });
-      if (!meta?.visionBatchUrl) throw Object.assign(new Error("unavailable"), { code: "unavailable" });
-      const payload = await requestSceneParse(meta.visionBatchUrl, { frame, classes: targetList, signal: controller?.signal });
-      if (!aliveRef.current) return;
-      const filteredObjects = targetList ? payload.objects.filter((item) => targetList.includes(item?.class)) : payload.objects;
-      setStage("project");
-      const projected = projectBatchObjects(frame, filteredObjects, { t: t2 });
-      let resolvedFeatures = projected.features;
-      if (resolvedFeatures.length > 0) {
-        setStage("heights");
-        const refined = await refineBatchMetricsWithHeightService(frame, resolvedFeatures, {
-          getLayers: typeof getLayers === "function" ? getLayers : () => []
-        });
-        if (!aliveRef.current) return;
-        resolvedFeatures = refined.features;
-      }
-      const deduped = dedupeBatchFeatures(resolvedFeatures);
-      if (!aliveRef.current) return;
-      if (deduped.length === 0) {
-        setDiag({
-          rawCount: filteredObjects.length,
-          thumbUrl: frame.dataUrl,
-          width: frame.width,
-          height: frame.height
-        });
-        setError(filteredObjects.length > 0 ? "all_skipped" : "no_target");
-        return;
-      }
-      setParsedScope(frame.scope === "aoi" ? "aoi" : "view");
-      setCandidates(deduped);
-      setSelected(new Set(deduped.map((_, index) => index)));
-      setFilter("all");
-      setSkipped(projected.skipped);
-      setDiag(null);
-      previewRef.current = drawBatchPreview(Cesium, currentViewer, deduped, { extrude: extrude3d });
-      showToast(t2("parse.candidates", { n: deduped.length }));
-    } catch (failure) {
-      if (!aliveRef.current) return;
-      const code = controller?.signal?.aborted || failure?.name === "AbortError" ? "cancelled" : failure?.code ?? "model_failed";
-      if (frame?.dataUrl && code !== "cancelled") {
-        setDiag({ rawCount: 0, thumbUrl: frame.dataUrl, width: frame.width, height: frame.height });
-      }
-      setError(code);
-    } finally {
-      if (abortRef.current === controller) abortRef.current = null;
+  let profile = "general";
+  const presets = () => profile === "sports" ? SPORTS_CLASSES : DEFAULT_CLASSES;
+  const customLabels = [];
+  let selectedKeys = new Set(DEFAULT_CLASSES.map((entry2) => entry2.key));
+  let phase = "idle";
+  let modelSaving = false;
+  let reuse = true;
+  let locator = "joint";
+  let multiScale = false;
+  let busy = false;
+  let progress = null;
+  let report = null;
+  let error = null;
+  let scope = "view";
+  let filter = "all";
+  let selected = [];
+  let activeId = null;
+  let confirmRerun = false;
+  let drawing = null;
+  let aoi = null;
+  let abort = null;
+  let disposed = false;
+  let unsubscribe2 = null;
+  const viewerOf = () => context.getViewer?.() ?? null;
+  const cesiumOf = () => context.getCesium?.() ?? null;
+  const emit = () => {
+    if (!disposed) for (const listener of listeners) {
       try {
-        frame?.release?.();
+        listener();
       } catch {
       }
-      if (aliveRef.current) setStage(null);
     }
   };
-  const toggle = (index) => {
-    setSelected((current) => {
-      const next = new Set(current);
-      if (next.has(index)) next.delete(index);
-      else next.add(index);
-      return next;
-    });
+  const changed = () => {
+    emit();
   };
-  const counts = batchClassCounts(candidates);
-  const buildingCount = counts.building ?? 0;
-  const extraClasses = PARSE_CLASSES.filter((kind) => kind !== "building" && (counts[kind] ?? 0) > 0);
-  const visibleEntries = candidates.map((feature, index) => ({ feature, index })).filter(({ feature }) => filter === "all" || feature?.properties?.class === filter).sort((left, right) => compareBatchFeatures(left.feature, right.feature, sortBy) || left.index - right.index);
-  const changeFilter = (nextFilter) => {
-    setFilter(nextFilter);
-    redrawPreview(filterBatchFeatures(candidates, nextFilter), extrude3d);
+  const catalog = () => buildClassCatalog(customLabels, presets(), isChinese() ? "zh" : "en");
+  const selectedEntries = () => catalog().filter((entry2) => selectedKeys.has(entry2.key));
+  const aoiReady = () => Boolean(aoi && aoi.bbox);
+  const firstId = () => store.getState().candidates[0]?.properties?.id ?? null;
+  const summaryText2 = () => {
+    const list = catalog();
+    const picked = list.filter((entry2) => selectedKeys.has(entry2.key));
+    if (picked.length === 0) return t2("parse.classesNone");
+    if (picked.length === list.length) return t2("parse.classesAll", { n: list.length });
+    const names = picked.map((entry2) => entry2.name);
+    if (names.length <= 2) return t2("parse.classesOnly", { label: names.join(t2("parse.listSeparator")) });
+    return t2("parse.classesCount", { n: names.length });
   };
-  const toggleExtrude = () => {
-    const next = !extrude3d;
-    setExtrude3d(next);
-    redrawPreview(filterBatchFeatures(candidates, filter), next);
+  const reasonOf = () => {
+    if (modelSaving) return t2("parse.savingModel");
+    if (busy) return null;
+    if (!viewerOf() || !cesiumOf()) return t2("parse.err.not_ready");
+    if (selectedEntries().length === 0) return t2("parse.needClasses");
+    if (scope === "aoi" && !aoiReady()) return t2("parse.needAoi");
+    return null;
   };
-  const adoptFeatures = (rawFeatures, label) => {
-    if (rawFeatures.length === 0) {
-      showToast(t2("parse.adoptSelected"));
+  const candidateRows = () => store.getState().candidates.map((feature) => {
+    const properties = feature?.properties ?? {};
+    return {
+      id: properties.id,
+      classKey: typeof properties.class_key === "string" ? properties.class_key : "",
+      className: typeof properties.class_name === "string" ? properties.class_name : "",
+      color: typeof properties.color === "string" ? properties.color : "",
+      area_m2: isNumber3(properties.area_m2) ? round13(properties.area_m2) : null,
+      clippedAtTileEdge: properties.clippedAtTileEdge === true,
+      status: properties.status ?? "pending"
+    };
+  });
+  function getState() {
+    const stats = store.stats();
+    const counts = { total: stats.total, pending: stats.pending, accepted: stats.accepted, rejected: stats.rejected };
+    const reason = reasonOf();
+    return {
+      phase,
+      reuse,
+      locator,
+      multiScale,
+      visionConfigUrl: context.getMeta?.()?.visionConfigUrl,
+      sessionId: context.getSession?.(),
+      busy,
+      progress,
+      classes: {
+        profile,
+        catalog: catalog().map((entry2) => ({
+          id: entry2.id,
+          key: entry2.key,
+          name: entry2.name,
+          color: entry2.color,
+          definition: entry2.definition,
+          custom: entry2.custom === true,
+          on: selectedKeys.has(entry2.key)
+        })),
+        custom: customLabels.slice(),
+        summary: summaryText2()
+      },
+      scope,
+      aoi: {
+        ready: aoiReady(),
+        area_m2: isNumber3(aoi?.area_m2) ? round13(aoi.area_m2) : null,
+        drawing: Boolean(drawing)
+      },
+      candidates: candidateRows(),
+      counts,
+      filter,
+      selected: selected.slice(),
+      activeId,
+      report,
+      error,
+      canRun: !busy && reason === null,
+      reason,
+      confirmRerun,
+      rerun: confirmRerun ? { total: counts.total, accepted: counts.accepted } : null,
+      primaryLabel: busy ? t2("parse.stop") : counts.total > 0 ? t2("parse.rerun") : t2("parse.start")
+    };
+  }
+  const syncOverlay = () => {
+    preview.clear();
+    try {
+      context.onSyncParse?.({ type: "FeatureCollection", features: store.accepted() }, t2("parse.layerName"));
+    } catch {
+    }
+  };
+  const addCandidates = (features, { replace = true } = {}) => {
+    if (replace) store.startRun({ mode: "instances", source: "ortho", scope, classes: selectedEntries().map((entry2) => entry2.key) });
+    if (Array.isArray(features) && features.length > 0) store.addCandidates(features);
+    selected = [];
+    activeId = firstId();
+    syncOverlay();
+    changed();
+  };
+  const stopDrawing = () => {
+    if (drawing) {
+      try {
+        getSelectionTool(viewerOf(), {})?.cancel?.();
+      } catch {
+      }
+    }
+    drawing = null;
+  };
+  const adoptSelection = (selection) => {
+    const ring = ringOf(selection, cesiumOf());
+    const bbox = ring ? bboxOf(ring) : null;
+    if (!bbox) return false;
+    aoi = { bbox, ring, area_m2: isNumber3(selection?.area_m2) ? round13(selection.area_m2) : null };
+    return true;
+  };
+  const onSelection = (event) => {
+    if (disposed) return;
+    const type = event?.type;
+    if (type === "commit") {
+      if (!drawing && scope !== "aoi") return;
+      drawing = null;
+      if (!adoptSelection(event?.selection)) {
+        aoi = null;
+        toast(t2("parse.err.antimeridian"));
+        changed();
+        return;
+      }
+      scope = "aoi";
+      confirmRerun = false;
+      changed();
       return;
     }
-    const features = applyExtrusionToFeatures(rawFeatures, extrude3d);
-    const ok = typeof onAdoptParse === "function" ? onAdoptParse(batchFeatureCollection(features, label), label) : false;
-    if (ok !== false) {
-      clearBatchPreview(getViewer(), previewRef.current);
-      setCandidates([]);
-      setSelected(/* @__PURE__ */ new Set());
-      setFilter("all");
-      setHasRun(false);
+    if (type === "cancel") {
+      if (!drawing) return;
+      drawing = null;
+      changed();
+      return;
+    }
+    if (type === "clear") {
+      drawing = null;
+      aoi = null;
+      changed();
     }
   };
-  const adopt = (indexes) => {
-    adoptFeatures(candidates.filter((_, index) => indexes.has(index)), t2("tools.parse"));
+  const attach = () => {
+    try {
+      unsubscribe2?.();
+      unsubscribe2 = subscribeSelection(viewerOf(), onSelection);
+    } catch {
+      unsubscribe2 = null;
+    }
   };
-  const selectedBuildings = candidates.filter((feature, index) => selected.has(index) && feature?.properties?.class === "building");
-  const adoptBuildings = () => {
-    const list = selectedBuildings.length > 0 ? selectedBuildings : filterBatchFeatures(candidates, "building");
-    adoptFeatures(list, t2("parse.buildingsLayerName"));
+  attach();
+  const executeRun = async () => {
+    if (busy || modelSaving) return;
+    const viewer = viewerOf();
+    const Cesium = cesiumOf();
+    if (!viewer || !Cesium) {
+      error = { code: "not_ready", message: failText(t2, "not_ready") };
+      phase = "error";
+      emit();
+      return;
+    }
+    const entries = selectedEntries();
+    if (entries.length === 0) {
+      toast(t2("parse.needClasses"));
+      return;
+    }
+    if (scope === "aoi" && !aoiReady()) {
+      toast(t2("parse.needAoi"));
+      return;
+    }
+    const meta = context.getMeta?.() ?? {};
+    if (typeof meta?.visionInstancesUrl !== "string" || meta.visionInstancesUrl.trim() === "") {
+      error = { code: "unavailable", message: failText(t2, "unavailable") };
+      phase = "error";
+      emit();
+      return;
+    }
+    preview.clear();
+    busy = true;
+    phase = "capturing";
+    progress = null;
+    report = null;
+    error = null;
+    confirmRerun = false;
+    emit();
+    const controller = typeof AbortController === "function" ? new AbortController() : null;
+    abort = controller;
+    let failedWindows = 0;
+    try {
+      const result = await segmentInstances({
+        viewer,
+        Cesium,
+        meta,
+        sessionId: context.getSession?.(),
+        multiScale,
+        namedLabels: locator === "names",
+        separateClasses: locator === "separate",
+        reuse,
+        bbox: scope === "aoi" ? aoi?.bbox ?? null : null,
+        classes: entries.map((entry2) => ({
+          id: entry2.id,
+          name: entry2.name,
+          definition: entry2.definition,
+          key: entry2.key,
+          color: entry2.color
+        })),
+        signal: controller?.signal ?? null,
+        onProgress: (event) => {
+          if (disposed) return;
+          phase = "segmenting";
+          const done = Number(event?.done) || 0;
+          progress = { done, total: Number(event?.total) || 0 };
+          if (event?.error) failedWindows += 1;
+          report = { calls: done, windows: Number(event?.total) || 0, failedWindows, complete: false, instances: Number(event?.found) || 0, durationMs: 0 };
+          emit();
+        }
+      });
+      if (disposed) return;
+      report = reportOf(result?.report);
+      const features = Array.isArray(result?.collection?.features) ? result.collection.features : [];
+      const prepared = features.map((feature, index) => {
+        const props = feature?.properties ?? {};
+        const className = typeof props.class_name === "string" && props.class_name !== "" ? props.class_name : props.class_key ?? "";
+        return {
+          ...feature,
+          properties: {
+            ...props,
+            class: className,
+            class_key: typeof props.class_key === "string" ? props.class_key : className,
+            class_name: className,
+            color: typeof props.color === "string" ? props.color : "",
+            name: typeof props.name === "string" && props.name !== "" ? props.name : `${className} ${index + 1}`,
+            source: "ortho",
+            source_kind: "ortho"
+          }
+        };
+      });
+      if (result?.cancelled === true) {
+        if (prepared.length > 0) addCandidates(prepared, { replace: false });
+        error = null;
+        phase = store.getState().candidates.length > 0 ? "review" : "idle";
+        progress = null;
+        toast(t2("parse.cancelledPartial", { n: prepared.length }));
+        return;
+      }
+      if (prepared.length === 0 && report?.complete === false) {
+        error = { code: "partial_failed", message: t2("parse.partialFailed") };
+        phase = "error";
+        progress = null;
+        return;
+      }
+      addCandidates(prepared, { replace: true });
+      error = null;
+      phase = "review";
+      progress = null;
+      const failed = report?.failedWindows ?? 0;
+      if (features.length > 0 && failed > 0) toast(t2("parse.candidatesPartial", { n: features.length, failed }));
+      else if (features.length > 0) toast(t2("parse.candidates", { n: features.length }));
+      else toast(t2("parse.noInstances"));
+    } catch (failure) {
+      if (disposed) return;
+      const aborted = controller?.signal?.aborted === true || failure?.name === "AbortError";
+      if (aborted) {
+        error = null;
+        phase = store.getState().candidates.length > 0 ? "review" : "idle";
+        progress = null;
+        toast(t2("parse.cancelled"));
+      } else {
+        const code = typeof failure?.code === "string" && failure.code !== "" ? failure.code : "model_failed";
+        error = { code, message: failText(t2, code) };
+        phase = "error";
+        progress = null;
+      }
+    } finally {
+      if (abort === controller) abort = null;
+      if (!disposed) {
+        busy = false;
+        if (error === null && phase !== "review") phase = store.getState().candidates.length > 0 ? "review" : "idle";
+        emit();
+      }
+    }
   };
-  const aoiAreaText = aoiReady && Number.isFinite(activeSelection?.area_m2) ? formatArea(activeSelection.area_m2) : "—";
-  const runDisabled = bus || scope === "aoi" && !aoiReady;
-  return h25(
-    "div",
-    { className: "mv-parse" },
-    h25(
-      "div",
-      { className: "mv-parse-scope" },
-      h25(
-        "button",
-        {
-          type: "button",
-          className: `mv-parse-scope-btn${scope === "view" ? " on" : ""}`,
-          "aria-pressed": scope === "view",
-          disabled: bus,
-          onClick: () => setScope("view")
-        },
-        t2("parse.scopeView")
-      ),
-      h25(
-        "button",
-        {
-          type: "button",
-          className: `mv-parse-scope-btn${scope === "aoi" ? " on" : ""}`,
-          "aria-pressed": scope === "aoi",
-          disabled: bus,
-          title: t2(aoiReady ? "parse.scopeAoiReady" : "parse.scopeAoiNone"),
-          onClick: () => setScope("aoi")
-        },
-        t2("parse.scopeAoi")
-      )
-    ),
-    scope === "aoi" ? aoiReady ? h25(
-      "div",
-      { className: "mv-parse-aoi-bar" },
-      h25(
-        "span",
-        { className: "mv-parse-aoi-bar-info" },
-        h25("span", { className: "mv-parse-aoi-bar-dot", "aria-hidden": true }),
-        t2("parse.aoiReadyLabel", { area: aoiAreaText })
-      ),
-      h25(
-        "span",
-        { className: "mv-parse-aoi-bar-actions" },
-        h25("button", { type: "button", className: "mv-parse-mini-btn", disabled: bus, onClick: () => startDrawAoi("rect") }, t2("parse.drawRect")),
-        h25("button", { type: "button", className: "mv-parse-mini-btn", disabled: bus, onClick: () => startDrawAoi("polygon") }, t2("parse.drawPolygon")),
-        h25("button", { type: "button", className: "mv-parse-mini-btn", disabled: bus, onClick: clearAoi }, t2("parse.aoiClear"))
-      )
-    ) : h25(
-      "div",
-      { className: "mv-parse-aoi-box" },
-      h25(
-        "div",
-        { className: "mv-tool-grid" },
-        h25(
-          "button",
-          { type: "button", className: `mv-cta${drawMode === "rect" ? " primary" : ""}`, "aria-pressed": drawMode === "rect", disabled: bus, onClick: () => startDrawAoi("rect") },
-          t2(drawMode === "rect" ? "parse.drawRectActive" : "parse.drawRect")
-        ),
-        h25(
-          "button",
-          { type: "button", className: `mv-cta${drawMode === "polygon" ? " primary" : ""}`, "aria-pressed": drawMode === "polygon", disabled: bus, onClick: () => startDrawAoi("polygon") },
-          t2(drawMode === "polygon" ? "parse.drawPolygonActive" : "parse.drawPolygon")
-        )
-      ),
-      h25("p", { className: "mv-none", style: { margin: 0, padding: 0 } }, t2(drawMode ? "parse.drawHint" : "parse.scopeAoiNone"))
-    ) : null,
-    h25(
-      "div",
-      { className: "mv-parse-targets" },
-      h25("span", { className: "mv-parse-sec-label" }, t2("parse.targetsLabel")),
-      h25(
-        "div",
-        { className: "mv-parse-target-row" },
-        h25(
-          "button",
-          {
-            type: "button",
-            className: `mv-parse-target${targets.size === 0 ? " on" : ""}`,
-            "aria-pressed": targets.size === 0,
-            disabled: bus,
-            onClick: () => toggleTarget("all")
-          },
-          t2("parse.targetsAll")
-        ),
-        ...TARGET_CLASSES.map(
-          (kind) => h25(
-            "button",
-            {
-              key: kind,
-              type: "button",
-              className: `mv-parse-target${targets.has(kind) ? " on" : ""}`,
-              "aria-pressed": targets.has(kind),
-              disabled: bus,
-              onClick: () => toggleTarget(kind)
-            },
-            h25("span", { className: "mv-parse-dot", "aria-hidden": true, style: { background: parseClassColor(kind).hex } }),
-            t2(`parse.class.${kind}`)
-          )
-        )
-      )
-    ),
-    h25(
-      "div",
-      { className: "mv-parse-run-row" },
-      h25(
-        "button",
-        { type: "button", className: "mv-cta primary", disabled: runDisabled, onClick: parse },
-        bus ? t2("parse.running", { stage: stageText }) : t2("parse.run")
-      ),
-      bus ? h25("button", { type: "button", className: "mv-cta", onClick: cancelParse }, t2("parse.cancel")) : candidates.length > 0 ? h25("button", { type: "button", className: "mv-cta", onClick: resetPreview }, t2("parse.clear")) : null
-    ),
-    error ? h25(
-      "div",
-      { className: "mv-parse-diag", role: "status" },
-      h25(
-        "span",
-        null,
-        error === "all_skipped" && diag?.rawCount > 0 ? t2("parse.diagAllSkipped", { n: diag.rawCount }) : t2("parse.failed", { reason: errorText(t2, error) })
-      ),
-      diag?.thumbUrl ? h25(
-        "div",
-        { className: "mv-parse-diag-thumb" },
-        h25("img", { src: diag.thumbUrl, alt: t2("parse.diagSnapshot", { w: diag.width, h: diag.height }) }),
-        h25("span", null, t2("parse.diagSnapshot", { w: diag.width, h: diag.height }))
-      ) : null
-    ) : null,
-    candidates.length > 0 ? h25(
-      import_react28.default.Fragment,
-      null,
-      h25(
-        "div",
-        { className: "mv-parse-head" },
-        h25("span", { className: "mv-parse-count" }, t2("parse.candidates", { n: candidates.length })),
-        parsedScope === "aoi" ? h25("span", { className: "mv-parse-aoi-tag" }, t2("parse.aoiTag")) : null,
-        h25("span", { className: "mv-parse-selected" }, t2("parse.selected", { n: selected.size, total: candidates.length }))
-      ),
-      h25(
-        "div",
-        { className: "mv-parse-controls" },
-        h25(
-          "div",
-          { className: "mv-parse-filters" },
-          h25(
-            "button",
-            { type: "button", className: `mv-parse-filter${filter === "all" ? " on" : ""}`, "aria-pressed": filter === "all", onClick: () => changeFilter("all") },
-            t2("parse.filterAll", { n: candidates.length })
-          ),
-          buildingCount > 0 ? h25(
-            "button",
-            { type: "button", className: `mv-parse-filter${filter === "building" ? " on" : ""}`, "aria-pressed": filter === "building", onClick: () => changeFilter("building") },
-            h25("span", { className: "mv-parse-dot", "aria-hidden": true, style: { background: parseClassColor("building").hex } }),
-            t2("parse.filterBuildings", { n: buildingCount })
-          ) : null,
-          ...extraClasses.map(
-            (kind) => h25(
-              "button",
-              {
-                key: kind,
-                type: "button",
-                className: `mv-parse-filter${filter === kind ? " on" : ""}`,
-                "aria-pressed": filter === kind,
-                onClick: () => changeFilter(kind)
-              },
-              h25("span", { className: "mv-parse-dot", "aria-hidden": true, style: { background: parseClassColor(kind).hex } }),
-              t2("parse.filterClass", { label: t2(`parse.class.${kind}`), n: counts[kind] })
-            )
-          )
-        ),
-        h25(
-          "div",
-          { className: "mv-parse-sort" },
-          ...["default", "height", "area"].map(
-            (mode) => h25(
-              "button",
-              {
-                key: mode,
-                type: "button",
-                className: `mv-parse-sort-btn${sortBy === mode ? " on" : ""}`,
-                "aria-pressed": sortBy === mode,
-                onClick: () => setSortBy(mode)
-              },
-              t2(`parse.sort${mode.charAt(0).toUpperCase()}${mode.slice(1)}`)
-            )
-          )
-        ),
-        h25(
-          "label",
-          { className: "mv-parse-toggle" },
-          h25("input", { type: "checkbox", checked: extrude3d, onChange: toggleExtrude }),
-          h25("span", null, t2("parse.extrude3d"))
-        )
-      ),
-      skipped > 0 ? h25("p", { className: "mv-none" }, t2("parse.skipped", { n: skipped })) : null,
-      h25(
-        "div",
-        { className: "mv-parse-list" },
-        ...visibleEntries.map(({ feature, index }) => {
-          const props = feature.properties ?? {};
-          const kind = props.class ?? "other";
-          const color = parseClassColor(kind, props.style);
-          const metrics = candidateMetricText(props, t2);
-          return h25(
-            "label",
-            { key: `${index}-${props.name ?? index}`, className: `mv-parse-row${selected.has(index) ? " on" : ""}` },
-            h25("input", {
-              type: "checkbox",
-              checked: selected.has(index),
-              onChange: () => toggle(index)
-            }),
-            h25("span", { className: "mv-parse-dot", "aria-hidden": true, style: { background: color.hex } }),
-            h25("span", { className: "mv-parse-class" }, t2(`parse.class.${kind}`)),
-            h25("span", { className: "mv-parse-name" }, props.name ?? ""),
-            metrics !== "" ? h25("span", { className: "mv-parse-metrics" }, metrics) : null,
-            h25("span", { className: "mv-parse-conf" }, confidenceText(t2, props.confidence))
-          );
-        })
-      ),
-      h25(
-        "div",
-        { className: "mv-actions" },
-        buildingCount > 0 ? h25("button", { type: "button", className: "mv-cta primary", onClick: adoptBuildings }, t2("parse.adoptBuildings", { n: selectedBuildings.length > 0 ? selectedBuildings.length : buildingCount })) : null,
-        h25("button", { type: "button", className: "mv-cta", onClick: () => adopt(new Set(candidates.map((_, index) => index))) }, t2("parse.adoptAll")),
-        h25("button", { type: "button", className: "mv-btn", onClick: () => adopt(selected) }, t2("parse.adoptSelected"))
-      )
-    ) : hasRun && !error ? h25("p", { className: "mv-none" }, t2("parse.empty")) : null,
-    h25("p", { className: "mv-parse-foot" }, t2("parse.hint"))
-  );
+  const startRun = () => {
+    if (busy) return;
+    if (store.getState().candidates.length > 0) {
+      confirmRerun = true;
+      emit();
+      return;
+    }
+    void executeRun();
+  };
+  const runExport = (nextScope) => {
+    const target = EXPORT_SCOPES.has(nextScope) ? nextScope : "accepted";
+    const features = target === "all" ? store.all() : store.accepted();
+    const { collection, count } = buildGeoJsonExport(features);
+    if (count === 0) {
+      toast(t2("parse.exportEmpty"));
+      return false;
+    }
+    const written = downloadText(suggestedFilename(), JSON.stringify(collection, null, 2), "application/geo+json");
+    if (!written) {
+      toast(t2("parse.exportEmpty"));
+      return false;
+    }
+    toast(t2("parse.exported", { n: count }));
+    return true;
+  };
+  const setStatus = (ids, status, toastKey) => {
+    const list = normalizeIds2(ids);
+    if (list.length === 0) return;
+    store.setStatus(list, status);
+    const reviewed = new Set(list);
+    selected = selected.filter((id) => !reviewed.has(id));
+    syncOverlay();
+    if (toastKey) toast(t2(toastKey, { n: list.length }));
+    changed();
+  };
+  const afterHistory = (step) => {
+    if (busy || !step().ok) return;
+    const live = new Set(store.getState().candidates.map((feature) => feature.properties.id));
+    selected = selected.filter((id) => live.has(id));
+    if (!live.has(activeId)) activeId = firstId();
+    syncOverlay();
+    changed();
+  };
+  const actions = {
+    setModelSaving(on) {
+      modelSaving = on === true;
+      emit();
+    },
+    setReuse(on) {
+      if (!busy) {
+        reuse = on === true;
+        emit();
+      }
+    },
+    setLocator(mode) {
+      if (!busy && ["joint", "names", "separate"].includes(mode)) {
+        locator = mode;
+        emit();
+      }
+    },
+    setMultiScale(on) {
+      if (!busy) {
+        multiScale = on === true;
+        emit();
+      }
+    },
+    setScope(next) {
+      if (busy) return;
+      confirmRerun = false;
+      scope = next === "aoi" ? "aoi" : "view";
+      if (scope === "aoi" && !aoi) {
+        const live = peekSelection(viewerOf());
+        if (isAoiSelectionCapable(live)) adoptSelection(live);
+      }
+      changed();
+    },
+    startDrawAoi(kind = "rect") {
+      if (busy) return;
+      const viewer = viewerOf();
+      if (!viewer) {
+        toast(t2("parse.err.not_ready"));
+        return;
+      }
+      let tool = null;
+      try {
+        tool = getSelectionTool(viewer, {
+          getCesium: context.getCesium,
+          t: t2,
+          showToast: context.showToast,
+          onActivate: context.onActivateSelection
+        });
+      } catch {
+        tool = null;
+      }
+      if (!tool) {
+        toast(t2("parse.err.not_ready"));
+        return;
+      }
+      const mode = kind === "polygon" ? "polygon" : "rect";
+      let started = false;
+      try {
+        started = tool.start(mode) !== false;
+      } catch {
+        started = false;
+      }
+      scope = "aoi";
+      drawing = started ? { kind: mode } : null;
+      confirmRerun = false;
+      changed();
+    },
+    clearAoi() {
+      if (busy) return;
+      stopDrawing();
+      aoi = null;
+      confirmRerun = false;
+      try {
+        getSelectionTool(viewerOf(), {})?.clear?.();
+      } catch {
+      }
+      changed();
+    },
+    setClassProfile(next) {
+      if (busy || !["general", "sports"].includes(next) || next === profile) return;
+      profile = next;
+      selectedKeys = new Set(presets().map((entry2) => entry2.key));
+      confirmRerun = false;
+      changed();
+    },
+    toggleClass(key) {
+      if (busy || typeof key !== "string" || !catalog().some((entry2) => entry2.key === key)) return;
+      if (selectedKeys.has(key)) selectedKeys.delete(key);
+      else selectedKeys.add(key);
+      confirmRerun = false;
+      changed();
+    },
+    addCustomClass(label) {
+      if (busy) return;
+      const clean = sanitizeCustomLabel(label);
+      if (clean === "") {
+        toast(t2("parse.customInvalid"));
+        return;
+      }
+      const existing = catalog().find((entry2) => entry2.name === clean || entry2.key === clean);
+      if (existing) {
+        selectedKeys.add(existing.key);
+        changed();
+        return;
+      }
+      if (catalog().length >= TAXONOMY_LIMITS.maxClasses) {
+        toast(t2("parse.classLimit"));
+        return;
+      }
+      customLabels.push(clean);
+      selectedKeys.add(`custom:${clean}`);
+      confirmRerun = false;
+      changed();
+    },
+    resetClasses() {
+      if (busy) return;
+      customLabels.length = 0;
+      selectedKeys = new Set(presets().map((entry2) => entry2.key));
+      confirmRerun = false;
+      changed();
+    },
+    run() {
+      startRun();
+    },
+    confirmRun() {
+      if (busy) return;
+      confirmRerun = false;
+      void executeRun();
+    },
+    cancelRerun() {
+      confirmRerun = false;
+      changed();
+    },
+    stop() {
+      if (!busy) return;
+      try {
+        abort?.abort?.();
+      } catch {
+      }
+      stopDrawing();
+      emit();
+    },
+    setFilter(next) {
+      if (!FILTERS.has(next)) return;
+      filter = next;
+      selected = [];
+      const rows = store.getState().candidates;
+      const visible = (filter === "all" ? rows : rows.filter((feature) => (feature?.properties?.status ?? "pending") === filter)).map((feature) => feature.properties.id);
+      activeId = visible.includes(activeId) ? activeId : visible[0] ?? null;
+      changed();
+    },
+    select(ids) {
+      const wanted = new Set(Array.isArray(ids) ? ids : []);
+      selected = store.getState().candidates.map((feature) => feature.properties.id).filter((id) => wanted.has(id));
+      emit();
+    },
+    activate(id) {
+      if (busy) return;
+      activeId = typeof id === "string" ? id : null;
+      const feature = store.getState().candidates.find((item) => item.properties?.id === activeId);
+      preview.show(viewerOf(), cesiumOf(), feature);
+      emit();
+    },
+    deactivate() {
+      stopDrawing();
+      preview.clear();
+    },
+    adopt(ids) {
+      setStatus(ids, "accepted", "parse.adopted");
+    },
+    reject(ids) {
+      setStatus(ids, "rejected");
+    },
+    restore(ids) {
+      setStatus(ids, "pending");
+    },
+    remove(ids) {
+      const list = normalizeIds2(ids);
+      if (list.length === 0) return;
+      store.remove(list);
+      const live = new Set(store.getState().candidates.map((feature) => feature.properties.id));
+      selected = selected.filter((id) => live.has(id));
+      if (!live.has(activeId)) activeId = firstId();
+      syncOverlay();
+      changed();
+    },
+    undo() {
+      afterHistory(() => store.undo());
+    },
+    redo() {
+      afterHistory(() => store.redo());
+    },
+    flyTo(id) {
+      const viewer = viewerOf();
+      const Cesium = cesiumOf();
+      if (!viewer || !Cesium) return;
+      const ring = store.getState().candidates.find((item) => item.properties?.id === id)?.geometry?.coordinates?.[0];
+      const lons = Array.isArray(ring) ? ring.map((point) => point?.[0]).filter(isNumber3) : [];
+      const lats = Array.isArray(ring) ? ring.map((point) => point?.[1]).filter(isNumber3) : [];
+      if (lons.length < 2 || lats.length < 2) return;
+      const [minLon, maxLon] = [Math.min(...lons), Math.max(...lons)];
+      const [minLat, maxLat] = [Math.min(...lats), Math.max(...lats)];
+      if (!(maxLon > minLon) || !(maxLat > minLat)) return;
+      const altitude = Math.max(150, Math.min(6e3, (maxLon - minLon + (maxLat - minLat)) * 111320 * 2.2));
+      actions.activate(id);
+      try {
+        viewer.camera?.flyTo?.({
+          destination: Cesium.Cartesian3.fromDegrees((minLon + maxLon) / 2, (minLat + maxLat) / 2, altitude),
+          orientation: { heading: 0, pitch: -Math.PI / 2, roll: 0 },
+          duration: 0.9
+        });
+      } catch {
+      }
+      emit();
+    },
+    exportGeoJson(nextScope) {
+      return runExport(nextScope);
+    },
+    clearAll() {
+      const ids = store.getState().candidates.map((feature) => feature.properties.id);
+      if (ids.length > 0) store.remove(ids);
+      selected = [];
+      activeId = null;
+      confirmRerun = false;
+      error = null;
+      report = null;
+      phase = "idle";
+      progress = null;
+      syncOverlay();
+      changed();
+    }
+  };
+  const snapshotBridge = bindParseSnapshot({
+    store,
+    getCounts: () => {
+      const stats = store.stats();
+      return { total: stats.total, pending: stats.pending, accepted: stats.accepted, rejected: stats.rejected };
+    },
+    onRestored: (firstId2) => {
+      activeId = firstId2;
+      selected = [];
+      error = null;
+      phase = store.getState().candidates.length > 0 ? "review" : "idle";
+      changed();
+    }
+  });
+  const snapshotPayload = () => {
+    const base = snapshotBridge.snapshotPayload();
+    return base ? { ...base, customClasses: customLabels.slice(), scope, multiScale, locator, reuse, profile, selectedKeys: [...selectedKeys] } : null;
+  };
+  const restoreSnapshot = (payload) => {
+    if (!payload || typeof payload !== "object") return false;
+    profile = payload?.profile === "sports" ? "sports" : "general";
+    selectedKeys = new Set(presets().map((entry2) => entry2.key));
+    const labels = Array.isArray(payload?.customClasses) ? payload.customClasses.map((label) => sanitizeCustomLabel(label)).filter((label) => label !== "") : [];
+    customLabels.length = 0;
+    customLabels.push(...labels.slice(0, TAXONOMY_LIMITS.maxClasses));
+    for (const label of customLabels) selectedKeys.add(`custom:${label}`);
+    if (Array.isArray(payload?.selectedKeys)) {
+      const known = new Set(catalog().map((entry2) => entry2.key));
+      selectedKeys = new Set(payload.selectedKeys.filter((key) => known.has(key)));
+    }
+    reuse = payload?.reuse !== false;
+    locator = ["names", "separate"].includes(payload?.locator) ? payload.locator : "joint";
+    multiScale = payload?.multiScale === true;
+    const restored = snapshotBridge.restoreSnapshot(payload);
+    if (payload?.scope === "aoi" || payload?.scope === "view") scope = payload.scope;
+    if (!restored && labels.length === 0 && !Array.isArray(payload.selectedKeys)) return false;
+    if (!restored) phase = "idle";
+    changed();
+    return true;
+  };
+  return {
+    getState,
+    updateContext(next) {
+      if (next && typeof next === "object") context = next;
+    },
+    subscribe(listener) {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
+    actions,
+    refresh() {
+      attach();
+      changed();
+    },
+    dispose() {
+      disposed = true;
+      preview.clear();
+      try {
+        abort?.abort?.();
+      } catch {
+      }
+      stopDrawing();
+      try {
+        unsubscribe2?.();
+      } catch {
+      }
+      unsubscribe2 = null;
+      listeners.clear();
+    },
+    snapshotPayload,
+    restoreSnapshot,
+    notify(message2) {
+      toast(message2);
+    },
+    // Exposed for tests: the queue and the selection event entry point.
+    store,
+    _onSelection: onSelection
+  };
+}
+function normalizeIds2(ids) {
+  if (typeof ids === "string") return ids === "" ? [] : [ids];
+  if (!Array.isArray(ids)) return [];
+  return ids.filter((id) => typeof id === "string" && id !== "");
+}
+
+// src/client/ui/parse-session.js
+var current = null;
+var boundViewer = null;
+var saveTimer = null;
+var unsubscribe = null;
+var boundKey = null;
+var STORAGE_PREFIX2 = "mv.parse.queue.";
+function storage() {
+  try {
+    const store = globalThis.localStorage;
+    if (!store || typeof store.getItem !== "function" || typeof store.setItem !== "function") return null;
+    return store;
+  } catch {
+    return null;
+  }
+}
+function sessionKey(ctx) {
+  const session = typeof ctx?.getSession === "function" ? ctx.getSession() : null;
+  if (typeof session !== "string" || session === "") return null;
+  return `${STORAGE_PREFIX2}${session}`;
+}
+function readPayload(key) {
+  const store = storage();
+  if (!store || !key) return null;
+  try {
+    const raw = store.getItem(key);
+    if (typeof raw !== "string" || raw === "") return null;
+    const data = JSON.parse(raw);
+    if (!data || !Array.isArray(data.candidates)) return null;
+    return data;
+  } catch {
+    return null;
+  }
+}
+function writePayload(key, controller) {
+  const store = storage();
+  if (!store || !key || !controller) return;
+  try {
+    const payload = typeof controller.snapshotPayload === "function" ? controller.snapshotPayload() : null;
+    if (!payload) return;
+    store.setItem(key, JSON.stringify(payload));
+  } catch {
+  }
+}
+function scheduleSave(key, controller) {
+  if (!key) return;
+  if (saveTimer !== null) clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    saveTimer = null;
+    writePayload(key, controller);
+  }, 400);
+}
+function disposeCurrent() {
+  if (saveTimer !== null) {
+    clearTimeout(saveTimer);
+    saveTimer = null;
+  }
+  try {
+    unsubscribe?.();
+  } catch {
+  }
+  unsubscribe = null;
+  current?.dispose();
+  current = null;
+  boundViewer = null;
+  boundKey = null;
+}
+function parseSession(ctx) {
+  const viewer = ctx?.getViewer?.() ?? null;
+  const key = sessionKey(ctx);
+  if (current && (viewer !== boundViewer || key !== boundKey)) resetParseSession();
+  if (!current) {
+    current = createParseController(ctx);
+    boundViewer = viewer;
+    boundKey = key;
+    const restored = readPayload(boundKey);
+    if (restored) {
+      current.restoreSnapshot(restored);
+      if (Number(restored.truncated) > 0 && typeof ctx.t === "function") {
+        current.notify?.(ctx.t("parse.restoreTruncated", { n: restored.truncated }));
+      }
+    }
+    if (boundKey) {
+      unsubscribe = current.subscribe(() => scheduleSave(boundKey, current));
+    }
+  } else {
+    current.updateContext?.(ctx);
+  }
+  return current;
+}
+function resetParseSession() {
+  if (current && boundKey) writePayload(boundKey, current);
+  disposeCurrent();
+}
+function flushParseSession() {
+  if (current && boundKey) writePayload(boundKey, current);
+}
+try {
+  if (typeof window !== "undefined" && typeof window.addEventListener === "function") {
+    window.addEventListener("pagehide", flushParseSession);
+  }
+} catch {
+}
+
+// src/client/ui/parse-panel.js
+var h34 = import_react38.default.createElement;
+var consumedAoiRequest = null;
+function ParsePanel(props) {
+  const controller = parseSession(props);
+  const [, force] = import_react38.default.useState(0);
+  import_react38.default.useEffect(() => {
+    const unsubscribe2 = controller.subscribe(() => force((tick) => tick + 1));
+    controller.refresh();
+    return () => {
+      unsubscribe2();
+      controller.actions.deactivate?.();
+    };
+  }, [controller]);
+  import_react38.default.useEffect(() => {
+    controller?.refresh();
+    const request = props.openRequest;
+    if (request?.aoiSeq && request !== consumedAoiRequest) {
+      consumedAoiRequest = request;
+      controller?.actions?.setScope?.("aoi");
+    }
+  }, [controller, props.openRequest?.id, props.openRequest?.aoiSeq]);
+  return h34(ParseWorkbench, {
+    t: props.t,
+    state: controller.getState(),
+    actions: controller.actions,
+    openRequest: props.openRequest ?? null
+  });
 }
 
 // src/client/ui/compare-panel.js
-var import_react29 = __toESM(require("react"), 1);
+var import_react39 = __toESM(require("react"), 1);
 
 // src/client/scene/camera-pose.js
 var RAD_TO_DEG2 = 180 / Math.PI;
@@ -21559,27 +26370,27 @@ var MIN_FOV_DEG = 5;
 var MAX_FOV_DEG = 175;
 var finite3 = (value) => typeof value === "number" && Number.isFinite(value);
 var cleanZero = (value) => Object.is(value, -0) || Math.abs(value) < 1e-12 ? 0 : value;
-var roundTo = (value, decimals) => {
+var roundTo2 = (value, decimals) => {
   const factor = 10 ** decimals;
   return cleanZero(Math.round(value * factor) / factor);
 };
 function normalizeHeading2(deg) {
   const wrapped = (deg % 360 + 360) % 360;
-  return roundTo(wrapped === 360 ? 0 : wrapped, 4);
+  return roundTo2(wrapped === 360 ? 0 : wrapped, 4);
 }
 function normalizeRoll(deg) {
   let wrapped = ((deg + 180) % 360 + 360) % 360 - 180;
   if (wrapped <= -180) wrapped += 360;
-  return roundTo(wrapped, 4);
+  return roundTo2(wrapped, 4);
 }
-function toDegrees(Cesium, radians) {
+function toDegrees2(Cesium, radians) {
   if (!finite3(radians)) return null;
   if (typeof Cesium?.Math?.toDegrees === "function") return Cesium.Math.toDegrees(radians);
   return radians * RAD_TO_DEG2;
 }
-function toRadians(Cesium, degrees) {
-  if (typeof Cesium?.Math?.toRadians === "function") return Cesium.Math.toRadians(degrees);
-  return degrees * DEG_TO_RAD;
+function toRadians(Cesium, degrees2) {
+  if (typeof Cesium?.Math?.toRadians === "function") return Cesium.Math.toRadians(degrees2);
+  return degrees2 * DEG_TO_RAD;
 }
 function captureCameraPose(viewer, Cesium) {
   const camera = viewer?.camera;
@@ -21596,29 +26407,29 @@ function captureCameraPose(viewer, Cesium) {
   } catch {
     return null;
   }
-  const lonDeg = toDegrees(Cesium, carto?.longitude);
-  const latDeg = toDegrees(Cesium, carto?.latitude);
+  const lonDeg = toDegrees2(Cesium, carto?.longitude);
+  const latDeg = toDegrees2(Cesium, carto?.latitude);
   const height = finite3(carto?.height) ? carto.height : null;
   if (lonDeg === null || latDeg === null || height === null) return null;
-  const headingDeg = toDegrees(Cesium, camera.heading ?? 0) ?? 0;
-  const pitchDeg = toDegrees(Cesium, camera.pitch ?? -Math.PI / 4) ?? -45;
-  const rollDeg = toDegrees(Cesium, camera.roll ?? 0) ?? 0;
+  const headingDeg = toDegrees2(Cesium, camera.heading ?? 0) ?? 0;
+  const pitchDeg = toDegrees2(Cesium, camera.pitch ?? -Math.PI / 4) ?? -45;
+  const rollDeg = toDegrees2(Cesium, camera.roll ?? 0) ?? 0;
   const frustum = camera.frustum ?? {};
   const orthoWidth = finite3(frustum.width) && frustum.width > 0 ? frustum.width : null;
-  const rawFovDeg = orthoWidth === null ? toDegrees(Cesium, frustum.fov) : null;
-  const fov = rawFovDeg !== null && rawFovDeg >= MIN_FOV_DEG && rawFovDeg <= MAX_FOV_DEG ? roundTo(rawFovDeg, 4) : null;
+  const rawFovDeg = orthoWidth === null ? toDegrees2(Cesium, frustum.fov) : null;
+  const fov = rawFovDeg !== null && rawFovDeg >= MIN_FOV_DEG && rawFovDeg <= MAX_FOV_DEG ? roundTo2(rawFovDeg, 4) : null;
   const pose = {
     version: 1,
-    lon: roundTo(lonDeg, 7),
-    lat: roundTo(latDeg, 7),
-    height: roundTo(height, 3),
+    lon: roundTo2(lonDeg, 7),
+    lat: roundTo2(latDeg, 7),
+    height: roundTo2(height, 3),
     heading: normalizeHeading2(headingDeg),
-    pitch: roundTo(Math.max(-90, Math.min(90, pitchDeg)), 4),
+    pitch: roundTo2(Math.max(-90, Math.min(90, pitchDeg)), 4),
     roll: normalizeRoll(rollDeg),
     fov,
     projection: orthoWidth !== null ? "orthographic" : "perspective"
   };
-  if (orthoWidth !== null) pose.orthoWidth = roundTo(orthoWidth, 3);
+  if (orthoWidth !== null) pose.orthoWidth = roundTo2(orthoWidth, 3);
   return pose;
 }
 function normalizeCameraPose(raw) {
@@ -21639,22 +26450,22 @@ function normalizeCameraPose(raw) {
   if (src.fov !== void 0 && src.fov !== null && src.fov !== "") {
     const parsedFov = Number(src.fov);
     if (!finite3(parsedFov) || parsedFov < MIN_FOV_DEG || parsedFov > MAX_FOV_DEG) return null;
-    fov = roundTo(parsedFov, 4);
+    fov = roundTo2(parsedFov, 4);
   }
   const isOrtho = src.projection === "orthographic";
   let orthoWidth = null;
   if (isOrtho && src.orthoWidth !== void 0 && src.orthoWidth !== null) {
     const parsedWidth = Number(src.orthoWidth);
     if (!finite3(parsedWidth) || parsedWidth <= 0) return null;
-    orthoWidth = roundTo(parsedWidth, 3);
+    orthoWidth = roundTo2(parsedWidth, 3);
   }
   const pose = {
     version: 1,
-    lon: roundTo(lon, 7),
-    lat: roundTo(lat, 7),
-    height: roundTo(height, 3),
+    lon: roundTo2(lon, 7),
+    lat: roundTo2(lat, 7),
+    height: roundTo2(height, 3),
     heading: normalizeHeading2(rawHeading),
-    pitch: roundTo(rawPitch, 4),
+    pitch: roundTo2(rawPitch, 4),
     roll: normalizeRoll(rawRoll),
     fov,
     projection: isOrtho && orthoWidth !== null ? "orthographic" : "perspective"
@@ -22052,7 +26863,7 @@ async function exportComparisonBundle({ getViewer, getCesium, getLayers, getMeta
       rightLayer.tileset.splitDirection = dirs.RIGHT;
     }
     viewer.scene.splitPosition = ratio;
-    const overlay = includeDivider || includeLabels ? (ctx, w, h42) => drawSplitFigureOverlay(ctx, w, h42, {
+    const overlay = includeDivider || includeLabels ? (ctx, w, h52) => drawSplitFigureOverlay(ctx, w, h52, {
       ratio,
       includeDivider,
       includeLabels,
@@ -22109,11 +26920,11 @@ async function exportComparisonBundle({ getViewer, getCesium, getLayers, getMeta
     camera,
     left: leftMeta,
     right: rightMeta,
-    files: shots.map(({ role, filename, width: w, height: h42, format: fmt }) => ({
+    files: shots.map(({ role, filename, width: w, height: h52, format: fmt }) => ({
       role,
       filename,
       width: w,
-      height: h42,
+      height: h52,
       format: fmt
     }))
   };
@@ -22154,7 +26965,7 @@ async function downloadComparisonBundle(bundle, { delayMs = 120 } = {}) {
 }
 
 // src/client/ui/compare-panel.js
-var h26 = import_react29.default.createElement;
+var h35 = import_react39.default.createElement;
 var SSE_PRESETS = [1, 4, 16, 32];
 var EXPORT_WIDTHS = [1280, 1920, 2560];
 function legacyCopyText(text) {
@@ -22205,36 +27016,36 @@ function ComparePanel({
   const list = Array.isArray(layers2) ? layers2 : [];
   const swipeState = swipe?.state ?? null;
   const isActive = Boolean(swipeState && swipeState.kind !== "raster");
-  const [leftId, setLeftId] = import_react29.default.useState(() => {
+  const [leftId, setLeftId] = import_react39.default.useState(() => {
     if (swipeState?.kind === "pair") return swipeState.leftId;
     if (swipeState?.kind === "split" || swipeState?.kind === "3d") return swipeState.id;
     return (list.find((item) => item.visible !== false) ?? list[0])?.id ?? "";
   });
-  const [rightId, setRightId] = import_react29.default.useState(() => {
+  const [rightId, setRightId] = import_react39.default.useState(() => {
     if (swipeState?.kind === "pair") return swipeState.rightId;
     const initLeft = (list.find((item) => item.visible !== false) ?? list[0])?.id ?? "";
     return initLeft ? pickInitialRight(list, initLeft) : "";
   });
-  const [inspectId, setInspectId] = import_react29.default.useState(() => {
-    const preferred = list.find((item) => item.visible !== false && item.kind !== "3dgs") ?? list[0];
-    return preferred?.id ?? "";
+  const [inspectId, setInspectId] = import_react39.default.useState(() => {
+    const preferred2 = list.find((item) => item.visible !== false && item.kind !== "3dgs") ?? list[0];
+    return preferred2?.id ?? "";
   });
-  const [draftRatio, setDraftRatio] = import_react29.default.useState(0.5);
-  const [diagRev, setDiagRev] = import_react29.default.useState(0);
-  const [poseOpen, setPoseOpen] = import_react29.default.useState(false);
-  const [poseText, setPoseText] = import_react29.default.useState("");
-  const [statusMsg, setStatusMsg] = import_react29.default.useState("");
-  const lastStatusRef = import_react29.default.useRef("");
-  const [exportDivider, setExportDivider] = import_react29.default.useState(true);
-  const [exportLabels, setExportLabels] = import_react29.default.useState(false);
-  const [exportWidth, setExportWidth] = import_react29.default.useState(1920);
-  const [exporting, setExporting] = import_react29.default.useState(false);
-  const announce = import_react29.default.useCallback((message2) => {
+  const [draftRatio, setDraftRatio] = import_react39.default.useState(0.5);
+  const [diagRev, setDiagRev] = import_react39.default.useState(0);
+  const [poseOpen, setPoseOpen] = import_react39.default.useState(false);
+  const [poseText, setPoseText] = import_react39.default.useState("");
+  const [statusMsg, setStatusMsg] = import_react39.default.useState("");
+  const lastStatusRef = import_react39.default.useRef("");
+  const [exportDivider, setExportDivider] = import_react39.default.useState(true);
+  const [exportLabels, setExportLabels] = import_react39.default.useState(false);
+  const [exportWidth, setExportWidth] = import_react39.default.useState(1920);
+  const [exporting, setExporting] = import_react39.default.useState(false);
+  const announce = import_react39.default.useCallback((message2) => {
     const next = message2 === lastStatusRef.current ? `${message2} ` : message2;
     lastStatusRef.current = message2;
     setStatusMsg(next);
   }, []);
-  import_react29.default.useEffect(() => {
+  import_react39.default.useEffect(() => {
     if (swipeState?.kind === "pair") {
       setLeftId(swipeState.leftId);
       setRightId(swipeState.rightId);
@@ -22259,24 +27070,24 @@ function ComparePanel({
       setRightId(pickInitialRight(list, nextLeft));
     }
   }, [list, swipeState, leftId, rightId]);
-  import_react29.default.useEffect(() => {
+  import_react39.default.useEffect(() => {
     if (list.length === 0) {
       if (inspectId !== "") setInspectId("");
       return;
     }
     if (!list.some((item) => item.id === inspectId)) {
-      const preferred = list.find((item) => item.visible !== false && item.kind !== "3dgs") ?? list[0];
-      setInspectId(preferred?.id ?? "");
+      const preferred2 = list.find((item) => item.visible !== false && item.kind !== "3dgs") ?? list[0];
+      setInspectId(preferred2?.id ?? "");
     }
   }, [list, inspectId]);
-  import_react29.default.useEffect(() => {
+  import_react39.default.useEffect(() => {
     if (list.length === 0) return void 0;
     const timer = setInterval(() => setDiagRev((n) => n + 1), 1e3);
     return () => clearInterval(timer);
   }, [list.length]);
   const runtimeLayers = typeof getLayers === "function" ? getLayers() : [];
   const inspectLayer = runtimeLayers.find((item) => item.id === inspectId) ?? null;
-  const diag = import_react29.default.useMemo(() => {
+  const diag = import_react39.default.useMemo(() => {
     void diagRev;
     return inspectLayer ? readTilesetDiagnostics(inspectLayer) : null;
   }, [inspectLayer, diagRev, swipeState]);
@@ -22418,54 +27229,54 @@ function ComparePanel({
     }
   };
   const is3dgsInspect = diag ? !diag.supportsWireframe : inspectLayer?.kind === "3dgs";
-  return h26(
+  return h35(
     "div",
     { className: "mv-compare" },
     // ---- Section 1: Dual-layer split comparison ----
-    h26(
+    h35(
       "section",
       { className: "mv-compare-sec" },
-      h26(
+      h35(
         "div",
         { className: "mv-compare-sec-head" },
-        h26("span", { className: "mv-compare-sec-title" }, t2("compare.sectionSplit"))
+        h35("span", { className: "mv-compare-sec-title" }, t2("compare.sectionSplit"))
       ),
-      list.length === 0 ? h26("p", { className: "mv-none" }, t2("compare.noLayers")) : h26(
-        import_react29.default.Fragment,
+      list.length === 0 ? h35("p", { className: "mv-none" }, t2("compare.noLayers")) : h35(
+        import_react39.default.Fragment,
         null,
-        h26(
+        h35(
           "label",
           { className: "mv-compare-field" },
-          h26("span", null, t2("compare.leftLayer")),
-          h26(
+          h35("span", null, t2("compare.leftLayer")),
+          h35(
             "select",
             {
               value: leftId,
               "aria-label": t2("compare.leftLayer"),
               onChange: (event) => handleLeftChange(event.target.value)
             },
-            ...list.map((layer) => h26("option", { key: layer.id, value: layer.id }, formatLayerOption(t2, layer)))
+            ...list.map((layer) => h35("option", { key: layer.id, value: layer.id }, formatLayerOption(t2, layer)))
           )
         ),
-        h26(
+        h35(
           "label",
           { className: "mv-compare-field" },
-          h26("span", null, t2("compare.rightLayer")),
-          h26(
+          h35("span", null, t2("compare.rightLayer")),
+          h35(
             "select",
             {
               value: rightId,
               "aria-label": t2("compare.rightLayer"),
               onChange: (event) => handleRightChange(event.target.value)
             },
-            h26("option", { value: "" }, t2("compare.rightNone")),
-            ...list.filter((layer) => layer.id !== leftId).map((layer) => h26("option", { key: layer.id, value: layer.id }, formatLayerOption(t2, layer)))
+            h35("option", { value: "" }, t2("compare.rightNone")),
+            ...list.filter((layer) => layer.id !== leftId).map((layer) => h35("option", { key: layer.id, value: layer.id }, formatLayerOption(t2, layer)))
           )
         ),
-        h26(
+        h35(
           "div",
           { className: "mv-compare-row" },
-          h26(
+          h35(
             "button",
             {
               type: "button",
@@ -22476,7 +27287,7 @@ function ComparePanel({
             },
             isActive ? t2("compare.stop") : t2("compare.start")
           ),
-          h26(
+          h35(
             "button",
             {
               type: "button",
@@ -22486,7 +27297,7 @@ function ComparePanel({
             },
             t2("compare.swap")
           ),
-          h26(
+          h35(
             "button",
             {
               type: "button",
@@ -22496,11 +27307,11 @@ function ComparePanel({
             t2("compare.center")
           )
         ),
-        h26(
+        h35(
           "label",
           { className: "mv-compare-slider-row" },
-          h26("span", null, t2("compare.ratio")),
-          h26("input", {
+          h35("span", null, t2("compare.ratio")),
+          h35("input", {
             type: "range",
             min: 5,
             max: 95,
@@ -22508,42 +27319,42 @@ function ComparePanel({
             "aria-label": t2("compare.ratio"),
             onChange: (event) => handleRatio(Number(event.target.value) / 100)
           }),
-          h26("b", null, `${pct}%`)
+          h35("b", null, `${pct}%`)
         )
       )
     ),
     // ---- Section 2: Mesh topology & LOD inspection ----
-    list.length > 0 ? h26(
+    list.length > 0 ? h35(
       "section",
       { className: "mv-compare-sec" },
-      h26(
+      h35(
         "div",
         { className: "mv-compare-sec-head" },
-        h26("span", { className: "mv-compare-sec-title" }, t2("compare.sectionInspect")),
-        h26(
+        h35("span", { className: "mv-compare-sec-title" }, t2("compare.sectionInspect")),
+        h35(
           "button",
           { type: "button", className: "mv-compare-sse-pill", disabled: !diag, onClick: handleResetInspect },
           t2("compare.resetInspect")
         )
       ),
-      h26(
+      h35(
         "label",
         { className: "mv-compare-field" },
-        h26("span", null, t2("compare.inspectTarget")),
-        h26(
+        h35("span", null, t2("compare.inspectTarget")),
+        h35(
           "select",
           {
             value: inspectId,
             "aria-label": t2("compare.inspectTarget"),
             onChange: (event) => setInspectId(event.target.value)
           },
-          ...list.map((layer) => h26("option", { key: layer.id, value: layer.id }, formatLayerOption(t2, layer)))
+          ...list.map((layer) => h35("option", { key: layer.id, value: layer.id }, formatLayerOption(t2, layer)))
         )
       ),
-      h26(
+      h35(
         "div",
         { className: "mv-compare-toggles" },
-        h26(
+        h35(
           "button",
           {
             type: "button",
@@ -22555,7 +27366,7 @@ function ComparePanel({
           },
           `${diag?.wireframe ? "☑" : "☐"} ${t2("compare.wireframe")}`
         ),
-        h26(
+        h35(
           "button",
           {
             type: "button",
@@ -22568,13 +27379,13 @@ function ComparePanel({
           `${diag?.clay ? "☑" : "☐"} ${t2("compare.clay")}`
         )
       ),
-      is3dgsInspect ? h26("p", { className: "mv-compare-warn" }, t2("compare.wireframe3dgsHint")) : null,
-      h26(
+      is3dgsInspect ? h35("p", { className: "mv-compare-warn" }, t2("compare.wireframe3dgsHint")) : null,
+      h35(
         "div",
         { className: "mv-compare-sse-row", title: t2("compare.sseHint") },
-        h26("span", { className: "mv-compare-sec-title" }, t2("compare.sse")),
+        h35("span", { className: "mv-compare-sec-title" }, t2("compare.sse")),
         ...SSE_PRESETS.map(
-          (preset) => h26(
+          (preset) => h35(
             "button",
             {
               key: preset,
@@ -22586,7 +27397,7 @@ function ComparePanel({
             String(preset)
           )
         ),
-        h26("input", {
+        h35("input", {
           type: "number",
           className: "mv-compare-sse-input",
           min: 0.25,
@@ -22601,29 +27412,29 @@ function ComparePanel({
           }
         })
       ),
-      diag ? h26(
+      diag ? h35(
         "div",
         { className: "mv-compare-stats" },
-        h26("span", null, t2("compare.statTiles"), h26("b", null, String(diag.statistics.selectedTiles))),
-        h26("span", null, t2("compare.statTriangles"), h26("b", null, formatCount2(diag.statistics.triangles))),
-        h26("span", null, t2("compare.statMemory"), h26("b", null, formatDiagnosticBytes(diag.statistics.totalMemoryBytes))),
-        h26("span", null, t2("compare.statPending"), h26("b", null, String(diag.statistics.pendingRequests)))
+        h35("span", null, t2("compare.statTiles"), h35("b", null, String(diag.statistics.selectedTiles))),
+        h35("span", null, t2("compare.statTriangles"), h35("b", null, formatCount2(diag.statistics.triangles))),
+        h35("span", null, t2("compare.statMemory"), h35("b", null, formatDiagnosticBytes(diag.statistics.totalMemoryBytes))),
+        h35("span", null, t2("compare.statPending"), h35("b", null, String(diag.statistics.pendingRequests)))
       ) : null
     ) : null,
     // ---- Section 3: Exact camera pose & multi-frame figure export ----
-    h26(
+    h35(
       "section",
       { className: "mv-compare-sec" },
-      h26(
+      h35(
         "div",
         { className: "mv-compare-sec-head" },
-        h26("span", { className: "mv-compare-sec-title" }, t2("compare.sectionPoseExport"))
+        h35("span", { className: "mv-compare-sec-title" }, t2("compare.sectionPoseExport"))
       ),
-      h26(
+      h35(
         "div",
         { className: "mv-compare-row" },
-        h26("button", { type: "button", className: "mv-cta", onClick: handleCopyPose }, t2("compare.copyPose")),
-        h26(
+        h35("button", { type: "button", className: "mv-cta", onClick: handleCopyPose }, t2("compare.copyPose")),
+        h35(
           "button",
           {
             type: "button",
@@ -22634,64 +27445,64 @@ function ComparePanel({
           poseOpen ? t2("compare.cancelPose") : t2("compare.pastePose")
         )
       ),
-      poseOpen ? h26(
+      poseOpen ? h35(
         "div",
         { className: "mv-compare-pose-box" },
-        h26("textarea", {
+        h35("textarea", {
           value: poseText,
           placeholder: t2("compare.posePlaceholder"),
           "aria-label": t2("compare.pastePose"),
           onChange: (event) => setPoseText(event.target.value)
         }),
-        h26(
+        h35(
           "div",
           { className: "mv-compare-row" },
-          h26("button", { type: "button", className: "mv-cta primary", onClick: handleApplyPose }, t2("compare.applyPose")),
-          h26("button", { type: "button", className: "mv-cta", onClick: () => setPoseOpen(false) }, t2("compare.cancelPose"))
+          h35("button", { type: "button", className: "mv-cta primary", onClick: handleApplyPose }, t2("compare.applyPose")),
+          h35("button", { type: "button", className: "mv-cta", onClick: () => setPoseOpen(false) }, t2("compare.cancelPose"))
         )
       ) : null,
-      list.length > 0 ? h26(
-        import_react29.default.Fragment,
+      list.length > 0 ? h35(
+        import_react39.default.Fragment,
         null,
-        h26(
+        h35(
           "div",
           { className: "mv-compare-checks" },
-          h26(
+          h35(
             "label",
             { className: "mv-compare-check" },
-            h26("input", {
+            h35("input", {
               type: "checkbox",
               checked: exportDivider,
               onChange: (event) => setExportDivider(event.target.checked)
             }),
-            h26("span", null, t2("compare.exportDivider"))
+            h35("span", null, t2("compare.exportDivider"))
           ),
-          h26(
+          h35(
             "label",
             { className: "mv-compare-check" },
-            h26("input", {
+            h35("input", {
               type: "checkbox",
               checked: exportLabels,
               onChange: (event) => setExportLabels(event.target.checked)
             }),
-            h26("span", null, t2("compare.exportLabels"))
+            h35("span", null, t2("compare.exportLabels"))
           )
         ),
-        h26(
+        h35(
           "label",
           { className: "mv-compare-field" },
-          h26("span", null, t2("compare.exportWidth")),
-          h26(
+          h35("span", null, t2("compare.exportWidth")),
+          h35(
             "select",
             {
               value: String(exportWidth),
               "aria-label": t2("compare.exportWidth"),
               onChange: (event) => setExportWidth(Number(event.target.value) || 1920)
             },
-            ...EXPORT_WIDTHS.map((w) => h26("option", { key: w, value: String(w) }, `${w} px`))
+            ...EXPORT_WIDTHS.map((w) => h35("option", { key: w, value: String(w) }, `${w} px`))
           )
         ),
-        h26(
+        h35(
           "button",
           {
             type: "button",
@@ -22701,29 +27512,29 @@ function ComparePanel({
           },
           exporting ? t2("compare.exporting") : t2("compare.exportBtn")
         ),
-        h26("p", { className: "mv-none" }, t2("compare.exportHint"))
+        h35("p", { className: "mv-none" }, t2("compare.exportHint"))
       ) : null,
-      h26("div", { className: "mv-compare-status", role: "status" }, statusMsg)
+      h35("div", { className: "mv-compare-status", role: "status" }, statusMsg)
     )
   );
 }
 
 // src/client/ui/tool-windows.js
-var h27 = import_react30.default.createElement;
+var h36 = import_react40.default.createElement;
 var MEASURE_TOOLS = [
   ["distance", "tool.distance"],
   ["area", "tool.area"],
   ["height", "tool.height"]
 ];
 function MeasureBody({ t: t2, tool, onStartTool, onClearMeasure, onStartProfile }) {
-  return h27(
-    import_react30.default.Fragment,
+  return h36(
+    import_react40.default.Fragment,
     null,
-    h27(
+    h36(
       "div",
       { className: "mv-tool-grid" },
       ...MEASURE_TOOLS.map(
-        ([mode, labelKey]) => h27(
+        ([mode, labelKey]) => h36(
           "button",
           {
             key: mode,
@@ -22735,7 +27546,7 @@ function MeasureBody({ t: t2, tool, onStartTool, onClearMeasure, onStartProfile 
           t2(labelKey)
         )
       ),
-      typeof onStartProfile === "function" ? h27(
+      typeof onStartProfile === "function" ? h36(
         "button",
         {
           key: "profile-shortcut",
@@ -22747,8 +27558,8 @@ function MeasureBody({ t: t2, tool, onStartTool, onClearMeasure, onStartProfile 
         t2("profile.draw")
       ) : null
     ),
-    h27("button", { type: "button", className: "mv-cta", onClick: onClearMeasure }, t2("tool.clear")),
-    h27("p", { className: "mv-none" }, t2("tools.measureHint"))
+    h36("button", { type: "button", className: "mv-cta", onClick: onClearMeasure }, t2("tool.clear")),
+    h36("p", { className: "mv-none" }, t2("tools.measureHint"))
   );
 }
 function SelectBody({
@@ -22762,55 +27573,53 @@ function SelectBody({
   onRemoveOverlayRows,
   onActivateSelection,
   onAskSelection,
-  onParseSelection,
-  onVisionSelect
+  onParseSelection
 }) {
-  return h27(
-    import_react30.default.Fragment,
+  return h36(
+    import_react40.default.Fragment,
     null,
-    h27(SelectionTool, { t: t2, getCesium, getViewer, showToast, runAnalysis, getTerrainActive, getOverlayRows, onRemoveOverlayRows, onActivateSelection, onAskSelection, onParseSelection }),
-    typeof onVisionSelect === "function" ? h27("button", { type: "button", className: "mv-cta", title: t2("vision.actionHint"), onClick: onVisionSelect }, t2("vision.title")) : null,
+    h36(SelectionTool, { t: t2, getCesium, getViewer, showToast, runAnalysis, getTerrainActive, getOverlayRows, onRemoveOverlayRows, onActivateSelection, onAskSelection, onParseSelection }),
     // Ask Agent lives in the top toolbar only: one entry point for "hand the view
     // to the conversation", instead of a second one hiding inside the toolbox.
-    h27("p", { className: "mv-none" }, t2("tools.selectHint"))
+    h36("p", { className: "mv-none" }, t2("tools.selectHint"))
   );
 }
 function AnalysisBody({ t: t2, analysis, onStartProfile, onClearAnalysis, getCesium, getViewer, getLayers, showToast }) {
-  const [source, setSource] = import_react30.default.useState("tiles");
-  const [samples, setSamples] = import_react30.default.useState("auto");
+  const [source, setSource] = import_react40.default.useState("tiles");
+  const [samples, setSamples] = import_react40.default.useState("auto");
   const handleSunEnable = () => {
     if (analysis?.operation !== "sunlight") return;
     onClearAnalysis();
     if (typeof showToast === "function") showToast(t2("toast.sunReplacesAnalysis"));
   };
-  return h27(
-    import_react30.default.Fragment,
+  return h36(
+    import_react40.default.Fragment,
     null,
-    h27("button", { type: "button", className: "mv-cta primary", onClick: () => onStartProfile({ source, samples: samples === "auto" ? void 0 : samples }) }, t2("profile.draw")),
-    h27("p", { className: "mv-none" }, t2("profile.subtitle")),
-    h27(
+    h36("button", { type: "button", className: "mv-cta primary", onClick: () => onStartProfile({ source, samples: samples === "auto" ? void 0 : samples }) }, t2("profile.draw")),
+    h36("p", { className: "mv-none" }, t2("profile.subtitle")),
+    h36(
       "div",
       { className: "mv-profile-opts" },
-      h27(
+      h36(
         "label",
         { className: "mv-profile-opt" },
-        h27("span", null, t2("profile.sourceLabel")),
-        h27(
+        h36("span", null, t2("profile.sourceLabel")),
+        h36(
           "select",
           {
             value: source,
             "aria-label": t2("profile.sourceLabel"),
             onChange: (event) => setSource(event.target.value)
           },
-          h27("option", { value: "tiles" }, t2("profile.sourceTiles")),
-          h27("option", { value: "terrain" }, t2("profile.sourceTerrain"))
+          h36("option", { value: "tiles" }, t2("profile.sourceTiles")),
+          h36("option", { value: "terrain" }, t2("profile.sourceTerrain"))
         )
       ),
-      h27(
+      h36(
         "label",
         { className: "mv-profile-opt" },
-        h27("span", null, t2("profile.samplesLabel")),
-        h27(
+        h36("span", null, t2("profile.samplesLabel")),
+        h36(
           "select",
           {
             value: String(samples),
@@ -22820,33 +27629,33 @@ function AnalysisBody({ t: t2, analysis, onStartProfile, onClearAnalysis, getCes
               setSamples(value === "auto" ? "auto" : Number(value) || "auto");
             }
           },
-          h27("option", { value: "auto" }, t2("profile.samplesAuto")),
-          h27("option", { value: "64" }, t2("profile.samplesOption", { n: 64 })),
-          h27("option", { value: "128" }, t2("profile.samplesOption", { n: 128 })),
-          h27("option", { value: "256" }, t2("profile.samplesOption", { n: 256 })),
-          h27("option", { value: "512" }, t2("profile.samplesOption", { n: 512 }))
+          h36("option", { value: "auto" }, t2("profile.samplesAuto")),
+          h36("option", { value: "64" }, t2("profile.samplesOption", { n: 64 })),
+          h36("option", { value: "128" }, t2("profile.samplesOption", { n: 128 })),
+          h36("option", { value: "256" }, t2("profile.samplesOption", { n: 256 })),
+          h36("option", { value: "512" }, t2("profile.samplesOption", { n: 512 }))
         )
       )
     ),
-    analysis ? h27(
+    analysis ? h36(
       "div",
       { className: "mv-layer" },
-      h27(
+      h36(
         "span",
         { className: "name" },
         `${typeof analysis.operation === "string" && analysis.operation !== "" ? t2(`analysis.title.${analysis.operation}`) : t2("layers.analysis")}${typeof analysis.layerName === "string" && analysis.layerName !== "" ? ` · ${analysis.layerName}` : ""}`
       ),
-      h27("button", { type: "button", className: "mv-icon-btn", title: t2("layers.analysisClear"), "aria-label": t2("layers.analysisClear"), onClick: onClearAnalysis }, "✕")
+      h36("button", { type: "button", className: "mv-icon-btn", title: t2("layers.analysisClear"), "aria-label": t2("layers.analysisClear"), onClick: onClearAnalysis }, "✕")
     ) : null,
-    h27("p", { className: "mv-none" }, t2("tools.analysisHint")),
-    h27("div", { className: "mv-group-title" }, t2("tools.sun")),
-    h27(SunTimeline, { t: t2, getCesium, getViewer, getLayers, onBeforeEnable: handleSunEnable, active: true })
+    h36("p", { className: "mv-none" }, t2("tools.analysisHint")),
+    h36("div", { className: "mv-group-title" }, t2("tools.sun")),
+    h36(SunTimeline, { t: t2, getCesium, getViewer, getLayers, onBeforeEnable: handleSunEnable, active: true })
   );
 }
 function EffectsBody({ t: t2, shaderActive, onOpenShader, onResetAllShaders }) {
   const list = Array.isArray(shaderActive) ? shaderActive : [];
-  const formatEffect = (entry) => {
-    const raw = entry?.preset ?? entry?.presets;
+  const formatEffect = (entry2) => {
+    const raw = entry2?.preset ?? entry2?.presets;
     if (!raw) return "";
     const items = Array.isArray(raw) ? raw : [raw];
     return items.map((item) => {
@@ -22855,43 +27664,43 @@ function EffectsBody({ t: t2, shaderActive, onOpenShader, onResetAllShaders }) {
       return translated && translated !== key ? translated : String(item);
     }).join(" + ");
   };
-  return h27(
-    import_react30.default.Fragment,
+  return h36(
+    import_react40.default.Fragment,
     null,
-    list.length > 0 && typeof onResetAllShaders === "function" ? h27(
+    list.length > 0 && typeof onResetAllShaders === "function" ? h36(
       "div",
       { className: "mv-tool-grid" },
-      h27("button", { type: "button", className: "mv-cta primary", onClick: onOpenShader }, t2("btn.shaderShow")),
-      h27("button", { type: "button", className: "mv-cta", onClick: onResetAllShaders }, t2("shader.resetAll"))
-    ) : h27("button", { type: "button", className: "mv-cta primary", onClick: onOpenShader }, t2("btn.shaderShow")),
-    list.length > 0 ? h27(
+      h36("button", { type: "button", className: "mv-cta primary", onClick: onOpenShader }, t2("btn.shaderShow")),
+      h36("button", { type: "button", className: "mv-cta", onClick: onResetAllShaders }, t2("shader.resetAll"))
+    ) : h36("button", { type: "button", className: "mv-cta primary", onClick: onOpenShader }, t2("btn.shaderShow")),
+    list.length > 0 ? h36(
       "div",
       { className: "mv-tool-effects-list" },
       ...list.slice(0, 6).map(
-        (entry) => h27(
+        (entry2) => h36(
           "div",
-          { key: entry.layerId ?? entry.layer, className: "mv-layer has-shader" },
-          h27("span", { className: "name", title: entry.layer }, entry.layer),
-          h27("span", { className: "mv-tools-active-pill" }, formatEffect(entry))
+          { key: entry2.layerId ?? entry2.layer, className: "mv-layer has-shader" },
+          h36("span", { className: "name", title: entry2.layer }, entry2.layer),
+          h36("span", { className: "mv-tools-active-pill" }, formatEffect(entry2))
         )
       )
     ) : null,
-    h27("p", { className: "mv-none" }, list.length > 0 ? t2("tools.effectsActive", { n: list.length }) : t2("tools.effectsEmpty"))
+    h36("p", { className: "mv-none" }, list.length > 0 ? t2("tools.effectsActive", { n: list.length }) : t2("tools.effectsEmpty"))
   );
 }
 function ViewBody({ t: t2, getCurrentView, getViewer, onFlyView, onStartTour, showToast }) {
-  return h27(ToolsBookmarks, { t: t2, getCurrentView, getViewer, onFlyView, onStartTour, showToast });
+  return h36(ToolsBookmarks, { t: t2, getCurrentView, getViewer, onFlyView, onStartTour, showToast });
 }
 function AnnotationBody({ t: t2, onStartAnnotation }) {
-  const [style, setStyle] = import_react30.default.useState("accent");
-  return h27(
-    import_react30.default.Fragment,
+  const [style, setStyle] = import_react40.default.useState("accent");
+  return h36(
+    import_react40.default.Fragment,
     null,
-    h27(
+    h36(
       "div",
       { className: "mv-tool-grid" },
       ...["point", "line", "area", "note"].map(
-        (kind) => h27(
+        (kind) => h36(
           "button",
           {
             key: kind,
@@ -22903,15 +27712,15 @@ function AnnotationBody({ t: t2, onStartAnnotation }) {
         )
       )
     ),
-    h27(
+    h36(
       "div",
       { className: "mv-anno-palette", role: "radiogroup", "aria-label": t2("annotation.styleLabel") },
-      h27("span", { className: "mv-anno-palette-label" }, t2("annotation.styleLabel")),
-      h27(
+      h36("span", { className: "mv-anno-palette-label" }, t2("annotation.styleLabel")),
+      h36(
         "div",
         { className: "mv-swatch-row" },
         ...ANNOTATION_STYLES.map(
-          (preset) => h27("button", {
+          (preset) => h36("button", {
             key: preset,
             type: "button",
             className: `mv-swatch${style === preset ? " on" : ""}`,
@@ -22925,26 +27734,26 @@ function AnnotationBody({ t: t2, onStartAnnotation }) {
         )
       )
     ),
-    h27("p", { className: "mv-none" }, t2("annotation.drawHint"))
+    h36("p", { className: "mv-none" }, t2("annotation.drawHint"))
   );
 }
 function ToolBody({ entryId, ...rest }) {
-  if (entryId === "measure") return h27(MeasureBody, rest);
-  if (entryId === "select") return h27(SelectBody, rest);
-  if (entryId === "annotation") return h27(AnnotationBody, rest);
-  if (entryId === "parse") return h27(ParseBody, rest);
-  if (entryId === "analysis") return h27(AnalysisBody, rest);
-  if (entryId === "compare") return h27(ComparePanel, rest);
-  if (entryId === "effects") return h27(EffectsBody, rest);
-  if (entryId === "view") return h27(ViewBody, rest);
+  if (entryId === "measure") return h36(MeasureBody, rest);
+  if (entryId === "select") return h36(SelectBody, rest);
+  if (entryId === "annotation") return h36(AnnotationBody, rest);
+  if (entryId === "parse") return h36(ParsePanel, rest);
+  if (entryId === "analysis") return h36(AnalysisBody, rest);
+  if (entryId === "compare") return h36(ComparePanel, rest);
+  if (entryId === "effects") return h36(EffectsBody, rest);
+  if (entryId === "view") return h36(ViewBody, rest);
   return null;
 }
 
 // src/client/ui/panel-rail.js
-var import_react32 = __toESM(require("react"), 1);
+var import_react42 = __toESM(require("react"), 1);
 
 // src/client/ui/escape-stack.js
-var import_react31 = __toESM(require("react"), 1);
+var import_react41 = __toESM(require("react"), 1);
 var layers = [];
 var listening = false;
 function isEscape(event) {
@@ -22980,34 +27789,28 @@ function registerEscapeLayer(handler) {
   };
 }
 function useEscapeLayer(handler, active = true) {
-  const handlerRef = import_react31.default.useRef(handler);
+  const handlerRef = import_react41.default.useRef(handler);
   handlerRef.current = handler;
-  import_react31.default.useEffect(() => {
+  import_react41.default.useEffect(() => {
     if (!active) return void 0;
     return registerEscapeLayer((event) => handlerRef.current?.(event));
   }, [active]);
 }
 
 // src/client/ui/panel-rail.js
-var h28 = import_react32.default.createElement;
+var h37 = import_react42.default.createElement;
 function tabLabel(t2, tabId) {
   if (tabId === "layers") return t2("panel.tab.layers");
   if (tabId === "tools") return t2("panel.tab.tools");
+  if (tabId === "places") return t2("places.title");
   if (tabId === "object") return t2("panel.tab.object");
   return t2("panel.tab.result");
-}
-function tabIcon(tabId) {
-  if (tabId === "layers") return LayersIcon ? h28(LayersIcon) : null;
-  if (tabId === "tools") return ToolsIcon ? h28(ToolsIcon) : null;
-  if (tabId === "object") return h28(ToolEntryIcon, { kind: "select" });
-  return h28(ToolEntryIcon, { kind: "analysis" });
 }
 function PanelRail({
   t: t2,
   tabs = [],
   activeTab,
   collapsed = false,
-  unread = {},
   width = 300,
   panels = [],
   onActivate,
@@ -23016,16 +27819,36 @@ function PanelRail({
   onWidth,
   ariaLabel = null
 }) {
-  const resize = usePanelResize({ storageKey: "right-stack", initialWidth: width, minWidth: 240, maxWidth: 720 });
-  const railRef = import_react32.default.useRef(null);
-  const lastReportedWidth = import_react32.default.useRef(null);
-  import_react32.default.useEffect(() => {
+  const resize = usePanelResize({
+    storageKey: "right-stack-2",
+    initialWidth: width >= 300 ? width : 300,
+    minWidth: 280,
+    maxWidth: 720
+  });
+  const railRef = import_react42.default.useRef(null);
+  const lastReportedWidth = import_react42.default.useRef(null);
+  import_react42.default.useEffect(() => {
     const next = resize.size.width;
     if (Number.isFinite(next) && next !== lastReportedWidth.current) {
       lastReportedWidth.current = next;
       onWidth?.(next);
     }
   }, [resize.size.width, onWidth]);
+  const syncConsoleWidth = (node, value, isCollapsed = collapsed) => {
+    const chrome = node?.closest?.(".mv-chrome");
+    if (!chrome?.style) return;
+    if (!isCollapsed && Number.isFinite(value)) chrome.style.setProperty("--mv-console-width", `${Math.round(value) + 1}px`);
+    else chrome.style.removeProperty("--mv-console-width");
+  };
+  import_react42.default.useEffect(() => {
+    syncConsoleWidth(railRef.current, resize.size.width, collapsed);
+  }, [resize.size.width, collapsed]);
+  const railRefCallback = (node) => {
+    railRef.current = node;
+    if (!node) return;
+    resize.ref.current = node;
+    syncConsoleWidth(node, resize.size.width, collapsed);
+  };
   useEscapeLayer((event) => {
     if (collapsed) return false;
     const root = railRef.current;
@@ -23034,94 +27857,18 @@ function PanelRail({
     return true;
   }, !collapsed);
   if (!tabs.length) return null;
-  const activeLabel = tabs.find((tab) => tab.id === activeTab)?.id;
-  const tabList = h28(
-    "div",
-    { className: "mv-dock-tablist", role: "tablist", "aria-label": ariaLabel ?? t2("dock.tabs") },
-    ...tabs.map(
-      (tab) => h28(
-        "span",
-        { key: tab.id, className: `mv-dock-tabitem${tab.id === activeTab ? " on" : ""}` },
-        h28(
-          "button",
-          {
-            type: "button",
-            role: "tab",
-            id: `mv-dock-tab-${tab.id}`,
-            "aria-selected": tab.id === activeTab,
-            "aria-controls": `mv-dock-panel-${tab.id}`,
-            "aria-label": tabLabel(t2, tab.id),
-            tabIndex: tab.id === activeTab ? 0 : -1,
-            className: `mv-dock-tab${tab.id === activeTab ? " on" : ""}`,
-            title: tabLabel(t2, tab.id),
-            onClick: () => onActivate?.(tab.id),
-            onKeyDown: (event) => {
-              if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
-                event.preventDefault();
-                const index = tabs.findIndex((item) => item.id === tab.id);
-                const delta = event.key === "ArrowRight" ? 1 : -1;
-                const next = tabs[(index + delta + tabs.length) % tabs.length];
-                if (next) onActivate?.(next.id);
-              } else if (event.key === "Home" || event.key === "End") {
-                event.preventDefault();
-                const next = event.key === "Home" ? tabs[0] : tabs[tabs.length - 1];
-                if (next) onActivate?.(next.id);
-              } else if (event.key === "Enter" || event.key === " ") {
-                event.preventDefault();
-                onActivate?.(tab.id);
-              }
-            }
-          },
-          h28("span", { className: "mv-dock-tab-icon", "aria-hidden": true }, tabIcon(tab.id)),
-          unread[tab.id] ? h28("span", { className: "mv-dock-dot", "aria-label": t2("dock.unread") }) : null
-        )
-      )
-    )
-  );
-  const actions = h28(
-    "div",
-    { className: "mv-dock-actions" },
-    h28(
-      "button",
-      {
-        type: "button",
-        className: "mv-icon-btn",
-        title: t2("dock.collapse"),
-        "aria-label": t2("dock.collapse"),
-        "aria-expanded": true,
-        onClick: () => onCollapse?.()
-      },
-      "▸"
-    )
-  );
-  const unreadCount = tabs.filter((tab) => unread[tab.id]).length;
-  const pill = h28(
-    "button",
-    {
-      type: "button",
-      className: "mv-dock-pill",
-      title: t2("dock.expand"),
-      "aria-label": t2("dock.expand"),
-      "aria-expanded": false,
-      onClick: () => onExpand?.()
-    },
-    h28("span", { className: "mv-dock-pill-icon", "aria-hidden": true }, tabIcon(activeLabel)),
-    h28("span", { className: "mv-dock-pill-label" }, activeLabel ? tabLabel(t2, activeLabel) : t2("dock.title")),
-    unreadCount > 0 ? h28("span", { className: "mv-dock-badge", "aria-label": t2("dock.unread") }, String(unreadCount)) : null,
-    h28("span", { className: "mv-dock-pill-arrow", "aria-hidden": true }, "◂")
-  );
-  return h28(
+  return h37(
     "div",
     {
-      className: `mv-right mv-dock mv-glass${collapsed ? " is-collapsed" : ""}`,
+      className: `mv-right mv-dock${collapsed ? " is-collapsed" : ""}`,
       "data-dock": "right",
-      ref: collapsed ? railRef : (node) => {
-        railRef.current = node;
-        resize.ref.current = node;
-      },
-      style: collapsed ? void 0 : resize.style
+      ref: railRefCallback,
+      // width comes from the console variable; the panel fills it so both rows
+      // of the console are always the same width.
+      style: collapsed ? void 0 : { width: "100%" },
+      "aria-label": ariaLabel ?? void 0
     },
-    collapsed ? null : h28(ResizeHandle, {
+    collapsed ? null : h37(ResizeHandle, {
       axis: "width",
       edge: "left",
       label: t2("resize.width"),
@@ -23131,18 +27878,17 @@ function PanelRail({
       min: resize.minWidth,
       max: resize.maxWidth
     }),
-    h28("div", { className: "mv-dock-tabs" }, ...collapsed ? [pill] : [tabList, actions]),
-    h28(
+    h37(
       "div",
       { className: "mv-dock-body" },
       ...panels.map(
-        (panel) => h28(
+        (panel) => h37(
           "div",
           {
             key: panel.id,
             id: `mv-dock-panel-${panel.id}`,
             role: "tabpanel",
-            "aria-labelledby": `mv-dock-tab-${panel.id}`,
+            "aria-label": tabLabel(t2, panel.id),
             className: "mv-dock-panel",
             hidden: collapsed || panel.id !== activeTab
           },
@@ -23154,19 +27900,19 @@ function PanelRail({
 }
 
 // src/client/ui/report-preview.js
-var import_react33 = __toESM(require("react"), 1);
-var h29 = import_react33.default.createElement;
+var import_react43 = __toESM(require("react"), 1);
+var h38 = import_react43.default.createElement;
 function ReportPreview({ t: t2, report, onClose }) {
   if (!report?.html) return null;
   const title = typeof report.title === "string" && report.title ? report.title : t2("menu.report");
-  return h29(
+  return h38(
     "div",
     { className: "mv-report-preview" },
-    h29(
+    h38(
       "header",
       { className: "mv-report-preview-head" },
-      h29("span", { className: "mv-report-preview-title", title }, title),
-      h29(
+      h38("span", { className: "mv-report-preview-title", title }, title),
+      h38(
         "button",
         {
           type: "button",
@@ -23178,7 +27924,7 @@ function ReportPreview({ t: t2, report, onClose }) {
         "✕"
       )
     ),
-    h29("iframe", {
+    h38("iframe", {
       className: "mv-report-preview-frame",
       title,
       srcDoc: report.html,
@@ -23191,17 +27937,18 @@ function ReportPreview({ t: t2, report, onClose }) {
 // src/client/ui/panel-state.js
 var PANEL_STORAGE_KEY = "mv.ui.v2";
 var PANEL_LEGACY_DOCK_KEY = "mv.rightDock.v1";
-var PANEL_TABS = Object.freeze(["layers", "tools", "result", "object"]);
+var PANEL_TABS = Object.freeze(["layers", "tools", "places", "result", "object"]);
 var PANEL_TAB_LABELS = Object.freeze({
   layers: "layers.title",
   tools: "tools.title",
+  places: "places.title",
   result: "panel.tab.result",
   object: "panel.tab.object"
 });
 var PANEL_DEFAULT_WIDTH = 300;
 var PANEL_MIN_WIDTH = 240;
 var PANEL_MAX_WIDTH = 720;
-var FALLBACK_ORDER = ["layers", "tools", "result", "object"];
+var FALLBACK_ORDER = ["layers", "tools", "places", "result", "object"];
 function isPanelTab(value) {
   return PANEL_TABS.includes(value);
 }
@@ -23255,75 +28002,75 @@ function arrive(state, tabId, busy) {
   return { ...state, activeTab: tabId, unread: { ...state.unread, [tabId]: false } };
 }
 function panelReducer(state, action) {
-  const current = normalizePanelState(state);
+  const current2 = normalizePanelState(state);
   switch (action?.type) {
     case "activate": {
       const tabId = action.tabId;
-      if (!isPanelTab(tabId)) return current;
-      if (current.activeTab === tabId && !current.collapsed) {
-        return clearUnread(current, tabId);
+      if (!isPanelTab(tabId)) return current2;
+      if (current2.activeTab === tabId && !current2.collapsed) {
+        return clearUnread(current2, tabId);
       }
-      return clearUnread({ ...current, activeTab: tabId, collapsed: false }, tabId);
+      return clearUnread({ ...current2, activeTab: tabId, collapsed: false }, tabId);
     }
     case "toggle": {
       const tabId = action.tabId;
-      if (!isPanelTab(tabId)) return current;
-      if (current.activeTab === tabId) {
-        return clearUnread({ ...current, collapsed: !current.collapsed }, tabId);
+      if (!isPanelTab(tabId)) return current2;
+      if (current2.activeTab === tabId) {
+        return clearUnread({ ...current2, collapsed: !current2.collapsed }, tabId);
       }
-      return clearUnread({ ...current, activeTab: tabId, collapsed: false }, tabId);
+      return clearUnread({ ...current2, activeTab: tabId, collapsed: false }, tabId);
     }
     case "collapse":
-      return current.collapsed ? current : { ...current, collapsed: true };
+      return current2.collapsed ? current2 : { ...current2, collapsed: true };
     case "expand":
-      return current.collapsed ? { ...current, collapsed: false } : current;
+      return current2.collapsed ? { ...current2, collapsed: false } : current2;
     case "setWidth": {
-      const width = clampPanelWidth(action.width, current.width);
-      return width === current.width ? current : { ...current, width };
+      const width = clampPanelWidth(action.width, current2.width);
+      return width === current2.width ? current2 : { ...current2, width };
     }
     case "openTool": {
       const toolId = typeof action.toolId === "string" && action.toolId ? action.toolId : null;
-      if (!toolId) return current;
-      if (current.openTool === toolId && current.activeTab === "tools" && !current.collapsed) return current;
+      if (!toolId) return current2;
+      if (current2.openTool === toolId && current2.activeTab === "tools" && !current2.collapsed) return current2;
       return {
-        ...current,
+        ...current2,
         activeTab: "tools",
         collapsed: false,
         openTool: toolId,
-        unread: { ...current.unread, object: current.unread.object }
+        unread: { ...current2.unread, object: current2.unread.object }
       };
     }
     case "closeTool":
-      return current.openTool === null ? current : { ...current, openTool: null };
+      return current2.openTool === null ? current2 : { ...current2, openTool: null };
     case "resultArrived":
-      return arrive(current, "result", Boolean(action.busy));
+      return arrive(current2, "result", Boolean(action.busy));
     case "objectArrived": {
-      const next = arrive(current, "object", Boolean(action.busy));
+      const next = arrive(current2, "object", Boolean(action.busy));
       const objectSeq = Number.isFinite(Number(action.seq)) ? Math.max(0, Math.round(Number(action.seq))) : next.objectSeq;
       return objectSeq === next.objectSeq ? next : { ...next, objectSeq };
     }
     case "objectCleared":
       return {
-        ...current,
-        activeTab: current.activeTab === "object" ? "layers" : current.activeTab,
-        unread: { ...current.unread, object: false },
+        ...current2,
+        activeTab: current2.activeTab === "object" ? "layers" : current2.activeTab,
+        unread: { ...current2.unread, object: false },
         objectSeq: 0
       };
     case "clearUnread": {
       const tabId = action.tabId;
-      if (!isPanelTab(tabId) || !current.unread[tabId]) return current;
-      return clearUnread(current, tabId);
+      if (!isPanelTab(tabId) || !current2.unread[tabId]) return current2;
+      return clearUnread(current2, tabId);
     }
     case "prune": {
       const available = Array.isArray(action.available) ? action.available.filter(isPanelTab) : PANEL_TABS;
-      if (available.includes(current.activeTab)) return current;
+      if (available.includes(current2.activeTab)) return current2;
       const nextTab = FALLBACK_ORDER.find((tab) => available.includes(tab)) ?? "tools";
-      return { ...current, activeTab: nextTab, collapsed: current.collapsed };
+      return { ...current2, activeTab: nextTab, collapsed: current2.collapsed };
     }
     case "hydrate":
       return normalizePanelState(action.state);
     default:
-      return current;
+      return current2;
   }
 }
 function visiblePanelTabs({ hasResult = false, hasObject = false } = {}) {
@@ -23354,15 +28101,15 @@ function normalizeLegacyDock(raw) {
     width: raw.width
   };
 }
-function readPanelState(storage = globalThis.localStorage) {
+function readPanelState(storage2 = globalThis.localStorage) {
   try {
-    const raw = storage?.getItem?.(PANEL_STORAGE_KEY);
+    const raw = storage2?.getItem?.(PANEL_STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
       const state = normalizePanelState(parsed);
       return parsed?.version === 2 ? state : state;
     }
-    const legacyRaw = storage?.getItem?.(PANEL_LEGACY_DOCK_KEY);
+    const legacyRaw = storage2?.getItem?.(PANEL_LEGACY_DOCK_KEY);
     if (legacyRaw) {
       const legacy = normalizeLegacyDock(JSON.parse(legacyRaw));
       if (legacy) return createPanelState(legacy);
@@ -23371,22 +28118,22 @@ function readPanelState(storage = globalThis.localStorage) {
   }
   return createPanelState();
 }
-function writePanelState(state, storage = globalThis.localStorage) {
+function writePanelState(state, storage2 = globalThis.localStorage) {
   try {
     const normalized = normalizePanelState(state);
-    storage?.setItem?.(PANEL_STORAGE_KEY, JSON.stringify({ version: 2, ...normalized }));
+    storage2?.setItem?.(PANEL_STORAGE_KEY, JSON.stringify({ version: 2, ...normalized }));
   } catch {
   }
 }
 
 // src/client/ui/right-stack.js
-var h30 = import_react34.default.createElement;
+var h39 = import_react44.default.createElement;
 function ResultEmpty({ t: t2 }) {
-  return h30(
+  return h39(
     "div",
     { className: "mv-panel-empty" },
-    h30("h3", null, t2("panel.result.emptyTitle")),
-    h30("p", null, t2("panel.result.emptyBody"))
+    h39("h3", null, t2("panel.result.emptyTitle")),
+    h39("p", null, t2("panel.result.emptyBody"))
   );
 }
 function RightStack({
@@ -23401,13 +28148,20 @@ function RightStack({
   showLayers,
   toolsPanel,
   showTools,
+  placesPanel = null,
   openWindows = [],
   onSelectTool,
   onCloseToolWindow,
   busy = false,
   dockRequest = null,
   objectPanel = null,
-  onActiveTab
+  onActiveTab,
+  onUnread,
+  // Master/detail of the tools destination. The console header owns the back
+  // affordance, so the state is lifted to the viewer: the header can show
+  // "工具 · 量测" and switch back without a second label row inside the panel.
+  showToolIndex = false,
+  onShowToolIndex
 }) {
   const windows = Array.isArray(openWindows) ? openWindows : [];
   const windowIds = windows.map((win) => typeof win === "string" ? win : win?.id).filter(Boolean);
@@ -23417,120 +28171,121 @@ function RightStack({
   const available = visiblePanelTabs({ hasResult, hasObject }).filter((id) => {
     if (id === "layers") return Boolean(showLayers);
     if (id === "tools") return Boolean(showTools || activeToolId);
+    if (id === "places") return Boolean(placesPanel);
     return true;
   });
   const availableSignature = available.join("|");
-  const [state, setState] = import_react34.default.useState(
+  const [state, setState] = import_react44.default.useState(
     () => panelReducer(readPanelState(), { type: "prune", available })
   );
-  const dispatch = import_react34.default.useCallback((action) => setState((current) => panelReducer(current, action)), []);
-  import_react34.default.useEffect(() => {
+  const dispatch = import_react44.default.useCallback((action) => setState((current2) => panelReducer(current2, action)), []);
+  import_react44.default.useEffect(() => {
     dispatch({ type: "prune", available });
   }, [availableSignature]);
-  import_react34.default.useEffect(() => {
+  import_react44.default.useEffect(() => {
     writePanelState(state);
   }, [state]);
-  import_react34.default.useEffect(() => {
+  import_react44.default.useEffect(() => {
     onActiveTab?.(state.collapsed ? null : state.activeTab);
   }, [state.activeTab, state.collapsed, onActiveTab]);
-  const prevResultRef = import_react34.default.useRef(analysis?.result);
-  const lockedByTool = Boolean(activeToolId) && state.activeTab === "tools";
-  import_react34.default.useEffect(() => {
+  import_react44.default.useEffect(() => {
+    onUnread?.(state.unread);
+  }, [state.unread.result, state.unread.object, onUnread]);
+  const prevResultRef = import_react44.default.useRef(analysis?.result);
+  const detailToolId = !showToolIndex ? activeToolId : null;
+  const lockedByTool = Boolean(detailToolId) && state.activeTab === "tools";
+  const analysisInitiator = detailToolId === "measure" || detailToolId === "analysis";
+  import_react44.default.useEffect(() => {
     const result = analysis?.result;
-    if (result && result !== prevResultRef.current) dispatch({ type: "resultArrived", busy: busy || lockedByTool });
+    if (result && result !== prevResultRef.current) {
+      dispatch({ type: "resultArrived", busy: busy || lockedByTool && !analysisInitiator });
+    }
     prevResultRef.current = result;
-  }, [analysis?.result, busy, lockedByTool]);
-  const prevObjectRef = import_react34.default.useRef(objectPanel?.key);
-  import_react34.default.useEffect(() => {
+  }, [analysis?.result, busy, lockedByTool, analysisInitiator]);
+  const prevObjectRef = import_react44.default.useRef(objectPanel?.key);
+  import_react44.default.useEffect(() => {
     const key = objectPanel?.key;
     if (key && key !== prevObjectRef.current) dispatch({ type: "objectArrived", busy: busy || lockedByTool });
     else if (!key) dispatch({ type: "objectCleared" });
     prevObjectRef.current = key;
   }, [objectPanel?.key, busy, lockedByTool]);
-  const prevReportRef = import_react34.default.useRef(null);
-  import_react34.default.useEffect(() => {
+  const prevReportRef = import_react44.default.useRef(null);
+  import_react44.default.useEffect(() => {
     const key = reportPreview?.key;
     if (key && key !== prevReportRef.current) dispatch({ type: "activate", tabId: "result" });
     prevReportRef.current = key;
   }, [reportPreview?.key, dispatch]);
-  const pendingRequestRef = import_react34.default.useRef(null);
-  import_react34.default.useEffect(() => {
+  const pendingRequestRef = import_react44.default.useRef(null);
+  import_react44.default.useEffect(() => {
     if (!dockRequest?.kind) return;
-    pendingRequestRef.current = ["layers", "tools", "result", "object"].includes(dockRequest.kind) ? dockRequest.kind : null;
-  }, [dockRequest?.seq, dockRequest?.kind]);
-  import_react34.default.useEffect(() => {
-    const tabId = pendingRequestRef.current;
-    if (!tabId) return;
-    if (!available.includes(tabId)) return;
+    pendingRequestRef.current = ["layers", "tools", "places", "result", "object"].includes(dockRequest.kind) ? { tabId: dockRequest.kind, mode: dockRequest.mode === "activate" ? "activate" : "toggle" } : null;
+  }, [dockRequest?.seq, dockRequest?.kind, dockRequest?.mode]);
+  import_react44.default.useEffect(() => {
+    const req = pendingRequestRef.current;
+    if (!req) return;
+    if (!available.includes(req.tabId)) return;
     pendingRequestRef.current = null;
-    dispatch({ type: "toggle", tabId });
+    dispatch({ type: req.mode, tabId: req.tabId });
   }, [dockRequest?.seq, availableSignature]);
-  const [showToolIndex, setShowToolIndex] = import_react34.default.useState(false);
   if (!available.length) return null;
   const panels = [];
   if (showLayers) {
     panels.push({
       id: "layers",
-      node: h30(LayersPanel, { key: "layers", t: t2, ...layersPanel ?? {}, embedded: true })
+      node: h39(LayersPanel, { key: "layers", t: t2, ...layersPanel ?? {}, embedded: true })
     });
   }
   if (showTools || activeToolId) {
-    const entry = activeToolId ? toolEntry(activeToolId) : null;
-    const detail = activeToolId && entry && !showToolIndex;
+    const entry2 = activeToolId ? toolEntry(activeToolId) : null;
+    const detail = activeToolId && entry2 && !showToolIndex;
     panels.push({
       id: "tools",
-      node: detail ? h30(
+      node: detail ? h39(
         "div",
         { key: "tools", className: "mv-panel-detail" },
-        h30(
-          "button",
-          {
-            type: "button",
-            className: "mv-panel-back",
-            onClick: () => setShowToolIndex(true)
-          },
-          `← ${t2("tools.title")}`
-        ),
-        h30(
+        h39(
           ToolWindow,
           {
             t: t2,
-            entry,
+            entry: entry2,
             embedded: true,
             onClose: () => {
-              setShowToolIndex(true);
+              onShowToolIndex?.(true);
               onCloseToolWindow?.(activeToolId);
             }
           },
-          h30(ToolBody, {
+          h39(ToolBody, {
             t: t2,
             ...toolsPanel ?? {},
             entryId: activeToolId,
             openRequest: toolsPanel?.openRequest?.id === activeToolId ? toolsPanel.openRequest : null
           })
         )
-      ) : h30(ToolsPanel, {
+      ) : h39(ToolsPanel, {
         key: "tools",
         t: t2,
         ...toolsPanel ?? {},
         embedded: true,
         onSelectTool: (toolId) => {
-          setShowToolIndex(false);
+          onShowToolIndex?.(false);
           onSelectTool?.(toolId);
         },
         onCloseTool: onCloseToolWindow
       })
     });
   }
+  if (placesPanel) {
+    panels.push({ id: "places", node: h39(PlaceSearchPanel, { key: "places", t: t2, ...placesPanel }) });
+  }
   if (reportPreview?.html) {
     panels.push({
       id: "result",
-      node: h30(ReportPreview, { key: "report-preview", t: t2, report: reportPreview, onClose: onCloseReport })
+      node: h39(ReportPreview, { key: "report-preview", t: t2, report: reportPreview, onClose: onCloseReport })
     });
   } else if (hasResult) {
     panels.push({
       id: "result",
-      node: h30(AnalysisCard, {
+      node: h39(AnalysisCard, {
         key: "result",
         state: analysis,
         t: t2,
@@ -23542,17 +28297,16 @@ function RightStack({
       })
     });
   } else {
-    panels.push({ id: "result", node: h30(ResultEmpty, { key: "result", t: t2 }) });
+    panels.push({ id: "result", node: h39(ResultEmpty, { key: "result", t: t2 }) });
   }
   if (hasObject) {
-    panels.push({ id: "object", node: h30("div", { key: "object", className: "mv-panel-object" }, objectPanel.node) });
+    panels.push({ id: "object", node: h39("div", { key: "object", className: "mv-panel-object" }, objectPanel.node) });
   }
-  return h30(PanelRail, {
+  return h39(PanelRail, {
     t: t2,
     tabs: available.map((id) => ({ id })),
     activeTab: state.activeTab,
     collapsed: state.collapsed,
-    unread: state.unread,
     width: state.width,
     panels,
     onActivate: (tabId) => dispatch({ type: "activate", tabId }),
@@ -23562,8 +28316,79 @@ function RightStack({
   });
 }
 
+// src/client/ui/chrome-visibility.js
+var import_react45 = __toESM(require("react"), 1);
+var h40 = import_react45.default.createElement;
+var CHROME_HIDDEN_KEY = "chrome.hidden";
+function ChromeShell({ hidden, children }) {
+  return h40(
+    "div",
+    {
+      className: `mv-chrome${hidden ? " is-hidden" : ""}`,
+      "aria-hidden": hidden ? "true" : void 0,
+      inert: hidden ? "" : void 0
+    },
+    children
+  );
+}
+function ChromeA11y({ t: t2, status, hidden, onShow }) {
+  const show = () => {
+    onShow?.();
+    globalThis.setTimeout?.(() => {
+      if (typeof document !== "undefined") document.querySelector(".mv-chrome-hide")?.focus?.();
+    }, 0);
+  };
+  return h40(
+    import_react45.default.Fragment,
+    null,
+    h40("span", { className: "mv-sr-only", role: "status", "aria-live": "polite" }, status),
+    hidden ? h40(
+      "button",
+      {
+        type: "button",
+        className: "mv-chrome-reveal mv-glass",
+        title: `${t2("dock.showChrome")} (H)`,
+        "aria-label": t2("dock.showChrome"),
+        "aria-expanded": false,
+        "aria-keyshortcuts": "H",
+        autoFocus: true,
+        onClick: show
+      },
+      h40(GlyphIcon, { name: "view" })
+    ) : null
+  );
+}
+var isTyping = (target) => {
+  if (!target || typeof target.closest !== "function") return false;
+  return target.closest('input, textarea, select, [contenteditable="true"]') !== null;
+};
+function isChromeShortcut(event, target, dialogOpen = false) {
+  if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey) return false;
+  if (String(event.key).toLowerCase() !== "h") return false;
+  if (isTyping(target)) return false;
+  return !dialogOpen;
+}
+function useChromeVisibility() {
+  const [hidden, setHidden] = import_react45.default.useState(() => readPanelFlag(CHROME_HIDDEN_KEY, false));
+  const toggle = import_react45.default.useCallback(() => setHidden((value) => !value), []);
+  import_react45.default.useEffect(() => {
+    writePanelFlag(CHROME_HIDDEN_KEY, hidden);
+  }, [hidden]);
+  import_react45.default.useEffect(() => {
+    const onKeyDown2 = (event) => {
+      const dialogOpen = typeof document !== "undefined" && typeof document.querySelector === "function" && Boolean(document.querySelector('[role="dialog"]'));
+      if (!isChromeShortcut(event, event.target, dialogOpen)) return;
+      event.preventDefault();
+      setHidden((value) => !value);
+    };
+    globalThis.addEventListener?.("keydown", onKeyDown2);
+    return () => globalThis.removeEventListener?.("keydown", onKeyDown2);
+  }, []);
+  return [hidden, toggle];
+}
+
 // src/client/ui/tool-workspace.js
-var import_react35 = __toESM(require("react"), 1);
+var import_react46 = __toESM(require("react"), 1);
 function openWorkspaceTool(windows, id, { toggleIfOpen = false } = {}) {
   const list = Array.isArray(windows) ? windows : [];
   if (!toolEntry(id)) return list;
@@ -23590,16 +28415,16 @@ function toggleExpandWorkspaceTool(windows, id) {
   );
 }
 function useToolWorkspace(openRequest) {
-  const [windows, setWindows] = import_react35.default.useState([]);
-  const lastSeqRef = import_react35.default.useRef(0);
-  import_react35.default.useEffect(() => {
+  const [windows, setWindows] = import_react46.default.useState([]);
+  const lastSeqRef = import_react46.default.useRef(0);
+  import_react46.default.useEffect(() => {
     const seq = openRequest?.seq ?? 0;
     if (!openRequest?.id || seq <= lastSeqRef.current) return;
     lastSeqRef.current = seq;
     setWindows((prev) => openWorkspaceTool(prev, openRequest.id, { toggleIfOpen: false }));
     focusFloatingWindow(`toolwin.${openRequest.id}`);
   }, [openRequest?.id, openRequest?.seq]);
-  const selectTool = import_react35.default.useCallback((id) => {
+  const selectTool = import_react46.default.useCallback((id) => {
     setWindows((prev) => {
       const active = prev.length === 1 && prev[0].id === id;
       if (active) return [];
@@ -23608,17 +28433,17 @@ function useToolWorkspace(openRequest) {
     });
     focusFloatingWindow(`toolwin.${id}`);
   }, []);
-  const openTool = import_react35.default.useCallback((id) => {
+  const openTool = import_react46.default.useCallback((id) => {
     setWindows((prev) => openWorkspaceTool(prev, id, { toggleIfOpen: false }));
     focusFloatingWindow(`toolwin.${id}`);
   }, []);
-  const closeTool = import_react35.default.useCallback((id) => {
+  const closeTool = import_react46.default.useCallback((id) => {
     setWindows((prev) => closeWorkspaceTool(prev, id));
   }, []);
-  const toggleMinimize = import_react35.default.useCallback((id) => {
+  const toggleMinimize = import_react46.default.useCallback((id) => {
     setWindows((prev) => toggleMinimizeWorkspaceTool(prev, id));
   }, []);
-  const toggleExpand = import_react35.default.useCallback((id) => {
+  const toggleExpand = import_react46.default.useCallback((id) => {
     setWindows((prev) => toggleExpandWorkspaceTool(prev, id));
     focusFloatingWindow(`toolwin.${id}`);
   }, []);
@@ -23633,8 +28458,70 @@ function useToolWorkspace(openRequest) {
   };
 }
 
+// src/client/ui/console-header.js
+function openToolIds(windows) {
+  return (Array.isArray(windows) ? windows : []).map((item) => typeof item === "string" ? item : item?.id).filter(Boolean);
+}
+function consoleHeader({ t: t2, activeTab = null, lastTab = null, windows = [], toolIndexShown = false }) {
+  const tab = activeTab ?? lastTab ?? "layers";
+  const labelKey = PANEL_TAB_LABELS[tab];
+  const ids = openToolIds(windows);
+  const toolId = ids.length > 0 ? ids[ids.length - 1] : null;
+  const entry2 = toolId ? toolEntry(toolId) : null;
+  const panelDetail = tab === "tools" && entry2 && !toolIndexShown ? t2(entry2.labelKey) : null;
+  return { tab, panelLabel: labelKey ? t2(labelKey) : t2("dock.title"), panelDetail, toolId };
+}
+function consoleCloseAction({
+  t: t2,
+  activeTab = null,
+  analysis = null,
+  reportPreview = null,
+  hasObject = false,
+  onCloseAnalysis = null,
+  onCloseReport = null,
+  onCloseObject = null
+}) {
+  if (activeTab === "result") {
+    if (reportPreview?.html && typeof onCloseReport === "function") {
+      return { onClosePanel: onCloseReport, closePanelLabel: t2("report.close"), closePanelDanger: false };
+    }
+    if (analysis?.result && typeof onCloseAnalysis === "function") {
+      const label = analysis.operation === "profile" ? t2("profile.clear") : t2("layers.analysisClear");
+      return { onClosePanel: onCloseAnalysis, closePanelLabel: label, closePanelDanger: true };
+    }
+  }
+  if (activeTab === "object" && hasObject && typeof onCloseObject === "function") {
+    return { onClosePanel: onCloseObject, closePanelLabel: t2("btn.close"), closePanelDanger: false };
+  }
+  return { onClosePanel: null, closePanelLabel: "", closePanelDanger: false };
+}
+
+// src/client/ui/profile-bar.js
+var import_react47 = __toESM(require("react"), 1);
+var h41 = import_react47.default.createElement;
+function ProfileBar({ t: t2, analysis, hidden = false, resultOpen = false, onOpenResult, onRedraw, onClear }) {
+  if (hidden || analysis?.operation !== "profile" || !analysis?.result) return null;
+  const result = analysis.result;
+  const summary = t2("profile.barSummary", {
+    length: formatDistance(result.length_m ?? 0),
+    relief: formatHeight(result.stats?.relief_m ?? 0)
+  });
+  return h41(
+    "div",
+    { className: "mv-measure mv-profile-bar mv-glass", role: "region", "aria-label": t2("analysis.title.profile") },
+    h41("span", { className: "text" }, summary),
+    h41(
+      "div",
+      { className: "mv-measure-actions" },
+      !resultOpen && typeof onOpenResult === "function" ? h41("button", { type: "button", className: "mv-measure-end", onClick: onOpenResult }, t2("profile.viewChart")) : null,
+      typeof onRedraw === "function" ? h41("button", { type: "button", className: "mv-measure-end", onClick: onRedraw }, t2("analysis.redrawProfile")) : null,
+      typeof onClear === "function" ? h41("button", { type: "button", className: "mv-measure-end danger", onClick: onClear }, t2("profile.clear")) : null
+    )
+  );
+}
+
 // src/client/ui/loading-globe.js
-var import_react36 = __toESM(require("react"), 1);
+var import_react48 = __toESM(require("react"), 1);
 
 // src/client/ui/earth-mask.js
 var EARTH_MASK = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAgAAAAEACAYAAADFkM5nAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAABUQSURBVHhe7dmLjuW2siDR8/8/PQPbt+zqSD1I8U1GAAuNm5uiKO2qds+c//3vf//7f5Ik6ThhIEmS9hcGkiRpf2EgSZL2FwaSJGl/YSBJkvYXBpIkaX9hIEmS9hcGkiRpf2EgSZL2FwaSJGl/YSBluYprJEnTCQMpWU68dga94v14DkkaIAykJCnxmhZWjc8hSZ2FgfSv3/+xuovXtNAr3leSNhYG0r/e4voWWsZ7SdJBwkD6w+//UI76j+dTXPu2/ne8TpIOEgbSEp7+A87/wF/937xGkg4TBtJ2+A8ASVIcSEv7+Q89/1/8/gNAqustrtd0wkBa2lNcK+mb0rifhggDaQtXcY10ulHxHBoiDJTJH+j53MV10qlGxDNouDBQhre4Xn0xfi6dYrZ4Pg0RBsrw1NVaztQW4+fSF6v8LO0Qn+nu+fiZkoSBMqX88L3F9Tl7t/IU185s1XNLX50c34UehYE6SonX9JASr5kZ4+fSSIyf362z+/juUuXG6xcTBuooJ17b2l1ctwLGz6VR7kpdZ8/xPf68y17vlPf+ff8JhEFTJXGvWXw925e4x8xmOu+q7/AUT3Htbu5KWWNrx5+FAcKgup7x3iUYP+cafpbi7vqnuEeq0utzMX7e21Vco7ZqxD1Xd1fKGtsv/nw0FgbVWIzvqBfGz+/krqe7uK4Xxs9VX894756+9HRdjf3Nnmr6D4C/WIzv6M3X6672YFx3dw0/y3EX17VyFdeojZHxLF+MbKaz2J49/lTxB7DU7u34nPwOSzB+XttdXKf6Zopno5mb/Xy2dv/+/wA8xV+Yr3Zut2fl89TUev8fd3Gd6pkxnnH285r1qsn/BGBr9fOd8Xus4SmubeEurlO53Equ/YlnuGNmsSb/APiLrRG/t9re4voWruKakZ7i2lnlVnr977gXmdl1zf4BQDZn/J5auoprWmL8fCTGz2f1pRp7mFl+/N3zHwCHxu+nF8bPexl57x18rdY+ZpYff/+a/wPA5orfj5TrSzX2MLPv8Xfw/4RBNTZP/G6kXF/jPiV7mVl6/L27EAbV2Dzxu2lp1H3VRmnc7+ueJdeazRR/H6gk7vUiDKqqEfdMYf/Fd9PKW1yv+dWIe37d/8s1ZrPF34E7ufH6RGHQxJe4R4mT47toITVep7mVxv2emO0ef+YnEAZNpcbrajoxvoPacuK1mldp3O+J2ezxZ3YDYdAV4+etnRSfvabceL3mVRL3umM2a/xZ3UwYHOek+Ow11Yx7a05vcf0Vsxnjz2lLV3FNI2FwpJPis9dSO+6vb1q/07u4LuUasxniz2sLb3F9I2FwtJPis5dqEe+hPFdxTam7uC7lGrOR8ee0lZR4TSNhoMQvaLf4DnK1ivdRuqu45ounuPaK2WzxZ7Slt7i+oTBQwhd0Qnwnd3rEeyrdVVyT4ymuvWI2Y/w5bekprm0sDPR/7L/4bka8J95Xf2Jvn/8V17xJ6cs1ZqPjz21LT3FtY2GgX+y/+G5meD88z6mu+rLmjtkp8We/hau4ppMwENh/zfZueJ5TXfX2+U/cK+UasxP6/bvA348SV/cYJAx0wf5ptvfC85zs6b28xfUp15jtHn8X+DtSovZ+H4WBbth88TvStbdy1pqdEn8n+Hu1gTDQAxsbvw+lu+pubmb+A0AXrH58x+rLzP7s6veDvzcbCAMlsLrx/b4puVZ/MrPY1e8If3c2EAbKYPXiu71zFdcoMrO07n53ON9AGCjDDvGZRj4Xz3HlKq5RZGZp8XdnY2GgDKvH5xn5bLy/2jCz+/j7srkwUIYd4jONfD7eX/WZ2X38fdlcGCjDrvE5Rzwv7616Vu7p/E+fpcZ3tcM7s/T4vW8uDJThhEY9M++relrUat+/4vmvnuNunhP3L93P1orf+wHCQBlOqeUz852qvdr12jvHl7jH131snfh9U87aBYWBMuzW3TPVfGa+Q/X3padra+x/F/fOkROv/bKHrRW/6yuMny8uDJRht1o/F9+f6qoR9+I9+PnvuOZuXWrc66vUeF3u9TZ/P98nv+M7jJ8vLgyUwdLju1N9pXG/N4yf361LjfuUSInX5F5vc8bvMlfNvSYTBspgafG9qb4acc8UjJ8/rU2Je3yVGq/7sofNEb8/BWGgDPYe35naKIl7ffW235dy9uDalGuu4vVf97Fx8bvTpTBQBnuO70vtfIl71PC0/1Upa3rHM810NnuP35tuhYEy2H18V2rrS9yjhqf9GT+/W9c7nmems50Yv4O374Nrvqi518TCQBnsOr4ntfcl7tFD6v1HxrPMcq7T4ru/w/j5F7X3m1QYKJP9Gd+P+vgS9+gl5Qwj41lmONOp8Tu4chXX5GD8fCNhoA/sn/he1E9OvLa3lHOMjGeZ4Uz2T/xOnr4brklVY49FhIE+sH/ie1Ffb3F9rlr7pBrdTGexf+LPyNN3xM+fXMU1GwoDfWRH/MIsI+U7KYl7jWLnxO+eGD+/cxfXbSgMVODk+C40v9K43yi2f/zO7+RecxfXbSoMVOjE+A40Xut4v9Fs3/hdl3iL6zcXBqrgpPjsGq9HvOdotnf8vr+4i+sOEgaqaOf4rBqvd7z/KHZG/N5VLAxU2Y7xGTXe6HienuyM+L2rWBiogZ3is2kOs8RzEePnueys+P2rSBiokR3iM2keM8Wz5Z6R192x8+LPgIqEgTqYrdQz8Tk0B7NT4s++ioSBOpkhnulK7nr1Z3Xync4ff/ZVJAzUSY94z69a7Kk6rF6+27nj96NiYaAOesR7lmi1r8pY3fh+fcdzxe9GxcJAHfAHukW8Z6mWeyuftfn94Xuuvb99i9+JqggDDVA77l9D6/2Vxv6r1XvhO29xD8uL34WqCAMNVCvuW0vr/fXM/qzl++HeT6xtfN+qJgw0WI24p/ZgsZbvh+//jbWJ71nVhIEmUBr30/rsupbviXvXZu/xnamqMNAkSuJeWp/d1/Jdce/f+3Oey+7ju1ITYaCJfIl7aH32HN/XiHfG+6eyGN+RmgkDTSY3Xq+1WVp8byPeHe+fyv6L70ZNhYEmlBOvbaHnvU5n6Y1+d7x/qhGNvv9PfBfqKgw0oZx4bQu973cqy2v0++P9c/SK9219/7u9eX8NEQaaVE689g7j5ymu4hp9Z+nx3fV8f7xvqRbxHlS7q/0501BhoEnlxGuvXMU1KUqu1TvLi++vxzvk/WqoHfe/UyvuqymFgSaWE69924PrariKa/TM8uL7a/0Oea9aasV939SIe2paYaDJ5ZRzLdfWcBXX6Jnlx3fY6j3yHrWVxv1S1Yh7akphoIXUjHtrDvYtvsfa75J7t1AS98pRK+5bqsWehwsDLaZW3FdzsG/xPdZ6l9yzpa9xn1y14r6lWux5uDDQgmrFfTWWlVXzfXKvXnLitV9xz5K491ct9lQcaGE1497qz8qq9T65T28p8ZpS3LMk7v1F7f30tzDQxnLj9erLyit5p7x2lJR4TQslca8vau6lv4WBNpcbr1c/Vqecd8rvYAZvcX0rJXGvL2rto3+FgQ70FNeqH6vb03vlu5/JW1zfSkncS1MIAx3sLq5TH1a3q/fKdz6jt7i+Fd4zJ+6lKYSBDnYV16gvqx/f8Qqe4tpWru6XGvfSFMJAh7uKa3LV2udEVj++4xU8xbWt3N0vJV6jKYSBxN/d8PmT1Hidnln/+B2MdhfXjXAX12kqYSD97csvca24r/5h/eN3MNJVXDMS4+c1td7/EGEg/SHnF6123P901je+/xkwfn6K05+/kjCQLr39srWM9zqV9Y3vfxYjzzfqvvQ7fqZkYSBl6RnvfSLrE9/7zFY8c6lVv6vJhIGUpXe8/4msfXznM1vxzLWc+tyVhIGUZUQ8w4msXXzXsxtx7t73UxNhIGUbFc9xmpq12nfF+J4V+b62EAZStpni2U7xJe5Rut8O8T2c7u6dtHhnjJ+rujCQss0Wz6dvTovPr/v/eYHx8xx3cZ2qCwMp24zxjKpj5/is+sfd+6nx7p7iWlUXBlK2GeMZVc+O8Rn1n7v3dDdP9RbXq7owkLLMHM+qOnaLz6foLa5/kxKvUXVhICWbPZ5XdewSn0vPnuLaOznxWlUXBlKSVeK5VW6X+Fx69hTXXsmN16u6MJBerRTPrjI7xGdSuru4jr7EPVRdGEivVovn13czVHIWPo/yXcU1V3Lj9aouDKRHu8TnUpoZ+noWPou+u4prKCdeqybCQHq0U3w2vZuhr2fhs+i7p7g29bqfnq7hZ1/c7VPzHosIA+nRjvEZ9WzV+Bwq8xTXpl73V2/r+Xku7vEUr91MGEiPTorPrv+sEs+tuu7iujuMn6euyfE17rOBMJAenRafX/+ZPZ5XbVzFNSUYP//ia9xncWEgPTo5vovTzR7PqzYYP6+l1f5f4h6LCgPp0enxfZxu5nhWtbPDe8+N1y8oDKRXp8f3cbKZ41nVx6rvPzdev6AwkF6dHt/H6WaN51Q/q34HX+M+iwgDKcnJ8V2cbtZ4To3H+PlIpXG/BYSBlOzU+B5ON2s8p8Zi/HwGbz2t414LCAMp2cnxXZxu1nhOKRXj57/XcL6IMJCynBjfgeb9OeA5Jf0rDKQsp8Xn1z9mjmeV9LcwkLKdEJ9Zf5o5nlXS38JA+mT3+Lz608zxrJL+FgbSZ7vG51Q0czyrznMX113JWbuYMJA+2zU+p/40ezyvzvIU11LO2gWFgfTZrvE59afZ43nvMH6u9bzF9cT4+eLCQCqyW3w+RbPH8165ims0r6vvLTXudbfv29oFhYFUbKf4bPrTCvHMdBfXaU6lcb+3vblmYWEgVbFDfCZFK8Qzp5yf6zSfmnHvp3twzcLCQGpixfgMimaP5009O9dqPi1KvQfXLSoMpGZWi+dXNGs8Jz3FtZpPy1LvwTMtKAykZlaL51c0Wzzflbe4XnOZJZ5rQWEgNbNaPL+uzRLPdectrtc8ZopnW1AYSE2tFM+uazPEMz15i+s1hxnjGRcTBlJTq8Rz697oeJ43b3G9xlohnnkRYSA1tUI8s96NjGd58xTXqr9V43MsIAykplaIZ9a7kfEsb57iWvWzenyeBYSB1MwK8cxKNyqe481TXKs+donPNbkwkJqZMZ5R342K53jzFNeqvd3i800sDKRmZopnUx0j4hne3MV16mPH+IyTCgOpmVniuVTPiHiGN3dxnfrYNT7nhMJAamaGeCbV1TveP1WNPVTHrvE5JxQGUjOj43nURq94X61p5/iskwkDqZmR8Sxqp0e8p9a1e3zeiYSB1MToeB610zreT2vbPT7vRMJAamJkPIvaah3vp7XtHp93ImEgNTEynkXttYz30vp2js86kTCQmhgVz6F+WsR7aA87x2edSBhI1Y2MZ1E/LeI9tIed47NOJAyk6kbFc6i/mnFv7WXX+JwTCQOpuhHxDBqnNO6nPe0Yn3EyYSBV1zveX2OVxL20r5q12PNLfMbJhIFUXc94b41XEvfSvr7GfVL0iPecUBhI1fWK99UcvsZ9tLfceH2u1vF+EwoDqbpe8b6aj9+V7jzFtbW0iveZVBhIVbWO95O0LsbPW6oV951YGEhVtYr3kaRSNeKeEwsDqZqW8V6SVENp3G9iYSBV0zLeS5JqKIl7TS4MpGpaxntJUi1f4h6zeDhfGEjVtIj3kKRW+HfPan8PMXweL5BqqRX3lSS9Y/g8XiDVUhr3kySle/m7NAykakriXpKkqsJAquZL3EOSZjPz31kZ5woDqZrceL0kzYjx8xE+nCcMpGpy4/WSNKPZ/t76eJ4wkKrJjddL0qxm+XuL8fMHYSBVkxOvlSTdu4prXoSBVE1OvFaSdI/x8wRhIFWRGq+TJL2r8PdoGEhVpMRrJElpKvw9GgZSsZx4rSSpizCQiuXEayVJXYSBVCw1XidJ6iYMpGKp8TpJUjdhIFXxFtdLkroKA6mKt7hektRVGEjV3MV1kqTuwkCq5i6ukyR1FwZSNXdxnSSpuzCQqmL8XJI0RBhIkqT9hYEkSdpfGEjN+T8HSNJwYSBJkvYXBpIkaX9hIEmS9hcGkiRpf2EgSZL2FwaSJGl/YSBJkvYXBpIkaX9hIEmS9hcGkiRpf2EgSZL2FwaSJGl/YSBJkvYXBpIkaX9hIEmS9hcGkiRpf2EgSbrwO362o7e4fjZvcf2BwkAaxl9MzeYprl1Ny3ivmmrFfVOVXDuZMJCGqfHLKaXqFe/byqzxnDzzzGd/is+yoDCQhmD8XKplVDxHDSu18tlz47NOKgyk7q7iGqnEDPFMNazWquduEb/LAcJA6uourpNyzBbPd3VOfka2Z/yeOwoDqZmceK3qK437tbJ6fJ6dns3qxZ+NDsJAaiI3Xq97P+9rtfgcKz7DU3y2HLZGP9/V7z9TfIl7VBAGUnVf4h6KbM74PX1lc8fvK0dp3O+jMNBiKv4wNJMbr9efbI5+fx/8jmqxM+PPQSNhoIXkxGt/X895TbnxeuW/Q+sTv6fa7Lz4M9BYGGghreJ9SrXce1c2V/x+WusV75tjlXjuWc/OM3YQBscpiXv1Nks8l76zNeL3VkvPeO8aZoxnnPGsPFsnYXCUGeMZn/To7T48k8r0jPfOdXp8HyVGxDPUNDKe5U5qP2t//1lTiz0ThcFydo/Pe6VFvMfd/fiZyvH9tor3zWX943fA74Gf/f6c89Zqxr0pZ+3ddYxrW+l9v1/CYHq94n1bSI3Xpfh9XWrco5Yv97iKa05n/8V3QzOWej4+yypqxD1n8hbX32H8vKEwmFLLeK+eUuN1d77GfWr7cp+f9W/xutOcHt/Hk1Xjc6yiRtxzJm9x/RPGzxsJA00g5wegRtxT6zg5vosUV93NW8ZzrWpkPMspKj57GChTSdzri5K4l9YzMp5FZxkdz7O7Bs8eBpI28tTP51/+lEbH8+zqKq75KAwkLaTBXwpSsp+fu95/nuYqrvkgDCRJ0v7CQJIk7S8MtJDSuJ8knaI07regMNBCSuN+u2L8XNJ5avWzV86fkwgDLaQ07reTlHjNinZ5DumLleOzDBAGuvHzhU3yxf2tNO63gxH93Lf3n+yvuXSSnfp5Hj5jMzxAbmHDBf08B5/n9/wu7pXrhPjMNVlZfJ/q7+d7yP2zFu6b+ucMrKyl3+BMPwA/Z8n902z1+DPd88/V1epnr9w/a8V9e/1pZfkWzczMDsx/AJiZmR2Y/wAwMzM7MP8BYGZmdmD/H2qz0FAxQljGAAAAAElFTkSuQmCC";
@@ -23688,8 +28575,8 @@ function renderGlobePixels(projection, texture, elapsed = 0) {
 
 // src/client/ui/loading-globe.js
 function LoadingGlobe() {
-  const canvasRef = import_react36.default.useRef(null);
-  import_react36.default.useEffect(() => {
+  const canvasRef = import_react48.default.useRef(null);
+  import_react48.default.useEffect(() => {
     const canvas = canvasRef.current;
     const context = canvas?.getContext("2d");
     if (!context) return;
@@ -23740,205 +28627,16 @@ function LoadingGlobe() {
       document.removeEventListener("visibilitychange", resume);
     };
   }, []);
-  return import_react36.default.createElement(
+  return import_react48.default.createElement(
     "div",
     { className: "mv-spinner", "aria-hidden": true },
-    import_react36.default.createElement("canvas", { ref: canvasRef, className: "mv-loading-globe" })
+    import_react48.default.createElement("canvas", { ref: canvasRef, className: "mv-loading-globe" })
   );
 }
 
 // src/client/ui/selection-overlay.js
-var import_react38 = __toESM(require("react"), 1);
-
-// src/client/ui/vision-select.js
-var import_react37 = __toESM(require("react"), 1);
-
-// src/client/scene/vision-request.js
-async function visionRequest(url, { frame, signal, fetchImpl = fetch } = {}) {
-  if (typeof url !== "string" || !url) throw visionError("unavailable");
-  const response = await fetchImpl(url, {
-    method: frame ? "POST" : "GET",
-    credentials: "same-origin",
-    signal,
-    headers: frame ? { "content-type": "application/json", "x-dsh-panel": "vision" } : {},
-    ...frame ? { body: JSON.stringify({ frameId: frame.id, image: frame.dataUrl, point: frame.point }) } : {}
-  });
-  const result = await response.json().catch(() => null);
-  if (!response.ok || result?.ok !== true) throw visionError(typeof result?.code === "string" ? result.code : "model_failed");
-  if (!frame) return result;
-  if (result.frameId !== frame.id || !frame.isValid()) throw visionError("scene_changed");
-  const validated = validateVisionPolygon(result, frame.point);
-  if (result.shape === "box" && validated.polygon.length === 4) {
-    const [first, second, third, fourth] = validated.polygon;
-    if (first[1] === second[1] && second[0] === third[0] && third[1] === fourth[1] && fourth[0] === first[0]) validated.shape = "box";
-  }
-  return { ...validated, model: result.model };
-}
-
-// src/client/ui/vision-select.js
-var h31 = import_react37.default.createElement;
-var VISION_TIMEOUT_MS = 65e3;
-function VisionSelect({ controller, anchor, t: t2, onClose, onCommit, onManual }) {
-  const [state, setState] = import_react37.default.useState({ phase: "ready", frame: null, result: null, error: "" });
-  const [attempt, setAttempt] = import_react37.default.useState(0);
-  const frameRef = import_react37.default.useRef(null);
-  const dialogRef = import_react37.default.useRef(null);
-  const abortRef = import_react37.default.useRef(null);
-  const stoppedRef = import_react37.default.useRef(false);
-  import_react37.default.useEffect(() => {
-    const previous = document.activeElement;
-    dialogRef.current?.focus();
-    return () => {
-      if (previous?.isConnected) previous.focus?.();
-    };
-  }, []);
-  import_react37.default.useEffect(() => {
-    if (attempt === 0) return void 0;
-    const abort = new AbortController();
-    abortRef.current = abort;
-    stoppedRef.current = false;
-    let frame, interval, current = true, timedOut = false, stale = false;
-    const timer = setTimeout(() => {
-      timedOut = true;
-      abort.abort();
-    }, VISION_TIMEOUT_MS);
-    setState({ phase: "loading", frame: null, result: null, error: "" });
-    const run = async () => {
-      try {
-        const url = controller?.getMeta?.()?.visionUrl;
-        await visionRequest(url, { signal: abort.signal });
-        if (!current || abort.signal.aborted) return;
-        frame = captureVisionFrame({ viewer: controller.getViewer(), Cesium: controller.getCesium(), anchor, getLayers: controller.getLayers, getViewer: controller.getViewer });
-        frameRef.current = frame;
-        setState({ phase: "loading", frame, result: null, error: "" });
-        interval = setInterval(() => {
-          if (frame.isValid()) return;
-          stale = true;
-          abort.abort();
-          clearInterval(interval);
-          clearTimeout(timer);
-          frame.release();
-          if (current) setState((previous) => ({ ...previous, phase: "error", error: "scene_changed" }));
-        }, 150);
-        const result = await visionRequest(url, { frame, signal: abort.signal });
-        if (!current || stale || abort.signal.aborted) return;
-        clearTimeout(timer);
-        setState({ phase: "preview", frame, result, error: "" });
-      } catch (error) {
-        frame?.release();
-        clearInterval(interval);
-        clearTimeout(timer);
-        if (current && !stale) {
-          setState((previous) => ({
-            ...previous,
-            phase: "error",
-            error: stoppedRef.current ? "cancelled" : timedOut ? "timeout" : error?.code ?? "model_failed"
-          }));
-        }
-      } finally {
-        if (abortRef.current === abort) abortRef.current = null;
-      }
-    };
-    void run();
-    return () => {
-      current = false;
-      abort.abort();
-      clearTimeout(timer);
-      clearInterval(interval);
-      frame?.release();
-      frameRef.current = null;
-    };
-  }, [controller, anchor, attempt]);
-  const start = () => {
-    if (state.phase === "loading") return;
-    stoppedRef.current = false;
-    setState({ phase: "loading", frame: null, result: null, error: "" });
-    setAttempt((value) => value + 1);
-  };
-  const stop = () => {
-    stoppedRef.current = true;
-    abortRef.current?.abort();
-    const frame = frameRef.current;
-    frameRef.current = null;
-    frame?.release();
-    setState((previous) => ({ ...previous, phase: "error", frame: null, result: null, error: "cancelled" }));
-  };
-  const accept = () => {
-    try {
-      const ground = projectVisionPolygon(frameRef.current, state.result);
-      frameRef.current.release();
-      onCommit(ground);
-      onClose();
-    } catch (error) {
-      setState((previous) => ({ ...previous, error: error?.code ?? "depth_unavailable" }));
-    }
-  };
-  const onKeyDown2 = (event) => {
-    if (event.key === "Escape") {
-      event.preventDefault();
-      event.stopPropagation();
-      onClose();
-      return;
-    }
-    if (event.key !== "Tab") return;
-    const controls = [...dialogRef.current.querySelectorAll("button:not(:disabled)")];
-    const first = controls[0], last = controls.at(-1);
-    if (event.shiftKey && (document.activeElement === first || document.activeElement === dialogRef.current)) {
-      event.preventDefault();
-      last?.focus();
-    } else if (!event.shiftKey && (document.activeElement === last || document.activeElement === dialogRef.current)) {
-      event.preventDefault();
-      first?.focus();
-    }
-  };
-  const errorKey = `vision.error.${state.error}`;
-  const errorText2 = state.error && (t2(errorKey) === errorKey ? t2("vision.error.model_failed") : t2(errorKey));
-  const statusText = state.phase === "ready" ? t2("vision.readyToStart") : state.phase === "loading" ? t2("vision.loading") : state.result?.shape === "box" ? t2("vision.boxReady") : t2("vision.ready");
-  return h31(
-    "div",
-    { className: "mv-vision-screen", onKeyDown: onKeyDown2 },
-    h31(
-      "section",
-      { className: "mv-vision", role: "dialog", "aria-modal": true, "aria-label": t2("vision.title"), tabIndex: -1, ref: dialogRef },
-      h31("header", null, h31("h3", null, t2("vision.title")), h31("button", { type: "button", className: "mv-icon-btn", "aria-label": t2("btn.close"), onClick: onClose }, "✕")),
-      h31("p", { className: "mv-vision-note" }, t2("vision.notice")),
-      state.frame ? h31(
-        "div",
-        { className: "mv-vision-image", style: { aspectRatio: `${state.frame.width}/${state.frame.height}` } },
-        h31("img", { src: state.frame.dataUrl, alt: t2("vision.imageAlt"), draggable: false }),
-        h31(
-          "svg",
-          { viewBox: "0 0 1000 1000", preserveAspectRatio: "none", "aria-hidden": true },
-          state.result ? h31("polygon", { points: state.result.polygon.map(([lon, lat]) => `${lon * 1e3},${lat * 1e3}`).join(" "), vectorEffect: "non-scaling-stroke" }) : null,
-          h31("circle", { cx: state.frame.point[0] * 1e3, cy: state.frame.point[1] * 1e3, r: 6, vectorEffect: "non-scaling-stroke" })
-        )
-      ) : null,
-      h31(
-        "p",
-        { role: state.error ? "alert" : "status", "aria-live": "polite", className: state.error ? "mv-vision-error" : "mv-vision-status" },
-        errorText2 || statusText
-      ),
-      state.result?.model ? h31("p", { className: "mv-vision-note" }, t2("vision.model", { model: state.result.model })) : null,
-      h31(
-        "div",
-        { className: "mv-vision-actions" },
-        state.phase === "ready" ? h31("button", { type: "button", className: "mv-cta primary", onClick: start }, t2("vision.start")) : null,
-        state.phase === "loading" ? h31("button", { type: "button", className: "mv-cta", onClick: stop }, t2("vision.stop")) : null,
-        state.phase === "preview" ? h31("button", { type: "button", className: "mv-cta primary", disabled: Boolean(state.error), onClick: accept }, t2("vision.accept")) : null,
-        state.phase === "error" ? h31("button", { type: "button", className: "mv-cta primary", onClick: start }, t2("vision.retry")) : null,
-        h31("button", { type: "button", className: "mv-cta", onClick: () => {
-          frameRef.current?.release();
-          onClose();
-          onManual();
-        } }, t2("vision.manual")),
-        h31("button", { type: "button", className: "mv-cta", onClick: onClose }, t2("vision.cancel"))
-      )
-    )
-  );
-}
-
-// src/client/ui/selection-overlay.js
-var h32 = import_react38.default.createElement;
+var import_react49 = __toESM(require("react"), 1);
+var h42 = import_react49.default.createElement;
 var CONFIDENCE_TIER = {
   measured: { key: "selection.confidence.high", tone: "high" },
   estimated: { key: "selection.confidence.medium", tone: "medium" },
@@ -23960,51 +28658,42 @@ function numberText(value, suffix = " m", digits = 0) {
   const rounded = Math.round(value * factor) / factor;
   return `${rounded}${suffix}`;
 }
-function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t: t2, showToast, onMeasure, onSelectArea, onVisionCommit, onVisionManual }) {
-  const [card, setCard] = import_react38.default.useState(null);
-  const [busy, setBusy] = import_react38.default.useState(false);
-  const [errorLine, setErrorLine] = import_react38.default.useState("");
-  const [exporting, setExporting] = import_react38.default.useState(false);
-  const [visionOpen, setVisionOpen] = import_react38.default.useState(false);
-  const [showAllProps, setShowAllProps] = import_react38.default.useState(false);
-  const visionPendingRef = import_react38.default.useRef(false);
-  const anchorRef = import_react38.default.useRef(null);
-  const bracketRef = import_react38.default.useRef(null);
-  const chipRef = import_react38.default.useRef(null);
-  const requestRef = import_react38.default.useRef(null);
-  const validityRef = import_react38.default.useRef(null);
-  const dismiss = import_react38.default.useCallback(() => {
+function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t: t2, showToast, onMeasure, onSelectArea }) {
+  const [card, setCard] = import_react49.default.useState(null);
+  const [busy, setBusy] = import_react49.default.useState(false);
+  const [errorLine, setErrorLine] = import_react49.default.useState("");
+  const [exporting, setExporting] = import_react49.default.useState(false);
+  const [showAllProps, setShowAllProps] = import_react49.default.useState(false);
+  const anchorRef = import_react49.default.useRef(null);
+  const bracketRef = import_react49.default.useRef(null);
+  const chipRef = import_react49.default.useRef(null);
+  const requestRef = import_react49.default.useRef(null);
+  const validityRef = import_react49.default.useRef(null);
+  const dismiss = import_react49.default.useCallback(() => {
     requestRef.current?.abort();
     requestRef.current = null;
     validityRef.current = null;
     anchorRef.current = null;
-    visionPendingRef.current = false;
     if (bracketRef.current) bracketRef.current.style.display = "none";
     setCard(null);
     setBusy(false);
     setErrorLine("");
-    setVisionOpen(false);
     setShowAllProps(false);
   }, []);
-  const requestVision = import_react38.default.useCallback(() => {
-    visionPendingRef.current = true;
-    setVisionOpen(false);
-  }, []);
-  const identify = import_react38.default.useCallback(
+  const identify = import_react49.default.useCallback(
     async (position) => {
       if (!controller) return;
       requestRef.current?.abort();
       const request = new AbortController();
       requestRef.current = request;
-      const current = () => requestRef.current === request && !request.signal.aborted;
+      const current2 = () => requestRef.current === request && !request.signal.aborted;
       setBusy(true);
       setErrorLine("");
       setCard(null);
-      setVisionOpen(false);
       setShowAllProps(false);
       try {
         const result = await controller.identifyAt(position, { signal: request.signal });
-        if (!current()) return;
+        if (!current2()) return;
         if (result?.isValid && !result.isValid()) {
           dismiss();
           return;
@@ -24012,12 +28701,8 @@ function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t: t2, s
         validityRef.current = result?.isValid ?? null;
         anchorRef.current = result?.anchor ?? null;
         setCard(result?.card ?? null);
-        if (visionPendingRef.current) {
-          visionPendingRef.current = false;
-          setVisionOpen(true);
-        }
       } catch (error) {
-        if (!current()) return;
+        if (!current2()) return;
         const reason = error instanceof Error ? error.message : String(error);
         if (reason === "no_surface" || reason === "cancelled") {
           setErrorLine("");
@@ -24027,29 +28712,28 @@ function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t: t2, s
           setCard(null);
         }
       } finally {
-        if (current()) setBusy(false);
+        if (current2()) setBusy(false);
       }
     },
     [controller, t2, dismiss]
   );
-  import_react38.default.useEffect(() => {
+  import_react49.default.useEffect(() => {
     if (!apiRef) return void 0;
     identify.cancel = dismiss;
-    identify.requestVision = requestVision;
     apiRef.current = active ? identify : null;
     return () => {
       if (apiRef) apiRef.current = null;
     };
-  }, [apiRef, active, identify, dismiss, requestVision]);
-  import_react38.default.useEffect(() => {
+  }, [apiRef, active, identify, dismiss]);
+  import_react49.default.useEffect(() => {
     if (active) return;
     dismiss();
   }, [active, dismiss]);
-  import_react38.default.useEffect(() => () => {
+  import_react49.default.useEffect(() => () => {
     requestRef.current?.abort();
     if (bracketRef.current) bracketRef.current.style.display = "none";
   }, []);
-  import_react38.default.useEffect(() => {
+  import_react49.default.useEffect(() => {
     if (!active || !card) return void 0;
     const viewer = controller?.getViewer?.();
     const Cesium = controller?.getCesium?.();
@@ -24086,7 +28770,7 @@ function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t: t2, s
       }
     };
   }, [active, card, controller, dismiss]);
-  import_react38.default.useEffect(() => {
+  import_react49.default.useEffect(() => {
     if (!active) return void 0;
     const onKey = (event) => {
       if (event.key === "Escape") {
@@ -24143,7 +28827,7 @@ function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t: t2, s
   const groundSourceFact = factOf(card, "ground_source");
   const confidenceChip = (basis) => {
     const tier = CONFIDENCE_TIER[basis] ?? CONFIDENCE_TIER.inferred;
-    return h32("span", { className: `mv-sel-conf ${tier.tone}`, title: t2(tier.key) }, t2(tier.key));
+    return h42("span", { className: `mv-sel-conf ${tier.tone}`, title: t2(tier.key) }, t2(tier.key));
   };
   const limitations = Array.isArray(card?.limitations) ? card.limitations : [];
   const radii = card?.sampling?.radii_m ?? [30, 60, 120];
@@ -24170,91 +28854,80 @@ function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t: t2, s
     showToast(t2("selection.copyFailed"));
   };
   const showFootnote = limitations.includes("no_building_identity") || limitations.includes("tile_feature_only");
-  return h32(
-    import_react38.default.Fragment,
+  return h42(
+    import_react49.default.Fragment,
     null,
-    h32(
+    h42(
       "div",
       { ref: bracketRef, className: "mv-sel-anchor", style: { display: "none" }, "aria-hidden": true },
-      h32("i", { className: "c tl" }),
-      h32("i", { className: "c tr" }),
-      h32("i", { className: "c bl" }),
-      h32("i", { className: "c br" }),
-      h32("span", { className: "leader" }),
-      h32("b", { ref: chipRef, className: "chip" }, object && object.value !== null ? `≈ ${numberText(object.value, " m")}` : t2("selection.noHeight"))
+      h42("i", { className: "c tl" }),
+      h42("i", { className: "c tr" }),
+      h42("i", { className: "c bl" }),
+      h42("i", { className: "c br" }),
+      h42("span", { className: "leader" }),
+      h42("b", { ref: chipRef, className: "chip" }, object && object.value !== null ? `≈ ${numberText(object.value, " m")}` : t2("selection.noHeight"))
     ),
-    busy ? h32("div", { className: "mv-select mv-select-loading mv-glass", role: "status" }, h32("div", { className: "mv-spinner" }), h32("span", null, t2("selection.reading"))) : null,
-    errorLine !== "" ? h32(
+    busy ? h42("div", { className: "mv-select mv-select-loading mv-glass", role: "status" }, h42("div", { className: "mv-spinner" }), h42("span", null, t2("selection.reading"))) : null,
+    errorLine !== "" ? h42(
       "div",
       { className: "mv-select mv-glass" },
-      h32("div", { className: "mv-select-error" }, h32("span", null, errorLine))
+      h42("div", { className: "mv-select-error" }, h42("span", null, errorLine))
     ) : null,
-    card && visionOpen ? h32(VisionSelect, {
-      controller,
-      anchor: anchorRef.current,
-      t: t2,
-      onClose: () => setVisionOpen(false),
-      onCommit: onVisionCommit,
-      onManual: () => {
-        onVisionManual?.();
-        getSelectionTool(controller.getViewer(), { getCesium: controller.getCesium, t: t2, showToast })?.start("polygon");
-      }
-    }) : null,
-    card && !visionOpen ? h32(
+    card ? h42(
       "div",
       { className: "mv-select mv-glass" },
-      h32(
+      h42(
         "header",
         null,
-        h32("span", { className: "kind" }, t2("selection.resultLabel")),
-        h32(
+        h42("span", { className: "kind" }, t2("selection.resultLabel")),
+        h42(
           "button",
           { type: "button", className: "mv-icon-btn", title: t2("btn.close"), "aria-label": t2("btn.close"), onClick: dismiss },
           "✕"
         )
       ),
-      h32("h3", null, card.identity?.name ?? t2(TITLE_KEY[card.identity?.kind] ?? TITLE_KEY.tile_feature)),
-      h32("p", { className: "layer" }, card.layer?.name ?? t2("selection.unknownLayer")),
-      h32(
+      h42("h3", null, card.identity?.name ?? t2(TITLE_KEY[card.identity?.kind] ?? TITLE_KEY.tile_feature)),
+      h42("p", { className: "layer" }, card.layer?.name ?? t2("selection.unknownLayer")),
+      h42(
         "div",
         { className: "mv-sel-meta" },
-        h32("span", { className: "mv-sel-meta-chip" }, t2(hitKindKey)),
-        groundSourceFact ? h32("span", { className: "mv-sel-meta-chip" }, t2(groundSourceLabelKey(groundSourceFact.value))) : null,
-        featureId != null ? h32("span", { className: "mv-sel-meta-chip" }, t2("selection.featureId", { id: featureId })) : null
+        h42("span", { className: "mv-sel-meta-chip" }, t2(hitKindKey)),
+        groundSourceFact ? h42("span", { className: "mv-sel-meta-chip" }, t2(groundSourceLabelKey(groundSourceFact.value))) : null,
+        featureId != null ? h42("span", { className: "mv-sel-meta-chip" }, t2("selection.featureId", { id: featureId })) : null
       ),
-      lonLat !== "" ? h32(
+      lonLat !== "" ? h42(
         "div",
         { className: "coords" },
-        h32("span", { className: "key" }, t2("selection.coordinates")),
-        h32("code", { title: t2("selection.copyCoords") }, lonLat),
-        h32(
+        h42("span", { className: "key" }, t2("selection.coordinates")),
+        h42("code", { title: t2("selection.copyCoords") }, lonLat),
+        h42(
           "button",
           { type: "button", className: "mv-icon-btn", title: t2("selection.copyCoords"), "aria-label": t2("selection.copyCoords"), onClick: copyCoordinates },
           "⧉"
         )
       ) : null,
-      h32(
+      h42(
         "div",
         { className: "facts" },
-        surface ? h32(
+        surface ? h42(
           "div",
           { className: "fact" },
-          h32("span", { className: "key" }, t2("selection.surfaceHeight")),
-          h32("b", null, numberText(surface.value)),
+          h42("span", { className: "key" }, t2("selection.surfaceHeight")),
+          h42("b", null, numberText(surface.value)),
           confidenceChip("measured")
         ) : null,
-        object ? h32(
+        object ? h42(
           "div",
           { className: "fact" },
-          h32("span", { className: "key" }, t2("selection.objectHeight")),
-          h32("b", null, numberText(object.value)),
+          h42("span", { className: "key" }, t2("selection.objectHeight")),
+          h42("b", null, numberText(object.value)),
           confidenceChip(object.basis)
         ) : null,
-        above ? h32(
+        above ? h42(
           "div",
           { className: "fact" },
-          h32("span", { className: "key", title: t2("selection.aboveMedianHint") }, t2("selection.aboveMedian")),
-          h32(
+          h42("span", { className: "key", title: t2("selection.aboveMedianHint") }, t2("selection.aboveMedian")),
+          h42(
             "b",
             null,
             typeof above.value === "number" ? `${Math.round(above.value) > 0 ? "+" : ""}${Math.round(above.value)} m` : "—"
@@ -24262,26 +28935,26 @@ function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t: t2, s
           confidenceChip(above.basis)
         ) : null
       ),
-      properties.length > 0 ? h32(
+      properties.length > 0 ? h42(
         "div",
         { className: "props" },
-        h32(
+        h42(
           "span",
           { className: "props-title" },
           propertyInfo.hidden > 0 ? t2("selection.propertiesCount", { shown: properties.length, total: propertyInfo.total }) : t2("selection.properties")
         ),
         ...properties.map(
-          (property, index) => h32(
+          (property, index) => h42(
             "div",
             { key: `${property.name}-${index}`, className: "prop" },
-            h32("span", { title: property.name }, property.name),
-            h32("b", { title: property.value }, property.value)
+            h42("span", { title: property.name }, property.name),
+            h42("b", { title: property.value }, property.value)
           )
         ),
-        propertyInfo.hidden > 0 ? h32(
-          import_react38.default.Fragment,
+        propertyInfo.hidden > 0 ? h42(
+          import_react49.default.Fragment,
           null,
-          h32(
+          h42(
             "button",
             {
               type: "button",
@@ -24294,7 +28967,7 @@ function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t: t2, s
           )
         ) : null
       ) : null,
-      samplingMin != null && samplingMax != null ? h32(
+      samplingMin != null && samplingMax != null ? h42(
         "p",
         { className: "sampling" },
         t2("selection.neighborBand", {
@@ -24303,28 +28976,27 @@ function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t: t2, s
           spread: Math.round(samplingSpread ?? 0)
         })
       ) : null,
-      h32(
+      h42(
         "p",
         { className: "sampling", title: t2("selection.samplingHint") },
         t2("selection.sampling", { count: card.sampling?.count ?? 0, radii: radii.join("/") })
       ),
-      showFootnote ? h32("p", { className: "footnote" }, t2("selection.footnote")) : null,
-      h32(
+      showFootnote ? h42("p", { className: "footnote" }, t2("selection.footnote")) : null,
+      h42(
         "div",
         { className: "actions" },
-        typeof onVisionCommit === "function" ? h32("button", { type: "button", className: "mv-cta", title: t2("vision.actionHint"), onClick: () => setVisionOpen(true) }, t2("vision.action")) : null,
-        h32("button", { type: "button", className: "mv-cta", title: t2("selection.flyHint"), onClick: flyNear }, t2("selection.fly")),
-        h32("button", { type: "button", className: "mv-cta", title: t2("selection.measureHint"), onClick: measure }, t2("selection.measure")),
-        h32(
+        h42("button", { type: "button", className: "mv-cta", title: t2("selection.flyHint"), onClick: flyNear }, t2("selection.fly")),
+        h42("button", { type: "button", className: "mv-cta", title: t2("selection.measureHint"), onClick: measure }, t2("selection.measure")),
+        h42(
           "button",
           { type: "button", className: "mv-cta primary", title: t2("selection.exportHint"), disabled: exporting, onClick: takeAway },
           exporting ? t2("selection.exporting") : t2("selection.takeAway")
         )
       ),
-      typeof onSelectArea === "function" ? h32(
+      typeof onSelectArea === "function" ? h42(
         "div",
         { className: "actions secondary" },
-        h32(
+        h42(
           "button",
           { type: "button", className: "mv-cta", title: t2("selection.approximate"), onClick: selectAround },
           t2("selection.areaAction")
@@ -24335,8 +29007,8 @@ function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t: t2, s
 }
 
 // src/client/ui/vector-card.js
-var import_react39 = __toESM(require("react"), 1);
-var h33 = import_react39.default.createElement;
+var import_react50 = __toESM(require("react"), 1);
+var h43 = import_react50.default.createElement;
 function VectorCard({ selection, onClose, onChange, onDelete, onExport, onSendToChat, t: t2, embedded = false }) {
   const feature = selection?.feature ?? null;
   const command = selection?.command ?? null;
@@ -24354,26 +29026,26 @@ function VectorCard({ selection, onClose, onChange, onDelete, onExport, onSendTo
   const savedKind = annotationKindOf(feature);
   const savedStyle = annotationStyleOf(feature, command?.style ?? "accent");
   const savedExtrusion = annotationExtrusionOf(feature);
-  const savedAttrs = import_react39.default.useMemo(() => extractCustomAttributes(feature), [feature]);
-  const [name, setName] = import_react39.default.useState("");
-  const [note, setNote] = import_react39.default.useState("");
-  const [kind, setKind] = import_react39.default.useState("point");
-  const [style, setStyle] = import_react39.default.useState("accent");
-  const [extruded, setExtruded] = import_react39.default.useState(false);
-  const [heightInput, setHeightInput] = import_react39.default.useState("15");
-  const [lonInput, setLonInput] = import_react39.default.useState("");
-  const [latInput, setLatInput] = import_react39.default.useState("");
-  const nextAttrId = import_react39.default.useRef(1);
-  const [attrs, setAttrs] = import_react39.default.useState([]);
-  const [attrsOpen, setAttrsOpen] = import_react39.default.useState(false);
-  const [busy, setBusy] = import_react39.default.useState(false);
+  const savedAttrs = import_react50.default.useMemo(() => extractCustomAttributes(feature), [feature]);
+  const [name, setName] = import_react50.default.useState("");
+  const [note, setNote] = import_react50.default.useState("");
+  const [kind, setKind] = import_react50.default.useState("point");
+  const [style, setStyle] = import_react50.default.useState("accent");
+  const [extruded, setExtruded] = import_react50.default.useState(false);
+  const [heightInput, setHeightInput] = import_react50.default.useState("15");
+  const [lonInput, setLonInput] = import_react50.default.useState("");
+  const [latInput, setLatInput] = import_react50.default.useState("");
+  const nextAttrId = import_react50.default.useRef(1);
+  const [attrs, setAttrs] = import_react50.default.useState([]);
+  const [attrsOpen, setAttrsOpen] = import_react50.default.useState(false);
+  const [busy, setBusy] = import_react50.default.useState(false);
   const floating = useFloatingWindow({
     storageKey: "vector-card",
     title: selection?.title || t2("vector.selection"),
     t: t2,
     restoreSaved: false
   });
-  import_react39.default.useEffect(() => {
+  import_react50.default.useEffect(() => {
     setName(savedName);
     setNote(savedNote);
     setKind(savedKind);
@@ -24473,7 +29145,7 @@ function VectorCard({ selection, onClose, onChange, onDelete, onExport, onSendTo
   const removeAttrRow = (id) => {
     setAttrs((prev) => prev.filter((item) => item.id !== id));
   };
-  return h33(
+  return h43(
     "section",
     {
       className: `mv-vector-card${embedded ? " in-dock" : ""} ${embedded ? "" : floating.className}`,
@@ -24482,18 +29154,18 @@ function VectorCard({ selection, onClose, onChange, onDelete, onExport, onSendTo
       "aria-label": t2("vector.selection"),
       ...embedded ? {} : floating.panelProps
     },
-    h33(
+    h43(
       "header",
       embedded ? { className: "mv-dock-card-head" } : floating.headerProps,
       embedded ? null : floating.dragHandle,
-      h33(
+      h43(
         "div",
         null,
-        h33("span", { className: "eyebrow" }, selection.kind),
-        h33("h3", null, selection.title)
+        h43("span", { className: "eyebrow" }, selection.kind),
+        h43("h3", null, selection.title)
       ),
       embedded ? null : floating.resetButton,
-      h33(
+      h43(
         "button",
         {
           type: "button",
@@ -24506,47 +29178,47 @@ function VectorCard({ selection, onClose, onChange, onDelete, onExport, onSendTo
       )
     ),
     embedded ? null : floating.liveRegion,
-    selection.summary ? h33("p", { className: "summary" }, selection.summary) : null,
-    editable ? h33(
+    selection.summary ? h43("p", { className: "summary" }, selection.summary) : null,
+    editable ? h43(
       "div",
       { className: "mv-vector-edit" },
-      h33(
+      h43(
         "label",
         null,
-        h33("span", null, t2("annotation.name")),
-        h33("input", {
+        h43("span", null, t2("annotation.name")),
+        h43("input", {
           value: name,
           maxLength: 80,
           placeholder: t2("annotation.namePlaceholder"),
           onChange: (event) => setName(event.target.value)
         })
       ),
-      h33(
+      h43(
         "div",
         { className: "mv-vector-row-2" },
-        h33(
+        h43(
           "label",
           null,
-          h33("span", null, t2("annotation.kindLabel")),
-          h33(
+          h43("span", null, t2("annotation.kindLabel")),
+          h43(
             "select",
             {
               value: kind,
               "aria-label": t2("annotation.kindLabel"),
               onChange: (event) => setKind(event.target.value)
             },
-            ...ANNOTATION_KINDS.map((item) => h33("option", { key: item, value: item }, t2(`annotation.kind.${item}`)))
+            ...ANNOTATION_KINDS.map((item) => h43("option", { key: item, value: item }, t2(`annotation.kind.${item}`)))
           )
         ),
-        h33(
+        h43(
           "div",
           { className: "mv-vector-field" },
-          h33("span", { className: "mv-vector-field-label" }, t2("annotation.styleLabel")),
-          h33(
+          h43("span", { className: "mv-vector-field-label" }, t2("annotation.styleLabel")),
+          h43(
             "div",
             { className: "mv-swatch-row", role: "radiogroup", "aria-label": t2("annotation.styleLabel") },
             ...ANNOTATION_STYLES.map(
-              (preset) => h33("button", {
+              (preset) => h43("button", {
                 key: preset,
                 type: "button",
                 className: `mv-swatch${style === preset ? " on" : ""}`,
@@ -24561,24 +29233,24 @@ function VectorCard({ selection, onClose, onChange, onDelete, onExport, onSendTo
           )
         )
       ),
-      isPolygon ? h33(
+      isPolygon ? h43(
         "div",
         { className: "mv-extrude-box" },
-        h33(
+        h43(
           "label",
           { className: "mv-extrude-toggle" },
-          h33("input", {
+          h43("input", {
             type: "checkbox",
             checked: extruded,
             onChange: (event) => setExtruded(Boolean(event.target.checked))
           }),
-          h33("span", null, t2("annotation.extrude3d"))
+          h43("span", null, t2("annotation.extrude3d"))
         ),
-        extruded ? h33(
+        extruded ? h43(
           "label",
           { className: "mv-extrude-height" },
-          h33("span", null, t2("annotation.extrudeHeight")),
-          h33("input", {
+          h43("span", null, t2("annotation.extrudeHeight")),
+          h43("input", {
             type: "number",
             min: 0.5,
             max: ANNOTATION_MAX_HEIGHT_M,
@@ -24587,20 +29259,20 @@ function VectorCard({ selection, onClose, onChange, onDelete, onExport, onSendTo
             "aria-label": t2("annotation.extrudeHeight"),
             onChange: (event) => setHeightInput(event.target.value)
           })
-        ) : h33("span", { className: "mv-extrude-hint" }, t2("annotation.extrudeHint"))
+        ) : h43("span", { className: "mv-extrude-hint" }, t2("annotation.extrudeHint"))
       ) : null,
-      isPoint ? h33(
+      isPoint ? h43(
         "div",
         { className: "mv-vector-field" },
-        h33("span", { className: "mv-vector-field-label" }, t2("annotation.pointCoords")),
-        h33(
+        h43("span", { className: "mv-vector-field-label" }, t2("annotation.pointCoords")),
+        h43(
           "div",
           { className: "mv-point-coords" },
-          h33(
+          h43(
             "label",
             null,
-            h33("span", null, t2("annotation.lon")),
-            h33("input", {
+            h43("span", null, t2("annotation.lon")),
+            h43("input", {
               type: "number",
               step: "0.000001",
               min: -180,
@@ -24610,11 +29282,11 @@ function VectorCard({ selection, onClose, onChange, onDelete, onExport, onSendTo
               onChange: (event) => setLonInput(event.target.value)
             })
           ),
-          h33(
+          h43(
             "label",
             null,
-            h33("span", null, t2("annotation.lat")),
-            h33("input", {
+            h43("span", null, t2("annotation.lat")),
+            h43("input", {
               type: "number",
               step: "0.000001",
               min: -90,
@@ -24626,11 +29298,11 @@ function VectorCard({ selection, onClose, onChange, onDelete, onExport, onSendTo
           )
         )
       ) : null,
-      h33(
+      h43(
         "label",
         null,
-        h33("span", null, t2("annotation.note")),
-        h33("textarea", {
+        h43("span", null, t2("annotation.note")),
+        h43("textarea", {
           value: note,
           maxLength: 280,
           rows: 2,
@@ -24638,13 +29310,13 @@ function VectorCard({ selection, onClose, onChange, onDelete, onExport, onSendTo
           onChange: (event) => setNote(event.target.value)
         })
       ),
-      h33(
+      h43(
         "div",
         { className: "mv-attr-box" },
-        h33(
+        h43(
           "div",
           { className: "mv-attr-head" },
-          h33(
+          h43(
             "button",
             {
               type: "button",
@@ -24653,23 +29325,23 @@ function VectorCard({ selection, onClose, onChange, onDelete, onExport, onSendTo
               "aria-label": t2(attrsOpen ? "annotation.attributesCollapse" : "annotation.attributesExpand"),
               onClick: () => setAttrsOpen((open) => !open)
             },
-            h33("span", { "aria-hidden": true }, attrsOpen ? "▾" : "▸"),
-            h33("span", null, `${t2("annotation.attributes")}${attrs.length ? ` (${attrs.length})` : ""}`)
+            h43("span", { "aria-hidden": true }, attrsOpen ? "▾" : "▸"),
+            h43("span", null, `${t2("annotation.attributes")}${attrs.length ? ` (${attrs.length})` : ""}`)
           ),
-          h33(
+          h43(
             "button",
             { type: "button", className: "mv-attr-add", onClick: addAttrRow },
             t2("annotation.addAttribute")
           )
         ),
-        attrsOpen && attrs.length > 0 ? h33(
+        attrsOpen && attrs.length > 0 ? h43(
           "div",
           { className: "mv-attr-list" },
           ...attrs.map(
-            (item) => h33(
+            (item) => h43(
               "div",
               { key: item.id, className: "mv-attr-row" },
-              h33("input", {
+              h43("input", {
                 type: "text",
                 maxLength: ANNOTATION_MAX_ATTR_KEY,
                 value: item.key,
@@ -24678,7 +29350,7 @@ function VectorCard({ selection, onClose, onChange, onDelete, onExport, onSendTo
                 "aria-label": t2("annotation.attrKeyPlaceholder"),
                 onChange: (event) => updateAttrRow(item.id, "key", event.target.value)
               }),
-              item.preserveObject ? h33("span", { className: "mv-attr-json", title: item.value }, item.value) : h33("input", {
+              item.preserveObject ? h43("span", { className: "mv-attr-json", title: item.value }, item.value) : h43("input", {
                 type: "text",
                 maxLength: ANNOTATION_MAX_ATTR_VALUE,
                 value: item.value,
@@ -24686,7 +29358,7 @@ function VectorCard({ selection, onClose, onChange, onDelete, onExport, onSendTo
                 "aria-label": item.key || t2("annotation.attrValuePlaceholder"),
                 onChange: (event) => updateAttrRow(item.id, "value", event.target.value)
               }),
-              h33(
+              h43(
                 "button",
                 {
                   type: "button",
@@ -24700,21 +29372,21 @@ function VectorCard({ selection, onClose, onChange, onDelete, onExport, onSendTo
             )
           )
         ) : null,
-        attrsOpen && complexAttrCount > 0 ? h33("span", { className: "mv-attr-hint" }, t2("annotation.attrsComplexHint", { n: complexAttrCount })) : null
+        attrsOpen && complexAttrCount > 0 ? h43("span", { className: "mv-attr-hint" }, t2("annotation.attrsComplexHint", { n: complexAttrCount })) : null
       )
     ) : null,
-    rows.length ? h33(
+    rows.length ? h43(
       "dl",
       null,
       rows.map(
-        ([itemName, value], index) => h33("div", { key: index }, h33("dt", null, itemName), h33("dd", null, value))
+        ([itemName, value], index) => h43("div", { key: index }, h43("dt", null, itemName), h43("dd", null, value))
       )
     ) : null,
-    shapeEditable ? h33("p", { className: "mv-vector-shortcuts" }, t2("annotation.shortcutHint")) : null,
-    editable ? h33(
+    shapeEditable ? h43("p", { className: "mv-vector-shortcuts" }, t2("annotation.shortcutHint")) : null,
+    editable ? h43(
       "footer",
       { className: "mv-vector-actions" },
-      h33(
+      h43(
         "button",
         {
           type: "button",
@@ -24724,7 +29396,7 @@ function VectorCard({ selection, onClose, onChange, onDelete, onExport, onSendTo
         },
         t2("annotation.save")
       ),
-      h33(
+      h43(
         "button",
         {
           type: "button",
@@ -24734,7 +29406,7 @@ function VectorCard({ selection, onClose, onChange, onDelete, onExport, onSendTo
         },
         t2("annotation.export")
       ),
-      typeof onSendToChat === "function" ? h33(
+      typeof onSendToChat === "function" ? h43(
         "button",
         {
           type: "button",
@@ -24745,7 +29417,7 @@ function VectorCard({ selection, onClose, onChange, onDelete, onExport, onSendTo
         },
         t2("annotation.sendToChat")
       ) : null,
-      h33(
+      h43(
         "button",
         {
           type: "button",
@@ -24756,12 +29428,12 @@ function VectorCard({ selection, onClose, onChange, onDelete, onExport, onSendTo
         t2("annotation.delete")
       )
     ) : null,
-    h33("footer", null, editable ? t2("annotation.editHint") : t2("vector.selectedHint"))
+    h43("footer", null, editable ? t2("annotation.editHint") : t2("vector.selectedHint"))
   );
 }
 
 // src/client/ui/tour-bar.js
-var import_react40 = __toESM(require("react"), 1);
+var import_react51 = __toESM(require("react"), 1);
 
 // src/client/scene/tour.js
 var TOUR_MIN_DURATION = 1.6;
@@ -24807,16 +29479,16 @@ function tourDuration(fromView, toView) {
 }
 
 // src/client/ui/tour-bar.js
-var h34 = import_react40.default.createElement;
+var h44 = import_react51.default.createElement;
 function useTour({ t: t2, showToast, getCurrentView, onFlyView, onFinish }) {
-  const [state, setState] = import_react40.default.useState(null);
-  const barRef = import_react40.default.useRef(null);
-  const apiRef = import_react40.default.useRef({});
+  const [state, setState] = import_react51.default.useState(null);
+  const barRef = import_react51.default.useRef(null);
+  const apiRef = import_react51.default.useRef({});
   apiRef.current = { t: t2, showToast, getCurrentView, onFlyView, onFinish };
-  const stop = import_react40.default.useCallback(() => {
+  const stop = import_react51.default.useCallback(() => {
     setState(null);
   }, []);
-  const start = import_react40.default.useCallback(
+  const start = import_react51.default.useCallback(
     (bookmarks) => {
       const stops = buildTour(bookmarks);
       if (stops.length < TOUR_MIN_STOPS) {
@@ -24828,14 +29500,14 @@ function useTour({ t: t2, showToast, getCurrentView, onFlyView, onFinish }) {
     },
     [showToast, t2]
   );
-  import_react40.default.useEffect(() => {
+  import_react51.default.useEffect(() => {
     if (!state || !state.playing) return void 0;
     const api = apiRef.current;
-    const current2 = state.stops[state.index];
-    if (!current2) return void 0;
+    const current3 = state.stops[state.index];
+    if (!current3) return void 0;
     const from = typeof api.getCurrentView === "function" ? api.getCurrentView() : null;
-    const duration = tourDuration(from, current2.view);
-    if (typeof api.onFlyView === "function") api.onFlyView(current2.view, duration);
+    const duration = tourDuration(from, current3.view);
+    if (typeof api.onFlyView === "function") api.onFlyView(current3.view, duration);
     const timer = setTimeout(() => {
       const next = stepIndex(state.index, 1, state.stops.length);
       if (next === 0) {
@@ -24848,7 +29520,7 @@ function useTour({ t: t2, showToast, getCurrentView, onFlyView, onFinish }) {
     }, Math.round(duration * 1e3) + TOUR_DWELL_MS);
     return () => clearTimeout(timer);
   }, [state]);
-  import_react40.default.useEffect(() => {
+  import_react51.default.useEffect(() => {
     if (!state || !state.playing) return void 0;
     const onPointerDown = (event) => {
       const bar = barRef.current;
@@ -24862,29 +29534,29 @@ function useTour({ t: t2, showToast, getCurrentView, onFlyView, onFinish }) {
     setState(null);
     return true;
   }, Boolean(state));
-  const current = state ? state.stops[state.index] : null;
-  const element = state ? h34(
+  const current2 = state ? state.stops[state.index] : null;
+  const element = state ? h44(
     "div",
     { ref: barRef, className: "mv-tour mv-glass", role: "region", "aria-label": t2("tour.title") },
-    h34(
+    h44(
       "div",
       { className: "mv-tour-head" },
-      h34("b", null, t2("tour.title")),
-      current?.name ? h34("span", { className: "mv-tour-stop-name" }, current.name) : null,
-      h34("span", { className: "mv-tour-progress" }, t2("tour.progress", { index: state.index + 1, total: state.stops.length })),
-      h34("button", { type: "button", className: "mv-icon-btn", title: t2("tour.exit"), "aria-label": t2("tour.exit"), onClick: stop }, "✕")
+      h44("b", null, t2("tour.title")),
+      current2?.name ? h44("span", { className: "mv-tour-stop-name" }, current2.name) : null,
+      h44("span", { className: "mv-tour-progress" }, t2("tour.progress", { index: state.index + 1, total: state.stops.length })),
+      h44("button", { type: "button", className: "mv-icon-btn", title: t2("tour.exit"), "aria-label": t2("tour.exit"), onClick: stop }, "✕")
     ),
-    h34(
+    h44(
       "div",
       { className: "mv-tour-body" },
-      current?.thumb ? h34("img", { className: "mv-tour-thumb", src: current.thumb, alt: current.name || t2("tour.title") }) : null,
-      h34("p", { className: "mv-tour-caption" }, stopCaption(current, state.index, t2))
+      current2?.thumb ? h44("img", { className: "mv-tour-thumb", src: current2.thumb, alt: current2.name || t2("tour.title") }) : null,
+      h44("p", { className: "mv-tour-caption" }, stopCaption(current2, state.index, t2))
     ),
-    h34(
+    h44(
       "div",
       { className: "mv-tour-actions" },
-      h34("button", { type: "button", className: "mv-icon-btn", title: t2("tour.prev"), "aria-label": t2("tour.prev"), onClick: () => setState((previous) => previous ? { ...previous, index: stepIndex(previous.index, -1, previous.stops.length), playing: true } : null) }, "⏮"),
-      h34(
+      h44("button", { type: "button", className: "mv-icon-btn", title: t2("tour.prev"), "aria-label": t2("tour.prev"), onClick: () => setState((previous) => previous ? { ...previous, index: stepIndex(previous.index, -1, previous.stops.length), playing: true } : null) }, "⏮"),
+      h44(
         "button",
         {
           type: "button",
@@ -24893,15 +29565,15 @@ function useTour({ t: t2, showToast, getCurrentView, onFlyView, onFinish }) {
         },
         state.playing ? t2("tour.pause") : t2("tour.play")
       ),
-      h34("button", { type: "button", className: "mv-icon-btn", title: t2("tour.next"), "aria-label": t2("tour.next"), onClick: () => setState((previous) => previous ? { ...previous, index: stepIndex(previous.index, 1, previous.stops.length), playing: true } : null) }, "⏭")
+      h44("button", { type: "button", className: "mv-icon-btn", title: t2("tour.next"), "aria-label": t2("tour.next"), onClick: () => setState((previous) => previous ? { ...previous, index: stepIndex(previous.index, 1, previous.stops.length), playing: true } : null) }, "⏭")
     ),
-    h34("p", { className: "mv-tour-hint" }, t2("tour.hint"))
+    h44("p", { className: "mv-tour-hint" }, t2("tour.hint"))
   ) : null;
   return { start, stop, element };
 }
 
 // src/client/ui/swipe-bar.js
-var import_react41 = __toESM(require("react"), 1);
+var import_react52 = __toESM(require("react"), 1);
 
 // src/client/scene/swipe.js
 var clampSwipeRatio = (value) => {
@@ -25015,39 +29687,39 @@ function createSwipeSession({ getCesium, getViewer, getLayers, getOverlayLayers 
   }
   function stop() {
     if (!active) return false;
-    const current = active;
+    const current2 = active;
     active = null;
     const viewer = getViewer?.();
     const Cesium = getCesium?.();
-    if (current.kind === "3d") {
-      if (current.removePreRender) {
+    if (current2.kind === "3d") {
+      if (current2.removePreRender) {
         try {
-          current.removePreRender();
+          current2.removePreRender();
         } catch {
         }
       }
       try {
-        releaseClipCollection(current.tileset, CLIP_OWNER_SWIPE);
+        releaseClipCollection(current2.tileset, CLIP_OWNER_SWIPE);
       } catch {
       }
-    } else if (current.kind === "raster") {
-      const targetLayer = getOverlayLayers?.()?.getLayer?.(current.id) ?? current.imageryLayer;
+    } else if (current2.kind === "raster") {
+      const targetLayer = getOverlayLayers?.()?.getLayer?.(current2.id) ?? current2.imageryLayer;
       if (targetLayer) {
         try {
-          targetLayer.splitDirection = current.previousSplitDirection ?? (Cesium?.SplitDirection?.NONE ?? 0);
+          targetLayer.splitDirection = current2.previousSplitDirection ?? (Cesium?.SplitDirection?.NONE ?? 0);
         } catch {
         }
       }
       if (viewer?.scene) {
         try {
-          viewer.scene.splitPosition = current.previousSplitPosition ?? 0.5;
+          viewer.scene.splitPosition = current2.previousSplitPosition ?? 0.5;
         } catch {
         }
       }
-    } else if (current.kind === "split" || current.kind === "pair") {
-      restoreSplitSession(current, Cesium, viewer);
+    } else if (current2.kind === "split" || current2.kind === "pair") {
+      restoreSplitSession(current2, Cesium, viewer);
     }
-    current.resumeBounds?.();
+    current2.resumeBounds?.();
     requestRender();
     return true;
   }
@@ -25286,7 +29958,7 @@ function createSwipeSession({ getCesium, getViewer, getLayers, getOverlayLayers 
 }
 
 // src/client/ui/swipe-bar.js
-var h35 = import_react41.default.createElement;
+var h45 = import_react52.default.createElement;
 function engineLayersOf(deps) {
   const full = deps?.getLayers?.();
   if (Array.isArray(full)) return full;
@@ -25297,12 +29969,12 @@ function toastForReason(api, reason) {
   api.showToast?.(api.t?.(msgKey) ?? msgKey);
 }
 function useSwipe({ t: t2, showToast, layers: layers2, overlays, getCesium, getViewer, getOverlayLayers, getLayers }) {
-  const [state, setState] = import_react41.default.useState(null);
-  const containerRef = import_react41.default.useRef(null);
-  const draggingRef = import_react41.default.useRef(false);
-  const depsRef = import_react41.default.useRef({});
+  const [state, setState] = import_react52.default.useState(null);
+  const containerRef = import_react52.default.useRef(null);
+  const draggingRef = import_react52.default.useRef(false);
+  const depsRef = import_react52.default.useRef({});
   depsRef.current = { t: t2, showToast, layers: layers2, overlays, getCesium, getViewer, getOverlayLayers, getLayers };
-  const sessionRef = import_react41.default.useRef(null);
+  const sessionRef = import_react52.default.useRef(null);
   if (!sessionRef.current) {
     sessionRef.current = createSwipeSession({
       getCesium: () => depsRef.current.getCesium?.(),
@@ -25311,11 +29983,11 @@ function useSwipe({ t: t2, showToast, layers: layers2, overlays, getCesium, getV
       getOverlayLayers: () => depsRef.current.getOverlayLayers?.()
     });
   }
-  const stop = import_react41.default.useCallback(() => {
+  const stop = import_react52.default.useCallback(() => {
     sessionRef.current?.stop();
     setState(null);
   }, []);
-  const runAction = import_react41.default.useCallback((fn, { silent = false } = {}) => {
+  const runAction = import_react52.default.useCallback((fn, { silent = false } = {}) => {
     let res;
     try {
       res = fn(sessionRef.current);
@@ -25329,32 +30001,32 @@ function useSwipe({ t: t2, showToast, layers: layers2, overlays, getCesium, getV
     setState(res.state);
     return res;
   }, []);
-  const startSplit = import_react41.default.useCallback(
+  const startSplit = import_react52.default.useCallback(
     (layerId, options) => runAction((session) => session.startSplit(layerId, options)),
     [runAction]
   );
-  const startPair = import_react41.default.useCallback(
+  const startPair = import_react52.default.useCallback(
     (leftLayerId, rightLayerId, options) => runAction((session) => session.startPair(leftLayerId, rightLayerId, options)),
     [runAction]
   );
-  const swapSides = import_react41.default.useCallback(() => runAction((session) => session.swapSides(), { silent: true }), [runAction]);
-  const setLeftLayer = import_react41.default.useCallback(
+  const swapSides = import_react52.default.useCallback(() => runAction((session) => session.swapSides(), { silent: true }), [runAction]);
+  const setLeftLayer = import_react52.default.useCallback(
     (leftLayerId) => runAction((session) => session.setLeftLayer(leftLayerId)),
     [runAction]
   );
-  const setRightLayer = import_react41.default.useCallback(
+  const setRightLayer = import_react52.default.useCallback(
     (rightLayerId) => runAction((session) => session.setRightLayer(rightLayerId)),
     [runAction]
   );
-  const setRatio = import_react41.default.useCallback((nextRatio) => {
+  const setRatio = import_react52.default.useCallback((nextRatio) => {
     const next = sessionRef.current?.setRatio(clampSwipeRatio(nextRatio));
     if (next) setState(next);
     return next;
   }, []);
-  const toggle3d = import_react41.default.useCallback(
+  const toggle3d = import_react52.default.useCallback(
     (layerId) => {
-      const current = sessionRef.current?.getState();
-      if (current && (current.kind === "3d" || current.kind === "split") && current.id === layerId) {
+      const current2 = sessionRef.current?.getState();
+      if (current2 && (current2.kind === "3d" || current2.kind === "split") && current2.id === layerId) {
         stop();
         return false;
       }
@@ -25363,10 +30035,10 @@ function useSwipe({ t: t2, showToast, layers: layers2, overlays, getCesium, getV
     },
     [stop, startSplit]
   );
-  const toggleRaster = import_react41.default.useCallback(
+  const toggleRaster = import_react52.default.useCallback(
     (overlayId) => {
-      const current = sessionRef.current?.getState();
-      if (current && current.kind === "raster" && current.id === overlayId) {
+      const current2 = sessionRef.current?.getState();
+      if (current2 && current2.kind === "raster" && current2.id === overlayId) {
         stop();
         return false;
       }
@@ -25375,13 +30047,13 @@ function useSwipe({ t: t2, showToast, layers: layers2, overlays, getCesium, getV
     },
     [stop, runAction]
   );
-  import_react41.default.useEffect(() => {
+  import_react52.default.useEffect(() => {
     if (!state) return;
     if (sessionRef.current?.reconcile({ layers: engineLayersOf(depsRef.current), overlays: overlays ?? [] })) {
       setState(null);
     }
   }, [state, layers2, overlays]);
-  import_react41.default.useEffect(() => {
+  import_react52.default.useEffect(() => {
     if (!state || typeof document === "undefined") return void 0;
     const onKeyDown2 = (event) => {
       if (event.key !== "Escape") return;
@@ -25391,13 +30063,13 @@ function useSwipe({ t: t2, showToast, layers: layers2, overlays, getCesium, getV
     document.addEventListener("keydown", onKeyDown2, true);
     return () => document.removeEventListener("keydown", onKeyDown2, true);
   }, [state, stop]);
-  import_react41.default.useEffect(() => () => sessionRef.current?.stop(), []);
+  import_react52.default.useEffect(() => () => sessionRef.current?.stop(), []);
   const updateRatioFromClient = (clientX, clientY) => {
-    const current = sessionRef.current?.getState();
-    if (!current) return;
+    const current2 = sessionRef.current?.getState();
+    if (!current2) return;
     const viewer = depsRef.current.getViewer?.();
     const box = containerRef.current?.getBoundingClientRect?.() ?? viewer?.canvas?.getBoundingClientRect?.() ?? { left: 0, top: 0, width: viewer?.canvas?.clientWidth || 1, height: viewer?.canvas?.clientHeight || 1 };
-    const raw = current.orientation === "horizontal" ? (clientY - box.top) / Math.max(1, box.height) : (clientX - box.left) / Math.max(1, box.width);
+    const raw = current2.orientation === "horizontal" ? (clientY - box.top) / Math.max(1, box.height) : (clientX - box.left) / Math.max(1, box.width);
     setRatio(raw);
   };
   const onHandlePointerDown = (event) => {
@@ -25417,19 +30089,19 @@ function useSwipe({ t: t2, showToast, layers: layers2, overlays, getCesium, getV
     event.currentTarget.releasePointerCapture?.(event.pointerId);
   };
   const onHandleKeyDown = (event) => {
-    const current = sessionRef.current?.getState();
-    if (!current) return;
+    const current2 = sessionRef.current?.getState();
+    if (!current2) return;
     const delta = event.key === "ArrowLeft" || event.key === "ArrowUp" ? -0.05 : event.key === "ArrowRight" || event.key === "ArrowDown" ? 0.05 : 0;
     if (delta === 0) return;
     event.preventDefault();
     event.stopPropagation();
-    setRatio(current.ratio + delta);
+    setRatio(current2.ratio + delta);
   };
   const toggleOrientation = () => {
-    const current = sessionRef.current?.getState();
-    if (!current || current.kind === "raster" || current.kind === "pair") return;
-    if (current.kind === "split" && current.layerKind === "3dgs") return;
-    const next = sessionRef.current.setOrientation(current.orientation === "horizontal" ? "vertical" : "horizontal");
+    const current2 = sessionRef.current?.getState();
+    if (!current2 || current2.kind === "raster" || current2.kind === "pair") return;
+    if (current2.kind === "split" && current2.layerKind === "3dgs") return;
+    const next = sessionRef.current.setOrientation(current2.orientation === "horizontal" ? "vertical" : "horizontal");
     if (next) setState(next);
   };
   const visible3d = (Array.isArray(layers2) ? layers2 : []).filter((item) => item.visible !== false);
@@ -25445,21 +30117,21 @@ function useSwipe({ t: t2, showToast, layers: layers2, overlays, getCesium, getV
   const rightCandidates = is3dLike ? visible3d.filter((item) => item.id !== activeLeftId) : [];
   const axisDisabled = !state || state.kind === "raster" || isPair || isSplit && state.layerKind === "3dgs";
   const axisTitle = state?.kind === "raster" ? t2("swipe.rasterVerticalOnly") : isPair || isSplit && state?.layerKind === "3dgs" ? t2("swipe.horizontalUnsupported3dgs") : t2("swipe.switchAxis");
-  const element = state ? h35(
+  const element = state ? h45(
     "div",
     {
       key: "swipe",
       ref: containerRef,
       className: `mv-swipe ${horiz ? "horiz" : "vert"}`
     },
-    h35(
+    h45(
       "div",
       {
         className: "mv-swipe-line",
         style: horiz ? { top: pct } : { left: pct }
       },
-      h35("span", { className: "mv-swipe-badge with" }, leftBadgeText),
-      h35(
+      h45("span", { className: "mv-swipe-badge with" }, leftBadgeText),
+      h45(
         "div",
         {
           className: "mv-swipe-handle",
@@ -25478,18 +30150,18 @@ function useSwipe({ t: t2, showToast, layers: layers2, overlays, getCesium, getV
         },
         horiz ? "═" : "║"
       ),
-      h35("span", { className: "mv-swipe-badge without" }, rightBadgeText)
+      h45("span", { className: "mv-swipe-badge without" }, rightBadgeText)
     ),
-    h35(
+    h45(
       "div",
       { className: "mv-swipe-bar mv-glass" },
-      h35(
+      h45(
         "span",
         { className: "mv-swipe-title" },
         isPair ? `${state.leftName} ↔ ${state.rightName}` : `${t2("swipe.title")} · ${state.name}`
       ),
-      h35("span", { className: "mv-swipe-pct" }, pctInt),
-      rightCandidates.length > 0 ? h35(
+      h45("span", { className: "mv-swipe-pct" }, pctInt),
+      rightCandidates.length > 0 ? h45(
         "select",
         {
           className: "mv-swipe-select",
@@ -25498,10 +30170,10 @@ function useSwipe({ t: t2, showToast, layers: layers2, overlays, getCesium, getV
           "aria-label": t2("swipe.rightPicker"),
           onChange: (event) => setRightLayer(event.target.value || null)
         },
-        h35("option", { value: "" }, t2("swipe.rightNone")),
-        ...rightCandidates.map((item) => h35("option", { key: item.id, value: item.id }, item.name))
+        h45("option", { value: "" }, t2("swipe.rightNone")),
+        ...rightCandidates.map((item) => h45("option", { key: item.id, value: item.id }, item.name))
       ) : null,
-      isPair || isSplit ? h35(
+      isPair || isSplit ? h45(
         "button",
         {
           type: "button",
@@ -25512,7 +30184,7 @@ function useSwipe({ t: t2, showToast, layers: layers2, overlays, getCesium, getV
         },
         "⇄"
       ) : null,
-      !isPair ? h35(
+      !isPair ? h45(
         "button",
         {
           type: "button",
@@ -25523,7 +30195,7 @@ function useSwipe({ t: t2, showToast, layers: layers2, overlays, getCesium, getV
         },
         horiz ? t2("swipe.vertical") : t2("swipe.horizontal")
       ) : null,
-      h35(
+      h45(
         "button",
         {
           type: "button",
@@ -25550,12 +30222,12 @@ function useSwipe({ t: t2, showToast, layers: layers2, overlays, getCesium, getV
 }
 
 // src/client/ui/scene-details.js
-var import_react42 = __toESM(require("react"), 1);
-var h36 = import_react42.default.createElement;
+var import_react53 = __toESM(require("react"), 1);
+var h46 = import_react53.default.createElement;
 function useSceneDetails({ t: t2, stats, config, layers: layers2, analysis, shaderActive, embedded = false }) {
-  const [focus, setFocus] = import_react42.default.useState(null);
-  const open = import_react42.default.useCallback((layerId) => setFocus({ layerId: typeof layerId === "string" ? layerId : null }), []);
-  const close = import_react42.default.useCallback(() => setFocus(null), []);
+  const [focus, setFocus] = import_react53.default.useState(null);
+  const open = import_react53.default.useCallback((layerId) => setFocus({ layerId: typeof layerId === "string" ? layerId : null }), []);
+  const close = import_react53.default.useCallback(() => setFocus(null), []);
   useEscapeLayer(() => {
     setFocus(null);
     return true;
@@ -25568,11 +30240,11 @@ function useSceneDetails({ t: t2, stats, config, layers: layers2, analysis, shad
     restoreSaved: false
   });
   const sourceName = (list, id) => (Array.isArray(list) ? list.find((source) => source.id === id)?.name : null) ?? t2("sceneDetails.none");
-  const row = (label, value) => h36("div", { className: "mv-sd-row" }, h36("span", null, label), h36("b", null, value));
+  const row2 = (label, value) => h46("div", { className: "mv-sd-row" }, h46("span", null, label), h46("b", null, value));
   const layerRows = (stats?.layers ?? (layers2 ?? []).map((layer) => ({ id: layer.id, name: layer.name }))).filter(
     (layer) => focusedLayer === null || layer.id === focusedLayer.id
   );
-  const element = focus ? h36(
+  const element = focus ? h46(
     "div",
     {
       className: `mv-scene-details${embedded ? " in-dock" : ""} mv-glass ${embedded ? "" : floating.className}`,
@@ -25582,40 +30254,40 @@ function useSceneDetails({ t: t2, stats, config, layers: layers2, analysis, shad
       "aria-label": focusedLayer ? t2("sceneDetails.layerTitle") : t2("sceneDetails.title"),
       ...embedded ? {} : floating.panelProps
     },
-    h36(
+    h46(
       "header",
       embedded ? { className: "mv-dock-card-head" } : floating.headerProps,
       embedded ? null : floating.dragHandle,
-      h36("b", { className: "title" }, focusedLayer ? t2("sceneDetails.layerTitle") : t2("sceneDetails.title")),
+      h46("b", { className: "title" }, focusedLayer ? t2("sceneDetails.layerTitle") : t2("sceneDetails.title")),
       embedded ? null : floating.resetButton,
-      h36("button", { type: "button", className: "mv-icon-btn", title: t2("btn.close"), "aria-label": t2("btn.close"), onClick: close }, "✕")
+      h46("button", { type: "button", className: "mv-icon-btn", title: t2("btn.close"), "aria-label": t2("btn.close"), onClick: close }, "✕")
     ),
     embedded ? null : floating.liveRegion,
-    h36(
+    h46(
       "div",
       { className: "mv-sd-section" },
-      h36("div", { className: "mv-sd-title" }, t2("sceneDetails.scene")),
-      row(t2("hud.camera"), stats?.height ?? "—"),
-      row(t2("hud.heading"), `${stats?.heading ?? "—"} / ${stats?.pitch ?? "—"}`),
-      row(t2("layers.imagery"), sourceName(config?.imagery, config?.settings?.imagery)),
-      row(t2("layers.terrain"), sourceName(config?.terrain, config?.settings?.terrain)),
-      row(
+      h46("div", { className: "mv-sd-title" }, t2("sceneDetails.scene")),
+      row2(t2("hud.camera"), stats?.height ?? "—"),
+      row2(t2("hud.heading"), `${stats?.heading ?? "—"} / ${stats?.pitch ?? "—"}`),
+      row2(t2("layers.imagery"), sourceName(config?.imagery, config?.settings?.imagery)),
+      row2(t2("layers.terrain"), sourceName(config?.terrain, config?.settings?.terrain)),
+      row2(
         t2("sceneDetails.analysis"),
         analysis ? `${typeof analysis.operation === "string" && analysis.operation !== "" ? t2(`analysis.title.${analysis.operation}`) : t2("layers.analysis")}${typeof analysis.layerName === "string" && analysis.layerName !== "" ? ` · ${analysis.layerName}` : ""}` : t2("sceneDetails.none")
       ),
-      row(t2("sceneDetails.shader"), shaderActive?.length ? String(shaderActive.length) : t2("sceneDetails.none"))
+      row2(t2("sceneDetails.shader"), shaderActive?.length ? String(shaderActive.length) : t2("sceneDetails.none"))
     ),
-    focusedLayer?.georefIssue ? h36("p", { className: "mv-sd-warn" }, `⚠ ${t2("layers.georefWarning")}`) : null,
-    h36(
+    focusedLayer?.georefIssue ? h46("p", { className: "mv-sd-warn" }, `⚠ ${t2("layers.georefWarning")}`) : null,
+    h46(
       "div",
       { className: "mv-sd-section" },
-      h36("div", { className: "mv-sd-title" }, focusedLayer ? t2("sceneDetails.layer") : t2("sceneDetails.layers")),
-      layerRows.length === 0 ? h36("div", { className: "mv-sd-empty" }, t2("sceneDetails.none")) : layerRows.map(
-        (layer) => h36(
+      h46("div", { className: "mv-sd-title" }, focusedLayer ? t2("sceneDetails.layer") : t2("sceneDetails.layers")),
+      layerRows.length === 0 ? h46("div", { className: "mv-sd-empty" }, t2("sceneDetails.none")) : layerRows.map(
+        (layer) => h46(
           "div",
           { key: layer.id, className: "mv-sd-layer" },
-          h36("b", null, layer.name ?? "—"),
-          h36(
+          h46("b", null, layer.name ?? "—"),
+          h46(
             "span",
             null,
             `${t2("hud.tiles")} ${formatCount(layer.tiles)} · ${t2("hud.pending")} ${formatCount(layer.pending)} · ${t2("hud.triangles")} ${formatCount(layer.triangles)} · ${t2("hud.cache")} ${formatBytes(layer.memory)}`
@@ -25628,160 +30300,22 @@ function useSceneDetails({ t: t2, stats, config, layers: layers2, analysis, shad
 }
 
 // src/client/ui/use-workbench.js
-var import_react43 = __toESM(require("react"), 1);
+var import_react54 = __toESM(require("react"), 1);
 function useWorkbenchWiring(deps) {
-  const latest = import_react43.default.useRef(deps);
+  const latest = import_react54.default.useRef(deps);
   latest.current = deps;
-  const service2 = import_react43.default.useRef(null);
+  const service2 = import_react54.default.useRef(null);
   if (!service2.current) service2.current = createWorkbenchWiring(Object.fromEntries(Object.keys(deps).map((key) => [key, (...args) => latest.current[key]?.(...args)])));
-  import_react43.default.useEffect(() => {
+  import_react54.default.useEffect(() => {
     service2.current.activate();
     return () => service2.current.dispose();
   }, []);
   return service2.current;
 }
 
-// src/client/ui/recent-urls.js
-var RECENT_URLS_KEY = "dsh.digital-earth.recentUrls";
-var RECENT_URLS_LIMIT = 8;
-var RECENT_URL_MAX_LENGTH = 2048;
-var RECENT_URL_LABEL_MAX = 72;
-function storageOf(storage) {
-  if (storage !== void 0) return storage;
-  try {
-    return globalThis.localStorage ?? null;
-  } catch {
-    return null;
-  }
-}
-function sanitizeRecentUrl(value) {
-  if (typeof value !== "string") return null;
-  const url = value.trim();
-  if (!/^https?:\/\/[^\s]+$/i.test(url)) return null;
-  if (url.length > RECENT_URL_MAX_LENGTH) return null;
-  return url;
-}
-function recentUrlLabel(url) {
-  const clean = sanitizeRecentUrl(url);
-  if (clean === null) return "";
-  try {
-    const parsed = new URL(clean);
-    const segments = parsed.pathname.split("/").filter(Boolean);
-    const tail = segments.length > 0 ? segments[segments.length - 1] : "";
-    const folder = tail === "tileset.json" ? segments.length > 1 ? segments[segments.length - 2] : "" : tail;
-    const label = folder !== "" ? `${parsed.hostname}/${folder}` : parsed.hostname;
-    return label.length > RECENT_URL_LABEL_MAX ? `${label.slice(0, RECENT_URL_LABEL_MAX - 1)}…` : label;
-  } catch {
-    return clean.slice(0, RECENT_URL_LABEL_MAX);
-  }
-}
-function sanitizeRecentUrls(list) {
-  const clean = [];
-  const seen = /* @__PURE__ */ new Set();
-  for (const item of Array.isArray(list) ? list : []) {
-    const raw = typeof item === "string" ? item : item?.url;
-    const url = sanitizeRecentUrl(raw);
-    if (url === null || seen.has(url)) continue;
-    seen.add(url);
-    clean.push({ url, at: typeof item?.at === "string" ? item.at : "" });
-    if (clean.length >= RECENT_URLS_LIMIT) break;
-  }
-  return clean;
-}
-function readRecentUrls(storage) {
-  const target = storageOf(storage);
-  if (target === null) return [];
-  try {
-    const text = target.getItem(RECENT_URLS_KEY);
-    if (typeof text !== "string" || text === "") return [];
-    return sanitizeRecentUrls(JSON.parse(text));
-  } catch {
-    return [];
-  }
-}
-function rememberRecentUrl(list, url, at = (/* @__PURE__ */ new Date()).toISOString()) {
-  const clean = sanitizeRecentUrl(url);
-  const previous = sanitizeRecentUrls(list);
-  if (clean === null) return previous;
-  return sanitizeRecentUrls([{ url: clean, at }, ...previous.filter((entry) => entry.url !== clean)]);
-}
-function writeRecentUrls(list, storage) {
-  const target = storageOf(storage);
-  if (target === null) return false;
-  try {
-    target.setItem(RECENT_URLS_KEY, JSON.stringify(sanitizeRecentUrls(list)));
-    return true;
-  } catch {
-    return false;
-  }
-}
-function recordRecentTilesetUrl(list, source, { restored = false, storage } = {}) {
-  const url = source?.kind === "remote" ? sanitizeRecentUrl(source.url) : null;
-  if (url === null) return list;
-  const previous = sanitizeRecentUrls([...readRecentUrls(storage), ...list]);
-  const next = restored ? sanitizeRecentUrls([...previous, { url, at: "" }]) : rememberRecentUrl(previous, url);
-  writeRecentUrls(next, storage);
-  return next;
-}
-
-// src/client/ui/data-menu.js
-var MENU_SEP2 = { width: "auto", height: ".5px", margin: "4px 8px" };
-function dataMenuItems({
-  h: h42,
-  MenuItem: MenuItem2,
-  t: t2,
-  recentDirs,
-  recentUrls,
-  agentOverlayCount,
-  closeMenu,
-  onOpenLocal,
-  onOpenRecentDirectory,
-  onOpenRecentUrl,
-  onClearAgent,
-  onToggleUrlBar
-}) {
-  const run = (action) => () => {
-    if (typeof closeMenu === "function") closeMenu();
-    action();
-  };
-  const items = [
-    h42(MenuItem2, { key: "local", onClick: run(onOpenLocal) }, t2("btn.openLocal")),
-    h42(MenuItem2, { key: "url", onClick: run(onToggleUrlBar) }, t2("btn.openUrl"))
-  ];
-  if (Array.isArray(recentUrls) && recentUrls.length > 0) {
-    items.push(h42("span", { key: "recent-urls-label", className: "mv-menu-label" }, t2("menu.recentUrls")));
-    for (const entry of recentUrls) {
-      items.push(
-        h42(
-          MenuItem2,
-          { key: `url:${entry.url}`, title: entry.url, onClick: run(() => onOpenRecentUrl(entry.url)) },
-          h42("span", { className: "ellipsis" }, recentUrlLabel(entry.url))
-        )
-      );
-    }
-  }
-  if (Array.isArray(recentDirs) && recentDirs.length > 0) {
-    items.push(h42("span", { key: "recent-dirs-label", className: "mv-menu-label" }, t2("menu.recentDirs")));
-    for (const entry of recentDirs) {
-      items.push(
-        h42(
-          MenuItem2,
-          { key: `dir:${entry.dir}`, title: entry.dir, onClick: run(() => onOpenRecentDirectory(entry.dir)) },
-          h42("span", { className: "ellipsis" }, entry.name)
-        )
-      );
-    }
-  }
-  if (agentOverlayCount > 0) {
-    items.push(h42("i", { key: "sep", className: "mv-sep", style: MENU_SEP2 }));
-    items.push(h42(MenuItem2, { key: "clearAgent", onClick: run(onClearAgent) }, t2("menu.clearAgent")));
-  }
-  return items;
-}
-
 // src/client/ui/confirm-dialog.js
-var import_react44 = __toESM(require("react"), 1);
-var h37 = import_react44.default.createElement;
+var import_react55 = __toESM(require("react"), 1);
+var h47 = import_react55.default.createElement;
 function ConfirmDialog({
   open,
   title,
@@ -25795,18 +30329,18 @@ function ConfirmDialog({
   onCancel,
   onSecondary
 }) {
-  const cancelRef = import_react44.default.useRef(null);
-  const handlersRef = import_react44.default.useRef({ onCancel });
+  const cancelRef = import_react55.default.useRef(null);
+  const handlersRef = import_react55.default.useRef({ onCancel });
   handlersRef.current = { onCancel };
   const dialogRef = useDialogA11y({ open, onEscape: () => handlersRef.current.onCancel?.() });
-  import_react44.default.useEffect(() => {
+  import_react55.default.useEffect(() => {
     if (!open) return void 0;
     const timer = window.setTimeout(() => cancelRef.current?.focus(), 0);
     return () => window.clearTimeout(timer);
   }, [open]);
   if (!open) return null;
   const titleId = "mv-confirm-title";
-  return h37(
+  return h47(
     "div",
     {
       className: "mv-modal mv-confirm-modal",
@@ -25814,7 +30348,7 @@ function ConfirmDialog({
         if (event.target === event.currentTarget) onCancel?.();
       }
     },
-    h37(
+    h47(
       "div",
       {
         ref: dialogRef,
@@ -25824,23 +30358,23 @@ function ConfirmDialog({
         "aria-labelledby": titleId,
         ...detail !== "" ? { "aria-describedby": "mv-confirm-detail" } : {}
       },
-      h37("header", null, h37("b", { id: titleId }, title)),
-      h37(
+      h47("header", null, h47("b", { id: titleId }, title)),
+      h47(
         "div",
         { className: "body" },
-        message2 !== "" ? h37("p", { className: "mv-confirm-message" }, message2) : null,
-        detail !== "" ? h37("p", { id: "mv-confirm-detail", className: "mv-note" }, detail) : null
+        message2 !== "" ? h47("p", { className: "mv-confirm-message" }, message2) : null,
+        detail !== "" ? h47("p", { id: "mv-confirm-detail", className: "mv-note" }, detail) : null
       ),
-      h37(
+      h47(
         "div",
         { className: "footer" },
-        h37("div", null),
-        h37(
+        h47("div", null),
+        h47(
           "div",
           { className: "right" },
-          secondaryLabel !== "" && typeof onSecondary === "function" ? h37("button", { type: "button", className: "mv-cta", onClick: onSecondary }, secondaryLabel) : null,
-          h37("button", { ref: cancelRef, type: "button", className: "mv-cta", onClick: onCancel }, cancelLabel),
-          h37(
+          secondaryLabel !== "" && typeof onSecondary === "function" ? h47("button", { type: "button", className: "mv-cta", onClick: onSecondary }, secondaryLabel) : null,
+          h47("button", { ref: cancelRef, type: "button", className: "mv-cta", onClick: onCancel }, cancelLabel),
+          h47(
             "button",
             { type: "button", className: `mv-cta${danger ? " danger" : " primary"}`, onClick: onConfirm },
             confirmLabel
@@ -25851,8 +30385,8 @@ function ConfirmDialog({
   );
 }
 function useConfirm() {
-  const [request, setRequest] = import_react44.default.useState(null);
-  const resolveRef = import_react44.default.useRef(null);
+  const [request, setRequest] = import_react55.default.useState(null);
+  const resolveRef = import_react55.default.useRef(null);
   const settle = (value) => {
     const resolve = resolveRef.current;
     resolveRef.current = null;
@@ -25864,7 +30398,7 @@ function useConfirm() {
     resolveRef.current = resolve;
     setRequest({ ...options, open: true });
   });
-  const dialog = request ? h37(ConfirmDialog, {
+  const dialog = request ? h47(ConfirmDialog, {
     ...request,
     onConfirm: () => settle(true),
     onCancel: () => settle(false),
@@ -25934,19 +30468,19 @@ function addAgentElevatedLabel(Cesium, add, lon, lat, height, text) {
 }
 
 // src/client/scene/vector-renderer.js
-var finiteNumber2 = (value) => typeof value === "number" && Number.isFinite(value) ? value : null;
+var finiteNumber3 = (value) => typeof value === "number" && Number.isFinite(value) ? value : null;
 function polygonVolume(properties, rings) {
   const props = properties && typeof properties === "object" ? properties : {};
   if (props.extruded === false) return null;
-  const baseExplicit = finiteNumber2(props.base_height_m) ?? finiteNumber2(props.ground_height_m) ?? finiteNumber2(props.baseHeight);
-  const roofExplicit = finiteNumber2(props.extruded_height_m) ?? finiteNumber2(props.extrudedHeight);
-  const relHeight = finiteNumber2(props.height_m) ?? finiteNumber2(props.building_height_m) ?? finiteNumber2(props.height);
+  const baseExplicit = finiteNumber3(props.base_height_m) ?? finiteNumber3(props.ground_height_m) ?? finiteNumber3(props.baseHeight);
+  const roofExplicit = finiteNumber3(props.extruded_height_m) ?? finiteNumber3(props.extrudedHeight);
+  const relHeight = finiteNumber3(props.height_m) ?? finiteNumber3(props.building_height_m) ?? finiteNumber3(props.height);
   const baseHeight = baseExplicit ?? 0;
   if (roofExplicit !== null && roofExplicit > baseHeight) {
     return { mode: "extruded", baseHeight, extrudedHeight: roofExplicit };
   }
   if (relHeight !== null && relHeight > 0 && (roofExplicit === null || props.mode3d === true || props.extruded === true)) {
-    if (finiteNumber2(props.extruded_height_m) === null && finiteNumber2(props.extrudedHeight) === null) {
+    if (finiteNumber3(props.extruded_height_m) === null && finiteNumber3(props.extrudedHeight) === null) {
       if (props.extruded !== false && (baseExplicit !== null || props.height_m != null || props.building_height_m != null || props.mode3d === true)) {
         return { mode: "extruded", baseHeight, extrudedHeight: baseHeight + relHeight };
       }
@@ -26109,13 +30643,17 @@ function createVectorRenderer({ getState, getVector, t: t2, markSceneDirty, sync
     };
     const drawGeometry = (geometry, properties, feature) => {
       if (geometry === null || typeof geometry !== "object") return;
-      const label = agentLabelText(nameOf(properties), caption);
+      const label = agentLabelText(nameOf(properties) || properties?.class_name, caption);
       const featureStyle = typeof properties?.style === "string" && VECTOR_COLORS[properties.style] ? properties.style : style;
-      const featureColor = featureStyle === style ? color : agentOverlayColor(Cesium, featureStyle);
+      const extraction = properties?.source_kind === "ortho" || Number.isInteger(properties?.class_id) && typeof properties?.class_key === "string" && properties?.area_m2 != null;
+      const classColor = extraction && /^#[0-9a-f]{6}$/i.test(properties?.color) ? properties.color : null;
+      const featureColor = classColor ? Cesium.Color.fromCssColorString(classColor) : featureStyle === style ? color : agentOverlayColor(Cesium, featureStyle);
       descriptor = {
         group: {},
         kind: t2("layers.vectorDrawn"),
         style: featureStyle,
+        extraction,
+        classColor,
         featureKind: typeof properties?.kind === "string" ? properties.kind : void 0,
         title: label || t2("layers.vectorDrawn"),
         summary: t2(`vector.geometry.${String(geometry.type ?? "").replace("Multi", "")}`),
@@ -26150,9 +30688,9 @@ function createVectorRenderer({ getState, getVector, t: t2, markSceneDirty, sync
           break;
       }
     };
-    const rawFeatures = Array.isArray(geojson?.features) ? geojson.features : [];
+    const rawFeatures = Array.isArray(geojson?.features) ? geojson.features : geojson?.type === "Feature" ? [geojson] : [];
     const features = rawFeatures.map((item) => item?.type === "Feature" ? ensureAnnotationFeatureId(item) : item);
-    const storedGeojson = geojson && typeof geojson === "object" ? { ...geojson, features } : geojson;
+    const storedGeojson = rawFeatures.length > 0 ? { type: "FeatureCollection", features } : geojson;
     for (const feature of features) {
       if (feature?.geometry?.type === "GeometryCollection") {
         for (const child of feature.geometry.geometries ?? []) {
@@ -26194,7 +30732,7 @@ function createVectorRenderer({ getState, getVector, t: t2, markSceneDirty, sync
     const firstEntity = state.measure.length;
     const mode = args.mode;
     const points = Array.isArray(args.points) ? args.points : [];
-    const round2 = (value, digits = 3) => Math.round(value * 10 ** digits) / 10 ** digits;
+    const round3 = (value, digits = 3) => Math.round(value * 10 ** digits) / 10 ** digits;
     if (points.length < 2) throw new Error(t2("agent.badMeasure", { message: "need at least 2 points" }));
     const located = points.map((position) => {
       const lon = position[0];
@@ -26224,8 +30762,8 @@ function createVectorRenderer({ getState, getVector, t: t2, markSceneDirty, sync
     const result = { mode, points: points.length, drawn: draw };
     if (mode === "distance") {
       const distance = geodesicLength(Cesium, ground);
-      result.distance_m = round2(distance);
-      result.distance_km = round2(distance / 1e3, 4);
+      result.distance_m = round3(distance);
+      result.distance_km = round3(distance / 1e3, 4);
       if (draw) {
         for (const point of located) dot(point.lon, point.lat, point.height);
         add({
@@ -26244,9 +30782,9 @@ function createVectorRenderer({ getState, getVector, t: t2, markSceneDirty, sync
       if (points.length < 3) throw new Error(t2("agent.badMeasure", { message: "area needs at least 3 points" }));
       const area = planarArea(Cesium, ground);
       const perimeter = geodesicLength(Cesium, [...ground, ground[0]]);
-      result.area_m2 = round2(area);
-      result.area_km2 = round2(area / 1e6, 6);
-      result.perimeter_m = round2(perimeter);
+      result.area_m2 = round3(area);
+      result.area_km2 = round3(area / 1e6, 6);
+      result.perimeter_m = round3(perimeter);
       if (draw) {
         add({ polygon: { hierarchy: new Cesium.PolygonHierarchy(ground), material: color.withAlpha(0.28), outline: false, perPositionHeight: false } });
         add({
@@ -26276,11 +30814,11 @@ function createVectorRenderer({ getState, getVector, t: t2, markSceneDirty, sync
         Cesium.Cartographic.fromDegrees(to.lon, to.lat, to.height)
       ).surfaceDistance;
       const slope = horizontal > 0 ? Math.atan2(delta, horizontal) * 180 / Math.PI : 0;
-      result.height_m = round2(delta);
-      result.height_from_m = round2(from.height);
-      result.height_to_m = round2(to.height);
-      result.horizontal_m = round2(horizontal);
-      result.slope_deg = round2(slope, 2);
+      result.height_m = round3(delta);
+      result.height_from_m = round3(from.height);
+      result.height_to_m = round3(to.height);
+      result.horizontal_m = round3(horizontal);
+      result.slope_deg = round3(slope, 2);
       if (draw) {
         for (const point of located) dot(point.lon, point.lat, point.height);
         add({
@@ -26746,8 +31284,8 @@ function createAnnotationTool({ getCesium, getViewer, pickSurface, setTool, show
         showToast(t2("toast.noSurface"));
         return;
       }
-      const current = sessionFor();
-      if (!current || !current.kind) return;
+      const current2 = sessionFor();
+      if (!current2 || !current2.kind) return;
       let carto = null;
       try {
         carto = Cesium.Cartographic.fromCartesian(surface);
@@ -26755,24 +31293,24 @@ function createAnnotationTool({ getCesium, getViewer, pickSurface, setTool, show
         carto = null;
       }
       if (!carto) return;
-      current.points.push({
+      current2.points.push({
         lon: Cesium.Math.toDegrees(carto.longitude),
         lat: Cesium.Math.toDegrees(carto.latitude)
       });
-      current.cursor = surface;
-      if (current.kind === "point" || current.kind === "note") {
+      current2.cursor = surface;
+      if (current2.kind === "point" || current2.kind === "note") {
         finish("click");
         return;
       }
-      syncDraft(current);
-      showToast(t2(`annotation.${current.kind}Hint`, { n: current.points.length }));
+      syncDraft(current2);
+      showToast(t2(`annotation.${current2.kind}Hint`, { n: current2.points.length }));
     }, events.LEFT_CLICK);
     const applyMove = (position) => {
-      const current = sessionFor();
-      if (!current || !current.kind || current.kind === "point" || current.kind === "note" || current.points.length === 0) return;
-      current.lastPickAt = Date.now();
+      const current2 = sessionFor();
+      if (!current2 || !current2.kind || current2.kind === "point" || current2.kind === "note" || current2.points.length === 0) return;
+      current2.lastPickAt = Date.now();
       const surface = pickSurface?.(position);
-      current.cursor = surface ?? current.cursor;
+      current2.cursor = surface ?? current2.cursor;
       try {
         viewer.scene.requestRender?.();
       } catch {
@@ -26781,25 +31319,25 @@ function createAnnotationTool({ getCesium, getViewer, pickSurface, setTool, show
     handler.setInputAction((event) => {
       const position = event?.endPosition ?? event?.position;
       if (!position) return;
-      const current = sessionFor();
-      if (!current || !current.kind || current.kind === "point" || current.kind === "note" || current.points.length === 0) return;
+      const current2 = sessionFor();
+      if (!current2 || !current2.kind || current2.kind === "point" || current2.kind === "note" || current2.points.length === 0) return;
       const throttleMs = typeof requestAnimationFrame === "function" ? MOVE_THROTTLE_MS2 : 0;
-      const elapsed = Date.now() - (current.lastPickAt ?? 0);
-      if (throttleMs === 0 || !current.lastPickAt || elapsed >= throttleMs) {
-        if (current.moveTimer) {
-          clearTimeout(current.moveTimer);
-          current.moveTimer = null;
+      const elapsed = Date.now() - (current2.lastPickAt ?? 0);
+      if (throttleMs === 0 || !current2.lastPickAt || elapsed >= throttleMs) {
+        if (current2.moveTimer) {
+          clearTimeout(current2.moveTimer);
+          current2.moveTimer = null;
         }
-        current.pendingMove = null;
+        current2.pendingMove = null;
         applyMove(position);
         return;
       }
-      current.pendingMove = position;
-      if (!current.moveTimer) {
-        current.moveTimer = setTimeout(() => {
-          current.moveTimer = null;
-          const next = current.pendingMove;
-          current.pendingMove = null;
+      current2.pendingMove = position;
+      if (!current2.moveTimer) {
+        current2.moveTimer = setTimeout(() => {
+          current2.moveTimer = null;
+          const next = current2.pendingMove;
+          current2.pendingMove = null;
           if (next) applyMove(next);
         }, throttleMs - elapsed);
       }
@@ -26833,6 +31371,59 @@ function createAnnotationTool({ getCesium, getViewer, pickSurface, setTool, show
     if (wasActive) setTool(null);
   }
   return { start, cancel, abort, clear, dispose: clear };
+}
+
+// src/client/scene/parse-overlay.js
+function createParseOverlaySync({ getState, getViewer, draw, onChanged, t: t2, style = "violet" }) {
+  let command = null;
+  let caption = null;
+  const findByCaption = (list) => {
+    if (!caption) return -1;
+    for (let index = list.length - 1; index >= 0; index -= 1) {
+      if (list[index]?.caption === caption) return index;
+    }
+    return -1;
+  };
+  const clearCurrent = () => {
+    const state = getState?.();
+    const viewer = getViewer?.();
+    const list = Array.isArray(state?.drawCommands) ? state.drawCommands : [];
+    let index = command ? list.indexOf(command) : -1;
+    if (index < 0) index = findByCaption(list);
+    command = null;
+    if (index < 0 || !state || !viewer) return;
+    try {
+      removeAgentOverlay(state, viewer, "draw", index);
+    } catch {
+    }
+  };
+  return {
+    sync(collection, nextCaption) {
+      const state = getState?.();
+      if (!state) return false;
+      caption = typeof nextCaption === "string" && nextCaption ? nextCaption : typeof t2 === "function" ? t2("parse.layerName") : "extract";
+      clearCurrent();
+      const features = Array.isArray(collection?.features) ? collection.features : [];
+      if (features.length > 0) {
+        const before = Array.isArray(state.drawCommands) ? state.drawCommands.length : 0;
+        try {
+          draw({ ...collection, features }, style, caption, "user");
+          command = Array.isArray(state.drawCommands) ? state.drawCommands[before] ?? null : null;
+        } catch {
+          command = null;
+          return false;
+        }
+      }
+      try {
+        onChanged?.({ features: features.length });
+      } catch {
+      }
+      return true;
+    },
+    clear() {
+      clearCurrent();
+    }
+  };
 }
 
 // src/client/scene/annotation-vertices.js
@@ -26983,10 +31574,10 @@ function createAnnotationEditor({ getCesium, getViewer, getRoot, pickSurface, up
     const rootRect = root.getBoundingClientRect();
     const offsetX = canvasRect.left - rootRect.left;
     const offsetY = canvasRect.top - rootRect.top;
-    for (const entry of state.entries) {
-      const point = entry.kind === "center" ? state.centerPoint : { lon: entry.lon, lat: entry.lat };
+    for (const entry2 of state.entries) {
+      const point = entry2.kind === "center" ? state.centerPoint : { lon: entry2.lon, lat: entry2.lat };
       if (!point) {
-        entry.el.style.display = "none";
+        entry2.el.style.display = "none";
         continue;
       }
       let windowPoint = null;
@@ -27001,11 +31592,11 @@ function createAnnotationEditor({ getCesium, getViewer, getRoot, pickSurface, up
         windowPoint = null;
       }
       if (!windowPoint || !Number.isFinite(windowPoint.x) || !Number.isFinite(windowPoint.y)) {
-        entry.el.style.display = "none";
+        entry2.el.style.display = "none";
         continue;
       }
-      entry.el.style.display = "";
-      entry.el.style.transform = `translate(${offsetX + windowPoint.x}px, ${offsetY + windowPoint.y}px)`;
+      entry2.el.style.display = "";
+      entry2.el.style.transform = `translate(${offsetX + windowPoint.x}px, ${offsetY + windowPoint.y}px)`;
     }
   };
   const isSameTarget = (state, id, name, kind, geometryType) => {
@@ -27022,8 +31613,8 @@ function createAnnotationEditor({ getCesium, getViewer, getRoot, pickSurface, up
     state.centerPoint = annotationCenterPoint(handles);
     return handles;
   };
-  const addHistory = (state, entry) => {
-    state.history.push(entry);
+  const addHistory = (state, entry2) => {
+    state.history.push(entry2);
     while (state.history.length > DRAG_HISTORY_LIMIT) state.history.shift();
   };
   const commit = (state, nextFeature, beforeFeature, messageKey) => {
@@ -27057,21 +31648,21 @@ function createAnnotationEditor({ getCesium, getViewer, getRoot, pickSurface, up
     return true;
   };
   const undo = (state) => {
-    const entry = state.history.pop();
-    if (!entry) {
+    const entry2 = state.history.pop();
+    if (!entry2) {
       showToast(t2("annotation.nothingToUndo"));
       return false;
     }
     const ok = updateGeometry(
-      { id: entry.id, name: entry.name, kind: entry.kind, geometry: entry.previous, previous: entry.current },
+      { id: entry2.id, name: entry2.name, kind: entry2.kind, geometry: entry2.previous, previous: entry2.current },
       "annotation.undone"
     );
     if (!ok) {
-      state.history.push(entry);
+      state.history.push(entry2);
       return false;
     }
-    state.feature = { ...state.feature, geometry: entry.previous };
-    state.target = { id: entry.id, name: entry.name, kind: entry.kind, geometry: entry.previous };
+    state.feature = { ...state.feature, geometry: entry2.previous };
+    state.target = { id: entry2.id, name: entry2.name, kind: entry2.kind, geometry: entry2.previous };
     if (state.layer) rebuildHandles(state);
     else refreshFeature(state);
     return true;
@@ -27115,11 +31706,11 @@ function createAnnotationEditor({ getCesium, getViewer, getRoot, pickSurface, up
     } catch {
     }
   };
-  const startDrag = (state, event, entry) => {
+  const startDrag = (state, event, entry2) => {
     const origin = lonLatAt(event);
     if (!origin) return;
     state.dragging = {
-      entry,
+      entry: entry2,
       startX: event.clientX,
       startY: event.clientY,
       origin,
@@ -27135,8 +31726,8 @@ function createAnnotationEditor({ getCesium, getViewer, getRoot, pickSurface, up
     document2.addEventListener("pointerup", up);
     document2.addEventListener("pointercancel", up);
   };
-  const insertVertex = (state, entry) => {
-    const point = annotationInsertPoint(state.feature, entry.vertexIndex);
+  const insertVertex = (state, entry2) => {
+    const point = annotationInsertPoint(state.feature, entry2.vertexIndex);
     if (!point.ok) {
       showToast(t2("annotation.vertexFailed"));
       return false;
@@ -27153,8 +31744,8 @@ function createAnnotationEditor({ getCesium, getViewer, getRoot, pickSurface, up
     }
     return false;
   };
-  const deleteVertex = (state, entry) => {
-    const next = deleteAnnotationVertex(state.feature, 0, entry.vertexIndex);
+  const deleteVertex = (state, entry2) => {
+    const next = deleteAnnotationVertex(state.feature, 0, entry2.vertexIndex);
     if (!next.ok) {
       showToast(t2(next.error === "too_few_vertices" ? "annotation.tooFewVertices" : "annotation.vertexFailed"));
       return false;
@@ -27166,15 +31757,15 @@ function createAnnotationEditor({ getCesium, getViewer, getRoot, pickSurface, up
     }
     return false;
   };
-  const onHandlePointerDown = (state, event, entry) => {
+  const onHandlePointerDown = (state, event, entry2) => {
     if (event.button !== void 0 && event.button !== 0) return;
     event.preventDefault();
     event.stopPropagation();
-    if (entry.kind === "vertex" && event.altKey) {
-      insertVertex(state, entry);
+    if (entry2.kind === "vertex" && event.altKey) {
+      insertVertex(state, entry2);
       return;
     }
-    startDrag(state, event, entry);
+    startDrag(state, event, entry2);
   };
   const rebuildHandles = (state) => {
     removeLayer(state);
@@ -27185,33 +31776,33 @@ function createAnnotationEditor({ getCesium, getViewer, getRoot, pickSurface, up
     const handles = refreshFeature(state);
     if (handles.length === 0 || handles.length > HANDLE_LIMIT) return;
     for (const handle of handles) {
-      const entry = { kind: "vertex", ringIndex: handle.ringIndex, vertexIndex: handle.vertexIndex, lon: handle.lon, lat: handle.lat };
+      const entry2 = { kind: "vertex", ringIndex: handle.ringIndex, vertexIndex: handle.vertexIndex, lon: handle.lon, lat: handle.lat };
       const el = document2.createElement("div");
       el.className = "mv-vertex";
       el.setAttribute("role", "button");
       el.setAttribute("tabindex", "-1");
       el.title = t2("annotation.vertexHint");
-      el.addEventListener("pointerdown", (event) => onHandlePointerDown(state, event, entry));
+      el.addEventListener("pointerdown", (event) => onHandlePointerDown(state, event, entry2));
       el.addEventListener("dblclick", (event) => {
         event.preventDefault();
         event.stopPropagation();
-        deleteVertex(state, entry);
+        deleteVertex(state, entry2);
       });
       layer.appendChild(el);
-      entry.el = el;
-      state.entries.push(entry);
+      entry2.el = el;
+      state.entries.push(entry2);
     }
     if (state.centerPoint) {
-      const entry = { kind: "center" };
+      const entry2 = { kind: "center" };
       const el = document2.createElement("div");
       el.className = "mv-vertex center";
       el.setAttribute("role", "button");
       el.setAttribute("tabindex", "-1");
       el.title = t2("annotation.centerHint");
-      el.addEventListener("pointerdown", (event) => onHandlePointerDown(state, event, entry));
+      el.addEventListener("pointerdown", (event) => onHandlePointerDown(state, event, entry2));
       layer.appendChild(el);
-      entry.el = el;
-      state.entries.push(entry);
+      entry2.el = el;
+      state.entries.push(entry2);
     }
     positionHandles(state);
   };
@@ -27853,9 +32444,9 @@ function createProfileEdit({ getCesium, getViewer, getRoot, pickSurface, onRecom
   function installPointer(state) {
     if (typeof document === "undefined") return;
     const move = (event) => {
-      const current = state.dragging;
-      if (!current) return;
-      const handle = state.handles[current.index];
+      const current2 = state.dragging;
+      if (!current2) return;
+      const handle = state.handles[current2.index];
       if (handle) {
         const rootRect = getRoot?.()?.getBoundingClientRect?.();
         const x = rootRect ? event.clientX - rootRect.left : event.clientX;
@@ -27863,25 +32454,25 @@ function createProfileEdit({ getCesium, getViewer, getRoot, pickSurface, onRecom
         handle.style.display = "";
         handle.style.transform = `translate(${x - HANDLE_SIZE / 2}px, ${y - HANDLE_SIZE / 2}px)`;
       }
-      current.position = canvasPoint(event) ?? current.position;
+      current2.position = canvasPoint(event) ?? current2.position;
     };
     const up = () => {
-      const current = state.dragging;
+      const current2 = state.dragging;
       state.dragging = null;
-      if (!current) return;
-      const lonlat = surfaceLonLat(current.position);
+      if (!current2) return;
+      const lonlat = surfaceLonLat(current2.position);
       const endpoints = state.endpoints;
       if (!lonlat || !endpoints) {
         showToast(t2("profile.recomputeFailed", { message: t2("toast.noSurface") }));
         requestRender();
         return;
       }
-      const previous = current.index === 0 ? endpoints.from : endpoints.to;
+      const previous = current2.index === 0 ? endpoints.from : endpoints.to;
       if (Math.abs(previous[0] - lonlat[0]) < 1e-9 && Math.abs(previous[1] - lonlat[1]) < 1e-9) {
         requestRender();
         return;
       }
-      const next = moveProfileEndpoint(endpoints, current.index, lonlat);
+      const next = moveProfileEndpoint(endpoints, current2.index, lonlat);
       showToast(t2("profile.recomputing"));
       try {
         void Promise.resolve(
@@ -28061,7 +32652,7 @@ function createProfileEdit({ getCesium, getViewer, getRoot, pickSurface, onRecom
 }
 
 // src/client/viewer/ViewerSurface.js
-var h38 = import_react45.default.createElement;
+var h48 = import_react56.default.createElement;
 var TOOL_WINDOW_OF_MODE = {
   distance: "measure",
   area: "measure",
@@ -28074,85 +32665,97 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
   const t2 = typeof injectedT === "function" ? injectedT : fallbackT;
   const net = createNetwork({ t: t2 });
   const environmentDark = useEnvironmentDark();
-  const rootRef = import_react45.default.useRef(null);
-  const globeRef = import_react45.default.useRef(null);
-  const creditRef = import_react45.default.useRef(null);
-  const menuRef = import_react45.default.useRef(null);
-  const viewerRef = import_react45.default.useRef(null);
-  const cesiumRef = import_react45.default.useRef(null);
-  const metaRef = import_react45.default.useRef(null);
-  const layersRef = import_react45.default.useRef([]);
-  const toolRef = import_react45.default.useRef("identify");
-  const profileToolRef = import_react45.default.useRef(null);
-  const measureRef = import_react45.default.useRef({ points: [], entities: [] });
-  const measurePreviewRef = import_react45.default.useRef(null);
-  const vectorRef = import_react45.default.useRef(null);
-  const handlerRef = import_react45.default.useRef(null);
-  const imageryRef = import_react45.default.useRef(null);
-  const overlayLayersRef = import_react45.default.useRef(null);
-  const sourcesRef = import_react45.default.useRef(null);
-  const toastTimer = import_react45.default.useRef(0);
-  const captureReadoutRef = import_react45.default.useRef(null);
-  const commandChainRef = import_react45.default.useRef(Promise.resolve());
-  const commandRef = import_react45.default.useRef(null);
-  const selectionApiRef = import_react45.default.useRef(null);
-  const accessRef = import_react45.default.useRef(null);
-  const analysisRef = import_react45.default.useRef({ operation: null, layerId: null, layerName: null, entities: [], restore: null });
-  const analysisCommandRef = import_react45.default.useRef(null);
-  const shaderEntriesRef = import_react45.default.useRef(/* @__PURE__ */ new Map());
-  const shaderTickRef = import_react45.default.useRef(null);
-  const readyGateRef = import_react45.default.useRef({ ready: false, error: null, waiters: [] });
-  const healthSeqRef = import_react45.default.useRef(0);
-  const sessionRef = import_react45.default.useRef(sessionId);
+  const rootRef = import_react56.default.useRef(null);
+  const globeRef = import_react56.default.useRef(null);
+  const creditRef = import_react56.default.useRef(null);
+  const menuRef = import_react56.default.useRef(null);
+  const viewerRef = import_react56.default.useRef(null);
+  const cesiumRef = import_react56.default.useRef(null);
+  const metaRef = import_react56.default.useRef(null);
+  const layersRef = import_react56.default.useRef([]);
+  const toolRef = import_react56.default.useRef("identify");
+  const profileToolRef = import_react56.default.useRef(null);
+  const measureRef = import_react56.default.useRef({ points: [], entities: [] });
+  const measurePreviewRef = import_react56.default.useRef(null);
+  const vectorRef = import_react56.default.useRef(null);
+  const handlerRef = import_react56.default.useRef(null);
+  const imageryRef = import_react56.default.useRef(null);
+  const overlayLayersRef = import_react56.default.useRef(null);
+  const sourcesRef = import_react56.default.useRef(null);
+  const toastTimer = import_react56.default.useRef(0);
+  const captureReadoutRef = import_react56.default.useRef(null);
+  const commandChainRef = import_react56.default.useRef(Promise.resolve());
+  const commandRef = import_react56.default.useRef(null);
+  const selectionApiRef = import_react56.default.useRef(null);
+  const accessRef = import_react56.default.useRef(null);
+  const analysisRef = import_react56.default.useRef({ operation: null, layerId: null, layerName: null, entities: [], restore: null });
+  const analysisCommandRef = import_react56.default.useRef(null);
+  const shaderEntriesRef = import_react56.default.useRef(/* @__PURE__ */ new Map());
+  const shaderTickRef = import_react56.default.useRef(null);
+  const readyGateRef = import_react56.default.useRef({ ready: false, error: null, waiters: [] });
+  const healthSeqRef = import_react56.default.useRef(0);
+  const sessionRef = import_react56.default.useRef(sessionId);
   sessionRef.current = sessionId;
-  const initialScenePropRef = import_react45.default.useRef(initialScene);
+  const initialScenePropRef = import_react56.default.useRef(initialScene);
   initialScenePropRef.current = initialScene;
-  const baseCatalogRef = import_react45.default.useRef(null);
-  const appliedInitSigRef = import_react45.default.useRef("");
-  const [phase, setPhase] = import_react45.default.useState("loading");
-  const [error, setError] = import_react45.default.useState("");
-  const [layers2, setLayers] = import_react45.default.useState([]);
-  const [sources, setSources] = import_react45.default.useState(null);
-  const [defaults, setDefaults] = import_react45.default.useState(null);
-  const [tool, setTool] = import_react45.default.useState("identify");
-  const [fps, setFps] = import_react45.default.useState(null);
-  const fpsRef = import_react45.default.useRef(null);
-  const [fullscreen, setFullscreen] = import_react45.default.useState(false);
-  const [stats, setStats] = import_react45.default.useState(null);
-  const [measureInfo, setMeasureInfo] = import_react45.default.useState(null);
-  const [vectorSelection, setVectorSelection] = import_react45.default.useState(null);
-  const [scan, setScan] = import_react45.default.useState(null);
-  const [emptyDismissed, setEmptyDismissed] = import_react45.default.useState(false);
-  const [restoringScene, setRestoringScene] = import_react45.default.useState(false);
-  const [urlBar, setUrlBar] = import_react45.default.useState(false);
-  const [urlInput, setUrlInput] = import_react45.default.useState("");
-  const [busy, setBusy] = import_react45.default.useState("");
-  const [toast, setToast] = import_react45.default.useState("");
-  const [openMenu, setOpenMenu] = import_react45.default.useState(null);
-  const [recentDirs, setRecentDirs] = import_react45.default.useState([]);
-  const [recentUrls, setRecentUrls] = import_react45.default.useState(() => readRecentUrls());
-  const recentUrlsRef = import_react45.default.useRef(recentUrls);
-  const [accessRequest, setAccessRequest] = import_react45.default.useState(null);
-  const [accessBusy, setAccessBusy] = import_react45.default.useState(false);
-  const [analysis, setAnalysis] = import_react45.default.useState(null);
-  const [profileHover, setProfileHover] = import_react45.default.useState(null);
-  const [shaderOpen, setShaderOpen] = import_react45.default.useState(false);
-  const [showTools, setShowTools] = import_react45.default.useState(true);
-  const [activePanelTab, setActivePanelTab] = import_react45.default.useState("layers");
-  const [reportPreview, setReportPreview] = import_react45.default.useState(null);
-  const [dockRequest, setDockRequest] = import_react45.default.useState(null);
-  const requestDock = (kind) => setDockRequest((prev) => ({ kind, seq: (prev?.seq ?? 0) + 1 }));
-  const [toolRequest, setToolRequest] = import_react45.default.useState(null);
+  const baseCatalogRef = import_react56.default.useRef(null);
+  const appliedInitSigRef = import_react56.default.useRef("");
+  const [phase, setPhase] = import_react56.default.useState("loading");
+  const [error, setError] = import_react56.default.useState("");
+  const [layers2, setLayers] = import_react56.default.useState([]);
+  const [sources, setSources] = import_react56.default.useState(null);
+  const [defaults, setDefaults] = import_react56.default.useState(null);
+  const [tool, setTool] = import_react56.default.useState("identify");
+  const [fps, setFps] = import_react56.default.useState(null);
+  const fpsRef = import_react56.default.useRef(null);
+  const [fullscreen, setFullscreen] = import_react56.default.useState(false);
+  const [stats, setStats] = import_react56.default.useState(null);
+  const [measureInfo, setMeasureInfo] = import_react56.default.useState(null);
+  const [vectorSelection, setVectorSelection] = import_react56.default.useState(null);
+  const [scan, setScan] = import_react56.default.useState(null);
+  const [emptyDismissed, setEmptyDismissed] = import_react56.default.useState(false);
+  const [restoringScene, setRestoringScene] = import_react56.default.useState(false);
+  const [urlBar, setUrlBar] = import_react56.default.useState(false);
+  const [urlInput, setUrlInput] = import_react56.default.useState("");
+  const [busy, setBusy] = import_react56.default.useState("");
+  const [toast, setToast] = import_react56.default.useState("");
+  const [openMenu, setOpenMenu] = import_react56.default.useState(null);
+  const [recentDirs, setRecentDirs] = import_react56.default.useState([]);
+  const [recentUrls, setRecentUrls] = import_react56.default.useState(() => readRecentUrls());
+  const recentUrlsRef = import_react56.default.useRef(recentUrls);
+  const [accessRequest, setAccessRequest] = import_react56.default.useState(null);
+  const [accessBusy, setAccessBusy] = import_react56.default.useState(false);
+  const [analysis, setAnalysis] = import_react56.default.useState(null);
+  const [profileHover, setProfileHover] = import_react56.default.useState(null);
+  const [shaderOpen, setShaderOpen] = import_react56.default.useState(false);
+  const [showTools, setShowTools] = import_react56.default.useState(true);
+  const [activePanelTab, setActivePanelTab] = import_react56.default.useState("layers");
+  const lastPanelTabRef = import_react56.default.useRef("layers");
+  const [dockUnread, setDockUnread] = import_react56.default.useState({ result: false, object: false });
+  const [toolIndexShown, setToolIndexShown] = import_react56.default.useState(false);
+  const [reportPreview, setReportPreview] = import_react56.default.useState(null);
+  const [dockRequest, setDockRequest] = import_react56.default.useState(null);
+  const requestDock = (kind, mode = "toggle") => setDockRequest((prev) => ({ kind, mode, seq: (prev?.seq ?? 0) + 1 }));
+  const [toolRequest, setToolRequest] = import_react56.default.useState(null);
+  const requestToolWindow = (id, extra = {}) => {
+    setToolIndexShown(false);
+    setToolRequest((prev) => ({ id, ...extra, seq: (prev?.seq ?? 0) + 1 }));
+  };
   const workspace = useToolWorkspace(toolRequest);
-  import_react45.default.useEffect(() => {
+  const prevWindowsRef = import_react56.default.useRef(workspace.windows);
+  import_react56.default.useEffect(() => {
+    const prev = prevWindowsRef.current;
+    prevWindowsRef.current = workspace.windows;
     const owner = TOOL_WINDOW_OF_MODE[tool];
     if (!owner) return;
     if (workspace.windows.some((item) => item.id === owner)) return;
+    if (tool === "profile" && workspace.windows.some((item) => item.id === "measure")) return;
+    if (!prev.some((item) => item.id === owner || tool === "profile" && item.id === "measure")) return;
     setToolMode(null);
   }, [tool, workspace.windows]);
-  const [, setOverlayRev] = import_react45.default.useState(0);
-  const [shaderActive, setShaderActive] = import_react45.default.useState([]);
-  const [shaderForm, setShaderForm] = import_react45.default.useState({
+  const [, setOverlayRev] = import_react56.default.useState(0);
+  const [shaderActive, setShaderActive] = import_react56.default.useState([]);
+  const [shaderForm, setShaderForm] = import_react56.default.useState({
     layerId: "",
     preset: "height-false-color",
     minHeight: "",
@@ -28164,17 +32767,17 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
     waterHeight: "",
     depthMax: ""
   });
-  const [settingsOpen, setSettingsOpen] = import_react45.default.useState(false);
-  const [health, setHealth] = import_react45.default.useState(null);
-  const [terrainBusy, setTerrainBusy] = import_react45.default.useState(false);
-  const [terrainError, setTerrainError] = import_react45.default.useState("");
-  const [imageryBusy, setImageryBusy] = import_react45.default.useState(false);
-  const [rasterFrames, setRasterFrames] = import_react45.default.useState({});
-  const rasterFramesRef = import_react45.default.useRef({});
-  const [meta, setMeta] = import_react45.default.useState(null);
-  const [bridgeOn, setBridgeOn] = import_react45.default.useState(false);
-  const [bridgeReload, setBridgeReload] = import_react45.default.useState(false);
-  const [bridgeEpoch, setBridgeEpoch] = import_react45.default.useState(0);
+  const [settingsOpen, setSettingsOpen] = import_react56.default.useState(false);
+  const [health, setHealth] = import_react56.default.useState(null);
+  const [terrainBusy, setTerrainBusy] = import_react56.default.useState(false);
+  const [terrainError, setTerrainError] = import_react56.default.useState("");
+  const [imageryBusy, setImageryBusy] = import_react56.default.useState(false);
+  const [rasterFrames, setRasterFrames] = import_react56.default.useState({});
+  const rasterFramesRef = import_react56.default.useRef({});
+  const [meta, setMeta] = import_react56.default.useState(null);
+  const [bridgeOn, setBridgeOn] = import_react56.default.useState(false);
+  const [bridgeReload, setBridgeReload] = import_react56.default.useState(false);
+  const [bridgeEpoch, setBridgeEpoch] = import_react56.default.useState(0);
   const { confirm, dialog: confirmDialog } = useConfirm();
   const themeMode = sources?.settings?.theme ?? "auto";
   const resolvedDark = themeMode === "auto" ? environmentDark : themeMode === "dark";
@@ -28232,8 +32835,8 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
     setLayers(layersRef.current.map((layer) => ({ id: layer.id, name: layer.name, visible: layer.visible, kind: layer.kind, georefIssue: layer.georefIssue })));
     markSceneDirty();
   };
-  const saveChainRef = import_react45.default.useRef(Promise.resolve());
-  const saveSeqRef = import_react45.default.useRef(0);
+  const saveChainRef = import_react56.default.useRef(Promise.resolve());
+  const saveSeqRef = import_react56.default.useRef(0);
   const commitSources = (next, notify) => {
     const previous = sourcesRef.current;
     sourcesRef.current = next;
@@ -28256,9 +32859,9 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
     );
   };
   const updateSettings = (patch, notify) => {
-    const current = sourcesRef.current;
-    if (!current) return;
-    commitSources({ ...current, settings: { ...current.settings, ...patch } }, notify);
+    const current2 = sourcesRef.current;
+    if (!current2) return;
+    commitSources({ ...current2, settings: { ...current2.settings, ...patch } }, notify);
   };
   const normalizeAccessRequest = (args = {}) => {
     const rawPath = typeof args.path === "string" ? args.path.trim() : "";
@@ -28277,13 +32880,13 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
     };
   };
   const settleAccess = (outcome) => {
-    const current = accessRef.current;
-    if (!current) return;
+    const current2 = accessRef.current;
+    if (!current2) return;
     accessRef.current = null;
-    clearTimeout(current.timer);
+    clearTimeout(current2.timer);
     setAccessRequest(null);
     setAccessBusy(false);
-    current.resolve(outcome);
+    current2.resolve(outcome);
   };
   const askPathAccess = (request) => new Promise((resolve) => {
     if (accessRef.current) settleAccess({ allowed: false, message: t2("access.denied") });
@@ -28419,9 +33022,9 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
       showToast(t2("toast.reportFailed", { message: message(error2) }));
     }
   }
-  const imagerySeqRef = import_react45.default.useRef(0);
-  const terrainSeqRef = import_react45.default.useRef(0);
-  const imageryErrorUnsubRef = import_react45.default.useRef(null);
+  const imagerySeqRef = import_react56.default.useRef(0);
+  const terrainSeqRef = import_react56.default.useRef(0);
+  const imageryErrorUnsubRef = import_react56.default.useRef(null);
   async function applyImagery(id, notify, frameIndex) {
     const Cesium = cesiumRef.current;
     const viewer = viewerRef.current;
@@ -28563,20 +33166,20 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
   };
   const sameSourceSpec = (a, b) => a?.type === b?.type && a?.url === b?.url && (a?.layers ?? "") === (b?.layers ?? "") && (a?.tilingScheme ?? "") === (b?.tilingScheme ?? "") && temporalSignature(a) === temporalSignature(b);
   const saveSources = (draft) => {
-    const current = sourcesRef.current;
+    const current2 = sourcesRef.current;
     const meta2 = metaRef.current;
     if (!meta2) return;
     const next = { ...draft };
     commitSources(next, true);
     setSettingsOpen(false);
     const findById = (list, id) => list?.find((item) => item.id === id);
-    if (current?.settings?.imagery !== next.settings.imagery || !sameSourceSpec(findById(current?.imagery, current?.settings?.imagery), findById(next.imagery, next.settings?.imagery))) {
+    if (current2?.settings?.imagery !== next.settings.imagery || !sameSourceSpec(findById(current2?.imagery, current2?.settings?.imagery), findById(next.imagery, next.settings?.imagery))) {
       applyImagery(next.settings.imagery, false);
     }
-    if (current?.settings?.terrain !== next.settings.terrain || !sameSourceSpec(findById(current?.terrain, current?.settings?.terrain), findById(next.terrain, next.settings?.terrain))) {
+    if (current2?.settings?.terrain !== next.settings.terrain || !sameSourceSpec(findById(current2?.terrain, current2?.settings?.terrain), findById(next.terrain, next.settings?.terrain))) {
       applyTerrain(next.settings.terrain, false);
     }
-    if (normalizeQuality(current?.settings?.quality) !== normalizeQuality(next.settings.quality)) {
+    if (normalizeQuality(current2?.settings?.quality) !== normalizeQuality(next.settings.quality)) {
       applyQuality(
         viewerRef.current,
         next.settings.quality,
@@ -28589,6 +33192,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
   };
   function setToolMode(mode) {
     cancelSelection(viewerRef.current);
+    commitMeasurement();
     const next = mode ?? "identify";
     toolRef.current = next;
     setTool(next);
@@ -28621,85 +33225,34 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
     }
     viewerRef.current?.scene?.requestRender?.();
   }
+  function commitMeasurement() {
+    const Cesium = cesiumRef.current;
+    const viewer = viewerRef.current;
+    if (!Cesium || !viewer) return false;
+    const command = commitMeasurementToOverlay({ Cesium, state: measureRef.current, overlay: agentOverlayRef.current });
+    if (!command) return false;
+    setMeasureInfo(null);
+    syncAgentOverlayCount();
+    markSceneDirty();
+    viewer.scene?.requestRender?.();
+    return true;
+  }
   function redrawMeasure(mode) {
     const Cesium = cesiumRef.current;
     const viewer = viewerRef.current;
-    const state = measureRef.current;
     if (!Cesium || !viewer) return;
-    for (const entity of state.entities) viewer.entities.remove(entity);
-    state.entities = [];
-    const points = state.points;
-    state.mode = mode;
-    const descriptor = { group: "local-measure", kind: t2("layers.vectorMeasured"), title: t2(`tool.${mode}`), summary: "" };
-    const add = (options) => {
-      const entity = vectorRef.current.add(options, descriptor);
-      state.entities.push(entity);
-      return entity;
-    };
-    const accent = Cesium.Color.fromCssColorString(VECTOR_COLORS.accent);
-    const label = (position, text) => add({
-      position,
-      label: vectorLabel(Cesium, text)
+    drawMeasurePreview({
+      Cesium,
+      viewer,
+      state: measureRef.current,
+      mode,
+      t: t2,
+      vector: vectorRef.current,
+      onInfo: setMeasureInfo
     });
-    for (const position of points) {
-      add({
-        position,
-        point: {
-          pixelSize: 6,
-          color: accent,
-          outlineColor: Cesium.Color.WHITE,
-          outlineWidth: 1,
-          disableDepthTestDistance: Number.POSITIVE_INFINITY
-        }
-      });
-    }
-    if (mode === "distance" && points.length >= 2) {
-      add({ polyline: { positions: points, width: 2, material: accent, depthFailMaterial: accent } });
-      const total = geodesicLength(Cesium, points);
-      label(points[points.length - 1], t2("measure.total", { value: formatDistance(total) }));
-      setMeasureInfo({ text: t2("measure.distance", { value: formatDistance(total) }) });
-    } else if (mode === "area" && points.length >= 3) {
-      add({
-        polygon: {
-          hierarchy: new Cesium.PolygonHierarchy(points),
-          perPositionHeight: true,
-          material: accent.withAlpha(0.28),
-          outline: true,
-          outlineColor: accent
-        }
-      });
-      add({ polyline: { positions: [...points, points[0]], width: 2.5, material: accent, depthFailMaterial: accent.withAlpha(0.3) } });
-      const area = planarArea(Cesium, points);
-      const center = Cesium.BoundingSphere.fromPoints(points).center;
-      label(center, t2("measure.areaLabel", { value: formatArea(area) }));
-      setMeasureInfo({ text: t2("measure.area", { value: formatArea(area) }) });
-    } else if (mode === "height" && points.length === 2) {
-      add({
-        polyline: {
-          positions: points,
-          width: 2,
-          material: accent,
-          depthFailMaterial: accent.withAlpha(0.3)
-        }
-      });
-      const left = Cesium.Cartographic.fromCartesian(points[0]);
-      const right = Cesium.Cartographic.fromCartesian(points[1]);
-      const delta = right.height - left.height;
-      const horizontal = new Cesium.EllipsoidGeodesic(left, right).surfaceDistance;
-      const text = t2("measure.height", {
-        value: `${delta >= 0 ? "+" : ""}${delta.toFixed(2)} m`,
-        distance: formatDistance(horizontal)
-      });
-      label(points[1], text);
-      setMeasureInfo({ text });
-    } else {
-      setMeasureInfo({ text: t2("measure.start") });
-    }
-    descriptor.summary = state.entities.map((entity) => entity.label?.text?.getValue?.()).filter(Boolean).join(" · ");
-    vectorRef.current.refresh(descriptor);
     if (toolRef.current === mode) measurePreviewRef.current?.sync(mode);
   }
-  const agentOverlayRef = import_react45.default.useRef({
+  const agentOverlayRef = import_react56.default.useRef({
     draw: [],
     measure: [],
     drawnFeatures: 0,
@@ -28710,7 +33263,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
     // Entities per command (WeakMap keeps snapshots JSON-clean).
     entityGroups: /* @__PURE__ */ new WeakMap()
   });
-  const [agentOverlayCount, setAgentOverlayCount] = import_react45.default.useState(0);
+  const [agentOverlayCount, setAgentOverlayCount] = import_react56.default.useState(0);
   const syncAgentOverlayCount = () => {
     const state = agentOverlayRef.current;
     setAgentOverlayCount(state.draw.length + state.measure.length);
@@ -28765,7 +33318,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
     t: t2,
     onFinish: annotations.add
   });
-  import_react45.default.useEffect(() => {
+  import_react56.default.useEffect(() => {
     if (tool !== "annotate") annotationTool.abort();
   }, [tool]);
   const annotationEditor = createAnnotationEditor({
@@ -28777,10 +33330,10 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
     showToast,
     t: t2
   });
-  import_react45.default.useEffect(() => {
+  import_react56.default.useEffect(() => {
     annotationEditor.focus(vectorSelection);
   }, [vectorSelection]);
-  import_react45.default.useEffect(() => () => annotationEditor.dispose(), []);
+  import_react56.default.useEffect(() => () => annotationEditor.dispose(), []);
   const vectorExport = createVectorExport({ stateRef: agentOverlayRef, getMeta: () => metaRef.current, getSession: () => sessionId, showToast, t: t2 });
   const vectorRenderer = createVectorRenderer({
     getState: () => agentOverlayRef.current,
@@ -28791,6 +33344,17 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
   });
   const drawAgentOverlay = (Cesium, viewer, geojson, style, caption, origin) => vectorRenderer.drawAgentOverlay(Cesium, viewer, geojson, style, caption, origin);
   const measureAgentOverlay = (Cesium, viewer, args) => vectorRenderer.measureAgentOverlay(Cesium, viewer, args);
+  const parseOverlayRef = import_react56.default.useRef(null), parseOverlay = parseOverlayRef.current ??= createParseOverlaySync({
+    getState: () => agentOverlayRef.current,
+    getViewer: () => viewerRef.current,
+    draw: (geojson, style, caption, origin) => drawAgentOverlay(cesiumRef.current, viewerRef.current, geojson, style, caption, origin),
+    onChanged: () => {
+      syncAgentOverlayCount();
+      markSceneDirty();
+      saveSceneSnapshot(true);
+    },
+    t: t2
+  });
   const analysisEngine = createAnalysisEngine({
     getCesium: () => cesiumRef.current,
     getViewer: () => viewerRef.current,
@@ -28831,7 +33395,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
       ...source === "terrain" ? { source: "terrain" } : {}
     }).catch((error2) => showToast(t2("profile.recomputeFailed", { message: error2?.message ?? String(error2) })))
   });
-  import_react45.default.useEffect(() => {
+  import_react56.default.useEffect(() => {
     profileEdit.sync(analysis);
     return () => profileEdit.clear();
   }, [analysis]);
@@ -28851,9 +33415,9 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
   const shaderActiveList = () => shaderEngine.activeList();
   const detachShaderForLayer = (id, restore) => shaderEngine.detachForLayer(id, restore);
   const releaseShaderTick = () => shaderEngine.releaseTick();
-  const sceneDirtyRef = import_react45.default.useRef(false);
-  const restoringRef = import_react45.default.useRef(false);
-  const sceneRestoredRef = import_react45.default.useRef(false);
+  const sceneDirtyRef = import_react56.default.useRef(false);
+  const restoringRef = import_react56.default.useRef(false);
+  const sceneRestoredRef = import_react56.default.useRef(false);
   const hostSceneStore = createHostSceneStore({
     getMeta: () => metaRef.current,
     loadMeta,
@@ -28870,11 +33434,11 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
     const viewer = viewerRef.current;
     if (!Cesium || !viewer) return null;
     const carto = viewer.camera.positionCartographic;
-    const round2 = (value) => Math.round(value * 1e6) / 1e6;
+    const round3 = (value) => Math.round(value * 1e6) / 1e6;
     return {
       view: {
-        lon: round2(Cesium.Math.toDegrees(carto.longitude)),
-        lat: round2(Cesium.Math.toDegrees(carto.latitude)),
+        lon: round3(Cesium.Math.toDegrees(carto.longitude)),
+        lat: round3(Cesium.Math.toDegrees(carto.latitude)),
         height: Math.round(carto.height),
         heading: Math.round(Cesium.Math.toDegrees(viewer.camera.heading ?? 0)),
         pitch: Math.round(Cesium.Math.toDegrees(viewer.camera.pitch ?? 0))
@@ -28887,10 +33451,10 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
         measure: agentOverlayRef.current.measureCommands
       },
       analysis: analysisCommandRef.current,
-      shaders: [...shaderEntriesRef.current.values()].map((entry) => ({
-        layer: entry.layerName,
-        preset: entry.preset,
-        params: { ...entry.params }
+      shaders: [...shaderEntriesRef.current.values()].map((entry2) => ({
+        layer: entry2.layerName,
+        preset: entry2.preset,
+        params: { ...entry2.params }
       })),
       ...Object.keys(rasterFrameController.snapshotFrames()).length > 0 ? { rasterFrames: rasterFrameController.snapshotFrames() } : {}
     };
@@ -28975,16 +33539,23 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
       }
       for (const command of snapshot.annotations.draw) {
         try {
+          const before = agentOverlayRef.current.drawCommands.length;
           drawAgentOverlay(Cesium, viewer, command.geojson, command.style, command.caption, overlayOriginOf(command));
+          const restored = agentOverlayRef.current.drawCommands[before];
+          if (restored && command.hidden === true) restored.hidden = true;
         } catch {
         }
       }
       for (const command of snapshot.annotations.measure) {
         try {
+          const before = agentOverlayRef.current.measureCommands.length;
           measureAgentOverlay(Cesium, viewer, command);
+          const restored = agentOverlayRef.current.measureCommands[before];
+          if (restored && command.hidden === true) restored.hidden = true;
         } catch {
         }
       }
+      applyOverlayHidden(agentOverlayRef.current);
       for (const item of snapshot.shaders) {
         try {
           await shaderCommand({ action: "apply", preset: item.preset, layer: item.layer, ...item.params ?? {} });
@@ -29085,7 +33656,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
     );
   }
   function layerLabel(tileset) {
-    const found = layersRef.current.find((entry) => entry.tileset === tileset);
+    const found = layersRef.current.find((entry2) => entry2.tileset === tileset);
     return found ? found.name : t2("model.unnamed");
   }
   const pointerTools = createPointerTools({
@@ -29155,7 +33726,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
     drawVectorLabels: (context, width, height) => vectorRef.current?.drawLabels(context, width, height)
   });
   const { renderSnapshot, screenshot, captureScene } = capture;
-  const selectionController = import_react45.default.useMemo(() => createSelectionController({
+  const selectionController = import_react56.default.useMemo(() => createSelectionController({
     getViewer: () => viewerRef.current,
     getCesium: () => cesiumRef.current,
     getLayers: () => layersRef.current,
@@ -29236,9 +33807,9 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
     viewer.flyTo(layer.tileset, { duration: flightDuration(distance) });
   }
   function persistOverlays(next) {
-    const current = sourcesRef.current;
-    if (!current) return;
-    commitSources({ ...current, rasterOverlays: next });
+    const current2 = sourcesRef.current;
+    if (!current2) return;
+    commitSources({ ...current2, rasterOverlays: next });
   }
   function overlayCatalog() {
     return Array.isArray(sourcesRef.current?.rasterOverlays) ? sourcesRef.current.rasterOverlays : [];
@@ -29291,7 +33862,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
   }
   const collectStats = () => collectLayerStats({ Cesium: cesiumRef.current, viewer: viewerRef.current, layers: layersRef.current, formatHeight });
   async function inspectLayer(layerId) {
-    const layer = layersRef.current.find((entry) => entry.id === layerId);
+    const layer = layersRef.current.find((entry2) => entry2.id === layerId);
     if (!layer) return;
     const source = sourceOfLayer(layer);
     if (!source) {
@@ -29380,6 +33951,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
     return sceneStatus.collectSceneStatus();
   }
   const commandBridge = createCommandBridge({
+    getSession: () => sessionRef.current,
     getCesium: () => cesiumRef.current,
     getViewer: () => viewerRef.current,
     getSources: () => sourcesRef.current,
@@ -29417,7 +33989,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
   });
   const runCommand = (action, args = {}, session = null) => commandBridge.runCommand(action, args, session);
   commandRef.current = runCommand;
-  import_react45.default.useEffect(() => {
+  import_react56.default.useEffect(() => {
     if (!sessionId || !meta?.bridgeUrl) return void 0;
     const bridgeSession = sessionId;
     const endpoint = `${meta.bridgeUrl}?token=${encodeURIComponent(meta.token)}&session=${encodeURIComponent(bridgeSession)}`;
@@ -29464,7 +34036,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
         return;
       }
       if (!payload?.id) return;
-      const commandBudgets = { capture: 4e4, report: 45e3, load: 4e4 };
+      const commandBudgets = { capture: 4e4, report: 45e3, load: 4e4, extract: 24e4 };
       commandChainRef.current = commandChainRef.current.then(async () => {
         if (cancelledIds.has(payload.id)) return;
         let watchdog = null;
@@ -29526,17 +34098,17 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
       }
     };
   }, [sessionId, meta, bridgeEpoch]);
-  import_react45.default.useEffect(
+  import_react56.default.useEffect(
     () => () => {
-      const current = accessRef.current;
-      if (!current) return;
+      const current2 = accessRef.current;
+      if (!current2) return;
       accessRef.current = null;
-      clearTimeout(current.timer);
-      current.resolve({ allowed: false, message: t2("access.denied") });
+      clearTimeout(current2.timer);
+      current2.resolve({ allowed: false, message: t2("access.denied") });
     },
     []
   );
-  import_react45.default.useEffect(() => {
+  import_react56.default.useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
@@ -29681,7 +34253,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
       layersRef.current = [];
     };
   }, []);
-  import_react45.default.useEffect(() => {
+  import_react56.default.useEffect(() => {
     if (phase !== "ready") return void 0;
     return initialSceneCoordinator.registerViewer({
       getSessionId: () => sessionRef.current,
@@ -29689,7 +34261,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
       apply: (normalized) => applyInitialScene(normalized)
     });
   }, [phase]);
-  import_react45.default.useEffect(() => {
+  import_react56.default.useEffect(() => {
     if (phase !== "ready" || initialScene === null || initialScene === void 0) return void 0;
     const normalized = normalizeInitialScene(initialScene, sessionRef.current);
     if (!normalized.active) return void 0;
@@ -29699,7 +34271,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
     });
     return void 0;
   }, [phase, initialScene]);
-  import_react45.default.useEffect(() => {
+  import_react56.default.useEffect(() => {
     if (phase !== "ready" || sceneRestoredRef.current) return void 0;
     if (typeof sessionId !== "string" || sessionId === "") return void 0;
     sceneRestoredRef.current = true;
@@ -29721,7 +34293,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
       cancelled = true;
     };
   }, [phase, sessionId]);
-  import_react45.default.useEffect(() => {
+  import_react56.default.useEffect(() => {
     const timer = setInterval(() => {
       if (sceneDirtyRef.current) saveSceneSnapshot();
     }, 3e3);
@@ -29739,7 +34311,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
       document.removeEventListener("visibilitychange", onVisibility);
     };
   }, []);
-  import_react45.default.useEffect(() => {
+  import_react56.default.useEffect(() => {
     if (!openMenu) return void 0;
     const close = (event) => {
       if (!menuRef.current?.contains(event.target)) setOpenMenu(null);
@@ -29747,10 +34319,10 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
     document.addEventListener("pointerdown", close, true);
     return () => document.removeEventListener("pointerdown", close, true);
   }, [openMenu]);
-  import_react45.default.useEffect(() => {
+  import_react56.default.useEffect(() => {
     if (openMenu === "data" || showLayers) refreshRecentDirs();
   }, [openMenu, showLayers, meta?.directoriesUrl]);
-  import_react45.default.useEffect(() => {
+  import_react56.default.useEffect(() => {
     if (phase !== "ready") return void 0;
     const element = globeRef.current;
     if (!element || typeof ResizeObserver === "undefined") return void 0;
@@ -29763,7 +34335,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
     observer.observe(element);
     return () => observer.disconnect();
   }, [phase]);
-  import_react45.default.useEffect(() => {
+  import_react56.default.useEffect(() => {
     const onChange = () => {
       setFullscreen(document.fullscreenElement === rootRef.current);
       try {
@@ -29774,7 +34346,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
     document.addEventListener("fullscreenchange", onChange);
     return () => document.removeEventListener("fullscreenchange", onChange);
   }, []);
-  import_react45.default.useEffect(() => {
+  import_react56.default.useEffect(() => {
     if (phase !== "ready") return void 0;
     const viewer = viewerRef.current;
     if (!viewer) return void 0;
@@ -29839,7 +34411,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
     finishMeasure();
     return true;
   }, measureMode);
-  import_react45.default.useEffect(() => {
+  import_react56.default.useEffect(() => {
     if (phase !== "ready") return void 0;
     let lastKey = "";
     const timer = setInterval(() => {
@@ -29852,7 +34424,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
     }, 1e3);
     return () => clearInterval(timer);
   }, [phase]);
-  import_react45.default.useEffect(() => {
+  import_react56.default.useEffect(() => {
     const viewer = viewerRef.current;
     const Cesium = cesiumRef.current;
     if (phase !== "ready" || !viewer || !Cesium) return;
@@ -29862,18 +34434,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
     if (viewer.scene.skyAtmosphere) viewer.scene.skyAtmosphere.show = resolvedDark;
     viewer.scene.requestRender?.();
   }, [phase, resolvedDark, activeImageryId]);
-  const button = (label, onClick, active, extra, title) => h38(
-    "button",
-    { type: "button", className: `mv-btn${active ? " on" : ""}${extra ? ` ${extra}` : ""}`, onClick, title },
-    label
-  );
-  const menu = (id, label, items, active) => h38(
-    "div",
-    { key: id, className: "mv-menu mv-data-menu" },
-    button(`${label} ▾`, () => setOpenMenu(openMenu === id ? null : id), active),
-    openMenu === id ? h38("div", { className: "mv-menu-panel mv-glass" }, items) : null
-  );
-  const status = busy || (phase === "loading" ? t2("panel.status.loading") : t2("panel.status.ready"));
+  const status = busy || (phase === "loading" ? t2("panel.status.loading") : "");
   const hudLabels = {
     pointer: t2("hud.pointer"),
     camera: t2("hud.camera"),
@@ -29913,7 +34474,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
   });
   const objectPanel = vectorSelection ? {
     key: `vector:${vectorSelection.id ?? vectorSelection.feature?.id ?? vectorSelection.title ?? "selection"}`,
-    node: h38(VectorCard, {
+    node: h48(VectorCard, {
       embedded: true,
       selection: vectorSelection,
       onClose: () => vectorRef.current?.clearSelection(),
@@ -29924,11 +34485,60 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
       t: t2
     })
   } : sceneDetails.isOpen ? { key: "scene-details", node: sceneDetails.element } : null;
-  return h38(
+  const overlayActions = createOverlayActions({
+    t: t2,
+    confirm,
+    showToast,
+    getState: () => agentOverlayRef.current,
+    clear: clearAgentOverlays2,
+    remove: (kind, index) => removeAgentOverlay(agentOverlayRef.current, viewerRef.current, kind, index),
+    onChanged: () => {
+      syncAgentOverlayCount();
+      markSceneDirty();
+      saveSceneSnapshot(true);
+    }
+  });
+  const [addLayerRequest, setAddLayerRequest] = import_react56.default.useState(null);
+  const [layerProps, setLayerProps] = import_react56.default.useState(null);
+  const [chromeHidden, toggleChrome] = useChromeVisibility();
+  const openAddLayer = (kind) => setAddLayerRequest({ kind: kind ?? null, token: Date.now() });
+  const openLayerShader = (layer, entry2) => {
+    workbench.loadEntry(entry2 ?? { layer: layer.name, layerId: layer.id, preset: "height-false-color" });
+    setShaderOpen(true);
+  };
+  const selectOverlayFeature = (overlayIndex, featureIndex) => {
+    const command = agentOverlayRef.current.drawCommands[overlayIndex];
+    const feature = command?.geojson?.features?.[featureIndex];
+    if (command && feature) vectorRef.current?.selectByFeature?.(command, feature);
+  };
+  const flyOverlay = (kind, index) => flyToAgentOverlay(agentOverlayRef.current, viewerRef.current, cesiumRef.current, kind, index);
+  const toggleOverlayVisible = (kind, index, visible) => {
+    setAgentOverlayHidden(agentOverlayRef.current, kind, index, !visible);
+    markSceneDirty();
+    saveSceneSnapshot(true);
+  };
+  const header = consoleHeader({
+    t: t2,
+    activeTab: activePanelTab,
+    lastTab: lastPanelTabRef.current,
+    windows: workspace.windows,
+    toolIndexShown
+  });
+  const closeAction = consoleCloseAction({
+    t: t2,
+    activeTab: activePanelTab,
+    analysis,
+    reportPreview,
+    hasObject: Boolean(objectPanel?.key),
+    onCloseAnalysis: () => clearAnalysis(),
+    onCloseReport: () => setReportPreview(null),
+    onCloseObject: () => vectorSelection ? vectorRef.current?.clearSelection() : sceneDetails.close()
+  });
+  return h48(
     "div",
     {
       ref: rootRef,
-      className: `mv-root${docked ? " mv-docked" : ""}`,
+      className: `mv-root${docked ? " mv-docked" : ""}${chromeHidden ? " mv-chrome-hidden" : ""}`,
       "data-mv-scheme": resolvedDark ? "dark" : "light",
       onDragOver: (event) => {
         if (!isVectorDrag(event.dataTransfer)) return;
@@ -29949,56 +34559,72 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
         );
       }
     },
-    h38("style", { key: "css" }, CSS),
-    h38("div", { key: "globe", ref: globeRef, className: "mv-globe" }),
-    activeImagery?.credit ? h38("div", { key: "attr", className: "mv-attr" }, `${t2("credit.imagery")} © ${activeImagery.credit}`) : null,
-    h38("div", { key: "credits", ref: creditRef, className: "mv-credits" }),
-    h38(Compass, { key: "compass", getViewer: () => viewerRef.current, t: t2 }),
-    h38(
-      "div",
-      { key: "top", className: `mv-top${openMenu ? " menu-open" : ""}` },
-      h38(
-        "div",
-        { className: "mv-brand mv-glass" },
-        h38(ViewerIcon, { size: 18 }),
-        h38("b", null, t2("panel.title")),
-        h38("span", null, status)
-      ),
-      h38(
-        "div",
-        { ref: menuRef, className: "mv-actions mv-glass" },
-        menu(
-          "data",
-          t2("btn.data"),
-          dataMenuItems({
-            h: h38,
-            MenuItem,
-            t: t2,
-            recentDirs,
-            recentUrls,
-            agentOverlayCount,
-            closeMenu: () => setOpenMenu(null),
-            onOpenLocal: pickLocal,
-            onOpenRecentDirectory: openRecentDirectory,
-            onOpenRecentUrl: openRecentUrl,
-            // Scoped to agent-created overlays only: the label now matches what
-            // the action really deletes (audit A2).
-            onClearAgent: () => {
-              const stats2 = overlayStats(agentOverlayRef.current);
-              clearAgentOverlays2("all", { origin: "agent" });
-              showToast(t2("agent.clearedOverlays", { n: stats2.agentDraw + stats2.agentMeasure }));
-            },
-            onToggleUrlBar: () => setUrlBar((value) => !value)
-          })
-        ),
-        h38("i", { key: "s1", className: "mv-sep" }),
-        // Batch B1: four domain toggles (工具 / 图层 / 分析 / 视图). Their labels
-        // collapse to icons in a narrow dock; selection lives in the Tools card.
-        h38(ToolbarQuick, {
-          t: t2,
+    h48("style", { key: "css" }, CSS),
+    h48("div", { key: "globe", ref: globeRef, className: "mv-globe" }),
+    activeImagery?.credit ? h48("div", { key: "attr", className: "mv-attr" }, `${t2("credit.imagery")} © ${activeImagery.credit}`) : null,
+    h48("div", { key: "credits", ref: creditRef, className: "mv-credits" }),
+    h48(Compass, { key: "compass", getViewer: () => viewerRef.current, t: t2 }),
+    h48(
+      ChromeShell,
+      { key: "chrome", hidden: chromeHidden },
+      h48(TopBar, {
+        key: "top",
+        t: t2,
+        panelLabel: header.panelLabel,
+        panelDetail: header.panelDetail,
+        onBack: () => {
+          setToolIndexShown(true);
+          if (header.toolId) workspace.closeTool(header.toolId);
+        },
+        ...closeAction,
+        onToggleChrome: toggleChrome,
+        menuRef,
+        openMenu,
+        setOpenMenu,
+        data: {
+          recentDirs,
+          recentUrls,
+          agentOverlayCount,
+          onAddLayer: openAddLayer,
+          onImportVector: () => openAddLayer("vector"),
+          onOpenLocal: pickLocal,
+          onOpenRecentDirectory: openRecentDirectory,
+          onOpenRecentUrl: openRecentUrl,
+          // Scoped to agent-created overlays only: the label matches what the
+          // action really deletes (audit A2).
+          onClearAgent: () => {
+            const stats2 = overlayStats(agentOverlayRef.current);
+            clearAgentOverlays2("all", { origin: "agent" });
+            showToast(t2("agent.clearedOverlays", { n: stats2.agentDraw + stats2.agentMeasure }));
+          },
+          onToggleUrlBar: () => setUrlBar((value) => !value)
+        },
+        view: {
+          showHud,
+          fullscreen,
+          onResetView: resetView,
+          onToggleHud: () => updateSettings({ showHud: !showHud }),
+          onToggleFullscreen: toggleDomFullscreen,
+          onShowSceneDetails: sceneDetails.open,
+          onToggleChrome: toggleChrome
+        },
+        output: {
+          sessionId,
+          docked,
+          canExportVector: agentOverlayCount > 0,
+          onScreenshot: screenshot,
+          onReport: openSceneReport,
+          onExportVector: () => vectorExport.download(),
+          onAskAgent: askAgent,
+          onOpenBeside: openBeside
+        },
+        quick: {
           showLayers: activePanelTab === "layers",
           showTools: activePanelTab === "tools",
           showResult: activePanelTab === "result",
+          // D8: nothing to show yet, so the destination stays inert.
+          resultDisabled: !analysis && !reportPreview,
+          resultUnread: Boolean(dockUnread?.result) && activePanelTab !== "result",
           onToggleLayers: () => {
             if (!showLayers) updateSettings({ showLayers: true });
             requestDock("layers");
@@ -30007,33 +34633,170 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
             if (!showTools) setShowTools(true);
             requestDock("tools");
           },
+          showPlaces: activePanelTab === "places",
+          onTogglePlaces: () => requestDock("places"),
           onOpenResult: () => requestDock("result")
-        }),
-        menu(
-          "output",
-          t2("btn.output"),
-          outputMenuItems({
-            h: h38,
-            MenuItem,
-            t: t2,
-            showHud,
-            fullscreen,
-            sessionId,
-            docked,
-            closeMenu: () => setOpenMenu(null),
-            onScreenshot: screenshot,
-            onReport: openSceneReport,
-            onToggleHud: () => updateSettings({ showHud: !showHud }),
-            onResetView: resetView,
-            onToggleFullscreen: toggleDomFullscreen,
-            onAskAgent: askAgent,
-            onOpenBeside: openBeside
-          })
-        ),
-        h38(ToolbarSettings, { t: t2, setSettingsOpen })
-      )
+        },
+        onOpenSettings: () => setSettingsOpen(true)
+      }),
+      h48(RightStack, {
+        t: t2,
+        busy: Boolean(measureMode || tool === "annotation"),
+        dockRequest,
+        objectPanel,
+        onActiveTab: (tab) => {
+          if (tab) lastPanelTabRef.current = tab;
+          setActivePanelTab(tab);
+        },
+        onUnread: setDockUnread,
+        showToolIndex: toolIndexShown,
+        onShowToolIndex: setToolIndexShown,
+        openWindows: workspace.windows,
+        onSelectTool: (id) => {
+          setToolIndexShown(false);
+          workspace.selectTool(id);
+        },
+        onCloseToolWindow: (id) => {
+          setToolIndexShown(true);
+          workspace.closeTool(id);
+        },
+        onToggleMinimizeTool: workspace.toggleMinimize,
+        onToggleExpandTool: workspace.toggleExpand,
+        analysis,
+        reportPreview,
+        onCloseReport: () => setReportPreview(null),
+        analysisHover: profileHover,
+        onAnalysisHover: (index) => {
+          setProfileHover(index);
+          profileEdit.setHover(index);
+        },
+        onCloseAnalysis: () => clearAnalysis(),
+        showLayers,
+        showTools,
+        placesPanel: {
+          url: meta?.placesUrl,
+          onFly: (place) => {
+            const started = flyToBbox(viewerRef.current, cesiumRef.current, placeBounds(place));
+            if (started) setEmptyDismissed(true);
+            return started;
+          }
+        },
+        layersPanel: {
+          config: sources,
+          settings: sources?.settings ?? {},
+          layers: layers2,
+          vectorExport,
+          onCollapse: () => updateSettings({ showLayers: false }),
+          onSelectTerrain: changeTerrain,
+          onSelectImagery: changeImagery,
+          terrainError,
+          onRetryTerrain: () => applyTerrain(sourcesRef.current?.settings?.terrain ?? null, true),
+          onFlyLayer: flyToLayer,
+          onFrameAll: () => frameAllLayers(viewerRef.current, cesiumRef.current, layersRef.current),
+          onToggleLayer: toggleLayer,
+          onRemoveLayer: removeLayer,
+          shaderActive,
+          onEditLayerShader: openLayerShader,
+          onAddLayer: openAddLayer,
+          onOpenLayerProperties: (selection) => setLayerProps(selection),
+          onOverlayRemove: removeOverlay,
+          onOverlayVisible: setOverlayVisible,
+          onOverlayMove: moveOverlay,
+          rasterFrames,
+          onSelectRasterFrame: (id, index) => {
+            void rasterFrameController.selectFrame(id, index);
+          },
+          agentOverlays: buildAgentOverlayList(agentOverlayRef.current),
+          overlayDetails: buildAgentOverlayDetails(agentOverlayRef.current),
+          overlayExtrusions: buildAgentOverlayExtrusions(agentOverlayRef.current),
+          onToggleOverlayExtrude: (overlayIndex) => annotations.toggleLayerExtrusion(overlayIndex),
+          onToggleOverlayVisible: toggleOverlayVisible,
+          onQuickAnnotate: () => {
+            requestToolWindow("annotation");
+            requestDock("tools", "activate");
+          },
+          onOpenMeasure: () => {
+            requestToolWindow("measure");
+            requestDock("tools", "activate");
+          },
+          onSelectAgentFeature: selectOverlayFeature,
+          onFlyAgentFeature: (overlayIndex, featureIndex) => {
+            const feature = agentOverlayRef.current.drawCommands[overlayIndex]?.geojson?.features?.[featureIndex];
+            return flyToOverlayFeature(viewerRef.current, cesiumRef.current, feature);
+          },
+          onRemoveAgentFeature: (overlayIndex, featureIndex) => annotations.removeFeature(overlayIndex, featureIndex),
+          onFlyAgentOverlay: flyOverlay,
+          // Scoped clears and row removals share one policy module: every
+          // destructive overlay action asks first and reports afterwards.
+          onClearAnnotations: overlayActions.onClearAnnotations,
+          onClearMeasurements: overlayActions.onClearMeasurements,
+          onClearImports: overlayActions.onClearImports,
+          onRemoveAgentOverlay: overlayActions.onRemoveAgentOverlay,
+          onExportOverlay: (index) => vectorExport.downloadOverlay(index),
+          onSendOverlay: (index) => vectorExport.sendOverlay(index),
+          canSend: vectorExport.canSend(),
+          onShowSceneDetails: sceneDetails.open,
+          swipeState: swipe.state,
+          onSwipeLayer: swipe.toggle3d,
+          onOverlaySwipe: swipe.toggleRaster
+        },
+        toolsPanel: {
+          tool,
+          analysis,
+          shaderActive,
+          openRequest: toolRequest,
+          onCollapse: () => setShowTools(false),
+          onStartTool: (mode) => setToolMode(mode),
+          onClearMeasure: clearAllMeasurements,
+          onStartProfile: (options) => profileTool.start(options),
+          onStartAnnotation: annotationTool.start,
+          onSyncParse: parseOverlay.sync,
+          onClearAnalysis: () => clearAnalysis(),
+          onOpenEffect: () => setShaderOpen(true),
+          onOpenShader: () => setShaderOpen(true),
+          onResetAllShaders: workbench.resetAll,
+          getCesium: () => cesiumRef.current,
+          getViewer: () => viewerRef.current,
+          getSession: () => sessionRef.current,
+          getLayers: () => layersRef.current,
+          getMeta: () => metaRef.current,
+          layers: layers2,
+          swipe,
+          renderSnapshot,
+          // Camera bookmarks: panel-managed list, storage in localStorage.
+          getCurrentView: () => currentSceneSnapshot()?.view ?? null,
+          onFlyView: (view) => flyToBookmark(viewerRef.current, cesiumRef.current, view),
+          onStartTour: tour.start,
+          showToast,
+          runAnalysis: analyzeCommand,
+          getTerrainActive: () => Boolean(sourcesRef.current?.settings?.terrain),
+          getOverlayRows: () => {
+            const rows = overlayRowsWithEntities(agentOverlayRef.current);
+            const manual = manualMeasurementRow(measureRef.current.entities, t2("measure.objectRow"), measureInfo?.text ?? "");
+            return manual ? [...rows, manual] : rows;
+          },
+          onActivateSelection: () => {
+            setToolMode(null);
+            selectionApiRef.current?.cancel?.();
+          },
+          onRemoveOverlayRows: (rows) => {
+            const manual = Array.isArray(rows) && rows.some((row2) => row2.kind === "manual");
+            if (manual) clearMeasure();
+            const removed = removeAgentOverlayRows(agentOverlayRef.current, viewerRef.current, rows);
+            syncAgentOverlayCount();
+            markSceneDirty();
+            saveSceneSnapshot(true);
+            return removed + (manual ? 1 : 0);
+          },
+          onAskSelection: (options) => askAgentService.askSelection(options),
+          onParseSelection: () => {
+            requestToolWindow("parse", { aoiSeq: (toolRequest?.aoiSeq ?? 0) + 1 });
+            requestDock("tools", "activate");
+          }
+        }
+      })
     ),
-    urlBar ? h38(UrlBar, {
+    urlBar ? h48(UrlBar, {
       key: "urlbar",
       value: urlInput,
       placeholder: t2("urlbar.placeholder"),
@@ -30043,7 +34806,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
       onSubmit: submitUrl,
       onClose: () => setUrlBar(false)
     }) : null,
-    shaderOpen ? h38(ShaderWorkbench, {
+    shaderOpen ? h48(ShaderWorkbench, {
       key: "shader",
       t: t2,
       layers: layers2,
@@ -30070,7 +34833,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
       onResetEntry: workbench.resetLayerFor
     }) : null,
     // v1.7 P0: 指认 card + corner brackets (panel-only) and the tour bar.
-    h38(SelectionOverlay, {
+    h48(SelectionOverlay, {
       key: "selection",
       active: tool === "identify",
       apiRef: selectionApiRef,
@@ -30079,198 +34842,26 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
       t: t2,
       showToast,
       onMeasure: measureFromSelection,
-      onVisionCommit: (ground) => {
-        getSelectionTool(viewerRef.current, { getCesium: () => cesiumRef.current, t: t2, showToast })?.commitVision(ground);
-        workspace.openTool("select");
-      },
-      onVisionManual: () => workspace.openTool("select"),
       onSelectArea: (card) => {
         const viewerNow = viewerRef.current;
         if (!viewerNow || !card?.point) return;
         const selectionTool = getSelectionTool(viewerNow, { getCesium: () => cesiumRef.current, t: t2, showToast });
         selectionTool?.selectAreaAround?.({ lon: card.point.lon, lat: card.point.lat, radiusM: 15, height: card.point.surface_height_m ?? 0 });
+        setToolIndexShown(false);
         workspace.openTool("select");
+        requestDock("tools", "activate");
       }
     }),
     tour.element,
     swipe.element,
-    h38(RightStack, {
-      t: t2,
-      busy: Boolean(measureMode || tool === "annotation"),
-      dockRequest,
-      objectPanel,
-      onActiveTab: setActivePanelTab,
-      openWindows: workspace.windows,
-      onSelectTool: workspace.selectTool,
-      onCloseToolWindow: workspace.closeTool,
-      onToggleMinimizeTool: workspace.toggleMinimize,
-      onToggleExpandTool: workspace.toggleExpand,
-      analysis,
-      reportPreview,
-      onCloseReport: () => setReportPreview(null),
-      analysisHover: profileHover,
-      onAnalysisHover: (index) => {
-        setProfileHover(index);
-        profileEdit.setHover(index);
-      },
-      onCloseAnalysis: () => clearAnalysis(),
-      showLayers,
-      showTools,
-      layersPanel: {
-        config: sources,
-        settings: sources?.settings ?? {},
-        layers: layers2,
-        annotations: { drawn_features: agentOverlayRef.current.drawnFeatures, measured_points: agentOverlayRef.current.measuredCount },
-        vectorExport,
-        onCollapse: () => updateSettings({ showLayers: false }),
-        onSelectTerrain: changeTerrain,
-        onSelectImagery: changeImagery,
-        terrainError,
-        onRetryTerrain: () => applyTerrain(sourcesRef.current?.settings?.terrain ?? null, true),
-        onFlyLayer: flyToLayer,
-        onFrameAll: () => frameAllLayers(viewerRef.current, cesiumRef.current, layersRef.current),
-        onToggleLayer: toggleLayer,
-        onInspectLayer: inspectLayer,
-        onRemoveLayer: removeLayer,
-        shaderActive,
-        onEditLayerShader: (layer, entry) => {
-          workbench.loadEntry(entry ?? { layer: layer.name, layerId: layer.id, preset: "height-false-color" });
-          setShaderOpen(true);
-        },
-        onOverlayAdd: addOverlay,
-        onOverlayRemove: removeOverlay,
-        onOverlayOpacity: setOverlayOpacity,
-        onOverlayVisible: setOverlayVisible,
-        onOverlayMove: moveOverlay,
-        rasterFrames,
-        onSelectRasterFrame: (id, index) => {
-          void rasterFrameController.selectFrame(id, index);
-        },
-        onImportVector: importVectorData,
-        onPickLocalTiles: () => workbench.pickLocalTiles({ withMeta: true }),
-        onOpenLocal: workbench.openLocal,
-        onOpenUrl: workbench.openUrl,
-        recentDirs,
-        onOpenRecent: workbench.openRecent,
-        // Vector-group ✕: one explicit confirmation that names the counts and
-        // the fact that local imports / hand-drawn features are included.
-        // Returns a third choice only when both kinds exist (audit A1).
-        onClearVector: () => {
-          const stats2 = overlayStats(agentOverlayRef.current);
-          const total = stats2.draw + stats2.measure;
-          if (total === 0) return;
-          void confirm({
-            title: t2("confirm.clearVectorTitle"),
-            message: t2("confirm.clearVectorMessage", { drawn: stats2.draw, measured: stats2.measure }),
-            detail: stats2.importDraw + stats2.userDraw > 0 ? t2("confirm.clearVectorIncludesUser", { user: stats2.importDraw + stats2.userDraw }) : t2("confirm.clearVectorUndo"),
-            confirmLabel: t2("confirm.clearAll"),
-            cancelLabel: t2("btn.cancel"),
-            secondaryLabel: stats2.draw > 0 && stats2.measure > 0 ? t2("confirm.clearMeasureOnly") : "",
-            danger: true
-          }).then((choice) => {
-            if (choice === true) {
-              clearAgentOverlays2("all");
-              showToast(t2("toast.vectorCleared"));
-            } else if (choice === "secondary") {
-              clearAgentOverlays2("measure");
-              showToast(t2("toast.measureCleared"));
-            }
-          });
-        },
-        agentOverlays: buildAgentOverlayList(agentOverlayRef.current),
-        overlayDetails: buildAgentOverlayDetails(agentOverlayRef.current),
-        overlayExtrusions: buildAgentOverlayExtrusions(agentOverlayRef.current),
-        onToggleOverlayExtrude: (overlayIndex) => annotations.toggleLayerExtrusion(overlayIndex),
-        onQuickAnnotate: () => {
-          setToolRequest((prev) => ({ id: "annotation", seq: (prev?.seq ?? 0) + 1 }));
-        },
-        onSelectAgentFeature: (overlayIndex, featureIndex) => {
-          const command = agentOverlayRef.current.drawCommands[overlayIndex];
-          const feature = command?.geojson?.features?.[featureIndex];
-          if (command && feature) vectorRef.current?.selectByFeature?.(command, feature);
-        },
-        onFlyAgentFeature: (overlayIndex, featureIndex) => {
-          const feature = agentOverlayRef.current.drawCommands[overlayIndex]?.geojson?.features?.[featureIndex];
-          return flyToOverlayFeature(viewerRef.current, cesiumRef.current, feature);
-        },
-        onRemoveAgentFeature: (overlayIndex, featureIndex) => annotations.removeFeature(overlayIndex, featureIndex),
-        onFlyAgentOverlay: (kind, index) => flyToAgentOverlay(agentOverlayRef.current, viewerRef.current, cesiumRef.current, kind, index),
-        onRemoveAgentOverlay: (kind, index) => {
-          if (!removeAgentOverlay(agentOverlayRef.current, viewerRef.current, kind, index)) return;
-          syncAgentOverlayCount();
-          markSceneDirty();
-          saveSceneSnapshot(true);
-        },
-        onShowSceneDetails: sceneDetails.open,
-        swipeState: swipe.state,
-        onSwipeLayer: swipe.toggle3d,
-        onOverlaySwipe: swipe.toggleRaster
-      },
-      toolsPanel: {
-        tool,
-        analysis,
-        shaderActive,
-        openRequest: toolRequest,
-        onCollapse: () => setShowTools(false),
-        onStartTool: (mode) => setToolMode(mode),
-        onClearMeasure: clearAllMeasurements,
-        onStartProfile: (options) => profileTool.start(options),
-        onStartAnnotation: annotationTool.start,
-        onAdoptParse: annotations.adoptCollection,
-        onClearAnalysis: () => clearAnalysis(),
-        onOpenEffect: () => setShaderOpen(true),
-        onOpenShader: () => setShaderOpen(true),
-        onResetAllShaders: workbench.resetAll,
-        getCesium: () => cesiumRef.current,
-        getViewer: () => viewerRef.current,
-        getLayers: () => layersRef.current,
-        getMeta: () => metaRef.current,
-        layers: layers2,
-        swipe,
-        renderSnapshot,
-        // Camera bookmarks: panel-managed list, storage in localStorage.
-        getCurrentView: () => currentSceneSnapshot()?.view ?? null,
-        onFlyView: (view) => flyToBookmark(viewerRef.current, cesiumRef.current, view),
-        onStartTour: tour.start,
-        showToast,
-        runAnalysis: analyzeCommand,
-        getTerrainActive: () => Boolean(sourcesRef.current?.settings?.terrain),
-        getOverlayRows: () => {
-          const rows = overlayRowsWithEntities(agentOverlayRef.current);
-          const manual = manualMeasurementRow(measureRef.current.entities, t2("measure.objectRow"), measureInfo?.text ?? "");
-          return manual ? [...rows, manual] : rows;
-        },
-        onActivateSelection: () => {
-          setToolMode(null);
-          selectionApiRef.current?.cancel?.();
-        },
-        onRemoveOverlayRows: (rows) => {
-          const manual = Array.isArray(rows) && rows.some((row) => row.kind === "manual");
-          if (manual) clearMeasure();
-          const removed = removeAgentOverlayRows(agentOverlayRef.current, viewerRef.current, rows);
-          syncAgentOverlayCount();
-          markSceneDirty();
-          saveSceneSnapshot(true);
-          return removed + (manual ? 1 : 0);
-        },
-        onAskSelection: (options) => askAgentService.askSelection(options),
-        onParseSelection: () => {
-          setToolRequest((prev) => ({ id: "parse", aoiSeq: (prev?.aoiSeq ?? 0) + 1, seq: (prev?.seq ?? 0) + 1 }));
-        },
-        onVisionSelect: () => {
-          selectionApiRef.current?.requestVision?.();
-          setToolMode(null);
-          setShowTools(false);
-        }
-      }
-    }),
-    phase === "ready" && layers2.length === 0 && !emptyDismissed && !restoringScene ? h38(
+    h48(ChromeA11y, { key: "chrome-a11y", t: t2, status, hidden: chromeHidden, onShow: toggleChrome }),
+    phase === "ready" && layers2.length === 0 && !emptyDismissed && openMenu !== "view" && !restoringScene ? h48(
       "div",
       { key: "empty", className: "mv-overlay" },
-      h38(
+      h48(
         "div",
         { className: "mv-empty" },
-        h38(
+        h48(
           "button",
           {
             type: "button",
@@ -30281,35 +34872,35 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
           },
           "✕"
         ),
-        h38(ViewerIcon, { size: 30 }),
-        h38("h2", null, t2("panel.empty.title")),
-        h38("p", null, t2("panel.empty.body")),
-        h38(
+        h48(ViewerIcon, { size: 30 }),
+        h48("h2", null, t2("panel.empty.title")),
+        h48("p", null, t2("panel.empty.body")),
+        h48(
           "div",
           { className: "buttons" },
-          h38("button", { type: "button", className: "mv-cta primary", onClick: pickLocal }, t2("panel.empty.local")),
-          h38("button", { type: "button", className: "mv-cta", onClick: () => setUrlBar(true) }, t2("panel.empty.url"))
+          h48("button", { type: "button", className: "mv-cta primary", onClick: pickLocal }, t2("panel.empty.local")),
+          h48("button", { type: "button", className: "mv-cta", onClick: () => setUrlBar(true) }, t2("panel.empty.url"))
         )
       )
     ) : null,
-    phase === "loading" ? h38("div", { key: "loading", className: "mv-overlay dim", role: "status" }, h38("div", { className: "mv-empty" }, h38(LoadingGlobe), h38("p", null, t2("panel.status.loading")))) : null,
-    phase === "error" ? h38(
+    phase === "loading" ? h48("div", { key: "loading", className: "mv-overlay dim", role: "status" }, h48("div", { className: "mv-empty" }, h48(LoadingGlobe), h48("p", null, t2("panel.status.loading")))) : null,
+    phase === "error" ? h48(
       "div",
       { key: "error", className: "mv-overlay dim" },
-      h38(
+      h48(
         "div",
         { className: "mv-empty" },
-        h38("h2", null, "⚠"),
-        h38("p", null, error),
-        h38("div", { className: "buttons" }, h38("button", { type: "button", className: "mv-cta", onClick: () => location.reload() }, t2("btn.retry")))
+        h48("h2", null, "⚠"),
+        h48("p", null, error),
+        h48("div", { className: "buttons" }, h48("button", { type: "button", className: "mv-cta", onClick: () => location.reload() }, t2("btn.retry")))
       )
     ) : null,
-    stats && showHud ? h38(StatusHud, { key: "hud", fps, stats, viewerRef, cesiumRef, labels: hudLabels, readoutRef: captureReadoutRef, detailed: hudDetailed }) : null,
-    measureInfo ? h38(
+    stats && showHud ? h48(StatusHud, { key: "hud", fps, stats, viewerRef, cesiumRef, labels: hudLabels, readoutRef: captureReadoutRef, detailed: hudDetailed }) : null,
+    measureInfo ? h48(
       "div",
       { key: "measure", className: "mv-measure mv-glass" },
-      h38("span", { className: "text" }, measureInfo.text),
-      h38(
+      h48("span", { className: "text" }, measureInfo.text),
+      h48(
         "button",
         {
           type: "button",
@@ -30321,11 +34912,49 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
         measureMode ? t2("measure.end") : t2("tool.clear")
       )
     ) : null,
+    h48(ProfileBar, {
+      key: "profile-bar",
+      t: t2,
+      analysis,
+      hidden: Boolean(measureInfo),
+      resultOpen: activePanelTab === "result",
+      onOpenResult: () => requestDock("result", "activate"),
+      onRedraw: () => profileTool.start(),
+      onClear: () => clearAnalysis()
+    }),
     // aria-live: screen readers announce scene feedback without stealing focus.
-    toast ? h38("div", { key: "toast", className: "mv-toast", role: "status", "aria-live": "polite" }, toast) : null,
+    toast ? h48("div", { key: "toast", className: "mv-toast", role: "status", "aria-live": "polite" }, toast) : null,
+    // v1.8: one surface for adding data, one for per-layer properties.
+    h48(SceneDialogs, {
+      key: "scene-dialogs",
+      t: t2,
+      request: addLayerRequest,
+      selection: layerProps,
+      layers: layers2,
+      config: sources,
+      settings: sources?.settings ?? {},
+      agentOverlays: buildAgentOverlayList(agentOverlayRef.current),
+      overlayDetails: buildAgentOverlayDetails(agentOverlayRef.current),
+      shaderActive,
+      workbench,
+      recentDirs,
+      onCloseAdd: () => setAddLayerRequest(null),
+      onCloseProps: () => setLayerProps(null),
+      onOverlayAdd: addOverlay,
+      onImportVector: importVectorData,
+      onFlyLayer: flyToLayer,
+      onToggleLayer: toggleLayer,
+      onInspectLayer: inspectLayer,
+      onOverlayOpacity: setOverlayOpacity,
+      onOverlayVisible: setOverlayVisible,
+      onEditLayerShader: openLayerShader,
+      onSelectAgentFeature: selectOverlayFeature,
+      onExportOverlay: (index) => vectorExport.downloadOverlay(index),
+      onFlyAgentOverlay: flyOverlay
+    }),
     // Shared destructive-action confirmation (focus trap, Esc = cancel).
     confirmDialog,
-    scan ? h38(ScanDialog, {
+    scan ? h48(ScanDialog, {
       key: "scan",
       scan,
       t: t2,
@@ -30335,7 +34964,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
         path: net.joinLocalPath(scan.dir, item.name)
       })
     }) : null,
-    health ? h38(HealthDialog, {
+    health ? h48(HealthDialog, {
       key: "health",
       state: health,
       messages: t2,
@@ -30351,7 +34980,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
         }
       }
     }) : null,
-    settingsOpen && sources && defaults ? h38(SourcesDialog, {
+    settingsOpen && sources && defaults ? h48(SourcesDialog, {
       key: "settings",
       config: sources,
       defaults,
@@ -30367,7 +34996,7 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
       askConfirm: confirm,
       notify: showToast
     }) : null,
-    accessRequest ? h38(PathAccessDialog, {
+    accessRequest ? h48(PathAccessDialog, {
       key: "access",
       request: accessRequest,
       busy: accessBusy,
@@ -30375,31 +35004,31 @@ function ViewerSurface({ t: injectedT, sessionId = null, docked = false, initial
       onAllow: allowPathAccess,
       onDeny: () => settleAccess({ allowed: false, message: t2("access.denied") })
     }) : null,
-    imageryBusy || terrainBusy ? h38("div", { key: "busy", className: "mv-measure mv-glass", style: { bottom: "44px" } }, t2("toast.loadingData")) : null
+    imageryBusy || terrainBusy ? h48("div", { key: "busy", className: "mv-measure mv-glass", style: { bottom: "44px" } }, t2("toast.loadingData")) : null
   );
 }
 
 // src/client/ui/layout.js
-var h39 = import_react46.default.createElement;
+var h49 = import_react57.default.createElement;
 function ViewerPanel(props) {
   const initialScene = extractInitialSceneParam(props);
-  return h39(ViewerSurface, { t: props.t, sessionId: null, docked: false, initialScene });
+  return h49(ViewerSurface, { t: props.t, sessionId: null, docked: false, initialScene });
 }
 function EarthTabBody(props) {
   const info = typeof props.useTabInfo === "function" ? props.useTabInfo() : null;
   const sessionId = props.sessionId ?? info?.tab?.sessionId ?? info?.sessionId ?? null;
   const initialScene = extractInitialSceneParam(props, info);
-  return h39(ViewerSurface, { t: props.t, sessionId, docked: true, initialScene });
+  return h49(ViewerSurface, { t: props.t, sessionId, docked: true, initialScene });
 }
 
 // src/client/ui/tool-row.js
-var import_react47 = __toESM(require("react"), 1);
-var h40 = import_react47.default.createElement;
+var import_react58 = __toESM(require("react"), 1);
+var h50 = import_react58.default.createElement;
 function HeaderButton(props) {
   const fallbackT = useTranslation();
   const t2 = typeof props.t === "function" ? props.t : fallbackT;
-  const [hover, setHover] = import_react47.default.useState(false);
-  return h40(
+  const [hover, setHover] = import_react58.default.useState(false);
+  return h50(
     "button",
     {
       type: "button",
@@ -30426,7 +35055,7 @@ function HeaderButton(props) {
       onMouseEnter: () => setHover(true),
       onMouseLeave: () => setHover(false)
     },
-    h40(ViewerIcon, { size: 16 })
+    h50(ViewerIcon, { size: 16 })
   );
 }
 var ensureToolCss = () => {
@@ -30510,13 +35139,14 @@ var TOOL_SUMMARY_KEYS = {
   earth_draw: "tool.action.draw",
   earth_measure: "tool.action.measure",
   earth_analyze: "tool.action.analyze",
-  earth_shader: "tool.action.shader"
+  earth_shader: "tool.action.shader",
+  earth_extract: "tool.action.extract"
 };
 var AUTO_OPENED_CALLS = /* @__PURE__ */ new Set();
 function EarthToolRow({ toolName, phase, block, callId }) {
   const t2 = useTranslation();
-  const openedRef = import_react47.default.useRef(false);
-  import_react47.default.useEffect(() => {
+  const openedRef = import_react58.default.useRef(false);
+  import_react58.default.useEffect(() => {
     if (phase === "result" || openedRef.current) return;
     if (typeof callId === "string" && AUTO_OPENED_CALLS.has(callId)) return;
     if (!readAutoOpen()) return;
@@ -30530,8 +35160,8 @@ function EarthToolRow({ toolName, phase, block, callId }) {
     } catch {
     }
   }, [phase, callId]);
-  const [thumbUrl, setThumbUrl] = import_react47.default.useState("");
-  import_react47.default.useEffect(() => {
+  const [thumbUrl, setThumbUrl] = import_react58.default.useState("");
+  import_react58.default.useEffect(() => {
     if (toolName !== "earth_capture" || phase !== "result" || block?.isError === true) return void 0;
     const content = Array.isArray(block?.content) ? block.content : [];
     const text = content.filter((part) => part?.type === "text" && typeof part.text === "string").map((part) => part.text).join("\n");
@@ -30554,14 +35184,14 @@ function EarthToolRow({ toolName, phase, block, callId }) {
   const failure = state === "error" ? resultFirstLine(block) : "";
   const summaryKey = toolName === "earth_scene" ? SCENE_ACTION_KEYS[action] ?? "tool.action.generic" : TOOL_SUMMARY_KEYS[toolName] ?? "tool.action.generic";
   const summary = failure !== "" ? failure : t2(summaryKey);
-  return h40(
+  return h50(
     "div",
     { className: "mv-toolrow", "data-state": state, "data-tool": toolName },
-    h40("span", { className: "glyph", "aria-hidden": true }, h40(ViewerIcon, { size: 14 })),
-    h40("span", { className: "title" }, t2("panel.title")),
-    h40("span", { className: "sep", "aria-hidden": true }),
-    h40("span", { className: "summary", title: failure !== "" ? failure : void 0 }, summary),
-    thumbUrl === "" ? null : h40(
+    h50("span", { className: "glyph", "aria-hidden": true }, h50(ViewerIcon, { size: 14 })),
+    h50("span", { className: "title" }, t2("panel.title")),
+    h50("span", { className: "sep", "aria-hidden": true }),
+    h50("span", { className: "summary", title: failure !== "" ? failure : void 0 }, summary),
+    thumbUrl === "" ? null : h50(
       "a",
       {
         className: "thumb",
@@ -30570,9 +35200,9 @@ function EarthToolRow({ toolName, phase, block, callId }) {
         rel: "noopener noreferrer",
         title: t2("tool.thumbOpen")
       },
-      h40("img", { src: thumbUrl, alt: "", loading: "lazy" })
+      h50("img", { src: thumbUrl, alt: "", loading: "lazy" })
     ),
-    h40(
+    h50(
       "button",
       { type: "button", className: "open", title: t2("tool.openTip"), onClick: openEarthPanel },
       t2("tool.open")
@@ -30581,7 +35211,7 @@ function EarthToolRow({ toolName, phase, block, callId }) {
 }
 
 // src/client/plugin.js
-var h41 = import_react48.default.createElement;
+var h51 = import_react59.default.createElement;
 var plugin = {
   inject: ["slots", "uiWorkspace", "locale", "theme"],
   apply(ctx) {
@@ -30645,7 +35275,7 @@ var plugin = {
       "conversation.session.header.utilities",
       () => ctx.slots.register(
         { name: "conversation.session.header.utilities", id: "digital-earth-open", order: -1, locale: NS },
-        (props) => h41(HeaderButton, { ...props, onOpen: openEarthPanel })
+        (props) => h51(HeaderButton, { ...props, onOpen: openEarthPanel })
       )
     );
     ctx.inject(["betterSidebar"], (betterScope) => {
@@ -30656,7 +35286,7 @@ var plugin = {
           id: "dsh-digital-earth",
           title: () => translate2("panel.title"),
           description: () => translate2("panel.description"),
-          icon: (size) => h41(ViewerIcon, { size }),
+          icon: (size) => h51(ViewerIcon, { size }),
           order: 15,
           // One Digital Earth pane per session: clicking the start-page card
           // again should focus the existing tab, never stack duplicates.
@@ -30664,7 +35294,7 @@ var plugin = {
           component: (tabProps = {}) => {
             const tabScope = tabProps?.scope;
             const initialScene = extractInitialSceneParam(tabProps, tabScope);
-            return h41(EarthTabBody, { t: translate2, sessionId: tabScope?.sessionId ?? null, initialScene });
+            return h51(EarthTabBody, { t: translate2, sessionId: tabScope?.sessionId ?? null, initialScene });
           }
         }),
         "dsh-digital-earth: better-sidebar tab"
@@ -30677,6 +35307,7 @@ var plugin = {
       yield ctx.slots.register({ name: "tool.call.toolview", key: "earth_measure", locale: NS }, EarthToolRow);
       yield ctx.slots.register({ name: "tool.call.toolview", key: "earth_analyze", locale: NS }, EarthToolRow);
       yield ctx.slots.register({ name: "tool.call.toolview", key: "earth_shader", locale: NS }, EarthToolRow);
+      yield ctx.slots.register({ name: "tool.call.toolview", key: "earth_extract", locale: NS }, EarthToolRow);
     });
   }
 };

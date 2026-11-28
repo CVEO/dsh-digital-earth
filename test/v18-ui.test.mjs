@@ -162,17 +162,21 @@ test('剖面卡：缩略图可展开大图，大图内继续导出', () => {
 test('两个 Tab + 指南针 + 日照/剖面接线都在源码里', () => {
   const layers = readRepoFile('src/client/ui/layers-panel.js')
   assert.match(layers, /className: 'mv-layer-tabs'/)
-  // 3D 数据优先：三维 Tab 在前且默认打开，地图 Tab 在后。
-  assert.match(layers, /useState\('3d'\)/)
+  assert.match(layers, /role: 'tablist'/)
+  // 3D 数据优先：三维 Tab 在前且默认打开，地表 Tab 在后。
+  assert.match(layers, /readPanelFlag\(TAB_KEY, false\) \? 'surface' : '3d'/)
   assert.ok(
-    layers.indexOf("t('layers.tab.3d')") < layers.indexOf("t('layers.tab.map')"),
-    '三维 Tab 必须排在 地图 Tab 前面',
+    layers.indexOf("t('layers.tab.3d')") < layers.indexOf("t('layers.tab.surface')"),
+    '三维 Tab 必须排在 地表 Tab 前面',
   )
-  assert.match(layers, /t\('layers\.tab\.map'\)/)
+  assert.match(layers, /t\('layers\.tab\.surface'\)/)
   assert.match(layers, /t\('layers\.tab\.3d'\)/)
+  // The old "地图" tab was renamed to 地表 because the panel only shows one globe.
+  assert.equal((layers.match(/layers\.tab\.map/g) ?? []).length, 0, '地图 Tab 已改名为地表')
+  assert.match(layers, /className: 'mv-data-panel'/)
   // Data tabs are separate modules; tools (profile/sun) live in the tools card.
-  assert.match(readRepoFile('src/client/ui/layers-map.js'), /key: 'list-map'/)
-  assert.match(readRepoFile('src/client/ui/layers-3d.js'), /key: 'list-3d'/)
+  assert.match(readRepoFile('src/client/ui/layers-surface.js'), /key: 'list-surface'/)
+  assert.match(readRepoFile('src/client/ui/layers-entities.js'), /key: 'list-3d'/)
   const tools = readRepoFile('src/client/ui/tool-windows.js')
   assert.match(tools, /t\('profile\.draw'\)/)
   assert.match(tools, /h\(SunTimeline,/)
@@ -181,14 +185,15 @@ test('两个 Tab + 指南针 + 日照/剖面接线都在源码里', () => {
   for (const forbidden of ['SunTimeline', 'loadBookmarks', 'profile.draw', 'tools.analysis']) {
     assert.doesNotMatch(layers, new RegExp(forbidden.replaceAll('.', '\\.')), `图层卡不应包含工具：${forbidden}`)
   }
-  for (const forbidden of ['Layers3D', 'LayersMap', 'LayerRow', 'onOverlayAdd']) {
+  for (const forbidden of ['LayersEntities', 'LayersSurface', 'LayerRow', 'onOverlayAdd']) {
     assert.doesNotMatch(tools, new RegExp(forbidden.replaceAll('.', '\\.')), `工具卡不应包含数据图层：${forbidden}`)
   }
 
   const messages = readRepoFile('src/client/messages-v18.js')
-  for (const key of ['layers.tab.map', 'layers.tab.3d', 'compass.reset', 'profile.draw', 'sun.title', 'sun.hint']) {
+  for (const key of ['layers.tab.surface', 'layers.tab.3d', 'compass.reset', 'profile.draw', 'sun.title', 'sun.hint']) {
     assert.equal((messages.match(new RegExp(`'${key.replaceAll('.', '\\.')}':`, 'g')) ?? []).length, 2, `缺少中英 ${key}`)
   }
+  assert.equal((messages.match(/'layers\.tab\.map':/g) ?? []).length, 0, '旧「地图」页签文案应删除')
 
   const surface = readRepoFile('src/client/viewer/ViewerSurface.js')
   assert.match(surface, /h\(Compass,/)
@@ -214,4 +219,32 @@ test('两个 Tab + 指南针 + 日照/剖面接线都在源码里', () => {
   assert.match(sun, /SunLight/)
   assert.match(sun, /createBrightnessStage/)
   assert.match(readRepoFile('src/client/ui/sun-timeline.js'), /mv-sun-range/)
+})
+
+test('scene card: group headers, row actions and menus share one visual contract', () => {
+  const css = readRepoFile('src/client/ui/css.js')
+  // The stale fold rule must not re-stack the LayerGroup header (chevron/title/count).
+  assert.doesNotMatch(css, /\.mv-group-toggle\{[^}]*flex-direction:column/)
+  // Section captions and item labels are different things; they used to share a
+  // class, which painted every menu item in the dim caption colour.
+  assert.match(css, /\.mv-menu-section\{/)
+  assert.match(css, /\.mv-menu-item>\.mv-menu-label\{[^}]*color:var\(--mv-text\)/)
+  assert.match(css, /\.mv-menu-item\.is-danger>\.mv-menu-label\{[^}]*color:var\(--mv-danger\)/)
+  // The list fills the card, so a menu below the last row has room and the
+  // scrollport (not the content height) clips it.
+  assert.match(css, /\.mv-layer-list\{[^}]*flex:1 1 auto/)
+  // Low rows flip the menu above themselves instead of being clipped.
+  assert.match(css, /\.mv-row-menu\.up\{/)
+  const row = readRepoFile('src/client/ui/layer-row.js')
+  assert.match(row, /closest\?\.\('\.mv-layer-list'\)/)
+  assert.match(row, /mv-row-menu mv-glass\$\{up \? ' up' : ''\}/)
+
+  const entities = readRepoFile('src/client/ui/layers-entities.js')
+  const surface = readRepoFile('src/client/ui/layers-surface.js')
+  // Per-row inline actions are back: visibility, fly-to, and raster order.
+  assert.match(entities, /className: 'mv-icon-btn mv-row-fly'/)
+  assert.match(surface, /className: 'mv-icon-btn mv-row-fly'/)
+  assert.match(surface, /className: 'mv-icon-btn mv-row-order'/)
+  assert.match(entities, /const rowEye = \(row\) =>/)
+  assert.match(surface, /onToggleOverlayVisible\?\.\(row\.kind, row\.index, row\.hidden === true\)/)
 })

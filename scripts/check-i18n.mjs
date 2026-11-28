@@ -22,7 +22,7 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)))
 const clientDir = join(root, 'src/client')
 
 // Dynamic families: `t('family.' + value)` cannot be grepped statically.
-const DYNAMIC_PREFIXES = ['tool.action.', 'tool.call.toolview', 'menu.', 'shader.preset.', 'analysis.title.', 'health.issue.']
+const DYNAMIC_PREFIXES = ['tool.action.', 'tool.call.toolview', 'menu.', 'shader.preset.', 'analysis.title.', 'health.issue.', 'parse.class.', 'parse.err.', 'parse.stage.']
 
 function walk(dir, out = []) {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
@@ -97,7 +97,7 @@ for (const key of Object.keys(localeEn)) if (!(key in localeZh)) problems.push(`
 const unused = zhKeys.filter((key) => !lookups.has(key) && !DYNAMIC_PREFIXES.some((prefix) => key.startsWith(prefix)))
 // Dead-key ratchet (v1.6.2 B 遗留, updated in v1.6.3 for compare/sun/parse/bookmarks dynamic keys):
 // the catalog is cleaned incrementally, but it must never grow unexpectedly.
-const UNUSED_BASELINE = 321
+const UNUSED_BASELINE = 318
 if (unused.length > UNUSED_BASELINE) {
   problems.push(`unreferenced keys grew to ${unused.length} (baseline ${UNUSED_BASELINE})`)
 }

@@ -1,20 +1,12 @@
-/**
- * ui/toolbar-quick.js — the three domain tabs of the right rail.
- *
- * Panel System 2.0: the toolbar is 添加数据 ▾ / 图层 / 工具 / 结果 / 输出 ▾ / ⚙.
- * These entries map one-to-one onto rail destinations; a second click on the
- * active destination collapses the rail (the rule lives in `panel-state.js`).
- * 分析 / 视图 buttons are gone: analysis runs from the tool master list and
- * view actions live in the tool list / output menu.
- */
+/** Workspace tabs for layers, tools and results. Panel state controls expansion. */
 import React from 'react'
 
-import { ToolEntryIcon, ToolsIcon, LayersIcon } from './icons.js'
+import { GlyphIcon, ToolEntryIcon, ToolsIcon, LayersIcon } from './icons.js'
 
 const h = React.createElement
 
-export function ToolbarQuick({ t, showLayers, showTools, showResult, onToggleLayers, onToggleTools, onOpenResult }) {
-  const entry = (key, icon, label, onClick, active, title = label) =>
+export function ToolbarQuick({ t, showLayers, showTools, showPlaces, showResult, resultDisabled = false, resultUnread = false, onToggleLayers, onToggleTools, onTogglePlaces, onOpenResult }) {
+  const entry = (key, icon, label, onClick, active, title = label, disabled = false, unread = false) =>
     h(
       'button',
       {
@@ -22,18 +14,24 @@ export function ToolbarQuick({ t, showLayers, showTools, showResult, onToggleLay
         type: 'button',
         className: `mv-btn${active ? ' on' : ''}`,
         title,
-        'aria-label': label,
+        // The unread dot lives on this entry now that the dock has no title row;
+        // the extra words keep it perceivable without relying on colour.
+        'aria-label': unread ? `${label} · ${t('dock.unread')}` : label,
         'aria-pressed': Boolean(active),
-        onClick,
+        disabled,
+        onClick: disabled ? undefined : onClick,
       },
       h('span', { className: 'mv-btn-icon', 'aria-hidden': true }, icon),
       h('span', { className: 'mv-btn-label' }, label),
+      unread ? h('span', { className: 'mv-btn-dot', 'aria-hidden': true }) : null,
     )
   return h(
     React.Fragment,
     null,
     entry('layers', h(LayersIcon), t('btn.layers'), onToggleLayers, showLayers, showLayers ? t('btn.layersHide') : t('btn.layersShow')),
     entry('tools', h(ToolsIcon), t('btn.tools'), onToggleTools, showTools, showTools ? t('btn.toolsHide') : t('btn.toolsShow')),
-    entry('result', h(ToolEntryIcon, { kind: 'analysis' }), t('panel.tab.result'), onOpenResult, showResult),
+    entry('places', h(GlyphIcon, { name: 'search' }), t('places.title'), onTogglePlaces, showPlaces, showPlaces ? t('btn.panelHide') : t('btn.panelShow')),
+    // D8: with nothing in the result tab the destination stays inert.
+    entry('result', h(ToolEntryIcon, { kind: 'analysis' }), t('panel.tab.result'), onOpenResult, showResult, resultDisabled ? t('btn.resultEmpty') : t('panel.tab.result'), resultDisabled, resultUnread && !resultDisabled),
   )
 }

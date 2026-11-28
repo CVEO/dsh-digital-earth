@@ -9,7 +9,8 @@
  *      `useDialogA11y` hook for the focus trap / Escape / focus restore;
  *   3. transient feedback (toast) is announced with `role="status"` + `aria-live`;
  *   4. menus expose `role="menu"` and menu items are real buttons;
- *   5. the keyboard focus ring exists for the core controls.
+ *   5. the keyboard focus ring exists for the core controls;
+ *   6. the right dock has one navigation level (no duplicate tab strip).
  *
  * Run: node scripts/check-a11y.mjs
  */
@@ -75,11 +76,22 @@ for (const file of menuOwners) {
   }
 }
 
-// 5) The right dock is a tab widget: one tablist, real tab roles, and each
-// tab announces selection + the panel it controls (v1.6.2 Batch D).
+// 5) One navigation level: the toolbar quick group switches destinations, so
+// the dock body must not repeat it as a tablist or offer a second collapse
+// action; hiding the whole console is the chrome control. It keeps exactly one
+// visible tabpanel, each panel named.
 const dockSource = files.find((file) => file.rel.endsWith('/ui/panel-rail.js'))?.text ?? ''
-for (const marker of ["role: 'tablist'", "role: 'tab'", "role: 'tabpanel'", "'aria-selected'", "'aria-controls'", "'aria-labelledby'"]) {
+for (const marker of ["role: 'tabpanel'", "'aria-label': tabLabel(t, panel.id)", 'mv-dock-body']) {
   if (!dockSource.includes(marker)) problems.push(`right dock misses ${marker}`)
+}
+if (dockSource.includes("role: 'tablist'") || dockSource.includes("role: 'tab'")) {
+  problems.push('right dock still renders a second tab navigation; the topbar quick group is the only switcher')
+}
+if (dockSource.includes("dock.collapse")) {
+  problems.push('right dock must not keep a panel-only collapse control')
+}
+if ((dockSource.match(/role: 'tabpanel'/g) ?? []).length !== 1) {
+  problems.push('right dock must render one tabpanel template')
 }
 
 // 6) Resize separators announce their current value and range.

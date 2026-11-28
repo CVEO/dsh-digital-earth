@@ -19,7 +19,7 @@ const read = (path) => readFileSync(join(root, path), 'utf8')
 
 const state = read('src/client/ui/panel-state.js')
 if (!state.includes("export const PANEL_STORAGE_KEY = 'mv.ui.v2'")) fail('panel-state: storage key is not mv.ui.v2')
-for (const id of ['layers', 'tools', 'result', 'object']) {
+for (const id of ['layers', 'tools', 'places', 'result', 'object']) {
   if (!new RegExp(`'${id}'`).test(state)) fail(`panel-state: missing tab ${id}`)
 }
 for (const marker of ['panelReducer', 'readPanelState', 'writePanelState', 'visiblePanelTabs', 'clampPanelWidth']) {
@@ -30,13 +30,28 @@ if (!state.includes("'resultArrived'") || !state.includes("'objectArrived'")) {
 }
 
 const rail = read('src/client/ui/panel-rail.js')
-for (const marker of ["role: 'tablist'", "role: 'tab'", "role: 'tabpanel'", "'aria-selected'", "'aria-controls'", "'aria-labelledby'"]) {
+// One navigation level: the topbar quick group switches destinations and the
+// console header carries the destination's name, so the dock keeps exactly one
+// visible tabpanel and no second title row.
+for (const marker of ["role: 'tabpanel'", "'aria-label': tabLabel(t, panel.id)", 'mv-dock-body']) {
   if (!rail.includes(marker)) fail(`panel-rail: missing ${marker}`)
 }
+if (rail.includes('mv-dock-head') || rail.includes('mv-panel-back')) {
+  fail('panel-rail: the second title row / in-panel back button must stay deleted')
+}
+if (rail.includes("role: 'tablist'") || rail.includes("role: 'tab'")) {
+  fail('panel-rail: duplicate tab navigation; topbar quick group must be the only switcher')
+}
+const topbar = read('src/client/ui/topbar.js')
+if (!topbar.includes('ToolbarQuick')) fail('topbar: quick destination group is missing')
+for (const marker of ['mv-top-head', 'mv-top-title', 'mv-top-detail', 'mv-top-back']) {
+  if (!topbar.includes(marker)) fail(`topbar: missing console header ${marker}`)
+}
+const quickSource = read('src/client/ui/toolbar-quick.js')
+if (!quickSource.includes('resultUnread')) fail('toolbar-quick: result destination must carry the unread dot')
 if (!rail.includes("hidden: collapsed || panel.id !== activeTab")) fail('panel-rail: inactive panels must stay mounted and hidden')
 if (/mv-dock-tab-close/.test(rail)) fail('panel-rail: per-tab close button must not exist')
-if ((rail.match(/title: t\('dock\.collapse'\)/g) ?? []).length !== 1) fail('panel-rail: exactly one collapse entry')
-if (!rail.includes('dock.unread')) fail('panel-rail: unread dot copy missing')
+if (/title: t\('dock\.collapse'\)/.test(rail)) fail('panel-rail: panel-only collapse must not compete with the chrome hide')
 
 const stack = read('src/client/ui/right-stack.js')
 if (!stack.includes("from './panel-rail.js'")) fail('right-stack: must render through panel-rail')
@@ -48,14 +63,20 @@ if (!stack.includes("type: 'resultArrived'") || !stack.includes("type: 'objectAr
 
 const css = read('src/client/ui/css.js')
 if (!css.includes('.mv-dock-panel[hidden]{display:none}')) fail('css: inactive panels must be display:none')
-if (!css.includes('.mv-dock.is-collapsed .mv-dock-body{display:none}')) fail('css: collapsed rail must hide body')
+if (!css.includes('.mv-dock.is-collapsed{display:none}')) fail('css: collapsed rail must leave no second row')
+if (/mv-dock-pill/.test(css)) fail('css: the old collapsed pill must stay deleted')
 if (!css.includes('--mv-z-rail')) fail('css: z-index tokens are missing')
 if (/\.mv-dock-tab-close/.test(css)) fail('css: dead tab-close rules must be removed')
 
 const quick = read('src/client/ui/toolbar-quick.js')
 const entries = [...quick.matchAll(/entry\('([a-z]+)'/g)].map((match) => match[1])
-if (entries.join(',') !== 'layers,tools,result') fail(`toolbar-quick: expected layers,tools,result, got ${entries.join(',')}`)
+if (entries.join(',') !== 'layers,tools,places,result') fail(`toolbar-quick: expected layers,tools,places,result, got ${entries.join(',')}`)
 if (/openToolCount|showAnalysis|showView|onOpenAnalysis|onOpenView/.test(quick)) fail('toolbar-quick: old analysis/view entries must stay removed')
+if (!quick.includes("entry('places'") || !quick.includes('onTogglePlaces')) fail('toolbar-quick: 地名检索 is a first-level destination')
+const view = read('src/client/ui/toolbar-view.js')
+if (/places/i.test(view)) fail('toolbar-view: place search must not live in the 视图 menu any more')
+const topbarSource = read('src/client/ui/topbar.js')
+if (/PlaceSearch|places/.test(topbarSource)) fail('topbar: the place-search popover must stay deleted')
 
 const messages = read('src/client/messages-dock.js')
 for (const key of ['panel.tab.layers', 'panel.tab.tools', 'panel.tab.result', 'panel.tab.object', 'panel.result.emptyTitle']) {
@@ -65,6 +86,13 @@ for (const key of ['panel.tab.layers', 'panel.tab.tools', 'panel.tab.result', 'p
 for (const key of ['panel.tab.layers', 'panel.tab.tools', 'panel.tab.result', 'panel.tab.object']) {
   if (!quick.includes(key) && !rail.includes(key)) fail(`label ${key} is not referenced by the rail or toolbar`)
 }
+
+const surface = read('src/client/viewer/ViewerSurface.js')
+if (!surface.includes('h(ChromeShell')) fail('viewer: toolbar and rail must share the ChromeShell')
+if (!surface.includes('h(ChromeA11y')) fail('viewer: hidden chrome needs a restore handle + live status')
+if (!surface.includes('useChromeVisibility()')) fail('viewer: chrome visibility must use the shared hook')
+if ((surface.match(/h\(TopBar,/g) ?? []).length !== 1) fail('viewer: exactly one TopBar')
+if ((surface.match(/h\(RightStack,/g) ?? []).length !== 1) fail('viewer: exactly one RightStack')
 
 // No source file may render a second right rail or resurrect the old stack.
 const walk = (dir) =>
@@ -85,4 +113,4 @@ if (problems.length) {
   for (const problem of problems) console.error(`  - ${problem}`)
   process.exit(1)
 }
-console.log('check-panels: single rail, 4 destinations, master-detail and persistence intact')
+console.log('check-panels: single rail, 5 destinations, master-detail and persistence intact')

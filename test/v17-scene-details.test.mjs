@@ -11,7 +11,7 @@ import assert from 'node:assert/strict'
 import { MESSAGES } from '../src/client/messages.js'
 import { clientSource, readRepoFile } from './helpers/source.mjs'
 
-test('场景详情是对象页签内容：可从整场景或单个图层打开', () => {
+test('场景详情是对象页签内容：整场景入口在场景卡头部与视图菜单', () => {
   const details = readRepoFile('src/client/ui/scene-details.js')
   assert.match(details, /export function useSceneDetails/)
   assert.match(details, /focus\.layerId/)
@@ -27,9 +27,17 @@ test('场景详情是对象页签内容：可从整场景或单个图层打开',
   const panel = readRepoFile('src/client/ui/layers-panel.js')
   assert.doesNotMatch(panel, /className: 'mv-details'/)
   assert.doesNotMatch(panel, /t\('layers\.details'\)/)
+  // 整场景入口：卡片头部的 ⓘ（＋ 添加数据、✕ 收起，各司其职）。
   assert.match(panel, /onShowSceneDetails\?\.\(\)/)
-  const row = readRepoFile('src/client/ui/layer-row.js')
-  assert.match(row, /onShowSceneDetails\?\.\(layer\.id\)/)
+  assert.match(panel, /t\('sceneDetails\.openHint'\)/)
+  // 第二个入口：视图 ▾ 菜单里的「场景详情」。
+  const view = readRepoFile('src/client/ui/toolbar-view.js')
+  assert.match(view, /onShowSceneDetails/)
+  assert.match(view, /t\('sceneDetails\.title'\)/)
+  // 图层行不再有单独的场景详情入口：单层详情改由「属性…」对话框承担。
+  const rows = readRepoFile('src/client/ui/layers-entities.js')
+  assert.doesNotMatch(rows, /onShowSceneDetails/)
+  assert.match(rows, /onOpenLayerProperties\?\.\(\{ kind: '3d', id: layer\.id \}\)/)
 
   const client = clientSource()
   assert.match(client, /useSceneDetails\(\{/)

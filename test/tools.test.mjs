@@ -202,14 +202,14 @@ test('measure：未知参数、非对象入参与 200 点上限', () => {
 // 浏览器侧接线：只读 client.js 文本，防止两个工具在界面上「失踪」
 // ---------------------------------------------------------------------------
 
-test('客户端：六个地球工具都注册了 tool.call.toolview 工具行', () => {
+test('客户端：七个地球工具都注册了 tool.call.toolview 工具行', () => {
   assert.match(client, /name: 'tool\.call\.toolview'/)
-  const expected = ['earth_scene', 'earth_capture', 'earth_draw', 'earth_measure', 'earth_analyze', 'earth_shader']
+  const expected = ['earth_scene', 'earth_capture', 'earth_draw', 'earth_measure', 'earth_analyze', 'earth_shader', 'earth_extract']
   for (const tool of expected) {
     assert.match(client, new RegExp(`key: '${tool}'`), `缺少 ${tool} 的工具行注册`)
   }
   const registrations = client.match(/name: 'tool\.call\.toolview'/g) ?? []
-  assert.ok(registrations.length >= 6, `tool.call.toolview 至少注册 6 次，实际 ${registrations.length}`)
+  assert.ok(registrations.length >= 7, `tool.call.toolview 至少注册 7 次，实际 ${registrations.length}`)
   // B3：顺序固定 scene→capture→draw→measure→analyze→shader，防止新行插错位置。
   const order = [...client.matchAll(/name: 'tool\.call\.toolview', key: '([a-z_]+)'/g)].map((match) => match[1])
   assert.deepEqual(order, expected)
@@ -266,7 +266,7 @@ test('客户端：自动打开面板仍只在实时阶段触发', () => {
 })
 
 // ---------------------------------------------------------------------------
-// 宿主侧接线：六个工具与系统提示词段落
+// 宿主侧接线：七个工具与系统提示词段落
 // ---------------------------------------------------------------------------
 
 test('宿主：导出两个归一化函数，且六个工具都在 mountAgentTools 里注册', () => {
@@ -283,10 +283,11 @@ test('宿主：导出两个归一化函数，且六个工具都在 mountAgentToo
     'scope\\.tools\\.register\\(createMeasureTool\\(bridge\\)\\)',
     'scope\\.tools\\.register\\(createAnalyzeTool\\(bridge\\)\\)',
     'scope\\.tools\\.register\\(createShaderTool\\(bridge\\)\\)',
+    'scope\\.tools\\.register\\(createExtractTool\\(bridge\\)\\)',
   ]) {
     assert.match(host, new RegExp(call))
   }
-  assert.equal((host.match(/scope\.tools\.register\(/g) ?? []).length, 6, '应恰好注册六个 Agent 工具')
+  assert.equal((host.match(/scope\.tools\.register\(/g) ?? []).length, 7, '应恰好注册七个 Agent 工具')
   assert.match(host, /function createAnalyzeTool\(bridge\)/)
   assert.match(host, /function createShaderTool\(bridge\)/)
   assert.match(host, /name: DRAW_TOOL_NAME/)
@@ -295,8 +296,8 @@ test('宿主：导出两个归一化函数，且六个工具都在 mountAgentToo
   assert.match(host, /name: SHADER_TOOL_NAME/)
 })
 
-test('宿主：系统提示词段落提到六个工具与完整 action 清单', () => {
-  assert.match(host, /Six tools drive it/)
+test('宿主：系统提示词段落提到七个工具与完整 action 清单', () => {
+  assert.match(host, /Seven tools drive it/)
   assert.match(host, /earth_draw adds GeoJSON/)
   assert.match(host, /earth_measure returns distance\/area\/height/)
   assert.match(host, /earth_analyze \(profile\/flood\/sunlight\/clip\/skyline\)/)

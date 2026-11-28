@@ -3,7 +3,7 @@
  *
  * 只读源码与文档，不碰实现：
  *   - 版本单一来源：package.json 1.4.0、Host/Client FALLBACK_ABOUT、README/CHANGELOG；
- *   - README 中英：1.4.0 徽章/安装示例、六工具名与功能行、结构与链接离线自查；
+ *   - README 中英：1.4.0 徽章/安装示例、七工具名与功能行、结构与链接离线自查；
  *   - CHANGELOG：1.4.0 段落完整（本地路径/分析/着色器/HUD/性能），1.5.0 段落覆盖破坏性变更与架构；
  *   - About：宿主元数据（homepage/issues/team）与客户端兜底、团队与源码 URL；
  *   - Client B4 修复静态断言：F1 re-apply 失败恢复活动预设且不动 entries、
@@ -43,7 +43,7 @@ const [packageText, readmeZh, readmeEn, changelog, aboutSource, sceneSource, sha
 const host = hostSource()
 
 const pkg = JSON.parse(packageText)
-const TOOL_NAMES = ['earth_scene', 'earth_capture', 'earth_draw', 'earth_measure', 'earth_analyze', 'earth_shader']
+const TOOL_NAMES = ['earth_scene', 'earth_capture', 'earth_draw', 'earth_measure', 'earth_analyze', 'earth_shader', 'earth_extract']
 
 /** 取源码片段：从 start 到其后的 end（含 end），找不到即断言失败。 */
 function block(source, start, end) {
@@ -92,7 +92,10 @@ const BINARY_EXT = new Set([
   // scan must skip it rather than read it as text.
   '.npz', '.npy', '.las', '.laz', '.tif', '.tiff',
 ])
-const SKIP_DIRS = new Set(['.git', '.research', 'node_modules', 'vendor', 'dist', 'captures', '.dsh-earth', 'roof_task'])
+// Gitignored workspace directories are local notes, captures and release
+// material: they never ship and never enter the repo, so scanning them would only
+// couple this test to one developer's machine.
+const SKIP_DIRS = new Set(['.git', '.research', 'node_modules', 'vendor', 'dist', 'captures', '.dsh-earth', 'roof_task', 'docs', 'verify', '.dsh-out', 'market', 'promo'])
 
 /** 收集包内文本文件（跳过 vendor/.git/.research 等目录与二进制文件）。 */
 async function collectTextFiles(dir, out = []) {
@@ -141,27 +144,27 @@ test('B4 版本：package.json 为合法 semver，未新增依赖/未改 scripts
   assert.ok(!(pkg.files ?? []).some((name) => name.startsWith('.research')), 'files 不应包含 .research')
 })
 
-test('B4 README 中文：版本徽章/安装示例、六工具与新增功能行', () => {
+test('B4 README 中文：版本徽章/安装示例、七工具与新增功能行', () => {
   // 版本文档不写死具体版本号：README 必须跟随 package.json 的单一来源。
   assert.ok(readmeZh.includes(`版本-${pkg.version}-4f8cff`), 'README.md 版本徽章未跟随 package.json')
   assert.ok(readmeZh.includes(`cveo-dsh-digital-earth-${pkg.version}.tgz`), 'README.md 安装示例未跟随 package.json')
   assert.doesNotMatch(readmeZh, /1\.3\.0/)
   for (const name of TOOL_NAMES) assert.ok(readmeZh.includes(`\`${name}\``), `README.md 缺少工具 ${name}`)
-  assert.equal((readmeZh.match(/^\| `earth_[a-z]+` \|/gm) ?? []).length, 6, 'README.md 工具表应为 6 行')
-  for (const phrase of ['内置六个工具', '空间分析', '视觉特效', '页签坞', '干净截图', '本机绝对路径', '约 5–6 Hz']) {
+  assert.equal((readmeZh.match(/^\| `earth_[a-z]+` \|/gm) ?? []).length, 7, 'README.md 工具表应为 7 行')
+  for (const phrase of ['内置七个工具', '空间分析', '视觉特效', '单列控制台', '干净截图', '本机绝对路径', '约 5–6 Hz']) {
     assert.ok(readmeZh.includes(phrase), `README.md 缺少功能说明：${phrase}`)
   }
   assert.match(readmeZh, /白名单预设/)
 })
 
-test('B4 README 英文：版本徽章/安装示例、六工具与对应功能行', () => {
+test('B4 README 英文：版本徽章/安装示例、七工具与对应功能行', () => {
   assert.ok(readmeEn.includes(`version-${pkg.version}-4f8cff`), 'README.en.md version badge does not follow package.json')
   assert.ok(readmeEn.includes(`cveo-dsh-digital-earth-${pkg.version}.tgz`), 'README.en.md install example does not follow package.json')
   assert.doesNotMatch(readmeEn, /1\.3\.0/)
   for (const name of TOOL_NAMES) assert.ok(readmeEn.includes(`\`${name}\``), `README.en.md 缺少工具 ${name}`)
-  assert.equal((readmeEn.match(/^\| `earth_[a-z]+` \|/gm) ?? []).length, 6, 'README.en.md 工具表应为 6 行')
+  assert.equal((readmeEn.match(/^\| `earth_[a-z]+` \|/gm) ?? []).length, 7, 'README.en.md 工具表应为 7 行')
   for (const phrase of [
-    'Six built-in tools', 'Spatial analysis', 'Visual effects', 'one tab dock',
+    'Seven built-in tools', 'Spatial analysis', 'Visual effects', 'single-column console',
     'Clean snapshots', 'absolute local path', '5–6 Hz',
   ]) {
     assert.ok(readmeEn.includes(phrase), `README.en.md 缺少功能说明：${phrase}`)
@@ -195,6 +198,8 @@ test('B4 README 链接与本地资源：离线可判定的值均有效，无占�
     'https://github.com/CVEO/dsh-digital-earth',
     'https://www.npmjs.com/package/',
     'https://www.whu-cveo.com/',
+    'https://lbs.tianditu.gov.cn/server/search2.html',
+    'https://operations.osmfoundation.org/policies/nominatim/',
   ]
   for (const [label, text] of [['README.md', readmeZh], ['README.en.md', readmeEn]]) {
     const links = markdownLinks(text)
@@ -401,7 +406,7 @@ test('B4 模型面回归：提示词 ≤1600 六工具名与完整 action 清单
   assert.ok(prompt.length <= 1600, `提示词超预算：${prompt.length}`)
   assert.ok(prompt.length >= 1400, `提示词过短：${prompt.length}`)
   for (const name of TOOL_NAMES) assert.ok(prompt.includes(name), `提示词缺少 ${name}`)
-  assert.match(prompt, /Six tools drive it/)
+  assert.match(prompt, /Seven tools drive it/)
   assert.match(prompt, /earth_scene actions: status, list, load, remove, visible, basemap, terrain, fly, reset, pick, inspect, report, frame\./)
   assert.match(prompt, /earth_analyze runs one analysis at a time \(profile, flood, sunlight, clip or skyline\)/)
   assert.doesNotMatch(prompt, /authorize/i)
@@ -420,10 +425,10 @@ test('B4 模型面回归：提示词 ≤1600 六工具名与完整 action 清单
   assert.doesNotMatch(analyzeDesc, /天际线|authorize|viewshed|line of sight/i)
 })
 
-test('B4 回归：六工具注册/六条描述/六 toolview 未被文档任务破坏', () => {
+test('B4 回归：七工具注册/七条描述/七 toolview 未被文档任务破坏', () => {
   const registrations = [...host.matchAll(/scope\.tools\.register\(create([A-Z][a-z]+)Tool\(bridge(?:, [A-Za-z]+)?\)\)/g)].map((match) => match[1])
-  assert.deepEqual(registrations, ['Scene', 'Capture', 'Draw', 'Measure', 'Analyze', 'Shader'])
-  for (const name of ['SCENE', 'CAPTURE', 'DRAW', 'MEASURE', 'ANALYZE', 'SHADER']) {
+  assert.deepEqual(registrations, ['Scene', 'Capture', 'Draw', 'Measure', 'Analyze', 'Shader', 'Extract'])
+  for (const name of ['SCENE', 'CAPTURE', 'DRAW', 'MEASURE', 'ANALYZE', 'SHADER', 'EXTRACT']) {
     assert.ok(host.includes(`const ${name}_DESCRIPTION = [`), `缺少 ${name}_DESCRIPTION`)
   }
   const toolviews = [...client.matchAll(/name: 'tool\.call\.toolview', key: '([a-z_]+)'/g)].map((match) => match[1])

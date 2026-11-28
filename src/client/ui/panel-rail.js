@@ -1,14 +1,21 @@
 /**
  * ui/panel-rail.js — the one right-hand rail of Panel System 2.0.
  *
- * The rail is deliberately dumb: it renders the tabs and panel bodies it is
- * given and reports intent (`onActivate` / `onCollapse` / `onExpand`). All rules
- * live in `panel-state.js`, so the same component works for the real workspace
- * and for tests.
+ * The rail is deliberately dumb: it renders the panel bodies it is given and
+ * reports intent (`onActivate` / `onCollapse` / `onExpand`). All rules live in
+ * `panel-state.js`, so the same component works for the real workspace and for
+ * tests.
+ *
+ * v1.6.5: the destination's name moved into the console header (the toolbar row
+ * above), so the rail no longer repeats it in a second title row — the panel body
+ * starts directly under the header. The rail still owns the console width: it is
+ * the only width the user drags, and the header follows it through the
+ * `--mv-console-width` variable so the top and bottom of the console never
+ * disagree.
  *
  * Invariants:
  *   - exactly one visible `role=tabpanel`; every other panel stays mounted
- *     (`hidden`) so drafts and scroll positions survive tab switches;
+ *     (`hidden`) so drafts and scroll positions survive switches;
  *   - collapsed and expanded share one tree shape, so collapsing never unmounts
  *     a panel;
  *   - no per-tab close button: closing is the panel's own explicit action, and
@@ -16,7 +23,6 @@
  */
 import React from 'react'
 
-import { LayersIcon, ToolEntryIcon, ToolsIcon } from './icons.js'
 import { ResizeHandle, usePanelResize } from './resizable.js'
 import { useEscapeLayer } from './escape-stack.js'
 
@@ -25,15 +31,9 @@ const h = React.createElement
 function tabLabel(t, tabId) {
   if (tabId === 'layers') return t('panel.tab.layers')
   if (tabId === 'tools') return t('panel.tab.tools')
+  if (tabId === 'places') return t('places.title')
   if (tabId === 'object') return t('panel.tab.object')
   return t('panel.tab.result')
-}
-
-function tabIcon(tabId) {
-  if (tabId === 'layers') return LayersIcon ? h(LayersIcon) : null
-  if (tabId === 'tools') return ToolsIcon ? h(ToolsIcon) : null
-  if (tabId === 'object') return h(ToolEntryIcon, { kind: 'select' })
-  return h(ToolEntryIcon, { kind: 'analysis' })
 }
 
 export function PanelRail({
@@ -41,7 +41,6 @@ export function PanelRail({
   tabs = [],
   activeTab,
   collapsed = false,
-  unread = {},
   width = 300,
   panels = [],
   onActivate,
@@ -50,7 +49,14 @@ export function PanelRail({
   onWidth,
   ariaLabel = null,
 }) {
-  const resize = usePanelResize({ storageKey: 'right-stack', initialWidth: width, minWidth: 240, maxWidth: 720 })
+  // The pre-fix clamp pinned every saved width to the 280px minimum, so a stored
+  // 280 is not a user choice; start from the panel-state width instead.
+  const resize = usePanelResize({
+    storageKey: 'right-stack-2',
+    initialWidth: width >= 300 ? width : 300,
+    minWidth: 280,
+    maxWidth: 720,
+  })
   const railRef = React.useRef(null)
   const lastReportedWidth = React.useRef(null)
 
@@ -61,6 +67,28 @@ export function PanelRail({
       onWidth?.(next)
     }
   }, [resize.size.width, onWidth])
+
+  // The console shell hugs its content, so the rail hands it the one width the
+  // toolbar must share. Setting it on the shell (a DOM style, not React state)
+  // avoids a re-render of the whole viewer on every drag pixel.
+  const syncConsoleWidth = (node, value, isCollapsed = collapsed) => {
+    const chrome = node?.closest?.('.mv-chrome')
+    if (!chrome?.style) return
+    if (!isCollapsed && Number.isFinite(value)) chrome.style.setProperty('--mv-console-width', `${Math.round(value) + 1}px`)
+    else chrome.style.removeProperty('--mv-console-width')
+  }
+
+  React.useEffect(() => {
+    syncConsoleWidth(railRef.current, resize.size.width, collapsed)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resize.size.width, collapsed])
+
+  const railRefCallback = (node) => {
+    railRef.current = node
+    if (!node) return
+    resize.ref.current = node
+    syncConsoleWidth(node, resize.size.width, collapsed)
+  }
 
   // Esc while focus is inside a panel collapses the rail; it never closes data.
   useEscapeLayer((event) => {
@@ -73,98 +101,16 @@ export function PanelRail({
 
   if (!tabs.length) return null
 
-  const activeLabel = tabs.find((tab) => tab.id === activeTab)?.id
-
-  const tabList = h(
-    'div',
-    { className: 'mv-dock-tablist', role: 'tablist', 'aria-label': ariaLabel ?? t('dock.tabs') },
-    ...tabs.map((tab) =>
-      h(
-        'span',
-        { key: tab.id, className: `mv-dock-tabitem${tab.id === activeTab ? ' on' : ''}` },
-        h(
-          'button',
-          {
-            type: 'button',
-            role: 'tab',
-            id: `mv-dock-tab-${tab.id}`,
-            'aria-selected': tab.id === activeTab,
-            'aria-controls': `mv-dock-panel-${tab.id}`,
-            'aria-label': tabLabel(t, tab.id),
-            tabIndex: tab.id === activeTab ? 0 : -1,
-            className: `mv-dock-tab${tab.id === activeTab ? ' on' : ''}`,
-            title: tabLabel(t, tab.id),
-            onClick: () => onActivate?.(tab.id),
-            onKeyDown: (event) => {
-              if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
-                event.preventDefault()
-                const index = tabs.findIndex((item) => item.id === tab.id)
-                const delta = event.key === 'ArrowRight' ? 1 : -1
-                const next = tabs[(index + delta + tabs.length) % tabs.length]
-                if (next) onActivate?.(next.id)
-              } else if (event.key === 'Home' || event.key === 'End') {
-                event.preventDefault()
-                const next = event.key === 'Home' ? tabs[0] : tabs[tabs.length - 1]
-                if (next) onActivate?.(next.id)
-              } else if (event.key === 'Enter' || event.key === ' ') {
-                event.preventDefault()
-                onActivate?.(tab.id)
-              }
-            },
-          },
-          h('span', { className: 'mv-dock-tab-icon', 'aria-hidden': true }, tabIcon(tab.id)),
-          unread[tab.id] ? h('span', { className: 'mv-dock-dot', 'aria-label': t('dock.unread') }) : null,
-        ),
-      ),
-    ),
-  )
-
-  const actions = h(
-    'div',
-    { className: 'mv-dock-actions' },
-    h(
-      'button',
-      {
-        type: 'button',
-        className: 'mv-icon-btn',
-        title: t('dock.collapse'),
-        'aria-label': t('dock.collapse'),
-        'aria-expanded': true,
-        onClick: () => onCollapse?.(),
-      },
-      '▸',
-    ),
-  )
-
-  const unreadCount = tabs.filter((tab) => unread[tab.id]).length
-  const pill = h(
-    'button',
-    {
-      type: 'button',
-      className: 'mv-dock-pill',
-      title: t('dock.expand'),
-      'aria-label': t('dock.expand'),
-      'aria-expanded': false,
-      onClick: () => onExpand?.(),
-    },
-    h('span', { className: 'mv-dock-pill-icon', 'aria-hidden': true }, tabIcon(activeLabel)),
-    h('span', { className: 'mv-dock-pill-label' }, activeLabel ? tabLabel(t, activeLabel) : t('dock.title')),
-    unreadCount > 0 ? h('span', { className: 'mv-dock-badge', 'aria-label': t('dock.unread') }, String(unreadCount)) : null,
-    h('span', { className: 'mv-dock-pill-arrow', 'aria-hidden': true }, '◂'),
-  )
-
   return h(
     'div',
     {
-      className: `mv-right mv-dock mv-glass${collapsed ? ' is-collapsed' : ''}`,
+      className: `mv-right mv-dock${collapsed ? ' is-collapsed' : ''}`,
       'data-dock': 'right',
-      ref: collapsed
-        ? railRef
-        : (node) => {
-            railRef.current = node
-            resize.ref.current = node
-          },
-      style: collapsed ? undefined : resize.style,
+      ref: railRefCallback,
+      // width comes from the console variable; the panel fills it so both rows
+      // of the console are always the same width.
+      style: collapsed ? undefined : { width: '100%' },
+      'aria-label': ariaLabel ?? undefined,
     },
     collapsed
       ? null
@@ -178,7 +124,6 @@ export function PanelRail({
           min: resize.minWidth,
           max: resize.maxWidth,
         }),
-    h('div', { className: 'mv-dock-tabs' }, ...(collapsed ? [pill] : [tabList, actions])),
     h(
       'div',
       { className: 'mv-dock-body' },
@@ -189,7 +134,7 @@ export function PanelRail({
             key: panel.id,
             id: `mv-dock-panel-${panel.id}`,
             role: 'tabpanel',
-            'aria-labelledby': `mv-dock-tab-${panel.id}`,
+            'aria-label': tabLabel(t, panel.id),
             className: 'mv-dock-panel',
             hidden: collapsed || panel.id !== activeTab,
           },

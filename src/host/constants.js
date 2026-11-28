@@ -61,7 +61,11 @@ export const MAX_SCAN_DEPTH = 4
 // The source catalog is small JSON owned by this plugin; keep it outside the
 // browser so it survives port changes (localStorage is per-origin) and restarts.
 const STATE_DIR = join(process.env.DSH_HOME || join(homedir(), '.dsh'), 'digital-earth')
+export const PLACE_KEY_FILE = join(STATE_DIR, 'place-search.json')
 export const SOURCES_FILE = join(STATE_DIR, 'sources.json')
+export const VISION_CONFIG_FILE = join(STATE_DIR, 'vision.json')
+export const VISION_CONFIG_ROUTE = `${API}/vision-config`
+export const MAX_VISION_CONFIG_BODY = 32 * 1024
 // Folders the user opened in the panel, remembered across DSH restarts so the
 // agent may load the same data again without another panel gesture.
 export const DIRECTORIES_FILE = join(STATE_DIR, 'directories.json')
@@ -157,6 +161,8 @@ export const MIME = {
   '.i3dm': 'application/octet-stream',
   '.cmpt': 'application/octet-stream',
   '.spz': 'application/octet-stream',
+  '.geojson': 'application/geo+json',
+  '.ndjson': 'application/x-ndjson',
 }
 
 // Browser-side height sampling and shadow setup can be slow; the frozen B2

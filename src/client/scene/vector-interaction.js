@@ -168,7 +168,7 @@ export function createVectorInteraction({ Cesium, viewer, root, getTool, onSelec
   viewer.entities.collectionChanged.addEventListener(removed)
 
   function add(options, descriptor) {
-    const styled = styleVectorOptions(Cesium, options)
+    const styled = styleVectorOptions(Cesium, options, descriptor?.extraction === true)
     const entity = viewer.entities.add(styled)
     const group = descriptor.group
     const record = groups.get(group) ?? { descriptor, entities: new Set() }

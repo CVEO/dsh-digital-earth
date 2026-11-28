@@ -1,15 +1,17 @@
 /**
  * v1.6 Requirement A + coupled F06 / F11 / F13 verification:
- *   - 3D tab (`Layers3D`) exposes `+ 添加` (`打开本地目录…` / `粘贴在线 / 本机地址…` / `最近打开`)
- *     even after the first dataset is loaded and the empty-state overlay is gone;
+ *   - the scene card (`LayersPanel`) always offers `+ 添加` in its header and the
+ *     3D tab's content group keeps an "add layer" action even after the first
+ *     dataset is loaded; every add route (local folder / online URL / recent) now
+ *     lives in `AddLayerDialog` instead of the old 3D-tab menu;
  *   - opening a 2nd local dataset appends to existing layers without overwriting,
  *     auto-loads a single tileset, and opens `ScanDialog` ("发现 N 个数据集") when >1;
  *   - `/scan` prioritises `tileset.json` and subdirectories over flat tile files, and
  *     `resolveLocalTileset` refuses to treat a truncated 1-file scan as unique (F13);
  *   - task-language scan error messages distinguish empty / unauthorized / unreadable
  *     on Host machine / root-or-UNC;
- *   - Map tab (`LayersMap`) offers local XYZ directory picking in the raster form,
- *     merges multiple GeoJSON files, preserves `feature.id`, and flies to vector rows (F11);
+ *   - 地表 tab (`LayersSurface`) still flies to imported vector rows and the raster
+ *     add route in `AddLayerDialog` offers local XYZ directory picking (F11);
  *   - `SourceForm` retains `source.name` in the name input (F06).
  */
 import { after, test } from 'node:test'
@@ -30,7 +32,9 @@ import { readRepoFile } from './helpers/source.mjs'
 
 register('./helpers/react-stub-loader.mjs', import.meta.url)
 const { ScanDialog, SourceForm } = await import('../src/client/ui/dialogs.js')
-const { Layers3D } = await import('../src/client/ui/layers-3d.js')
+const { LayersPanel } = await import('../src/client/ui/layers-panel.js')
+const { LayersEntities } = await import('../src/client/ui/layers-entities.js')
+const { LayerGroup } = await import('../src/client/ui/layer-group.js')
 
 const tempDirs = []
 after(async () => {
@@ -270,7 +274,7 @@ test('F11：多 GeoJSON 同时导入合并要素、保留 feature.id，且矢量
   assert.ok(flownDestination.west < 114.3 && flownDestination.east > 114.4)
 })
 
-test('F06 与 UI 组件行为：SourceForm 渲染保留 source.name，ScanDialog 携带动态 limit，Layers3D 提供无障碍菜单契约', () => {
+test('F06 与 UI 组件行为：SourceForm 渲染保留 source.name，ScanDialog 携带动态 limit，场景卡片添加入口无障碍契约', () => {
   const collectNodes = (node, acc = []) => {
     if (!node || typeof node !== 'object') return acc
     if (Array.isArray(node)) {
@@ -321,28 +325,46 @@ test('F06 与 UI 组件行为：SourceForm 渲染保留 source.name，ScanDialog
   assert.ok(scanTexts.includes('scan.foundCount:{"n":2}'))
   assert.ok(scanTexts.includes('scan.truncatedHint:{"limit":200}'))
 
-  // 3) Layers3D 真实组件渲染：即使 layers 非空，「＋ 添加」按钮也始终存在且暴露 aria-controls="mv-add-3d-menu"。
-  const layers3dTree = Layers3D({
+  // 3) 场景卡片：已加载图层后，头部「＋」与三维 Tab 内容分组的添加入口都仍在。
+  const addRequests = []
+  const panelTree = LayersPanel({
     t: (key) => key,
     config: { terrain: [] },
     settings: { terrain: null },
     layers: [{ id: 'l1', name: 'blockA/tileset.json', visible: true }],
-    terrainActive: null,
-    shaderActive: [],
-    recentDirs: [{ dir: 'D:/data/city', name: 'city' }],
+    onAddLayer: (kind) => addRequests.push(kind),
   })
-  const buttons = collectNodes(layers3dTree).filter((el) => el.type === 'button')
-  const addBtn = buttons.find((el) => el.props?.['aria-controls'] === 'mv-add-3d-menu')
-  assert.ok(addBtn, '已加载图层后，三维 Tab 仍应渲染带 aria-controls="mv-add-3d-menu" 的添加按钮')
-  assert.equal(addBtn.props['aria-haspopup'], 'menu')
+  const panelButtons = collectNodes(panelTree).filter((el) => el.type === 'button')
+  const headerAdd = panelButtons.find((el) => el.props?.['aria-label'] === 'layers.addLayer')
+  assert.ok(headerAdd, '场景卡片头部始终提供带无障碍名称的添加入口')
+  assert.equal(headerAdd.props.title, 'layers.addLayer')
+  headerAdd.props.onClick()
+  assert.deepEqual(addRequests, [null])
 
-  const layers3dSource = readRepoFile('src/client/ui/layers-3d.js')
-  assert.match(layers3dSource, /event\.key !== 'Escape'/)
-  assert.match(layers3dSource, /onOpenLocal\?\.\(\)/)
-  assert.match(layers3dSource, /onOpenUrl\?\.\(\)/)
+  const entityAdds = []
+  const layers3dTree = LayersEntities({
+    t: (key) => key,
+    layers: [{ id: 'l1', name: 'blockA/tileset.json', visible: true }],
+    agentOverlays: [],
+    onAddLayer: (kind) => entityAdds.push(kind),
+  })
+  const contentGroup = collectNodes(layers3dTree).find((el) => el.type === LayerGroup && el.props?.id === 'content')
+  const contentAdd = collectNodes(contentGroup?.props?.actions).find(
+    (el) => el.type === 'button' && el.props?.title === 'layers.addLayer',
+  )
+  assert.ok(contentAdd, '已加载图层后，三维 Tab 的内容分组仍提供添加图层入口')
+  contentAdd.props.onClick()
+  assert.deepEqual(entityAdds, ['3d'])
 
-  const layersMap = readRepoFile('src/client/ui/layers-map.js')
-  assert.match(layersMap, /t\('settings\.field\.localTiles'\)/)
-  assert.match(layersMap, /onPickLocalTiles/)
+  // 4) 添加数据的三种入口收敛到 AddLayerDialog（本地文件夹 / 在线地址 / 本地栅格目录）。
+  const dialog = readRepoFile('src/client/ui/add-layer-dialog.js')
+  assert.match(dialog, /onEscape: requestClose/)
+  assert.match(dialog, /onOpenLocal\?\.\(\)/)
+  assert.match(dialog, /onOpenUrl\?\.\(\)/)
+  assert.match(dialog, /t\('settings\.field\.localTiles'\)/)
+  assert.match(dialog, /onPickLocalTiles/)
+
+  // 地表 Tab 仍负责飞往导入的矢量图层。
+  const layersMap = readRepoFile('src/client/ui/layers-surface.js')
   assert.match(layersMap, /onFlyAgentOverlay/)
 })

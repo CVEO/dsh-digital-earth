@@ -2,7 +2,7 @@
  * Scene Compare UI & Wiring tests (R7 Step 2 UI + Step 3 floating panel + Step 4 checks):
  *   - Bilingual i18n parity & naming rule (remote-sensing / 3D AI focus, no "科研" wording in UI copy)
  *   - Toolbox catalog entry `compare` + ToolBody routing + icon rendering
- *   - LayerRow unlocks `◧` for visible 3DGS layers and disables when hidden
+ *   - The 3D-content row (`LayersEntities`) unlocks the split entry for visible layers and disables it when hidden
  *   - ComparePanel renders split controls, mesh/LOD inspection (with 3DGS wireframe guard),
  *     exact camera pose copy/paste snap, and comparison bundle export
  *   - ViewerSurface wiring & size regression checks
@@ -19,7 +19,7 @@ const { MESSAGES } = await import('../src/client/messages.js')
 const catalog = await import('../src/client/ui/tool-catalog.js')
 const { ToolEntryIcon } = await import('../src/client/ui/icons.js')
 const { ToolBody } = await import('../src/client/ui/tool-windows.js')
-const { LayerRow } = await import('../src/client/ui/layer-row.js')
+const { LayersEntities } = await import('../src/client/ui/layers-entities.js')
 const { ComparePanel } = await import('../src/client/ui/compare-panel.js')
 const { clientSource, readRepoFile } = await import('./helpers/source.mjs')
 
@@ -46,6 +46,29 @@ function textOf(node) {
     return textOf(node.props?.children)
   }
   return ''
+}
+
+// The scene card is composed of function components (LayerGroup → LayerRow), so a
+// click target only exists after they are invoked. These are all hook-free, so
+// expand exactly them and keep MenuItem nodes unexpanded (their props carry state).
+const LAYOUT_COMPONENTS = new Set(['LayerGroup', 'LayerRow', 'RowEye', 'RowDot'])
+function expandLayout(node, out = []) {
+  if (!node || typeof node !== 'object') return out
+  if (Array.isArray(node)) {
+    for (const child of node) expandLayout(child, out)
+    return out
+  }
+  out.push(node)
+  if (typeof node.type === 'function' && LAYOUT_COMPONENTS.has(node.type.name)) {
+    // React merges `createElement` children into props; the stub keeps them apart.
+    const props = { ...node.props }
+    if (node.children?.length) props.children = node.children.length === 1 ? node.children[0] : node.children
+    expandLayout(node.type(props), out)
+  } else {
+    expandLayout(node.children, out)
+    expandLayout(node.props?.children, out)
+  }
+  return out
 }
 
 function renderSimple(renderFn) {
@@ -135,44 +158,74 @@ test('tool-catalog & icons & ToolBody: 注册独立 compare 浮窗入口与图�
   assert.equal(routed.type, ComparePanel)
 })
 
-test('LayerRow: 可见 3DGS 图层在溢出菜单中启用原生分屏，隐藏时禁用', () => {
+test('图层行（LayersEntities）: 可见 3DGS 图层在溢出菜单中启用原生分屏，隐藏时禁用', () => {
   const t = (k) => MESSAGES.zh[k] ?? k
-  const visibleRow = LayerRow({
-    t,
-    layer: { id: 'gs', name: '校园 3DGS', kind: '3dgs', visible: true },
-    shader: null,
-    swipeActive: true,
-    menuOpen: true,
-    onMenuToggle() {},
-    onFlyLayer() {},
-    onToggleLayer() {},
-    onInspectLayer() {},
-    onRemoveLayer() {},
-    onEditShader() {},
-    onSwipeLayer() {},
-  })
-  const visBtn = findAll(visibleRow, (n) => (n.children ?? []).includes(MESSAGES.zh['swipe.toggle']))[0]
-  assert.ok(visBtn)
-  assert.equal(visBtn.props.disabled, false)
-  assert.equal(visBtn.props.active, true)
+  // v1.8: rows are generic; the 3D-content row (LayersEntities) builds the menu and
+  // gates 分屏 on `layer.visible`, so the rule is asserted through the real component.
+  const openLayerMenu = (layer, swipeState) => {
+    const r = renderSimple(() =>
+      LayersEntities({
+        t,
+        layers: [layer],
+        shaderActive: [],
+        agentOverlays: [],
+        overlayDetails: {},
+        overlayExtrusions: [],
+        swipeState,
+        onFlyLayer() {},
+        onFrameAll() {},
+        onToggleLayer() {},
+        onRemoveLayer() {},
+        onEditLayerShader() {},
+        onOpenLayerProperties() {},
+        onSwipeLayer() {},
+        onAddLayer() {},
+        onQuickAnnotate() {},
+        onOpenMeasure() {},
+        onFlyAgentOverlay() {},
+        onRemoveAgentOverlay() {},
+        onToggleOverlayExtrude() {},
+        onToggleOverlayVisible() {},
+        onSelectAgentFeature() {},
+        onClearAnnotations() {},
+        onClearMeasurements() {},
+      }),
+    )
+    try {
+      const more = expandLayout(r.getTree()).find(
+        (node) => typeof node?.props?.className === 'string' && node.props.className.includes('mv-row-more'),
+      )
+      assert.ok(more, '缺少图层行溢出菜单按钮')
+      more.props.onClick({ stopPropagation() {} })
+      const item = expandLayout(r.getTree()).find(
+        (node) => node?.type?.name === 'MenuItem' && (node.children ?? []).includes(MESSAGES.zh['swipe.toggle']),
+      )
+      assert.ok(item, '溢出菜单缺少分屏项')
+      const button = item.type({ ...item.props, children: item.children?.[0] })
+      return {
+        disabled: item.props.disabled,
+        checked: item.props.checked,
+        role: button.props.role,
+        ariaChecked: button.props['aria-checked'],
+      }
+    } finally {
+      r.cleanup()
+    }
+  }
 
-  const hiddenRow = LayerRow({
-    t,
-    layer: { id: 'gs', name: '校园 3DGS', kind: '3dgs', visible: false },
-    shader: null,
-    swipeActive: false,
-    menuOpen: true,
-    onMenuToggle() {},
-    onFlyLayer() {},
-    onToggleLayer() {},
-    onInspectLayer() {},
-    onRemoveLayer() {},
-    onEditShader() {},
-    onSwipeLayer() {},
-  })
-  const hidBtn = findAll(hiddenRow, (n) => (n.children ?? []).includes(MESSAGES.zh['swipe.toggle']))[0]
-  assert.ok(hidBtn)
-  assert.equal(hidBtn.props.disabled, true)
+  const visible = openLayerMenu({ id: 'gs', name: '校园 3DGS', kind: '3dgs', visible: true }, { kind: '3d', id: 'gs' })
+  assert.equal(visible.disabled, false, '可见的 3DGS 图层可开分屏')
+  assert.equal(visible.checked, true, '正在分屏的图层要勾选')
+  assert.equal(visible.role, 'menuitemcheckbox')
+  assert.equal(visible.ariaChecked, true)
+
+  const notSwiping = openLayerMenu({ id: 'gs', name: '校园 3DGS', kind: '3dgs', visible: true }, null)
+  assert.equal(notSwiping.disabled, false)
+  assert.equal(notSwiping.checked, false)
+  assert.equal(notSwiping.ariaChecked, false)
+
+  const hidden = openLayerMenu({ id: 'gs', name: '校园 3DGS', kind: '3dgs', visible: false }, null)
+  assert.equal(hidden.disabled, true, '隐藏的图层不能开分屏')
 })
 
 test('ComparePanel: 渲染双层对比、线框/LOD 诊断与 3DGS 线框保护，并正确触发分屏与诊断回调', () => {

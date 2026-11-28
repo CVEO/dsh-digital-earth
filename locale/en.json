@@ -1,6 +1,6 @@
 {
   "meta": {
     "title": "Digital Earth",
-    "description": "3D Tiles / 3DGS on a 3D globe beside the chat; the Agent reads and drives the scene, annotates, measures, runs spatial analyses, applies visual effects and exports HTML/Markdown reports, with /earth commands, Ask Agent, scene restore and a bilingual UI."
+    "description": "3D Tiles / 3DGS beside the chat; seven Agent tools drive the scene, annotate, measure, run spatial analyses and visual effects, and extract 2D instances from nadir imagery; place search via Tianditu, Amap, Photon or OpenStreetMap, plus /earth commands, Ask Agent, reports and bilingual UI."
   }
 }

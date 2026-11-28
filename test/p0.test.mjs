@@ -485,8 +485,9 @@ test('P0 token 不出现在工具结果渲染函数与 capture 结果值里', ()
     readHostModule('tools/measure.js'),
     readHostModule('tools/analyze.js'),
     readHostModule('tools/shader.js'),
+    readHostModule('tools/extract.js'),
   ].join('\n')
-  assert.equal((toolSource.match(/scrubToken\(/g) ?? []).length, 6, '六个工具都要经过 scrubToken')
+  assert.equal((toolSource.match(/scrubToken\(/g) ?? []).length, 7, '七个工具都要经过 scrubToken')
   assert.doesNotMatch(toolSource, /\bTOKEN\b/)
 })
 

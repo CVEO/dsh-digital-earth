@@ -1,29 +1,25 @@
 /**
- * ui/toolbar-output.js — items of the toolbar "画面与输出" menu.
+ * ui/toolbar-output.js — items of the toolbar "输出 ▾" menu.
  *
- * The audit (docs/audit-2026-11-23, batch B1) collapsed the toolbar from 13
- * buttons to 7 entries. Output actions (snapshot, report, HUD, reset view,
- * fullscreen, ask-Agent, open beside chat) are infrequent and none of them is a
- * domain entry, so they live in one dropdown instead of six icon buttons.
- *
- * Pure props-in/items-out: the menu state stays in ViewerSurface.
+ * v1.8 split: 输出 is about taking something OUT of the scene — a snapshot, a
+ * scene report, the vector layers as GeoJSON, or a hand-off to the conversation.
+ * Camera and on-screen aids moved to 视图 ▾ (ui/toolbar-view.js), so neither menu
+ * mixes "how I look" with "what I take away".
  */
-const MENU_SEP = { width: 'auto', height: '.5px', margin: '4px 8px' }
+import { GlyphIcon } from './icons.js'
+import { MENU_SEP } from './menu-item.js'
 
 export function outputMenuItems({
   h,
   MenuItem,
   t,
-  showHud = false,
-  fullscreen = false,
   sessionId = null,
   docked = false,
+  canExportVector = false,
   closeMenu,
   onScreenshot,
   onReport,
-  onToggleHud,
-  onResetView,
-  onToggleFullscreen,
+  onExportVector,
   onAskAgent,
   onOpenBeside,
 }) {
@@ -31,30 +27,32 @@ export function outputMenuItems({
     if (typeof closeMenu === 'function') closeMenu()
     action()
   }
+  const icon = (name) => h(GlyphIcon, { name })
   const items = [
-    h(MenuItem, { key: 'screenshot', onClick: run(onScreenshot) }, t('btn.screenshot')),
-    h(MenuItem, { key: 'report', onClick: run(onReport) }, t('menu.report')),
-    h('i', { key: 'sep1', className: 'mv-sep', style: MENU_SEP }),
+    h(MenuItem, { key: 'screenshot', icon: icon('output'), onClick: run(onScreenshot) }, t('btn.screenshot')),
+    h(MenuItem, { key: 'report', icon: icon('export'), onClick: run(onReport) }, t('menu.report')),
     h(
       MenuItem,
-      { key: 'hud', onClick: run(onToggleHud) },
-      showHud ? t('btn.hudHide') : t('btn.hudShow'),
-    ),
-    h(MenuItem, { key: 'reset', onClick: run(onResetView) }, t('btn.reset')),
-    h(
-      MenuItem,
-      { key: 'fullscreen', onClick: run(onToggleFullscreen) },
-      fullscreen ? t('btn.fullscreenExit') : t('btn.fullscreenTitle'),
+      {
+        key: 'vector',
+        icon: icon('export'),
+        disabled: !canExportVector,
+        title: canExportVector ? t('layers.vectorExportHint') : t('out.exportEmpty'),
+        onClick: run(onExportVector),
+      },
+      t('out.exportVector'),
     ),
   ]
-  if (sessionId) {
+  if (sessionId || typeof onOpenBeside === 'function') {
     items.push(h('i', { key: 'sep2', className: 'mv-sep', style: MENU_SEP }))
-    items.push(h(MenuItem, { key: 'ask', onClick: run(onAskAgent) }, t('btn.askAgent')))
+  }
+  if (sessionId) {
+    items.push(h(MenuItem, { key: 'ask', icon: icon('chat'), onClick: run(onAskAgent) }, t('btn.askAgent')))
   }
   // The docked tab is already beside the conversation, so only the main panel
   // offers "open beside chat".
   if (!docked && typeof onOpenBeside === 'function') {
-    items.push(h(MenuItem, { key: 'beside', onClick: run(onOpenBeside) }, t('btn.beside')))
+    items.push(h(MenuItem, { key: 'beside', icon: icon('chat'), onClick: run(onOpenBeside) }, t('btn.beside')))
   }
   return items
 }

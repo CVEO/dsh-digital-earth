@@ -1,7 +1,7 @@
 /**
  * v16 batch 17 — Phase 1 UI refactor tests.
  *
- * Covers L2 subaction bar & L4 collapsible imagery box in LayersMap,
+ * Covers L2 subaction bar & L4 collapsible imagery box in LayersSurface,
  * 2-column bento toolbox + index minimize/restore + ToolWindow zoom/restore
  * in ToolsPanel/ToolWindow, EffectsBody active layer list, and zh/en i18n parity.
  */
@@ -13,11 +13,11 @@ register('./helpers/react-stub-loader.mjs', import.meta.url)
 
 const React = (await import('react')).default
 const { MESSAGES } = await import('../src/client/messages.js')
-const { TOOLS_MINIMIZED_KEY, IMAGERY_OPEN_KEY, readPanelFlag, writePanelFlag } = await import(
+const { TOOLS_MINIMIZED_KEY, groupOpenKey, readPanelFlag, writePanelFlag } = await import(
   '../src/client/ui/panel-prefs.js'
 )
 const { selectToolWindow } = await import('../src/client/ui/tool-catalog.js')
-const { LayersMap } = await import('../src/client/ui/layers-map.js')
+const { LayersSurface } = await import('../src/client/ui/layers-surface.js')
 const { RightStack } = await import('../src/client/ui/right-stack.js')
 const { useToolWorkspace } = await import('../src/client/ui/tool-workspace.js')
 const { ToolsPanel } = await import('../src/client/ui/tools-panel.js')
@@ -183,59 +183,79 @@ test('TOOLS_MINIMIZED_KEY persists via readPanelFlag / writePanelFlag', () => {
   })
 })
 
-test('LayersMap separates vector import CTA into subaction bar and wraps imagery in collapsible mv-fold-box', () => {
+test('LayersSurface 按 矢量→栅格→影像→地形 分组，添加入口收进组头，影像底图默认折叠', () => {
   withStorage(() => {
-    const renderer = createRenderer(LayersMap, () => ({
+    const addCalls = []
+    const downloadCalls = []
+    const renderer = createRenderer(LayersSurface, () => ({
       t,
-      config: { imagery: [{ id: 'bing', label: 'Bing Aerial' }, { id: 'osm', label: 'OSM' }] },
+      config: {
+        imagery: [{ id: 'bing', name: 'Bing Aerial' }, { id: 'osm', name: 'OSM' }],
+        terrain: [],
+      },
       settings: { imagery: 'bing', imageryOpacity: 1 },
       onSelectImagery: () => {},
-      onOverlayAdd: () => {},
-      onOverlayRemove: () => {},
-      onOverlayOpacity: () => {},
-      onOverlayVisible: () => {},
-      onOverlayMove: () => {},
-      agentOverlays: [{ kind: 'draw', index: 0, label: 'Parcel' }],
-      annotations: { drawn_features: 1, measured_points: 0 },
-      onClearVector: () => {},
-      onRemoveAgentOverlay: () => {},
-      onFlyAgentOverlay: () => {},
-      onImportVector: () => {},
-      onPickLocalTiles: () => {},
-      swipeState: null,
-      onOverlaySwipe: () => {},
-      vectorExport: { canSend: () => true, download: () => {}, send: () => {} },
+      importedOverlays: [{ kind: 'draw', origin: 'import', id: 'imp-1', index: 0, label: 'Parcel', detail: '' }],
+      overlayDetails: { 0: [{ style: 'accent', name: 'Parcel A' }] },
+      vectorExport: { canSend: () => true, download: () => downloadCalls.push('download'), send: () => {} },
+      onAddLayer: (kind) => addCalls.push(kind),
+      onClearImports: () => {},
     }))
 
     let root = renderer.tree()
-    // Export action buttons stay in g2 mv-group-actions; import CTA sits in .mv-group-subactions.
-    const groups = findAll(root, (n) => hasClass(n, 'mv-group'))
-    const g2 = groups[0]
-    assert.ok(textOf(g2).includes('layers.vector · 1'))
-    const g2ActionButtons = findAll(g2, (n) => n.type === 'button')
-    assert.equal(g2ActionButtons.length, 2)
-    assert.equal(g2ActionButtons[0].props.title, 'layers.vectorExportHint')
-    assert.equal(g2ActionButtons[1].props.title, 'layers.vectorChatHint')
+    // 分组顺序固定：地表数据按绘制顺序 矢量图层 → 栅格图层 → 影像底图 → 地形。
+    const groups = findAll(root, (n) => hasClass(n, 'mv-lgroup'))
+    assert.deepEqual(
+      groups.map((g) => g.props['data-group']),
+      ['vector', 'raster', 'imagery', 'terrain'],
+    )
+    assert.deepEqual(
+      groups.map((g) => textOf(findAll(g, (n) => hasClass(n, 'mv-group-title'))[0])),
+      ['layers.vector', 'layers.raster', 'layers.imagery', 'layers.terrain'],
+    )
 
-    const subactions = findAll(root, (n) => hasClass(n, 'mv-group-subactions'))
-    assert.equal(subactions.length, 1)
-    assert.ok(textOf(subactions[0]).includes('layers.importVector'))
+    // 矢量组：行数在组头，导入 / 导出 / 清空都收进 .mv-group-actions。
+    const vector = groups[0]
+    assert.equal(textOf(findAll(vector, (n) => hasClass(n, 'mv-group-count'))[0]), '· 1')
+    const actions = findAll(vector, (n) => hasClass(n, 'mv-group-actions'))
+    assert.equal(actions.length, 1)
+    const actionButtons = findAll(actions[0], (n) => n.type === 'button')
+    const exportBtn = actionButtons.find((b) => b.props.title === 'layers.vectorExportHint')
+    assert.ok(exportBtn, '导出按钮仍用 tooltip 解释导出范围')
+    exportBtn.props.onClick()
+    assert.deepEqual(downloadCalls, ['download'])
+    const importBtn = actionButtons.find((b) => b.props.title === 'layers.importVector')
+    assert.ok(importBtn, '导入矢量仍是组头里的显式入口（图标按钮带 tooltip）')
+    importBtn.props.onClick()
+    assert.deepEqual(addCalls, ['vector'])
+    // 旧子操作条已删除：导入入口不再另起一行。
+    assert.equal(findAll(root, (n) => hasClass(n, 'mv-group-subactions')).length, 0)
 
-    // L4 imagery box starts collapsed (closed mv-fold-box, no mv-fold-body).
-    let foldBoxes = findAll(root, (n) => hasClass(n, 'mv-fold-box'))
-    assert.equal(foldBoxes.length, 1)
-    assert.equal(hasClass(foldBoxes[0], 'open'), false)
-    assert.equal(findAll(foldBoxes[0], (n) => hasClass(n, 'mv-fold-body')).length, 0)
+    // 影像底图组默认折叠，只在组头提示当前底图；展开后才出现可选列表。
+    let imagery = groups[2]
+    assert.equal(hasClass(imagery, 'open'), false)
+    assert.equal(findAll(imagery, (n) => hasClass(n, 'mv-lgroup-body')).length, 0)
+    const hint = findAll(imagery, (n) => hasClass(n, 'mv-lgroup-hint'))[0]
+    assert.ok(hint, '折叠时用一行提示说明当前底图')
+    assert.ok(textOf(hint).includes('layers.imageryCurrent'))
+    assert.ok(textOf(hint).includes('Bing Aerial'))
+    assert.equal(textOf(findAll(imagery, (n) => hasClass(n, 'mv-group-count'))[0]), '· 2')
 
-    const toggleBtn = findAll(foldBoxes[0], (n) => hasClass(n, 'mv-group-toggle'))[0]
+    const toggleBtn = findAll(imagery, (n) => hasClass(n, 'mv-group-toggle'))[0]
     assert.equal(toggleBtn.props['aria-expanded'], false)
     toggleBtn.props.onClick()
 
     root = renderer.tree()
-    foldBoxes = findAll(root, (n) => hasClass(n, 'mv-fold-box'))
-    assert.equal(hasClass(foldBoxes[0], 'open'), true)
-    assert.equal(findAll(foldBoxes[0], (n) => hasClass(n, 'mv-fold-body')).length, 1)
-    assert.equal(readPanelFlag(IMAGERY_OPEN_KEY, false), true)
+    imagery = findAll(root, (n) => hasClass(n, 'mv-lgroup')).find((g) => g.props['data-group'] === 'imagery')
+    assert.equal(hasClass(imagery, 'open'), true)
+    assert.equal(findAll(imagery, (n) => hasClass(n, 'mv-lgroup-body')).length, 1)
+    assert.equal(readPanelFlag(groupOpenKey('imagery'), false), true)
+    assert.equal(findAll(imagery, (n) => hasClass(n, 'mv-lgroup-hint')).length, 0, '展开后不再重复提示')
+    const choices = findAll(imagery, (n) => hasClass(n, 'mv-choice'))
+    assert.deepEqual(
+      choices.map((choice) => textOf(findAll(choice, (n) => hasClass(n, 'mv-row-name'))[0])),
+      ['menu.none', 'Bing Aerial', 'OSM'],
+    )
   })
 })
 
@@ -294,8 +314,13 @@ test('RightStack + ToolsPanel opens a tool window as a docked tab and keeps inde
 
     // 2. The rail keeps only icons now; the accessible name still carries the
     // destination, so screen readers do not lose the label removed as duplicate.
-    const labels = findAll(root, (n) => hasClass(n, 'mv-dock-tab')).map((node) => node.props['aria-label'])
-    assert.deepEqual(labels, ['panel.tab.tools', 'panel.tab.result'])
+    assert.equal(findAll(root, (n) => hasClass(n, 'mv-dock-tab')).length, 0, '页签条已合并进顶栏，不再重复一层导航')
+    // v1.6.5: the destination's name moved to the console header (TopBar), so the
+    // dock exposes it through the visible tabpanel's aria-label instead of a
+    // second title row.
+    assert.equal(findAll(root, (n) => hasClass(n, 'mv-dock-head')).length, 0, '面板内不再有第二行标题')
+    const visiblePanel = findAll(root, (n) => n?.props?.role === 'tabpanel' && !n.props.hidden)[0]
+    assert.equal(visiblePanel?.props?.['aria-label'], 'panel.tab.tools')
     assert.equal(findAll(root, (n) => hasClass(n, 'mv-panel-back')).length, 0)
     assert.equal(findAll(root, (n) => hasClass(n, 'mv-dock-tab-close')).length, 0)
   })
@@ -322,7 +347,10 @@ test('Phase 1 zh/en i18n keys are defined cleanly', () => {
     'layers.exportVector',
     'layers.vectorToChat',
     'layers.vectorExportHint',
-    'layers.vectorChatHint',
+    // v1.8：组的折叠标题与“当前底图”提示取代了旧的影像折叠说明。
+    'layers.groupCollapse',
+    'layers.groupExpand',
+    'layers.imageryCurrent',
   ]
   for (const key of keys) {
     assert.ok(typeof MESSAGES.zh[key] === 'string' && MESSAGES.zh[key].length > 0, `missing zh key ${key}`)

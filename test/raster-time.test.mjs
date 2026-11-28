@@ -5,7 +5,7 @@
  *   3. Overlay stack in-place frame switching (Z-order, alpha, visibility, swipe, coalescing)
  *   4. Session snapshot persistence & backward compatibility with legacy snapshots
  *   5. Agent `earth_scene status` & `action: 'frame'` validation + UI/scene sync
- *   6. UI component rendering (`RasterTimeline`, `LayersMap`) & i18n separation from Sun timeline
+ *   6. UI component rendering (`RasterTimeline`, `LayersSurface`) & i18n separation from Sun timeline
  */
 import { mkdtemp, rm } from 'node:fs/promises'
 import { register } from 'node:module'

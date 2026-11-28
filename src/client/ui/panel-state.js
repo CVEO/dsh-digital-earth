@@ -1,7 +1,7 @@
 /**
  * ui/panel-state.js — pure state kernel for Panel System 2.0.
  *
- * The rail has exactly four destinations: 图层 / 工具 / 结果 / 对象. Everything a
+ * The rail has exactly five destinations: 图层 / 工具 / 地名检索 / 结果 / 对象. Everything a
  * panel can do is a transition on this small record, so the rules are testable
  * without React, Cesium or a browser:
  *
@@ -19,10 +19,11 @@
  */
 export const PANEL_STORAGE_KEY = 'mv.ui.v2'
 export const PANEL_LEGACY_DOCK_KEY = 'mv.rightDock.v1'
-export const PANEL_TABS = Object.freeze(['layers', 'tools', 'result', 'object'])
+export const PANEL_TABS = Object.freeze(['layers', 'tools', 'places', 'result', 'object'])
 export const PANEL_TAB_LABELS = Object.freeze({
   layers: 'layers.title',
   tools: 'tools.title',
+  places: 'places.title',
   result: 'panel.tab.result',
   object: 'panel.tab.object',
 })
@@ -31,7 +32,7 @@ export const PANEL_MIN_WIDTH = 240
 export const PANEL_MAX_WIDTH = 720
 export const PANEL_WIDTH_STEP = 10
 
-const FALLBACK_ORDER = ['layers', 'tools', 'result', 'object']
+const FALLBACK_ORDER = ['layers', 'tools', 'places', 'result', 'object']
 
 export function isPanelTab(value) {
   return PANEL_TABS.includes(value)

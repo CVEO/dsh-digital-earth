@@ -116,7 +116,7 @@ const h = React.createElement
             'dsh-digital-earth: better-sidebar tab',
           )
         })
-        // The Agent drives the same panel through these six wire tools, so their
+        // The Agent drives the same panel through these seven wire tools, so their
         // rows own the auto-open: the Host tool call waits for this tab to attach.
         ctx.slots.inject('tool.call.toolview', function* () {
           yield ctx.slots.register({ name: 'tool.call.toolview', key: 'earth_scene', locale: NS }, EarthToolRow)
@@ -125,6 +125,7 @@ const h = React.createElement
           yield ctx.slots.register({ name: 'tool.call.toolview', key: 'earth_measure', locale: NS }, EarthToolRow)
           yield ctx.slots.register({ name: 'tool.call.toolview', key: 'earth_analyze', locale: NS }, EarthToolRow)
           yield ctx.slots.register({ name: 'tool.call.toolview', key: 'earth_shader', locale: NS }, EarthToolRow)
+          yield ctx.slots.register({ name: 'tool.call.toolview', key: 'earth_extract', locale: NS }, EarthToolRow)
         })
       },
     }

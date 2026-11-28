@@ -1,8 +1,8 @@
 {
   "name": "@cveo/dsh-digital-earth",
-  "version": "1.6.4",
+  "version": "1.7.0",
   "type": "module",
-  "description": "数字地球：在三维地球上叠加 3D Tiles / 3DGS 图层，与对话同屏；Agent 可读写场景、标注、量测、空间分析与视觉特效，支持 /earth 命令、问 Agent 场景注入与 HTML/Markdown 报告导出，内置数据体检、多期场景恢复与双语界面。",
+  "description": "数字地球：三维地球叠加 3D Tiles / 3DGS 图层，与对话同屏；Agent 七件工具可读写场景、标注、量测、空间分析与视觉特效，并做正射 AI 2D 实例提取；地名检索支持天地图/高德/Photon/OpenStreetMap，另有 /earth 命令、问 Agent、报告导出与双语界面。",
   "icon": "./icon.svg",
   "license": "MIT",
   "engines": {
@@ -33,6 +33,7 @@
     "client.js",
     "src/host",
     "src/client",
+    "src/shared",
     "cordis.patch.yml",
     "locale/*.json",
     "icon.svg",

@@ -47,12 +47,23 @@ function viewportBounds(maxWidth, maxHeight) {
 }
 
 /**
- * Bounds relative to the panel container when one can be measured. The panel can
+ * Bounds relative to the panel viewport when one can be measured. The panel can
  * be docked at a few hundred pixels while the browser window stays wide; clamping
  * to the viewport alone let a remembered width overflow the dock.
+ *
+ * The immediate parent is NOT a safe bound: the right dock now lives inside the
+ * console shell, whose width hugs its content, so measuring the parent clamped
+ * every drag back to the current width and the panel could never grow. Measure
+ * the panel viewport (`mv-root`) instead and fall back to the parent in non-DOM
+ * tests.
  */
+export function boundsHost(element) {
+  if (!element) return null
+  return element.closest?.('.mv-root') ?? element.parentElement ?? null
+}
+
 function containerBounds(element, maxWidth, maxHeight) {
-  const parent = element?.parentElement
+  const parent = boundsHost(element)
   const width = Number(parent?.clientWidth) || Number(globalThis.innerWidth) || 1280
   const height = Number(parent?.clientHeight) || Number(globalThis.innerHeight) || 800
   return {
@@ -103,7 +114,7 @@ export function usePanelResize({
       })
     }
     clampToContainer()
-    const parent = ref.current?.parentElement
+    const parent = boundsHost(ref.current)
     const Observer = globalThis.ResizeObserver
     if (!parent || typeof Observer !== 'function') return undefined
     const observer = new Observer(clampToContainer)

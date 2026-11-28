@@ -198,6 +198,7 @@ test('catalog：非法/超量叠加层被丢弃而不是让整份配置失败', 
     type: 'xyz',
     url: `https://example.test/${index}/{z}/{x}/{y}.png`,
   }))
+  // v1.9: eight overlays fit; the ninth is dropped.
   assert.equal(normalizeConfig({ rasterOverlays: many }).rasterOverlays.length, 8)
 })
 

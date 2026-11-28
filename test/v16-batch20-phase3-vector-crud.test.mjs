@@ -1,7 +1,7 @@
 /**
  * v1.6 Phase 3 (P3-2) — Vertex-edit continuity (selectByFeature + Ctrl+Z undo),
  * Point coordinate editing, Custom GeoJSON attribute CRUD, per-overlay & per-feature
- * vector browser in LayersMap, per-overlay/feature chat export, and i18n parity.
+ * vector browser in LayersEntities, per-overlay/feature chat export, and i18n parity.
  */
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
@@ -30,7 +30,7 @@ const {
 const { createVectorInteraction } = await import('../src/client/scene/vector-interaction.js')
 const { createVectorRenderer } = await import('../src/client/scene/vector-renderer.js')
 const { createVectorExport } = await import('../src/client/scene/vector-export-service.js')
-const { LayersMap } = await import('../src/client/ui/layers-map.js')
+const { LayersEntities } = await import('../src/client/ui/layers-entities.js')
 const { VectorCard } = await import('../src/client/ui/vector-card.js')
 const { RightStack } = await import('../src/client/ui/right-stack.js')
 const { useToolWorkspace } = await import('../src/client/ui/tool-workspace.js')
@@ -328,6 +328,98 @@ function createRenderer(renderFn) {
   }
 }
 
+/**
+ * Render one component tree, expanding nested function components (LayerGroup,
+ * LayerRow, RowEye, MenuItem) so a test can click the buttons the panel builds.
+ * Hooks are keyed by component path, so state changes rerender in place.
+ */
+function createComponentRenderer(Component, getProps) {
+  const states = new Map()
+  const refs = new Map()
+  const effects = new Map()
+  let tree = null
+
+  function expand(node, path) {
+    if (node === null || node === undefined || typeof node !== 'object') return node
+    if (Array.isArray(node)) return node.map((child, index) => expand(child, `${path}[${index}]`))
+    if (typeof node.type === 'function') {
+      return renderComponent(node.type, { ...(node.props ?? {}), children: node.children }, `${path}/${node.type.name || 'Fn'}`)
+    }
+    return {
+      type: node.type,
+      props: node.props ?? {},
+      children: (node.children ?? []).map((child, index) => expand(child, `${path}.${index}`)),
+    }
+  }
+
+  function renderComponent(Fn, props, path) {
+    let slot = 0
+    const pendingEffects = []
+    const saved = {
+      useState: React.useState,
+      useRef: React.useRef,
+      useCallback: React.useCallback,
+      useMemo: React.useMemo,
+      useEffect: React.useEffect,
+    }
+    React.useState = (initial) => {
+      const key = `${path}#s${slot++}`
+      if (!states.has(key)) states.set(key, typeof initial === 'function' ? initial() : initial)
+      const setState = (next) => {
+        const current = states.get(key)
+        states.set(key, typeof next === 'function' ? next(current) : next)
+        render()
+      }
+      return [states.get(key), setState]
+    }
+    React.useRef = (initial) => {
+      const key = `${path}#r${slot++}`
+      if (!refs.has(key)) refs.set(key, { current: initial })
+      return refs.get(key)
+    }
+    React.useCallback = (callback) => callback
+    React.useMemo = (factory) => factory()
+    React.useEffect = (effect, deps) => {
+      const key = `${path}#e${slot++}`
+      const previous = effects.get(key)
+      const changed =
+        !previous ||
+        deps === undefined ||
+        deps.length !== previous.deps.length ||
+        deps.some((value, index) => !Object.is(value, previous.deps[index]))
+      if (changed) pendingEffects.push({ key, effect, deps: deps ?? [] })
+    }
+    let rendered
+    try {
+      rendered = expand(Fn({ ...props, children: props?.children }), path)
+    } finally {
+      Object.assign(React, saved)
+    }
+    for (const item of pendingEffects) {
+      effects.get(item.key)?.cleanup?.()
+      const entry = { deps: item.deps, cleanup: null }
+      effects.set(item.key, entry)
+      const cleanup = typeof item.effect === 'function' ? item.effect() : undefined
+      if (typeof cleanup === 'function') entry.cleanup = cleanup
+    }
+    return rendered
+  }
+
+  const render = () => {
+    tree = renderComponent(Component, getProps(), 'root')
+  }
+  render()
+  return {
+    getTree: () => tree,
+    rerender: () => render(),
+    cleanup() {
+      for (const entry of effects.values()) {
+        if (typeof entry?.cleanup === 'function') entry.cleanup()
+      }
+    },
+  }
+}
+
 function findNodes(node, predicate, out = []) {
   if (!node) return out
   if (Array.isArray(node)) {
@@ -587,10 +679,11 @@ test('agent-overlays & annotation-actions：明细列表提取、单要素飞往
   }
   renderer.drawAgentOverlay(Cesium, viewer, fc, 'accent', 'GeoJSON: survey.geojson')
 
-  // Locked 5-key shape check
+  // Locked row shape check
   const summaryRows = buildAgentOverlayList(state)
-  // Batch A: rows carry the overlay origin so destructive actions can explain scope.
-  assert.deepEqual(Object.keys(summaryRows[0]).sort(), ['detail', 'id', 'index', 'kind', 'label', 'origin'])
+  // Rows carry the overlay origin (destructive scope) and its saved visibility.
+  assert.deepEqual(Object.keys(summaryRows[0]).sort(), ['detail', 'hidden', 'id', 'index', 'kind', 'label', 'origin'])
+  assert.equal(summaryRows[0].hidden, false, 'A freshly drawn overlay is visible')
 
   const details = buildAgentOverlayDetails(state)
   assert.equal(details[0].length, 2)
@@ -725,62 +818,81 @@ test('vector-export-service：按层下载、按层发送对话附件与单要�
 })
 
 // ---------------------------------------------------------------------------
-// 5. UI: LayersMap feature list + quick draw, ToolsPanel openRequest, VectorCard CRUD
+// 5. UI: LayersEntities annotation list + quick draw, ToolsPanel openRequest, VectorCard CRUD
 // ---------------------------------------------------------------------------
 
-test('LayersMap：展开要素列表、按层导出/发对话、点选/飞往/删除单要素与 +绘制标注入口', () => {
+test('LayersEntities：标注要素展开、按层导出/发对话、要素点选与 +绘制标注入口', () => {
   const calls = []
-  const r = createRenderer(() =>
-    LayersMap({
-      t: tZh,
-      config: { imagery: [{ id: 'osm', name: 'OSM' }], rasterOverlays: [] },
-      settings: { imagery: 'osm' },
-      onSelectImagery() {},
-      onOverlayAdd() {},
-      onOverlayRemove() {},
-      onOverlayOpacity() {},
-      onOverlayVisible() {},
-      onOverlayMove() {},
-      agentOverlays: [{ id: 'draw-0', kind: 'draw', index: 0, label: 'GeoJSON: plot.geojson', detail: '2 要素' }],
-      overlayDetails: {
-        0: [
-          { featureIndex: 0, featureId: 'f0', name: '农田1', geometryType: 'Polygon', kind: 'area', style: 'warm' },
-          { featureIndex: 1, featureId: 'f1', name: null, geometryType: 'Point', kind: 'point', style: 'alert' },
-        ],
-      },
-      annotations: { drawn_features: 2, measured_points: 0 },
-      onQuickAnnotate: () => calls.push(['quickAnnotate']),
-      onSelectAgentFeature: (o, f) => calls.push(['select', o, f]),
-      onFlyAgentFeature: (o, f) => calls.push(['flyFeat', o, f]),
-      onRemoveAgentFeature: (o, f) => calls.push(['removeFeat', o, f]),
-      onFlyAgentOverlay: (k, i) => calls.push(['flyOverlay', k, i]),
-      onRemoveAgentOverlay: (k, i) => calls.push(['removeOverlay', k, i]),
-      vectorExport: {
-        canSend: () => true,
-        download() { calls.push(['downloadAll']) },
-        send() { calls.push(['sendAll']) },
-        downloadOverlay(i) { calls.push(['downloadOverlay', i]) },
-        sendOverlay(i) { calls.push(['sendOverlay', i]) },
-      },
-    }),
-  )
+  const r = createComponentRenderer(LayersEntities, () => ({
+    t: tZh,
+    layers: [],
+    agentOverlays: [
+      { id: 'draw-0', kind: 'draw', index: 0, origin: 'agent', label: 'GeoJSON: plot.geojson', detail: '2 要素', hidden: false },
+    ],
+    overlayDetails: {
+      0: [
+        { featureIndex: 0, featureId: 'f0', name: '农田1', geometryType: 'Polygon', kind: 'area', style: 'warm' },
+        { featureIndex: 1, featureId: 'f1', name: null, geometryType: 'Point', kind: 'point', style: 'alert' },
+      ],
+    },
+    overlayExtrusions: { 0: { canExtrude: false, extruded: false } },
+    onQuickAnnotate: () => calls.push(['quickAnnotate']),
+    onSelectAgentFeature: (rowIndex, featureIndex) => calls.push(['select', rowIndex, featureIndex]),
+    onFlyAgentOverlay: (kind, index) => calls.push(['flyOverlay', kind, index]),
+    onRemoveAgentOverlay: (kind, index) => calls.push(['removeOverlay', kind, index]),
+    onExportOverlay: (index) => calls.push(['downloadOverlay', index]),
+    onSendOverlay: (index) => calls.push(['sendOverlay', index]),
+    onClearAnnotations() {},
+    onClearMeasurements() {},
+    onOpenMeasure() {},
+    onAddLayer() {},
+  }))
   try {
-    // Subactions include both 导入矢量 & + 绘制标注
-    const quickBtn = findNodes(r.getTree(), (n) => n.type === 'button' && textOf(n) === tZh('annotation.quickDraw'))[0]
+    // 标注分组的「绘制」入口
+    const quickBtn = findNodes(r.getTree(), (n) => n.type === 'button' && n.props?.title === tZh('annotation.quickDraw'))[0]
     assert.ok(quickBtn)
     quickBtn.props.onClick()
 
-    // Per-overlay download & send-to-chat
-    const dlOverlayBtn = findNodes(r.getTree(), (n) => n.type === 'button' && n.props?.title === tZh('layers.overlayExportHint'))[0]
-    const sendOverlayBtn = findNodes(r.getTree(), (n) => n.type === 'button' && n.props?.title === tZh('layers.overlayChatHint'))[0]
-    assert.ok(dlOverlayBtn && sendOverlayBtn)
-    dlOverlayBtn.props.onClick()
-    sendOverlayBtn.props.onClick()
+    // Row ⋯ menu: overlay-level fly / edit / export / send / remove.
+    const openRowMenu = () => {
+      const moreBtn = findNodes(r.getTree(), (n) => n.type === 'button' && String(n.props?.className).includes('mv-row-more'))[0]
+      assert.ok(moreBtn)
+      moreBtn.props.onClick({ stopPropagation() {} })
+    }
+    const clickMenuItem = (label) => {
+      const item = findNodes(r.getTree(), (n) => n.type === 'button' && textOf(n) === label)[0]
+      assert.ok(item, `行菜单缺少「${label}」`)
+      item.props.onClick()
+    }
+    openRowMenu()
+    assert.deepEqual(
+      findNodes(r.getTree(), (n) => n.type === 'button' && String(n.props?.className).includes('mv-menu-item')).map(textOf),
+      [
+        tZh('btn.flyTo'),
+        tZh('layers.properties'),
+        tZh('layers.propsEditFeatures'),
+        tZh('layers.exportVector'),
+        tZh('layers.vectorToChat'),
+        tZh('layers.removeFromScene'),
+      ],
+    )
+    clickMenuItem(tZh('layers.exportVector'))
+    openRowMenu()
+    clickMenuItem(tZh('layers.vectorToChat'))
+    openRowMenu()
+    clickMenuItem(tZh('btn.flyTo'))
+    openRowMenu()
+    clickMenuItem(tZh('layers.removeFromScene'))
 
-    // Expand feature rows
+    // ▸ expands the feature list; each feature is a pick row.
     const toggleBtn = findNodes(r.getTree(), (n) => n.type === 'button' && String(n.props?.className).includes('mv-overlay-toggle'))[0]
     assert.ok(toggleBtn)
+    assert.equal(toggleBtn.props['aria-expanded'], false)
     toggleBtn.props.onClick()
+
+    const expandedToggle = findNodes(r.getTree(), (n) => n.type === 'button' && String(n.props?.className).includes('mv-overlay-toggle'))[0]
+    assert.equal(expandedToggle.props['aria-expanded'], true)
+    assert.equal(expandedToggle.children[0], '▾')
 
     const picks = findNodes(r.getTree(), (n) => n.type === 'button' && String(n.props?.className).includes('mv-overlay-feature-pick'))
     assert.equal(picks.length, 2)
@@ -788,18 +900,13 @@ test('LayersMap：展开要素列表、按层导出/发对话、点选/飞往/�
     assert.match(textOf(picks[1]), /要素 #2.*Point/)
     picks[0].props.onClick()
 
-    const featRows = findNodes(r.getTree(), (n) => n.props?.className === 'mv-overlay-feature')
-    const btns1 = findNodes(featRows[1], (n) => n.type === 'button')
-    btns1[1].props.onClick() // fly
-    btns1[2].props.onClick() // delete
-
     assert.deepEqual(calls, [
       ['quickAnnotate'],
       ['downloadOverlay', 0],
       ['sendOverlay', 0],
+      ['flyOverlay', 'draw', 0],
+      ['removeOverlay', 'draw', 0],
       ['select', 0, 0],
-      ['flyFeat', 0, 1],
-      ['removeFeat', 0, 1],
     ])
   } finally {
     r.cleanup()

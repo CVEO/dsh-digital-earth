@@ -33,7 +33,9 @@ export function apply(ctx) {
   const getService = (name) => {
     if (optional[name]) return optional[name]
     try {
-      return ctx.get?.(name) ?? ctx[name] ?? null
+      // The second argument makes it an OPTIONAL lookup: reading a service that
+      // is not hard-injected must return undefined, not throw.
+      return ctx.get?.(name, false) ?? ctx[name] ?? null
     } catch {
       return null
     }

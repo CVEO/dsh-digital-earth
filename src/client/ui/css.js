@@ -11,9 +11,10 @@ import { SELECTION_QUESTION_CSS } from './selection-question-css.js'
 import { PARSE_CSS } from './parse-css.js'
 import { RASTER_TIMELINE_CSS } from './raster-timeline-css.js'
 import { COMPARE_CSS } from './compare-css.js'
+import { LAYERS_CSS } from './layers-css.js'
 
     const CSS = `
-.mv-root{position:relative;flex:1 1 0;min-height:0;overflow:hidden;background:var(--mv-bg);color:var(--mv-text);font:12px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;--mv-z-rail:9;--mv-z-popover:40;--mv-z-toast:60;--mv-z-modal:100;--mv-bg:var(--dsw-alias-bg-base,#fff);--mv-text:var(--dsw-alias-label-primary,#0f1115);--mv-dim:var(--dsw-alias-label-secondary,#5b6068);--mv-line:var(--dsw-alias-border-l2,#0000001a);--mv-accent:var(--dsw-alias-state-business-primary,#4176e6);--mv-profile-line:#1d4ed8;--mv-profile-design:#c2610a;--mv-lift:var(--dsw-alias-interactive-bg-hover,#2631480f);--mv-glass:color-mix(in srgb,var(--dsw-alias-bg-layer-1,#fff) 88%,transparent);--mv-glass-strong:var(--dsw-alias-bg-layer-1,#fff);--mv-input:var(--dsw-alias-interactive-bg-hover,#2631480f);--mv-shadow:0 8px 28px rgba(15,23,42,.18);--mv-danger:var(--dsw-alias-state-error-primary,#d33b3b);--mv-fg:var(--mv-text);--mv-surface-hi:var(--dsw-alias-bg-layer-2,#0f172a);--mv-line-strong:var(--dsw-alias-border-l1,#7dd3fc);--mv-attrib:rgba(255,255,255,.62);--mv-attrib-shadow:0 1px 2px rgba(0,0,0,.6);--mv-overlay:transparent;--mv-scrim:rgba(24,34,50,.28)}
+.mv-root{position:relative;flex:1 1 0;min-height:0;overflow:hidden;background:var(--mv-bg);color:var(--mv-text);font:12px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;--mv-z-rail:9;--mv-z-popover:40;--mv-z-toast:60;--mv-z-modal:100;--mv-console-top:10px;--mv-console-right:10px;--mv-console-gap:4px;--mv-console-width:max-content;--mv-bg:var(--dsw-alias-bg-base,#fff);--mv-text:var(--dsw-alias-label-primary,#0f1115);--mv-dim:var(--dsw-alias-label-secondary,#5b6068);--mv-line:var(--dsw-alias-border-l2,#0000001a);--mv-accent:var(--dsw-alias-state-business-primary,#4176e6);--mv-profile-line:#1d4ed8;--mv-profile-design:#c2610a;--mv-lift:var(--dsw-alias-interactive-bg-hover,#2631480f);--mv-glass:color-mix(in srgb,var(--dsw-alias-bg-layer-1,#fff) 88%,transparent);--mv-glass-strong:var(--dsw-alias-bg-layer-1,#fff);--mv-input:var(--dsw-alias-interactive-bg-hover,#2631480f);--mv-shadow:0 8px 28px rgba(15,23,42,.18);--mv-danger:var(--dsw-alias-state-error-primary,#d33b3b);--mv-fg:var(--mv-text);--mv-surface-hi:var(--dsw-alias-bg-layer-2,#0f172a);--mv-line-strong:var(--dsw-alias-border-l1,#7dd3fc);--mv-attrib:rgba(255,255,255,.62);--mv-attrib-shadow:0 1px 2px rgba(0,0,0,.6);--mv-overlay:transparent;--mv-scrim:rgba(24,34,50,.28)}
 .mv-root[data-mv-scheme="dark"]{--mv-attrib:rgba(255,255,255,.62);--mv-attrib-shadow:0 1px 2px rgba(0,0,0,.6);--mv-overlay:transparent;--mv-scrim:rgba(3,7,13,.62);color-scheme:dark}
 .mv-root[data-mv-scheme="light"]{color-scheme:light;--mv-scrim:rgba(24,34,50,.28)}
 /* Confirmation dialog: narrow, explains the scope, safe default focused. */
@@ -38,13 +39,83 @@ import { COMPARE_CSS } from './compare-css.js'
 .mv-compass:focus-visible{outline:2px solid var(--mv-accent);outline-offset:2px}
 @media (max-width:420px){.mv-compass{width:50px;height:50px;right:8px;bottom:36px}}
 .mv-glass{background:var(--mv-glass);border:.5px solid var(--mv-line);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);box-shadow:var(--mv-shadow)}
-.mv-top{position:absolute;top:10px;left:10px;right:10px;display:flex;align-items:flex-start;justify-content:space-between;gap:10px;z-index:10;pointer-events:none}
+.mv-chrome{box-sizing:border-box;position:absolute;top:var(--mv-console-top,10px);right:var(--mv-console-right,10px);display:flex;flex-direction:column;align-items:stretch;width:var(--mv-console-width,max-content);max-width:calc(100% - 20px);max-height:calc(100% - 20px);z-index:12;pointer-events:none;background:var(--mv-glass);border:.5px solid var(--mv-line);border-radius:14px;box-shadow:var(--mv-shadow);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);transition:opacity .18s ease,transform .18s ease}
+.mv-chrome.is-hidden{opacity:0;transform:translateY(-8px);pointer-events:none}
+/* The restore handle sits exactly where the hide button was: same offsets, same
+   26px hit area as .mv-top .mv-btn.icon, so hiding the console does not move the
+   control the user is about to click again. */
+.mv-chrome-reveal{position:absolute;top:calc(var(--mv-console-top,10px) + var(--mv-console-gap,4px));right:calc(var(--mv-console-right,10px) + var(--mv-console-gap,4px));z-index:13;display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;padding:0;border-radius:7px;background:var(--mv-glass);color:var(--mv-text);border:.5px solid var(--mv-line);font:inherit;font-size:11.5px;cursor:pointer;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:var(--mv-shadow)}
+.mv-chrome-reveal svg{color:var(--mv-accent)}
+.mv-top{box-sizing:border-box;position:relative;display:flex;justify-content:flex-end;align-items:center;flex:none;width:100%;min-width:0;min-height:42px;z-index:10;pointer-events:auto;border-bottom:.5px solid var(--mv-line)}
+/* 地名检索 panel body: a rail panel, not a popover, so it keeps the same
+   padding rhythm and scrolling as the layers/tools panels. */
+.mv-places{display:flex;flex-direction:column;gap:10px;padding:10px 12px 12px;overflow:auto;overscroll-behavior:contain;min-height:0;flex:1 1 auto}
+.mv-places form,.mv-places-row{display:grid;gap:8px}
+.mv-places-query{display:flex;align-items:center;gap:6px}
+.mv-places input[type=text],.mv-places input[type=search],.mv-places input[type=password],.mv-places select{box-sizing:border-box;min-width:0;border:.5px solid var(--mv-line);border-radius:8px;padding:0 9px;height:32px;background:var(--mv-input);color:var(--mv-text);font:inherit;font-size:12px;transition:border-color .14s ease,background-color .14s ease,box-shadow .14s ease}
+.mv-places input[type=text],.mv-places input[type=search],.mv-places input[type=password]{width:100%}
+.mv-places input[type=text]:focus,.mv-places input[type=search]:focus,.mv-places input[type=password]:focus,.mv-places select:focus{outline:none;border-color:var(--mv-accent);background:var(--mv-glass-strong);box-shadow:0 0 0 2px color-mix(in srgb,var(--mv-accent) 16%,transparent)}
+.mv-places-submit{flex:none;height:32px;border:0;border-radius:8px;padding:0 12px;background:var(--mv-accent);color:#fff;cursor:pointer;font:inherit;font-size:12px;font-weight:500;white-space:nowrap;transition:opacity .14s ease,filter .14s ease}
+.mv-places-submit:hover:not(:disabled){filter:brightness(1.06)}
+.mv-places-submit:disabled{opacity:.42;cursor:default}
+.mv-places-source{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11.5px;color:var(--mv-dim)}
+.mv-places-source label{display:flex;align-items:center;gap:8px;flex:1;min-width:0;white-space:nowrap}
+.mv-places-source select{flex:1;height:28px;border-radius:7px;padding:0 8px;font-size:11.5px}
+.mv-places-status,.mv-places footer{font-size:11px;color:var(--mv-dim)}
+.mv-places select option{color:var(--mv-text);background:var(--mv-glass-strong)}
+.mv-places-key{display:flex;flex-direction:column;gap:7px;padding:9px 10px;border-radius:9px;border:.5px solid color-mix(in srgb,var(--mv-line) 85%,transparent);background:color-mix(in srgb,var(--mv-lift) 48%,transparent)}
+.mv-places-key-head{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11.5px}
+.mv-places-key-head strong{font-weight:600;color:var(--mv-text);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mv-places-key input[type=password]{height:30px;border-radius:7px;background:var(--mv-glass-strong)}
+.mv-place-link{cursor:pointer;background:none;border:0;font:inherit;font-size:11.5px;font-weight:500;padding:2px 4px;border-radius:5px;color:var(--mv-accent);white-space:nowrap}
+.mv-place-link:hover{background:color-mix(in srgb,var(--mv-accent) 10%,transparent)}
+.mv-places a{color:var(--mv-accent);text-decoration:none;font-size:11px;font-weight:500;white-space:nowrap}
+.mv-places a:hover{text-decoration:underline}
+.mv-places :focus-visible{outline:2px solid var(--mv-accent);outline-offset:1px}
+.mv-places-status:not(:empty){padding:7px 10px;border-radius:8px;background:color-mix(in srgb,var(--mv-lift) 55%,transparent);line-height:1.5}
+.mv-places-status.is-error:not(:empty){border-left:2.5px solid var(--mv-danger);background:color-mix(in srgb,var(--mv-danger) 7%,transparent);color:color-mix(in srgb,var(--mv-danger) 72%,var(--mv-text))}
+.mv-places footer{display:flex;align-items:center;gap:10px;padding-top:6px;border-top:.5px solid var(--mv-line);font-size:10.5px}
+.mv-places ul{list-style:none;margin:0;padding:6px 0 0;border-top:.5px solid var(--mv-line);display:flex;flex-direction:column;gap:2px}
+.mv-places-row{gap:2px;width:100%;text-align:left;padding:7px 8px;color:inherit;background:none;border:0;border-radius:8px;font:inherit;cursor:pointer;overflow-wrap:anywhere;transition:background-color .12s ease}
+.mv-places-row strong{font-size:12px;font-weight:500;color:var(--mv-text)}
+.mv-places-row:hover,.mv-places-row:focus-visible{background:var(--mv-lift)}
+.mv-places-row span{font-size:11px;color:var(--mv-dim)}
+/* Settings → 地名检索: one card per provider, same rhythm as the source rows. */
+.mv-providers{display:grid;gap:9px}
+.mv-src.mv-provider.on{border-color:color-mix(in srgb,var(--mv-accent) 46%,var(--mv-line))}
+.mv-provider .meta span[title]{font-variant-numeric:tabular-nums}
+.mv-provider-form{display:grid;gap:9px;padding:10px;border:.5px solid var(--mv-line);border-radius:9px;background:color-mix(in srgb,var(--mv-bg) 55%,transparent)}
+.mv-provider-form .mv-field-hint{font-size:10.5px;line-height:1.45;color:var(--mv-dim);font-style:normal}
+.mv-provider-foot{display:flex;align-items:center;flex-wrap:wrap;gap:8px}
+.mv-provider-foot .mv-field-hint{flex:1 1 auto}
+.mv-provider-actions{display:flex;gap:8px;justify-content:flex-end}
+.mv-provider-state{font-size:11px;color:var(--mv-dim);margin:0}
+.mv-provider-state.danger{color:var(--mv-danger)}
+.mv-providers-add{justify-self:start}
+.mv-switch{appearance:none;-webkit-appearance:none;position:relative;flex:none;width:32px;height:18px;margin:0;border:.5px solid var(--mv-line);border-radius:9px;background:color-mix(in srgb,var(--mv-dim) 26%,transparent);cursor:pointer;transition:background .15s ease,border-color .15s ease}
+.mv-switch::after{content:"";position:absolute;top:1.5px;left:1.5px;width:13px;height:13px;border-radius:50%;background:var(--mv-text);transition:transform .15s ease}
+.mv-switch:checked{background:var(--mv-accent);border-color:var(--mv-accent)}
+.mv-switch:checked::after{transform:translateX(14px);background:#fff}
+.mv-switch:disabled{opacity:.45;cursor:default}
+.mv-switch:focus-visible{outline:2px solid var(--mv-accent);outline-offset:2px}
+.mv-disclaimer{opacity:.85}
 .mv-top.menu-open{z-index:26}
-.mv-brand{display:flex;align-items:center;gap:8px;padding:7px 12px;border-radius:11px;pointer-events:auto}
-.mv-brand b{font-size:13px;font-weight:600;letter-spacing:.01em}
-.mv-brand span{font-size:11px;color:var(--mv-dim)}
-.mv-brand b,.mv-brand span{white-space:nowrap}
-.mv-actions{position:relative;display:flex;align-items:center;gap:2px;padding:4px;border-radius:11px;pointer-events:auto;flex-wrap:wrap;justify-content:flex-end}
+.mv-top .mv-btn,.mv-top .mv-btn.icon{width:26px;height:26px;padding:0;justify-content:center;gap:0;flex:none}
+.mv-top .mv-btn-icon{margin:0}
+.mv-top .mv-btn-label{display:none}
+/* Destination name lives here now (it used to be a second row inside the dock),
+   so the console has one title and the panel body starts right under it. */
+.mv-top-head{display:flex;align-items:center;gap:5px;flex:0 1 auto;min-width:0;padding:0 6px 0 12px;overflow:hidden}
+.mv-top-title{font-size:12.5px;font-weight:600;letter-spacing:-.01em;line-height:1.2;color:var(--mv-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:110px}
+.mv-top-detail{font-size:11.5px;line-height:1.2;color:var(--mv-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:128px}
+.mv-top-back,.mv-top-close{appearance:none;display:inline-flex;align-items:center;justify-content:center;flex:none;width:22px;height:22px;padding:0;border:0;border-radius:6px;background:transparent;color:var(--mv-dim);font:inherit;font-size:15px;line-height:1;cursor:pointer}
+.mv-top-close{font-size:12px}
+.mv-top-back:hover,.mv-top-close:hover{background:var(--mv-lift);color:var(--mv-text)}
+.mv-top-close.danger:hover{background:color-mix(in srgb,var(--mv-danger) 14%,transparent);color:var(--mv-danger)}
+.mv-top .mv-sep{margin:0 2px}
+.mv-top .mv-icon-btn{width:26px;height:26px}
+.mv-chrome-hide{margin-left:1px}
+.mv-actions{position:relative;display:flex;align-items:center;gap:2px;padding:4px 4px 4px 6px;border-radius:0;pointer-events:auto;flex:1 1 auto;flex-wrap:nowrap;justify-content:flex-end;min-width:0;row-gap:2px}
 .mv-btn{appearance:none;border:0;background:transparent;color:var(--mv-dim);font:inherit;font-size:12px;line-height:1;padding:7px 9px;border-radius:7px;cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;gap:6px}
 .mv-btn:hover{background:color-mix(in srgb,var(--mv-lift) 72%,transparent);color:var(--mv-text)}
 .mv-btn.on{background:color-mix(in srgb,var(--mv-accent) 26%,transparent);color:var(--mv-text)}
@@ -53,15 +124,35 @@ import { COMPARE_CSS } from './compare-css.js'
 .mv-btn-label{display:inline-block}
 .mv-btn:focus-visible{outline:2px solid var(--mv-accent);outline-offset:1px}
 .mv-sep{width:1px;height:17px;background:var(--mv-line);margin:0 3px}
+.mv-btn-dot{width:5px;height:5px;border-radius:999px;background:var(--mv-accent);flex:none;margin-left:1px;box-shadow:0 0 0 2px color-mix(in srgb,var(--mv-accent) 22%,transparent)}
 .mv-menu{position:relative;display:inline-flex}
+.mv-menu.mv-data-menu{position:static}
 .mv-menu-panel{position:absolute;top:calc(100% + 6px);right:0;min-width:206px;padding:4px;border-radius:11px;z-index:26;display:flex;flex-direction:column;gap:1px;background:color-mix(in srgb,var(--mv-glass-strong) 96%,transparent)}
-.mv-data-menu .mv-menu-panel{left:0;right:auto;box-sizing:border-box;width:min(260px,calc(100vw - 24px));min-width:0;max-height:min(360px,55vh);overflow:auto;overscroll-behavior:contain}
+.mv-data-menu .mv-menu-panel{left:auto;right:4px;box-sizing:border-box;width:min(260px,calc(100vw - 24px));min-width:0;max-height:min(360px,55vh);overflow:auto;overscroll-behavior:contain}
 .mv-data-menu .mv-menu-panel>*{flex-shrink:0}
-.mv-menu-item{appearance:none;border:0;background:transparent;color:var(--mv-text);font:inherit;font-size:12px;text-align:left;padding:8px 10px;border-radius:7px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px;white-space:nowrap}
+.mv-menu-item{appearance:none;border:0;background:transparent;color:var(--mv-text);font:inherit;font-size:12.5px;line-height:1.55;text-align:left;padding:8px 10px;border-radius:7px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px;white-space:nowrap}
 .mv-menu-item:hover{background:color-mix(in srgb,var(--mv-lift) 80%,transparent)}
 .mv-menu-item:disabled{opacity:.42;cursor:default}
 .mv-menu-item:disabled:hover{background:transparent}
-.mv-menu-label{padding:4px 10px 2px;font-size:10.5px;line-height:1.4;letter-spacing:.04em;color:var(--mv-dim);white-space:nowrap}
+.mv-menu-section{padding:4px 10px 2px;font-size:10.5px;line-height:1.4;letter-spacing:.04em;color:var(--mv-dim);white-space:nowrap}
+/* v1.8 menu rows: displaced check, leading icon, trailing hint, danger tone.
+   One slot order for every menu in the panel (数据 / 视图 / 输出 / row ⋯). */
+.mv-menu-item>.mv-menu-check{flex:none;width:11px;font-size:11px;line-height:1;color:var(--mv-accent);text-align:center}
+.mv-menu-item>.mv-menu-icon{flex:none;display:inline-flex;align-items:center;color:var(--mv-dim)}
+.mv-menu-item:hover>.mv-menu-icon{color:var(--mv-text)}
+.mv-menu-item>.mv-menu-label{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--mv-text)}
+.mv-menu-item>.mv-menu-hint{margin-left:auto;font-size:11px;color:var(--mv-dim);font-variant-numeric:tabular-nums}
+.mv-menu-item.is-danger{color:var(--mv-danger)}
+.mv-menu-item.is-danger>.mv-menu-label{color:var(--mv-danger)}
+.mv-menu-item.is-danger>.mv-menu-icon{color:var(--mv-danger)}
+.mv-menu-item.is-danger:hover{background:color-mix(in srgb,var(--mv-danger) 12%,transparent)}
+.mv-actions .mv-btn-icon{display:inline-flex;align-items:center;color:var(--mv-dim);margin-right:2px}
+.mv-actions .mv-btn.on .mv-btn-icon{color:var(--mv-text)}
+.mv-quick{display:inline-flex;align-items:center;gap:1px;padding:2px;border-radius:8px;border:.5px solid color-mix(in srgb,var(--mv-line) 70%,transparent);background:color-mix(in srgb,var(--mv-lift) 75%,transparent)}
+.mv-quick .mv-btn{border-radius:6px;transition:background-color .14s ease,color .14s ease,box-shadow .14s ease}
+.mv-quick .mv-btn.on{background:var(--mv-glass-strong);color:var(--mv-accent);box-shadow:0 1px 2px rgba(15,23,42,.08)}
+.mv-quick .mv-btn.on .mv-btn-icon{color:var(--mv-accent)}
+
 .mv-menu-item .ellipsis{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mv-urlbar{position:absolute;top:58px;left:0;right:0;margin:0 auto;display:flex;align-items:center;gap:6px;padding:6px;border-radius:11px;z-index:12;width:min(640px,82%)}
 .mv-urlbar input{flex:1;min-width:0;background:var(--mv-input);border:.5px solid var(--mv-line);color:var(--mv-text);border-radius:7px;padding:7px 9px;font:inherit;font-size:12px;outline:none}
@@ -72,32 +163,15 @@ import { COMPARE_CSS } from './compare-css.js'
 .mv-urlbar .mv-urlbar-close:hover{background:color-mix(in srgb,var(--mv-lift) 80%,transparent);color:var(--mv-text)}
 /* Right-hand floating column: the analysis card (Agent result) and the layer
    card share one stack so a new analysis never overlaps the layers list. */
-.mv-right{position:absolute;top:60px;right:10px;width:min(300px,calc(100% - 20px));max-height:calc(100% - 150px);display:flex;flex-direction:column;gap:10px;z-index:auto;pointer-events:none;overflow:visible}
+.mv-right{box-sizing:border-box;position:relative;display:flex;flex-direction:column;gap:0;min-height:0;max-height:none;flex:1 1 auto;align-self:stretch;width:min(300px,calc(100% - 20px));z-index:auto;pointer-events:auto;overflow:visible;background:transparent;border:0;border-radius:0}
+.mv-chrome .mv-right{max-width:100%}
 .mv-right>*{pointer-events:auto;box-sizing:border-box;max-width:100%;z-index:var(--mv-z-rail);min-height:0;flex:0 1 auto}
 /* v1.6.2 Batch D: single-active right dock.  One tab strip, one visible panel;
    every other panel stays mounted but hidden so drafts/scroll survive a switch. */
 .mv-dock{padding:0;gap:0;overflow:visible}
-.mv-dock.is-collapsed{padding:0;border:0;background:none;backdrop-filter:none;box-shadow:none;display:flex;flex-direction:row;justify-content:flex-end}
-/* v1.6.3: collapsed dock keeps panels mounted (drafts/scroll survive) but hides
-   the whole body; the pill is the only visible surface. */
-.mv-dock.is-collapsed .mv-dock-body{display:none}
-.mv-dock.is-collapsed .mv-dock-tabs{border:0;padding:0;background:none}
-.mv-dock-pill{display:inline-flex;align-items:center;gap:7px;padding:7px 10px;border-radius:999px;border:.5px solid var(--mv-line);background:var(--mv-glass);color:var(--mv-text);font-size:12px;cursor:pointer;box-shadow:var(--mv-shadow);backdrop-filter:blur(12px)}
-.mv-dock-pill:hover{background:var(--mv-glass-strong)}
-.mv-dock-pill-icon{display:inline-flex;color:var(--mv-accent)}
-.mv-dock-badge{min-width:16px;height:16px;padding:0 4px;border-radius:999px;background:color-mix(in srgb,var(--mv-accent) 18%,transparent);color:var(--mv-accent);font-size:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center}
-.mv-dock-pill-arrow{color:var(--mv-dim);font-size:10px}
-.mv-dock-tabs{display:flex;align-items:center;gap:4px;padding:5px 6px 4px;border-bottom:.5px solid var(--mv-line);flex-shrink:0;min-width:0}
-.mv-dock-tablist{display:flex;align-items:center;gap:2px;min-width:0;overflow-x:auto;scrollbar-width:none;flex:1 1 auto}
-.mv-dock-tablist::-webkit-scrollbar{display:none}
-.mv-dock-tabitem{display:inline-flex;align-items:center;min-width:0;flex:0 1 auto;position:relative;border-radius:8px}
-.mv-dock-tabitem.on{background:color-mix(in srgb,var(--mv-accent) 12%,transparent)}
-.mv-dock-tab{display:inline-flex;align-items:center;justify-content:center;border:0;background:none;color:var(--mv-dim);font:inherit;font-size:12px;padding:6px 9px;border-radius:8px;cursor:pointer;min-width:30px;max-width:132px}
-.mv-dock-tab:hover{color:var(--mv-text)}
-.mv-dock-tab.on{color:var(--mv-text);font-weight:600}
-.mv-dock-tab.on::after{content:"";position:absolute;left:8px;right:8px;bottom:-5px;height:2px;border-radius:2px;background:var(--mv-accent)}
-.mv-dock-tab-icon{display:inline-flex;flex:none;opacity:.85}
-.mv-dock-dot{width:6px;height:6px;border-radius:999px;background:var(--mv-accent);flex:none;box-shadow:0 0 0 2px color-mix(in srgb,var(--mv-accent) 25%,transparent)}
+/* A collapsed dock has no visible tray: the console header is the only thing
+   left, and clicking a destination reopens the panel. Panels stay mounted. */
+.mv-dock.is-collapsed{display:none}
 .mv-dock-actions{display:inline-flex;align-items:center;gap:2px;flex:none;margin-left:2px}
 .mv-dock-actions .mv-icon-btn{width:24px;height:24px;font-size:12px}
 .mv-dock-body{display:flex;flex-direction:column;flex:1 1 auto;min-height:0;min-width:0;padding:0}
@@ -107,7 +181,7 @@ import { COMPARE_CSS } from './compare-css.js'
 .mv-report-preview-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px;border-bottom:.5px solid var(--mv-line);flex:none}
 .mv-report-preview-title{font-size:12px;font-weight:600;color:var(--mv-text);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mv-report-preview-frame{flex:1 1 auto;min-height:0;width:100%;border:0;background:#fff}
-.mv-dock-panel .in-dock{height:100%;max-height:none!important;width:100%;flex:1 1 auto;min-height:0;border-radius:0;border:0;box-shadow:none;background:transparent!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;position:relative}
+.mv-dock-panel .in-dock{height:100%;max-height:none!important;width:100%;flex:1 1 auto;min-height:0;border-radius:0;border:0;box-shadow:none;background:transparent!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;position:relative;inset:auto;top:auto;right:auto;bottom:auto;left:auto;z-index:auto}
 .mv-dock-panel .in-dock>header{display:none!important}
 .mv-dock-panel .in-dock>.mv-resize-handle{display:none!important}
 .mv-dock-panel .in-dock.mv-analysis>.body{flex:1 1 auto;min-height:0}
@@ -116,8 +190,6 @@ import { COMPARE_CSS } from './compare-css.js'
 .mv-dock-panel .in-dock.mv-tools .mv-tool-index{overflow:visible}
 .mv-dock-panel .in-dock.mv-toolwin>.mv-toolwin-body{flex:1 1 auto;min-height:0;overflow:auto;padding-bottom:12px}
 .mv-panel-detail{display:flex;flex-direction:column;flex:1 1 auto;min-height:0;min-width:0}
-.mv-panel-back{appearance:none;align-self:flex-start;display:inline-flex;align-items:center;gap:4px;margin:6px 8px 2px;padding:5px 8px;border:.5px solid var(--mv-line);border-radius:7px;background:var(--mv-lift);color:var(--mv-dim);font:inherit;font-size:11.5px;cursor:pointer}
-.mv-panel-back:hover{color:var(--mv-text);border-color:var(--mv-accent)}
 .mv-panel-empty{display:flex;flex-direction:column;gap:6px;padding:18px 16px;color:var(--mv-dim)}
 .mv-panel-empty h3{margin:0;font-size:13px;color:var(--mv-text)}
 .mv-panel-empty p{margin:0;font-size:12px;line-height:1.55}
@@ -267,12 +339,12 @@ import { COMPARE_CSS } from './compare-css.js'
 .mv-shader .hint{margin:0;color:var(--mv-dim);font-size:10.5px;line-height:1.5}
 .mv-layers>header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;font-size:13px;font-weight:600;letter-spacing:0;color:var(--mv-text);border-bottom:.5px solid var(--mv-line)}
 .mv-layers>header .mv-icon-btn{width:26px;height:26px;font-size:13px}
-.mv-layer-list{overflow:auto;padding:4px 10px 12px;min-height:0;overscroll-behavior:contain;scrollbar-width:thin}
+.mv-layer-list{flex:1 1 auto;min-height:0;overflow:auto;padding:4px 10px 12px;overscroll-behavior:contain;scrollbar-width:thin}
 .mv-layer{display:flex;align-items:center;gap:2px;padding:5px 6px;border-radius:8px}
 .mv-layer:hover{background:color-mix(in srgb,var(--mv-lift) 64%,transparent)}
 .mv-layer .mv-warn{flex:none;color:#f0b84b;font-size:12px;line-height:1;cursor:help;padding:0 2px}
 .mv-layer .name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;cursor:pointer}
-.mv-layer.off .name{color:var(--mv-dim);text-decoration:line-through}
+.mv-layer.off .name{color:var(--mv-dim);text-decoration:none}
 .mv-layer.has-shader{border-left:2px solid color-mix(in srgb,#3ddc97 70%,transparent);box-sizing:border-box}
 .mv-layer.has-shader:hover{background:color-mix(in srgb,#3ddc97 8%,transparent)}
 .mv-layer{position:relative}
@@ -281,23 +353,98 @@ import { COMPARE_CSS } from './compare-css.js'
 .mv-layer .mv-shader-edit:disabled{opacity:.34;cursor:default;color:var(--mv-dim)}
 .mv-layer .mv-shader-edit:disabled:hover{background:transparent;color:var(--mv-dim)}
 .mv-row-more.on{background:color-mix(in srgb,var(--mv-accent) 26%,transparent);color:var(--mv-text)}
-.mv-row-menu{position:absolute;top:calc(100% + 3px);right:6px;z-index:31;min-width:170px;padding:4px;border-radius:10px;display:flex;flex-direction:column;gap:1px}
+.mv-row-menu{position:absolute;top:calc(100% + 4px);right:4px;z-index:31;min-width:192px;padding:5px;border-radius:10px;display:flex;flex-direction:column;gap:1px;box-shadow:var(--mv-shadow);max-height:min(420px,60vh);overflow:auto;overscroll-behavior:contain}
+.mv-row-menu{background:var(--mv-glass-strong)}
+.mv-row-menu.up{top:auto;bottom:calc(100% + 4px)}
 .mv-row-menu .mv-sep{width:auto;height:.5px;margin:4px 6px;background:var(--mv-line)}
 .mv-layer .mv-shader-edit:hover{background:color-mix(in srgb,#3ddc97 18%,transparent);color:#7ff0c4}
 .mv-icon-btn{appearance:none;border:0;background:transparent;color:var(--mv-dim);width:26px;height:26px;border-radius:7px;cursor:pointer;font:inherit;font-size:14px;line-height:1;display:inline-flex;align-items:center;justify-content:center;flex:none}
-.mv-layer{gap:3px;padding:5px 7px}
-.mv-layer .mv-icon-btn{font-size:15px}
+.mv-layer{gap:3px;padding:5px 7px;align-items:center}
+.mv-layer .mv-icon-btn{font-size:14px;color:color-mix(in srgb,var(--mv-text) 66%,transparent)}
+.mv-layer .mv-icon-btn:hover{color:var(--mv-text)}
 /* Layer panel v1.6: four groups (L1 terrain / L2 vector / L3 raster / L4 imagery)
    plus the 3D Tiles list. The imagery group folds because one source is normally in use. */
 .mv-group{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:13px 4px 5px;margin-top:3px;border-top:.5px solid var(--mv-line)}
 .mv-group-actions{display:inline-flex;align-items:center;gap:4px;flex:none}
-.mv-group-subactions{display:flex;align-items:center;gap:6px;padding:2px 4px 6px}
-.mv-group-subactions .mv-cta{flex:1;min-width:0;justify-content:center;font-size:11px;padding:5px 8px;border:.5px solid var(--mv-line);border-radius:8px;background:color-mix(in srgb,var(--mv-lift) 45%,transparent)}
-.mv-group-subactions .mv-cta:hover{background:color-mix(in srgb,var(--mv-lift) 82%,transparent);border-color:color-mix(in srgb,var(--mv-accent) 28%,var(--mv-line))}
 .mv-add3d-menu .mv-cta{text-align:left;width:100%}
 .mv-group:first-child{border-top:0;margin-top:0;padding-top:9px}
-.mv-group-title{min-width:0;font-size:11px;line-height:1.4;font-weight:600;letter-spacing:0;color:var(--mv-dim)}
+.mv-group-title{min-width:0;font-size:11.5px;line-height:1.4;font-weight:600;letter-spacing:0;color:var(--mv-text)}
 .mv-layers .mv-layer{min-height:30px;box-sizing:border-box;padding:5px 8px}
+/* v1.8 scene card: LayerGroup header + generic LayerRow shell.
+   Every group uses the same chevron/title/count/actions rhythm so the eye scans
+   one column of headers instead of six bespoke blocks. */
+.mv-lgroup{display:flex;flex-direction:column;gap:1px}
+.mv-lgroup>.mv-group{padding:11px 4px 5px;border-top:.5px solid color-mix(in srgb,var(--mv-line) 85%,transparent);margin-top:5px}
+.mv-lgroup:first-child>.mv-group{border-top:0;margin-top:0;padding-top:4px}
+.mv-lgroup-items,.mv-lgroup-body{display:flex;flex-direction:column;gap:1px}
+/* One list row can own a nested feature list (imported layer, annotation); the
+   wrapper keeps the row and its children in one column so the row's own flex
+   line never swallows the features. */
+.mv-lgroup-item{display:flex;flex-direction:column;gap:1px;min-width:0}
+.mv-lgroup-item>.mv-layer{width:100%;box-sizing:border-box}
+.mv-overlay-feature-act{width:22px;height:22px;font-size:12px;opacity:0}
+.mv-overlay-feature:hover .mv-overlay-feature-act,.mv-overlay-feature-act:focus-visible{opacity:1}
+@media(pointer:coarse){.mv-overlay-feature-act{opacity:1}}
+.mv-icon-btn:disabled{opacity:.4;cursor:default}
+.mv-btn:disabled{opacity:.45;cursor:default}
+.mv-group-toggle{appearance:none;border:0;background:transparent;color:inherit;font:inherit;display:inline-flex;align-items:center;gap:5px;min-width:0;padding:2px 5px 2px 3px;border-radius:6px;cursor:pointer}
+.mv-group-toggle:hover{background:color-mix(in srgb,var(--mv-lift) 70%,transparent)}
+.mv-group-toggle:focus-visible{outline:2px solid var(--mv-accent);outline-offset:1px}
+.mv-group-chevron{flex:none;display:inline-block;font-size:10px;line-height:1;color:var(--mv-dim);transition:transform .12s ease;transform:rotate(0)}
+.mv-group-chevron.open{transform:rotate(90deg)}
+.mv-group-count{flex:none;font-size:11px;color:var(--mv-dim);font-variant-numeric:tabular-nums}
+.mv-lgroup-hint{margin:0 0 3px 14px}
+.mv-layers .mv-group-actions .mv-cta{padding:2px 8px;font-size:10.5px;line-height:1.6}
+.mv-layers .mv-group-actions .mv-icon-btn{width:22px;height:22px;font-size:12px}
+.mv-layer .name{display:flex;flex-direction:column;align-items:flex-start;gap:1px;cursor:pointer}
+.mv-layer .mv-row-name{display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:top}
+.mv-layer .mv-row-meta{display:block;font-size:10px;line-height:1.35;color:var(--mv-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-variant-numeric:tabular-nums}
+.mv-layer.off .mv-row-name{text-decoration:line-through}
+.mv-layer.off .name{text-decoration:none}
+.mv-layer.selected{background:color-mix(in srgb,var(--mv-accent) 14%,transparent)}
+.mv-layer.menu-open{background:color-mix(in srgb,var(--mv-lift) 70%,transparent)}
+.mv-row-dot{flex:none;width:8px;height:8px;border-radius:50%;margin:0 3px 0 1px;box-shadow:0 0 0 1.5px color-mix(in srgb,#fff 70%,transparent)}
+.mv-overlay-toggle{width:20px;height:20px;font-size:11px;color:var(--mv-dim)}
+.mv-layer-dim-btn{width:24px;font-size:10px;font-weight:600;letter-spacing:.02em;color:var(--mv-dim)}
+.mv-layer-dim-btn.on{color:var(--mv-text);background:color-mix(in srgb,var(--mv-accent) 18%,transparent)}
+.mv-none.mv-imagery-hint{font-size:10.5px;line-height:1.5;padding-top:2px}
+.mv-terrain-error{display:flex;align-items:center;gap:6px;color:var(--mv-danger)}
+/* AddLayerDialog: "what kind of data is this?" first, then one form. */
+.mv-add-layer{width:min(520px,calc(100vw - 32px));max-height:min(78vh,720px);display:flex;flex-direction:column}
+.mv-add-layer>header{display:flex;align-items:center;gap:8px}
+.mv-add-layer>header>b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mv-add-layer>.body{overflow:auto;display:flex;flex-direction:column;gap:9px;padding-top:2px}
+.mv-add-kinds{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.mv-add-kind{appearance:none;display:flex;flex-direction:column;align-items:flex-start;gap:6px;padding:12px 11px;border-radius:11px;border:.5px solid var(--mv-line);background:color-mix(in srgb,var(--mv-lift) 40%,transparent);color:var(--mv-text);font:inherit;cursor:pointer;text-align:left}
+.mv-add-kind:hover{border-color:color-mix(in srgb,var(--mv-accent) 42%,var(--mv-line));background:color-mix(in srgb,var(--mv-lift) 78%,transparent)}
+.mv-add-kind:focus-visible{outline:2px solid var(--mv-accent);outline-offset:1px}
+.mv-add-kind-icon{color:var(--mv-accent)}
+.mv-add-kind b{font-size:12.5px;font-weight:600}
+.mv-add-kind-hint{font-size:10.5px;line-height:1.45;color:var(--mv-dim)}
+.mv-add-routes{display:flex;flex-direction:column;gap:6px}
+.mv-add-route{appearance:none;display:flex;align-items:center;gap:9px;padding:10px 11px;border-radius:10px;border:.5px solid var(--mv-line);background:color-mix(in srgb,var(--mv-lift) 40%,transparent);color:var(--mv-text);font:inherit;cursor:pointer;text-align:left}
+.mv-add-route:hover{border-color:color-mix(in srgb,var(--mv-accent) 42%,var(--mv-line))}
+.mv-add-route:disabled{opacity:.5;cursor:default}
+.mv-add-route>span{display:flex;flex-direction:column;gap:1px;min-width:0}
+.mv-add-route b{font-size:12px;font-weight:600}
+.mv-add-route em{font-style:normal;font-size:10.5px;color:var(--mv-dim)}
+.mv-add-recents{display:flex;flex-direction:column;gap:1px}
+.mv-add-recents .mv-menu-section{padding-left:2px}
+.mv-add-recent{appearance:none;display:flex;align-items:center;gap:7px;padding:6px 8px;border:0;border-radius:7px;background:transparent;color:var(--mv-text);font:inherit;font-size:11.5px;cursor:pointer;text-align:left;min-width:0}
+.mv-add-recent:hover{background:color-mix(in srgb,var(--mv-lift) 75%,transparent)}
+.mv-add-recent .ellipsis{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mv-dialog-back{font-size:16px}
+/* LayerProperties: identical 信息 / 外观 / 数据 tabs for every layer kind. */
+.mv-props{width:min(460px,calc(100vw - 32px));max-height:min(70vh,620px);display:flex;flex-direction:column}
+.mv-props>header{display:flex;align-items:center;gap:8px}
+.mv-props>header>b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mv-prop-body{display:flex;flex-direction:column;gap:7px;padding:12px 14px;overflow:auto;min-height:0}
+.mv-prop-row{display:flex;align-items:flex-start;gap:10px;font-size:11.5px;line-height:1.5}
+.mv-prop-label{flex:none;width:64px;color:var(--mv-dim)}
+.mv-prop-value{flex:1;min-width:0;overflow-wrap:anywhere}
+.mv-field-hint{display:block;font-style:normal;font-size:10.5px;line-height:1.45;color:var(--mv-dim)}
+.mv-note.mv-danger{color:var(--mv-danger)}
+
 .mv-layers .mv-layer .name{font-size:12px;line-height:1.45;font-weight:400}
 .mv-choice{appearance:none;width:100%;text-align:left;border:1px solid transparent;background:transparent;color:var(--mv-text);font:inherit;cursor:pointer}
 .mv-choice .tick{color:var(--mv-accent);font-size:12px;font-weight:600;flex:none}
@@ -306,27 +453,10 @@ import { COMPARE_CSS } from './compare-css.js'
 .mv-choice:focus-visible,.mv-layers .mv-cta:focus-visible,.mv-layers .mv-icon-btn:focus-visible{outline:2px solid var(--mv-accent);outline-offset:1px}
 .mv-group .mv-cta{flex:none;font-size:11px;padding:5px 8px}
 /* Collapsible card-within-card box for the long imagery basemap selector. */
-.mv-fold-box{margin-top:10px;border:1px solid color-mix(in srgb,var(--mv-accent) 26%,var(--mv-line));border-radius:10px;background:color-mix(in srgb,var(--mv-lift) 52%,transparent);overflow:hidden;transition:border-color .15s,background .15s}
-.mv-fold-box:hover{border-color:color-mix(in srgb,var(--mv-accent) 52%,var(--mv-line))}
-.mv-fold-box.open{background:color-mix(in srgb,var(--mv-lift) 68%,transparent);border-color:color-mix(in srgb,var(--mv-accent) 48%,var(--mv-line))}
-.mv-fold-box>.mv-group{margin-top:0;border-top:0;padding:9px 10px}
-.mv-fold-box.open>.mv-group{border-bottom:.5px solid var(--mv-line)}
-.mv-fold-body{display:flex;flex-direction:column;gap:2px;padding:6px 6px 8px}
 .mv-imagery-hint{margin:2px 2px 0;padding:4px 6px 2px;font-size:10.5px;line-height:1.45;opacity:.88}
 /* Foldable group header (unmistakable disclosure chevron + active basemap chip). */
-.mv-group-toggle{appearance:none;width:100%;display:flex;flex-direction:column;align-items:stretch;gap:6px;background:transparent;border:0;padding:0;margin:0;font:inherit;color:inherit;cursor:pointer;text-align:left}
-.mv-fold-top{display:flex;align-items:center;justify-content:space-between;gap:6px;width:100%}
-.mv-fold-heading{display:inline-flex;align-items:center;gap:5px;min-width:0}
-.mv-group-toggle .mv-group-title{flex:none;color:var(--mv-text);font-weight:600}
-.mv-fold-count{flex:none;font-size:10px;padding:1px 6px;border-radius:999px;background:color-mix(in srgb,var(--mv-line) 55%,transparent);color:var(--mv-dim);white-space:nowrap}
-.mv-fold-state{flex:none;font-size:10.5px;font-weight:500;padding:2px 7px;border-radius:999px;background:color-mix(in srgb,var(--mv-accent) 14%,transparent);color:var(--mv-accent);white-space:nowrap}
-.mv-fold-summary{display:flex;align-items:center;gap:6px;padding:5px 8px;border-radius:7px;background:color-mix(in srgb,var(--mv-bg) 58%,var(--mv-lift));border:.5px solid color-mix(in srgb,var(--mv-line) 75%,transparent);min-width:0}
-.mv-fold-dot{width:6px;height:6px;border-radius:50%;background:var(--mv-accent);flex:none}
-.mv-fold-label{font-size:10.5px;color:var(--mv-dim);flex:none}
-.mv-group-current{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11.5px;font-weight:500;color:var(--mv-text)}
 .mv-group-chevron{flex:none;color:var(--mv-accent);font-size:12px;line-height:1;transform:rotate(0deg);transition:transform 160ms cubic-bezier(0.16,1,0.3,1)}
 .mv-group-chevron.open{transform:rotate(90deg)}
-.mv-group-toggle:hover .mv-fold-state{background:color-mix(in srgb,var(--mv-accent) 22%,transparent)}
 .mv-group-toggle:focus-visible{outline:2px solid var(--mv-accent);outline-offset:2px;border-radius:6px}
 .mv-opacity{width:64px;flex:none;accent-color:var(--mv-accent)}
 .mv-overlay-row{gap:2px}
@@ -352,6 +482,11 @@ import { COMPARE_CSS } from './compare-css.js'
 .mv-measure{position:absolute;left:0;right:0;margin:0 auto;width:max-content;bottom:16px;z-index:11;padding:7px 14px;border-radius:999px;font-size:12px;font-weight:500;line-height:1.35;color:var(--mv-text);white-space:nowrap;pointer-events:none;display:flex;align-items:center;gap:10px;font-variant-numeric:tabular-nums;background:color-mix(in srgb,var(--mv-glass-strong) 94%,transparent);border:.5px solid color-mix(in srgb,var(--mv-line) 80%,transparent);box-shadow:0 6px 18px rgba(0,0,0,.22);backdrop-filter:none;-webkit-backdrop-filter:none}
 .mv-measure-end{pointer-events:auto;appearance:none;border:.5px solid var(--mv-line);background:var(--mv-lift);color:var(--mv-text);font:inherit;font-size:11px;padding:3px 10px;border-radius:999px;cursor:pointer}
 .mv-measure-end:hover{border-color:var(--mv-accent);background:color-mix(in srgb,var(--mv-accent) 20%,transparent)}
+.mv-measure-end.danger{border-color:color-mix(in srgb,var(--mv-danger) 42%,var(--mv-line));color:var(--mv-danger)}
+.mv-measure-end.danger:hover{border-color:var(--mv-danger);background:color-mix(in srgb,var(--mv-danger) 18%,transparent)}
+.mv-measure-actions{display:inline-flex;align-items:center;gap:5px;pointer-events:auto}
+.mv-analysis-actions{display:flex;gap:6px;border-top:.5px solid var(--mv-line);padding-top:7px;margin-top:3px}
+.mv-analysis-actions .mv-cta{flex:1;padding:6px 8px;font-size:11px}
 .mv-toast{position:absolute;left:0;right:0;margin:0 auto;width:max-content;bottom:64px;z-index:var(--mv-z-toast);background:var(--mv-glass-strong);border:.5px solid var(--mv-line);color:var(--mv-text);padding:8px 14px;border-radius:9px;font-size:12px;max-width:72%;word-break:break-all;box-shadow:var(--mv-shadow)}
 .mv-overlay{position:absolute;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;padding:24px;background:var(--mv-overlay);pointer-events:none}
 .mv-overlay.dim{background:var(--mv-scrim)}
@@ -386,9 +521,6 @@ import { COMPARE_CSS } from './compare-css.js'
 .mv-dialog .body{padding:12px 14px;overflow:auto;display:flex;flex-direction:column;gap:8px}
 .mv-note{margin:0 0 2px;color:var(--mv-dim);font-size:11px;line-height:1.65}
 .mv-src{display:flex;align-items:center;gap:8px;padding:8px 10px;border:.5px solid var(--mv-line);border-radius:9px;background:color-mix(in srgb,var(--mv-bg) 55%,transparent)}
-.mv-src .radio{width:16px;height:16px;flex:none;border-radius:50%;border:1.5px solid var(--mv-line);cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
-.mv-src .radio.on{border-color:var(--mv-accent)}
-.mv-src .radio.on::after{content:"";width:8px;height:8px;border-radius:50%;background:var(--mv-accent)}
 .mv-src .meta{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
 .mv-src .meta b{font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mv-src .meta span{font-size:10.5px;color:var(--mv-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -413,45 +545,35 @@ import { COMPARE_CSS } from './compare-css.js'
 /* The host already draws the tab strip right above this body, so the floating
    toolbar keeps a visible gap instead of hugging it; the layer card follows the
    same offset so the two never collide when the action row wraps. */
-.mv-root.mv-docked{container-type:inline-size;margin-top:9px}
-.mv-root.mv-docked .mv-top{top:20px;left:20px;right:20px;gap:8px}
-.mv-root.mv-docked .mv-brand{padding:6px 10px;flex:none;gap:6px}
-.mv-root.mv-docked .mv-actions{gap:0;padding:3px;flex:0 1 auto;max-width:100%;margin-left:auto;min-width:0;row-gap:2px}
-.mv-root.mv-docked .mv-right{top:96px;right:20px;width:min(300px,calc(100% - 40px));max-height:calc(100% - 250px)}
+.mv-root.mv-docked{container-type:inline-size;margin-top:9px;--mv-console-top:16px;--mv-console-right:16px;--mv-console-gap:3px}
+.mv-root.mv-docked .mv-chrome{max-height:calc(100% - 32px)}
+.mv-root.mv-docked .mv-actions{gap:0;padding:3px 3px 3px 5px;max-width:100%;min-width:0;row-gap:2px}
 .mv-root.mv-docked .mv-shader{top:96px;left:20px;width:min(320px,calc(100% - 40px));max-height:calc(100% - 250px)}
 .mv-root.mv-docked .mv-dialog{width:min(680px,96%)}
-/* Narrow docked panes: the host tab already shows the panel title, so drop the
-   duplicated brand title, then the status text, then the whole brand, keeping
-   the action row on one line as long as possible. */
-@container (max-width: 900px){
-  .mv-root.mv-docked .mv-brand b{display:none}
-}
+/* Narrow docked panes: shrink labels, then separators, before the action row
+   is allowed to wrap; the dock follows the wrapped height through flex flow. */
 @container (max-width: 760px){
   .mv-root.mv-docked .mv-actions .mv-btn{padding:6px 8px}
   .mv-root.mv-docked .mv-actions .mv-sep{margin:0 1px}
   .mv-root.mv-docked .mv-actions .mv-btn.icon{padding:7px 6px}
 }
-@container (max-width: 640px){
-  .mv-root.mv-docked .mv-brand span{display:none}
-  .mv-root.mv-docked .mv-brand{padding:6px 8px}
-}
 @container (max-width: 620px){
   .mv-root.mv-docked .mv-actions .mv-btn-label{display:none}
-  .mv-root.mv-docked .mv-actions .mv-btn{ padding:7px 8px}
+  .mv-root.mv-docked .mv-actions .mv-btn{padding:7px 8px}
 }
 @container (max-width: 540px){
-  .mv-root.mv-docked .mv-brand{display:none}
   .mv-root.mv-docked .mv-actions{justify-content:flex-end}
 }
 /* 320px-wide docks: drop the separators and extra padding so the action row
    wraps cleanly instead of overflowing the pane. */
 @container (max-width: 420px){
-  .mv-root.mv-docked .mv-top{left:12px;right:12px;gap:6px}
+  .mv-root.mv-docked{--mv-console-top:12px;--mv-console-right:12px;--mv-console-gap:2px}
+  .mv-root.mv-docked .mv-chrome{max-height:calc(100% - 24px)}
   .mv-root.mv-docked .mv-actions .mv-btn{padding:6px 7px}
   .mv-root.mv-docked .mv-actions .mv-sep{display:none}
   .mv-root.mv-docked .mv-actions .mv-btn.icon{padding:7px 6px}
   .mv-root.mv-docked .mv-layers{top:92px;right:12px;width:min(284px,calc(100% - 24px))}
-  .mv-root.mv-docked .mv-right{top:92px;right:12px;width:min(300px,calc(100% - 24px));max-height:calc(100% - 236px)}
+  .mv-root.mv-docked .mv-right{width:min(300px,calc(100% - 24px))}
   .mv-root.mv-docked .mv-right .mv-layers{position:static;top:auto;right:auto;width:100%;max-height:none}
   .mv-root.mv-docked .mv-right .mv-analysis{max-width:100%}
   .mv-root.mv-docked .mv-tools{max-height:min(48%,360px)}
@@ -710,8 +832,11 @@ ${SELECTION_QUESTION_CSS}
 ${PARSE_CSS}
 ${RASTER_TIMELINE_CSS}
 ${COMPARE_CSS}
+${LAYERS_CSS}
 @container (max-width:480px){
-  .mv-root.mv-docked .mv-right{left:12px;right:12px;width:auto;max-height:calc(100% - 132px)}
+  .mv-root.mv-docked{--mv-console-top:12px;--mv-console-right:12px;--mv-console-gap:2px}
+  .mv-root.mv-docked .mv-chrome{left:12px;right:12px;width:auto;max-width:none;max-height:calc(100% - 24px)}
+  .mv-root.mv-docked .mv-right{width:100%!important;max-width:none;max-height:calc(100% - 132px)}
   .mv-root.mv-docked .mv-shader{box-sizing:border-box;left:12px;right:12px;width:auto;max-height:calc(100% - 132px)}
   .mv-root.mv-docked .mv-tools{max-height:none}
   .mv-root .mv-select{left:12px;right:12px;width:auto;margin:0;bottom:16px;max-height:calc(100% - 132px)}

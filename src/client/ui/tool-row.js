@@ -165,6 +165,7 @@ const h = React.createElement
       earth_measure: 'tool.action.measure',
       earth_analyze: 'tool.action.analyze',
       earth_shader: 'tool.action.shader',
+      earth_extract: 'tool.action.extract',
     }
 
     /**
@@ -175,7 +176,7 @@ const h = React.createElement
     const AUTO_OPENED_CALLS = new Set()
 
     /**
-     * Chat row for the six Agent wire tools. It keeps the transcript compact,
+     * Chat row for the seven Agent wire tools. It keeps the transcript compact,
      * offers a way back into the panel, and is the client's auto-open trigger: a
      * live call opens the docked tab so the Host tool call finds a panel to drive.
      */

@@ -279,10 +279,37 @@ const h = React.createElement
                             t('analysis.redrawProfile'),
                           )
                         : null,
+                      typeof onClose === 'function'
+                        ? h(
+                            'button',
+                            {
+                              type: 'button',
+                              className: 'mv-cta danger',
+                              title: t('profile.clear'),
+                              onClick: onClose,
+                            },
+                            t('profile.clear'),
+                          )
+                        : null,
                     ),
                     h('p', { className: 'profile-note' }, t('profile.hoverChartHint')),
                   )
-                : null,
+                : embedded && typeof onClose === 'function'
+                  ? h(
+                      'div',
+                      { key: 'analysis-actions', className: 'mv-analysis-actions' },
+                      h(
+                        'button',
+                        {
+                          type: 'button',
+                          className: 'mv-cta danger',
+                          title: t('layers.analysisClear'),
+                          onClick: onClose,
+                        },
+                        t('layers.analysisClear'),
+                      ),
+                    )
+                  : null,
               h('p', { className: 'hint' }, t('analysis.hint')),
             )
           : null,
