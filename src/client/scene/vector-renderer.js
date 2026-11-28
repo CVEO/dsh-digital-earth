@@ -210,13 +210,19 @@ export function createVectorRenderer({ getState, getVector, t, markSceneDirty, s
     }
     const drawGeometry = (geometry, properties, feature) => {
       if (geometry === null || typeof geometry !== 'object') return
-      const label = agentLabelText(nameOf(properties), caption)
+      const label = agentLabelText(nameOf(properties) || properties?.class_name, caption)
       const featureStyle = typeof properties?.style === 'string' && VECTOR_COLORS[properties.style] ? properties.style : style
-      const featureColor = featureStyle === style ? color : agentOverlayColor(Cesium, featureStyle)
+      const extraction = properties?.source_kind === 'ortho' ||
+        (Number.isInteger(properties?.class_id) && typeof properties?.class_key === 'string' && properties?.area_m2 != null)
+      const classColor = extraction && /^#[0-9a-f]{6}$/i.test(properties?.color) ? properties.color : null
+      const featureColor = classColor ? Cesium.Color.fromCssColorString(classColor) :
+        (featureStyle === style ? color : agentOverlayColor(Cesium, featureStyle))
       descriptor = {
         group: {},
         kind: t('layers.vectorDrawn'),
         style: featureStyle,
+        extraction,
+        classColor,
         featureKind: typeof properties?.kind === 'string' ? properties.kind : undefined,
         title: label || t('layers.vectorDrawn'),
         summary: t(`vector.geometry.${String(geometry.type ?? '').replace('Multi', '')}`),

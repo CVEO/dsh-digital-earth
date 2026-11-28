@@ -7,6 +7,12 @@
  * without Cesium or a real camera.
  */
 
+export function placeBounds({ lon, lat, bbox }) {
+  if (bbox) return bbox
+  const radius = 0.005
+  return { west: Math.max(-180, lon - radius), south: Math.max(-90, lat - radius), east: Math.min(180, lon + radius), north: Math.min(90, lat + radius) }
+}
+
 const MAX_CAMERA_HEIGHT_M = 20_000_000
 
 /**

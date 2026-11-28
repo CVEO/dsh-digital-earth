@@ -276,7 +276,7 @@ test('提示词预算：SYSTEM_PROMPT_SECTION ≤1600 字符且四工具名仍�
     assert.match(SYSTEM_PROMPT_SECTION, new RegExp(name))
   }
   // 面板自动打开只说明一次，避免重复 attach 话术。
-  assert.equal((SYSTEM_PROMPT_SECTION.match(/opens automatically/g) ?? []).length, 1)
+  assert.equal((SYSTEM_PROMPT_SECTION.match(/chat header globe/g) ?? []).length, 1)
 })
 
 test('提示词不再包含 Data 菜单/手动开目录/强制先 status 的旧话术', () => {

@@ -13,7 +13,7 @@ import { classifyProviderError } from './capability.js'
 
 const NORMAL_FINISH_KINDS = new Set(['stop', 'end_turn', 'eos', 'completed'])
 
-async function consumeStreamOnce(llm, requestOptions, { signal, maxTextChars, maxTotalBytes }) {
+async function consumeStreamOnce(llm, requestOptions, { signal, maxTextChars, maxTotalBytes, onUsage }) {
   const blocks = new Map()
   let totalBytes = 0
   let finished = false
@@ -28,6 +28,11 @@ async function consumeStreamOnce(llm, requestOptions, { signal, maxTextChars, ma
         stage: 'stream',
         detail: 'Model attempted a tool call during direct vision extraction.',
       })
+    }
+    if (chunk.type === 'usage') {
+      const total = chunk.usage?.totalTokens
+      if (Number.isSafeInteger(total) && total >= 0) onUsage?.({ total_tokens:total })
+      continue
     }
     // Many OpenAI-compatible relays emit a trailing `usage` / `metadata` event
     // after `finish`; ignore benign post-finish events while still rejecting tool calls.
@@ -104,7 +109,7 @@ async function consumeStreamOnce(llm, requestOptions, { signal, maxTextChars, ma
  * Execute one DSH `llm.stream` call with automatic parameter fallback when a
  * gateway rejects `temperature` or `reasoningEffort` (HTTP 400).
  */
-export async function streamVisionText(model, { system, messages, maxTokens, maxTextChars, maxTotalBytes, signal }) {
+export async function streamVisionText(model, { system, messages, maxTokens, maxTextChars, maxTotalBytes, signal, onUsage }) {
   const baseOptions = {
     provider: model.provider,
     model: model.model,
@@ -116,7 +121,7 @@ export async function streamVisionText(model, { system, messages, maxTokens, max
     messages,
   }
   try {
-    return await consumeStreamOnce(model.llm, baseOptions, { signal, maxTextChars, maxTotalBytes })
+    return await consumeStreamOnce(model.llm, baseOptions, { signal, maxTextChars, maxTotalBytes, onUsage })
   } catch (error) {
     const classified = classifyProviderError(error)
     if (classified.retryableParamError && !signal.aborted) {
@@ -128,7 +133,7 @@ export async function streamVisionText(model, { system, messages, maxTokens, max
         signal,
         messages,
       }
-      return await consumeStreamOnce(model.llm, stripped, { signal, maxTextChars, maxTotalBytes })
+      return await consumeStreamOnce(model.llm, stripped, { signal, maxTextChars, maxTotalBytes, onUsage })
     }
     if (error?.code) throw error
     throw Object.assign(visionError(classified.code), {

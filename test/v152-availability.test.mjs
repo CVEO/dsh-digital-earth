@@ -29,7 +29,7 @@ test('load no longer waits for the camera flight, and the command chain has a wa
   assert.doesNotMatch(viewerSource, /await viewer\.flyTo\(tileset/)
   // Per-command budgets: capture and report may legitimately run long, load gets
   // the full direct + proxy budget, everything else is short.
-  assert.match(viewerSource, /commandBudgets = \{ capture: 40000, report: 45000, load: 40000 \}/)
+  assert.match(viewerSource, /commandBudgets = \{ capture: 40000, report: 45000, load: 40000, extract: 240000 \}/)
   assert.match(viewerSource, /Promise\.race\(\[command, budget\]\)/)
   assert.match(viewerSource, /agent\.commandTimeout/)
 })

@@ -258,7 +258,7 @@ test('接线：指认模式走既有 canvas 点击循环，卡片不进入任何
   const sceneTool = readRepoFile('src/host/tools/scene.js')
   assert.doesNotMatch(sceneTool, /identify:|select:|evidence:/)
   const registry = readRepoFile('src/host/tools/registry.js')
-  assert.doesNotMatch(registry, /earth_identify|earth_select|earth_extract/)
+  assert.doesNotMatch(registry, /earth_identify|earth_select/)
 })
 
 test('默认指认：单击场景对象直接出卡，卡片显示批量表属性，天空误点静默', () => {

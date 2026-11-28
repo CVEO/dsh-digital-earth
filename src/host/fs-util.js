@@ -38,7 +38,7 @@ export async function writeJsonAtomic(file, value, options = {}) {
   // the rename stays atomic, so readers see either the old or the new content.
   const temporary = `${file}.tmp-${randomBytes(6).toString('hex')}`
   try {
-    await fs.writeFile(temporary, `${JSON.stringify(value, null, space)}${trailingNewline ? '\n' : ''}`, 'utf8')
+    await fs.writeFile(temporary, `${JSON.stringify(value, null, space)}${trailingNewline ? '\n' : ''}`, { encoding: 'utf8', mode: options.mode })
     await renameWithRetry(temporary, file)
   } catch (error) {
     await fs.rm(temporary, { force: true }).catch(() => {})

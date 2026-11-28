@@ -81,7 +81,7 @@ for (const file of menuOwners) {
 // action; hiding the whole console is the chrome control. It keeps exactly one
 // visible tabpanel, each panel named.
 const dockSource = files.find((file) => file.rel.endsWith('/ui/panel-rail.js'))?.text ?? ''
-for (const marker of ["role: 'tabpanel'", "'aria-label': tabLabel(t, panel.id)", 'mv-dock-head']) {
+for (const marker of ["role: 'tabpanel'", "'aria-label': tabLabel(t, panel.id)", 'mv-dock-body']) {
   if (!dockSource.includes(marker)) problems.push(`right dock misses ${marker}`)
 }
 if (dockSource.includes("role: 'tablist'") || dockSource.includes("role: 'tab'")) {

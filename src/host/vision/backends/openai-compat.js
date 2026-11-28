@@ -6,6 +6,8 @@
  */
 import { parseVisionBatchOutput, parseVisionOutput, visionError } from '../../../client/scene/vision-geometry.js'
 import { classifyProviderError } from '../capability.js'
+import { GROUND_SYSTEM, groundPrompt, parseGrounded } from '../grounded-instances.js'
+import { INSTANCE_SYSTEM, instanceUserText, parseInstanceAnswer } from '../instances.js'
 import { BATCH_SYSTEM, SINGLE_SYSTEM, buildBatchUserText, buildSingleUserText, sanitizeDiagnosticDetail } from '../prompts.js'
 
 function chatCompletionsUrl(baseUrl) {
@@ -50,16 +52,15 @@ async function postChatCompletion({ endpoint, apiKey, body, signal, fetchImpl })
 async function runOpenAiVisionCall(cfg, { system, userText, input, maxTokens, signal, fetchImpl }) {
   const endpoint = chatCompletionsUrl(cfg.baseUrl)
   const dataUrl = `data:${input.mediaType};base64,${input.data.toString('base64')}`
+  const image = { type: 'image_url', image_url: { url: dataUrl } }
+  const instruction = { type: 'text', text: userText }
   const body = {
     model: cfg.model,
     messages: [
       { role: 'system', content: system },
       {
         role: 'user',
-        content: [
-          { type: 'text', text: userText },
-          { type: 'image_url', image_url: { url: dataUrl } },
-        ],
+        content: system === GROUND_SYSTEM ? [image, instruction] : [instruction, image],
       },
     ],
     max_tokens: maxTokens,
@@ -67,12 +68,18 @@ async function runOpenAiVisionCall(cfg, { system, userText, input, maxTokens, si
     stream: false,
   }
 
+  // WHU serves Qwen vision aliases through a chat template with a separate thinking budget.
+  if (system === GROUND_SYSTEM && /^(?:qwen-flash|qwen-27b)$/i.test(cfg.model) &&
+      new URL(endpoint).hostname === 'llm.whu.edu.cn') {
+    body.chat_template_kwargs = { enable_thinking: false }
+  }
+
   let responseJson
   try {
     responseJson = await postChatCompletion({ endpoint, apiKey: cfg.apiKey, body, signal, fetchImpl })
   } catch (error) {
     const classified = classifyProviderError(error)
-    if (classified.retryableParamError && !signal.aborted) {
+    if (classified.retryableParamError && !signal?.aborted) {
       const retryBody = { ...body }
       delete retryBody.temperature
       responseJson = await postChatCompletion({ endpoint, apiKey: cfg.apiKey, body: retryBody, signal, fetchImpl })
@@ -95,10 +102,11 @@ async function runOpenAiVisionCall(cfg, { system, userText, input, maxTokens, si
       backend: 'openai-compat',
       provider: 'openai-compat',
       model: cfg.model,
+      usage: responseJson?.usage,
       detail: sanitizeDiagnosticDetail(`Empty content from endpoint (finish_reason=${finishReason}).`),
     })
   }
-  return text
+  return { text, usage: responseJson?.usage ?? null, finish: responseJson?.choices?.[0]?.finish_reason ?? null }
 }
 
 export function createOpenAiCompatBackend({ config, fetchImpl = globalThis.fetch }) {
@@ -138,7 +146,7 @@ export function createOpenAiCompatBackend({ config, fetchImpl = globalThis.fetch
     },
     async extractSingle(input, signal) {
       assertConfigured()
-      const text = await runOpenAiVisionCall(cfg, {
+      const { text } = await runOpenAiVisionCall(cfg, {
         system: SINGLE_SYSTEM,
         userText: buildSingleUserText(input),
         input,
@@ -155,7 +163,7 @@ export function createOpenAiCompatBackend({ config, fetchImpl = globalThis.fetch
     },
     async extractBatch(input, signal) {
       assertConfigured()
-      const text = await runOpenAiVisionCall(cfg, {
+      const { text } = await runOpenAiVisionCall(cfg, {
         system: BATCH_SYSTEM,
         userText: buildBatchUserText(input),
         input,
@@ -169,6 +177,27 @@ export function createOpenAiCompatBackend({ config, fetchImpl = globalThis.fetch
         coordSpace: cfg.coordSpace || 'auto',
       })
       return { ...parsed, backend: 'openai-compat', provider: 'openai-compat', model: cfg.model, capability: 'supported' }
+    },
+    async extractInstances(input, signal) {
+      assertConfigured()
+      const grounded = ['locate', 'trace', 'trace_batch'].includes(input.mode)
+      const { text, usage, finish } = await runOpenAiVisionCall(cfg, {
+        system: grounded ? GROUND_SYSTEM : INSTANCE_SYSTEM,
+        userText: grounded ? groundPrompt(input) : instanceUserText(input),
+        input,
+        // Instance answers are compact polygons; never go below the shared floor
+        // even when the endpoint config asked for a smaller single-outline budget.
+        maxTokens: input.maxTokens ?? (input.mode === 'trace' ? 768 : input.mode === 'trace_batch' ? 1100 : Math.max(cfg.maxTokens || 4096, 2400)),
+        signal,
+        fetchImpl,
+      })
+      try {
+        if (finish === 'length') throw visionError('invalid_result', { stage:'parse', detail:'Instance answer reached the token limit.' })
+        const shapes = grounded ? parseGrounded(text, input) : { instances: parseInstanceAnswer(text, input.classes) }
+        return { ...shapes, usage, finish, backend:'openai-compat', provider:'openai-compat', model:cfg.model, capability:'supported' }
+      } catch (error) {
+        throw Object.assign(error, { usage })
+      }
     },
   }
 }

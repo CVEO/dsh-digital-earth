@@ -29,7 +29,7 @@ npm run release:check   # 发布前只读自检（版本 / 打包清单 / 预算
 ```text
 dsh-digital-earth/
 ├── index.js                 # 宿主入口：inject / apply + 公开 re-export
-├── src/host/                # 宿主：路由、命令桥、体检、存储、六个工具、/earth
+├── src/host/                # 宿主：路由、命令桥、体检、存储、七个工具、/earth
 ├── src/client/              # 客户端源码：面板、图层、量测 / 指认、分析、着色器、i18n
 ├── client.js                # 客户端产物（npm run build:client 生成）
 ├── assets/readme/           # README 截图
@@ -52,7 +52,7 @@ dsh-digital-earth/
 
 ## 约定 / Rules
 
-- 六个 Agent 工具（`earth_scene` / `earth_capture` / `earth_draw` / `earth_measure` / `earth_analyze` / `earth_shader`）的名称、参数、action 集合保持不变；新能力优先做面板侧或新增可选参数。
+- 七个 Agent 工具（`earth_scene` / `earth_capture` / `earth_draw` / `earth_measure` / `earth_analyze` / `earth_shader` / `earth_extract`）的名称、参数、action 集合保持不变；新能力优先做面板侧或新增可选参数。
 - 一个模块一个职责；纯计算与 React / Cesium 分离；新文件优先控制在 300 行内。
 - 行数预算：`index.js` ≤ 80 行；`src/host/**` 单文件 ≤ 600 行；`src/client/**` 单文件 ≤ 900 行；`ViewerSurface.js` 是限期例外，只允许缩小。
 - 不提交本机绝对路径、个人截图、token 或本地临时笔记。

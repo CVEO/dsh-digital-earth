@@ -18,7 +18,7 @@ export function createVectorLabels({ Cesium, viewer, root, onHover, onSelect, is
     button.type = 'button'
     button.className = 'mv-vector-label'
     const styleKey = typeof descriptor?.style === 'string' && VECTOR_COLORS[descriptor.style] ? descriptor.style : ''
-    const accent = styleKey ? VECTOR_COLORS[styleKey] : ''
+    const accent = descriptor?.classColor || (styleKey ? VECTOR_COLORS[styleKey] : '')
     const featureKind = typeof descriptor?.featureKind === 'string' ? descriptor.featureKind : ''
     if (styleKey) {
       button.dataset.style = styleKey
@@ -37,9 +37,12 @@ export function createVectorLabels({ Cesium, viewer, root, onHover, onSelect, is
     })
     layer.append(button)
     entity.label.show = false
-    const label = { entity, group, options, button, accent, featureKind, text: '', anchor: null, box: null, size: null }
+    const label = { entity, group, options, button, accent, featureKind, contextual: descriptor?.extraction === true, text: '', anchor: null, box: null, size: null }
     labels.set(entity, label)
     refreshAnchors([label])
+    button.dataset.state = 'idle'
+    button.setAttribute('aria-pressed', 'false')
+    if (!label.contextual) update(true)
   }
 
   function refreshAnchors(targets = labels.values()) {
@@ -71,7 +74,7 @@ export function createVectorLabels({ Cesium, viewer, root, onHover, onSelect, is
       const { button, entity, options } = label
       button.disabled = !isInteractive()
       label.box = null
-      if (entity.isShowing === false || !label.anchor || visible >= 80 || !occluder.isPointVisible(label.anchor)) { button.hidden = true; continue }
+      if ((label.contextual && label.group !== selected && label.group !== hovered) || entity.isShowing === false || !label.anchor || visible >= 80 || !occluder.isPointVisible(label.anchor)) { button.hidden = true; continue }
       const point = Cesium.SceneTransforms.worldToWindowCoordinates(viewer.scene, label.anchor)
       if (!point || !Number.isFinite(point.x) || !Number.isFinite(point.y) || point.x < 0 || point.y < 0 || point.x > width || point.y > height) { button.hidden = true; continue }
       const text = String(valueOf(options.label.text) ?? '')
@@ -106,6 +109,7 @@ export function createVectorLabels({ Cesium, viewer, root, onHover, onSelect, is
   }
 
   function setState(nextHovered, nextSelected) {
+    if (hovered === nextHovered && selected === nextSelected) return
     hovered = nextHovered
     selected = nextSelected
     for (const label of labels.values()) {

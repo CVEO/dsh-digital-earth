@@ -9,15 +9,23 @@
  *     permanently deadlocks into `busy`)
  *   - Structured, secret-scrubbed `diagnostic` payloads on every error
  */
+import { createInstanceCache } from './instance-cache.js'
+import { effectiveVisionConfig, modelRouteKey, visionModelDirectory } from './model-selection.js'
 import { MAX_VISION_CONFIG_BODY } from '../constants.js'
 import { sendJson, sendText } from '../http.js'
 import { visionError } from '../../client/scene/vision-geometry.js'
 import { defaultVisionBackends } from './backends/registry.js'
 import { clearProbeCache } from './capability.js'
 import { normalizeVisionConfig, readVisionConfig, redactVisionConfig, writeVisionConfig } from './config.js'
-import { BATCH_CLASSES, MAX_BODY, NEXT, sanitizeDiagnosticDetail } from './prompts.js'
+import { normalizeInstanceClasses } from './instances.js'
+import { MAX_BODY, NEXT, sanitizeDiagnosticDetail } from './prompts.js'
 
-function imageDimensions(data, mediaType) {
+const MAX_BATCH_CLASSES = 8
+const MAX_BATCH_CLASS_CHARS = 16
+const MAX_BATCH_CLASS_SCAN = 64
+const MAX_VISION_TARGET_CHARS = 24
+
+export function imageDimensions(data, mediaType) {
   if (mediaType === 'image/png') {
     if (data.length < 33 || data.subarray(0, 8).toString('hex') !== '89504e470d0a1a0a' || data.toString('ascii', 12, 16) !== 'IHDR') {
       throw visionError('invalid_request', { stage: 'validate', detail: 'Invalid PNG header.' })
@@ -45,7 +53,7 @@ function imageDimensions(data, mediaType) {
   throw visionError('invalid_request', { stage: 'validate', detail: 'Unable to read JPEG dimensions.' })
 }
 
-function decodeImagePayload(payload) {
+export function decodeImagePayload(payload) {
   const match = typeof payload?.image === 'string' && payload.image.match(/^data:(image\/(?:png|jpeg));base64,([a-zA-Z0-9+/]+={0,2})$/)
   if (!match) throw visionError('invalid_request', { stage: 'validate', detail: 'Image must be a base64 PNG or JPEG data URL.' })
   const data = Buffer.from(match[2], 'base64')
@@ -56,6 +64,24 @@ function decodeImagePayload(payload) {
     throw visionError('invalid_request', { stage: 'validate', detail: `Image dimensions ${width}x${height} outside 32..1024.` })
   }
   return { data, mediaType: match[1], width, height }
+}
+
+/**
+ * Normalize the optional user target category/name for single-target outlines.
+ * Same de-fanging as batch classes (strip control characters, quotes and
+ * backticks, collapse whitespace), bounded to 24 characters; anything invalid or
+ * empty is dropped instead of failing the request, so the prompt falls back to
+ * the neutral "the clicked object" wording.
+ */
+function normalizeVisionTarget(raw) {
+  if (typeof raw !== 'string') return ''
+  const cleaned = raw
+    .replace(/[\u0000-\u001f\u007f-\u009f]+/g, ' ')
+    .replace(/["'`\u201c\u201d\u2018\u2019]+/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+  if (!cleaned || [...cleaned].length > MAX_VISION_TARGET_CHARS) return ''
+  return cleaned
 }
 
 export function validateVisionRequest(payload) {
@@ -73,8 +99,48 @@ export function validateVisionRequest(payload) {
     ...decodeImagePayload(payload),
     point: payload.point,
     frameId: payload.frameId,
+    target: normalizeVisionTarget(payload.target),
     force: payload.force === true,
   }
+}
+
+/**
+ * Normalize one requested class label. Classes are free-form user labels in any
+ * language, so this only bounds and de-fangs them: strip control characters,
+ * newlines, quotes and backticks (prompt-injection / JSON-breakout surface),
+ * collapse whitespace, and drop labels that are empty or too long.
+ */
+function normalizeBatchClass(raw) {
+  if (typeof raw !== 'string') return ''
+  const cleaned = raw
+    .replace(/[\u0000-\u001f\u007f-\u009f]+/g, ' ')
+    .replace(/["'`\u201c\u201d\u2018\u2019]+/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+  if (!cleaned || [...cleaned].length > MAX_BATCH_CLASS_CHARS) return ''
+  return cleaned
+}
+
+/**
+ * Validation (not whitelisting): arbitrary user classes are accepted, bounded to
+ * 8 entries, deduplicated case-insensitively (first spelling wins), and invalid
+ * entries are dropped instead of failing the whole request. An empty result
+ * means "no class restriction".
+ */
+function normalizeBatchClasses(rawClasses) {
+  if (!Array.isArray(rawClasses)) return []
+  const classes = []
+  const seen = new Set()
+  for (const raw of rawClasses.slice(0, MAX_BATCH_CLASS_SCAN)) {
+    if (classes.length >= MAX_BATCH_CLASSES) break
+    const label = normalizeBatchClass(raw)
+    if (!label) continue
+    const key = label.toLowerCase()
+    if (seen.has(key)) continue
+    seen.add(key)
+    classes.push(label)
+  }
+  return classes
 }
 
 export function validateVisionBatchRequest(payload) {
@@ -82,15 +148,40 @@ export function validateVisionBatchRequest(payload) {
     throw visionError('invalid_request', { stage: 'validate', detail: 'Invalid batch frameId.' })
   }
   const scope = payload.scope === 'aoi' ? 'aoi' : 'view'
-  const rawClasses = Array.isArray(payload.classes) ? payload.classes : null
-  const classes = rawClasses
-    ? [...new Set(rawClasses.map((item) => (typeof item === 'string' ? item.trim().toLowerCase() : '')).filter((item) => BATCH_CLASSES.has(item)))]
-    : []
   return {
     ...decodeImagePayload(payload),
     frameId: payload.frameId,
     scope,
+    classes: normalizeBatchClasses(payload.classes),
+    force: payload.force === true,
+  }
+}
+
+export function validateVisionInstancesRequest(payload) {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+    throw visionError('invalid_request', { stage: 'validate', detail: 'Vision instances body must be a JSON object.' })
+  }
+  const mode = payload.mode === undefined || payload.mode === null ? 'polygon' : payload.mode
+  if (!['polygon', 'locate', 'trace', 'trace_batch'].includes(mode)) {
+    throw visionError('invalid_request', { stage: 'validate', detail: "Expected polygon, locate or trace." })
+  }
+  // classes/maxTokens are normalized by the shared instance protocol module so
+  // the HTTP route and the pure parser agree on bounds and de-fanging.
+  const { classes, maxTokens } = normalizeInstanceClasses(payload)
+  let slots
+  if (mode === 'trace_batch') {
+    slots = payload.slots
+    if (!Array.isArray(slots) || slots.length < 2 || slots.length > 4 ||
+        !slots.every(id => classes.some(cls => cls.id === id))) throw visionError('invalid_request', { stage: 'validate' })
+  }
+  if (mode === 'trace' && classes.length !== 1) throw visionError('invalid_request', { stage: 'validate' })
+  return {
+    ...decodeImagePayload(payload),
     classes,
+    mode,
+    ...(slots ? { slots } : {}),
+    ...(mode === 'locate' && payload.namedLabels === true ? { namedLabels: true } : {}),
+    ...(maxTokens !== undefined ? { maxTokens } : {}),
     force: payload.force === true,
   }
 }
@@ -186,6 +277,7 @@ function makeVisionRouteHandler(ctx, {
   runBackend,
 }) {
   const limiter = createConcurrencyLimiter(maxConcurrent, orphanGraceMs)
+  const cache = panelHeader === 'vision-instances' ? createInstanceCache() : null
 
   return async function visionRouteHandler(req, res) {
     if (!['GET', 'POST'].includes(req.method)) return sendText(res, 405, 'method not allowed')
@@ -203,7 +295,13 @@ function makeVisionRouteHandler(ctx, {
     let activeSlot = null
     let backendId = null
     const work = async () => {
-      const config = await loadConfig()
+      const saved = await loadConfig()
+      const instances = panelHeader === 'vision-instances'
+      const config = instances ? await effectiveVisionConfig(ctx, getService, saved, req.headers?.['x-dsh-session'], controller.signal) : saved
+      const route = instances ? modelRouteKey(config) : null
+      if (instances && req.headers?.['x-dsh-model-route'] && req.headers['x-dsh-model-route'] !== route) {
+        throw visionError('model_changed')
+      }
       const backend = backends.resolve({ ctx, getService, config, fetchImpl })
       backendId = backend.id
       if (req.method === 'GET') {
@@ -211,11 +309,20 @@ function makeVisionRouteHandler(ctx, {
       }
       const payload = await readJsonBody(req, MAX_BODY, controller.signal)
       const input = validate(payload)
+      const key = cache && req.headers?.['x-dsh-reuse'] === '1'
+        ? cache.key(route, req.headers?.['x-dsh-session'] ?? '', input, config) : null
+      if (key) {
+        const previous = cache.get(key)
+        if (previous) return { ok:true, ...previous, modelRoute:route }
+      }
       const slot = limiter.acquire()
       activeSlot = slot
       try {
         const result = await runBackend(backend, input, controller.signal)
-        return { ok: true, frameId: input.frameId, ...result }
+        if (key && !controller.signal.aborted) cache.put(key, result)
+        // Single-target and batch responses carry the frameId; the instances
+        // route omits it instead of emitting an undefined placeholder.
+        return { ok: true, ...(input.frameId ? { frameId: input.frameId } : {}), ...result, ...(instances ? { modelRoute: route } : {}) }
       } finally {
         limiter.release(slot)
         if (activeSlot === slot) activeSlot = null
@@ -234,6 +341,8 @@ function makeVisionRouteHandler(ctx, {
           ok: false,
           code,
           next: NEXT[code],
+          ...(Number.isSafeInteger(error?.usage?.total_tokens) && error.usage.total_tokens >= 0
+            ? { usage:{ total_tokens:error.usage.total_tokens } } : {}),
           diagnostic: buildDiagnostic(error, code, backendId),
         })
       }
@@ -267,6 +376,26 @@ export function createVisionBatchHandler(ctx, options = {}) {
   })
 }
 
+export function createVisionInstancesHandler(ctx, options = {}) {
+  return makeVisionRouteHandler(ctx, {
+    panelHeader: 'vision-instances',
+    maxConcurrent: 1,
+    timeoutMs: 90000,
+    ...options,
+    validate: validateVisionInstancesRequest,
+    runBackend: (backend, input, signal) => {
+      if (typeof backend.extractInstances !== 'function') {
+        throw Object.assign(visionError('unavailable'), {
+          stage: 'backend',
+          backend: backend.id,
+          detail: 'The active vision backend does not implement instance segmentation.',
+        })
+      }
+      return backend.extractInstances(input, signal, { force: input.force })
+    },
+  })
+}
+
 export function createVisionConfigHandler(ctx, {
   getService,
   backends = defaultVisionBackends,
@@ -274,36 +403,40 @@ export function createVisionConfigHandler(ctx, {
   saveConfig = writeVisionConfig,
   fetchImpl = globalThis.fetch,
 } = {}) {
+  async function describe(config, sessionId) {
+    const signal = AbortSignal.timeout(10000)
+    let backend, probe
+    try {
+      const effective = await effectiveVisionConfig(ctx, getService, config, sessionId, signal)
+      backend = backends.resolve({ ctx, getService, config:effective, fetchImpl })
+      probe = await backend.probe(signal, { force:false })
+    } catch (error) {
+      const code = Object.hasOwn(NEXT, error?.code) ? error.code : 'model_failed'
+      probe = { ok:false, code, next:NEXT[code], diagnostic:buildDiagnostic(error, code, backend?.id) }
+    }
+    return { ok:true, config:redactVisionConfig(config), probe, modes:backends.modes() }
+  }
+
   return async function visionConfigHandler(req, res) {
     if (!['GET', 'PUT'].includes(req.method)) return sendText(res, 405, 'method not allowed')
     if (req.method === 'PUT' && req.headers?.['x-dsh-panel'] !== 'vision-config') return sendText(res, 403, 'forbidden')
     try {
       if (req.method === 'GET') {
-        const config = await loadConfig()
-        const backend = backends.resolve({ ctx, getService, config, fetchImpl })
-        let probe = null
-        try {
-          probe = await backend.probe(new AbortController().signal, { force: false })
-        } catch (error) {
-          const code = Object.hasOwn(NEXT, error?.code) ? error.code : 'model_failed'
-          probe = { ok: false, code, next: NEXT[code], diagnostic: buildDiagnostic(error, code, backend.id) }
+        if (req.headers?.['x-dsh-panel'] === 'vision-model-directory') {
+          return sendJson(res, 200, { ok: true, directory: await visionModelDirectory(ctx, getService) })
         }
-        return sendJson(res, 200, { ok: true, config: redactVisionConfig(config), probe, modes: backends.modes() })
+        return sendJson(res, 200, await describe(await loadConfig(), req.headers?.['x-dsh-session']))
       }
       const existing = await loadConfig()
       const raw = await readJsonBody(req, MAX_VISION_CONFIG_BODY)
       const next = normalizeVisionConfig(raw, existing)
+      if ((next.mode === 'dsh-model' && (!next.dshModel.provider || !next.dshModel.model)) ||
+          (next.mode === 'openai-compat' && (!next.openaiCompat.baseUrl || !next.openaiCompat.model))) {
+        throw visionError('invalid_request')
+      }
       const saved = await saveConfig(next)
       clearProbeCache()
-      const backend = backends.resolve({ ctx, getService, config: saved, fetchImpl })
-      let probe = null
-      try {
-        probe = await backend.probe(new AbortController().signal, { force: false })
-      } catch (error) {
-        const code = Object.hasOwn(NEXT, error?.code) ? error.code : 'model_failed'
-        probe = { ok: false, code, next: NEXT[code], diagnostic: buildDiagnostic(error, code, backend.id) }
-      }
-      return sendJson(res, 200, { ok: true, config: redactVisionConfig(saved), probe, modes: backends.modes() })
+      return sendJson(res, 200, await describe(saved, req.headers?.['x-dsh-session']))
     } catch (error) {
       const code = Object.hasOwn(NEXT, error?.code) ? error.code : 'invalid_request'
       return sendJson(res, statusForCode(code), { ok: false, code, diagnostic: buildDiagnostic(error, code) })

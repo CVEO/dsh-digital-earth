@@ -5,12 +5,12 @@
  *   - normalizeShaderRequest：apply/reset/list 的必填/默认值/范围/跨预设/未知参数
  *     拒绝，错误统一 `earth_shader: ... next: ...` 单行；
  *   - Host 模型面：earth_shader 第 6 个注册、SHADER_ACTIONS/PRESETS、9 属性 schema、
- *     描述 ≤1200、系统提示词 ≤1600 且六工具名齐全、earth_scene 11 action 与
+ *     描述 ≤1200、系统提示词 ≤1600 且七工具名齐全、earth_scene 11 action 与
  *     earth_analyze 契约未变；
  *   - Client 静态接线：shader 桥分支先于就绪守卫、CustomShader 构造/覆盖/回滚/
  *     reset 恢复、positionWC 相对高程、四预设片元源码与 uniform、preRender
  *     单一 u_time 监听、3DGS/无 CustomShader 报错、图层删除/卸载清理、
- *     工作台 UI/i18n、六 toolview 行；
+ *     工作台 UI/i18n、七 toolview 行；
  *   - 不新增依赖；shader 状态不进入持久化场景。
  *
  * 边界：这里全是 Host 纯函数与 Client 静态断言；真实 Cesium GPU 的 GLSL 编译、
@@ -245,8 +245,9 @@ test('宿主：earth_shader 是第 6 个注册工具，execute 走 session/桥�
     'createMeasureTool',
     'createAnalyzeTool',
     'createShaderTool',
+    'createExtractTool',
   ])
-  assert.equal((host.match(/scope\.tools\.register\(/g) ?? []).length, 6)
+  assert.equal((host.match(/scope\.tools\.register\(/g) ?? []).length, 7)
   assert.match(host, /const SHADER_TOOL_NAME = 'earth_shader'/)
   assert.match(host, /const SHADER_TIMEOUT_MS = 30000/)
 
@@ -327,10 +328,10 @@ test('系统提示词：≤1600、六工具名齐全、shader 一句，且无 Da
   const prompt = SYSTEM_PROMPT_SECTION
   assert.ok(prompt.length <= 1600, `提示词超预算：${prompt.length} 字符`)
   assert.ok(prompt.length >= 1400, `提示词过短：${prompt.length} 字符`)
-  for (const name of ['earth_scene', 'earth_capture', 'earth_draw', 'earth_measure', 'earth_analyze', 'earth_shader']) {
+  for (const name of ['earth_scene', 'earth_capture', 'earth_draw', 'earth_measure', 'earth_analyze', 'earth_shader', 'earth_extract']) {
     assert.match(prompt, new RegExp(name))
   }
-  assert.match(prompt, /Six tools drive it/)
+  assert.match(prompt, /Seven tools drive it/)
   assert.match(
     prompt,
     /earth_shader applies whitelisted presets \(height-false-color, contour, scan, water, water-depth\), lists or resets; no custom GLSL\./,
@@ -341,7 +342,7 @@ test('系统提示词：≤1600、六工具名齐全、shader 一句，且无 Da
   assert.match(prompt, /status only when you need the current camera/)
   assert.match(prompt, /\[code\]/)
   assert.match(prompt, /never retry access_denied or access_timeout/)
-  assert.equal((prompt.match(/opens automatically/g) ?? []).length, 1)
+  assert.equal((prompt.match(/chat header globe/g) ?? []).length, 1)
 
   assert.doesNotMatch(prompt, /authorize/i)
   assert.doesNotMatch(prompt, /Data\s*(?:→|->|>)/i)
@@ -671,23 +672,24 @@ test('client 工作台 UI：工具栏按钮、可读卡片、两列等宽缩略�
   assert.match(client, /onClose: \(\) => \{\n\s+void workbench\.compare\(false\)/)
 })
 
-test('client 接线与 i18n：六 toolview 含 earth_shader、摘要键、shader.* 44 键中英对齐', () => {
+test('client 接线与 i18n：七 toolview 含 earth_shader、摘要键、shader.* 44 键中英对齐', () => {
   const toolviews = [...client.matchAll(/name: 'tool\.call\.toolview', key: '([a-z_]+)'/g)].map((match) => match[1])
   assert.deepEqual(toolviews, [
-    'earth_scene', 'earth_capture', 'earth_draw', 'earth_measure', 'earth_analyze', 'earth_shader',
+    'earth_scene', 'earth_capture', 'earth_draw', 'earth_measure', 'earth_analyze', 'earth_shader', 'earth_extract',
   ])
   assert.match(client, /earth_shader: 'tool\.action\.shader'/)
-  assert.equal((client.match(/'tool\.action\.shader':/g) ?? []).length, 2)
-  assert.match(client, /'tool\.action\.shader': '视觉特效'/)
-  assert.match(client, /'tool\.action\.shader': 'Visual effects'/)
+  const messagesText = readRepoFile('src/client/messages.js')
+  assert.equal((messagesText.match(/'tool\.action\.shader':/g) ?? []).length, 2)
+  assert.match(messagesText, /'tool\.action\.shader': '视觉特效'/)
+  assert.match(messagesText, /'tool\.action\.shader': 'Visual effects'/)
 
-  const zhStart = client.indexOf('\n      zh: {')
-  const enStart = client.indexOf('\n      en: {', zhStart)
-  const end = client.indexOf('\n    }', enStart)
+  const zhStart = messagesText.indexOf('\n      zh: {')
+  const enStart = messagesText.indexOf('\n      en: {', zhStart)
+  const end = messagesText.indexOf('\n    }', enStart)
   assert.ok(zhStart > 0 && enStart > zhStart && end > enStart, 'i18n 字典结构变化，无法切片')
   const parseKeys = (text) => [...text.matchAll(/^        '([^']+)':/gm)].map((match) => match[1])
-  const zhKeys = parseKeys(client.slice(zhStart, enStart))
-  const enKeys = parseKeys(client.slice(enStart, end))
+  const zhKeys = parseKeys(messagesText.slice(zhStart, enStart))
+  const enKeys = parseKeys(messagesText.slice(enStart, end))
   assert.ok(zhKeys.length > 200, `中文键过少：${zhKeys.length}`)
   assert.deepEqual(zhKeys, enKeys, '中英字典键集合/顺序必须完全一致')
 

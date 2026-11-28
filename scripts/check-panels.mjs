@@ -30,20 +30,28 @@ if (!state.includes("'resultArrived'") || !state.includes("'objectArrived'")) {
 }
 
 const rail = read('src/client/ui/panel-rail.js')
-// One navigation level: the topbar quick group switches destinations; the dock
-// keeps a title bar and one visible tabpanel, never a second tab strip.
-for (const marker of ["role: 'tabpanel'", "'aria-label': tabLabel(t, panel.id)", 'mv-dock-head-title']) {
+// One navigation level: the topbar quick group switches destinations and the
+// console header carries the destination's name, so the dock keeps exactly one
+// visible tabpanel and no second title row.
+for (const marker of ["role: 'tabpanel'", "'aria-label': tabLabel(t, panel.id)", 'mv-dock-body']) {
   if (!rail.includes(marker)) fail(`panel-rail: missing ${marker}`)
+}
+if (rail.includes('mv-dock-head') || rail.includes('mv-panel-back')) {
+  fail('panel-rail: the second title row / in-panel back button must stay deleted')
 }
 if (rail.includes("role: 'tablist'") || rail.includes("role: 'tab'")) {
   fail('panel-rail: duplicate tab navigation; topbar quick group must be the only switcher')
 }
 const topbar = read('src/client/ui/topbar.js')
 if (!topbar.includes('ToolbarQuick')) fail('topbar: quick destination group is missing')
+for (const marker of ['mv-top-head', 'mv-top-title', 'mv-top-detail', 'mv-top-back']) {
+  if (!topbar.includes(marker)) fail(`topbar: missing console header ${marker}`)
+}
+const quickSource = read('src/client/ui/toolbar-quick.js')
+if (!quickSource.includes('resultUnread')) fail('toolbar-quick: result destination must carry the unread dot')
 if (!rail.includes("hidden: collapsed || panel.id !== activeTab")) fail('panel-rail: inactive panels must stay mounted and hidden')
 if (/mv-dock-tab-close/.test(rail)) fail('panel-rail: per-tab close button must not exist')
 if (/title: t\('dock\.collapse'\)/.test(rail)) fail('panel-rail: panel-only collapse must not compete with the chrome hide')
-if (!rail.includes('dock.unread')) fail('panel-rail: unread dot copy missing')
 
 const stack = read('src/client/ui/right-stack.js')
 if (!stack.includes("from './panel-rail.js'")) fail('right-stack: must render through panel-rail')

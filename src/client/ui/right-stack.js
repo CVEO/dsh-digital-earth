@@ -54,6 +54,12 @@ export function RightStack({
   dockRequest = null,
   objectPanel = null,
   onActiveTab,
+  onUnread,
+  // Master/detail of the tools destination. The console header owns the back
+  // affordance, so the state is lifted to the viewer: the header can show
+  // "工具 · 量测" and switch back without a second label row inside the panel.
+  showToolIndex = false,
+  onShowToolIndex,
 }) {
   const windows = Array.isArray(openWindows) ? openWindows : []
   const windowIds = windows.map((win) => (typeof win === 'string' ? win : win?.id)).filter(Boolean)
@@ -85,6 +91,10 @@ export function RightStack({
   React.useEffect(() => {
     onActiveTab?.(state.collapsed ? null : state.activeTab)
   }, [state.activeTab, state.collapsed, onActiveTab])
+
+  React.useEffect(() => {
+    onUnread?.(state.unread)
+  }, [state.unread.result, state.unread.object, onUnread])
 
   // Automatic result focus follows the confirmed policy: only an idle, expanded
   // rail switches; otherwise the result tab gets an unread dot.
@@ -126,8 +136,6 @@ export function RightStack({
     dispatch({ type: 'toggle', tabId })
   }, [dockRequest?.seq, availableSignature])
 
-  const [showToolIndex, setShowToolIndex] = React.useState(false)
-
   if (!available.length) return null
 
   const panels = []
@@ -147,22 +155,13 @@ export function RightStack({
             'div',
             { key: 'tools', className: 'mv-panel-detail' },
             h(
-              'button',
-              {
-                type: 'button',
-                className: 'mv-panel-back',
-                onClick: () => setShowToolIndex(true),
-              },
-              `← ${t('tools.title')}`,
-            ),
-            h(
               ToolWindow,
               {
                 t,
                 entry,
                 embedded: true,
                 onClose: () => {
-                  setShowToolIndex(true)
+                  onShowToolIndex?.(true)
                   onCloseToolWindow?.(activeToolId)
                 },
               },
@@ -180,7 +179,7 @@ export function RightStack({
             ...(toolsPanel ?? {}),
             embedded: true,
             onSelectTool: (toolId) => {
-              setShowToolIndex(false)
+              onShowToolIndex?.(false)
               onSelectTool?.(toolId)
             },
             onCloseTool: onCloseToolWindow,
@@ -218,7 +217,6 @@ export function RightStack({
     tabs: available.map((id) => ({ id })),
     activeTab: state.activeTab,
     collapsed: state.collapsed,
-    unread: state.unread,
     width: state.width,
     panels,
     onActivate: (tabId) => dispatch({ type: 'activate', tabId }),

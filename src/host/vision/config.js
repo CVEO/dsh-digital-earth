@@ -73,14 +73,13 @@ export function normalizeVisionConfig(raw, existing = null) {
   const oaRaw = input.openaiCompat && typeof input.openaiCompat === 'object' ? input.openaiCompat : {}
   const rawKey = typeof oaRaw.apiKey === 'string' ? cleanStr(oaRaw.apiKey, 512) : ''
   const clearKey = oaRaw.clearApiKey === true
-  const apiKey = clearKey
-    ? ''
-    : rawKey !== ''
-      ? rawKey
-      : cleanStr(prev?.openaiCompat?.apiKey, 512)
+  const baseUrl = cleanHttpUrl(oaRaw.baseUrl)
+  const previousKey = baseUrl && baseUrl === cleanHttpUrl(prev?.openaiCompat?.baseUrl)
+    ? cleanStr(prev.openaiCompat.apiKey, 512) : ''
+  const apiKey = clearKey ? '' : rawKey || previousKey
 
   const openaiCompat = {
-    baseUrl: cleanHttpUrl(oaRaw.baseUrl),
+    baseUrl,
     apiKey,
     model: cleanStr(oaRaw.model, 160),
     coordSpace: COORD_SPACES.has(oaRaw.coordSpace) ? oaRaw.coordSpace : 'auto',
@@ -129,7 +128,7 @@ export async function readVisionConfig(filePath = VISION_CONFIG_FILE) {
 
 export async function writeVisionConfig(config, filePath = VISION_CONFIG_FILE) {
   const normalized = normalizeVisionConfig(config)
-  await writeJsonAtomic(filePath, normalized)
+  await writeJsonAtomic(filePath, normalized, { mode: 0o600 })
   configCache.set(filePath, normalized)
   return normalized
 }

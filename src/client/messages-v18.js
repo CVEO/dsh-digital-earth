@@ -6,7 +6,6 @@
  */
 
 import { VECTOR_MESSAGES } from './messages-vector.js'
-import { VISION_MESSAGES } from './messages-vision.js'
 import { SELECTION_MESSAGES } from './messages-selection.js'
 import { PARSE_MESSAGES } from './messages-parse.js'
 import { UI_MESSAGES } from './messages-ui.js'
@@ -16,7 +15,6 @@ import { COMPARE_MESSAGES } from './messages-compare.js'
 export const V18_MESSAGES = {
   zh: {
     ...VECTOR_MESSAGES.zh,
-    ...VISION_MESSAGES.zh,
     ...UI_MESSAGES.zh,
     'menu.recentUrls': '最近地址',
     'layers.tab.surface': '地表',
@@ -55,7 +53,7 @@ export const V18_MESSAGES = {
     'tools.effectsEmpty': '暂无活动特效；打开工作台应用。',
     'tools.select': '选择',
     'tools.askAgentLook': '当前视图发送至 AI',
-    'tools.askAgentLookHint': '将当前视图截图与场景摘要注入当前对话，随后请在对话中提出具体问题；不会自动执行，也不会凭空生成地理坐标。',
+    'tools.askAgentLookHint': '将当前视图和场景摘要附到对话中。',
     'tools.index': '工具入口',
     'tools.selectHint': '点选、矩形或多边形选择地面区域，可量面积、导出 GeoJSON 或交给 AI；把画面发给 AI 请用顶部「问 Agent」按钮。',
     'tools.effectsHint': '按图层应用高度配色、等高线、扫描、水面等预设特效。',
@@ -196,7 +194,7 @@ export const V18_MESSAGES = {
     'shaderSync.doneSkipped': '已将特效「{preset}」同步到 {n} 个可见图层（已跳过 {skipped} 个隐藏或 3DGS 图层）',
     'shaderSync.partial': '多图层特效同步完成：成功 {ok} 个，失败 {fail} 个',
     'selection.parseAoi': '解析此选区',
-    'selection.parseAoiHint': '将当前矩形/多边形地面范围局部高清裁剪，交由场景解析提取建筑与地物',
+    'selection.parseAoiHint': '将当前矩形/多边形地面范围局部高清裁剪，交由场景提取建筑与地物',
     'layers.switch3d': '整层切换为 3D 白模拉伸',
     'layers.switch2d': '整层切换为 2D 地表轮廓',
     'layers.layerExtruded3d': '图层已切换为 3D 白模拉伸',
@@ -208,7 +206,6 @@ export const V18_MESSAGES = {
   },
   en: {
     ...VECTOR_MESSAGES.en,
-    ...VISION_MESSAGES.en,
     'menu.recentUrls': 'Recent addresses',
     'layers.tab.surface': 'Surface',
     'layers.tab.3d': '3D',
@@ -246,7 +243,7 @@ export const V18_MESSAGES = {
     'tools.effectsEmpty': 'No active effect; open the workbench to apply one.',
     'tools.select': 'Select',
     'tools.askAgentLook': 'Send current view to AI',
-    'tools.askAgentLookHint': 'Inject the current-view screenshot and scene summary into this conversation, then ask a specific question; nothing runs automatically and no geographic coordinates are invented.',
+    'tools.askAgentLookHint': 'Attach the current view and scene summary to this conversation.',
     'tools.index': 'Tool entry points',
     'tools.selectHint': 'Point, rectangle or polygon select a ground area, then measure it, export GeoJSON or hand it to the AI; to send the view itself, use the Ask Agent button in the top bar.',
     'tools.effectsHint': 'Apply height colouring, contours, scan, water and other presets per layer.',

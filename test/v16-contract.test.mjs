@@ -4,7 +4,7 @@
  * The 1.6 work added fields (quality, raster overlays) to two places the Agent
  * and the panel both read: the persisted catalog (`sources.json` → `normalizeConfig`)
  * and `earth_scene status`. Neither may rename or drop an older field, and the
- * frozen six-tool surface must not drift. These tests are the guard that makes
+ * frozen seven-tool surface must not drift. These tests are the guard that makes
  * "additive only" enforceable instead of a convention.
  */
 import { mkdtemp, rm } from 'node:fs/promises'
@@ -95,9 +95,9 @@ test('status 契约：既有字段仍在，render 的字段是加法（fps/idle/
 // Frozen tool surface
 // ---------------------------------------------------------------------------
 
-test('工具契约：仍是六个工具，scene 12 个 action，analyze 4 个，shader 4 个预设', () => {
+test('工具契约：仍是七个工具，scene 12 个 action，analyze 4 个，shader 4 个预设', () => {
   const host = hostSource()
-  const tools = ['earth_scene', 'earth_capture', 'earth_draw', 'earth_measure', 'earth_analyze', 'earth_shader']
+  const tools = ['earth_scene', 'earth_capture', 'earth_draw', 'earth_measure', 'earth_analyze', 'earth_shader', 'earth_extract']
   for (const name of tools) assert.match(host, new RegExp(`'${name}'`), `缺少工具 ${name}`)
   assert.equal([...host.matchAll(/create\w+Tool\(/g)].length >= 6, true, '工具工厂不足 6 个')
 

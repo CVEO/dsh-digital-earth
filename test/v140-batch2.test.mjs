@@ -308,7 +308,7 @@ test('earth_analyze schema：注册于六工具集，13 个参数、required act
 
   assert.match(host, /scope\.tools\.register\(createAnalyzeTool\(bridge\)\)/)
   // B3：earth_shader 是第六个工具，注册总数随之 5→6。
-  assert.equal((host.match(/scope\.tools\.register\(/g) ?? []).length, 6)
+  assert.equal((host.match(/scope\.tools\.register\(/g) ?? []).length, 7)
 
   const tool = block(analyzeSource, 'function createAnalyzeTool(bridge) {', '\n}')
   assert.match(tool, /name: ANALYZE_TOOL_NAME/)
@@ -393,14 +393,14 @@ test('earth_analyze 渲染：8 KB 上限、UTF-8 安全截断、四种 operation
   assert.match(render, /analysis JSON truncated at \$\{ANALYZE_RENDER_LIMIT\} UTF-8 bytes/)
 })
 
-test('系统提示词：≤1600 字符、六工具名、analyze 一句，且不出现内部命令/旧话术', () => {
+test('系统提示词：≤1600 字符、七工具名、analyze 一句，且不出现内部命令/旧话术', () => {
   const prompt = SYSTEM_PROMPT_SECTION
   assert.ok(prompt.length <= 1600, `提示词超预算：${prompt.length} 字符`)
   assert.ok(prompt.length >= 1400, `提示词过短：${prompt.length} 字符`)
-  for (const name of ['earth_scene', 'earth_capture', 'earth_draw', 'earth_measure', 'earth_analyze', 'earth_shader']) {
+  for (const name of ['earth_scene', 'earth_capture', 'earth_draw', 'earth_measure', 'earth_analyze', 'earth_shader', 'earth_extract']) {
     assert.match(prompt, new RegExp(name))
   }
-  assert.match(prompt, /Six tools drive it/)
+  assert.match(prompt, /Seven tools drive it/)
   // The action lists must match the shipped contract: report is a real earth_scene
   // action and skyline/clip are real earth_analyze actions (D-16).
   assert.match(prompt, /earth_scene actions: status, list, load, remove, visible, basemap, terrain, fly, reset, pick, inspect, report, frame\./)
@@ -411,7 +411,7 @@ test('系统提示词：≤1600 字符、六工具名、analyze 一句，且不�
   assert.match(prompt, /status only when you need the current camera/)
   assert.match(prompt, /\[code\]/)
   assert.match(prompt, /never retry access_denied or access_timeout/)
-  assert.equal((prompt.match(/opens automatically/g) ?? []).length, 1)
+  assert.equal((prompt.match(/chat header globe/g) ?? []).length, 1)
 
   assert.doesNotMatch(prompt, /authorize/i)
   assert.doesNotMatch(prompt, /Data\s*(?:→|->|>)/i)
@@ -677,12 +677,12 @@ test('client 单活动分析：analysis- 实体前缀独立于 agent-，clear �
   }
 })
 
-test('client toolview：六个地球工具行（含 earth_analyze/earth_shader），TOOL_SUMMARY_KEYS 与中英文案对齐', () => {
+test('client toolview：七个地球工具行（含 earth_analyze/earth_shader），TOOL_SUMMARY_KEYS 与中英文案对齐', () => {
   // F1/B3：earth_analyze、earth_shader 都有聊天工具行，冷启动即可自动打开面板。
-  assert.equal((client.match(/name: 'tool\.call\.toolview'/g) ?? []).length, 6)
+  assert.equal((client.match(/name: 'tool\.call\.toolview'/g) ?? []).length, 7)
   const toolviews = [...client.matchAll(/name: 'tool\.call\.toolview', key: '([a-z_]+)'/g)].map((match) => match[1])
-  assert.deepEqual(toolviews, ['earth_scene', 'earth_capture', 'earth_draw', 'earth_measure', 'earth_analyze', 'earth_shader'])
-  // 六个工具行共用 EarthToolRow：非 earth_scene 工具走 TOOL_SUMMARY_KEYS。
+  assert.deepEqual(toolviews, ['earth_scene', 'earth_capture', 'earth_draw', 'earth_measure', 'earth_analyze', 'earth_shader', 'earth_extract'])
+  // 七个工具行共用 EarthToolRow：非 earth_scene 工具走 TOOL_SUMMARY_KEYS。
   assert.match(client, /function EarthToolRow\(\{ toolName, phase, block, callId \}\)/)
   assert.match(client, /rightbar\.openTab\('digital-earth'\)/)
   assert.match(client, /if \(phase === 'result' \|\| openedRef\.current\) return/)
@@ -736,7 +736,8 @@ test('client 分析卡与布局：右上方浮动卡、SVG 剖面、折叠/关�
 
   // 窄宽（docked 420px 容器）不越界，且不与图层卡重叠。
   const narrow = block(client, '@container (max-width: 420px){', '\n}')
-  assert.match(narrow, /\.mv-root\.mv-docked \.mv-chrome\{top:12px;right:12px;max-height:calc\(100% - 24px\)\}/)
+  assert.match(narrow, /\.mv-root\.mv-docked\{--mv-console-top:12px;--mv-console-right:12px/)
+  assert.match(narrow, /\.mv-root\.mv-docked \.mv-chrome\{max-height:calc\(100% - 24px\)\}/)
   assert.match(narrow, /\.mv-root\.mv-docked \.mv-right\{width:min\(300px,calc\(100% - 24px\)\)\}/)
   assert.match(narrow, /\.mv-root\.mv-docked \.mv-right \.mv-analysis\{max-width:100%\}/)
   assert.match(narrow, /\.mv-root\.mv-docked \.mv-right \.mv-layers\{position:static;top:auto;right:auto;width:100%;max-height:none\}/)

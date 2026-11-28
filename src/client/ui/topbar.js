@@ -1,22 +1,8 @@
-/**
- * ui/topbar.js — the console's single header row: five entries, icon-only.
- *
- * One axis, left to right: **data in → work → look → take away → configure**
- *
- *   数据 ▾ | 场景 · 工具 · 结果 | 视图 ▾ | 输出 ▾ | ⚙
- *
- * - 数据 / 视图 / 输出 are menus because they are action sets;
- * - 场景 / 工具 / 结果 are the rail's three destinations, drawn as one segmented
- *   group so they read as "one workspace", not three unrelated buttons;
- * - the domain's name and the menu's content match: 输出 no longer hides the HUD
- *   toggle, 视图 no longer hides the screenshot.
- *
- * Menu open state and the outside-click / Escape effect stay in ViewerSurface
- * (the recents refresh keys off `openMenu`); this component is presentation only.
- */
+/** Console header, action menus and workspace navigation. ViewerSurface owns menu state. */
 import React from 'react'
 
 import { GlyphIcon } from './icons.js'
+import { PlaceSearch } from './place-search.js'
 import { MenuItem } from './menu-item.js'
 import { dataMenuItems } from './data-menu.js'
 import { outputMenuItems } from './toolbar-output.js'
@@ -34,10 +20,18 @@ export function TopBar({
   data,
   view,
   output,
+  places,
   quick,
+  panelLabel = '',
+  panelDetail = null,
+  onBack = null,
   onOpenSettings,
   onToggleChrome,
 }) {
+  const closePlaces = () => {
+    setOpenMenu(null)
+    menuRef?.current?.querySelector('[data-mv-menu="view"]')?.focus()
+  }
   const closeMenu = () => setOpenMenu(null)
   const menu = (id, label, items, icon) =>
     h(
@@ -48,6 +42,7 @@ export function TopBar({
         {
           type: 'button',
           className: `mv-btn${openMenu === id ? ' on' : ''}`,
+          'data-mv-menu': id,
           'aria-haspopup': 'menu',
           'aria-expanded': openMenu === id,
           'aria-label': label,
@@ -67,6 +62,25 @@ export function TopBar({
     { key: 'top', className: `mv-top${openMenu ? ' menu-open' : ''}` },
     h(
       'div',
+      { key: 'head', className: 'mv-top-head' },
+      panelDetail && typeof onBack === 'function'
+        ? h(
+            'button',
+            {
+              type: 'button',
+              className: 'mv-top-back',
+              title: t('dock.back'),
+              'aria-label': t('dock.back'),
+              onClick: onBack,
+            },
+            '‹',
+          )
+        : null,
+      h('span', { key: 'title', className: 'mv-top-title', title: panelLabel }, panelLabel),
+      panelDetail ? h('span', { key: 'detail', className: 'mv-top-detail', title: panelDetail }, `· ${panelDetail}`) : null,
+    ),
+    h(
+      'div',
       { ref: menuRef, className: 'mv-actions' },
       menu(
         'data',
@@ -74,12 +88,12 @@ export function TopBar({
         dataMenuItems({ h, MenuItem, t, closeMenu, ...data }),
         h(GlyphIcon, { name: 'folder' }),
       ),
+      menu('view', t('btn.view'), viewMenuItems({ h, MenuItem, t, closeMenu, onOpenPlaces: places ? () => setOpenMenu('places') : null, ...view }), h(GlyphIcon, { name: 'view' })),
+      openMenu === 'places' && places ? h(PlaceSearch, { t, ...places, onClose: closePlaces }) : null,
+      menu('output', t('btn.output'), outputMenuItems({ h, MenuItem, t, closeMenu, ...output }), h(GlyphIcon, { name: 'export' })),
       h('i', { key: 's1', className: 'mv-sep' }),
       h('div', { key: 'quick', className: 'mv-quick', role: 'group', 'aria-label': t('panel.title') }, h(ToolbarQuick, { t, ...quick })),
       h('i', { key: 's2', className: 'mv-sep' }),
-      menu('view', t('btn.view'), viewMenuItems({ h, MenuItem, t, closeMenu, ...view }), h(GlyphIcon, { name: 'view' })),
-      menu('output', t('btn.output'), outputMenuItems({ h, MenuItem, t, closeMenu, ...output }), h(GlyphIcon, { name: 'export' })),
-      h('i', { key: 's3', className: 'mv-sep' }),
       h(ToolbarSettings, { t, setSettingsOpen: onOpenSettings }),
       h(
         'button',

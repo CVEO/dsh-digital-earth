@@ -44,11 +44,11 @@ test('B1 工具栏收敛：数据/视图/输出三个菜单 + 图层·工具·�
   const quick = readRepoFile('src/client/ui/toolbar-quick.js')
   // 三个域按钮：图层 / 工具 / 结果，画成同一段 .mv-quick。
   for (const key of ['layers', 'tools', 'result']) {
-    assert.ok(quick.includes(`entry('${key}'`), `工具栏缺少 ${key} 入口`)
+    assert.ok(new RegExp(`entry\\(\\s*'${key}'`).test(quick), `工具栏缺少 ${key} 入口`)
   }
-  assert.ok(!quick.includes("entry('analysis'"), '分析并入工具与结果，不再单占工具栏')
-  assert.ok(!quick.includes("entry('view'"), '视图是菜单，不是工具域按钮')
-  assert.ok(!quick.includes("entry('select'"), '选择回归工具卡，不占用工具栏')
+  assert.ok(!/entry\(\s*'analysis'/.test(quick), '分析并入工具与结果，不再单占工具栏')
+  assert.ok(!/entry\(\s*'view'/.test(quick), '视图是菜单，不是工具域按钮')
+  assert.ok(!/entry\(\s*'select'/.test(quick), '选择回归工具卡，不占用工具栏')
   assert.ok(!quick.includes('openToolCount'))
 
   // 顶层入口：数据 ▾ | 图层·工具·结果 | 视图 ▾ | 输出 ▾ | ⚙。
@@ -204,5 +204,5 @@ test('B5 工程门禁存在并接入 npm run check', () => {
   const messages = readRepoFile('src/client/messages.js')
   assert.ok(messages.includes(`version: '${pkg.version}'`), 'messages fallback follows package.json')
   assert.ok(readRepoFile('src/host/about.js').includes(`version: '${pkg.version}'`), 'about follows package.json')
-  assert.ok(readRepoFile('README.md').includes('画面与输出'))
+  assert.ok(readRepoFile('README.md').includes('输出 → 问 Agent'))
 })

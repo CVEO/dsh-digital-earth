@@ -78,13 +78,11 @@ export function SelectBody({
   onActivateSelection,
   onAskSelection,
   onParseSelection,
-  onVisionSelect,
 }) {
   return h(
     React.Fragment,
     null,
     h(SelectionTool, { t, getCesium, getViewer, showToast, runAnalysis, getTerrainActive, getOverlayRows, onRemoveOverlayRows, onActivateSelection, onAskSelection, onParseSelection }),
-    typeof onVisionSelect === 'function' ? h('button', { type: 'button', className: 'mv-cta', title: t('vision.actionHint'), onClick: onVisionSelect }, t('vision.title')) : null,
     // Ask Agent lives in the top toolbar only: one entry point for "hand the view
     // to the conversation", instead of a second one hiding inside the toolbox.
     h('p', { className: 'mv-none' }, t('tools.selectHint')),

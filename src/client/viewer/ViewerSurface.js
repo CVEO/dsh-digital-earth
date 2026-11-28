@@ -21,7 +21,7 @@ import { resolveFrameSource, temporalSignature } from '../scene/raster-time.js'
 import { createLayerKindProbe } from '../scene/layer-kind.js'
 import { flyToBookmark } from '../scene/bookmarks.js'
 import { flyToCartographic, frameAllLayers } from '../scene/frame.js'
-import { flyToCoordinates, parseLonLat } from '../scene/fly-target.js'
+import { flyToCoordinates, parseLonLat, placeBounds } from '../scene/fly-target.js'
 import { tilesetGeorefIssue } from '../scene/georef-check.js'
 import { flightDuration } from '../scene/motion.js'
 import { createAskAgent } from '../scene/ask-agent.js'
@@ -29,10 +29,10 @@ import { createCaptureService } from '../scene/capture.js'
 import { createCaptureHud } from '../scene/capture-hud.js'
 import { createPointerTools } from '../scene/pointer-tools.js'
 import { createMeasurePreview } from '../scene/measure-preview.js'
+import { commitMeasurementToOverlay, drawMeasurePreview } from '../scene/measure-render.js'
 import { pickSurfaceAt } from '../scene/pick-surface.js'
 import { createProfileTool } from '../scene/profile-tool.js'
 import { createVectorInteraction } from '../scene/vector-interaction.js'
-import { VECTOR_COLORS, vectorLabel } from '../scene/vector-style.js'
 import { createSelectionController } from '../scene/selection-controller.js'
 import { cancelSelection, disposeSelection, getSelectionTool, isSelectionActive, peekSelection } from '../scene/selection-tools.js'
 import { installCanvasInput } from '../scene/canvas-input.js'
@@ -60,6 +60,7 @@ import { RightStack } from '../ui/right-stack.js'
 import { ChromeA11y, ChromeShell, useChromeVisibility } from '../ui/chrome-visibility.js'
 import { useEscapeLayer } from '../ui/escape-stack.js'
 import { useToolWorkspace } from '../ui/tool-workspace.js'
+import { consoleHeader } from '../ui/console-header.js'
 import { LoadingGlobe } from '../ui/loading-globe.js'
 import { SelectionOverlay } from '../ui/selection-overlay.js'
 import { VectorCard } from '../ui/vector-card.js'
@@ -76,6 +77,7 @@ import { runVectorImport } from '../scene/vector-import-transaction.js'
 import { createVectorRenderer } from '../scene/vector-renderer.js'
 import { createAnnotationActions } from '../scene/annotation-actions.js'
 import { createAnnotationTool } from '../scene/annotation-tool.js'
+import { createParseOverlaySync } from '../scene/parse-overlay.js'
 import { createAnnotationEditor } from '../scene/annotation-editor.js'
 import { createVectorExport } from '../scene/vector-export-service.js'
 import { createNetwork } from '../scene/network.js'
@@ -183,6 +185,13 @@ const TOOL_WINDOW_OF_MODE = {
       const [shaderOpen, setShaderOpen] = React.useState(false)
       const [showTools, setShowTools] = React.useState(true)
       const [activePanelTab, setActivePanelTab] = React.useState('layers')
+      // The console header shows the destination's name; keep the last real one
+      // while the rail is collapsed (onActiveTab reports null then).
+      const lastPanelTabRef = React.useRef('layers')
+      const [dockUnread, setDockUnread] = React.useState({ result: false, object: false })
+      // Tools master/detail lives here (not in the rail) because the back
+      // affordance is in the toolbar row, which is above the rail.
+      const [toolIndexShown, setToolIndexShown] = React.useState(false)
       const [reportPreview, setReportPreview] = React.useState(null)
       // v1.6.2 Batch D: 图层/工具 toolbar entries focus a dock tab instead of
       // toggling an independently stacked card. The dock decides whether this
@@ -190,6 +199,14 @@ const TOOL_WINDOW_OF_MODE = {
       const [dockRequest, setDockRequest] = React.useState(null)
       const requestDock = (kind) => setDockRequest((prev) => ({ kind, seq: (prev?.seq ?? 0) + 1 }))
       const [toolRequest, setToolRequest] = React.useState(null)
+      /**
+       * Open one tool window: a new request renders its body, and the tools
+       * destination always shows the detail (not the index) afterwards.
+       */
+      const requestToolWindow = (id, extra = {}) => {
+        setToolIndexShown(false)
+        setToolRequest((prev) => ({ id, ...extra, seq: (prev?.seq ?? 0) + 1 }))
+      }
       const workspace = useToolWorkspace(toolRequest)
       // A7: closing a tool window must end the canvas tool it owns. Without this
       // the profile/annotation tool kept intercepting clicks with only Esc as an
@@ -769,6 +786,7 @@ const TOOL_WINDOW_OF_MODE = {
 
       function setToolMode(mode) {
         cancelSelection(viewerRef.current)
+        commitMeasurement()
         // Identify is the DEFAULT pointer behaviour (click an object → its card),
         // so leaving any other tool falls back to it instead of a dead canvas.
         const next = mode ?? 'identify'
@@ -807,83 +825,37 @@ const TOOL_WINDOW_OF_MODE = {
         viewerRef.current?.scene?.requestRender?.()
       }
 
+      /**
+       * Persist the manual measurement that is currently on screen into the shared
+       * overlay list (origin 'user') so it survives leaving the tool and shows up
+       * under 场景 → 量测. The entities are moved, not redrawn.
+       */
+      function commitMeasurement() {
+        const Cesium = cesiumRef.current
+        const viewer = viewerRef.current
+        if (!Cesium || !viewer) return false
+        const command = commitMeasurementToOverlay({ Cesium, state: measureRef.current, overlay: agentOverlayRef.current })
+        if (!command) return false
+        setMeasureInfo(null)
+        syncAgentOverlayCount()
+        markSceneDirty()
+        viewer.scene?.requestRender?.()
+        return true
+      }
+
       function redrawMeasure(mode) {
         const Cesium = cesiumRef.current
         const viewer = viewerRef.current
-        const state = measureRef.current
         if (!Cesium || !viewer) return
-        for (const entity of state.entities) viewer.entities.remove(entity)
-        state.entities = []
-        const points = state.points
-        state.mode = mode
-        const descriptor = { group: 'local-measure', kind: t('layers.vectorMeasured'), title: t(`tool.${mode}`), summary: '' }
-        const add = (options) => {
-          const entity = vectorRef.current.add(options, descriptor)
-          state.entities.push(entity)
-          return entity
-        }
-        const accent = Cesium.Color.fromCssColorString(VECTOR_COLORS.accent)
-        const label = (position, text) =>
-          add({
-            position,
-            label: vectorLabel(Cesium, text),
-          })
-        for (const position of points) {
-          add({
-            position,
-            point: {
-              pixelSize: 6,
-              color: accent,
-              outlineColor: Cesium.Color.WHITE,
-              outlineWidth: 1,
-              disableDepthTestDistance: Number.POSITIVE_INFINITY,
-            },
-          })
-        }
-        if (mode === 'distance' && points.length >= 2) {
-          add({ polyline: { positions: points, width: 2, material: accent, depthFailMaterial: accent } })
-          const total = geodesicLength(Cesium, points)
-          label(points[points.length - 1], t('measure.total', { value: formatDistance(total) }))
-          setMeasureInfo({ text: t('measure.distance', { value: formatDistance(total) }) })
-        } else if (mode === 'area' && points.length >= 3) {
-          add({
-            polygon: {
-              hierarchy: new Cesium.PolygonHierarchy(points),
-              perPositionHeight: true,
-              material: accent.withAlpha(0.28),
-              outline: true,
-              outlineColor: accent,
-            },
-          })
-          add({ polyline: { positions: [...points, points[0]], width: 2.5, material: accent, depthFailMaterial: accent.withAlpha(0.3) } })
-          const area = planarArea(Cesium, points)
-          const center = Cesium.BoundingSphere.fromPoints(points).center
-          label(center, t('measure.areaLabel', { value: formatArea(area) }))
-          setMeasureInfo({ text: t('measure.area', { value: formatArea(area) }) })
-        } else if (mode === 'height' && points.length === 2) {
-          add({
-            polyline: {
-              positions: points,
-              width: 2,
-              material: accent,
-              depthFailMaterial: accent.withAlpha(0.3),
-            },
-          })
-          const left = Cesium.Cartographic.fromCartesian(points[0])
-          const right = Cesium.Cartographic.fromCartesian(points[1])
-          const delta = right.height - left.height
-          const horizontal = new Cesium.EllipsoidGeodesic(left, right).surfaceDistance
-          const text = t('measure.height', {
-            value: `${delta >= 0 ? '+' : ''}${delta.toFixed(2)} m`,
-            distance: formatDistance(horizontal),
-          })
-          label(points[1], text)
-          setMeasureInfo({ text })
-        } else {
-          setMeasureInfo({ text: t('measure.start') })
-        }
-        descriptor.summary = state.entities.map((entity) => entity.label?.text?.getValue?.()).filter(Boolean).join(' · ')
-        vectorRef.current.refresh(descriptor)
+        drawMeasurePreview({
+          Cesium,
+          viewer,
+          state: measureRef.current,
+          mode,
+          t,
+          vector: vectorRef.current,
+          onInfo: setMeasureInfo,
+        })
         if (toolRef.current === mode) measurePreviewRef.current?.sync(mode)
       }
 
@@ -1005,6 +977,11 @@ const TOOL_WINDOW_OF_MODE = {
         vectorRenderer.drawAgentOverlay(Cesium, viewer, geojson, style, caption, origin)
       const measureAgentOverlay = (Cesium, viewer, args) =>
         vectorRenderer.measureAgentOverlay(Cesium, viewer, args)
+      const parseOverlayRef = React.useRef(null), parseOverlay = (parseOverlayRef.current ??= createParseOverlaySync({
+        getState: () => agentOverlayRef.current, getViewer: () => viewerRef.current,
+        draw: (geojson, style, caption, origin) => drawAgentOverlay(cesiumRef.current, viewerRef.current, geojson, style, caption, origin),
+        onChanged: () => { syncAgentOverlayCount(); markSceneDirty(); saveSceneSnapshot(true) }, t,
+      }))
 
       //#region analysis engine ---------------------------------------------------
       // The engine (profile / flood / sunlight, entity lifecycle, shadow restore) is
@@ -1456,7 +1433,7 @@ const TOOL_WINDOW_OF_MODE = {
       }
 
       // v1.7 P0 tour: bookmark stops play through the panel (captions + flights +
-      // take-over); the Agent's six tools are untouched.
+      // take-over); the Agent's scene tools are untouched.
       const tour = useTour({
         t,
         showToast,
@@ -1726,8 +1703,8 @@ const TOOL_WINDOW_OF_MODE = {
        * The single command dispatcher shared by the Agent bridge and (where it
        * makes sense) the panel UI. Every failure throws a model-readable error.
        */
-      // The command dispatcher lives in src/client/scene/command-bridge.js.
       const commandBridge = createCommandBridge({
+        getSession: () => sessionRef.current,
         getCesium: () => cesiumRef.current,
         getViewer: () => viewerRef.current,
         getSources: () => sourcesRef.current,
@@ -1817,7 +1794,7 @@ const TOOL_WINDOW_OF_MODE = {
           try { payload = JSON.parse(event.data) } catch { return }
           if (!payload?.id) return
           // Per-command watchdogs: a command that never settles must not wedge later commands.
-          const commandBudgets = { capture: 40000, report: 45000, load: 40000 }
+          const commandBudgets = { capture: 40000, report: 45000, load: 40000, extract: 240000 }
           commandChainRef.current = commandChainRef.current
             .then(async () => {
               if (cancelledIds.has(payload.id)) return
@@ -2295,20 +2272,6 @@ const TOOL_WINDOW_OF_MODE = {
         viewer.scene.requestRender?.()
       }, [phase, resolvedDark, activeImageryId])
 
-      const button = (label, onClick, active, extra, title) =>
-        h(
-          'button',
-          { type: 'button', className: `mv-btn${active ? ' on' : ''}${extra ? ` ${extra}` : ''}`, onClick, title },
-          label,
-        )
-      const menu = (id, label, items, active) =>
-        h(
-          'div',
-          { key: id, className: 'mv-menu mv-data-menu' },
-          button(`${label} ▾`, () => setOpenMenu(openMenu === id ? null : id), active),
-          openMenu === id ? h('div', { className: 'mv-menu-panel mv-glass' }, items) : null,
-        )
-
       // No idle badge: a permanent "ready" says nothing. Only loading/busy work earns a label.
       const status = busy || (phase === 'loading' ? t('panel.status.loading') : '')
       // v1.7 P0: the HUD keeps five readouts by default; the detailed mode
@@ -2414,6 +2377,16 @@ const TOOL_WINDOW_OF_MODE = {
         saveSceneSnapshot(true)
       }
 
+      // Console header: the destination's name (and the open tool when the tools
+      // destination is showing a detail) replaces the old second title row.
+      const header = consoleHeader({
+        t,
+        activeTab: activePanelTab,
+        lastTab: lastPanelTabRef.current,
+        windows: workspace.windows,
+        toolIndexShown,
+      })
+
       return h(
         'div',
         {
@@ -2452,6 +2425,17 @@ const TOOL_WINDOW_OF_MODE = {
           h(TopBar, {
             key: 'top',
             t,
+            places: {
+              url: meta?.placesUrl,
+              onFly: place => {
+                const started = flyToBbox(viewerRef.current, cesiumRef.current, placeBounds(place))
+                if (started) setEmptyDismissed(true)
+                return started
+              },
+            },
+            panelLabel: header.panelLabel,
+            panelDetail: header.panelDetail,
+            onBack: () => setToolIndexShown(true),
             onToggleChrome: toggleChrome,
           menuRef,
           openMenu,
@@ -2493,13 +2477,13 @@ const TOOL_WINDOW_OF_MODE = {
             onAskAgent: askAgent,
             onOpenBeside: openBeside,
           },
-          // Panel System 2.0 rail destinations, one segmented group.
           quick: {
             showLayers: activePanelTab === 'layers',
             showTools: activePanelTab === 'tools',
             showResult: activePanelTab === 'result',
             // D8: nothing to show yet, so the destination stays inert.
             resultDisabled: !analysis && !reportPreview,
+            resultUnread: Boolean(dockUnread?.result) && activePanelTab !== 'result',
             onToggleLayers: () => {
               if (!showLayers) updateSettings({ showLayers: true })
               requestDock('layers')
@@ -2517,10 +2501,22 @@ const TOOL_WINDOW_OF_MODE = {
           busy: Boolean(measureMode || tool === 'annotation'),
           dockRequest,
           objectPanel,
-          onActiveTab: setActivePanelTab,
+          onActiveTab: (tab) => {
+            if (tab) lastPanelTabRef.current = tab
+            setActivePanelTab(tab)
+          },
+          onUnread: setDockUnread,
+          showToolIndex: toolIndexShown,
+          onShowToolIndex: setToolIndexShown,
           openWindows: workspace.windows,
-          onSelectTool: workspace.selectTool,
-          onCloseToolWindow: workspace.closeTool,
+          onSelectTool: (id) => {
+            setToolIndexShown(false)
+            workspace.selectTool(id)
+          },
+          onCloseToolWindow: (id) => {
+            setToolIndexShown(true)
+            workspace.closeTool(id)
+          },
           onToggleMinimizeTool: workspace.toggleMinimize,
           onToggleExpandTool: workspace.toggleExpand,
           analysis,
@@ -2565,12 +2561,15 @@ const TOOL_WINDOW_OF_MODE = {
             onToggleOverlayExtrude: (overlayIndex) => annotations.toggleLayerExtrusion(overlayIndex),
             onToggleOverlayVisible: toggleOverlayVisible,
             onQuickAnnotate: () => {
-              setToolRequest((prev) => ({ id: 'annotation', seq: (prev?.seq ?? 0) + 1 }))
+              requestToolWindow('annotation')
+              // Open the tools destination as well: without this the request only
+              // opened the tool window behind the layers tab, so 绘制标注 looked dead.
+              requestDock('tools')
             },
             // The measure tool opens like the annotation tool: one request, then
             // the rail shows the tools destination.
             onOpenMeasure: () => {
-              setToolRequest((prev) => ({ id: 'measure', seq: (prev?.seq ?? 0) + 1 }))
+              requestToolWindow('measure')
               requestDock('tools')
             },
             onSelectAgentFeature: selectOverlayFeature,
@@ -2604,13 +2603,13 @@ const TOOL_WINDOW_OF_MODE = {
             onClearMeasure: clearAllMeasurements,
             onStartProfile: (options) => profileTool.start(options),
             onStartAnnotation: annotationTool.start,
-            onAdoptParse: annotations.adoptCollection,
+            onSyncParse: parseOverlay.sync,
             onClearAnalysis: () => clearAnalysis(),
             onOpenEffect: () => setShaderOpen(true),
             onOpenShader: () => setShaderOpen(true),
             onResetAllShaders: workbench.resetAll,
-            getCesium: () => cesiumRef.current,
-            getViewer: () => viewerRef.current,
+            getCesium: () => cesiumRef.current, getViewer: () => viewerRef.current,
+            getSession: () => sessionRef.current,
             getLayers: () => layersRef.current,
             getMeta: () => metaRef.current,
             layers,
@@ -2640,9 +2639,8 @@ const TOOL_WINDOW_OF_MODE = {
             },
             onAskSelection: (options) => askAgentService.askSelection(options),
             onParseSelection: () => {
-              setToolRequest((prev) => ({ id: 'parse', aoiSeq: (prev?.aoiSeq ?? 0) + 1, seq: (prev?.seq ?? 0) + 1 }))
+              requestToolWindow('parse', { aoiSeq: (toolRequest?.aoiSeq ?? 0) + 1 })
             },
-            onVisionSelect: () => { selectionApiRef.current?.requestVision?.(); setToolMode(null); setShowTools(false) },
           },
         }),
         ),
@@ -2694,8 +2692,6 @@ const TOOL_WINDOW_OF_MODE = {
           t,
           showToast,
           onMeasure: measureFromSelection,
-          onVisionCommit: (ground) => { getSelectionTool(viewerRef.current, { getCesium: () => cesiumRef.current, t, showToast })?.commitVision(ground); workspace.openTool('select') },
-          onVisionManual: () => workspace.openTool('select'),
           onSelectArea: (card) => {
             const viewerNow = viewerRef.current
             if (!viewerNow || !card?.point) return
@@ -2707,7 +2703,7 @@ const TOOL_WINDOW_OF_MODE = {
         tour.element,
         swipe.element,
         h(ChromeA11y, { key: 'chrome-a11y', t, status, hidden: chromeHidden, onShow: toggleChrome }),
-        phase === 'ready' && layers.length === 0 && !emptyDismissed && !restoringScene
+        phase === 'ready' && layers.length === 0 && !emptyDismissed && openMenu !== 'view' && openMenu !== 'places' && !restoringScene
           ? h(
               'div',
               { key: 'empty', className: 'mv-overlay' },

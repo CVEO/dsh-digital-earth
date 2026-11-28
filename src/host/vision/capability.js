@@ -48,7 +48,7 @@ export function lookupService(ctx, name, getService) {
     }
   }
   try {
-    return ctx?.get?.(name) ?? ctx?.[name] ?? null
+    return ctx?.get?.(name, false) ?? ctx?.[name] ?? null
   } catch {
     return null
   }
@@ -125,10 +125,10 @@ export async function resolveDshVisionModel(ctx, signal, getService, options = {
   const llm = lookupService(ctx, 'llm', getService)
   const attachments = lookupService(ctx, 'attachments', getService)
   const defaults = lookupService(ctx, 'agentDefaultModel', getService)
-  if (typeof llm?.stream !== 'function' || typeof attachments?.saveImage !== 'function') {
+  if (typeof llm?.stream !== 'function' || !(typeof attachments?.saveImage === 'function' || typeof attachments?.saveImages === 'function')) {
     throw Object.assign(visionError('unavailable'), {
       stage: 'probe',
-      detail: 'Host llm or attachments service is unavailable.',
+      detail: 'Host llm or attachments service is unavailable (expected saveImage or saveImages).',
     })
   }
   let selection = overrideSelection

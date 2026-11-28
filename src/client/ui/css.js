@@ -14,7 +14,7 @@ import { COMPARE_CSS } from './compare-css.js'
 import { LAYERS_CSS } from './layers-css.js'
 
     const CSS = `
-.mv-root{position:relative;flex:1 1 0;min-height:0;overflow:hidden;background:var(--mv-bg);color:var(--mv-text);font:12px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;--mv-z-rail:9;--mv-z-popover:40;--mv-z-toast:60;--mv-z-modal:100;--mv-bg:var(--dsw-alias-bg-base,#fff);--mv-text:var(--dsw-alias-label-primary,#0f1115);--mv-dim:var(--dsw-alias-label-secondary,#5b6068);--mv-line:var(--dsw-alias-border-l2,#0000001a);--mv-accent:var(--dsw-alias-state-business-primary,#4176e6);--mv-profile-line:#1d4ed8;--mv-profile-design:#c2610a;--mv-lift:var(--dsw-alias-interactive-bg-hover,#2631480f);--mv-glass:color-mix(in srgb,var(--dsw-alias-bg-layer-1,#fff) 88%,transparent);--mv-glass-strong:var(--dsw-alias-bg-layer-1,#fff);--mv-input:var(--dsw-alias-interactive-bg-hover,#2631480f);--mv-shadow:0 8px 28px rgba(15,23,42,.18);--mv-danger:var(--dsw-alias-state-error-primary,#d33b3b);--mv-fg:var(--mv-text);--mv-surface-hi:var(--dsw-alias-bg-layer-2,#0f172a);--mv-line-strong:var(--dsw-alias-border-l1,#7dd3fc);--mv-attrib:rgba(255,255,255,.62);--mv-attrib-shadow:0 1px 2px rgba(0,0,0,.6);--mv-overlay:transparent;--mv-scrim:rgba(24,34,50,.28)}
+.mv-root{position:relative;flex:1 1 0;min-height:0;overflow:hidden;background:var(--mv-bg);color:var(--mv-text);font:12px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;--mv-z-rail:9;--mv-z-popover:40;--mv-z-toast:60;--mv-z-modal:100;--mv-console-top:10px;--mv-console-right:10px;--mv-console-gap:4px;--mv-console-width:max-content;--mv-bg:var(--dsw-alias-bg-base,#fff);--mv-text:var(--dsw-alias-label-primary,#0f1115);--mv-dim:var(--dsw-alias-label-secondary,#5b6068);--mv-line:var(--dsw-alias-border-l2,#0000001a);--mv-accent:var(--dsw-alias-state-business-primary,#4176e6);--mv-profile-line:#1d4ed8;--mv-profile-design:#c2610a;--mv-lift:var(--dsw-alias-interactive-bg-hover,#2631480f);--mv-glass:color-mix(in srgb,var(--dsw-alias-bg-layer-1,#fff) 88%,transparent);--mv-glass-strong:var(--dsw-alias-bg-layer-1,#fff);--mv-input:var(--dsw-alias-interactive-bg-hover,#2631480f);--mv-shadow:0 8px 28px rgba(15,23,42,.18);--mv-danger:var(--dsw-alias-state-error-primary,#d33b3b);--mv-fg:var(--mv-text);--mv-surface-hi:var(--dsw-alias-bg-layer-2,#0f172a);--mv-line-strong:var(--dsw-alias-border-l1,#7dd3fc);--mv-attrib:rgba(255,255,255,.62);--mv-attrib-shadow:0 1px 2px rgba(0,0,0,.6);--mv-overlay:transparent;--mv-scrim:rgba(24,34,50,.28)}
 .mv-root[data-mv-scheme="dark"]{--mv-attrib:rgba(255,255,255,.62);--mv-attrib-shadow:0 1px 2px rgba(0,0,0,.6);--mv-overlay:transparent;--mv-scrim:rgba(3,7,13,.62);color-scheme:dark}
 .mv-root[data-mv-scheme="light"]{color-scheme:light;--mv-scrim:rgba(24,34,50,.28)}
 /* Confirmation dialog: narrow, explains the scope, safe default focused. */
@@ -39,16 +39,47 @@ import { LAYERS_CSS } from './layers-css.js'
 .mv-compass:focus-visible{outline:2px solid var(--mv-accent);outline-offset:2px}
 @media (max-width:420px){.mv-compass{width:50px;height:50px;right:8px;bottom:36px}}
 .mv-glass{background:var(--mv-glass);border:.5px solid var(--mv-line);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);box-shadow:var(--mv-shadow)}
-.mv-chrome{box-sizing:border-box;position:absolute;top:10px;right:10px;display:flex;flex-direction:column;align-items:stretch;width:max-content;max-width:calc(100% - 20px);max-height:calc(100% - 20px);z-index:12;pointer-events:none;background:var(--mv-glass);border:.5px solid var(--mv-line);border-radius:14px;box-shadow:var(--mv-shadow);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);transition:opacity .18s ease,transform .18s ease}
+.mv-chrome{box-sizing:border-box;position:absolute;top:var(--mv-console-top,10px);right:var(--mv-console-right,10px);display:flex;flex-direction:column;align-items:stretch;width:var(--mv-console-width,max-content);max-width:calc(100% - 20px);max-height:calc(100% - 20px);z-index:12;pointer-events:none;background:var(--mv-glass);border:.5px solid var(--mv-line);border-radius:14px;box-shadow:var(--mv-shadow);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);transition:opacity .18s ease,transform .18s ease}
 .mv-chrome.is-hidden{opacity:0;transform:translateY(-8px);pointer-events:none}
-.mv-chrome-reveal{position:absolute;top:10px;right:10px;z-index:13;display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;padding:0;border-radius:10px;background:var(--mv-glass);color:var(--mv-text);border:.5px solid var(--mv-line);font:inherit;font-size:11.5px;cursor:pointer;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:var(--mv-shadow)}
+/* The restore handle sits exactly where the hide button was: same offsets, same
+   26px hit area as .mv-top .mv-btn.icon, so hiding the console does not move the
+   control the user is about to click again. */
+.mv-chrome-reveal{position:absolute;top:calc(var(--mv-console-top,10px) + var(--mv-console-gap,4px));right:calc(var(--mv-console-right,10px) + var(--mv-console-gap,4px));z-index:13;display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;padding:0;border-radius:7px;background:var(--mv-glass);color:var(--mv-text);border:.5px solid var(--mv-line);font:inherit;font-size:11.5px;cursor:pointer;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:var(--mv-shadow)}
 .mv-chrome-reveal svg{color:var(--mv-accent)}
 .mv-top{box-sizing:border-box;position:relative;display:flex;justify-content:flex-end;align-items:center;flex:none;width:100%;min-width:0;min-height:42px;z-index:10;pointer-events:auto;border-bottom:.5px solid var(--mv-line)}
+.mv-place{position:absolute;top:calc(100% + 6px);right:0;z-index:26;box-sizing:border-box;width:min(324px,calc(100vw - 24px));max-height:min(440px,65vh);overflow:auto;overscroll-behavior:contain;padding:12px;border-radius:12px;background:var(--mv-glass-strong);text-align:left;color:var(--mv-text)}
+.mv-root.mv-docked .mv-place{width:min(324px,calc(100cqw - 34px))}
+.mv-place header,.mv-place-source,.mv-place footer,.mv-place-source label{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.mv-place header{margin-bottom:9px;font-size:14px}
+.mv-place form,.mv-place-key,.mv-place-row{display:grid;gap:8px}
+.mv-place-query{display:flex;gap:6px}
+.mv-place input,.mv-place select{box-sizing:border-box;min-width:0;border:1px solid var(--mv-line);border-radius:6px;padding:6px 8px;background:var(--mv-input);color:var(--mv-text);font:inherit}
+.mv-place input{width:100%}
+.mv-place-submit{flex:none;border:0;border-radius:6px;padding:6px 10px;background:var(--mv-accent);color:white;cursor:pointer;font:inherit}
+.mv-place-submit:disabled{opacity:.55;cursor:default}
+.mv-place-source,.mv-place-key,.mv-place-status,.mv-place footer{font-size:11.5px;color:var(--mv-dim)}
+.mv-place select option{color:var(--mv-text);background:var(--mv-glass-strong)}
+.mv-place-key{gap:4px}
+.mv-place a,.mv-place-link{color:var(--mv-accent)}
+.mv-place-link{cursor:pointer;background:none;border:0;font:inherit;padding:2px 0}
+.mv-place :focus-visible{outline:2px solid var(--mv-accent);outline-offset:1px}
+.mv-place-status:not(:empty),.mv-place footer{margin-top:10px}
+.mv-place ul{list-style:none;margin:8px 0 0;padding:0;border-top:1px solid var(--mv-line)}
+.mv-place-row{gap:1px;width:100%;text-align:left;padding:7px 5px;color:inherit;background:none;border:0;border-radius:5px;font:inherit;cursor:pointer;overflow-wrap:anywhere}
+.mv-place-row:hover,.mv-place-row:focus-visible{background:var(--mv-lift)}
+.mv-place-row span{font-size:11px;color:var(--mv-dim)}
 .mv-top.menu-open{z-index:26}
 .mv-actions{position:relative;display:flex;align-items:center;gap:1px;padding:4px 6px;border-radius:0;pointer-events:auto;flex:1 1 auto;flex-wrap:nowrap;justify-content:flex-end;min-width:0}
 .mv-top .mv-btn,.mv-top .mv-btn.icon{width:26px;height:26px;padding:0;justify-content:center;gap:0;flex:none}
 .mv-top .mv-btn-icon{margin:0}
 .mv-top .mv-btn-label{display:none}
+/* Destination name lives here now (it used to be a second row inside the dock),
+   so the console has one title and the panel body starts right under it. */
+.mv-top-head{display:flex;align-items:center;gap:5px;flex:0 1 auto;min-width:0;padding:0 6px 0 10px;overflow:hidden}
+.mv-top-title{font-size:12px;font-weight:600;line-height:1.2;color:var(--mv-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:110px}
+.mv-top-detail{font-size:11.5px;line-height:1.2;color:var(--mv-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:128px}
+.mv-top-back{appearance:none;display:inline-flex;align-items:center;justify-content:center;flex:none;width:22px;height:22px;padding:0;border:0;border-radius:6px;background:transparent;color:var(--mv-dim);font:inherit;font-size:15px;line-height:1;cursor:pointer}
+.mv-top-back:hover{background:var(--mv-lift);color:var(--mv-text)}
 .mv-top .mv-sep{margin:0 2px}
 .mv-top .mv-icon-btn{width:26px;height:26px}
 .mv-chrome-hide{margin-left:1px}
@@ -61,6 +92,7 @@ import { LAYERS_CSS } from './layers-css.js'
 .mv-btn-label{display:inline-block}
 .mv-btn:focus-visible{outline:2px solid var(--mv-accent);outline-offset:1px}
 .mv-sep{width:1px;height:17px;background:var(--mv-line);margin:0 3px}
+.mv-btn-dot{width:5px;height:5px;border-radius:999px;background:var(--mv-accent);flex:none;margin-left:1px;box-shadow:0 0 0 2px color-mix(in srgb,var(--mv-accent) 22%,transparent)}
 .mv-menu{position:relative;display:inline-flex}
 .mv-menu-panel{position:absolute;top:calc(100% + 6px);right:0;min-width:206px;padding:4px;border-radius:11px;z-index:26;display:flex;flex-direction:column;gap:1px;background:color-mix(in srgb,var(--mv-glass-strong) 96%,transparent)}
 .mv-data-menu .mv-menu-panel{left:0;right:auto;box-sizing:border-box;width:min(260px,calc(100vw - 24px));min-width:0;max-height:min(360px,55vh);overflow:auto;overscroll-behavior:contain}
@@ -105,11 +137,6 @@ import { LAYERS_CSS } from './layers-css.js'
 /* A collapsed dock has no visible tray: the console header is the only thing
    left, and clicking a destination reopens the panel. Panels stay mounted. */
 .mv-dock.is-collapsed{display:none}
-.mv-dock-tabs{display:flex;align-items:center;gap:4px;padding:5px 6px 4px;border-bottom:.5px solid var(--mv-line);flex-shrink:0;min-width:0}
-.mv-dock-head{display:flex;align-items:center;gap:7px;flex:1 1 auto;min-width:0;height:30px;padding:0 1px 0 4px}
-.mv-dock-head-icon{display:inline-flex;flex:none;color:var(--mv-accent);opacity:.9}
-.mv-dock-head-title{flex:1 1 auto;min-width:0;font-size:12px;font-weight:600;color:var(--mv-text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.mv-dock-dot{width:6px;height:6px;border-radius:999px;background:var(--mv-accent);flex:none;box-shadow:0 0 0 2px color-mix(in srgb,var(--mv-accent) 25%,transparent)}
 .mv-dock-actions{display:inline-flex;align-items:center;gap:2px;flex:none;margin-left:2px}
 .mv-dock-actions .mv-icon-btn{width:24px;height:24px;font-size:12px}
 .mv-dock-body{display:flex;flex-direction:column;flex:1 1 auto;min-height:0;min-width:0;padding:0}
@@ -128,8 +155,6 @@ import { LAYERS_CSS } from './layers-css.js'
 .mv-dock-panel .in-dock.mv-tools .mv-tool-index{overflow:visible}
 .mv-dock-panel .in-dock.mv-toolwin>.mv-toolwin-body{flex:1 1 auto;min-height:0;overflow:auto;padding-bottom:12px}
 .mv-panel-detail{display:flex;flex-direction:column;flex:1 1 auto;min-height:0;min-width:0}
-.mv-panel-back{appearance:none;align-self:flex-start;display:inline-flex;align-items:center;gap:4px;margin:6px 8px 2px;padding:5px 8px;border:.5px solid var(--mv-line);border-radius:7px;background:var(--mv-lift);color:var(--mv-dim);font:inherit;font-size:11.5px;cursor:pointer}
-.mv-panel-back:hover{color:var(--mv-text);border-color:var(--mv-accent)}
 .mv-panel-empty{display:flex;flex-direction:column;gap:6px;padding:18px 16px;color:var(--mv-dim)}
 .mv-panel-empty h3{margin:0;font-size:13px;color:var(--mv-text)}
 .mv-panel-empty p{margin:0;font-size:12px;line-height:1.55}
@@ -483,8 +508,8 @@ import { LAYERS_CSS } from './layers-css.js'
 /* The host already draws the tab strip right above this body, so the floating
    toolbar keeps a visible gap instead of hugging it; the layer card follows the
    same offset so the two never collide when the action row wraps. */
-.mv-root.mv-docked{container-type:inline-size;margin-top:9px}
-.mv-root.mv-docked .mv-chrome{top:16px;right:16px;max-height:calc(100% - 32px)}
+.mv-root.mv-docked{container-type:inline-size;margin-top:9px;--mv-console-top:16px;--mv-console-right:16px;--mv-console-gap:3px}
+.mv-root.mv-docked .mv-chrome{max-height:calc(100% - 32px)}
 .mv-root.mv-docked .mv-actions{gap:0;padding:3px 3px 3px 5px;max-width:100%;min-width:0;row-gap:2px}
 .mv-root.mv-docked .mv-shader{top:96px;left:20px;width:min(320px,calc(100% - 40px));max-height:calc(100% - 250px)}
 .mv-root.mv-docked .mv-dialog{width:min(680px,96%)}
@@ -505,7 +530,8 @@ import { LAYERS_CSS } from './layers-css.js'
 /* 320px-wide docks: drop the separators and extra padding so the action row
    wraps cleanly instead of overflowing the pane. */
 @container (max-width: 420px){
-  .mv-root.mv-docked .mv-chrome{top:12px;right:12px;max-height:calc(100% - 24px)}
+  .mv-root.mv-docked{--mv-console-top:12px;--mv-console-right:12px;--mv-console-gap:2px}
+  .mv-root.mv-docked .mv-chrome{max-height:calc(100% - 24px)}
   .mv-root.mv-docked .mv-actions .mv-btn{padding:6px 7px}
   .mv-root.mv-docked .mv-actions .mv-sep{display:none}
   .mv-root.mv-docked .mv-actions .mv-btn.icon{padding:7px 6px}
@@ -771,6 +797,7 @@ ${RASTER_TIMELINE_CSS}
 ${COMPARE_CSS}
 ${LAYERS_CSS}
 @container (max-width:480px){
+  .mv-root.mv-docked{--mv-console-top:12px;--mv-console-right:12px;--mv-console-gap:2px}
   .mv-root.mv-docked .mv-chrome{left:12px;right:12px;width:auto;max-width:none;max-height:calc(100% - 24px)}
   .mv-root.mv-docked .mv-right{width:100%!important;max-width:none;max-height:calc(100% - 132px)}
   .mv-root.mv-docked .mv-shader{box-sizing:border-box;left:12px;right:12px;width:auto;max-height:calc(100% - 132px)}

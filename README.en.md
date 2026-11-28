@@ -10,7 +10,7 @@ Built by the CVEO Research Group, Wuhan University — a 3D component for 3D cit
 
 [中文](README.md) · [English](README.en.md) · [Changelog](CHANGELOG.md) · [License](LICENSE)
 
-![version](https://img.shields.io/badge/version-1.6.4-4f8cff)
+![version](https://img.shields.io/badge/version-1.7.0-4f8cff)
 ![license](https://img.shields.io/badge/license-MIT-2ea44f)
 ![DSH](https://img.shields.io/badge/DSH-plugin-0ea5e9)
 [![npm downloads](https://img.shields.io/npm/dm/@cveo/dsh-digital-earth?label=npm%20downloads&color=cb383f)](https://www.npmjs.com/package/@cveo/dsh-digital-earth)
@@ -21,7 +21,7 @@ Built by the CVEO Research Group, Wuhan University — a 3D component for 3D cit
 
 After opening Digital Earth in DSH, the 3D scene panel appears beside the conversation. Load local or online 3D Tiles / 3DGS data, then browse, measure and run spatial analysis while continuing the conversation; the Agent can also read and write the scene, add annotations, capture images and export reports.
 
-The 3D engine and UI assets ship with the plugin, so no additional GIS server is required; local layers need not be uploaded, while online imagery and terrain use the selected sources. When you choose AI-assisted selection, the current image is sent to the configured model and saved as a host attachment.
+The 3D engine and UI assets ship with the plugin, so no additional GIS server is required; local layers need not be uploaded, while online imagery and terrain use the selected sources. When you run AI extraction, the current orthophoto is sent to the configured model.
 
 <p align="center"><img src="assets/readme/split-view.jpg" alt="DSH conversation and Digital Earth split view: chat on the left, 3D scene and tools on the right (real screenshot)" width="92%"></p>
 <p align="center"><sub>DSH conversation and Digital Earth split view: chat on the left, 3D scene, layers and tools on the right</sub></p>
@@ -44,7 +44,7 @@ dsh plugin --profile desktop add @cveo/dsh-digital-earth
 dsh plugin --profile web add @cveo/dsh-digital-earth
 
 # Install from a local tarball (Desktop example; change desktop to web for Web UI)
-dsh plugin --profile desktop add ./cveo-dsh-digital-earth-1.6.4.tgz
+dsh plugin --profile desktop add ./cveo-dsh-digital-earth-1.7.0.tgz
 ```
 
 1. Quit and reopen the DSH Desktop app completely, or restart the `dsh web` service (the client bundle registers at startup; a page refresh is not enough).
@@ -74,11 +74,11 @@ No tool names or coordinates are required. After loading the sample data, say an
 
 ## Core capabilities
 
-- **Scene browsing**: stack multiple 3D Tiles / 3DGS layers with visibility, fly-to and attribute identification; the layer card is a single Scene card grouped into annotations / measurements / 3D content / vector / raster / imagery / terrain, with icon actions and tooltips on each group header; measure, profile, sun, analysis, visual effects and view bookmarks live in the Tools destination. The right side is one single-column console: an icon menu row (Data / Scene / Tools / Result / View / Output / Settings) sits directly above the active panel with no brand strip and no second tab row; pressing the active destination again collapses the panel, while `H` or the hide button collapses the menu and panel together and leaves one “Show interface” handle. One panel is visible at a time while the others stay mounted so a switch never loses a draft. Tools use an index ↔ detail master-detail flow with `← Tools` to go back. A compass that resets north keeps the globe readable.
+- **Scene browsing**: stack multiple 3D Tiles / 3DGS layers with visibility, fly-to and attribute identification; the layer card is a single Scene card grouped into annotations / measurements / 3D content / vector / raster / imagery / terrain, with icon actions and tooltips on each group header; measure, profile, sun, analysis, visual effects and view bookmarks live in the Tools destination. The right side is one single-column console: the header shows the active destination on the left (Scene / Tools / Result) and, on the right, three menus (Data ▾ / View ▾ / Output ▾), the Scene / Tools / Result panel buttons, settings and hide; the active panel sits directly below it with no brand strip and no second title row. Dragging the panel’s left edge resizes the whole console, so the menu row and the panel always share one width. Pressing the active destination again collapses the panel, while `H` or the hide button collapses the menu and panel together and leaves one “Show interface” handle at the same spot. One panel is visible at a time while the others stay mounted so a switch never loses a draft. Tools use an index ↔ detail master-detail flow: the header reads “Tools · Measure” and the `‹` chevron before the title returns to the index. A compass that resets north keeps the globe readable.
 - **Measurement and identification**: distance, area and height, plus drag-box ground selection that reports area/perimeter/boundary height and exports GeoJSON; the coordinate HUD samples at 5–6 Hz and the identify card reports surface height and an estimated geometric height.
 - **Spatial analysis**: 3D profile, flood, sunlight, clip and skyline — one active analysis at a time, drawn in the scene with the height source (3D Tiles surface or terrain) stated in the result.
 - **Deliverables**: Clean snapshots (Manual and Agent snapshots keep only the 3D view by default), HTML / Markdown scene reports, evidence packs and per-session scene restore; the snapshot folder keeps the last 50 files, suitable for reports, presentations and archives. Snapshots are canvas-only bitmaps by contract (v1.6.2): DOM overlays and toolbars never enter the image. They also report camera longitude/latitude, height, heading, pitch, time and visible layers, and write a JSON sidecar next to the image.
-- **Agent integration**: Six built-in tools (`earth_scene`, `earth_capture`, `earth_draw`, `earth_measure`, `earth_analyze`, `earth_shader`) let the conversation read and write the scene; visual effects are white-listed presets (no custom GLSL), applied per layer with an original-look comparison.
+- **Agent integration**: Seven built-in tools (`earth_scene`, `earth_capture`, `earth_draw`, `earth_measure`, `earth_analyze`, `earth_shader`, `earth_extract`) let the conversation read and write the scene; visual effects are white-listed presets (no custom GLSL), applied per layer with an original-look comparison.
 - **Data access**: recursive local folder scan, an absolute local path and `http(s)` URLs; a local path is authorised once and never read outside the granted folders. Vector data can be imported as GeoJSON or Shapefile (`.shp`, optionally with its `.dbf` table; up to 500 features / 20k coordinates), or dropped straight onto the globe, sharing the Agent overlay rendering and clear path.
 
 ## Interface and interaction
@@ -106,7 +106,7 @@ All screenshots below are from real panel sessions. Sample data: the public Cler
 
 **Measure and annotate**: measure distance, area and height on the globe, or let the Agent draw points, lines and polygons from GeoJSON; results stay in the panel and can be captured at any time. **Clicking a scene object identifies it by default**: the card shows batch-table attributes (up to 8 when present), hit layer, coordinates, surface/geometric height and confidence — no tool mode to arm first. The card can also create a 15 m approximate AOI around the point (labelled as approximate, never as a building footprint).
 
-**Tools card**: the toolbar opens a separate card for measurement, profile, sunlight, visual effects and view bookmarks. Finishing a point, lasso, box or object selection expands a question composer. Enter a question or choose a suggested question, then select “Send to current conversation”. Selection details and an optional saved view accompany the question; the reply appears in chat, queued if the Agent is busy. Valid surface regions also offer approximate area/perimeter, GeoJSON export and existing analyses. Object marquee selects existing annotations for batch deletion or export. AI-assisted selection uses the separate direct-vision workflow below. “Ask Agent” in the View & output menu remains a context-only action followed by typing a question in chat.
+**Tools card**: the toolbar opens a separate card for measurement, profile, sunlight, visual effects and view bookmarks. Finishing a point, lasso, box or object selection expands a question composer. Enter a question or choose a suggested question, then select “Send to current conversation”. Selection details and an optional saved view accompany the question; the reply appears in chat, queued if the Agent is busy. Valid surface regions also offer approximate area/perimeter, GeoJSON export and existing analyses. Object marquee selects existing annotations for batch deletion or export. AI extraction uses the nadir instance-segmentation workflow below. In the conversation sidebar, choose Output → Ask Agent to send the scene context to the current chat.
 
 **Ask after selecting**: open Tools → Box select, drag a region and release. The question card saves that view with the selected area outlined in cyan; moving the camera afterward does not change it. Images are limited to 1024 pixels on the longest side and sent only when you press Send. The host admits them as native image attachments to the current conversation model, so the Agent need not read a snapshot file. A model without image support produces an explicit error; switch models or send coordinates without the image when geometry is available. If the host lacks direct prompt support, copy the question and selection into chat. Context injection is never presented as an active answer. When delivery is uncertain, check chat first; retrying retains the same request identity.
 
@@ -118,6 +118,12 @@ Drag previews use screen coordinates; depth is sampled only on release. Surface 
 
 **Sun timeline**: enable it in the 3D tab and drag the date/time slider; the zone can be scene mean solar time (default, derived from the current scene/layer longitude with its UTC offset shown), browser local (IANA zone) or UTC. With the timeline on, sky and sun are visible, darkness after sunset is labelled as real day/night rather than a render fault, and closing the timeline restores the original lighting.
 
+### Place search
+
+Open **View → Place search**, enter a city, address or landmark, then select a result to fly there. Tianditu is the initial provider. Enter your service key in the panel or set `TIANDITU_TOKEN` on the DSH host. The panel saves keys in the host’s Digital Earth configuration directory. Use the address to distinguish namesakes, or select a region to narrow grouped results. [Tianditu search API](https://lbs.tianditu.gov.cn/server/search2.html)
+
+OpenStreetMap supports occasional, manually submitted searches. The public Nominatim service permits at most one request per second across the entire application. The plugin caches and rate-limits per host. For multiple installations, set `DSH_NOMINATIM_SEARCH_URL` to the full search endpoint of a shared rate-limited proxy or your own instance. [Nominatim usage policy](https://operations.osmfoundation.org/policies/nominatim/)
+
 ## Data and accuracy
 
 - **3D Tiles**: standard 1.0 / 1.1 (b3dm, glb); the root tile must carry a world placement (`root.transform` or `root.boundingVolume.region`). If an OSGB-converted dataset lacks that transform, run the `georef-osgb` script once in the repository (the npm package does not include the script).
@@ -128,17 +134,16 @@ Drag previews use screen coordinates; depth is sampled only on release. Surface 
 
 Public sample data: <a href="https://3d.craig.fr/datasets/Clermont/3dtiles/tileset.json">Clermont-Ferrand 3D Tiles</a> (France, published by CRAIG, dataset centre about 45.7944°N, 3.1676°E) — paste the address into the panel to open it.
 
-## AI-assisted selection (direct vision)
+## AI 2D instance segmentation
+AI extraction locates the selected classes in a nadir image, then asks the vision model to trace individual objects in enlarged crops. A review sheet holds up to four crops. Suspected detection boxes can receive a second trace in a rotated view. The catalog covers buildings, water, vegetation, roads, vehicles, sports fields, farmland and other features, with support for custom classes.
 
-Click a scene target and choose “Outline this target with AI” on its card. Check the image preview, then choose “Use approximate selection”. The Tools card can export GeoJSON with approximation metadata or run existing analyses. Results approximate visible surfaces; area and analysis are indicative only. This is not a building footprint, precise segmentation or mesh extraction.
+Under AI extraction settings, follow the current conversation, choose a DSH model, or enter an OpenAI-compatible API URL, model and optional key. Apply the selection to save it for this local plugin. Switch between general features and sports facilities or add custom classes. Multi-scale search adds overlapping detail windows within the same call limit. Localization can use joint IDs, class names, or a separate search per class. Identical requests can reuse a completed answer in the same session for 15 minutes. Disable reuse to rerun inference.
 
-The panel calls the global default DSH vision model once, outside the Agent tool loop, without installing SAM or another inference runtime. The model must declare image support, and the host must provide LLM, attachment and default-model services; missing capabilities produce explicit messages. Images are limited to a 1024-pixel longest edge, with an approximately 20-second server timeout and no automatic retries. Model-provider charges apply. Cancellation signals the model to stop; it does not undo incurred charges or saved attachments.
-
-The view stays fixed during recognition. Camera, layer, tile-detail or panel-size changes invalidate the result. Confirmation requires reliable 3D depth; if unavailable, explicitly switch to manual lasso. “Ask Agent” in the View & output menu remains a separate action. After updating the local plugin, quit DSH completely and restart it to load the new host route.
+Click a candidate class name to preview its outline. Adopted features use class colors and show their name on hover or selection. Export writes 2D WGS84 GeoJSON. Each workbench run allows up to 80 model calls and reports unfinished tasks. A completed task can still miss objects.
 
 ## Agent tools
 
-Six tools are registered by the Host; their names and parameters are a stable contract, and the panel and the conversation share the same operations:
+Seven tools are registered by the Host; their names and parameters are a stable contract, and the panel and the conversation share the same operations:
 
 | Tool | Purpose |
 | --- | --- |
@@ -148,6 +153,7 @@ Six tools are registered by the Host; their names and parameters are a stable co
 | `earth_measure` | Measure geodesic distance, polygon area and height difference, with values and labels |
 | `earth_analyze` | Spatial analysis: `profile` (3D profile) / `flood` / `sunlight` / `clip` / `skyline` / `clear`; one height source (3D surface or terrain) per run |
 | `earth_shader` | Apply / reset / list white-listed visual-effect presets; 1–3 presets can be composed |
+| `earth_extract` | Nadir AI instance segmentation: given an extent/classes, returns 2D WGS84 GeoJSON and renders it on the globe; ground features only, no heights or 3D outputs |
 
 Besides the tools, `/earth` commands in the conversation can read status, capture, write a report or clear annotations.
 

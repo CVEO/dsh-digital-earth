@@ -13,6 +13,7 @@ import { HUD_MESSAGES } from './messages-hud.js'
 import { ANNOTATION_MESSAGES } from './messages-annotations.js'
 import { EXPORT_MESSAGES } from './messages-export.js'
 import { PROFILE_MESSAGES } from './messages-profile.js'
+import { PLACE_MESSAGES } from './messages-places.js'
 import { DOCK_MESSAGES } from './messages-dock.js'
 
     const MESSAGES = {
@@ -20,7 +21,6 @@ import { DOCK_MESSAGES } from './messages-dock.js'
         'panel.title': '数字地球',
         'panel.description': '在三维地球上叠加 3D Tiles / 3DGS、影像与地形，与对话同屏：量测、标注、空间分析与出图。',
         'panel.status.loading': '正在加载三维引擎…',
-        'panel.status.layers': '{n} 个图层',
         'panel.empty.title': '在地球上叠加你的数据',
         'panel.empty.body':
           '支持 3D Tiles 1.0 / 1.1 与 3DGS（SPZ）。打开本地目录，或粘贴在线 / 本机 tileset.json 地址；加载后可用量测、指认，也可以直接让 Agent 分析这块数据。单击场景对象即可识别属性与高程；也可把 .geojson/.shp 直接拖进画面叠加。',
@@ -34,18 +34,13 @@ import { DOCK_MESSAGES } from './messages-dock.js'
         'btn.layersShow': '展开场景卡',
         'btn.layersHide': '收起场景卡',
         'btn.hud': '坐标 HUD',
-        'btn.hudShow': '显示坐标 HUD',
-        'btn.hudHide': '隐藏坐标 HUD',
         'btn.shaderShow': '打开视觉特效',
         'btn.shaderHide': '关闭视觉特效',
-        'btn.basemap': '底图',
-        'btn.terrain': '地形',
         'btn.measure': '量测',
         'btn.screenshot': '截图',
         'btn.askAgent': '问 Agent',
         'btn.reset': '复位',
         'btn.settings': '设置',
-        'btn.appearance': '外观',
         'btn.close': '关闭',
         'btn.cancel': '取消',
         'btn.retry': '重试',
@@ -97,14 +92,12 @@ import { DOCK_MESSAGES } from './messages-dock.js'
         'layers.removeFromScene': '从场景移除',
         'layers.frameAll': '缩放至全部图层',
         'layers.analysis': '空间分析',
-        'layers.analysisHint':
-          '点上方「绘制高程纵断面」可在地球上采样起伏与坡度（非三维模型剖切）；下方「日照时间轴」可拖动查看阴影。淹没 / 剖切 / 天际线由对话 Agent 执行；结果会显示在分析卡。',
+        'layers.analysisHint': '用地形/表面高程查看纵断面与日照，淹没/剖切/天际线由对话 Agent 执行。',
         'layers.georefWarning': '缺少世界定位（根 transform / region）：局部坐标会被当成 ECEF，数据会落在地心附近。请让数据提供方重新导出该 tileset，或按 README 用 scripts/georef-osgb.mjs 一次性修复后重新加载。',
         'layers.analysisClear': '清除分析',
         'layers.shader': '视觉特效',
         'layers.shaderEmpty': '暂无视觉特效；在特效面板应用后会显示在这里。',
         'shader.editEntry': '选中并编辑该效果',
-        'shader.removeEntry': '移除该效果',
         'shader.entryTooltip': '{layer} · {presets}｜参数：{params}',
         'shader.entryNoParams': '默认参数',
         'bookmarks.title': '视角收藏',
@@ -148,7 +141,6 @@ import { DOCK_MESSAGES } from './messages-dock.js'
         'toast.shaderReset': '已清除图层特效：{layer}',
         'toast.shaderResetAll': '已清除全部图层特效',
         'toast.noSurface': '该位置没有可拾取的表面',
-        'toast.pickNone': '未拾取到对象',
         'measure.start': '左键点击取点，双击结束',
         'measure.distance': '总长 {value} · 双击结束',
         'measure.area': '面积 {value} · 双击结束',
@@ -226,6 +218,7 @@ import { DOCK_MESSAGES } from './messages-dock.js'
         'tool.action.measure': '量测',
         'tool.action.analyze': '分析',
         'tool.action.shader': '视觉特效',
+        'tool.action.extract': 'AI 提取',
         'tool.action.clearAgent': '清除标注',
         'tool.action.generic': '三维场景',
         'tool.open': '打开',
@@ -237,7 +230,7 @@ import { DOCK_MESSAGES } from './messages-dock.js'
           'Agent 调用地球工具（earth_scene / earth_capture / earth_draw / earth_measure / earth_analyze / earth_shader）时，自动在对话右侧打开数字地球面板；关闭后仍可从对话标题栏的地球按钮手动打开。该偏好只保存在本机浏览器。',
         'settings.screenshotHud': '截图时叠加坐标 HUD 与署名',
         'settings.screenshotHudHint':
-          '默认关闭：截图只保留干净的三维画面，便于分享或交给模型识别。打开后会在图片内叠加光标坐标、相机参数与团队署名（面板工具栏属于网页元素，不会进入图片）。',
+          '在截图上叠加光标坐标、相机参数和署名。',
         'settings.showLayers': '显示图层卡',
         'settings.showLayersHint': '关闭后图层卡从画布上收起；仍可从工具栏的「图层」按钮重新展开。该偏好会写回数据源配置。',
         'settings.showHud': '显示坐标 HUD',
@@ -301,9 +294,7 @@ import { DOCK_MESSAGES } from './messages-dock.js'
         'agent.unknownImagery': '找不到影像源「{name}」，可用：{list}',
         'agent.unknownTerrain': '找不到地形源「{name}」，可用：{list}',
         'agent.badAction': '不支持的操作：{action}',
-        'agent.badGeojson': '标注数据无效：{message}',
         'agent.badMeasure': '量测参数无效：{message}',
-        'agent.measureEmpty': '没有可用的量测结果。',
         'agent.clearedOverlays': '已清除 Agent 绘制内容（{n} 项）',
         'access.title': '授权访问本地数据',
         'access.body': 'Agent 想从这个本地路径加载数据。允许后，面板会先把该文件所在目录登记为可读取的本地数据源（仅本页面会话内有效），然后继续操作。',
@@ -381,6 +372,7 @@ import { DOCK_MESSAGES } from './messages-dock.js'
         'analysis.end': '终点 {value}',
         'analysis.waterLabel': '水面 {value}',
         'analysis.sunLabel': '太阳 {altitude}° / {azimuth}°',
+        'shader.removeEntry': '移除该效果',
         'shader.title': '视觉特效',
         'shader.close': '关闭视觉特效',
         'shader.layerLabel': '目标图层',
@@ -424,7 +416,7 @@ import { DOCK_MESSAGES } from './messages-dock.js'
         'shader.noLayers': '先加载 3D Tiles 图层，再应用视觉特效。',
         'shader.singleHint': '每个图层只保留一个特效；应用后可在图层行查看或清除。',
         'toast.captureSaved': '已生成 {width}×{height} 截图：{path}',
-        'toast.askAgentSent': '截图与场景摘要已发送；请继续输入问题，不会自动执行。',
+        'toast.askAgentSent': '截图与场景摘要已发送，请在对话中输入问题。',
         'toast.askAgentFailed': '发送场景失败：{message}',
         'toast.askAgentNoSession': '请先打开一个会话，再使用「问 Agent」。',
         'toast.reportSaved': '场景报告已保存：{path}',
@@ -435,6 +427,7 @@ import { DOCK_MESSAGES } from './messages-dock.js'
         'toast.fullscreenFailed': '全屏失败：{message}',
         'unit.hectare': '公顷',
         ...HUD_MESSAGES.zh,
+        ...PLACE_MESSAGES.zh,
         ...DOCK_MESSAGES.zh,
         // Batch A: destructive-action copy (scoped clears and confirmations).
         ...ACTION_MESSAGES.zh,
@@ -451,7 +444,6 @@ import { DOCK_MESSAGES } from './messages-dock.js'
         'panel.description':
           'Overlay 3D Tiles / 3DGS, imagery and terrain on a 3D globe beside the chat — measure, annotate, analyse and export.',
         'panel.status.loading': 'Loading 3D engine…',
-        'panel.status.layers': '{n} layers',
         'panel.empty.title': 'Lay your data over the globe',
         'panel.empty.body':
           '3D Tiles 1.0 / 1.1 and 3DGS (SPZ) both work. Open a local folder or paste a tileset.json URL / absolute path, then measure, identify, or just ask the Agent to analyse the scene. A single click on any object already identifies its attributes and height; you can also drop a .geojson/.shp onto the globe to overlay it.',
@@ -465,18 +457,13 @@ import { DOCK_MESSAGES } from './messages-dock.js'
         'btn.layersShow': 'Show scene card',
         'btn.layersHide': 'Hide scene card',
         'btn.hud': 'Coordinate HUD',
-        'btn.hudShow': 'Show coordinate HUD',
-        'btn.hudHide': 'Hide coordinate HUD',
         'btn.shaderShow': 'Open visual effects',
         'btn.shaderHide': 'Close visual effects',
-        'btn.basemap': 'Basemap',
-        'btn.terrain': 'Terrain',
         'btn.measure': 'Measure',
         'btn.screenshot': 'Snapshot',
         'btn.askAgent': 'Ask Agent',
         'btn.reset': 'Reset',
         'btn.settings': 'Settings',
-        'btn.appearance': 'Appearance',
         'btn.close': 'Close',
         'btn.cancel': 'Cancel',
         'btn.retry': 'Retry',
@@ -528,14 +515,12 @@ import { DOCK_MESSAGES } from './messages-dock.js'
         'layers.removeFromScene': 'Remove from scene',
         'layers.frameAll': 'Fit all layers',
         'layers.analysis': 'Spatial analysis',
-        'layers.analysisHint':
-          'Use "Draw elevation profile" above to sample terrain/surface heights and slopes (unlike horizontal clipping); the Sun timeline below scrubs shadows. Flood / clip / skyline run via the conversation Agent; results appear on the analysis card.',
+        'layers.analysisHint': 'Use terrain/surface heights for profiles and sun shadows; flood/clip/skyline run via the conversation Agent.',
         'layers.georefWarning': 'No world placement (root transform / region): local metres are read as ECEF and render near the Earth centre. Re-export the tileset, or repair existing data once with scripts/georef-osgb.mjs (see README) and reload.',
         'layers.analysisClear': 'Clear analysis',
         'layers.shader': 'Visual effects',
         'layers.shaderEmpty': 'No visual effects yet; applying one in the effects panel lists it here.',
         'shader.editEntry': 'Select and edit this effect',
-        'shader.removeEntry': 'Remove this effect',
         'shader.entryTooltip': '{layer} · {presets} | params: {params}',
         'shader.entryNoParams': 'defaults',
         'bookmarks.title': 'View bookmarks',
@@ -579,7 +564,6 @@ import { DOCK_MESSAGES } from './messages-dock.js'
         'toast.shaderReset': 'Effect cleared on layer: {layer}',
         'toast.shaderResetAll': 'All layer effects cleared',
         'toast.noSurface': 'No pickable surface there',
-        'toast.pickNone': 'Nothing picked',
         'measure.start': 'Left-click to add points, double-click to finish',
         'measure.distance': 'Total {value} · double-click to finish',
         'measure.area': 'Area {value} · double-click to finish',
@@ -657,6 +641,7 @@ import { DOCK_MESSAGES } from './messages-dock.js'
         'tool.action.measure': 'Measure',
         'tool.action.analyze': 'Analyze',
         'tool.action.shader': 'Visual effects',
+        'tool.action.extract': 'AI extraction',
         'tool.action.clearAgent': 'Clear annotations',
         'tool.action.generic': '3D scene',
         'tool.open': 'Open',
@@ -668,7 +653,7 @@ import { DOCK_MESSAGES } from './messages-dock.js'
           'When the Agent calls an earth tool (earth_scene / earth_capture / earth_draw / earth_measure / earth_analyze / earth_shader), open the Digital Earth panel beside the conversation; with this off you can still open it from the globe button in the chat header. The preference is stored in this browser only.',
         'settings.screenshotHud': 'Overlay coordinate HUD and credits in snapshots',
         'settings.screenshotHudHint':
-          'Off by default: snapshots keep only the clean 3D view, which is easier to share or hand to a model. Turn it on to burn the cursor coordinates, camera parameters and team credit into the image (the panel toolbar is DOM chrome and can never be part of the image).',
+          'Include cursor coordinates, camera settings and the team credit in the snapshot.',
         'settings.showLayers': 'Show the layer card',
         'settings.showLayersHint':
           'When off, the layer card collapses off the canvas; reopen it from the Layers button in the toolbar. The preference is written back to the sources config.',
@@ -734,9 +719,7 @@ import { DOCK_MESSAGES } from './messages-dock.js'
         'agent.unknownImagery': 'No imagery source "{name}". Available: {list}',
         'agent.unknownTerrain': 'No terrain source "{name}". Available: {list}',
         'agent.badAction': 'Unsupported action: {action}',
-        'agent.badGeojson': 'Invalid annotation data: {message}',
         'agent.badMeasure': 'Invalid measurement arguments: {message}',
-        'agent.measureEmpty': 'No measurement result was produced.',
         'agent.clearedOverlays': 'Cleared Agent overlays ({n} items)',
         'access.title': 'Allow local data access',
         'access.body':
@@ -816,6 +799,7 @@ import { DOCK_MESSAGES } from './messages-dock.js'
         'analysis.end': 'End {value}',
         'analysis.waterLabel': 'Water {value}',
         'analysis.sunLabel': 'Sun {altitude}° / {azimuth}°',
+        'shader.removeEntry': 'Remove this effect',
         'shader.title': 'Visual effects',
         'shader.close': 'Close visual effects',
         'shader.layerLabel': 'Target layer',
@@ -859,7 +843,7 @@ import { DOCK_MESSAGES } from './messages-dock.js'
         'shader.noLayers': 'Load a 3D Tiles layer before applying a visual effect.',
         'shader.singleHint': 'One effect per layer; view or clear it from the layer row after applying.',
         'toast.captureSaved': 'Saved {width}×{height} snapshot: {path}',
-        'toast.askAgentSent': 'Screenshot and scene summary sent. Type your question next; nothing runs automatically.',
+        'toast.askAgentSent': 'Screenshot and scene summary sent. Enter your question in the chat.',
         'toast.askAgentFailed': 'Could not send the scene: {message}',
         'toast.askAgentNoSession': 'Open a conversation first to use Ask Agent.',
         'toast.reportSaved': 'Scene report saved: {path}',
@@ -870,6 +854,7 @@ import { DOCK_MESSAGES } from './messages-dock.js'
         'toast.fullscreenFailed': 'Fullscreen failed: {message}',
         'unit.hectare': 'ha',
         ...HUD_MESSAGES.en,
+        ...PLACE_MESSAGES.en,
         ...DOCK_MESSAGES.en,
         // Batch A: destructive-action copy (scoped clears and confirmations).
         ...ACTION_MESSAGES.en,
@@ -885,7 +870,7 @@ import { DOCK_MESSAGES } from './messages-dock.js'
 
     /** About-tab fallbacks used before the Host meta payload arrives. */
     const FALLBACK_ABOUT = {
-      version: '1.6.4',
+      version: '1.7.0',
       homepage: 'https://github.com/CVEO/dsh-digital-earth',
       teamUrl: 'https://www.whu-cveo.com/',
     }

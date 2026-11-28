@@ -315,7 +315,12 @@ test('RightStack + ToolsPanel opens a tool window as a docked tab and keeps inde
     // 2. The rail keeps only icons now; the accessible name still carries the
     // destination, so screen readers do not lose the label removed as duplicate.
     assert.equal(findAll(root, (n) => hasClass(n, 'mv-dock-tab')).length, 0, '页签条已合并进顶栏，不再重复一层导航')
-    assert.equal(textOf(findAll(root, (n) => hasClass(n, 'mv-dock-head-title'))[0]), 'panel.tab.tools')
+    // v1.6.5: the destination's name moved to the console header (TopBar), so the
+    // dock exposes it through the visible tabpanel's aria-label instead of a
+    // second title row.
+    assert.equal(findAll(root, (n) => hasClass(n, 'mv-dock-head')).length, 0, '面板内不再有第二行标题')
+    const visiblePanel = findAll(root, (n) => n?.props?.role === 'tabpanel' && !n.props.hidden)[0]
+    assert.equal(visiblePanel?.props?.['aria-label'], 'panel.tab.tools')
     assert.equal(findAll(root, (n) => hasClass(n, 'mv-panel-back')).length, 0)
     assert.equal(findAll(root, (n) => hasClass(n, 'mv-dock-tab-close')).length, 0)
   })

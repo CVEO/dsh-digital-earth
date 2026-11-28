@@ -1,14 +1,39 @@
 export const visionError = (code, extra = null) =>
   Object.assign(new Error(code), { code }, extra && typeof extra === 'object' ? extra : {})
 
-const BATCH_CLASSES = new Set(['building', 'vegetation', 'water', 'road', 'vehicle', 'other'])
 const MAX_BATCH_OBJECTS = 40
+const MAX_MODEL_CLASS_CHARS = 24
+
+/**
+ * The workbench may ask for any class ("温室", "光伏板"), so the parser accepts
+ * arbitrary labels instead of a fixed whitelist. Unsafe or oversized labels are
+ * dropped; synonym mapping onto preset classes happens later in annotation-scheme.
+ */
+function normalizeModelClass(value) {
+  if (typeof value !== 'string') return ''
+  const collapsed = value.replace(/[\u0000-\u001f\u007f"'`]/g, ' ').replace(/\s+/g, ' ').trim()
+  if (!collapsed || [...collapsed].length > MAX_MODEL_CLASS_CHARS) return ''
+  return collapsed
+}
 
 const cross = (start, end, point) => (end[0] - start[0]) * (point[1] - start[1]) - (end[1] - start[1]) * (point[0] - start[0])
 
 function onSegment(start, end, point) {
   return Math.abs(cross(start, end, point)) < 1e-10 && point[0] >= Math.min(start[0], end[0]) - 1e-10 &&
     point[0] <= Math.max(start[0], end[0]) + 1e-10 && point[1] >= Math.min(start[1], end[1]) - 1e-10 && point[1] <= Math.max(start[1], end[1]) + 1e-10
+}
+
+export function ringCrossesItself(polygon) {
+  for (let i = 0; i < polygon.length; i++) {
+    const start = polygon[i], end = polygon[(i+1) % polygon.length]
+    for (let j = i+2; j < polygon.length; j++) {
+      if (i === 0 && j === polygon.length-1) continue
+      const from = polygon[j], to = polygon[(j+1) % polygon.length]
+      if ((cross(start,end,from)*cross(start,end,to) < 0 && cross(from,to,start)*cross(from,to,end) < 0) ||
+          onSegment(start,end,from) || onSegment(start,end,to) || onSegment(from,to,start) || onSegment(from,to,end)) return true
+    }
+  }
+  return false
 }
 
 export function containsVisionPoint(polygon, point) {
@@ -156,7 +181,7 @@ function douglasPeucker(points, epsilon) {
   return [start, end]
 }
 
-function simplifyRingToLimit(ring, maxVertices = 32) {
+export function simplifyRingToLimit(ring, maxVertices = 32) {
   if (ring.length <= maxVertices) return { ring, simplified: false }
   const closed = [...ring, ring[0]]
   for (const eps of [0.001, 0.002, 0.004, 0.008, 0.015, 0.025, 0.04, 0.06]) {
@@ -234,18 +259,11 @@ export function validateVisionPolygon(value, point, options = {}) {
   if (polygon.length < 3 || polygon.length > 32 || new Set(polygon.map((vertex) => vertex.join(','))).size !== polygon.length) {
     throw visionError('invalid_result', { stage: 'geometry', detail: `Polygon vertex count or uniqueness invalid (${polygon.length}).` })
   }
+  if (ringCrossesItself(polygon)) throw visionError('invalid_result', { stage: 'geometry', detail: 'Polygon is self-intersecting.' })
   let area = 0
   for (let index = 0; index < polygon.length; index += 1) {
     const start = polygon[index], end = polygon[(index + 1) % polygon.length]
     area += start[0] * end[1] - end[0] * start[1]
-    for (let other = index + 1; other < polygon.length; other += 1) {
-      if (other === index + 1 || (index === 0 && other === polygon.length - 1)) continue
-      const from = polygon[other], to = polygon[(other + 1) % polygon.length]
-      if ((cross(start, end, from) * cross(start, end, to) < 0 && cross(from, to, start) * cross(from, to, end) < 0) ||
-          onSegment(start, end, from) || onSegment(start, end, to) || onSegment(from, to, start) || onSegment(from, to, end)) {
-        throw visionError('invalid_result', { stage: 'geometry', detail: 'Polygon is self-intersecting.' })
-      }
-    }
   }
   if (Math.abs(area) / 2 < 0.00001 || Math.abs(area) / 2 > 0.85) {
     throw visionError('invalid_result', { stage: 'geometry', detail: 'Polygon area outside valid bounds.' })
@@ -422,21 +440,42 @@ export function parseVisionBatchOutput(text, options = {}) {
   const objects = []
   let dropped = 0
   for (const item of batchSlice) {
-    const kind = typeof item?.class === 'string'
-      ? item.class.trim().toLowerCase()
-      : typeof item?.category === 'string'
-        ? item.category.trim().toLowerCase()
-        : typeof item?.label === 'string'
-          ? item.label.trim().toLowerCase()
-          : ''
+    const kind = normalizeModelClass(
+      typeof item?.class === 'string'
+        ? item.class
+        : typeof item?.category === 'string'
+          ? item.category
+          : typeof item?.label === 'string'
+            ? item.label
+            : '',
+    )
     const polygon = normalizeBatchPolygon(item, batchOptions)
     const confidence = typeof item?.confidence === 'number' && Number.isFinite(item.confidence)
       ? Math.min(1, Math.max(0, item.confidence))
       : null
-    if (!BATCH_CLASSES.has(kind) || polygon === null) { dropped += 1; continue }
+    if (kind === '' || polygon === null) { dropped += 1; continue }
     objects.push({ class: kind, confidence, polygon })
     if (objects.length >= MAX_BATCH_OBJECTS) break
   }
   if (objects.length === 0) throw visionError('no_target', { stage: 'parse', detail: 'No valid objects found in batch output.' })
   return { objects, dropped }
+}
+
+/**
+ * True when a normalized outline is just an axis-aligned bounding box (4 vertices,
+ * two distinct x values and two distinct y values). VLMs often answer with a
+ * detection box although the prompt asks for a silhouette; the workbench labels
+ * those candidates as boxes instead of passing them off as instance polygons.
+ */
+export function polygonLooksLikeBox(polygon, tolerance = 0.004) {
+  if (!Array.isArray(polygon) || polygon.length !== 4) return false
+  const xs = []
+  const ys = []
+  for (const vertex of polygon) {
+    if (!Array.isArray(vertex) || vertex.length < 2) return false
+    if (!Number.isFinite(vertex[0]) || !Number.isFinite(vertex[1])) return false
+    if (!xs.some((value) => Math.abs(value - vertex[0]) <= tolerance)) xs.push(vertex[0])
+    if (!ys.some((value) => Math.abs(value - vertex[1]) <= tolerance)) ys.push(vertex[1])
+  }
+  return xs.length === 2 && ys.length === 2
 }

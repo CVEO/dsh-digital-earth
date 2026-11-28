@@ -22,7 +22,7 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)))
 const clientDir = join(root, 'src/client')
 
 // Dynamic families: `t('family.' + value)` cannot be grepped statically.
-const DYNAMIC_PREFIXES = ['tool.action.', 'tool.call.toolview', 'menu.', 'shader.preset.', 'analysis.title.', 'health.issue.']
+const DYNAMIC_PREFIXES = ['tool.action.', 'tool.call.toolview', 'menu.', 'shader.preset.', 'analysis.title.', 'health.issue.', 'parse.class.', 'parse.err.', 'parse.stage.']
 
 function walk(dir, out = []) {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {

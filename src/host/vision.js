@@ -4,6 +4,7 @@
  * & OpenAI-compatible stream support, and structured diagnostics).
  */
 export {
+  INSTANCE_SYSTEM,
   MAX_BATCH_OBJECTS,
   callVision,
   callVisionBatch,
@@ -15,15 +16,20 @@ export {
   createVisionBatchHandler,
   createVisionConfigHandler,
   createVisionHandler,
+  createVisionInstancesHandler,
   defaultVisionBackends,
   defaultVisionConfig,
+  instanceUserText,
+  normalizeInstanceClasses,
   normalizeVisionConfig,
+  parseInstanceAnswer,
   parseVisionBatchOutput,
   parseVisionOutput,
   readVisionConfig,
   redactVisionConfig,
   resolveVisionModel,
   validateVisionBatchRequest,
+  validateVisionInstancesRequest,
   validateVisionRequest,
   writeVisionConfig,
 } from './vision/index.js'

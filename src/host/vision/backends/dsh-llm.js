@@ -5,11 +5,22 @@
  */
 import { parseVisionBatchOutput, parseVisionOutput, visionError } from '../../../client/scene/vision-geometry.js'
 import { classifyProviderError, recordProbeOutcome, resolveDshVisionModel } from '../capability.js'
+import { GROUND_SYSTEM, groundPrompt, parseGrounded } from '../grounded-instances.js'
+import { INSTANCE_SYSTEM, instanceUserText, parseInstanceAnswer } from '../instances.js'
 import { BATCH_SYSTEM, SINGLE_SYSTEM, buildBatchUserText, buildSingleUserText } from '../prompts.js'
 import { streamVisionText } from '../stream-util.js'
 
 async function saveVisionAttachment(model, input, name, signal) {
-  const attachment = await model.attachments.saveImage({ data: input.data, mediaType: input.mediaType, name })
+  // DSH 0.2.2+ exposes saveImages([{data,mediaType}]) and returns refs in order;
+  // older hosts exposed saveImage({data,mediaType,name}). Support both so a
+  // plugin update does not break when the host attachment service changes.
+  let attachment
+  if (typeof model.attachments.saveImage === 'function') {
+    attachment = await model.attachments.saveImage({ data: input.data, mediaType: input.mediaType, name })
+  } else if (typeof model.attachments.saveImages === 'function') {
+    const refs = await model.attachments.saveImages([{ data: input.data, mediaType: input.mediaType }])
+    attachment = Array.isArray(refs) ? refs[0] : null
+  }
   signal.throwIfAborted()
   if (
     !attachment ||
@@ -98,6 +109,53 @@ export async function callVisionBatchWithDshModel(model, input, signal) {
   }
 }
 
+export async function callVisionInstancesWithDshModel(model, input, signal) {
+  const attachment = await saveVisionAttachment(model, input, 'digital-earth-vision-instances', signal)
+  // Polygon instance answers are compact even for a dense tile; thinking models
+  // keep a smaller budget because their reasoning tokens share the same cap.
+  const grounded = ['locate', 'trace', 'trace_batch'].includes(input.mode)
+  const maxTokens = input.maxTokens ?? (model.reasoningEffort ? 1600 : 2400)
+  let usage = null
+  const maxTotalBytes = model.reasoningEffort ? 65536 : 196608
+  try {
+    const text = await streamVisionText(model, {
+      onUsage: value => { usage = value },
+      system: grounded ? GROUND_SYSTEM : INSTANCE_SYSTEM,
+      maxTokens,
+      maxTextChars: 16384,
+      maxTotalBytes,
+      signal,
+      messages: [{
+        role: 'user',
+        content: [
+          ...(grounded ? [
+            { type: 'image', attachment },
+            { type: 'text', text: groundPrompt(input) },
+          ] : [
+            { type: 'text', text: instanceUserText(input) },
+            { type: 'image', attachment },
+          ]),
+        ],
+      }],
+    })
+    recordProbeOutcome(model.provider, model.model, true)
+    const shapes = grounded ? parseGrounded(text, input) : { instances: parseInstanceAnswer(text, input.classes) }
+    return { ...shapes, usage, finish: 'stop' }
+  } catch (error) {
+    const classified = classifyProviderError(error)
+    if (classified.code === 'model_not_visual') {
+      recordProbeOutcome(model.provider, model.model, false, classified.detail)
+    }
+    throw Object.assign(visionError(classified.code), {
+      stage: error?.stage ?? 'stream',
+      provider: model.provider,
+      model: model.model,
+      detail: error?.detail ?? classified.detail,
+      usage,
+    })
+  }
+}
+
 export function createDshLlmBackend({ ctx, getService, config }) {
   const overrideSelection = config?.mode === 'dsh-model' && config?.dshModel?.provider && config?.dshModel?.model
     ? config.dshModel
@@ -133,6 +191,18 @@ export function createDshLlmBackend({ ctx, getService, config }) {
       const model = await resolveDshVisionModel(ctx, signal, getService, { overrideSelection, force, allowUnverified })
       signal.throwIfAborted()
       const result = await callVisionBatchWithDshModel(model, input, signal)
+      return {
+        ...result,
+        backend: 'dsh-llm',
+        provider: model.provider,
+        model: model.model,
+        capability: model.capability,
+      }
+    },
+    async extractInstances(input, signal, { force = false } = {}) {
+      const model = await resolveDshVisionModel(ctx, signal, getService, { overrideSelection, force, allowUnverified })
+      signal.throwIfAborted()
+      const result = await callVisionInstancesWithDshModel(model, input, signal)
       return {
         ...result,
         backend: 'dsh-llm',

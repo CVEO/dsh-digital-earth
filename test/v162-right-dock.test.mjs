@@ -266,6 +266,14 @@ function DockHost(props) {
       onCollapse: () => setShowTools(false),
     },
     openWindows: windows,
+    showToolIndex: Boolean(props.toolIndexShown),
+    onShowToolIndex: (value) => {
+      props.toolIndexShown = value
+    },
+    onUnread: (value) => {
+      props.dockUnread = value
+      props.onUnreadSeen?.(value)
+    },
     onSelectTool: (id) => setWindows((list) => [...list.filter((item) => item.id !== id), { id }]),
     onCloseToolWindow: (id) => setWindows((list) => list.filter((item) => item.id !== id)),
     onToggleMinimizeTool: () => {},
@@ -285,7 +293,9 @@ function renderDock(initial = {}) {
 }
 
 function activeTitle(root) {
-  return textOf(byClass(root, 'mv-dock-head-title')[0])
+  // The destination's name moved into the console header (TopBar), so the dock
+  // exposes it to assistive tech through the visible tabpanel's aria-label.
+  return visiblePanels(root)[0]?.props?.['aria-label'] ?? ''
 }
 
 function requestDock(renderer, props, kind, seq) {
@@ -370,9 +380,9 @@ test('P1 场景报告：在结果页签内嵌 iframe 打开，可关闭回到空
   })
 })
 
-test('P1 工具主从：点工具索引进入工具体，← 工具返回索引', () => {
+test('P1 工具主从：点工具索引进入工具体，顶栏返回索引', () => {
   withStorage(() => {
-    const { renderer } = renderDock({ showLayers: true })
+    const { renderer, props } = renderDock({ showLayers: true })
     let root = renderer.tree()
     const measureEntry = byClass(root, 'mv-tool-entry').find((node) => textOf(node).includes('tools.measure'))
     assert.ok(measureEntry)
@@ -381,9 +391,11 @@ test('P1 工具主从：点工具索引进入工具体，← 工具返回索引'
     root = renderer.tree()
     assert.equal(byClass(root, 'mv-toolwin').length, 1, '只显示一个工具体')
     assert.equal(byClass(root, 'mv-toolwin-body').length, 1)
-    const back = byClass(root, 'mv-panel-back')[0]
-    assert.ok(back)
-    back.props.onClick()
+    assert.equal(byClass(root, 'mv-panel-back').length, 0, '面板内不再有第二行返回按钮')
+    // The back affordance is the console header's chevron: it lifts this state
+    // to the viewer, so simulate the header action and re-render.
+    props.toolIndexShown = true
+    renderer.rerender()
 
     root = renderer.tree()
     assert.equal(byClass(root, 'mv-toolwin').length, 0)
@@ -403,14 +415,17 @@ test('P1 分析结果到达：空闲时自动切到结果页签', () => {
   })
 })
 
-test('P1 忙碌时分析结果不抢焦点，只在结果页签挂未读点', () => {
+test('P1 忙碌时分析结果不抢焦点，只在结果目的地挂未读点', () => {
   withStorage(() => {
-    const { renderer, props } = renderDock({ showLayers: true, busy: true })
+    let seen = null
+    const { renderer, props } = renderDock({ showLayers: true, busy: true, onUnreadSeen: (value) => { seen = value } })
     renderer.tree()
     props.analysis = FLOOD
     renderer.rerender()
     const root = renderer.tree()
-    assert.equal(byClass(root, 'mv-dock-dot').length, 1)
+    // The dot moved from the removed dock title row onto the 结果 toolbar entry.
+    assert.equal(seen?.result, true)
+    assert.equal(byClass(root, 'mv-dock-head').length, 0)
     assert.equal(byClass(root, 'mv-analysis').length, 1, '分析卡保持挂载')
   })
 })
@@ -420,7 +435,9 @@ test('P1 面板头不再提供单独收起：整体隐藏属于界面控制，�
     const { renderer } = renderDock({ analysis: FLOOD, showLayers: true })
     const root = renderer.tree()
     assert.equal(findAll(root, (node) => node?.props?.title === 'dock.collapse').length, 0)
-    assert.equal(byClass(root, 'mv-dock-head').length, 1)
+    // No second title row: the console header above the dock is the only one.
+    assert.equal(byClass(root, 'mv-dock-head').length, 0)
+    assert.equal(byClass(root, 'mv-dock-body').length, 1)
   })
 })
 

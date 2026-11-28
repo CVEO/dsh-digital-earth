@@ -5,7 +5,7 @@
  * samples the surface on a ring of neighbours through the shared HeightService,
  * then hands ui/selection-overlay.js a plain card object. No React state and no
  * tool contract here: the panel owns the UI, and the Agent still only has the
- * frozen six tools.
+ * frozen scene tools.
  */
 import { createHeightService } from '../analysis/height-service.js'
 import { pickSurfaceAt } from './pick-surface.js'

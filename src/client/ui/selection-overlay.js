@@ -11,8 +11,6 @@
  * DOM writes, so following the camera costs no React re-render.
  */
 import React from 'react'
-import { VisionSelect } from './vision-select.js'
-import { getSelectionTool } from '../scene/selection-tools.js'
 import { coordinateText, groundSourceLabelKey, shownProperties } from '../scene/selection.js'
 
 const h = React.createElement
@@ -55,14 +53,12 @@ function numberText(value, suffix = ' m', digits = 0) {
   return `${rounded}${suffix}`
 }
 
-export function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t, showToast, onMeasure, onSelectArea, onVisionCommit, onVisionManual }) {
+export function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t, showToast, onMeasure, onSelectArea }) {
   const [card, setCard] = React.useState(null)
   const [busy, setBusy] = React.useState(false)
   const [errorLine, setErrorLine] = React.useState('')
   const [exporting, setExporting] = React.useState(false)
-  const [visionOpen, setVisionOpen] = React.useState(false)
   const [showAllProps, setShowAllProps] = React.useState(false)
-  const visionPendingRef = React.useRef(false)
   const anchorRef = React.useRef(null)
   const bracketRef = React.useRef(null)
   const chipRef = React.useRef(null)
@@ -73,21 +69,12 @@ export function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t
     requestRef.current = null
     validityRef.current = null
     anchorRef.current = null
-    visionPendingRef.current = false
     if (bracketRef.current) bracketRef.current.style.display = 'none'
     setCard(null)
     setBusy(false)
     setErrorLine('')
-    setVisionOpen(false)
     setShowAllProps(false)
   }, [])
-  // Tools-card "AI 目标圈选" arms this: the next successful identify opens the
-  // vision dialog directly instead of showing a blocking toast.
-  const requestVision = React.useCallback(() => {
-    visionPendingRef.current = true
-    setVisionOpen(false)
-  }, [])
-
   const identify = React.useCallback(
     async (position) => {
       if (!controller) return
@@ -98,7 +85,6 @@ export function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t
       setBusy(true)
       setErrorLine('')
       setCard(null)
-      setVisionOpen(false)
       setShowAllProps(false)
       try {
         const result = await controller.identifyAt(position, { signal: request.signal })
@@ -107,10 +93,6 @@ export function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t
         validityRef.current = result?.isValid ?? null
         anchorRef.current = result?.anchor ?? null
         setCard(result?.card ?? null)
-        if (visionPendingRef.current) {
-          visionPendingRef.current = false
-          setVisionOpen(true)
-        }
       } catch (error) {
         if (!current()) return
         const reason = error instanceof Error ? error.message : String(error)
@@ -135,12 +117,11 @@ export function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t
   React.useEffect(() => {
     if (!apiRef) return undefined
     identify.cancel = dismiss
-    identify.requestVision = requestVision
     apiRef.current = active ? identify : null
     return () => {
       if (apiRef) apiRef.current = null
     }
-  }, [apiRef, active, identify, dismiss, requestVision])
+  }, [apiRef, active, identify, dismiss])
 
   // Leaving the tool drops the selection; the player can always pick again.
   React.useEffect(() => {
@@ -316,11 +297,7 @@ export function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t
           h('div', { className: 'mv-select-error' }, h('span', null, errorLine)),
         )
       : null,
-    card && visionOpen
-      ? h(VisionSelect, { controller, anchor: anchorRef.current, t, onClose: () => setVisionOpen(false), onCommit: onVisionCommit,
-          onManual: () => { onVisionManual?.(); getSelectionTool(controller.getViewer(), { getCesium: controller.getCesium, t, showToast })?.start('polygon') } })
-      : null,
-    card && !visionOpen
+    card
       ? h(
           'div',
           { className: 'mv-select mv-glass' },
@@ -457,7 +434,6 @@ export function SelectionOverlay({ active, apiRef, controller, renderSnapshot, t
           h(
             'div',
             { className: 'actions' },
-            typeof onVisionCommit === 'function' ? h('button', { type: 'button', className: 'mv-cta', title: t('vision.actionHint'), onClick: () => setVisionOpen(true) }, t('vision.action')) : null,
             h('button', { type: 'button', className: 'mv-cta', title: t('selection.flyHint'), onClick: flyNear }, t('selection.fly')),
             h('button', { type: 'button', className: 'mv-cta', title: t('selection.measureHint'), onClick: measure }, t('selection.measure')),
             h(
